@@ -64,7 +64,17 @@ export function person(T, id) { return T.config.people.find(p => p.id === id) ||
 export function golfers(T) { return T.config.people.filter(p => p.role === 'golfer'); }
 export function roundDef(id) { return ROUNDS.find(r => r.id === id); }
 export function roundCfg(T, id) { return T.config.rounds[id]; }
-export function courseOf(id) { return COURSES[roundDef(id).course]; }
+export function courseByKey(T, key) {
+  const base = COURSES[key];
+  const cfg = (T.config.courses || {})[key];
+  const holes = (cfg && cfg.holes) ? cfg.holes : base.holes;
+  return {
+    key, name: base.name, meta: base.meta,
+    verified: cfg ? cfg.verified !== false : true,
+    holes: holes.map((h, i) => ({ n: i + 1, par: h.par, si: h.si, mW: h.mW, mY: h.mY, img: 'hole_' + key + '_' + (i + 1) })),
+  };
+}
+export function courseOf(T, id) { return courseByKey(T, roundDef(id).course); }
 export function scoreKey(roundId, pid) { return roundId + '__' + pid; }
 export function card(T, roundId, pid) { return T.scores[scoreKey(roundId, pid)] || null; }
 
@@ -101,7 +111,7 @@ export function countingRounds(T) { return ROUNDS.filter(r => r.counts); }
 export function playerNet(T, roundId, pid, h) {
   const c = card(T, roundId, pid);
   if (!c || c.raw[h] == null) return null;
-  const hole = courseOf(roundId).holes[h];
+  const hole = courseOf(T, roundId).holes[h];
   const p = person(T, pid);
   const s = strokesFor(p && p.band, hole.si);
   if (s == null) return null; // unbanded players are excluded, never guessed
@@ -118,13 +128,13 @@ export function pairHole(T, roundId, pair, h) {
 }
 
 function toParPair(T, roundId, pair) {
-  const holes = courseOf(roundId).holes;
+  const holes = courseOf(T, roundId).holes;
   let tp = 0, thru = 0;
   for (let h = 0; h < 18; h++) { const s = pairHole(T, roundId, pair, h); if (s != null) { tp += s - holes[h].par; thru = h + 1; } }
   return { tp, thru };
 }
 function toParPlayer(T, roundId, pid) {
-  const holes = courseOf(roundId).holes;
+  const holes = courseOf(T, roundId).holes;
   let tp = 0, thru = 0, stb = 0;
   for (let h = 0; h < 18; h++) {
     const n = playerNet(T, roundId, pid, h);
@@ -262,7 +272,7 @@ export function ryderData(T, now) {
 /* ---------- scorecard strip ---------- */
 
 export function holeCells(T, roundId, pair) {
-  const holes = courseOf(roundId).holes;
+  const holes = courseOf(T, roundId).holes;
   return holes.map((hole, h) => {
     const s = pairHole(T, roundId, pair, h);
     const d = s == null ? null : s - hole.par;
@@ -280,6 +290,8 @@ export function setupIssues(T) {
   if (empty.length) out.push({ id: 'pairs', text: empty.length + ' pair' + (empty.length > 1 ? 's are' : ' is') + ' short of two players.' });
   const un = golfers(T).filter(g => !T.config.pairs.some(p => p.members.includes(g.id)));
   if (un.length) out.push({ id: 'unpaired', text: un.length + ' golfer' + (un.length > 1 ? 's are' : ' is') + ' unpaired: ' + un.map(g => g.display).join(', ') + '. They still play for MVP and Bingo Bango Bongo.' });
+  const unver = Object.keys(COURSES).filter(k => !courseByKey(T, k).verified).map(k => COURSES[k].name);
+  if (unver.length) out.push({ id: 'courses', text: (unver.length === 2 ? 'Both course cards are' : unver[0] + '’s card is') + ' not verified. Every net score on ' + (unver.length === 2 ? 'them' : 'it') + ' is provisional until par and stroke index are confirmed on Course Setup.' });
   if (!T.config.pinsChanged) out.push({ id: 'pins', text: 'The scoring PINs are still the factory defaults. Change them in Setup before the first round.' });
   return out;
 }

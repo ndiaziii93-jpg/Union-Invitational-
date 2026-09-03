@@ -26,6 +26,7 @@ const UI = {
   entryHole: 0,
   entryTee: 'all',
   courseTab: 'aspendos',
+  courseHole: 0,
   calDay: null,
   modal: null,       // {title, note, onOk(pin) -> string|null err}
   modalErr: '',
@@ -68,7 +69,7 @@ function roundTabs(current, act) {
 }
 
 function holeStrip(rid, sel, act, pair) {
-  const holes = E.courseOf(rid).holes;
+  const holes = E.courseOf(T, rid).holes;
   return `<div class="strip">` + holes.map((hole, i) => {
     let k = '';
     if (pair) {
@@ -83,7 +84,7 @@ function holeStrip(rid, sel, act, pair) {
 }
 
 function holeLeaf(rid, h, opts = {}) {
-  const course = E.courseOf(rid);
+  const course = E.courseOf(T, rid);
   const hole = course.holes[h];
   const cap = E.capFor(hole.par, T.config.capOver);
   const img = IMG[hole.img];
@@ -135,7 +136,7 @@ function scrToday() {
   for (const r of D.ROUNDS) {
     if (E.dayOf(r.dayIdx).iso !== day.iso) continue;
     const t = E.roundCfg(T, r.id).tees[0];
-    if (t && t.time) entries.push({ time: t.time, golf: true, title: r.full, sub: E.courseOf(r.id).name });
+    if (t && t.time) entries.push({ time: t.time, golf: true, title: r.full, sub: E.courseOf(T, r.id).name });
   }
   for (const e of T.config.schedule) {
     if (E.dayOf(e.dayIdx).iso !== day.iso) continue;
@@ -159,7 +160,7 @@ function scrToday() {
     <div>
       <div class="today-day">Day ${day.n} of 8 — ${esc(day.dow)} ${esc(day.date)}</div>
       <h1 class="today-title">${esc(focus.full)}</h1>
-      <p class="today-course">${esc(E.courseOf(focus.id).name)} — tee time ${esc(teeTime)}</p>
+      <p class="today-course">${esc(E.courseOf(T, focus.id).name)} — tee time ${esc(teeTime)}</p>
 
       <div class="countdown">
         <div class="today-day">Next fixture in</div>
@@ -227,7 +228,7 @@ function boardPairs() {
   const board = rows.length ? rows : [];
   const leadPair = board.length ? T.config.pairs.find(p => p.id === board[0].id) : T.config.pairs[0];
   const h = UI.bookHole;
-  const hole = E.courseOf(rid).holes[h];
+  const hole = E.courseOf(T, rid).holes[h];
   const onHole = T.config.pairs.map(p => {
     const s = E.pairHole(T, rid, p, h);
     return { name: E.pairName(T, p), net: s, d: s == null ? null : s - hole.par };
@@ -301,7 +302,7 @@ function boardPrizes() {
   <p class="lede">One nominated hole each, per counting round. Nominate before play; record the mark as it stands.</p>
   ${E.countingRounds(T).map(r => {
     const c = E.roundCfg(T, r.id); const d = E.dayOf(r.dayIdx);
-    return `<h3 class="sub">${esc(r.short)} — ${esc(d.dow)} ${esc(d.date)} · ${esc(E.courseOf(r.id).name)}</h3>
+    return `<h3 class="sub">${esc(r.short)} — ${esc(d.dow)} ${esc(d.date)} · ${esc(E.courseOf(T, r.id).name)}</h3>
     <div class="rows" style="margin-top:8px;max-width:620px">
       <div class="row"><span class="who">Closest to the pin<small>${c.ctpHole ? 'Hole ' + c.ctpHole : 'No hole nominated'}</small></span>
         <span class="n" style="min-width:120px;font-size:17px">${c.ctpWinner ? esc(nm(c.ctpWinner)) : '—'}</span>
@@ -367,7 +368,7 @@ function scrCalendar() {
     const items = [
       ...rounds.flatMap(r => E.roundCfg(T, r.id).tees.filter(t => t.time).map((t, i) => ({
         time: t.time, golf: true, rid: r.id, slot: i,
-        title: `${r.short} — tee ${i + 1} · ${E.courseOf(r.id).name}`,
+        title: `${r.short} — tee ${i + 1} · ${E.courseOf(T, r.id).name}`,
       }))),
       ...evs.map(e => ({ time: e.time, golf: false, title: e.title })),
     ].sort((a, b) => String(a.time).localeCompare(String(b.time)));
@@ -400,7 +401,7 @@ function scrEntry() {
   const open = cfg.state === 'open';
   const locked = cfg.state === 'locked';
   const h = UI.entryHole;
-  const course = E.courseOf(rid);
+  const course = E.courseOf(T, rid);
   const hole = course.holes[h];
   const day = E.dayOf(r.dayIdx);
 
@@ -586,36 +587,72 @@ function scrRules() {
 }
 
 function scrCourses() {
-  const c = D.COURSES[UI.courseTab];
-  const out = c.holes.slice(0, 9), inn = c.holes.slice(9);
-  const sum = (a, k) => a.reduce((x, h) => x + h[k], 0);
-  const row = h => `<tr><td>${h.n}</td><td>${h.par}</td><td>${h.si}</td><td>${h.mW}</td><td>${h.mY}</td>
-    <td>${E.strokesFor(15, h.si)}</td><td>${E.strokesFor(20, h.si)}</td><td>${E.strokesFor(25, h.si)}</td></tr>`;
-  const nine = (a, lbl) => `<tr class="out"><td>${lbl}</td><td>${sum(a, 'par')}</td><td></td><td>${sum(a, 'mW')}</td><td>${sum(a, 'mY')}</td>
-    <td>${a.reduce((x, h) => x + E.strokesFor(15, h.si), 0)}</td><td>${a.reduce((x, h) => x + E.strokesFor(20, h.si), 0)}</td><td>${a.reduce((x, h) => x + E.strokesFor(25, h.si), 0)}</td></tr>`;
+  const c = E.courseByKey(T, UI.courseTab);
+  const h = UI.courseHole;
+  const hole = c.holes[h];
+  const totalPar = c.holes.reduce((a, x) => a + x.par, 0);
+  const open = canEdit(); // the card stays editable; Verified is a status the scorers set
+  const photo = IMG['course_' + c.key];
+  const alt = c.key === 'aspendos'
+    ? 'Aerial view of Cullinan Links along the Mediterranean shore'
+    : 'Green beside the Beşgöz River with the Taurus Mountains beyond';
 
-  return `<h2 class="head">Courses</h2>
-  <p class="lede">The official Cullinan Links scorecards, verified. Par, stroke index and metres are reference data — the book reads from them and they are not editable in play.</p>
-  <div class="chiprow" style="margin-top:16px">${Object.values(D.COURSES).map(x =>
-    `<button class="chip${UI.courseTab === x.key ? ' on' : ''}" data-act="courseTab" data-a="${x.key}">${esc(x.name)}</button>`).join('')}</div>
+  const rows = c.holes.map((x, i) => `<tr>
+      <td><span class="holen">${x.n}</span></td>
+      <td>${open
+        ? `<select class="cardsel" aria-label="Par, hole ${x.n}" data-act="setHole" data-a="${c.key}" data-b="${i}" data-c="par">
+             ${[3, 4, 5].map(p => `<option value="${p}"${x.par === p ? ' selected' : ''}>${p}</option>`).join('')}</select>`
+        : `<span class="cardval">${x.par}</span>`}</td>
+      ${['si', 'mW', 'mY'].map(f => `<td>${open
+        ? `<input class="cardin" inputmode="numeric" value="${x[f]}" aria-label="${f === 'si' ? 'Stroke index' : f === 'mW' ? 'Metres from White' : 'Metres from Yellow'}, hole ${x.n}"
+            data-act="setHole" data-a="${c.key}" data-b="${i}" data-c="${f}">`
+        : `<span class="cardval">${x[f]}</span>`}</td>`).join('')}
+    </tr>`).join('');
 
-  <h3 class="sub">${esc(c.name)} <span class="eyebrow">par ${c.meta.par}</span></h3>
-  <div class="chiprow" style="margin-top:8px">
-    <span class="chip">White — CR ${c.meta.crW} · slope ${c.meta.slW}</span>
-    <span class="chip">Yellow — CR ${c.meta.crY} · slope ${c.meta.slY}</span>
+  return `<h2 class="head">Course Setup</h2>
+  <p class="lede">Par, stroke index and yardages loaded from the official Cullinan Links Golf Club scorecard. Cullinan Links, Belek — 36 holes by European Golf Design, 2021; back nines floodlit. Reopen a card only if the club issues a new one.</p>
+
+  <div class="ctabs">
+    ${Object.keys(D.COURSES).map(k => {
+      const x = E.courseByKey(T, k);
+      return `<button class="ctab${k === UI.courseTab ? ' on' : ''}" data-act="courseTab" data-a="${k}">${esc(x.name)}
+        <span>${x.verified ? 'Verified' : 'Not verified'}</span></button>`;
+    }).join('')}
   </div>
-  <div class="scroller"><table class="card">
-    <thead><tr><th>Hole</th><th>Par</th><th>SI</th><th>White m</th><th>Yellow m</th><th>B15</th><th>B20</th><th>B25</th></tr></thead>
-    <tbody>${out.map(row).join('')}${nine(out, 'Out')}${inn.map(row).join('')}${nine(inn, 'In')}</tbody>
-    <tfoot><tr><td>Total</td><td>${sum(c.holes, 'par')}</td><td></td><td>${sum(c.holes, 'mW')}</td><td>${sum(c.holes, 'mY')}</td><td>15</td><td>20</td><td>25</td></tr></tfoot>
-  </table></div>
 
-  <h3 class="sub">Hole by hole</h3>
-  <div style="display:grid;gap:18px;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));margin-top:14px">
-    ${c.holes.map(h => IMG[h.img] ? `<figure style="margin:0">
-      <img src="${IMG[h.img]}" alt="Diagram of hole ${h.n} at ${esc(c.name)}" loading="lazy" style="display:block;width:100%;height:auto">
-      <figcaption style="font-family:var(--mono);font-size:12px;color:var(--turf);margin-top:5px">${h.n} · par ${h.par} · ${h.mW} m · SI ${h.si}</figcaption>
-    </figure>` : '').join('')}
+  ${!c.verified ? `<div class="unverified">
+    <div class="t">This card is not verified.</div>
+    <p>Every net score on ${esc(c.name)} is provisional until par and stroke index are confirmed below.</p>
+  </div>` : ''}
+
+  ${photo ? `<figure class="cphoto"><img src="${photo}" alt="${esc(alt)}"></figure>` : ''}
+  <p class="rating num">Par ${c.meta.par} — Course Rating ${c.meta.crW}, Slope ${c.meta.slW} (White) — Course Rating ${c.meta.crY}, Slope ${c.meta.slY} (Yellow)</p>
+
+  <div class="cgrid">
+    <div class="scroller nos">
+      <table class="scard">
+        <thead><tr><th>Hole</th><th>Par</th><th>Stroke index</th><th>White (m)</th><th>Yellow (m)</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <div class="cside">
+      ${IMG[hole.img] ? `<img src="${IMG[hole.img]}" alt="Diagram of hole ${hole.n} at ${esc(c.name)}">` : ''}
+      <div class="cfacts num">
+        <span class="hn">Hole ${hole.n}</span>
+        <span>Par ${hole.par}</span>
+        <span class="m">SI ${hole.si}</span>
+        <span class="m">${hole.mW} m White</span>
+      </div>
+      <div class="cstrip">${c.holes.map((x, i) =>
+        `<button class="cell${i === h ? ' e' : ''}" data-act="courseHole" data-a="${i}" aria-label="Hole ${x.n}">${x.n}</button>`).join('')}</div>
+    </div>
+  </div>
+
+  <div class="cfoot">
+    <span class="num">Par ${totalPar}</span>
+    ${canEdit()
+      ? `<button class="btn ghost" data-act="verifyCourse" data-a="${c.key}">${c.verified ? 'Verified — tap to reopen' : 'Not verified — tap to verify'}</button>`
+      : `<span class="pill">${c.verified ? 'Verified' : 'Not verified'}</span>`}
   </div>`;
 }
 
@@ -652,7 +689,7 @@ function scrSetup() {
   <h3 class="sub">Rounds</h3>
   <div class="panel">${D.ROUNDS.map(r => {
     const c = E.roundCfg(T, r.id); const d = E.dayOf(r.dayIdx);
-    return `<div class="kv"><span class="k">${esc(r.short)} — ${esc(d.dow)} ${esc(d.date)}<small>${esc(E.courseOf(r.id).name)} · ${esc(c.state)}</small></span>
+    return `<div class="kv"><span class="k">${esc(r.short)} — ${esc(d.dow)} ${esc(d.date)}<small>${esc(E.courseOf(T, r.id).name)} · ${esc(c.state)}</small></span>
       <span class="chiprow">${c.state === 'locked'
         ? `<button class="chip" data-act="unlockRound" data-a="${r.id}">Reopen</button>`
         : c.state === 'open'
@@ -765,7 +802,12 @@ function onClick(e) {
     case 'entryRound': UI.entryRound = a; UI.entryHole = 0; UI.entryTee = 'all'; break;
     case 'entryHole': UI.entryHole = +a; break;
     case 'entryTee': UI.entryTee = a; break;
-    case 'courseTab': UI.courseTab = a; break;
+    case 'courseTab': UI.courseTab = a; UI.courseHole = 0; break;
+    case 'courseHole': UI.courseHole = +a; break;
+    case 'verifyCourse':
+      if (!canEdit()) return;
+      store.writeConfig(cf => { cf.courses[a].verified = !cf.courses[a].verified; });
+      return;
     case 'revealPins': UI.revealPins = !UI.revealPins; break;
 
     case 'signIn':
@@ -790,7 +832,7 @@ function onClick(e) {
     case 'bump': {
       if (!canEdit() || E.roundCfg(T, rid).state !== 'open') return;
       const h = UI.entryHole;
-      const hole = E.courseOf(rid).holes[h];
+      const hole = E.courseOf(T, rid).holes[h];
       const cap = E.capFor(hole.par, T.config.capOver);
       store.writeCard(rid, a, c => {
         let v = c.raw[h] == null ? (+b > 0 ? hole.par : null) : c.raw[h] + (+b);
@@ -883,6 +925,13 @@ function onChange(e) {
     const v = el.value.replace(/\D/g, '').slice(0, 8);
     if (v.length < 3) return;
     store.writeConfig(c => { c.pins[a] = v; c.pinsChanged = true; });
+  } else if (act === 'setHole') {
+    if (!canEdit()) return;
+    const { c: field } = el.dataset;
+    const v = parseInt(el.value, 10);
+    const lim = { par: [3, 5], si: [1, 18], mW: [40, 700], mY: [40, 700] }[field];
+    if (!Number.isFinite(v) || v < lim[0] || v > lim[1]) { render(); return; }
+    store.writeConfig(cf => { cf.courses[a].holes[+b][field] = v; });
   } else if (act === 'pickTee') {
     if (!canEdit() || !el.value) return;
     const board = E.pairsBoard(T, now);

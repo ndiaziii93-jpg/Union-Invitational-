@@ -2,7 +2,7 @@
    reviewer and every spectator see the same tournament. Falls back to
    localStorage when the db capability is unavailable (preview, offline). */
 
-import { GOLFERS, OFFICIALS, SPECTATORS, PAIRS, ROUNDS, SCHEDULE } from './data.js';
+import { GOLFERS, OFFICIALS, SPECTATORS, PAIRS, ROUNDS, SCHEDULE, COURSES } from './data.js';
 
 const LOCAL_KEY = 'union-invitational:v3';
 const DEFAULT_PINS = { master: '1000', s1: '2000', s2: '3000' };
@@ -30,9 +30,14 @@ export function defaultConfig() {
       lockedBy: null, lockedAt: null, openedBy: null,
     };
   }
+  const courses = {};
+  for (const [key, c] of Object.entries(COURSES)) {
+    courses[key] = { verified: true, holes: c.holes.map(h => ({ par: h.par, si: h.si, mW: h.mW, mY: h.mY })) };
+  }
   return {
     v: 3,
     capOver: 3,
+    courses,
     people,
     pairs: PAIRS.map(p => ({ ...p, members: [...p.members] })),
     rounds,
@@ -128,6 +133,7 @@ export function createStore(onChange) {
     const out = { ...base, ...cfg };
     // a round added after the store was seeded still needs its slot
     out.rounds = { ...base.rounds, ...(cfg.rounds || {}) };
+    out.courses = { ...base.courses, ...(cfg.courses || {}) };
     return out;
   }
 

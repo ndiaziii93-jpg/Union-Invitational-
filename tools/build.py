@@ -31,6 +31,13 @@ def build_images(force=False):
         d = buf.getvalue()
         open(os.path.join(WEB, key + '.webp'), 'wb').write(d)
         table[key] = 'data:image/webp;base64,' + base64.b64encode(d).decode()
+    for key, fn in (('course_aspendos', '1168e907-ae08-408a-9ce8-f178f078bf3f.jpg'),
+                    ('course_olympos', '8d395123-ac87-4fb0-86d3-b9434cbdeb2a.jpg')):
+        im = Image.open(os.path.join(SRC, 'assets', 'brand', fn)).convert('RGB')
+        buf = io.BytesIO(); im.save(buf, 'WEBP', quality=80, method=6)
+        d = buf.getvalue()
+        open(os.path.join(WEB, key + '.webp'), 'wb').write(d)
+        table[key] = 'data:image/webp;base64,' + base64.b64encode(d).decode()
     hero = os.path.join(SRC, 'assets', 'brand', '463041d4-578c-40c2-82ab-413ba30c2b68.jpg')
     im = Image.open(hero).convert('RGB')
     buf = io.BytesIO(); im.save(buf, 'WEBP', quality=80, method=6)
