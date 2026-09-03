@@ -82,6 +82,12 @@ export function createStore(onChange) {
   let configWritten = false;
   let saveTimer = null;
   let status = 'connecting';    // connecting | live | local | error
+  // Our revision per document. A snapshot older than what we last wrote is an
+  // echo of a version we have already moved past, and applying it would undo
+  // the change the user just made — so it is ignored.
+  const rev = {};
+  const bump = (path, doc) => { doc.rev = Math.max(doc.rev || 0, rev[path] || 0) + 1; rev[path] = doc.rev; };
+  const fresher = (path, doc) => ((doc && doc.rev) || 0) >= (rev[path] || 0);
 
   const notify = () => onChange(T, { ready, mode, status });
 
@@ -114,18 +120,42 @@ export function createStore(onChange) {
     } catch (e) { /* another viewer may have created it in the same beat */ }
 
     unsubs.push(db.doc('config/tournament').onSnapshot(
-      s => { if (s.exists && s.data) { T.config = migrate(s.data); ready = true; status = 'live'; notify(); } },
+      s => {
+        if (!s.exists || !s.data) return;
+        ready = true; status = 'live';
+        if (!fresher('config', s.data)) { notify(); return; }
+        rev.config = s.data.rev || 0;
+        T.config = migrate(s.data);
+        notify();
+      },
       () => { status = 'error'; notify(); }
     ));
     unsubs.push(db.collection('scores').onSnapshot(
-      s => { const next = {}; s.docs.forEach(d => { next[d.id] = d.data; }); T.scores = next; notify(); },
+      s => { T.scores = mergeDocs('scores', T.scores, s.docs); notify(); },
       () => { status = 'error'; notify(); }
     ));
     unsubs.push(db.collection('bbb').onSnapshot(
-      s => { const next = {}; s.docs.forEach(d => { next[d.id] = d.data; }); T.bbb = next; notify(); },
+      s => { T.bbb = mergeDocs('bbb', T.bbb, s.docs); notify(); },
       () => { status = 'error'; notify(); }
     ));
     ready = true; notify();
+  }
+
+  /** Take the server's copy of each document unless ours is newer, and keep a
+   *  document we have just written that the snapshot has not caught up on. */
+  function mergeDocs(coll, local, docs) {
+    const next = {};
+    const seen = new Set();
+    for (const d of docs) {
+      seen.add(d.id);
+      const path = coll + '/' + d.id;
+      if (fresher(path, d.data)) { rev[path] = (d.data && d.data.rev) || 0; next[d.id] = d.data; }
+      else next[d.id] = local[d.id];
+    }
+    for (const id of Object.keys(local)) {
+      if (!seen.has(id) && rev[coll + '/' + id]) next[id] = local[id]; // ours, not echoed yet
+    }
+    return next;
   }
 
   function migrate(cfg) {
@@ -134,6 +164,19 @@ export function createStore(onChange) {
     // a round added after the store was seeded still needs its slot
     out.rounds = { ...base.rounds, ...(cfg.rounds || {}) };
     out.courses = { ...base.courses, ...(cfg.courses || {}) };
+    // A store may drop keys whose value is null. Put them back explicitly, or
+    // `x === null` tests downstream read undefined and take the wrong branch.
+    out.people = (out.people || []).map(p => ({
+      ...p,
+      location: p.location == null ? null : p.location,
+      band: p.band == null ? null : p.band,
+      group: p.group || '7-day',
+    }));
+    out.pairs = (out.pairs || []).map(p => ({
+      ...p,
+      name: p.name == null ? null : p.name,
+      members: p.members || [],
+    }));
     return out;
   }
 
@@ -141,6 +184,7 @@ export function createStore(onChange) {
 
   async function writeConfig(mutate) {
     mutate(T.config);
+    bump('config', T.config);
     notify();
     if (mode === 'local') { saveLocal(); return; }
     try { await db.doc('config/tournament').set(T.config); }
@@ -151,6 +195,7 @@ export function createStore(onChange) {
     const key = roundId + '__' + pid;
     const c = T.scores[key] ? { ...T.scores[key], raw: [...T.scores[key].raw] } : blankCard();
     mutate(c);
+    bump('scores/' + key, c);
     T.scores[key] = c;
     notify();
     if (mode === 'local') { saveLocal(); return; }
@@ -161,6 +206,7 @@ export function createStore(onChange) {
   async function writeBbb(roundId, mutate) {
     const b = T.bbb[roundId] ? { holes: T.bbb[roundId].holes.map(h => ({ ...h })) } : blankBbb();
     mutate(b);
+    bump('bbb/' + roundId, b);
     T.bbb[roundId] = b;
     notify();
     if (mode === 'local') { saveLocal(); return; }
@@ -171,6 +217,8 @@ export function createStore(onChange) {
   async function resetAll() {
     const fresh = emptyState();
     T.config = fresh.config; T.scores = {}; T.bbb = {};
+    for (const k of Object.keys(rev)) delete rev[k];
+    bump('config', T.config);
     notify();
     if (mode === 'local') { saveLocal(); return; }
     try {

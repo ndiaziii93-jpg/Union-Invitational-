@@ -77,6 +77,17 @@ tools/build.py     inlines everything into dist/union-invitational.html
 docs/              the original design canvas this was built from
 ```
 
+## Tests
+
+```sh
+node tools/db-race-test.mjs
+```
+
+Drives the real UI against a mocked shared store that behaves badly on purpose:
+it drops keys whose value is null, echoes a stale version of a document after a
+write, and takes a realistic round trip to save. Both of the first two silently
+reverted edits in earlier builds. Requires `npm install playwright`.
+
 ## Build
 
 ```sh

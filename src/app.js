@@ -954,7 +954,9 @@ function onClick(e) {
     case 'cycleSquad': {
       const cycle = () => store.writeConfig(c => {
         const p = c.people.find(x => x.id === a);
-        if (p) p.location = p.location === null ? 'USA' : p.location === 'USA' ? 'UK' : null;
+        if (!p) return;
+        const cur = p.location || null; // absent, null or '' all read as unassigned
+        p.location = cur === null ? 'USA' : cur === 'USA' ? 'UK' : null;
       });
       if (!canEdit()) {
         askPin('Enter your PIN', 'Squads are set by a scorer or the master reviewer. Sign in and this change goes straight through.',
