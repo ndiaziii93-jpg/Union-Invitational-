@@ -373,6 +373,24 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
 .legend{font-size:15px;color:var(--turf);font-style:italic;margin:10px 0 0;text-align:right}
 .turn{font-size:15px;color:var(--turf);font-style:italic;margin:14px 0 0}
 
+/* ---- save-per-hole ---- */
+.savebar{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:14px;padding:13px 15px;
+  border:1px solid var(--rule);background:var(--page);border-radius:3px}
+.savebar.dirty{border-left:3px solid var(--flag);background:var(--sunk)}
+.savebar .sv{flex:1 1 240px;min-width:0}
+.savebar .sv b{display:block;font-size:16px}
+.savebar .sv span{font-size:14px;color:var(--turf)}
+.padrow.pending{border-color:var(--flag);box-shadow:inset 3px 0 0 var(--flag)}
+.padrow .nm .tag{display:inline-block;margin-left:8px;padding:1px 8px;border-radius:999px;font-size:12px;
+  background:var(--flag);color:#FBFAF7;vertical-align:2px}
+.cell.saved{border-color:var(--ink)}
+
+/* ---- inline name editing ---- */
+.nameedit{width:100%;max-width:250px;font-family:var(--serif);font-size:18px;font-weight:600;color:var(--ink);
+  background:none;border:none;border-bottom:1px dashed transparent;border-radius:0;padding:2px 0;min-height:32px}
+.nameedit:hover{border-bottom-color:var(--rule)}
+.nameedit:focus{outline:none;border-bottom-color:var(--flag)}
+
 </style>
 <div id="app"></div>
 <script>
@@ -983,7 +1001,9 @@ const { GOLFERS, OFFICIALS, SPECTATORS, PAIRS, ROUNDS, SCHEDULE, COURSES } = __m
 const LOCAL_KEY = 'union-invitational:v3';
 const DEFAULT_PINS = { master: '1000', s1: '2000', s2: '3000' };
 
-function blankCard() { return { raw: Array(18).fill(null), mF: false, mB: false, bb: false }; }
+/** `by` and `at` are keyed by hole index and hold only saved holes, so a hole
+ *  with no entry is simply absent — no null to be dropped in transit. */
+function blankCard() { return { raw: Array(18).fill(null), by: {}, at: {}, mF: false, mB: false, bb: false }; }
 function blankBbb() { return { holes: Array.from({ length: 18 }, () => ({ bingo: null, bango: null, bongo: null })) }; }
 
 function defaultConfig() {
@@ -1169,7 +1189,10 @@ function createStore(onChange) {
 
   async function writeCard(roundId, pid, mutate) {
     const key = roundId + '__' + pid;
-    const c = T.scores[key] ? { ...T.scores[key], raw: [...T.scores[key].raw] } : blankCard();
+    const prev = T.scores[key];
+    const c = prev
+      ? { ...blankCard(), ...prev, raw: [...prev.raw], by: { ...(prev.by || {}) }, at: { ...(prev.at || {}) } }
+      : blankCard();
     mutate(c);
     bump('scores/' + key, c);
     T.scores[key] = c;
@@ -1252,6 +1275,7 @@ const UI = {
   modalErr: '',
   revealPins: false,
   toast: '',
+  draft: null,
   setupSeen: false,
   entrySeen: false,
 };
@@ -1308,7 +1332,7 @@ function holeStrip(rid, sel, act, pair) {
       if (s != null) { const d = s - hole.par; k = d < 0 ? ' u' : d > 0 ? ' o' : ' e'; }
     } else {
       const any = E.golfers(T).some(g => { const c = E.card(T, rid, g.id); return c && c.raw[i] != null; });
-      if (any) k = ' played';
+      if (any) k = holeSavedBy(rid, i) ? ' played saved' : ' played';
     }
     return `<button class="cell${k}${i === sel ? ' here' : ''}" data-act="${act}" data-a="${i}" aria-label="Hole ${i + 1}">${i + 1}</button>`;
   }).join('') + `</div>`;
@@ -1669,17 +1693,83 @@ function scrCalendar() {
     }).join('')}</div>` : ''}`;
 }
 
+/* ---- score entry drafts ----
+   Strokes typed on a hole are held locally until the scorer saves the hole.
+   Saving confirms with a PIN and only then writes to the shared card, so a
+   card only ever holds scores somebody signed off. */
+
+function draftFor(rid, h) {
+  if (!UI.draft || UI.draft.rid !== rid || UI.draft.hole !== h) UI.draft = { rid, hole: h, strokes: {}, bbb: {} };
+  return UI.draft;
+}
+function draftDirty() {
+  const d = UI.draft;
+  return !!d && (Object.keys(d.strokes).length > 0 || Object.keys(d.bbb).length > 0);
+}
+function grossOf(rid, pid, h) {
+  const d = UI.draft;
+  if (d && d.rid === rid && d.hole === h && pid in d.strokes) return d.strokes[pid];
+  const c = E.card(T, rid, pid);
+  return c ? c.raw[h] : null;
+}
+function bbbOf(rid, h, slot) {
+  const d = UI.draft;
+  if (d && d.rid === rid && d.hole === h && slot in d.bbb) return d.bbb[slot];
+  const b = T.bbb[rid];
+  return b && b.holes[h] ? b.holes[h][slot] : null;
+}
+function holeSavedBy(rid, h) {
+  for (const g of E.golfers(T)) {
+    const c = E.card(T, rid, g.id);
+    if (c && c.by && c.by[h]) return { role: c.by[h], at: c.at ? c.at[h] : null };
+  }
+  return null;
+}
+
+function commitDraft(role) {
+  const d = UI.draft;
+  if (!d) return;
+  const h = d.hole;
+  for (const [pid, v] of Object.entries(d.strokes)) {
+    store.writeCard(d.rid, pid, c => {
+      c.raw[h] = v;
+      if (v == null) { delete c.by[h]; delete c.at[h]; }
+      else { c.by[h] = role; c.at[h] = Date.now(); }
+    });
+  }
+  if (Object.keys(d.bbb).length) store.writeBbb(d.rid, x => { Object.assign(x.holes[h], d.bbb); });
+  UI.draft = null;
+}
+
+/** Run `proceed`, unless the current hole has unsaved entries — then ask. */
+function guardDraft(proceed) {
+  if (!draftDirty()) { proceed(); render(); return; }
+  const n = UI.draft.hole + 1;
+  UI.modal = {
+    kind: 'confirm',
+    title: 'Hole ' + n + ' is not saved',
+    note: 'You have entered scores on hole ' + n + ' but have not saved them. Save the hole to record them, or discard them and move on.',
+    ok: 'Save hole ' + n, alt: 'Discard and move on', cancel: 'Stay on hole ' + n,
+    onOk: () => askPin('Save hole ' + n, 'Enter your PIN to record these scores.', 'Save hole',
+                       role => { commitDraft(role); proceed(); render(); }),
+    onAlt: () => { UI.draft = null; proceed(); render(); },
+  };
+  render();
+}
+
 function scrEntry() {
   const rid = UI.entryRound;
   const r = E.roundDef(rid);
   const cfg = E.roundCfg(T, rid);
-  const phase = E.phaseOf(T, rid, now);
   const open = cfg.state === 'open';
   const locked = cfg.state === 'locked';
   const h = UI.entryHole;
   const course = E.courseOf(T, rid);
   const hole = course.holes[h];
   const day = E.dayOf(r.dayIdx);
+  const editable = open && canEdit();
+  const dirty = draftDirty() && UI.draft.rid === rid && UI.draft.hole === h;
+  const saved = holeSavedBy(rid, h);
 
   let gate;
   if (!canEdit()) {
@@ -1697,11 +1787,10 @@ function scrEntry() {
       <button class="btn" data-act="openRound" data-a="${rid}">Open round</button></div>`;
   } else {
     gate = `<div class="gate"><div class="msg"><b>${esc(r.short)} is open${D.PINS_ENABLED ? ' — you are ' + esc(S.ROLES[UI.role].label) : ' for scoring'}</b>
-      <span>Entries save to every device as you tap. Lock the round when the last card is in.</span></div>
+      <span>Enter the hole, then save it. Nothing reaches the leaderboards until a hole is saved.</span></div>
       <button class="btn danger" data-act="lockRound" data-a="${rid}">Lock &amp; conclude</button></div>`;
   }
 
-  const editable = open && canEdit();
   const tee = UI.entryTee;
   let list = E.golfers(T);
   if (tee !== 'all') {
@@ -1710,14 +1799,16 @@ function scrEntry() {
   }
 
   const pad = list.map(g => {
-    const c = E.card(T, rid, g.id);
-    const raw = c ? c.raw[h] : null;
+    const raw = grossOf(rid, g.id, h);
     const cap = E.capFor(hole.par, T.config.capOver);
     const st = E.strokesFor(g.band, hole.si);
     const net = raw == null || st == null ? null : Math.min(raw, cap) - st;
     const noBand = g.band == null;
-    return `<div class="padrow${noBand ? ' nb' : ''}">
-      <div class="nm">${esc(g.display)}
+    const c = E.card(T, rid, g.id);
+    const pending = UI.draft && UI.draft.rid === rid && UI.draft.hole === h && (g.id in UI.draft.strokes)
+      && UI.draft.strokes[g.id] !== (c ? c.raw[h] : null);
+    return `<div class="padrow${noBand ? ' nb' : ''}${pending ? ' pending' : ''}">
+      <div class="nm">${esc(g.display)}${pending ? '<span class="tag">unsaved</span>' : ''}
         <small>${noBand ? 'No playing band — set one on Roster before this card counts'
           : `Band ${g.band} · receives ${st} on this hole${net != null ? ` · net ${net} (${E.fmtToPar(net - hole.par)})` : ''}`}</small>
         ${editable ? `<div class="toggles">
@@ -1734,9 +1825,17 @@ function scrEntry() {
     </div>`;
   }).join('');
 
-  const bbb = (T.bbb[rid] || S.blankBbb()).holes[h];
   const opts = sel => `<option value="">—</option>` + E.golfers(T).map(g =>
     `<option value="${g.id}"${sel === g.id ? ' selected' : ''}>${esc(g.display)}</option>`).join('');
+
+  const saveBar = editable ? `<div class="savebar${dirty ? ' dirty' : ''}">
+    <div class="sv">${dirty
+      ? `<b>Hole ${hole.n} is not saved</b><span>${Object.keys(UI.draft.strokes).length} entr${Object.keys(UI.draft.strokes).length === 1 ? 'y' : 'ies'} waiting. ${D.PINS_ENABLED ? 'Saving asks for your PIN.' : 'Nothing counts until you save.'}</span>`
+      : saved
+        ? `<b>Hole ${hole.n} saved</b><span>Recorded${D.PINS_ENABLED && S.ROLES[saved.role] ? ' by ' + esc(S.ROLES[saved.role].label) : ''}${saved.at ? ' at ' + esc(E.to12(new Date(saved.at + D.TZ_OFFSET_MIN * 60000).toISOString().slice(11, 16))) : ''}.</span>`
+        : `<b>Hole ${hole.n}</b><span>Enter every score on this hole, then save it.</span>`}</div>
+    <button class="btn${dirty ? '' : ' ghost'}" data-act="saveHole"${dirty ? '' : ' disabled'}>Save hole ${hole.n}</button>
+  </div>` : '';
 
   const blockers = E.setupIssues(T).filter(i => SETUP_SCOPES.entry.only.includes(i.id));
   return `<h2 class="head">Score Entry</h2>
@@ -1758,13 +1857,14 @@ function scrEntry() {
         <button class="chip${tee === 'all' ? ' on' : ''}" data-act="entryTee" data-a="all">All players</button>
         ${cfg.tees.map((t, i) => t.players.length ? `<button class="chip${tee === String(i) ? ' on' : ''}" data-act="entryTee" data-a="${i}">Tee ${i + 1}${t.time ? ' · ' + E.to12(t.time) : ''}</button>` : '').join('')}
       </div>` : ''}
+      ${saveBar}
       <div class="pad">${pad || `<p class="empty">No golfers on the roster.</p>`}</div>
 
       <h3 class="sub">Bingo Bango Bongo — hole ${hole.n}</h3>
       <div class="panel" style="grid-template-columns:1fr">
         ${[['bingo', 'Bingo — first on the green'], ['bango', 'Bango — closest once all are on'], ['bongo', 'Bongo — first in the cup']].map(([k, lbl]) =>
           `<div class="kv"><span class="k">${esc(lbl)}</span>
-            <select class="field" data-act="setBbb" data-a="${k}"${editable ? '' : ' disabled'} aria-label="${esc(lbl)}">${opts(bbb[k])}</select></div>`).join('')}
+            <select class="field" data-act="setBbb" data-a="${k}"${editable ? '' : ' disabled'} aria-label="${esc(lbl)}">${opts(bbbOf(rid, h, k))}</select></div>`).join('')}
       </div>
 
       <h3 class="sub">Round prizes</h3>
@@ -1795,6 +1895,10 @@ function scrRoster() {
   const others = T.config.people.filter(p => p.role !== 'golfer');
   const ed = canEdit();
   const bandBtn = (g, b) => `<button class="chip${g.band === b ? ' on' : ''}" data-act="setBand" data-a="${g.id}" data-b="${b}"${ed ? '' : ' disabled'}>${b}</button>`;
+  const nameField = p => ed
+    ? `<input class="nameedit" type="text" value="${esc(p.display)}" aria-label="Name of ${esc(p.display)}"
+        data-act="renamePerson" data-a="${p.id}" maxlength="40">`
+    : esc(p.display);
 
   return `<h2 class="head">Roster &amp; Pairings</h2>
   <p class="lede">Every golfer plays off a 15, 20 or 25 playing band — the band is the total strokes received across eighteen. A golfer without a band is left out of every score until one is set.</p>
@@ -1803,7 +1907,7 @@ function scrRoster() {
   <div class="rows" style="margin-top:8px">
     <div class="rowhead"><span style="flex:1">Player</span><span style="min-width:170px;text-align:right">Playing band</span></div>
     ${gs.map(g => `<div class="row">
-      <span class="who">${esc(g.display)}<small>${esc(g.name)} · ${esc(g.group)}${g.band ? ' · receives ' + E.bandTotal(g.band) + ' strokes' : ''}</small></span>
+      <span class="who">${nameField(g)}<small>${esc(g.group)}${g.band ? ' · receives ' + E.bandTotal(g.band) + ' strokes' : ''}</small></span>
       <span class="chiprow" style="justify-content:flex-end;min-width:170px">
         ${E.BANDS.map(b => bandBtn(g, b)).join('')}
         ${ed && g.band ? `<button class="chip" data-act="setBand" data-a="${g.id}" data-b="" title="Clear band">×</button>` : ''}
@@ -1811,6 +1915,7 @@ function scrRoster() {
       </span></div>`).join('')}
   </div>
   ${ed ? `<div class="chiprow" style="margin-top:12px"><button class="chip" data-act="addPerson" data-a="golfer">Add golfer</button></div>` : ''}
+  ${ed ? `<p class="lede" style="margin-top:8px">Tap a name to correct it. Changes save as you leave the field.</p>` : ''}
 
   <h3 class="sub">Pairings</h3>
   <p class="lede">Fixed for the week. A pair needs two players to score a better ball, and both in the same squad to draw a fourball match.</p>
@@ -1825,7 +1930,7 @@ function scrRoster() {
 
   <h3 class="sub">Officials &amp; spectators</h3>
   <div class="rows" style="margin-top:8px">
-    ${others.map(p => `<div class="row"><span class="who">${esc(p.display)}<small>${esc(p.role)} · ${esc(p.group)}</small></span>
+    ${others.map(p => `<div class="row"><span class="who">${nameField(p)}<small>${esc(p.role)} · ${esc(p.group)}</small></span>
       ${canAdmin() ? `<span><button class="chip" data-act="removePerson" data-a="${p.id}">Remove</button></span>` : ''}</div>`).join('')}
   </div>
   ${ed ? `<div class="chiprow" style="margin-top:12px">
@@ -1989,8 +2094,30 @@ const NAV = [
   ['entry', 'Score Entry'], ['roster', 'Roster & Pairings'], ['rules', 'Games & Rules'], ['courses', 'Course Setup'], ['setup', 'Setup'],
 ];
 
+/** A re-render replaces the whole tree, which would blow away half-typed text
+ *  and the caret. Remember the focused control by its action, and put it back. */
+function fieldKey(el) {
+  if (!el || !el.dataset || !el.dataset.act) return null;
+  return [el.dataset.act, el.dataset.a || '', el.dataset.b || '', el.dataset.c || ''].join('|');
+}
+function captureFocus() {
+  const el = document.activeElement;
+  const key = fieldKey(el);
+  if (!key || !('value' in el)) return null;
+  return { key, value: el.value, start: el.selectionStart, end: el.selectionEnd };
+}
+function restoreFocus(f) {
+  if (!f) return;
+  const el = Array.from(document.querySelectorAll('[data-act]')).find(x => fieldKey(x) === f.key);
+  if (!el || !('value' in el)) return;
+  el.value = f.value;
+  el.focus();
+  try { el.setSelectionRange(f.start, f.end); } catch (e) { /* not a text input */ }
+}
+
 function render() {
   const app = document.getElementById('app');
+  const focused = captureFocus();
   const body = { today: scrToday, boards: scrBoards, ryder: scrRyder, calendar: scrCalendar,
                  entry: scrEntry, roster: scrRoster, rules: scrRules, courses: scrCourses, setup: scrSetup }[UI.screen]();
 
@@ -2033,7 +2160,9 @@ function render() {
   </div>
   ${UI.modal ? modalHtml() : ''}`;
 
-  if (UI.modal && UI.modal.kind !== 'setup') { const i = document.getElementById('pinField'); if (i) { i.focus(); i.select(); } }
+  if (UI.modal && UI.modal.kind === 'pin') { const i = document.getElementById('pinField'); if (i) { i.focus(); i.select(); } }
+  else if (UI.modal && UI.modal.kind === 'add') { const i = document.getElementById('addName'); if (i) i.focus(); }
+  else restoreFocus(focused);
 }
 
 const SETUP_SCOPES = {
@@ -2078,7 +2207,37 @@ function pinModalHtml() {
   </div></div>`;
 }
 
-function modalHtml() { return UI.modal.kind === 'setup' ? setupModalHtml() : pinModalHtml(); }
+function addModalHtml() {
+  const m = UI.modal;
+  const what = { golfer: 'golfer', official: 'official', spectator: 'guest' }[m.role] || 'person';
+  return `<div class="scrim" data-act="modalScrim"><div class="modal" role="dialog" aria-modal="true" aria-label="Add a ${esc(what)}">
+    <h3>Add a ${esc(what)}</h3>
+    <p>${m.role === 'golfer' ? 'Give them a playing band on the roster once they are in.' : 'They appear on the roster and can take Bingo Bango Bongo points if they play.'}</p>
+    <input class="field" id="addName" type="text" placeholder="Full name" maxlength="40" aria-label="Name" style="width:100%;font-size:18px">
+    <p class="err">${esc(UI.modalErr)}</p>
+    <div class="acts"><button class="btn ghost" data-act="modalCancel">Cancel</button>
+      <button class="btn" data-act="addSave">Save</button></div>
+  </div></div>`;
+}
+
+function confirmModalHtml() {
+  const m = UI.modal;
+  return `<div class="scrim" data-act="modalScrim"><div class="modal" role="alertdialog" aria-modal="true" aria-label="${esc(m.title)}">
+    <h3>${esc(m.title)}</h3>
+    <p>${esc(m.note)}</p>
+    <div class="acts">
+      ${m.alt ? `<button class="btn ghost" data-act="confirmAlt">${esc(m.alt)}</button>` : ''}
+      <button class="btn ghost" data-act="modalCancel">${esc(m.cancel || 'Cancel')}</button>
+      <button class="btn" data-act="confirmOk">${esc(m.ok)}</button></div>
+  </div></div>`;
+}
+
+function modalHtml() {
+  return UI.modal.kind === 'setup' ? setupModalHtml()
+       : UI.modal.kind === 'add' ? addModalHtml()
+       : UI.modal.kind === 'confirm' ? confirmModalHtml()
+       : pinModalHtml();
+}
 
 /* ---------------- dispatch ---------------- */
 
@@ -2109,20 +2268,22 @@ function onClick(e) {
 
   switch (act) {
     case 'go':
-      UI.screen = a; UI.modal = null; window.scrollTo(0, 0);
-      if (a === 'entry' && !UI.entrySeen) {
-        UI.entrySeen = true;
-        if (E.setupIssues(T).some(i => SETUP_SCOPES.entry.only.includes(i.id))) UI.modal = { kind: 'setup', scope: 'entry' };
-      }
-      break;
+      guardDraft(() => {
+        UI.screen = a; UI.modal = null; window.scrollTo(0, 0);
+        if (a === 'entry' && !UI.entrySeen) {
+          UI.entrySeen = true;
+          if (E.setupIssues(T).some(i => SETUP_SCOPES.entry.only.includes(i.id))) UI.modal = { kind: 'setup', scope: 'entry' };
+        }
+      });
+      return;
     case 'goRule': UI.screen = 'rules'; render();
       { const d = document.getElementById('rule-' + a); if (d) { d.open = true; d.scrollIntoView({ block: 'center' }); } }
       return;
     case 'boardTab': UI.boardTab = a; break;
     case 'boardRound': UI.boardRound = a; UI.bookHole = 0; break;
     case 'bookHole': UI.bookHole = +a; break;
-    case 'entryRound': UI.entryRound = a; UI.entryHole = 0; UI.entryTee = 'all'; break;
-    case 'entryHole': UI.entryHole = +a; break;
+    case 'entryRound': guardDraft(() => { UI.entryRound = a; UI.entryHole = 0; UI.entryTee = 'all'; }); return;
+    case 'entryHole': guardDraft(() => { UI.entryHole = +a; }); return;
     case 'entryTee': UI.entryTee = a; break;
     case 'courseTab': UI.courseTab = a; UI.courseHole = 0; break;
     case 'courseHole': UI.courseHole = +a; break;
@@ -2145,6 +2306,7 @@ function onClick(e) {
         role => { setRound(a, { state: 'open', openedBy: role }); UI.entryRound = a; UI.screen = 'entry'; });
       return;
     case 'lockRound':
+      if (draftDirty()) { guardDraft(() => {}); return; }
       askPin('Lock and conclude ' + E.roundDef(a).short, 'Re-enter your PIN to close the card. Nothing more can be entered unless the master reviewer reopens it.', 'Lock round',
         role => { setRound(a, { state: 'locked', lockedBy: role, lockedAt: Date.now() }); });
       return;
@@ -2158,12 +2320,19 @@ function onClick(e) {
       const h = UI.entryHole;
       const hole = E.courseOf(T, rid).holes[h];
       const cap = E.capFor(hole.par, T.config.capOver);
-      store.writeCard(rid, a, c => {
-        let v = c.raw[h] == null ? (+b > 0 ? hole.par : null) : c.raw[h] + (+b);
-        if (v != null && v < 1) v = null;
-        if (v != null && v > cap) v = cap;
-        c.raw[h] = v;
-      });
+      const d = draftFor(rid, h);
+      const cur = grossOf(rid, a, h);
+      let v = cur == null ? (+b > 0 ? hole.par : null) : cur + (+b);
+      if (v != null && v < 1) v = null;
+      if (v != null && v > cap) v = cap;
+      d.strokes[a] = v;
+      break;
+    }
+    case 'saveHole': {
+      if (!draftDirty()) return;
+      const n = UI.draft.hole + 1;
+      askPin('Save hole ' + n, 'Enter your PIN to record these scores. Only saved holes reach the leaderboards.',
+        'Save hole', role => { commitDraft(role); render(); });
       return;
     }
     case 'tgl':
@@ -2195,13 +2364,22 @@ function onClick(e) {
       if (!canEdit()) return;
       store.writeConfig(c => { const p = c.people.find(x => x.id === a); if (p) p.band = b === '' ? null : +b; });
       return;
-    case 'addPerson': {
+    case 'addPerson':
       if (!canEdit()) return;
+      UI.modal = { kind: 'add', role: a }; UI.modalErr = '';
+      break;
+    case 'addSave': {
+      const field = document.getElementById('addName');
+      const name = (field ? field.value : '').trim().replace(/\s+/g, ' ');
+      if (!name) { UI.modalErr = 'Give them a name first.'; render(); return; }
+      const role = UI.modal.role;
       const id = 'x' + Date.now().toString(36);
-      const label = a === 'golfer' ? 'New golfer' : a === 'official' ? 'New official' : 'New guest';
-      store.writeConfig(c => { c.people.push({ id, name: label, display: label, role: a, location: null, group: '7-day', band: null }); });
+      UI.modal = null; UI.modalErr = '';
+      store.writeConfig(c => { c.people.push({ id, name, display: name, role, location: null, group: '7-day', band: null }); });
       return;
     }
+    case 'confirmOk': { const f = UI.modal.onOk; UI.modal = null; if (f) f(); return; }
+    case 'confirmAlt': { const f = UI.modal.onAlt; UI.modal = null; if (f) f(); return; }
     case 'removePerson':
       if (!canAdmin()) return;
       store.writeConfig(c => {
@@ -2240,7 +2418,8 @@ function onChange(e) {
 
   if (act === 'setBbb') {
     if (!editable) return;
-    store.writeBbb(rid, x => { x.holes[UI.entryHole][a] = el.value || null; });
+    draftFor(rid, UI.entryHole).bbb[a] = el.value || null;
+    render();
   } else if (act === 'setRoundField') {
     if (!editable) return;
     const num = a === 'ctpHole' || a === 'ldHole';
@@ -2271,6 +2450,11 @@ function onChange(e) {
       c.teePicks[a] = { done: true, time: el.value, byPair: by };
       c.rounds[a].tees[0].time = el.value;
     });
+  } else if (act === 'renamePerson') {
+    if (!canEdit()) return;
+    const name = el.value.trim().replace(/\s+/g, ' ');
+    if (!name) { render(); return; }              // an empty name is a slip, not an edit
+    store.writeConfig(c => { const p = c.people.find(x => x.id === a); if (p) { p.name = name; p.display = name; } });
   } else if (act === 'addToPair') {
     if (!canEdit() || !el.value) return;
     const pid = el.value;
@@ -2284,6 +2468,8 @@ function onChange(e) {
 
 function onKey(e) {
   if (e.key === 'Enter' && UI.modal && e.target.id === 'pinField') { e.preventDefault(); submitPin(); }
+  if (e.key === 'Enter' && UI.modal && e.target.id === 'addName') { e.preventDefault(); onClick({ target: document.querySelector('[data-act="addSave"]') }); }
+  if (e.key === 'Enter' && e.target.classList && e.target.classList.contains('nameedit')) { e.preventDefault(); e.target.blur(); }
   if (e.key === 'Escape' && UI.modal) { UI.modal = null; UI.modalErr = ''; render(); }
 }
 

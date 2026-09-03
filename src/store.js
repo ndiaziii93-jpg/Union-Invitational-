@@ -7,7 +7,9 @@ import { GOLFERS, OFFICIALS, SPECTATORS, PAIRS, ROUNDS, SCHEDULE, COURSES } from
 const LOCAL_KEY = 'union-invitational:v3';
 const DEFAULT_PINS = { master: '1000', s1: '2000', s2: '3000' };
 
-export function blankCard() { return { raw: Array(18).fill(null), mF: false, mB: false, bb: false }; }
+/** `by` and `at` are keyed by hole index and hold only saved holes, so a hole
+ *  with no entry is simply absent — no null to be dropped in transit. */
+export function blankCard() { return { raw: Array(18).fill(null), by: {}, at: {}, mF: false, mB: false, bb: false }; }
 export function blankBbb() { return { holes: Array.from({ length: 18 }, () => ({ bingo: null, bango: null, bongo: null })) }; }
 
 export function defaultConfig() {
@@ -193,7 +195,10 @@ export function createStore(onChange) {
 
   async function writeCard(roundId, pid, mutate) {
     const key = roundId + '__' + pid;
-    const c = T.scores[key] ? { ...T.scores[key], raw: [...T.scores[key].raw] } : blankCard();
+    const prev = T.scores[key];
+    const c = prev
+      ? { ...blankCard(), ...prev, raw: [...prev.raw], by: { ...(prev.by || {}) }, at: { ...(prev.at || {}) } }
+      : blankCard();
     mutate(c);
     bump('scores/' + key, c);
     T.scores[key] = c;

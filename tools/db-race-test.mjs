@@ -91,25 +91,57 @@ ok('flag: 2 rapid taps land on UK', await p.locator('.sqrow').nth(1).locator('.s
 // --- roster add and remove survive
 await p.locator('.tab', { hasText: 'Roster' }).click(); await p.waitForTimeout(300);
 const golfers = () => p.locator('.rows').first().locator('.row').count();
+await p.locator('[data-act="addPerson"][data-a="golfer"]').waitFor();
 const n0 = await golfers();
-await p.locator('[data-act="addPerson"][data-a="golfer"]').click(); await p.waitForTimeout(1400);
-ok('roster: added golfer stays', await golfers(), n0 + 1);
-await p.locator('.rows').first().locator('[data-act="removePerson"]').last().click(); await p.waitForTimeout(1400);
-ok('roster: removal stays', await golfers(), n0);
 
 // --- a band survives
 await p.locator('.rows').first().locator('.row').first().locator('[data-act="setBand"]').first().click();
 await p.waitForTimeout(1400);
 ok('roster: band 15 sticks', await p.locator('.rows').first().locator('.row').first().locator('.chip.on').innerText(), '15');
 
-// --- a stroke survives
-await p.locator('.tab', { hasText: 'Score Entry' }).click(); await p.waitForTimeout(400);
+// --- roster: a new person is named by hand, not auto-labelled
+await p.locator('[data-act="addPerson"][data-a="golfer"]').click(); await p.waitForTimeout(300);
+await p.locator('#addName').fill('Tommy Fleetwood');
+await p.locator('[data-act="addSave"]').click(); await p.waitForTimeout(1400);
+ok('roster: named add lands', await p.locator('.rows').first().locator('.row').last().locator('.nameedit').inputValue(), 'Tommy Fleetwood');
+ok('roster: named add counted', await golfers(), n0 + 1);
+
+// --- rename sticks
+const last = p.locator('.rows').first().locator('.row').last().locator('.nameedit');
+await last.fill('Tommy F'); await last.blur(); await p.waitForTimeout(1400);
+ok('roster: rename sticks', await p.locator('.rows').first().locator('.row').last().locator('.nameedit').inputValue(), 'Tommy F');
+await p.locator('.rows').first().locator('[data-act="removePerson"]').last().click(); await p.waitForTimeout(1400);
+
+// --- a stroke is a draft until the hole is saved
+await p.locator('.tab', { hasText: 'Score Entry' }).click(); await p.waitForTimeout(500);
 await p.locator('[data-act="modalCancel"]').click().catch(() => {});
 await p.locator('[data-act="openRound"]').first().click(); await p.waitForTimeout(1400);
-await p.locator('.step', { hasText: '+' }).first().click(); await p.waitForTimeout(1400);
-ok('entry: stroke sticks', await p.locator('.gross').first().innerText(), '4');
-await p.locator('.step', { hasText: '+' }).first().click(); await p.waitForTimeout(1400);
-ok('entry: second stroke sticks', await p.locator('.gross').first().innerText(), '5');
+await p.locator('.step', { hasText: '+' }).first().click(); await p.waitForTimeout(300);
+ok('entry: stroke shows as a draft', await p.locator('.gross').first().innerText(), '4');
+ok('entry: draft is flagged unsaved', await p.locator('.savebar .sv b').innerText(), 'Hole 1 is not saved');
+ok('entry: nothing on the leaderboard yet', await p.evaluate(() => Object.keys(window.__mockDocs).filter(k => k.startsWith('scores/')).length), 0);
+
+// --- leaving an unsaved hole prompts
+await p.locator('.cell').nth(3).click(); await p.waitForTimeout(300);
+ok('entry: moving hole prompts', await p.locator('.modal h3').innerText(), 'Hole 1 is not saved');
+await p.locator('[data-act="modalCancel"]').click(); await p.waitForTimeout(300);
+ok('entry: Stay keeps the draft', await p.locator('.gross').first().innerText(), '4');
+
+// --- saving writes it through
+await p.locator('[data-act="saveHole"]').click(); await p.waitForTimeout(1600);
+ok('entry: saved bar confirms', await p.locator('.savebar .sv b').innerText(), 'Hole 1 saved');
+ok('entry: card written once saved', await p.evaluate(() => Object.keys(window.__mockDocs).filter(k => k.startsWith('scores/')).length), 1);
+ok('entry: stroke survives the race', await p.locator('.gross').first().innerText(), '4');
+
+// --- discard drops the draft and moves on
+await p.locator('.step', { hasText: '+' }).first().click(); await p.waitForTimeout(300);
+await p.locator('.cell').nth(3).click(); await p.waitForTimeout(300);
+await p.locator('[data-act="confirmAlt"]').click(); await p.waitForTimeout(600);
+ok('entry: discard moved to hole 4', await p.locator('.leaf-r .eyebrow').first().innerText(), 'Hole 4 · par 4 · gross strokes');
+await p.locator('.cell').nth(0).click(); await p.waitForTimeout(500);
+  const el = document.querySelector('.savebar .sv b'); return el ? el.textContent : 'no savebar';
+}));
+ok('entry: the saved stroke is still there', await p.locator('.gross').first().innerText(), '4');
 
 await b.close();
 console.log(fails.length ? '\nFAILED: ' + fails.join(', ') : '\nAll shared-store writes survived the race.');

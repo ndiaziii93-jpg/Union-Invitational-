@@ -31,6 +31,14 @@ the total strokes received across eighteen holes:
 
 A golfer with no band is excluded from every leaderboard rather than guessed at.
 
+## Entering a score
+
+A hole is entered, then saved. Strokes tapped on a hole are a draft held on that
+scorer's device — nothing reaches a card or a leaderboard until **Save hole** is
+pressed, which (with PINs armed) asks for a PIN. Leaving a hole with an unsaved
+draft prompts: save it, discard it, or stay. The card records who saved each
+hole and when, so a score on a leaderboard is always one somebody signed off.
+
 ## Who can score
 
 **PINs are currently OFF.** Anyone who can open the page can enter scores, open a

@@ -368,3 +368,21 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
 .row .who.plain{font-weight:400;font-size:17px}
 .legend{font-size:15px;color:var(--turf);font-style:italic;margin:10px 0 0;text-align:right}
 .turn{font-size:15px;color:var(--turf);font-style:italic;margin:14px 0 0}
+
+/* ---- save-per-hole ---- */
+.savebar{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:14px;padding:13px 15px;
+  border:1px solid var(--rule);background:var(--page);border-radius:3px}
+.savebar.dirty{border-left:3px solid var(--flag);background:var(--sunk)}
+.savebar .sv{flex:1 1 240px;min-width:0}
+.savebar .sv b{display:block;font-size:16px}
+.savebar .sv span{font-size:14px;color:var(--turf)}
+.padrow.pending{border-color:var(--flag);box-shadow:inset 3px 0 0 var(--flag)}
+.padrow .nm .tag{display:inline-block;margin-left:8px;padding:1px 8px;border-radius:999px;font-size:12px;
+  background:var(--flag);color:#FBFAF7;vertical-align:2px}
+.cell.saved{border-color:var(--ink)}
+
+/* ---- inline name editing ---- */
+.nameedit{width:100%;max-width:250px;font-family:var(--serif);font-size:18px;font-weight:600;color:var(--ink);
+  background:none;border:none;border-bottom:1px dashed transparent;border-radius:0;padding:2px 0;min-height:32px}
+.nameedit:hover{border-bottom-color:var(--rule)}
+.nameedit:focus{outline:none;border-bottom-color:var(--flag)}
