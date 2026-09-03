@@ -40,19 +40,24 @@ const canAdmin = () => S.ROLES[UI.role].canAdmin;
 
 /* ---------------- flags ---------------- */
 
-function flagSvg(sq) {
-  if (sq === 'USA') return `<svg class="fl" viewBox="0 0 38 24" aria-hidden="true"><rect width="38" height="24" fill="#F4F2EF"/>${
-    [0,2,4,6,8,10,12].map(i => `<rect y="${i*24/13}" width="38" height="${24/13}" fill="#B22234"/>`).join('')
-  }<rect width="16" height="${24*7/13}" fill="#3C3B6E"/>${
-    [0,1,2,3].map(r => [0,1,2,3,4].map(c => `<circle cx="${2+c*3.2}" cy="${2+r*3}" r="0.85" fill="#fff"/>`).join('')).join('')
-  }</svg>`;
-  if (sq === 'UK') return `<svg class="fl" viewBox="0 0 38 24" aria-hidden="true"><rect width="38" height="24" fill="#012169"/>` +
-    `<path d="M0 0 38 24M38 0 0 24" stroke="#fff" stroke-width="5"/>` +
-    `<path d="M0 0 38 24M38 0 0 24" stroke="#C8102E" stroke-width="3"/>` +
-    `<path d="M19 0V24M0 12H38" stroke="#fff" stroke-width="8"/>` +
-    `<path d="M19 0V24M0 12H38" stroke="#C8102E" stroke-width="4.5"/></svg>`;
-  return `<svg class="fl" viewBox="0 0 38 24" aria-hidden="true"><rect width="38" height="24" fill="none" stroke="currentColor" stroke-opacity=".35" stroke-dasharray="3 3"/><line x1="8" y1="12" x2="30" y2="12" stroke="currentColor" stroke-opacity=".3" stroke-width="1.5"/></svg>`;
-}
+/** The canvas flag drawings, sized by the caller. `w` is the width in px. */
+function ukFlag(w) { const h = Math.round(w * 16 / 26); return `<svg width="${w}" height="${h}" viewBox="0 0 26 16" role="img" aria-label="United Kingdom">`
+  + `<rect width="26" height="16" fill="#1D3E8F"></rect>`
+  + `<path d="M0,0 26,16 M26,0 0,16" stroke="#FBFAF7" stroke-width="3.4"></path>`
+  + `<path d="M0,0 26,16 M26,0 0,16" stroke="#9E3B2E" stroke-width="1.4"></path>`
+  + `<path d="M13,0 V16 M0,8 H26" stroke="#FBFAF7" stroke-width="5.4"></path>`
+  + `<path d="M13,0 V16 M0,8 H26" stroke="#9E3B2E" stroke-width="2.8"></path></svg>`; }
+
+function usFlag(w) { const h = Math.round(w * 16 / 26); return `<svg width="${w}" height="${h}" viewBox="0 0 26 16" role="img" aria-label="United States">`
+  + `<rect width="26" height="16" fill="#FBFAF7"></rect>`
+  + `<g fill="#9E3B2E"><rect y="0" width="26" height="2.3"></rect><rect y="4.6" width="26" height="2.3"></rect>`
+  + `<rect y="9.2" width="26" height="2.3"></rect><rect y="13.7" width="26" height="2.3"></rect></g>`
+  + `<rect width="11" height="8" fill="#1D3E8F"></rect></svg>`; }
+
+function noFlag(w) { const h = Math.round(w * 16 / 26); return `<svg width="${w}" height="${h}" viewBox="0 0 26 16" aria-hidden="true">`
+  + `<rect x="0.5" y="0.5" width="25" height="15" fill="none" stroke="currentColor" stroke-opacity=".35" stroke-dasharray="2.5 2.5"></rect></svg>`; }
+
+function squadFlag(sq, w) { return sq === 'UK' ? ukFlag(w) : sq === 'USA' ? usFlag(w) : noFlag(w); }
 
 /* ---------------- small pieces ---------------- */
 
@@ -108,19 +113,6 @@ function holeLeaf(rid, h, opts = {}) {
 }
 
 /* ---------------- screens ---------------- */
-
-function ukFlag(w) { return `<svg width="${w}" height="${Math.round(w * 16 / 26)}" viewBox="0 0 26 16" role="img" aria-label="United Kingdom">`
-  + `<rect width="26" height="16" fill="#1D3E8F"></rect>`
-  + `<path d="M0,0 26,16 M26,0 0,16" stroke="#FBFAF7" stroke-width="3.4"></path>`
-  + `<path d="M0,0 26,16 M26,0 0,16" stroke="#9E3B2E" stroke-width="1.4"></path>`
-  + `<path d="M13,0 V16 M0,8 H26" stroke="#FBFAF7" stroke-width="5.4"></path>`
-  + `<path d="M13,0 V16 M0,8 H26" stroke="#9E3B2E" stroke-width="2.8"></path></svg>`; }
-
-function usFlag(w) { return `<svg width="${w}" height="${Math.round(w * 16 / 26)}" viewBox="0 0 26 16" role="img" aria-label="United States">`
-  + `<rect width="26" height="16" fill="#FBFAF7"></rect>`
-  + `<g fill="#9E3B2E"><rect y="0" width="26" height="2.3"></rect><rect y="4.6" width="26" height="2.3"></rect>`
-  + `<rect y="9.2" width="26" height="2.3"></rect><rect y="13.7" width="26" height="2.3"></rect></g>`
-  + `<rect width="11" height="8" fill="#1D3E8F"></rect></svg>`; }
 
 function scrToday() {
   const focus = D.ROUNDS.find(r => E.phaseOf(T, r.id, now) === 'live')
@@ -376,20 +368,25 @@ function scrRyder() {
   <p class="lede">Squad match play laid over the same scorecards. Fourballs Thursday and Friday, singles Sunday. <a href="#rules" data-act="goRule" data-a="ryder">Full rules</a></p>
 
   <div class="cupbar">
-    <div class="side">${flagSvg('UK')}<span class="pts num" style="color:var(--uk)">${R.ukTotal}</span><span class="eyebrow">United Kingdom</span></div>
+    <div class="side">${ukFlag(44)}<span class="pts num" style="color:var(--uk)">${R.ukTotal}</span><span class="eyebrow">United Kingdom</span></div>
     <div class="vs">v</div>
-    <div class="side r"><span class="eyebrow">United States</span><span class="pts num" style="color:var(--usa)">${R.usaTotal}</span>${flagSvg('USA')}</div>
+    <div class="side r"><span class="eyebrow">United States</span><span class="pts num" style="color:var(--usa)">${R.usaTotal}</span>${usFlag(44)}</div>
   </div>
 
   <h3 class="sub">Squads</h3>
-  <p class="lede">${canEdit() ? 'Tap a name to move them: unassigned → USA → UK → unassigned.' : 'Squads are set by the scorers.'}${R.unassigned ? ` <b>${R.unassigned} still unassigned.</b>` : ''}</p>
+  <p class="lede">${canEdit() ? 'Tap a flag to move that golfer: unassigned → United States → United Kingdom → unassigned.' : 'Squads are set by the scorers.'}${R.unassigned ? ` <b>${R.unassigned} still unassigned.</b>` : ''}</p>
   <div class="grid-people">
     ${gs.map(g => {
       const sq = g.location;
       const k = sq === 'UK' ? 'uk' : sq === 'USA' ? 'usa' : 'none';
-      return `<button class="flagbtn ${k}" data-act="cycleSquad" data-a="${g.id}"${canEdit() ? '' : ' disabled'}
-        aria-label="${esc(g.display)}, ${sq ? esc(sq) : 'unassigned'}">
-        ${flagSvg(sq)}<span class="who">${esc(g.display)}</span><span class="sq">${sq ? esc(sq) : 'Unassigned'}</span></button>`;
+      const next = sq === null ? 'United States' : sq === 'USA' ? 'United Kingdom' : 'unassigned';
+      return `<div class="sqrow ${k}">
+        <button class="sqbox" data-act="cycleSquad" data-a="${g.id}"${canEdit() ? '' : ' disabled'}
+          aria-label="${esc(g.display)} — ${sq ? esc(sq) : 'unassigned'}. Change to ${esc(next)}."
+          title="${canEdit() ? 'Change to ' + next : 'Scorers set the squads'}">${squadFlag(sq, 52)}</button>
+        <span class="sqname">${esc(g.display)}</span>
+        <span class="sqlabel">${sq ? esc(sq) : 'Unassigned'}</span>
+      </div>`;
     }).join('')}
   </div>
   ${canEdit() ? `<div class="chiprow" style="margin-top:12px"><button class="chip" data-act="clearSquads">Clear all squads</button></div>` : ''}

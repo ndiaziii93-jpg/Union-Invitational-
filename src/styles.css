@@ -158,15 +158,19 @@ h3.sub{font-size:19px;font-weight:600;margin:26px 0 0}
 .gate .msg span{color:var(--turf);font-size:14px}
 
 /* ---- flags ---- */
-.flagbtn{display:flex;align-items:center;gap:10px;width:100%;padding:9px 11px;border:1px solid var(--rule);
-  background:var(--page);border-radius:3px;min-height:52px}
-.flagbtn .fl{width:34px;height:22px;flex:0 0 auto;border:1px solid var(--hair);border-radius:1px}
-.flagbtn .who{flex:1;font-size:16px;font-weight:600;min-width:0}
-.flagbtn .sq{font-size:14px;color:var(--turf)}
-.flagbtn.uk{border-left:3px solid var(--uk)}
-.flagbtn.usa{border-left:3px solid var(--usa)}
-.flagbtn.none{border-left:3px dashed var(--rule)}
-.grid-people{display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));margin-top:14px}
+.grid-people{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(268px,1fr));margin-top:14px}
+.sqrow{display:flex;align-items:center;gap:14px;padding:8px 12px 8px 9px;border:1px solid var(--rule);
+  background:var(--page);border-radius:3px;min-height:60px}
+.sqrow.uk{border-left:3px solid var(--uk)}
+.sqrow.usa{border-left:3px solid var(--usa)}
+.sqrow.none{border-left:3px dashed var(--rule)}
+.sqbox{flex:0 0 auto;display:flex;align-items:center;justify-content:center;width:64px;height:44px;
+  border:1px solid var(--rule);background:var(--paper);border-radius:2px;color:var(--turf)}
+.sqbox svg{display:block;border:1px solid rgba(29,46,33,.18)}
+.sqbox:hover:not(:disabled){border-color:var(--ink);background:var(--sunk)}
+.sqbox:disabled{opacity:.55;cursor:not-allowed}
+.sqname{flex:1;font-size:17px;font-weight:600;min-width:0}
+.sqlabel{font-size:14px;color:var(--turf);white-space:nowrap}
 
 /* ---- score bar (ryder) ---- */
 .cupbar{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:center;margin-top:16px;
