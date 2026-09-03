@@ -1,2 +1,82 @@
-# Union-Invitational-
-yearly Golf Tracker and tool 
+# The Union Invitational
+
+Yardage book and live scoring for The Union Invitational — Titanic Deluxe Golf Belek,
+Antalya, 26 October to 2 November 2026.
+
+One HTML page, no build server, no network calls at runtime. It ships as a Claude
+Artifact and keeps its state in the artifact's shared database, so the two scorers on
+the course, the master reviewer and every spectator all read the same card.
+
+## What it does
+
+Six competitions off a single scorecard:
+
+| Competition | How it is won |
+|---|---|
+| Team Competition | Lowest cumulative net better ball across rounds 1–3 |
+| Tournament MVP | Lowest individual net to par across rounds 1–3 |
+| Bingo Bango Bongo | Most points banked — three a hole, 162 across the week |
+| Closest to the Pin | Nearest tee shot on the green, one nominated par 3 a round |
+| Longest Drive | Longest drive in the fairway, one nominated hole a round |
+| Ryder Cup — UK v USA | Most match points: fourballs Thu and Fri, singles Sun |
+
+## Playing bands
+
+Every golfer plays off a 15, 20 or 25 band, assigned on the Roster screen. The band is
+the total strokes received across eighteen holes:
+
+- **15** — one stroke on stroke index 1–15
+- **20** — one a hole, a second on stroke index 1–2
+- **25** — one a hole, a second on stroke index 1–7
+
+A golfer with no band is excluded from every leaderboard rather than guessed at.
+
+## Who can score
+
+Three PINs, set by the master reviewer in Setup:
+
+- **Master** — opens and locks rounds, reopens a locked round, reads and changes every PIN
+- **Scorer 1** and **Scorer 2** — open rounds, enter scores, lock a round
+
+A round must be *opened* with a PIN before anything can be entered, and the PIN is
+required again to *lock and conclude* it. Everyone without a PIN reads the whole book
+and writes nothing.
+
+This is a courtesy lock, not security. The PINs live in the shared database and a
+determined reader can find them in the page. They exist to stop an accidental tap,
+not an attacker.
+
+## Data provenance
+
+Real and verified: both Cullinan Links scorecards (par, stroke index, White and Yellow
+metres, course rating and slope), all 36 hole diagrams, the roster, the trip calendar,
+the golf days and the first tee times.
+
+Not in this repo: player scores. Cards start empty and fill in only from score entry.
+The clock is the real one, in Antalya local time (UTC+3, no DST).
+
+## Layout
+
+```
+src/data.js        courses, roster, calendar, rounds — the verified data
+src/rules.js       competition rules and relief
+src/engine.js      pure scoring: bands, caps, net, boards, match play
+src/store.js       shared state over the artifact db, localStorage fallback
+src/app.js         screens and dispatch
+src/styles.css     design tokens, light and dark
+src/index.html     page shell
+src/assets/holes/  36 hole diagrams as extracted (PNG)
+src/assets/web/    the same diagrams re-encoded for the page (WebP)
+tools/build.py     inlines everything into dist/union-invitational.html
+docs/              the original design canvas this was built from
+```
+
+## Build
+
+```sh
+python3 tools/build.py            # rebuild the page
+python3 tools/build.py --images   # also re-encode the diagrams (needs Pillow)
+```
+
+Output is `dist/union-invitational.html` — about 2 MB, self-contained apart from the
+Google Fonts stylesheet.
