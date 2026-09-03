@@ -312,3 +312,17 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
   color:var(--ink);border-radius:2px;min-height:38px}
 .cfoot{display:flex;gap:14px;align-items:center;margin-top:14px;padding-bottom:28px;flex-wrap:wrap}
 .cfoot span.num{font-size:15px;color:var(--turf)}
+
+/* ---- setup dialog ---- */
+.modal.wide{max-width:520px}
+.setup-list{display:grid;gap:0;border-top:1px solid var(--rule)}
+.setup-item{display:flex;gap:14px;align-items:flex-start;padding:13px 0;border-bottom:1px solid var(--hair)}
+.setup-item .tx{flex:1;font-size:15px;line-height:1.45}
+.btn.sm{min-height:38px;padding:7px 13px;font-size:14px;white-space:nowrap;flex:0 0 auto}
+.setup-flag{display:flex;align-items:center;gap:11px;width:100%;margin-top:26px;padding:12px 15px;
+  border:1px solid var(--rule);border-left:3px solid var(--flag);background:var(--page);
+  border-radius:3px;font-size:16px;color:var(--ink);min-height:48px;text-align:left}
+.setup-flag:hover{background:var(--sunk)}
+.setup-flag .mk{width:22px;height:22px;flex:0 0 auto;border-radius:50%;background:var(--flag);color:#FBFAF7;
+  display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700}
+.setup-flag .go{margin-left:auto;color:var(--flag);font-weight:600;white-space:nowrap}

@@ -32,6 +32,7 @@ const UI = {
   modalErr: '',
   revealPins: false,
   toast: '',
+  setupSeen: false,
 };
 
 const canEdit = () => S.ROLES[UI.role].canEdit;
@@ -177,7 +178,9 @@ function scrToday() {
         : `<div class="line"><span class="s">Nothing scheduled.</span></div>`}
       </div>
 
-      ${issues.length ? `<div class="notice"><b>Before the first ball</b><ul>${issues.map(i => `<li>${esc(i.text)}</li>`).join('')}</ul></div>` : ''}
+      ${issues.length ? `<button class="setup-flag" data-act="setupOpen">
+        <span class="mk">!</span>Setup incomplete — ${issues.length} thing${issues.length > 1 ? 's' : ''} to settle
+        <span class="go">Review</span></button>` : ''}
     </div>
 
     <div>
@@ -752,10 +755,30 @@ function render() {
   </div>
   ${UI.modal ? modalHtml() : ''}`;
 
-  if (UI.modal) { const i = document.getElementById('pinField'); if (i) { i.focus(); i.select(); } }
+  if (UI.modal && UI.modal.kind !== 'setup') { const i = document.getElementById('pinField'); if (i) { i.focus(); i.select(); } }
 }
 
-function modalHtml() {
+function setupModalHtml() {
+  const issues = E.setupIssues(T);
+  if (!issues.length) {
+    return `<div class="scrim" data-act="modalScrim"><div class="modal" role="dialog" aria-modal="true" aria-label="Setup complete">
+      <h3>Setup complete</h3><p>Every band is set, the pairs are filled, both cards are verified and the PINs have been changed. The book is ready.</p>
+      <div class="acts"><button class="btn" data-act="modalCancel">Close</button></div></div></div>`;
+  }
+  return `<div class="scrim" data-act="modalScrim"><div class="modal wide" role="alertdialog" aria-modal="true" aria-label="Setup incomplete">
+    <h3>Setup incomplete</h3>
+    <p>${issues.length} thing${issues.length > 1 ? 's' : ''} still to settle before the first card counts. Update takes you to where each one is fixed.</p>
+    <div class="setup-list">
+      ${issues.map(i => `<div class="setup-item">
+        <span class="tx">${esc(i.text)}</span>
+        <button class="btn ghost sm" data-act="setupGo" data-a="${i.screen}">${esc(i.cta)}</button>
+      </div>`).join('')}
+    </div>
+    <div class="acts"><button class="btn ghost" data-act="modalCancel">Dismiss</button></div>
+  </div></div>`;
+}
+
+function pinModalHtml() {
   const m = UI.modal;
   return `<div class="scrim" data-act="modalScrim"><div class="modal" role="dialog" aria-modal="true" aria-label="${esc(m.title)}">
     <h3>${esc(m.title)}</h3>
@@ -767,9 +790,11 @@ function modalHtml() {
   </div></div>`;
 }
 
+function modalHtml() { return UI.modal.kind === 'setup' ? setupModalHtml() : pinModalHtml(); }
+
 /* ---------------- dispatch ---------------- */
 
-function askPin(title, note, ok, onOk) { UI.modal = { title, note, ok, onOk }; UI.modalErr = ''; render(); }
+function askPin(title, note, ok, onOk) { UI.modal = { kind: 'pin', title, note, ok, onOk }; UI.modalErr = ''; render(); }
 
 function submitPin() {
   const el = document.getElementById('pinField');
@@ -809,6 +834,8 @@ function onClick(e) {
       store.writeConfig(cf => { cf.courses[a].verified = !cf.courses[a].verified; });
       return;
     case 'revealPins': UI.revealPins = !UI.revealPins; break;
+    case 'setupOpen': UI.modal = { kind: 'setup' }; break;
+    case 'setupGo': UI.modal = null; UI.screen = a; window.scrollTo(0, 0); break;
 
     case 'signIn':
       if (UI.role !== 'viewer') { UI.role = 'viewer'; if (UI.screen === 'setup') UI.screen = 'today'; break; }
@@ -964,7 +991,14 @@ export function boot() {
   UI.entryRound = upcoming.id;
   UI.boardRound = (upcoming.counts ? upcoming : D.ROUNDS.find(r => r.counts)).id;
 
-  store = S.createStore((state, m) => { T = state; meta = m; render(); });
+  store = S.createStore((state, m) => {
+    T = state; meta = m;
+    if (m.ready && !UI.setupSeen) {
+      UI.setupSeen = true;
+      if (E.setupIssues(T).length) UI.modal = { kind: 'setup' };
+    }
+    render();
+  });
   const app = document.getElementById('app');
   app.addEventListener('click', onClick);
   app.addEventListener('change', onChange);

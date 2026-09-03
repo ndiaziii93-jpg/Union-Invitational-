@@ -317,6 +317,20 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
 .cfoot{display:flex;gap:14px;align-items:center;margin-top:14px;padding-bottom:28px;flex-wrap:wrap}
 .cfoot span.num{font-size:15px;color:var(--turf)}
 
+/* ---- setup dialog ---- */
+.modal.wide{max-width:520px}
+.setup-list{display:grid;gap:0;border-top:1px solid var(--rule)}
+.setup-item{display:flex;gap:14px;align-items:flex-start;padding:13px 0;border-bottom:1px solid var(--hair)}
+.setup-item .tx{flex:1;font-size:15px;line-height:1.45}
+.btn.sm{min-height:38px;padding:7px 13px;font-size:14px;white-space:nowrap;flex:0 0 auto}
+.setup-flag{display:flex;align-items:center;gap:11px;width:100%;margin-top:26px;padding:12px 15px;
+  border:1px solid var(--rule);border-left:3px solid var(--flag);background:var(--page);
+  border-radius:3px;font-size:16px;color:var(--ink);min-height:48px;text-align:left}
+.setup-flag:hover{background:var(--sunk)}
+.setup-flag .mk{width:22px;height:22px;flex:0 0 auto;border-radius:50%;background:var(--flag);color:#FBFAF7;
+  display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700}
+.setup-flag .go{margin-left:auto;color:var(--flag);font-weight:600;white-space:nowrap}
+
 </style>
 <div id="app"></div>
 <script>
@@ -800,14 +814,32 @@ function holeCells(T, roundId, pair) {
 function setupIssues(T) {
   const out = [];
   const noBand = golfers(T).filter(g => g.band == null);
-  if (noBand.length) out.push({ id: 'bands', text: noBand.length + ' golfer' + (noBand.length > 1 ? 's have' : ' has') + ' no playing band: ' + noBand.map(g => g.display).join(', ') + '. They are left out of every score until a band is set.' });
+  if (noBand.length) out.push({
+    id: 'bands', screen: 'roster', cta: 'Set bands',
+    text: noBand.length + ' golfer' + (noBand.length > 1 ? 's have' : ' has') + ' no playing band: '
+        + noBand.map(g => g.display).join(', ') + '. They are left out of every score until a band is set.',
+  });
   const empty = T.config.pairs.filter(p => p.members.length < 2);
-  if (empty.length) out.push({ id: 'pairs', text: empty.length + ' pair' + (empty.length > 1 ? 's are' : ' is') + ' short of two players.' });
+  if (empty.length) out.push({
+    id: 'pairs', screen: 'roster', cta: 'Fix pairings',
+    text: empty.length + ' pair' + (empty.length > 1 ? 's are' : ' is') + ' short of two players.',
+  });
   const un = golfers(T).filter(g => !T.config.pairs.some(p => p.members.includes(g.id)));
-  if (un.length) out.push({ id: 'unpaired', text: un.length + ' golfer' + (un.length > 1 ? 's are' : ' is') + ' unpaired: ' + un.map(g => g.display).join(', ') + '. They still play for MVP and Bingo Bango Bongo.' });
+  if (un.length) out.push({
+    id: 'unpaired', screen: 'roster', cta: 'Assign pairs',
+    text: un.length + ' golfer' + (un.length > 1 ? 's are' : ' is') + ' unpaired: ' + un.map(g => g.display).join(', ')
+        + '. They still play for MVP and Bingo Bango Bongo.',
+  });
   const unver = Object.keys(COURSES).filter(k => !courseByKey(T, k).verified).map(k => COURSES[k].name);
-  if (unver.length) out.push({ id: 'courses', text: (unver.length === 2 ? 'Both course cards are' : unver[0] + '’s card is') + ' not verified. Every net score on ' + (unver.length === 2 ? 'them' : 'it') + ' is provisional until par and stroke index are confirmed on Course Setup.' });
-  if (!T.config.pinsChanged) out.push({ id: 'pins', text: 'The scoring PINs are still the factory defaults. Change them in Setup before the first round.' });
+  if (unver.length) out.push({
+    id: 'courses', screen: 'courses', cta: 'Verify card',
+    text: (unver.length === 2 ? 'Both course cards are' : unver[0] + '\u2019s card is') + ' not verified. Every net score on '
+        + (unver.length === 2 ? 'them' : 'it') + ' is provisional until par and stroke index are confirmed.',
+  });
+  if (!T.config.pinsChanged) out.push({
+    id: 'pins', screen: 'setup', cta: 'Change PINs',
+    text: 'The scoring PINs are still the factory defaults. Change them before the first round.',
+  });
   return out;
 }
 
@@ -1125,6 +1157,7 @@ const UI = {
   modalErr: '',
   revealPins: false,
   toast: '',
+  setupSeen: false,
 };
 
 const canEdit = () => S.ROLES[UI.role].canEdit;
@@ -1270,7 +1303,9 @@ function scrToday() {
         : `<div class="line"><span class="s">Nothing scheduled.</span></div>`}
       </div>
 
-      ${issues.length ? `<div class="notice"><b>Before the first ball</b><ul>${issues.map(i => `<li>${esc(i.text)}</li>`).join('')}</ul></div>` : ''}
+      ${issues.length ? `<button class="setup-flag" data-act="setupOpen">
+        <span class="mk">!</span>Setup incomplete — ${issues.length} thing${issues.length > 1 ? 's' : ''} to settle
+        <span class="go">Review</span></button>` : ''}
     </div>
 
     <div>
@@ -1845,10 +1880,30 @@ function render() {
   </div>
   ${UI.modal ? modalHtml() : ''}`;
 
-  if (UI.modal) { const i = document.getElementById('pinField'); if (i) { i.focus(); i.select(); } }
+  if (UI.modal && UI.modal.kind !== 'setup') { const i = document.getElementById('pinField'); if (i) { i.focus(); i.select(); } }
 }
 
-function modalHtml() {
+function setupModalHtml() {
+  const issues = E.setupIssues(T);
+  if (!issues.length) {
+    return `<div class="scrim" data-act="modalScrim"><div class="modal" role="dialog" aria-modal="true" aria-label="Setup complete">
+      <h3>Setup complete</h3><p>Every band is set, the pairs are filled, both cards are verified and the PINs have been changed. The book is ready.</p>
+      <div class="acts"><button class="btn" data-act="modalCancel">Close</button></div></div></div>`;
+  }
+  return `<div class="scrim" data-act="modalScrim"><div class="modal wide" role="alertdialog" aria-modal="true" aria-label="Setup incomplete">
+    <h3>Setup incomplete</h3>
+    <p>${issues.length} thing${issues.length > 1 ? 's' : ''} still to settle before the first card counts. Update takes you to where each one is fixed.</p>
+    <div class="setup-list">
+      ${issues.map(i => `<div class="setup-item">
+        <span class="tx">${esc(i.text)}</span>
+        <button class="btn ghost sm" data-act="setupGo" data-a="${i.screen}">${esc(i.cta)}</button>
+      </div>`).join('')}
+    </div>
+    <div class="acts"><button class="btn ghost" data-act="modalCancel">Dismiss</button></div>
+  </div></div>`;
+}
+
+function pinModalHtml() {
   const m = UI.modal;
   return `<div class="scrim" data-act="modalScrim"><div class="modal" role="dialog" aria-modal="true" aria-label="${esc(m.title)}">
     <h3>${esc(m.title)}</h3>
@@ -1860,9 +1915,11 @@ function modalHtml() {
   </div></div>`;
 }
 
+function modalHtml() { return UI.modal.kind === 'setup' ? setupModalHtml() : pinModalHtml(); }
+
 /* ---------------- dispatch ---------------- */
 
-function askPin(title, note, ok, onOk) { UI.modal = { title, note, ok, onOk }; UI.modalErr = ''; render(); }
+function askPin(title, note, ok, onOk) { UI.modal = { kind: 'pin', title, note, ok, onOk }; UI.modalErr = ''; render(); }
 
 function submitPin() {
   const el = document.getElementById('pinField');
@@ -1902,6 +1959,8 @@ function onClick(e) {
       store.writeConfig(cf => { cf.courses[a].verified = !cf.courses[a].verified; });
       return;
     case 'revealPins': UI.revealPins = !UI.revealPins; break;
+    case 'setupOpen': UI.modal = { kind: 'setup' }; break;
+    case 'setupGo': UI.modal = null; UI.screen = a; window.scrollTo(0, 0); break;
 
     case 'signIn':
       if (UI.role !== 'viewer') { UI.role = 'viewer'; if (UI.screen === 'setup') UI.screen = 'today'; break; }
@@ -2057,7 +2116,14 @@ function boot() {
   UI.entryRound = upcoming.id;
   UI.boardRound = (upcoming.counts ? upcoming : D.ROUNDS.find(r => r.counts)).id;
 
-  store = S.createStore((state, m) => { T = state; meta = m; render(); });
+  store = S.createStore((state, m) => {
+    T = state; meta = m;
+    if (m.ready && !UI.setupSeen) {
+      UI.setupSeen = true;
+      if (E.setupIssues(T).length) UI.modal = { kind: 'setup' };
+    }
+    render();
+  });
   const app = document.getElementById('app');
   app.addEventListener('click', onClick);
   app.addEventListener('change', onChange);

@@ -285,14 +285,32 @@ export function holeCells(T, roundId, pair) {
 export function setupIssues(T) {
   const out = [];
   const noBand = golfers(T).filter(g => g.band == null);
-  if (noBand.length) out.push({ id: 'bands', text: noBand.length + ' golfer' + (noBand.length > 1 ? 's have' : ' has') + ' no playing band: ' + noBand.map(g => g.display).join(', ') + '. They are left out of every score until a band is set.' });
+  if (noBand.length) out.push({
+    id: 'bands', screen: 'roster', cta: 'Set bands',
+    text: noBand.length + ' golfer' + (noBand.length > 1 ? 's have' : ' has') + ' no playing band: '
+        + noBand.map(g => g.display).join(', ') + '. They are left out of every score until a band is set.',
+  });
   const empty = T.config.pairs.filter(p => p.members.length < 2);
-  if (empty.length) out.push({ id: 'pairs', text: empty.length + ' pair' + (empty.length > 1 ? 's are' : ' is') + ' short of two players.' });
+  if (empty.length) out.push({
+    id: 'pairs', screen: 'roster', cta: 'Fix pairings',
+    text: empty.length + ' pair' + (empty.length > 1 ? 's are' : ' is') + ' short of two players.',
+  });
   const un = golfers(T).filter(g => !T.config.pairs.some(p => p.members.includes(g.id)));
-  if (un.length) out.push({ id: 'unpaired', text: un.length + ' golfer' + (un.length > 1 ? 's are' : ' is') + ' unpaired: ' + un.map(g => g.display).join(', ') + '. They still play for MVP and Bingo Bango Bongo.' });
+  if (un.length) out.push({
+    id: 'unpaired', screen: 'roster', cta: 'Assign pairs',
+    text: un.length + ' golfer' + (un.length > 1 ? 's are' : ' is') + ' unpaired: ' + un.map(g => g.display).join(', ')
+        + '. They still play for MVP and Bingo Bango Bongo.',
+  });
   const unver = Object.keys(COURSES).filter(k => !courseByKey(T, k).verified).map(k => COURSES[k].name);
-  if (unver.length) out.push({ id: 'courses', text: (unver.length === 2 ? 'Both course cards are' : unver[0] + '’s card is') + ' not verified. Every net score on ' + (unver.length === 2 ? 'them' : 'it') + ' is provisional until par and stroke index are confirmed on Course Setup.' });
-  if (!T.config.pinsChanged) out.push({ id: 'pins', text: 'The scoring PINs are still the factory defaults. Change them in Setup before the first round.' });
+  if (unver.length) out.push({
+    id: 'courses', screen: 'courses', cta: 'Verify card',
+    text: (unver.length === 2 ? 'Both course cards are' : unver[0] + '\u2019s card is') + ' not verified. Every net score on '
+        + (unver.length === 2 ? 'them' : 'it') + ' is provisional until par and stroke index are confirmed.',
+  });
+  if (!T.config.pinsChanged) out.push({
+    id: 'pins', screen: 'setup', cta: 'Change PINs',
+    text: 'The scoring PINs are still the factory defaults. Change them before the first round.',
+  });
   return out;
 }
 
