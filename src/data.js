@@ -2,6 +2,11 @@
    Course scorecards, hole images, roster, calendar and rules are REAL and verified.
    Nothing here is simulated; player scores live in the shared store, not in this file. */
 
+/* PINs are OFF while the book is being built: anyone who can open the page can
+   score, and no dialog asks for a PIN. Flip this to true to arm the three PINs
+   set on the Setup screen — nothing else needs to change. */
+export const PINS_ENABLED = false;
+
 export const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
 export const EVENT = {

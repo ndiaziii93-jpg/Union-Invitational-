@@ -1,7 +1,7 @@
 /* The Union Invitational — pure scoring engine.
    No I/O, no DOM, no randomness. Everything here is a function of state. */
 
-import { COURSES, DAYS, ROUNDS, TZ_OFFSET_MIN } from './data.js';
+import { COURSES, DAYS, ROUNDS, TZ_OFFSET_MIN, PINS_ENABLED } from './data.js';
 
 /* ---------- clock (Antalya, UTC+3, no DST) ---------- */
 
@@ -307,7 +307,7 @@ export function setupIssues(T) {
     text: (unver.length === 2 ? 'Both course cards are' : unver[0] + '\u2019s card is') + ' not verified. Every net score on '
         + (unver.length === 2 ? 'them' : 'it') + ' is provisional until par and stroke index are confirmed.',
   });
-  if (!T.config.pinsChanged) out.push({
+  if (PINS_ENABLED && !T.config.pinsChanged) out.push({
     id: 'pins', screen: 'setup', cta: 'Change PINs',
     text: 'The scoring PINs are still the factory defaults. Change them before the first round.',
   });

@@ -387,6 +387,11 @@ const __m_data = (function(){
    Course scorecards, hole images, roster, calendar and rules are REAL and verified.
    Nothing here is simulated; player scores live in the shared store, not in this file. */
 
+/* PINs are OFF while the book is being built: anyone who can open the page can
+   score, and no dialog asks for a PIN. Flip this to true to arm the three PINs
+   set on the Setup screen — nothing else needs to change. */
+const PINS_ENABLED = false;
+
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
 const EVENT = {
@@ -476,7 +481,7 @@ const SCHEDULE = [
   { id: 'e13', dayIdx: 8, time: '12:00', title: 'Check-out & departure', kind: 'travel' },
 ];
 
-return {TZ_OFFSET_MIN, EVENT, DAYS, COURSES, GOLFERS, OFFICIALS, SPECTATORS, PAIRS, ROUNDS, SCHEDULE};
+return {PINS_ENABLED, TZ_OFFSET_MIN, EVENT, DAYS, COURSES, GOLFERS, OFFICIALS, SPECTATORS, PAIRS, ROUNDS, SCHEDULE};
 })();
 
 const __m_rules = (function(){
@@ -569,7 +574,7 @@ return {RULES, RELIEF};
 })();
 
 const __m_engine = (function(){
-const { COURSES, DAYS, ROUNDS, TZ_OFFSET_MIN } = __m_data;
+const { COURSES, DAYS, ROUNDS, TZ_OFFSET_MIN, PINS_ENABLED } = __m_data;
 /* The Union Invitational — pure scoring engine.
    No I/O, no DOM, no randomness. Everything here is a function of state. */
 
@@ -878,7 +883,7 @@ function setupIssues(T) {
     text: (unver.length === 2 ? 'Both course cards are' : unver[0] + '\u2019s card is') + ' not verified. Every net score on '
         + (unver.length === 2 ? 'them' : 'it') + ' is provisional until par and stroke index are confirmed.',
   });
-  if (!T.config.pinsChanged) out.push({
+  if (PINS_ENABLED && !T.config.pinsChanged) out.push({
     id: 'pins', screen: 'setup', cta: 'Change PINs',
     text: 'The scoring PINs are still the factory defaults. Change them before the first round.',
   });
@@ -1200,14 +1205,15 @@ const UI = {
   revealPins: false,
   toast: '',
   setupSeen: false,
+  entrySeen: false,
 };
 
 const ROLE_KEY = 'union-invitational:role';
 function saveRole(role) { try { localStorage.setItem(ROLE_KEY, role); } catch (e) { /* storage blocked */ } }
 function loadRole() { try { return localStorage.getItem(ROLE_KEY); } catch (e) { return null; } }
 
-const canEdit = () => S.ROLES[UI.role].canEdit;
-const canAdmin = () => S.ROLES[UI.role].canAdmin;
+const canEdit = () => !D.PINS_ENABLED || S.ROLES[UI.role].canEdit;
+const canAdmin = () => !D.PINS_ENABLED || S.ROLES[UI.role].canAdmin;
 
 /* ---------------- flags ---------------- */
 
@@ -1341,7 +1347,7 @@ function scrToday() {
         : `<div class="line"><span class="s">Nothing scheduled.</span></div>`}
       </div>
 
-      ${issues.length ? `<button class="setup-flag" data-act="setupOpen">
+      ${issues.length ? `<button class="setup-flag" data-act="setupOpen" data-a="all">
         <span class="mk">!</span>Setup incomplete — ${issues.length} thing${issues.length > 1 ? 's' : ''} to settle
         <span class="go">Review</span></button>` : ''}
     </div>
@@ -1634,15 +1640,15 @@ function scrEntry() {
       <button class="btn" data-act="signIn">Enter PIN</button></div>`;
   } else if (locked) {
     gate = `<div class="gate"><div class="msg"><b>${esc(r.short)} is locked</b>
-      <span>Concluded${cfg.lockedBy ? ' by ' + esc(S.ROLES[cfg.lockedBy] ? S.ROLES[cfg.lockedBy].label : cfg.lockedBy) : ''}. The card is final and read-only.</span></div>
-      ${canAdmin() ? `<button class="btn ghost" data-act="unlockRound" data-a="${rid}">Reopen with master PIN</button>`
+      <span>Concluded${D.PINS_ENABLED && cfg.lockedBy ? ' by ' + esc(S.ROLES[cfg.lockedBy] ? S.ROLES[cfg.lockedBy].label : cfg.lockedBy) : ''}. The card is final and read-only.</span></div>
+      ${canAdmin() ? `<button class="btn ghost" data-act="unlockRound" data-a="${rid}">${D.PINS_ENABLED ? 'Reopen with master PIN' : 'Reopen'}</button>`
         : `<span class="eyebrow">Only the master reviewer can reopen a locked round.</span>`}</div>`;
   } else if (!open) {
     gate = `<div class="gate"><div class="msg"><b>${esc(r.short)} is not open for scoring</b>
-      <span>Opening confirms with your PIN and lets both scorers write to this card.</span></div>
+      <span>${D.PINS_ENABLED ? 'Opening confirms with your PIN and lets both scorers write to this card.' : 'Opening lets anyone with this page write to the card.'}</span></div>
       <button class="btn" data-act="openRound" data-a="${rid}">Open round</button></div>`;
   } else {
-    gate = `<div class="gate"><div class="msg"><b>${esc(r.short)} is open — you are ${esc(S.ROLES[UI.role].label)}</b>
+    gate = `<div class="gate"><div class="msg"><b>${esc(r.short)} is open${D.PINS_ENABLED ? ' — you are ' + esc(S.ROLES[UI.role].label) : ' for scoring'}</b>
       <span>Entries save to every device as you tap. Lock the round when the last card is in.</span></div>
       <button class="btn danger" data-act="lockRound" data-a="${rid}">Lock &amp; conclude</button></div>`;
   }
@@ -1684,12 +1690,12 @@ function scrEntry() {
   const opts = sel => `<option value="">—</option>` + E.golfers(T).map(g =>
     `<option value="${g.id}"${sel === g.id ? ' selected' : ''}>${esc(g.display)}</option>`).join('');
 
-  const unbanded = E.golfers(T).filter(g => g.band == null).length;
+  const blockers = E.setupIssues(T).filter(i => SETUP_SCOPES.entry.only.includes(i.id));
   return `<h2 class="head">Score Entry</h2>
   <p class="lede">One hole at a time. Gross strokes only — bands, the triple-bogey cap and every leaderboard are worked out from this.</p>
-  ${unbanded ? `<div class="notice"><b>${unbanded} golfer${unbanded > 1 ? 's have' : ' has'} no playing band</b>
-    <div style="font-size:15px;color:var(--turf)">You can still record their gross strokes, but nothing counts toward a leaderboard until each of them is on a 15, 20 or 25 band.</div>
-    <div class="chiprow"><button class="chip" data-act="go" data-a="roster">Set bands on Roster</button></div></div>` : ''}
+  ${blockers.length ? `<button class="setup-flag" data-act="setupOpen" data-a="entry" style="margin-top:14px">
+    <span class="mk">!</span>${blockers.length} thing${blockers.length > 1 ? 's' : ''} will keep these cards off the leaderboards
+    <span class="go">Review</span></button>` : ''}
   ${roundTabs(rid, 'entryRound')}
   <div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-top:10px">
     <span style="font-size:16px;font-weight:600">${esc(day.dow)} ${esc(day.date)} · ${esc(course.name)}</span>${phasePill(rid)}
@@ -1886,6 +1892,8 @@ function scrSetup() {
   <p class="lede">Master reviewer controls. PINs gate who may write to a card; everyone else reads the book.</p>
 
   <h3 class="sub">Scoring PINs</h3>
+  ${!D.PINS_ENABLED ? `<div class="notice"><b>PINs are switched off</b>
+    <div style="font-size:15px;color:var(--turf)">Anyone who can open this page can enter scores, open a round and lock it. The three PINs below are saved and ready — ask for them to be switched on once the book is finished.</div></div>` : ''}
   <div class="notice"><b>These PINs are a courtesy lock, not security.</b>
     <div style="font-size:15px;color:var(--turf)">They stop a spectator tapping a score by accident. Anyone determined enough to read the page source can find them, so treat the master PIN as a convenience — not a secret worth protecting.</div></div>
   <div class="panel">
@@ -1958,7 +1966,9 @@ function render() {
       <div class="mast-right">
         <div class="lbl">Next Tee Time</div>
         <div class="val num">${nt ? esc(nt.day.dow) + ' ' + esc(E.to12(nt.time)) + ' — ' + esc(nt.round.short === 'Practice' ? 'Practice' : 'Round ' + nt.round.short.slice(1)) : '—'}</div>
-        <button class="chip" style="margin-top:5px" data-act="signIn">${esc(role.label)}${UI.role === 'viewer' ? ' — enter PIN' : ' — sign out'}</button>
+        ${D.PINS_ENABLED
+          ? `<button class="chip" style="margin-top:5px" data-act="signIn">${esc(role.label)}${UI.role === 'viewer' ? ' — enter PIN' : ' — sign out'}</button>`
+          : `<span class="chip" style="margin-top:5px">Unlocked — no PIN</span>`}
       </div>
     </header>
     <div class="rule-heavy"></div>
@@ -1969,6 +1979,7 @@ function render() {
     ${body}
     <div class="statusbar">
       <span class="dot ${dot}"></span><span>${esc(statusText)}</span>
+      <span>${D.PINS_ENABLED ? esc(role.label) : 'Unlocked — anyone can score'}</span>
       <span class="sp">The Union Invitational — Belek, Türkiye — 2026</span>
     </div>
   </div>
@@ -1977,16 +1988,26 @@ function render() {
   if (UI.modal && UI.modal.kind !== 'setup') { const i = document.getElementById('pinField'); if (i) { i.focus(); i.select(); } }
 }
 
+const SETUP_SCOPES = {
+  all:   { only: null, title: 'Setup incomplete',
+           note: n => `${n} thing${n > 1 ? 's' : ''} still to settle before the first card counts. Update takes you to where each one is fixed.`,
+           clear: 'Every band is set, the pairs are filled, both cards are verified. The book is ready.' },
+  entry: { only: ['bands', 'courses'], title: 'Before you enter scores',
+           note: n => `${n} thing${n > 1 ? 's' : ''} here will keep these cards off the leaderboards. You can still record strokes — they just will not count until this is settled.`,
+           clear: 'Every golfer has a band and both cards are verified. Scores entered here count straight away.' },
+};
+
 function setupModalHtml() {
-  const issues = E.setupIssues(T);
+  const scope = SETUP_SCOPES[(UI.modal && UI.modal.scope) || 'all'] || SETUP_SCOPES.all;
+  const issues = E.setupIssues(T).filter(i => !scope.only || scope.only.includes(i.id));
   if (!issues.length) {
     return `<div class="scrim" data-act="modalScrim"><div class="modal" role="dialog" aria-modal="true" aria-label="Setup complete">
-      <h3>Setup complete</h3><p>Every band is set, the pairs are filled, both cards are verified and the PINs have been changed. The book is ready.</p>
+      <h3>Nothing outstanding</h3><p>${esc(scope.clear)}</p>
       <div class="acts"><button class="btn" data-act="modalCancel">Close</button></div></div></div>`;
   }
   return `<div class="scrim" data-act="modalScrim"><div class="modal wide" role="alertdialog" aria-modal="true" aria-label="Setup incomplete">
-    <h3>Setup incomplete</h3>
-    <p>${issues.length} thing${issues.length > 1 ? 's' : ''} still to settle before the first card counts. Update takes you to where each one is fixed.</p>
+    <h3>${esc(scope.title)}</h3>
+    <p>${esc(scope.note(issues.length))}</p>
     <div class="setup-list">
       ${issues.map(i => `<div class="setup-item">
         <span class="tx">${esc(i.text)}</span>
@@ -2013,7 +2034,10 @@ function modalHtml() { return UI.modal.kind === 'setup' ? setupModalHtml() : pin
 
 /* ---------------- dispatch ---------------- */
 
-function askPin(title, note, ok, onOk) { UI.modal = { kind: 'pin', title, note, ok, onOk }; UI.modalErr = ''; render(); }
+function askPin(title, note, ok, onOk) {
+  if (!D.PINS_ENABLED) { onOk('master'); render(); return; }
+  UI.modal = { kind: 'pin', title, note, ok, onOk }; UI.modalErr = ''; render();
+}
 
 function submitPin() {
   const el = document.getElementById('pinField');
@@ -2036,7 +2060,13 @@ function onClick(e) {
   const rid = UI.entryRound;
 
   switch (act) {
-    case 'go': UI.screen = a; UI.modal = null; window.scrollTo(0, 0); break;
+    case 'go':
+      UI.screen = a; UI.modal = null; window.scrollTo(0, 0);
+      if (a === 'entry' && !UI.entrySeen) {
+        UI.entrySeen = true;
+        if (E.setupIssues(T).some(i => SETUP_SCOPES.entry.only.includes(i.id))) UI.modal = { kind: 'setup', scope: 'entry' };
+      }
+      break;
     case 'goRule': UI.screen = 'rules'; render();
       { const d = document.getElementById('rule-' + a); if (d) { d.open = true; d.scrollIntoView({ block: 'center' }); } }
       return;
@@ -2053,7 +2083,7 @@ function onClick(e) {
       store.writeConfig(cf => { cf.courses[a].verified = !cf.courses[a].verified; });
       return;
     case 'revealPins': UI.revealPins = !UI.revealPins; break;
-    case 'setupOpen': UI.modal = { kind: 'setup' }; break;
+    case 'setupOpen': UI.modal = { kind: 'setup', scope: a || 'all' }; break;
     case 'setupGo': UI.modal = null; UI.screen = a; window.scrollTo(0, 0); break;
 
     case 'signIn':

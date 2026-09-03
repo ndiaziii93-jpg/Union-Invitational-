@@ -33,7 +33,11 @@ A golfer with no band is excluded from every leaderboard rather than guessed at.
 
 ## Who can score
 
-Three PINs, set by the master reviewer in Setup:
+**PINs are currently OFF.** Anyone who can open the page can enter scores, open a
+round and lock it. Flip `PINS_ENABLED` in `src/data.js` to `true` and rebuild to
+arm them — nothing else needs to change.
+
+When on, three PINs, set by the master reviewer in Setup:
 
 - **Master** — opens and locks rounds, reopens a locked round, reads and changes every PIN
 - **Scorer 1** and **Scorer 2** — open rounds, enter scores, lock a round
@@ -41,6 +45,8 @@ Three PINs, set by the master reviewer in Setup:
 A round must be *opened* with a PIN before anything can be entered, and the PIN is
 required again to *lock and conclude* it. Everyone without a PIN reads the whole book
 and writes nothing.
+
+A signed-in role is remembered on that device until you sign out.
 
 This is a courtesy lock, not security. The PINs live in the shared database and a
 determined reader can find them in the page. They exist to stop an accidental tap,
