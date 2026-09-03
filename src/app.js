@@ -215,65 +215,116 @@ function scrToday() {
 }
 
 function scrBoards() {
-  const tabs = [['pairs', 'Team'], ['mvp', 'MVP'], ['bbb', 'Bingo Bango Bongo'], ['prizes', 'Pins & Drives']];
-  let body = '';
-  if (UI.boardTab === 'pairs') body = boardPairs();
-  else if (UI.boardTab === 'mvp') body = boardMvp();
-  else if (UI.boardTab === 'bbb') body = boardBbb();
-  else body = boardPrizes();
-  return `<div class="chiprow" style="margin-top:16px">${tabs.map(([id, l]) =>
-      `<button class="chip${UI.boardTab === id ? ' on' : ''}" data-act="boardTab" data-a="${id}">${esc(l)}</button>`).join('')}</div>${body}`;
+  const tabs = [['pairs', 'Team Competition'], ['mvp', 'MVP'], ['bbb', 'Bingo Bango Bongo'],
+                ['ryder', 'Ryder Cup'], ['prizes', 'Longest Drive & Closest to the Pin']];
+  const body = { pairs: boardPairs, mvp: boardMvp, bbb: boardBbb, ryder: scrRyder, prizes: boardPrizes }[UI.boardTab]();
+  return `<div class="btabs nos">${tabs.map(([id, l]) =>
+      `<button class="btab${UI.boardTab === id ? ' on' : ''}" data-act="boardTab" data-a="${id}">${esc(l)}</button>`).join('')}</div>${body}`;
+}
+
+/** The round picker and its tee times, shared by the counting-round boards. */
+function roundBand(rid, act) {
+  const cfg = E.roundCfg(T, rid);
+  const r = E.roundDef(rid);
+  const ed = canEdit();
+  return `<div class="roundband">
+    <div class="rounds">
+      ${E.countingRounds(T).map(x => {
+        const d = E.dayOf(x.dayIdx);
+        return `<button class="roundpick${x.id === rid ? ' on' : ''}" data-act="${act}" data-a="${x.id}">
+          <b>${esc(x.full)}</b><span>${esc(d.dow)} ${esc(d.date)}</span></button>`;
+      }).join('')}
+    </div>
+    <div class="teetimes">
+      <div class="tt-head">Tee times — ${esc(r.full)}</div>
+      ${cfg.tees.map((t, i) => `<label class="tt-row"><span>Tee Time ${i + 1}</span>
+        ${ed ? `<input class="tt-in num" type="text" value="${esc(t.time ? E.to12(t.time) : '')}" placeholder="Add time"
+            aria-label="${esc(r.short)} tee time ${i + 1}" data-act="setTee" data-a="${rid}" data-b="${i}">`
+             : `<span class="tt-in num read">${esc(t.time ? E.to12(t.time) : '—')}</span>`}</label>`).join('')}
+    </div>
+  </div>`;
 }
 
 function boardPairs() {
   const rid = UI.boardRound;
-  const rows = E.pairsBoard(T, now);
-  const board = rows.length ? rows : [];
+  const board = E.pairsBoard(T, now);
   const leadPair = board.length ? T.config.pairs.find(p => p.id === board[0].id) : T.config.pairs[0];
   const h = UI.bookHole;
-  const hole = E.courseOf(T, rid).holes[h];
+  const course = E.courseOf(T, rid);
+  const hole = course.holes[h];
+  const totalOf = id => { const row = board.find(x => x.id === id); return row ? row : null; };
+
   const onHole = T.config.pairs.map(p => {
     const s = E.pairHole(T, rid, p, h);
-    return { name: E.pairName(T, p), net: s, d: s == null ? null : s - hole.par };
+    const tot = totalOf(p.id);
+    return { name: E.pairName(T, p), net: s, d: s == null ? null : s - hole.par, tot };
   }).filter(r => r.net != null).sort((a, b) => a.net - b.net);
 
-  return `
-  <h2 class="head">Team Competition</h2>
-  <p class="lede">Better of the two net scores on every hole, cumulative across the three counting rounds. The book opens at the hole; the standing is the consequence. <a href="#rules" data-act="goRule" data-a="pairs">Full rules</a></p>
-  ${roundTabs(rid, 'boardRound')}
-  <div class="spread">
-    <div class="leaf-l">${holeLeaf(rid, h, { pill: phasePill(rid), strip: holeStrip(rid, h, 'bookHole', leadPair) })}
-      <p style="font-size:14px;color:var(--turf);font-style:italic;margin:10px 0 0">Turn the page: tap a hole. Colour follows the leading pair.</p>
-    </div>
-    <div class="leaf-r">
-      <div class="eyebrow">Teams on hole ${hole.n} — net better ball</div>
-      ${onHole.length ? `<div class="rows" style="margin-top:8px">
-        <div class="rowhead"><span style="flex:1">Team</span><span style="min-width:46px;text-align:right">Net</span><span style="min-width:74px;text-align:right">To par</span></div>
-        ${onHole.map(r => `<div class="row"><span class="who">${esc(r.name)}</span>
-          <span class="n num">${r.net}</span>
-          <span class="big num ${cls(r.d)}">${esc(E.fmtToPar(r.d))}</span></div>`).join('')}
-      </div>` : `<p class="empty">Nobody has played hole ${hole.n} yet.</p>`}
+  let thru = 0;
+  for (const p of T.config.pairs) for (let i = 0; i < 18; i++) if (E.pairHole(T, rid, p, i) != null) thru = Math.max(thru, i + 1);
 
-      <div class="eyebrow" style="margin-top:26px">Championship standing — rounds 1 to 3</div>
-      ${board.length ? `<div class="rows" style="margin-top:8px">
-        <div class="rowhead"><span style="width:24px">Pos</span><span style="flex:1">Team</span><span style="min-width:46px;text-align:right">Thru</span><span style="min-width:46px;text-align:right">Today</span><span style="min-width:74px;text-align:right">Total</span></div>
-        ${board.map(r => `<div class="row">
-          <span class="pos num">${r.pos}</span>
-          <span class="who">${esc(r.name)}<small>${esc(r.members)}</small></span>
-          <span class="n num" style="color:var(--turf)">${esc(r.thruStr)}</span>
-          <span class="n num ${cls(r.today)}">${esc(r.todayStr)}</span>
-          <span class="big num ${cls(r.total)}">${esc(r.totalStr)}</span></div>`).join('')}
+  return `
+  <div class="titlerow"><h2 class="head">Team Competition</h2><a href="#rules" data-act="goRule" data-a="pairs">Full rules</a></div>
+  <p class="lede">Better of the two net scores on every hole, cumulative across the three counting rounds. The book opens at the hole; the standing is the consequence.</p>
+  ${roundBand(rid, 'boardRound')}
+
+  <div class="spread">
+    <div class="leaf-l">
+      <div class="eyebrow">${esc(course.name)}</div>
+      <div class="holeno"><b class="num">${hole.n}</b><span style="font-size:18px;color:var(--turf)">hole</span></div>
+      <table class="facts"><tbody>
+        <tr><td>Par</td><td>${hole.par}</td></tr>
+        <tr><td>Length, White tees</td><td>${hole.mW} m</td></tr>
+        <tr><td>Stroke index</td><td>${hole.si}</td></tr>
+        <tr><td>Band 15 receives</td><td>${E.strokesFor(15, hole.si)}</td></tr>
+        <tr><td>Band 20 receives</td><td>${E.strokesFor(20, hole.si)}</td></tr>
+        <tr><td>Band 25 receives</td><td>${E.strokesFor(25, hole.si)}</td></tr>
+        <tr class="cap"><td>Picks up at</td><td>${E.capFor(hole.par, T.config.capOver)}</td></tr>
+      </tbody></table>
+      ${holeStrip(rid, h, 'bookHole', leadPair)}
+      ${IMG[hole.img] ? `<figure class="diagram"><img src="${IMG[hole.img]}" alt="Diagram of hole ${hole.n} at ${esc(course.name)}" loading="lazy"></figure>` : ''}
+      <p class="turn">Turn the page: tap a hole.</p>
+    </div>
+
+    <div class="leaf-r">
+      <div class="eyebrow">Teams on this hole — Net Better Ball</div>
+      <div class="rows tight">
+        <div class="rowhead"><span style="width:26px">Pos</span><span style="flex:1">Team</span>
+          <span style="min-width:52px;text-align:right">Net</span>
+          <span style="min-width:52px;text-align:right">Hole</span>
+          <span style="min-width:84px;text-align:right">Total</span></div>
+        ${onHole.length ? onHole.map((r, i) => `<div class="row">
+          <span class="pos num">${i + 1}</span>
+          <span class="who">${esc(r.name)}</span>
+          <span class="n num" style="min-width:52px">${r.net}</span>
+          <span class="n num ${cls(r.d)}" style="min-width:52px">${esc(E.fmtToPar(r.d))}</span>
+          <span class="big num ${r.tot ? cls(r.tot.total) : ''}" style="min-width:84px">${r.tot ? esc(r.tot.totalStr) : '—'}</span></div>`).join('')
+        : `<p class="empty">Nobody has played hole ${hole.n} yet.</p>`}
       </div>
-      <p style="font-size:14px;color:var(--turf);font-style:italic;margin-top:10px">Net is the pair’s better ball with strokes applied. Total is the tournament to par.</p>`
-      : `<p class="empty">The championship board opens once a counting round is under way.</p>`}
+      <p class="legend">Net = team’s better ball, strokes applied. Hole = that score against par. Total = tournament to par.</p>
+
+      <div class="eyebrow" style="margin-top:26px">Standing after ${thru} hole${thru === 1 ? '' : 's'} today</div>
+      <div class="rows tight">
+        <div class="rowhead"><span style="width:26px">Pos</span><span style="flex:1">Team</span>
+          <span style="min-width:64px;text-align:right">Thru</span>
+          <span style="min-width:52px;text-align:right">Today</span>
+          <span style="min-width:84px;text-align:right">Total</span></div>
+        ${board.length ? board.map(r => `<div class="row">
+          <span class="pos num">${r.pos}</span>
+          <span class="who plain">${esc(r.members)}</span>
+          <span class="n num" style="min-width:64px;color:var(--turf)">thru ${esc(r.thruStr)}</span>
+          <span class="n num ${cls(r.today)}" style="min-width:52px">${esc(r.todayStr)}</span>
+          <span class="big num ${cls(r.total)}" style="min-width:84px">${esc(r.totalStr)}</span></div>`).join('')
+        : `<p class="empty">The championship board opens once a counting round is under way.</p>`}
+      </div>
     </div>
   </div>`;
 }
 
 function boardMvp() {
   const rows = E.mvpBoard(T, now);
-  return `<h2 class="head">Tournament MVP</h2>
-  <p class="lede">Your own ball, your own number, every stroke counted. Runs off the same card as the team competition. <a href="#rules" data-act="goRule" data-a="mvp">Full rules</a></p>
+  return `<div class="titlerow"><h2 class="head">Tournament MVP</h2><a href="#rules" data-act="goRule" data-a="mvp">Full rules</a></div>
+  <p class="lede">Your own ball, your own number, every stroke counted. Runs off the same card as the team competition.</p>
   ${rows.length ? `<div class="rows" style="margin-top:18px">
     <div class="rowhead"><span style="width:24px">Pos</span><span style="flex:1">Player</span><span style="min-width:46px;text-align:right">Band</span><span style="min-width:46px;text-align:right">Thru</span><span style="min-width:46px;text-align:right">Today</span><span style="min-width:46px;text-align:right">Pts</span><span style="min-width:74px;text-align:right">Total</span></div>
     ${rows.map(r => `<div class="row">
@@ -290,8 +341,8 @@ function boardMvp() {
 
 function boardBbb() {
   const rows = E.bbbBoard(T);
-  return `<h2 class="head">Bingo Bango Bongo</h2>
-  <p class="lede">Three points a hole — first on, closest once all are on, first in. 54 a round, 162 across the week. <a href="#rules" data-act="goRule" data-a="bbb">Full rules</a></p>
+  return `<div class="titlerow"><h2 class="head">Bingo Bango Bongo</h2><a href="#rules" data-act="goRule" data-a="bbb">Full rules</a></div>
+  <p class="lede">Three points a hole — first on, closest once all are on, first in. 54 a round, 162 across the week.</p>
   ${rows.length ? `<div class="rows" style="margin-top:18px;max-width:560px">
     <div class="rowhead"><span style="width:24px">Pos</span><span style="flex:1">Player</span><span style="min-width:74px;text-align:right">Points</span></div>
     ${rows.map(r => `<div class="row"><span class="pos num">${r.pos}</span><span class="who">${esc(r.name)}</span>
