@@ -39,6 +39,9 @@ export function defaultConfig() {
     schedule: SCHEDULE.map(e => ({ ...e })),
     pins: { ...DEFAULT_PINS },
     pinsChanged: false,
+    // The pair leading after a counting round picks the next round's tee time.
+    // Two picks only: Thursday's leader picks Friday, Friday's leader picks Sunday.
+    teePicks: { r2: { done: false, time: null, byPair: null }, r3: { done: false, time: null, byPair: null } },
   };
 }
 

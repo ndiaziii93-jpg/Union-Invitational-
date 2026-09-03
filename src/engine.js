@@ -302,3 +302,64 @@ export function nextTee(T, now) {
   }
   return best;
 }
+
+/* ---------- next fixture (rounds and social calendar together) ---------- */
+
+function fixtureMs(iso, hhmm) {
+  const t = hhmmToMin(hhmm);
+  return t == null ? null : Date.parse(iso + 'T00:00:00Z') + t * 60000;
+}
+
+export function fixtures(T) {
+  const out = [];
+  for (const r of ROUNDS) {
+    const d = dayOf(r.dayIdx);
+    const tee = roundCfg(T, r.id).tees[0];
+    if (tee && tee.time) out.push({ ms: fixtureMs(d.iso, tee.time), time: tee.time, golf: true,
+      title: r.full + ' — ' + COURSES[r.course].name, short: r.short });
+  }
+  for (const e of T.config.schedule) {
+    const d = dayOf(e.dayIdx);
+    out.push({ ms: fixtureMs(d.iso, e.time), time: e.time, golf: false, title: e.title, dayIdx: e.dayIdx });
+  }
+  return out.filter(f => f.ms != null).sort((a, b) => a.ms - b.ms);
+}
+
+export function nextFixture(T, now) {
+  const f = fixtures(T).find(x => x.ms > now.ms);
+  if (!f) return null;
+  const d = f.ms - now.ms;
+  const hrs = Math.floor(d / 3600000), mins = Math.floor(d % 3600000 / 60000);
+  const days = Math.floor(hrs / 24);
+  const countdown = days >= 1 ? days + 'd ' + (hrs % 24) + 'h'
+                  : hrs > 0 ? hrs + 'h ' + mins + 'm'
+                  : mins + 'm';
+  return { ...f, countdown, label: f.title + ' — ' + to12(f.time) };
+}
+
+/* ---------- tee-time privilege ---------- */
+
+export const TEE_CHOICES = ['08:30', '09:40', '10:50', '12:15'];
+
+/** Round 1's leader picks Round 2's tee; Round 2's leader picks Round 3's.
+ *  A pick unlocks only once the qualifying round is locked. Two picks, no more. */
+export const TEE_PRIV = [{ pick: 'r2', from: 'r1' }, { pick: 'r3', from: 'r2' }];
+
+export function teePrivilege(T, now) {
+  return TEE_PRIV.map(({ pick, from }) => {
+    const rec = (T.config.teePicks || {})[pick] || { done: false, time: null, byPair: null };
+    const qualified = roundCfg(T, from).state === 'locked';
+    const board = qualified ? pairsBoard(T, now) : [];
+    const leader = board.length ? board[0] : null;
+    return {
+      pick, from,
+      pickDay: dayOf(roundDef(pick).dayIdx),
+      fromDay: dayOf(roundDef(from).dayIdx),
+      unlocked: qualified && !!leader,
+      done: !!rec.done,
+      time: rec.time,
+      time12: rec.time ? to12(rec.time) : null,
+      leaderName: rec.byPair ? rec.byPair : (leader ? leader.name : null),
+    };
+  });
+}

@@ -69,10 +69,10 @@ export const PAIRS = [
 /* Rounds. Dates and first tee times are real; `counts` marks the three that
    feed the championship. Every round starts closed and empty. */
 export const ROUNDS = [
-  { id: 'practice', label: 'Practice — Get Loose Foursomes', short: 'Practice', dayIdx: 2, course: 'aspendos', format: 'Get Loose — Foursomes',     counts: false, firstTee: '08:30', noMulligans: false },
-  { id: 'r1',       label: 'Round 1 — Better Ball',          short: 'R1',       dayIdx: 4, course: 'olympos',  format: 'Better Ball',               counts: true,  firstTee: '08:30', noMulligans: false },
-  { id: 'r2',       label: 'Round 2 — Better Ball',          short: 'R2',       dayIdx: 5, course: 'aspendos', format: 'Better Ball',               counts: true,  firstTee: '12:15', noMulligans: false },
-  { id: 'r3',       label: 'Round 3 — Championship Final',   short: 'R3',       dayIdx: 7, course: 'olympos',  format: 'Better Ball — championship final', counts: true, firstTee: '12:15', noMulligans: true },
+  { id: 'practice', label: 'Practice — Get Loose Foursomes', full: 'Practice — Get Loose Foursomes', short: 'Practice', dayIdx: 2, course: 'aspendos', format: 'Get Loose — Foursomes',     counts: false, firstTee: '08:30', noMulligans: false },
+  { id: 'r1',       label: 'Round 1 — Better Ball',          full: 'Round 1 — Better Ball team play', short: 'R1',       dayIdx: 4, course: 'olympos',  format: 'Better Ball',               counts: true,  firstTee: '08:30', noMulligans: false },
+  { id: 'r2',       label: 'Round 2 — Better Ball',          full: 'Round 2 — Better Ball team play', short: 'R2',       dayIdx: 5, course: 'aspendos', format: 'Better Ball',               counts: true,  firstTee: '12:15', noMulligans: false },
+  { id: 'r3',       label: 'Round 3 — Championship Final',   full: 'Round 3 — Championship Final', short: 'R3',       dayIdx: 7, course: 'olympos',  format: 'Better Ball — championship final', counts: true, firstTee: '12:15', noMulligans: true },
 ];
 
 export const SCHEDULE = [

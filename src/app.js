@@ -107,70 +107,105 @@ function holeLeaf(rid, h, opts = {}) {
 
 /* ---------------- screens ---------------- */
 
+function ukFlag(w) { return `<svg width="${w}" height="${Math.round(w * 16 / 26)}" viewBox="0 0 26 16" role="img" aria-label="United Kingdom">`
+  + `<rect width="26" height="16" fill="#1D3E8F"></rect>`
+  + `<path d="M0,0 26,16 M26,0 0,16" stroke="#FBFAF7" stroke-width="3.4"></path>`
+  + `<path d="M0,0 26,16 M26,0 0,16" stroke="#9E3B2E" stroke-width="1.4"></path>`
+  + `<path d="M13,0 V16 M0,8 H26" stroke="#FBFAF7" stroke-width="5.4"></path>`
+  + `<path d="M13,0 V16 M0,8 H26" stroke="#9E3B2E" stroke-width="2.8"></path></svg>`; }
+
+function usFlag(w) { return `<svg width="${w}" height="${Math.round(w * 16 / 26)}" viewBox="0 0 26 16" role="img" aria-label="United States">`
+  + `<rect width="26" height="16" fill="#FBFAF7"></rect>`
+  + `<g fill="#9E3B2E"><rect y="0" width="26" height="2.3"></rect><rect y="4.6" width="26" height="2.3"></rect>`
+  + `<rect y="9.2" width="26" height="2.3"></rect><rect y="13.7" width="26" height="2.3"></rect></g>`
+  + `<rect width="11" height="8" fill="#1D3E8F"></rect></svg>`; }
+
 function scrToday() {
-  const nt = E.nextTee(T, now);
-  const issues = E.setupIssues(T);
-  const live = D.ROUNDS.find(r => E.phaseOf(T, r.id, now) === 'live');
-  const focus = live || D.ROUNDS.find(r => E.phaseOf(T, r.id, now) === 'today')
-             || D.ROUNDS.find(r => E.phaseOf(T, r.id, now) === 'upcoming') || D.ROUNDS[D.ROUNDS.length - 1];
-  const pairs = E.pairsBoard(T, now).slice(0, 5);
-  const mvp = E.mvpBoard(T, now).slice(0, 5);
+  const focus = D.ROUNDS.find(r => E.phaseOf(T, r.id, now) === 'live')
+             || D.ROUNDS.find(r => E.phaseOf(T, r.id, now) === 'today')
+             || D.ROUNDS.find(r => E.dayOf(r.dayIdx).iso >= now.iso)
+             || D.ROUNDS[D.ROUNDS.length - 1];
   const day = E.dayOf(focus.dayIdx);
   const cfg = E.roundCfg(T, focus.id);
-  const todayEvents = D.SCHEDULE.filter(e => E.dayOf(e.dayIdx).iso === now.iso);
-  const inWeek = now.iso >= D.DAYS[0].iso && now.iso <= D.DAYS[7].iso;
+  const teeTime = cfg.tees[0] && cfg.tees[0].time ? E.to12(cfg.tees[0].time) : 'to be set';
+  const nf = E.nextFixture(T, now);
+  const isToday = day.iso === now.iso;
+
+  const entries = [];
+  for (const r of D.ROUNDS) {
+    if (E.dayOf(r.dayIdx).iso !== day.iso) continue;
+    const t = E.roundCfg(T, r.id).tees[0];
+    if (t && t.time) entries.push({ time: t.time, golf: true, title: r.full, sub: E.courseOf(r.id).name });
+  }
+  for (const e of T.config.schedule) {
+    if (E.dayOf(e.dayIdx).iso !== day.iso) continue;
+    entries.push({ time: e.time, golf: false, title: e.title, sub: '' });
+  }
+  entries.sort((a, b) => String(a.time).localeCompare(String(b.time)));
+
+  const pairs = E.pairsBoard(T, now);
+  const mvp = E.mvpBoard(T, now);
+  const R = E.ryderData(T, now);
+  const priv = E.teePrivilege(T, now);
+  const issues = E.setupIssues(T);
+
+  const leaderBlock = (lbl, row, who) => `<div class="leader"><div class="lbl">${esc(lbl)}</div>
+    <div class="fig ${row ? cls(row.total) : ''}">${row ? esc(row.totalStr) : '—'}</div>
+    <div class="who">${row ? esc(who(row)) : 'No card in yet'}</div></div>`;
 
   return `
-  <h2 class="head">${inWeek ? 'Today at the Union' : 'The book is open'}</h2>
-  <p class="lede">${inWeek
-      ? 'Everything below is live off the same card the scorers are filling in on the course.'
-      : `The tournament runs ${esc(D.DAYS[0].dow)} ${esc(D.DAYS[0].date)} to ${esc(D.DAYS[7].dow)} ${esc(D.DAYS[7].date)} 2026 at ${esc(D.EVENT.venue)}. Scores appear here the moment a scorer enters them.`}</p>
+  ${IMG.hero ? `<figure class="hero"><img src="${IMG.hero}" alt="Sunset aerial over Cullinan Links and the Titanic Deluxe, Belek"></figure>` : ''}
+  <div class="today-grid">
+    <div>
+      <div class="today-day">Day ${day.n} of 8 — ${esc(day.dow)} ${esc(day.date)}</div>
+      <h1 class="today-title">${esc(focus.full)}</h1>
+      <p class="today-course">${esc(E.courseOf(focus.id).name)} — tee time ${esc(teeTime)}</p>
 
-  ${issues.length ? `<div class="notice"><b>Before the first ball</b><ul>${issues.map(i => `<li>${esc(i.text)}</li>`).join('')}</ul></div>` : ''}
-
-  <div class="spread">
-    <div class="leaf-l">
-      <div class="eyebrow">Next tee</div>
-      ${nt ? `<div style="font-size:clamp(30px,6vw,44px);font-weight:700;line-height:1;margin-top:4px" class="num">${esc(E.to12(nt.time))}</div>
-              <div style="font-size:17px;margin-top:5px">${esc(nt.round.short)} — ${esc(nt.day.dow)} ${esc(nt.day.date)}</div>
-              <div style="font-size:15px;color:var(--turf)">${esc(E.courseOf(nt.round.id).name)}</div>`
-            : `<p class="empty">No tee times ahead. Set them on the Calendar.</p>`}
-
-      <h3 class="sub">${esc(day.dow)} ${esc(day.date)}</h3>
-      <div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-top:3px">
-        <span style="font-size:17px;font-weight:600">${esc(focus.short)}</span>${phasePill(focus.id)}
+      <div class="countdown">
+        <div class="today-day">Next fixture in</div>
+        <div class="fig">${nf ? esc(nf.countdown) : '—'}</div>
+        <div class="nxt">${nf ? esc(nf.label) : 'Nothing left on the card.'}</div>
       </div>
-      <div style="font-size:15px;color:var(--turf);margin-top:2px">${esc(focus.format)} · ${esc(E.courseOf(focus.id).name)}</div>
-      <table class="facts" style="margin-top:12px"><tbody>
-        ${cfg.tees.filter(t => t.time).map((t, i) => `<tr><td>Tee time ${i + 1}</td><td>${esc(E.to12(t.time))}</td></tr>`).join('')}
-        <tr><td>Closest to the pin</td><td>${cfg.ctpHole ? 'Hole ' + cfg.ctpHole : '—'}</td></tr>
-        <tr><td>Longest drive</td><td>${cfg.ldHole ? 'Hole ' + cfg.ldHole : '—'}</td></tr>
-      </tbody></table>
 
-      ${todayEvents.length ? `<h3 class="sub">On the card today</h3><div style="margin-top:6px">${todayEvents.map(e =>
-        `<div class="ev"><time class="num">${esc(E.to12(e.time))}</time><span>${esc(e.title)}</span></div>`).join('')}</div>` : ''}
+      <div class="tonight">
+        <div class="today-day">${isToday ? 'Tonight' : esc(day.dow)}</div>
+        ${entries.length ? entries.map(e => `<div class="line">
+          <time>${esc(E.to12(e.time))}</time>
+          <span class="t${e.golf ? ' golf' : ''}">${esc(e.title)}</span>
+          <span class="s">${esc(e.sub)}</span></div>`).join('')
+        : `<div class="line"><span class="s">Nothing scheduled.</span></div>`}
+      </div>
+
+      ${issues.length ? `<div class="notice"><b>Before the first ball</b><ul>${issues.map(i => `<li>${esc(i.text)}</li>`).join('')}</ul></div>` : ''}
     </div>
 
-    <div class="leaf-r">
-      <div class="eyebrow">Team competition</div>
-      ${pairs.length ? `<div class="rows" style="margin-top:8px">
-        <div class="rowhead"><span style="width:24px">Pos</span><span style="flex:1">Team</span><span style="min-width:46px;text-align:right">Today</span><span style="min-width:74px;text-align:right">Total</span></div>
-        ${pairs.map(r => `<div class="row">
-          <span class="pos num">${r.pos}</span>
-          <span class="who">${esc(r.name)}<small>${esc(r.members)}</small></span>
-          <span class="n num ${cls(r.today)}">${esc(r.todayStr)}</span>
-          <span class="big num ${cls(r.total)}">${esc(r.totalStr)}</span></div>`).join('')}
-      </div>` : `<p class="empty">No team scores yet. The board fills in hole by hole as the scorers enter them.</p>`}
+    <div>
+      <div class="leaders">
+        ${leaderBlock('Team Comp Leader', pairs[0], r => r.name)}
+        ${leaderBlock('MVP Leader', mvp[0], r => r.name)}
+        <div class="leader">
+          <div class="lbl">Ryder Cup Leader</div>
+          <div class="cup">${ukFlag(26)}<span style="color:var(--green)">${R.ukTotal}</span>
+            <span style="color:var(--turf)">–</span>
+            <span style="color:var(--usa)">${R.usaTotal}</span>${usFlag(26)}</div>
+          ${R.unassigned ? `<div style="font-size:14px;color:var(--flag)">${R.unassigned} location${R.unassigned > 1 ? 's' : ''} still unset</div>` : ''}
+        </div>
+      </div>
 
-      <div class="eyebrow" style="margin-top:26px">Tournament MVP</div>
-      ${mvp.length ? `<div class="rows" style="margin-top:8px">
-        <div class="rowhead"><span style="width:24px">Pos</span><span style="flex:1">Player</span><span style="min-width:46px;text-align:right">Band</span><span style="min-width:74px;text-align:right">Total</span></div>
-        ${mvp.map(r => `<div class="row">
-          <span class="pos num">${r.pos}</span>
-          <span class="who">${esc(r.name)}</span>
-          <span class="n num" style="color:var(--turf)">${esc(r.bandStr)}</span>
-          <span class="big num ${cls(r.total)}">${esc(r.totalStr)}</span></div>`).join('')}
-      </div>` : `<p class="empty">No individual scores yet.</p>`}
+      <div class="privilege">
+        <h4>Tee-time privilege</h4>
+        ${priv.map(p => {
+          const pickDay = p.pickDay.dow;
+          if (p.done) return `<p><strong>${esc(p.leaderName || 'The leaders')}</strong> led ${esc(p.fromDay.dow)} and chose ${esc(pickDay)}’s tee: <strong>${esc(p.time12)}</strong>.</p>`;
+          if (!p.unlocked) return `<p class="note">${esc(pickDay)}’s pick unlocks when ${esc(p.fromDay.dow)} closes.</p>`;
+          return `<p><strong>${esc(p.leaderName)}</strong> lead ${esc(p.fromDay.dow)} and pick ${esc(pickDay)}’s tee.</p>
+            ${canEdit() ? `<select class="field" style="margin-top:8px;width:100%" data-act="pickTee" data-a="${p.pick}" aria-label="Pick ${esc(pickDay)}’s tee">
+              <option value="">Pick ${esc(pickDay)}’s tee</option>
+              ${E.TEE_CHOICES.map(t => `<option value="${t}">${esc(E.to12(t))}</option>`).join('')}</select>`
+            : `<p class="note">A scorer records the pick.</p>`}`;
+        }).join('')}
+        <p class="note">Two picks only.</p>
+      </div>
     </div>
   </div>`;
 }
@@ -636,7 +671,7 @@ function scrSetup() {
 
 const NAV = [
   ['today', 'Today'], ['boards', 'Leaderboards'], ['ryder', 'Ryder Cup'], ['calendar', 'Calendar'],
-  ['entry', 'Score Entry'], ['roster', 'Roster & Pairings'], ['rules', 'Games & Rules'], ['courses', 'Courses'], ['setup', 'Setup'],
+  ['entry', 'Score Entry'], ['roster', 'Roster & Pairings'], ['rules', 'Games & Rules'], ['courses', 'Course Setup'], ['setup', 'Setup'],
 ];
 
 function render() {
@@ -662,9 +697,9 @@ function render() {
         <div class="sub">${esc(D.EVENT.venue)}, ${esc(D.EVENT.place)} — 26 October to 2 November 2026</div>
       </div>
       <div class="mast-right">
-        <div class="eyebrow">Next tee</div>
-        <div class="num" style="font-size:17px;font-weight:600">${nt ? esc(E.to12(nt.time)) + ' · ' + esc(nt.day.date) : '—'}</div>
-        <button class="chip" data-act="signIn">${esc(role.label)}${UI.role === 'viewer' ? ' — enter PIN' : ' — sign out'}</button>
+        <div class="lbl">Next Tee Time</div>
+        <div class="val num">${nt ? esc(nt.day.dow) + ' ' + esc(E.to12(nt.time)) + ' — ' + esc(nt.round.short === 'Practice' ? 'Practice' : 'Round ' + nt.round.short.slice(1)) : '—'}</div>
+        <button class="chip" style="margin-top:5px" data-act="signIn">${esc(role.label)}${UI.role === 'viewer' ? ' — enter PIN' : ' — sign out'}</button>
       </div>
     </header>
     <div class="rule-heavy"></div>
@@ -673,10 +708,10 @@ function render() {
         `<button class="tab" data-act="go" data-a="${id}"${UI.screen === id ? ' aria-current="page"' : ''}>${esc(label)}</button>`).join('')}
     </nav>
     ${body}
-  </div>
-  <div class="statusbar">
-    <span class="dot ${dot}"></span><span>${esc(statusText)}</span>
-    <span class="sp">${esc(role.label)}</span>
+    <div class="statusbar">
+      <span class="dot ${dot}"></span><span>${esc(statusText)}</span>
+      <span class="sp">The Union Invitational — Belek, Türkiye — 2026</span>
+    </div>
   </div>
   ${UI.modal ? modalHtml() : ''}`;
 
@@ -848,6 +883,14 @@ function onChange(e) {
     const v = el.value.replace(/\D/g, '').slice(0, 8);
     if (v.length < 3) return;
     store.writeConfig(c => { c.pins[a] = v; c.pinsChanged = true; });
+  } else if (act === 'pickTee') {
+    if (!canEdit() || !el.value) return;
+    const board = E.pairsBoard(T, now);
+    const by = board.length ? board[0].name : null;
+    store.writeConfig(c => {
+      c.teePicks[a] = { done: true, time: el.value, byPair: by };
+      c.rounds[a].tees[0].time = el.value;
+    });
   } else if (act === 'addToPair') {
     if (!canEdit() || !el.value) return;
     const pid = el.value;
