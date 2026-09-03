@@ -1202,6 +1202,10 @@ const UI = {
   setupSeen: false,
 };
 
+const ROLE_KEY = 'union-invitational:role';
+function saveRole(role) { try { localStorage.setItem(ROLE_KEY, role); } catch (e) { /* storage blocked */ } }
+function loadRole() { try { return localStorage.getItem(ROLE_KEY); } catch (e) { return null; } }
+
 const canEdit = () => S.ROLES[UI.role].canEdit;
 const canAdmin = () => S.ROLES[UI.role].canAdmin;
 
@@ -1535,22 +1539,22 @@ function scrRyder() {
   <p class="lede">Squad match play laid over the same scorecards. Fourballs Thursday and Friday, singles Sunday. <a href="#rules" data-act="goRule" data-a="ryder">Full rules</a></p>
 
   <div class="cupbar">
-    <div class="side">${ukFlag(44)}<span class="pts num" style="color:var(--uk)">${R.ukTotal}</span><span class="eyebrow">United Kingdom</span></div>
+    <div class="side">${ukFlag(44)}<span class="pts num" style="color:var(--green)">${R.ukTotal}</span><span class="eyebrow">United Kingdom</span></div>
     <div class="vs">v</div>
     <div class="side r"><span class="eyebrow">United States</span><span class="pts num" style="color:var(--usa)">${R.usaTotal}</span>${usFlag(44)}</div>
   </div>
 
   <h3 class="sub">Squads</h3>
-  <p class="lede">${canEdit() ? 'Tap a flag to move that golfer: unassigned → United States → United Kingdom → unassigned.' : 'Squads are set by the scorers.'}${R.unassigned ? ` <b>${R.unassigned} still unassigned.</b>` : ''}</p>
+  <p class="lede">${canEdit() ? 'Tap a flag to move that golfer: unassigned → United States → United Kingdom → unassigned.' : 'Tap a flag to set a squad — you will be asked for a scorer PIN first.'}${R.unassigned ? ` <b>${R.unassigned} still unassigned.</b>` : ''}</p>
   <div class="grid-people">
     ${gs.map(g => {
       const sq = g.location;
       const k = sq === 'UK' ? 'uk' : sq === 'USA' ? 'usa' : 'none';
       const next = sq === null ? 'United States' : sq === 'USA' ? 'United Kingdom' : 'unassigned';
       return `<div class="sqrow ${k}">
-        <button class="sqbox" data-act="cycleSquad" data-a="${g.id}"${canEdit() ? '' : ' disabled'}
+        <button class="sqbox" data-act="cycleSquad" data-a="${g.id}"
           aria-label="${esc(g.display)} — ${sq ? esc(sq) : 'unassigned'}. Change to ${esc(next)}."
-          title="${canEdit() ? 'Change to ' + next : 'Scorers set the squads'}">${squadFlag(sq, 52)}</button>
+          title="Change to ${esc(next)}">${squadFlag(sq, 52)}</button>
         <span class="sqname">${esc(g.display)}</span>
         <span class="sqlabel">${sq ? esc(sq) : 'Unassigned'}</span>
       </div>`;
@@ -2053,9 +2057,9 @@ function onClick(e) {
     case 'setupGo': UI.modal = null; UI.screen = a; window.scrollTo(0, 0); break;
 
     case 'signIn':
-      if (UI.role !== 'viewer') { UI.role = 'viewer'; if (UI.screen === 'setup') UI.screen = 'today'; break; }
+      if (UI.role !== 'viewer') { UI.role = 'viewer'; saveRole('viewer'); if (UI.screen === 'setup') UI.screen = 'today'; break; }
       askPin('Enter your PIN', 'Scorers may record and lock rounds. The master reviewer can also reopen a locked round and change every PIN.', 'Sign in',
-        role => { UI.role = role; });
+        role => { UI.role = role; saveRole(role); });
       return;
 
     case 'openRound':
@@ -2090,11 +2094,16 @@ function onClick(e) {
       return;
 
     case 'cycleSquad': {
-      if (!canEdit()) return;
-      store.writeConfig(c => {
+      const cycle = () => store.writeConfig(c => {
         const p = c.people.find(x => x.id === a);
         if (p) p.location = p.location === null ? 'USA' : p.location === 'USA' ? 'UK' : null;
       });
+      if (!canEdit()) {
+        askPin('Enter your PIN', 'Squads are set by a scorer or the master reviewer. Sign in and this change goes straight through.',
+          'Sign in', role => { UI.role = role; saveRole(role); cycle(); });
+        return;
+      }
+      cycle();
       return;
     }
     case 'clearSquads':
@@ -2210,6 +2219,8 @@ function boot() {
     T = state; meta = m;
     if (m.ready && !UI.setupSeen) {
       UI.setupSeen = true;
+      const saved = loadRole();
+      if (saved && S.ROLES[saved] && saved !== 'viewer') UI.role = saved;
       if (E.setupIssues(T).length) UI.modal = { kind: 'setup' };
     }
     render();
