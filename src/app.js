@@ -406,44 +406,124 @@ function scrRyder() {
   `).join('')}`;
 }
 
-function scrCalendar() {
-  const teeByDay = {};
+function calDayNumber() {
+  if (UI.calDay) return UI.calDay;
+  const i = D.DAYS.findIndex(d => d.iso === now.iso);
+  return i >= 0 ? i + 1 : 1;
+}
+
+/** Everything happening on a trip day: the round, then the social calendar.
+ *  The round is fixed here — its time is set with the tee slots below. */
+function dayEntries(n) {
+  const out = [];
   for (const r of D.ROUNDS) {
-    const d = E.dayOf(r.dayIdx);
-    (teeByDay[d.iso] = teeByDay[d.iso] || []).push(r);
+    if (r.dayIdx !== n) continue;
+    const tee = E.roundCfg(T, r.id).tees[0];
+    out.push({ id: 'round:' + r.id, fixed: true, time: tee && tee.time, title: r.full,
+               sub: E.courseOf(T, r.id).name, kind: 'golf' });
   }
-  return `<h2 class="head">Calendar</h2>
-  <p class="lede">${esc(D.EVENT.venue)}, ${esc(D.EVENT.place)} — ${esc(D.DAYS[0].dow)} ${esc(D.DAYS[0].date)} to ${esc(D.DAYS[7].dow)} ${esc(D.DAYS[7].date)} 2026. Times are Antalya local.</p>
-  <div class="days">
-  ${D.DAYS.map(day => {
-    const evs = D.SCHEDULE.filter(e => e.dayIdx === day.n);
-    const rounds = teeByDay[day.iso] || [];
-    const items = [
-      ...rounds.flatMap(r => E.roundCfg(T, r.id).tees.filter(t => t.time).map((t, i) => ({
-        time: t.time, golf: true, rid: r.id, slot: i,
-        title: `${r.short} — tee ${i + 1} · ${E.courseOf(T, r.id).name}`,
-      }))),
-      ...evs.map(e => ({ time: e.time, golf: false, title: e.title })),
-    ].sort((a, b) => String(a.time).localeCompare(String(b.time)));
-    return `<div class="day${day.iso === now.iso ? ' today' : ''}">
-      <div class="dl"><b>${esc(day.dow)}</b>${esc(day.date)}${day.iso === now.iso ? ' · today' : ''}</div>
-      <div>${items.length ? items.map(it => `<div class="ev${it.golf ? ' golf' : ''}">
-          <time class="num">${esc(E.to12(it.time))}</time><span>${esc(it.title)}</span></div>`).join('')
-        : `<div class="ev" style="color:var(--turf);font-style:italic">Nothing scheduled — golf, or not.</div>`}</div>
-    </div>`;
-  }).join('')}
+  for (const e of T.config.schedule) {
+    if (e.dayIdx !== n) continue;
+    out.push({ id: e.id, fixed: false, time: e.time, title: e.title, sub: '', kind: e.kind });
+  }
+  return out.sort((a, b) => String(a.time || '').localeCompare(String(b.time || '')));
+}
+function isRestDay(n) {
+  const es = dayEntries(n);
+  return n > 1 && n < 8 && !es.some(e => e.kind === 'golf') && !es.some(e => e.kind === 'travel');
+}
+function roundOnDay(n) { return D.ROUNDS.find(r => r.dayIdx === n) || null; }
+
+function scrCalendar() {
+  const view = UI.calView === 'day' ? 'day' : 'week';
+  return `<div class="titlerow">
+    <h2 class="head">Calendar</h2>
+    <div class="seg" role="group" aria-label="Calendar view">
+      <button class="segb${view === 'week' ? ' on' : ''}" data-act="calView" data-a="week">Week</button>
+      <button class="segb${view === 'day' ? ' on' : ''}" data-act="calView" data-a="day">Day</button>
+    </div>
   </div>
-  ${canEdit() ? `<h3 class="sub">Tee times</h3>
-    <p class="lede">Three slots per round. Leave a slot blank if it is not used.</p>
-    <div class="panel">${D.ROUNDS.map(r => {
-      const c = E.roundCfg(T, r.id); const d = E.dayOf(r.dayIdx);
-      return `<div><div style="font-weight:600;font-size:16px">${esc(r.short)} — ${esc(d.dow)} ${esc(d.date)}</div>
-      <div class="chiprow" style="margin-top:7px">${c.tees.map((t, i) =>
-        `<label class="chip" style="gap:8px">Tee ${i + 1}
-          <input class="field" style="width:104px;min-height:34px;padding:4px 7px;text-align:right" type="text"
-            value="${esc(t.time ? E.to12(t.time) : '')}" placeholder="—" aria-label="${esc(r.short)} tee ${i + 1}"
-            data-act="setTee" data-a="${r.id}" data-b="${i}"></label>`).join('')}</div></div>`;
-    }).join('')}</div>` : ''}`;
+  ${view === 'week' ? calWeek() : calDay()}`;
+}
+
+function calWeek() {
+  return `<div class="weekgrid">
+    ${D.DAYS.map(d => {
+      const es = dayEntries(d.n);
+      const golf = es.find(e => e.kind === 'golf');
+      const rest = isRestDay(d.n);
+      const social = es.filter(e => e.kind !== 'golf');
+      return `<button class="daycard${d.iso === now.iso ? ' today' : ''}" data-act="calDay" data-a="${d.n}"
+        aria-label="${esc(d.dow)} ${esc(d.date)}, day ${d.n}. Open and edit.">
+        <span class="dhead">
+          <span class="dn num">${d.n}</span>
+          <span class="dl">${esc(d.dow)} ${esc(d.date)}</span>
+          ${d.iso === now.iso ? `<span class="tt">Today</span>` : ''}
+        </span>
+        ${golf ? `<span class="dgolf">
+          <span class="t num">${esc(golf.time ? E.to12(golf.time) : 'Tee time to set')}</span>
+          <span class="ti">${esc(golf.title)}</span>
+          <span class="sub">${esc(golf.sub)}</span></span>` : ''}
+        ${rest ? `<span class="drest">Rest day — no golf, bar open.</span>` : ''}
+        ${social.length ? `<span class="dlist">${social.map(e => `<span class="de">
+          <span class="t num">${esc(E.to12(e.time))}</span>
+          <span class="ti ${esc(e.kind)}">${esc(e.title)}</span></span>`).join('')}</span>` : ''}
+      </button>`;
+    }).join('')}
+  </div>
+  <p class="turn">Tap a day to open and edit it.</p>`;
+}
+
+function calDay() {
+  const n = calDayNumber();
+  const day = E.dayOf(n);
+  const es = dayEntries(n);
+  const r = roundOnDay(n);
+  const ed = canEdit();
+  const kinds = [['social', 'Social'], ['ceremony', 'Ceremony'], ['travel', 'Travel']];
+
+  return `<div class="daystrip nos">
+    ${D.DAYS.map(d => `<button class="dayb${d.n === n ? ' on' : ''}" data-act="calDay" data-a="${d.n}"
+      aria-label="Day ${d.n}, ${esc(d.dow)} ${esc(d.date)}"${d.n === n ? ' aria-current="true"' : ''}>
+      <span class="num">${d.n}</span><span>${esc(d.dow.slice(0, 3))}</span></button>`).join('')}
+  </div>
+
+  <h3 class="dayhead">${esc(day.dow)} ${esc(day.date)} <span>day ${n} of 8</span></h3>
+  ${isRestDay(n) ? `<p class="drest big">Rest day. No golf; Mandatory Team Beers still stands at 7:00 PM.</p>` : ''}
+
+  <div class="fixtures">
+    ${es.map(e => `<div class="fx">
+      ${e.fixed
+        ? `<span class="fxtime num">${esc(e.time ? E.to12(e.time) : '—')}</span>
+           <span class="fxtitle golf">${esc(e.title)}</span>
+           <span class="fxnote">Golf — tee slots below</span>`
+        : `<input class="fxtime num${ed ? ' live' : ''}" type="text" value="${esc(E.to12(e.time))}" aria-label="Time of ${esc(e.title)}"
+             data-act="setEventField" data-a="${e.id}" data-b="time"${ed ? '' : ' disabled'}>
+           <input class="fxtitle${ed ? ' live' : ''}" type="text" value="${esc(e.title)}" aria-label="Title" maxlength="60"
+             data-act="setEventField" data-a="${e.id}" data-b="title"${ed ? '' : ' disabled'}>
+           ${ed ? `<select class="field small" data-act="setEventField" data-a="${e.id}" data-b="kind" aria-label="Kind of fixture">
+             ${kinds.map(([k, l]) => `<option value="${k}"${e.kind === k ? ' selected' : ''}>${l}</option>`).join('')}</select>
+           <button class="rm" data-act="removeEvent" data-a="${e.id}">Remove</button>`
+           : `<span class="fxnote">${esc(kinds.find(k => k[0] === e.kind) ? kinds.find(k => k[0] === e.kind)[1] : e.kind)}</span>`}`}
+    </div>`).join('')}
+    ${ed ? `<button class="dashb" data-act="addEvent" data-a="${n}">Add fixture</button>` : ''}
+  </div>
+
+  ${r ? `<div class="teeblock">
+    <h3 class="sub" style="margin-top:30px">Tee times — ${esc(E.courseOf(T, r.id).name)}</h3>
+    ${E.roundCfg(T, r.id).tees.map((tee, i) => `<div class="teegroup">
+      <div class="teerow">
+        <span class="gl">Group ${i + 1}</span>
+        <input class="tt-in num" type="text" value="${esc(tee.time ? E.to12(tee.time) : '')}" placeholder="Add tee time"
+          aria-label="Group ${i + 1} tee time" data-act="setTee" data-a="${r.id}" data-b="${i}"${ed ? '' : ' disabled'}>
+      </div>
+      <div class="chiprow" style="margin-top:8px">
+        ${E.golfers(T).map(g => `<button class="pchip${tee.players.includes(g.id) ? ' on' : ''}"
+          data-act="teePlayer" data-a="${r.id}" data-b="${i}" data-c="${g.id}"${ed ? '' : ' disabled'}
+          aria-pressed="${tee.players.includes(g.id)}">${esc(g.display)}</button>`).join('')}
+      </div>
+    </div>`).join('')}
+  </div>` : ''}`;
 }
 
 /* ---- score entry drafts ----
@@ -1049,6 +1129,24 @@ function onClick(e) {
     case 'entryRound': guardDraft(() => { UI.entryRound = a; UI.entryHole = 0; UI.entryTee = 'all'; }); return;
     case 'entryHole': guardDraft(() => { UI.entryHole = +a; }); return;
     case 'entryTee': UI.entryTee = a; break;
+    case 'calView': UI.calView = a; break;
+    case 'calDay': UI.calDay = +a; UI.calView = 'day'; window.scrollTo(0, 0); break;
+    case 'addEvent':
+      if (!canEdit()) return;
+      store.writeConfig(c => { c.schedule.push({ id: 'e' + Date.now().toString(36), dayIdx: +a, time: '18:00', title: 'New fixture', kind: 'social' }); });
+      return;
+    case 'removeEvent':
+      if (!canEdit()) return;
+      store.writeConfig(c => { c.schedule = c.schedule.filter(e => e.id !== a); });
+      return;
+    case 'teePlayer':
+      if (!canEdit()) return;
+      store.writeConfig(c => {
+        const tee = c.rounds[a].tees[+b];
+        const i = tee.players.indexOf(el.dataset.c);
+        if (i >= 0) tee.players.splice(i, 1); else tee.players.push(el.dataset.c);
+      });
+      return;
     case 'courseTab': UI.courseTab = a; UI.courseHole = 0; break;
     case 'courseHole': UI.courseHole = +a; break;
     case 'verifyCourse':
@@ -1188,6 +1286,17 @@ function onChange(e) {
     if (!editable) return;
     const num = a === 'ctpHole' || a === 'ldHole';
     store.writeConfig(c => { c.rounds[rid][a] = num ? (el.value ? +el.value : null) : (el.value || (a.endsWith('Dist') ? '' : null)); });
+  } else if (act === 'setEventField') {
+    if (!canEdit()) return;
+    const v = el.value.trim();
+    store.writeConfig(c => {
+      const e = c.schedule.find(x => x.id === a);
+      if (!e) return;
+      if (b === 'time') { const t = E.to24(v); if (t) e.time = t; }
+      else if (b === 'title') { if (v) e.title = v.slice(0, 60); }
+      else e.kind = v;
+    });
+    render();
   } else if (act === 'setTee') {
     if (!canEdit()) return;
     const v = el.value.trim();
