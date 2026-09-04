@@ -147,7 +147,6 @@ function scrToday() {
   const mvp = E.mvpBoard(T, now);
   const R = E.ryderData(T, now);
   const priv = E.teePrivilege(T, now);
-  const issues = E.setupIssues(T);
 
   const leaderBlock = (lbl, row, who) => `<div class="leader"><div class="lbl">${esc(lbl)}</div>
     <div class="fig ${row ? cls(row.total) : ''}">${row ? esc(row.totalStr) : '—'}</div>
@@ -176,9 +175,6 @@ function scrToday() {
         : `<div class="line"><span class="s">Nothing scheduled.</span></div>`}
       </div>
 
-      ${issues.length ? `<button class="setup-flag" data-act="setupOpen" data-a="all">
-        <span class="mk">!</span>Setup incomplete — ${issues.length} thing${issues.length > 1 ? 's' : ''} to settle
-        <span class="go">Review</span></button>` : ''}
     </div>
 
     <div>
@@ -594,12 +590,8 @@ function scrEntry() {
     <button class="btn${dirty ? '' : ' ghost'}" data-act="saveHole"${dirty ? '' : ' disabled'}>Save hole ${hole.n}</button>
   </div>` : '';
 
-  const blockers = E.setupIssues(T).filter(i => SETUP_SCOPES.entry.only.includes(i.id));
   return `<h2 class="head">Score Entry</h2>
   <p class="lede">One hole at a time. Gross strokes only — bands, the triple-bogey cap and every leaderboard are worked out from this.</p>
-  ${blockers.length ? `<button class="setup-flag" data-act="setupOpen" data-a="entry" style="margin-top:14px">
-    <span class="mk">!</span>${blockers.length} thing${blockers.length > 1 ? 's' : ''} will keep these cards off the leaderboards
-    <span class="go">Review</span></button>` : ''}
   ${roundTabs(rid, 'entryRound')}
   <div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-top:10px">
     <span style="font-size:16px;font-weight:600">${esc(day.dow)} ${esc(day.date)} · ${esc(course.name)}</span>${phasePill(rid)}
@@ -898,9 +890,12 @@ function render() {
       <div class="mast-right">
         <div class="lbl">Next Tee Time</div>
         <div class="val num">${nt ? esc(nt.day.dow) + ' ' + esc(E.to12(nt.time)) + ' — ' + esc(nt.round.short === 'Practice' ? 'Practice' : 'Round ' + nt.round.short.slice(1)) : '—'}</div>
-        ${D.PINS_ENABLED
-          ? `<button class="chip" style="margin-top:5px" data-act="signIn">${esc(role.label)}${UI.role === 'viewer' ? ' — enter PIN' : ' — sign out'}</button>`
-          : `<span class="chip" style="margin-top:5px">Unlocked — no PIN</span>`}
+        <div class="mast-actions">
+          ${setupChip()}
+          ${D.PINS_ENABLED
+            ? `<button class="chip" data-act="signIn">${esc(role.label)}${UI.role === 'viewer' ? ' — enter PIN' : ' — sign out'}</button>`
+            : `<span class="chip">Unlocked — no PIN</span>`}
+        </div>
       </div>
     </header>
     <div class="rule-heavy"></div>
@@ -987,6 +982,18 @@ function confirmModalHtml() {
       <button class="btn ghost" data-act="modalCancel">${esc(m.cancel || 'Cancel')}</button>
       <button class="btn" data-act="confirmOk">${esc(m.ok)}</button></div>
   </div></div>`;
+}
+
+/** Setup state, in the same corner on every screen. Red while anything is
+ *  outstanding; quiet once the book is ready. Opens the full setup dialog. */
+function setupChip() {
+  const n = E.setupIssues(T).length;
+  return n
+    ? `<button class="setup-chip open" data-act="setupOpen" data-a="all"
+        aria-label="Setup incomplete, ${n} thing${n > 1 ? 's' : ''} to settle. Review them.">
+        <span class="mk">!</span>Setup incomplete<span class="ct">${n}</span></button>`
+    : `<button class="setup-chip done" data-act="setupOpen" data-a="all" aria-label="Setup complete. Review.">
+        <span class="mk">✓</span>Setup complete</button>`;
 }
 
 function modalHtml() {

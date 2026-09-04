@@ -112,9 +112,18 @@ await last.fill('Tommy F'); await last.blur(); await p.waitForTimeout(1400);
 ok('roster: rename sticks', await p.locator('.rows').first().locator('.row').last().locator('.nameedit').inputValue(), 'Tommy F');
 await p.locator('.rows').first().locator('[data-act="removePerson"]').last().click(); await p.waitForTimeout(1400);
 
+// --- the setup chip sits in the masthead on every screen
+const chipOn = async tab => { await p.locator('.tab', { hasText: tab }).first().click(); await p.waitForTimeout(350);
+  await p.locator('[data-act="modalCancel"]').click().catch(() => {});
+  return (await p.locator('.masthead .setup-chip').count()) === 1; };
+for (const tab of ['Today', 'Leaderboards', 'Ryder Cup', 'Calendar', 'Roster', 'Games & Rules', 'Course Setup'])
+  ok('chip present on ' + tab, await chipOn(tab), true);
+ok('chip is red while incomplete', await p.locator('.masthead .setup-chip').evaluate(e => getComputedStyle(e).backgroundColor), 'rgb(158, 59, 46)');
+
 // --- a stroke is a draft until the hole is saved
 await p.locator('.tab', { hasText: 'Score Entry' }).click(); await p.waitForTimeout(500);
 await p.locator('[data-act="modalCancel"]').click().catch(() => {});
+ok('chip present on Score Entry', (await p.locator('.masthead .setup-chip').count()) === 1, true);
 await p.locator('[data-act="openRound"]').first().click(); await p.waitForTimeout(1400);
 await p.locator('.step', { hasText: '+' }).first().click(); await p.waitForTimeout(300);
 ok('entry: stroke shows as a draft', await p.locator('.gross').first().innerText(), '4');
@@ -139,8 +148,6 @@ await p.locator('.cell').nth(3).click(); await p.waitForTimeout(300);
 await p.locator('[data-act="confirmAlt"]').click(); await p.waitForTimeout(600);
 ok('entry: discard moved to hole 4', await p.locator('.leaf-r .eyebrow').first().innerText(), 'Hole 4 · par 4 · gross strokes');
 await p.locator('.cell').nth(0).click(); await p.waitForTimeout(500);
-  const el = document.querySelector('.savebar .sv b'); return el ? el.textContent : 'no savebar';
-}));
 ok('entry: the saved stroke is still there', await p.locator('.gross').first().innerText(), '4');
 
 await b.close();
