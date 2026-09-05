@@ -134,21 +134,86 @@ h3.sub{font-size:19px;font-weight:600;margin:26px 0 0}
 .diagram figcaption{font-size:14px;color:var(--turf);font-style:italic;margin-top:6px}
 
 /* ---- score entry ---- */
-.pad{display:grid;gap:10px;margin-top:14px}
-.padrow{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;
-  border:1px solid var(--rule);background:var(--page);padding:11px 13px;border-radius:3px}
-.padrow.nb{border-left:3px solid var(--flag)}
-.padrow .nm{font-size:17px;font-weight:600;min-width:0}
-.padrow .nm small{display:block;font-size:12px;color:var(--turf);font-weight:400}
-.stepper{display:flex;align-items:center;gap:8px}
-.step{width:46px;height:46px;border:1px solid var(--ink);background:var(--page);font-size:24px;line-height:1;
-  display:flex;align-items:center;justify-content:center;border-radius:3px}
-.step:disabled{opacity:.3}
-.gross{width:56px;text-align:center;font-size:28px;font-weight:700;font-variant-numeric:tabular-nums}
-.netbox{min-width:62px;text-align:right;font-size:15px;color:var(--turf)}
-.toggles{display:flex;gap:5px;flex-wrap:wrap;margin-top:2px}
-.tg{padding:4px 11px;border:1px solid var(--rule);font-size:14px;color:var(--turf);border-radius:2px;min-height:32px}
-.tg.on{background:var(--flag);border-color:var(--flag);color:#fff}
+.rcards{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.rcard{padding:11px 20px;border:1px solid var(--rule);background:var(--page);color:var(--ink);
+  border-radius:2px;min-height:60px;text-align:left}
+.rcard b{display:block;font-size:19px;font-weight:700;line-height:1.2}
+.rcard span{display:block;font-size:14px;font-weight:400;color:var(--turf);margin-top:1px}
+.rcard.practice{border-style:dashed}
+.rcard:hover{border-color:var(--ink)}
+.rcard.on{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.rcard.on span{color:var(--rule)}
+.note-it{font-size:17px;font-style:italic;color:var(--turf);margin:12px 0 0}
+.note-red{font-size:17px;font-style:italic;color:var(--flag);margin:12px 0 0}
+
+.grouprow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:14px}
+.grouprow .gl{font-size:15px;color:var(--turf)}
+.gchip{padding:9px 16px;border:1px solid var(--rule);background:var(--page);color:var(--ink);
+  font-size:16px;border-radius:2px;min-height:44px}
+.gchip:hover{border-color:var(--ink)}
+.gchip.on{background:var(--ink);border-color:var(--ink);color:var(--paper);font-weight:600}
+.grouprow .gnote{font-size:14px;color:var(--turf)}
+
+.hstrip{display:grid;grid-template-columns:repeat(18,minmax(46px,1fr));gap:2px;min-width:860px}
+.hcell{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:8px 2px;
+  border:1px solid var(--rule);background:var(--sunk);color:var(--ink);border-radius:2px;min-height:52px}
+.hcell .n{font-weight:700;font-variant-numeric:tabular-nums;font-size:16px}
+.hcell .p{font-size:11px;color:var(--turf);font-variant-numeric:tabular-nums}
+.hcell:hover{border-color:var(--ink)}
+.hcell.saved{background:var(--page)}
+.hcell.on{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.hcell.on .p{color:var(--rule)}
+
+.holehead{display:flex;align-items:baseline;gap:22px;margin-top:16px;flex-wrap:wrap;
+  border-bottom:2px solid var(--ink);padding-bottom:8px}
+.holehead h3{font-size:clamp(26px,4vw,34px);font-weight:900;margin:0;font-variant-numeric:tabular-nums}
+.holehead span{font-size:17px;font-variant-numeric:tabular-nums}
+.holehead .m{color:var(--turf)}
+.holehead .r{color:var(--flag);font-size:16px}
+
+.entrygrid{display:grid;grid-template-columns:1fr;gap:32px;margin-top:8px;align-items:start}
+@media (min-width:1000px){.entrygrid{grid-template-columns:1fr 340px}}
+
+.prow{padding:14px 0;border-bottom:1px solid var(--rule)}
+.prow.pending{box-shadow:inset 3px 0 0 var(--flag);padding-left:12px}
+.pmain{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.pwho{flex:1 1 130px;min-width:120px}
+.pwho .nm{font-size:19px;font-weight:600}
+.pwho .tag{display:inline-block;margin-left:8px;padding:1px 8px;border-radius:999px;font-size:12px;
+  background:var(--flag);color:#FBFAF7;vertical-align:2px;font-weight:400}
+.pwho .bd{font-size:14px;color:var(--turf);font-variant-numeric:tabular-nums}
+.pwho .bd span{color:var(--green)}
+.step{width:52px;height:52px;border:1px solid var(--ink);background:var(--page);font-size:26px;line-height:1;
+  display:flex;align-items:center;justify-content:center;border-radius:2px;flex:0 0 auto}
+.step.plus{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.step:disabled{opacity:.35}
+.fig{min-width:58px;text-align:center;flex:0 0 auto}
+.fig.raw{min-width:64px}
+.fig.raw .v{font-size:34px;font-weight:900;line-height:1}
+.fig .v{font-size:22px;font-variant-numeric:tabular-nums;line-height:1.1}
+.fig .v.net{color:var(--gold)}
+.fig .l{font-size:12px;color:var(--turf);margin-top:2px}
+.fig.end{min-width:78px;text-align:right;margin-left:auto}
+.fig.end .v{font-size:18px}
+
+.prelief{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center}
+.capchip{font-size:14px;color:#FBFAF7;background:var(--flag);padding:5px 11px;border-radius:2px}
+.mchip{padding:6px 12px;border:1px solid var(--rule);background:var(--page);color:var(--ink);
+  font-size:14px;border-radius:2px;min-height:36px}
+.mchip.on{background:var(--green);border-color:var(--green);color:#FBFAF7}
+.mchip:disabled{opacity:.6}
+.clearh{min-height:36px;padding:6px 10px;color:var(--turf);font-size:14px;text-decoration:underline}
+.clearh:hover{color:var(--ink)}
+
+.side-b{border-top:2px solid var(--ink);padding-top:12px}
+.side-g{border-top:2px solid var(--gold);padding-top:12px;margin-top:26px}
+.side-b h3,.side-g h3{font-size:19px;font-weight:700;margin:0}
+.side-g h3{color:var(--gold)}
+.sublede{font-size:14px;color:var(--turf);margin:4px 0 12px}
+.fieldset{display:grid;gap:12px;margin-top:12px}
+.fieldset label{display:grid;gap:4px;font-size:15px}
+.fieldset .field{width:100%;font-size:16px}
+.fieldset .field.unset{border-color:var(--flag)}
 
 /* ---- gate / lock bar ---- */
 .gate{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:13px 15px;margin-top:16px;

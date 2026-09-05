@@ -125,30 +125,30 @@ await p.locator('.tab', { hasText: 'Score Entry' }).click(); await p.waitForTime
 await p.locator('[data-act="modalCancel"]').click().catch(() => {});
 ok('chip present on Score Entry', (await p.locator('.masthead .setup-chip').count()) === 1, true);
 await p.locator('[data-act="openRound"]').first().click(); await p.waitForTimeout(1400);
-await p.locator('.step', { hasText: '+' }).first().click(); await p.waitForTimeout(300);
-ok('entry: stroke shows as a draft', await p.locator('.gross').first().innerText(), '4');
+await p.locator('.step.plus').first().click(); await p.waitForTimeout(300);
+ok('entry: stroke shows as a draft', await p.locator('.fig.raw .v').first().innerText(), '4');
 ok('entry: draft is flagged unsaved', await p.locator('.savebar .sv b').innerText(), 'Hole 1 is not saved');
 ok('entry: nothing on the leaderboard yet', await p.evaluate(() => Object.keys(window.__mockDocs).filter(k => k.startsWith('scores/')).length), 0);
 
 // --- leaving an unsaved hole prompts
-await p.locator('.cell').nth(3).click(); await p.waitForTimeout(300);
+await p.locator('.hcell').nth(3).click(); await p.waitForTimeout(300);
 ok('entry: moving hole prompts', await p.locator('.modal h3').innerText(), 'Hole 1 is not saved');
 await p.locator('[data-act="modalCancel"]').click(); await p.waitForTimeout(300);
-ok('entry: Stay keeps the draft', await p.locator('.gross').first().innerText(), '4');
+ok('entry: Stay keeps the draft', await p.locator('.fig.raw .v').first().innerText(), '4');
 
 // --- saving writes it through
 await p.locator('[data-act="saveHole"]').click(); await p.waitForTimeout(1600);
 ok('entry: saved bar confirms', await p.locator('.savebar .sv b').innerText(), 'Hole 1 saved');
 ok('entry: card written once saved', await p.evaluate(() => Object.keys(window.__mockDocs).filter(k => k.startsWith('scores/')).length), 1);
-ok('entry: stroke survives the race', await p.locator('.gross').first().innerText(), '4');
+ok('entry: stroke survives the race', await p.locator('.fig.raw .v').first().innerText(), '4');
 
 // --- discard drops the draft and moves on
-await p.locator('.step', { hasText: '+' }).first().click(); await p.waitForTimeout(300);
-await p.locator('.cell').nth(3).click(); await p.waitForTimeout(300);
+await p.locator('.step.plus').first().click(); await p.waitForTimeout(300);
+await p.locator('.hcell').nth(3).click(); await p.waitForTimeout(300);
 await p.locator('[data-act="confirmAlt"]').click(); await p.waitForTimeout(600);
-ok('entry: discard moved to hole 4', await p.locator('.leaf-r .eyebrow').first().innerText(), 'Hole 4 · par 4 · gross strokes');
-await p.locator('.cell').nth(0).click(); await p.waitForTimeout(500);
-ok('entry: the saved stroke is still there', await p.locator('.gross').first().innerText(), '4');
+ok('entry: discard moved to hole 4', await p.locator('.holehead h3').innerText(), 'Hole 4');
+await p.locator('.hcell').nth(0).click(); await p.waitForTimeout(500);
+ok('entry: the saved stroke is still there', await p.locator('.fig.raw .v').first().innerText(), '4');
 
 await b.close();
 console.log(fails.length ? '\nFAILED: ' + fails.join(', ') : '\nAll shared-store writes survived the race.');

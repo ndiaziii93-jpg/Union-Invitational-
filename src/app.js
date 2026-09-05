@@ -24,7 +24,7 @@ const UI = {
   bookHole: 0,
   entryRound: 'r1',
   entryHole: 0,
-  entryTee: 'all',
+  entryTee: '0',
   courseTab: 'aspendos',
   courseHole: 0,
   calDay: null,
@@ -599,67 +599,32 @@ function scrEntry() {
   const h = UI.entryHole;
   const course = E.courseOf(T, rid);
   const hole = course.holes[h];
-  const day = E.dayOf(r.dayIdx);
+  const cap = E.capFor(hole.par, T.config.capOver);
   const editable = open && canEdit();
   const dirty = draftDirty() && UI.draft.rid === rid && UI.draft.hole === h;
   const saved = holeSavedBy(rid, h);
+  const ed = canEdit();
 
-  let gate;
+  const slot = UI.entryTee === 'all' ? 0 : +UI.entryTee;
+  const slotPlayers = (cfg.tees[slot] || {}).players || [];
+  const usingAll = slotPlayers.length === 0;
+  const list = usingAll ? E.golfers(T) : E.golfers(T).filter(g => slotPlayers.includes(g.id));
+
+  let gate = '';
   if (!canEdit()) {
     gate = `<div class="gate"><div class="msg"><b>Scoring is closed to you</b>
       <span>Enter a scorer or master PIN to record scores. Everything else in the book stays readable.</span></div>
       <button class="btn" data-act="signIn">Enter PIN</button></div>`;
   } else if (locked) {
     gate = `<div class="gate"><div class="msg"><b>${esc(r.short)} is locked</b>
-      <span>Concluded${D.PINS_ENABLED && cfg.lockedBy ? ' by ' + esc(S.ROLES[cfg.lockedBy] ? S.ROLES[cfg.lockedBy].label : cfg.lockedBy) : ''}. The card is final and read-only.</span></div>
+      <span>Concluded${D.PINS_ENABLED && cfg.lockedBy ? ' by ' + esc((S.ROLES[cfg.lockedBy] || {}).label || cfg.lockedBy) : ''}. The card is final and read-only.</span></div>
       ${canAdmin() ? `<button class="btn ghost" data-act="unlockRound" data-a="${rid}">${D.PINS_ENABLED ? 'Reopen with master PIN' : 'Reopen'}</button>`
         : `<span class="eyebrow">Only the master reviewer can reopen a locked round.</span>`}</div>`;
   } else if (!open) {
     gate = `<div class="gate"><div class="msg"><b>${esc(r.short)} is not open for scoring</b>
       <span>${D.PINS_ENABLED ? 'Opening confirms with your PIN and lets both scorers write to this card.' : 'Opening lets anyone with this page write to the card.'}</span></div>
       <button class="btn" data-act="openRound" data-a="${rid}">Open round</button></div>`;
-  } else {
-    gate = `<div class="gate"><div class="msg"><b>${esc(r.short)} is open${D.PINS_ENABLED ? ' — you are ' + esc(S.ROLES[UI.role].label) : ' for scoring'}</b>
-      <span>Enter the hole, then save it. Nothing reaches the leaderboards until a hole is saved.</span></div>
-      <button class="btn danger" data-act="lockRound" data-a="${rid}">Lock &amp; conclude</button></div>`;
   }
-
-  const tee = UI.entryTee;
-  let list = E.golfers(T);
-  if (tee !== 'all') {
-    const slot = cfg.tees[+tee];
-    if (slot && slot.players.length) list = list.filter(g => slot.players.includes(g.id));
-  }
-
-  const pad = list.map(g => {
-    const raw = grossOf(rid, g.id, h);
-    const cap = E.capFor(hole.par, T.config.capOver);
-    const st = E.strokesFor(g.band, hole.si);
-    const net = raw == null || st == null ? null : Math.min(raw, cap) - st;
-    const noBand = g.band == null;
-    const c = E.card(T, rid, g.id);
-    const pending = UI.draft && UI.draft.rid === rid && UI.draft.hole === h && (g.id in UI.draft.strokes)
-      && UI.draft.strokes[g.id] !== (c ? c.raw[h] : null);
-    return `<div class="padrow${noBand ? ' nb' : ''}${pending ? ' pending' : ''}">
-      <div class="nm">${esc(g.display)}${pending ? '<span class="tag">unsaved</span>' : ''}
-        <small>${noBand ? 'No playing band — set one on Roster before this card counts'
-          : `Band ${g.band} · receives ${st} on this hole${net != null ? ` · net ${net} (${E.fmtToPar(net - hole.par)})` : ''}`}</small>
-        ${editable ? `<div class="toggles">
-          <button class="tg${c && c.bb ? ' on' : ''}" data-act="tgl" data-a="${g.id}" data-b="bb" title="Breakfast ball used">Breakfast</button>
-          <button class="tg${c && c.mF ? ' on' : ''}" data-act="tgl" data-a="${g.id}" data-b="mF"${r.noMulligans ? ' disabled' : ''} title="Front nine mulligan">Mull F9</button>
-          <button class="tg${c && c.mB ? ' on' : ''}" data-act="tgl" data-a="${g.id}" data-b="mB"${r.noMulligans ? ' disabled' : ''} title="Back nine mulligan">Mull B9</button>
-        </div>` : ''}
-      </div>
-      <div class="stepper">
-        ${editable ? `<button class="step" data-act="bump" data-a="${g.id}" data-b="-1" aria-label="One less for ${esc(g.display)}">−</button>` : ''}
-        <span class="gross num" style="${raw != null && raw >= cap ? 'color:var(--flag)' : ''}">${raw == null ? '·' : raw}</span>
-        ${editable ? `<button class="step" data-act="bump" data-a="${g.id}" data-b="1" aria-label="One more for ${esc(g.display)}"${raw != null && raw >= cap ? ' disabled' : ''}>+</button>` : ''}
-      </div>
-    </div>`;
-  }).join('');
-
-  const opts = sel => `<option value="">—</option>` + E.golfers(T).map(g =>
-    `<option value="${g.id}"${sel === g.id ? ' selected' : ''}>${esc(g.display)}</option>`).join('');
 
   const saveBar = editable ? `<div class="savebar${dirty ? ' dirty' : ''}">
     <div class="sv">${dirty
@@ -668,52 +633,118 @@ function scrEntry() {
         ? `<b>Hole ${hole.n} saved</b><span>Recorded${D.PINS_ENABLED && S.ROLES[saved.role] ? ' by ' + esc(S.ROLES[saved.role].label) : ''}${saved.at ? ' at ' + esc(E.to12(new Date(saved.at + D.TZ_OFFSET_MIN * 60000).toISOString().slice(11, 16))) : ''}.</span>`
         : `<b>Hole ${hole.n}</b><span>Enter every score on this hole, then save it.</span>`}</div>
     <button class="btn${dirty ? '' : ' ghost'}" data-act="saveHole"${dirty ? '' : ' disabled'}>Save hole ${hole.n}</button>
+    <button class="btn danger" data-act="lockRound" data-a="${rid}">Lock &amp; conclude</button>
   </div>` : '';
 
-  return `<h2 class="head">Score Entry</h2>
-  <p class="lede">One hole at a time. Gross strokes only — bands, the triple-bogey cap and every leaderboard are worked out from this.</p>
-  ${roundTabs(rid, 'entryRound')}
-  <div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-top:10px">
-    <span style="font-size:16px;font-weight:600">${esc(day.dow)} ${esc(day.date)} · ${esc(course.name)}</span>${phasePill(rid)}
-    ${r.noMulligans ? `<span class="pill">No mulligans</span>` : ''}
-  </div>
-  ${gate}
-  <div class="spread">
-    <div class="leaf-l">${holeLeaf(rid, h, { strip: holeStrip(rid, h, 'entryHole') })}</div>
-    <div class="leaf-r">
-      <div class="eyebrow">Hole ${hole.n} · par ${hole.par} · gross strokes</div>
-      ${cfg.tees.some(t => t.players.length) ? `<div class="chiprow" style="margin-top:10px">
-        <button class="chip${tee === 'all' ? ' on' : ''}" data-act="entryTee" data-a="all">All players</button>
-        ${cfg.tees.map((t, i) => t.players.length ? `<button class="chip${tee === String(i) ? ' on' : ''}" data-act="entryTee" data-a="${i}">Tee ${i + 1}${t.time ? ' · ' + E.to12(t.time) : ''}</button>` : '').join('')}
+  const rows = list.map(g => {
+    const raw = grossOf(rid, g.id, h);
+    const st = E.strokesFor(g.band, hole.si);
+    const adj = raw == null ? null : Math.min(raw, cap);
+    const net = adj == null || st == null ? null : adj - st;
+    const capped = raw != null && raw >= cap;
+    const c = E.card(T, rid, g.id);
+    const tp = E.roundToPar(T, rid, g.id);
+    const pending = UI.draft && UI.draft.rid === rid && UI.draft.hole === h && (g.id in UI.draft.strokes)
+      && UI.draft.strokes[g.id] !== (c ? c.raw[h] : null);
+    return `<div class="prow${pending ? ' pending' : ''}">
+      <div class="pmain">
+        <div class="pwho">
+          <div class="nm">${esc(g.display)}${pending ? '<span class="tag">unsaved</span>' : ''}</div>
+          <div class="bd num">band ${g.band ? g.band : '—'} <span>${st == null ? '·' : '+' + st + ' here'}</span></div>
+        </div>
+        ${editable ? `<button class="step minus" data-act="bump" data-a="${g.id}" data-b="-1" aria-label="One stroke fewer for ${esc(g.display)}">−</button>` : ''}
+        <div class="fig raw"><div class="v num">${raw == null ? '·' : raw}</div><div class="l">raw</div></div>
+        ${editable ? `<button class="step plus" data-act="bump" data-a="${g.id}" data-b="1" aria-label="One stroke more for ${esc(g.display)}"${capped ? ' disabled' : ''}>+</button>` : ''}
+        <div class="fig"><div class="v num">${adj == null ? '·' : adj}</div><div class="l">adjusted</div></div>
+        <div class="fig"><div class="v num net">${net == null ? '·' : net}</div><div class="l">net</div></div>
+        <div class="fig end"><div class="v num ${cls(tp.thru ? tp.tp : null)}">${tp.thru ? esc(E.fmtToPar(tp.tp)) : '—'}</div><div class="l num">thru ${tp.thru}</div></div>
+      </div>
+      ${ed ? `<div class="prelief">
+        ${capped ? `<span class="capchip">Capped at ${cap} — pick up</span>` : ''}
+        ${r.noMulligans ? '' : `
+          <button class="mchip${c && c.mF ? ' on' : ''}" data-act="tgl" data-a="${g.id}" data-b="mF"${editable ? '' : ' disabled'}>Front mulligan: ${c && c.mF ? 'Used' : '1 left'}</button>
+          <button class="mchip${c && c.mB ? ' on' : ''}" data-act="tgl" data-a="${g.id}" data-b="mB"${editable ? '' : ' disabled'}>Back mulligan: ${c && c.mB ? 'Used' : '1 left'}</button>`}
+        ${h === 0 ? `<button class="mchip${c && c.bb ? ' on' : ''}" data-act="tgl" data-a="${g.id}" data-b="bb"${editable ? '' : ' disabled'}>Breakfast ball: ${c && c.bb ? 'Used' : 'Available'}</button>` : ''}
+        ${editable ? `<button class="clearh" data-act="clearHole" data-a="${g.id}">Clear hole</button>` : ''}
       </div>` : ''}
-      ${saveBar}
-      <div class="pad">${pad || `<p class="empty">No golfers on the roster.</p>`}</div>
+    </div>`;
+  }).join('');
 
-      <h3 class="sub">Bingo Bango Bongo — hole ${hole.n}</h3>
-      <div class="panel" style="grid-template-columns:1fr">
-        ${[['bingo', 'Bingo — first on the green'], ['bango', 'Bango — closest once all are on'], ['bongo', 'Bongo — first in the cup']].map(([k, lbl]) =>
-          `<div class="kv"><span class="k">${esc(lbl)}</span>
-            <select class="field" data-act="setBbb" data-a="${k}"${editable ? '' : ' disabled'} aria-label="${esc(lbl)}">${opts(bbbOf(rid, h, k))}</select></div>`).join('')}
+  const people = sel => `<option value="">Nobody yet</option>` + E.golfers(T).map(g =>
+    `<option value="${g.id}"${sel === g.id ? ' selected' : ''}>${esc(g.display)}</option>`).join('');
+
+  return `<h2 class="head">Score Entry</h2>
+  <p class="lede">Gross strokes in. Raw and adjusted sit side by side, exactly as the group’s own cards read.</p>
+
+  <div class="rcards">
+    ${D.ROUNDS.map(x => {
+      const d = E.dayOf(x.dayIdx);
+      return `<button class="rcard${x.id === rid ? ' on' : ''}${x.counts ? '' : ' practice'}" data-act="entryRound" data-a="${x.id}">
+        <b>${esc(x.short === 'Practice' ? 'Practice' : 'Round ' + x.short.slice(1))}</b>
+        <span>${esc(d.dow)} ${esc(d.date)}</span></button>`;
+    }).join('')}
+  </div>
+  ${!r.counts ? `<p class="note-it">Get Loose Foursomes — practice. Feeds nothing; log it for the bragging rights.</p>` : ''}
+  ${r.noMulligans ? `<p class="note-red"><strong>Championship final — no mulligans today.</strong> The breakfast ball on hole 1 is retained.</p>` : ''}
+
+  <div class="grouprow">
+    <span class="gl">Group</span>
+    ${cfg.tees.map((t, i) => `<button class="gchip${slot === i ? ' on' : ''}" data-act="entryTee" data-a="${i}">Group ${i + 1}${t.time ? ' — ' + E.to12(t.time) : ''}</button>`).join('')}
+    ${usingAll ? `<span class="gnote">No group assigned yet — showing all golfers.</span>` : ''}
+  </div>
+
+  ${gate}${saveBar}
+
+  <div class="scroller nos"><div class="hstrip">
+    ${course.holes.map((x, i) => `<button class="hcell${i === h ? ' on' : ''}${holeSavedBy(rid, i) ? ' saved' : ''}"
+      data-act="entryHole" data-a="${i}" aria-label="Hole ${x.n}, par ${x.par}">
+      <span class="n num">${x.n}</span><span class="p num">par ${x.par}</span></button>`).join('')}
+  </div></div>
+
+  <div class="holehead">
+    <h3 class="num">Hole ${hole.n}</h3>
+    <span class="num">Par ${hole.par}</span>
+    <span class="m num">Stroke index ${hole.si}</span>
+    <span class="r num">Picks up at ${cap}</span>
+  </div>
+
+  <div class="entrygrid">
+    <div>${rows || `<p class="empty">No golfers in this group.</p>`}</div>
+    <div>
+      <div class="side-b">
+        <h3>Bingo Bango Bongo — hole ${hole.n}</h3>
+        <p class="sublede">First on, closest once all on, first in.</p>
+        <div class="fieldset">
+          ${[['bingo', 'Bingo — first on the green'], ['bango', 'Bango — closest once all on'], ['bongo', 'Bongo — first to hole out']].map(([k, lbl]) =>
+            `<label>${esc(lbl)}
+              <select class="field" data-act="setBbb" data-a="${k}"${editable ? '' : ' disabled'}>${people(bbbOf(rid, h, k))}</select></label>`).join('')}
+        </div>
       </div>
 
-      <h3 class="sub">Round prizes</h3>
-      <div class="panel">
-        <div class="kv"><span class="k">Closest to the pin<small>Nominated par 3</small></span>
-          <select class="field" data-act="setRoundField" data-a="ctpHole"${editable ? '' : ' disabled'} aria-label="Closest to the pin hole">
-            <option value="">No hole</option>${course.holes.filter(x => x.par === 3).map(x =>
-              `<option value="${x.n}"${cfg.ctpHole === x.n ? ' selected' : ''}>Hole ${x.n}</option>`).join('')}</select></div>
-        <div class="kv"><span class="k">Pin winner</span>
-          <span class="chiprow"><select class="field" data-act="setRoundField" data-a="ctpWinner"${editable ? '' : ' disabled'} aria-label="Closest to the pin winner">${opts(cfg.ctpWinner)}</select>
-          <input class="field" style="width:96px" type="text" value="${esc(cfg.ctpDist || '')}" placeholder="dist"
-            data-act="setRoundField" data-a="ctpDist"${editable ? '' : ' disabled'} aria-label="Distance to the pin"></span></div>
-        <div class="kv"><span class="k">Longest drive<small>Nominated hole</small></span>
-          <select class="field" data-act="setRoundField" data-a="ldHole"${editable ? '' : ' disabled'} aria-label="Longest drive hole">
-            <option value="">No hole</option>${course.holes.map(x =>
-              `<option value="${x.n}"${cfg.ldHole === x.n ? ' selected' : ''}>Hole ${x.n} — par ${x.par}</option>`).join('')}</select></div>
-        <div class="kv"><span class="k">Drive winner</span>
-          <span class="chiprow"><select class="field" data-act="setRoundField" data-a="ldWinner"${editable ? '' : ' disabled'} aria-label="Longest drive winner">${opts(cfg.ldWinner)}</select>
-          <input class="field" style="width:96px" type="text" value="${esc(cfg.ldDist || '')}" placeholder="dist"
-            data-act="setRoundField" data-a="ldDist"${editable ? '' : ' disabled'} aria-label="Drive distance"></span></div>
+      <div class="side-g">
+        <h3>Pin &amp; drive — ${esc(r.short)}</h3>
+        <div class="fieldset">
+          <label>Closest to the Pin hole
+            <select class="field${cfg.ctpHole ? '' : ' unset'}" data-act="setRoundField" data-a="ctpHole"${ed ? '' : ' disabled'}>
+              <option value="">Not chosen yet</option>
+              ${course.holes.filter(x => x.par === 3).map(x => `<option value="${x.n}"${cfg.ctpHole === x.n ? ' selected' : ''}>Hole ${x.n}</option>`).join('')}
+            </select></label>
+          <label>Closest — current mark
+            <select class="field" data-act="setRoundField" data-a="ctpWinner"${ed ? '' : ' disabled'}>${people(cfg.ctpWinner)}</select></label>
+          <label>Distance
+            <input class="field" type="text" value="${esc(cfg.ctpDist || '')}" placeholder="e.g. 2.4 m"
+              data-act="setRoundField" data-a="ctpDist"${ed ? '' : ' disabled'}></label>
+          <label>Longest Drive hole
+            <select class="field${cfg.ldHole ? '' : ' unset'}" data-act="setRoundField" data-a="ldHole"${ed ? '' : ' disabled'}>
+              <option value="">Not chosen yet</option>
+              ${course.holes.map(x => `<option value="${x.n}"${cfg.ldHole === x.n ? ' selected' : ''}>Hole ${x.n} — par ${x.par}</option>`).join('')}
+            </select></label>
+          <label>Longest — current marker
+            <select class="field" data-act="setRoundField" data-a="ldWinner"${ed ? '' : ' disabled'}>${people(cfg.ldWinner)}</select></label>
+          <label>Distance
+            <input class="field" type="text" value="${esc(cfg.ldDist || '')}" placeholder="e.g. 260 m"
+              data-act="setRoundField" data-a="ldDist"${ed ? '' : ' disabled'}></label>
+        </div>
       </div>
     </div>
   </div>`;
@@ -1126,7 +1157,7 @@ function onClick(e) {
     case 'boardTab': UI.boardTab = a; break;
     case 'boardRound': UI.boardRound = a; UI.bookHole = 0; break;
     case 'bookHole': UI.bookHole = +a; break;
-    case 'entryRound': guardDraft(() => { UI.entryRound = a; UI.entryHole = 0; UI.entryTee = 'all'; }); return;
+    case 'entryRound': guardDraft(() => { UI.entryRound = a; UI.entryHole = 0; UI.entryTee = '0'; }); return;
     case 'entryHole': guardDraft(() => { UI.entryHole = +a; }); return;
     case 'entryTee': UI.entryTee = a; break;
     case 'calView': UI.calView = a; break;
@@ -1188,6 +1219,11 @@ function onClick(e) {
       if (v != null && v < 1) v = null;
       if (v != null && v > cap) v = cap;
       d.strokes[a] = v;
+      break;
+    }
+    case 'clearHole': {
+      if (!canEdit() || E.roundCfg(T, rid).state !== 'open') return;
+      draftFor(rid, UI.entryHole).strokes[a] = null;
       break;
     }
     case 'saveHole': {

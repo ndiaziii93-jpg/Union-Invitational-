@@ -393,3 +393,14 @@ export function teePrivilege(T, now) {
     };
   });
 }
+
+/** A player's to-par and holes played in one round — used beside the stepper. */
+export function roundToPar(T, roundId, pid) {
+  const holes = courseOf(T, roundId).holes;
+  let tp = 0, thru = 0;
+  for (let i = 0; i < 18; i++) {
+    const n = playerNet(T, roundId, pid, i);
+    if (n != null) { tp += n - holes[i].par; thru = i + 1; }
+  }
+  return { tp, thru };
+}
