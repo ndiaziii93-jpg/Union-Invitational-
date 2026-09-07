@@ -33,6 +33,7 @@ const UI = {
   revealPins: false,
   toast: '',
   draft: null,
+  dragging: null,
   setupSeen: false,
   entrySeen: false,
 };
@@ -752,50 +753,85 @@ function scrEntry() {
 
 function scrRoster() {
   const gs = E.golfers(T);
-  const others = T.config.people.filter(p => p.role !== 'golfer');
   const ed = canEdit();
-  const bandBtn = (g, b) => `<button class="chip${g.band === b ? ' on' : ''}" data-act="setBand" data-a="${g.id}" data-b="${b}"${ed ? '' : ' disabled'}>${b}</button>`;
-  const nameField = p => ed
-    ? `<input class="nameedit" type="text" value="${esc(p.display)}" aria-label="Name of ${esc(p.display)}"
-        data-act="renamePerson" data-a="${p.id}" maxlength="40">`
-    : esc(p.display);
+  const assigned = new Set(T.config.pairs.flatMap(p => p.members));
+  const unassigned = gs.filter(g => !assigned.has(g.id));
+  const bandsSet = gs.filter(g => g.band != null).length;
 
-  return `<h2 class="head">Roster &amp; Pairings</h2>
-  <p class="lede">Every golfer plays off a 15, 20 or 25 playing band — the band is the total strokes received across eighteen. A golfer without a band is left out of every score until one is set.</p>
+  const pairOptions = cur => [`<option value="unassigned"${cur === 'unassigned' ? ' selected' : ''}>Unassigned</option>`]
+    .concat(T.config.pairs.map(p => `<option value="${p.id}"${cur === p.id ? ' selected' : ''}>${esc(E.pairName(T, p))}</option>`)).join('');
 
-  <h3 class="sub">Golfers <span class="eyebrow">${gs.length}</span></h3>
-  <div class="rows" style="margin-top:8px">
-    <div class="rowhead"><span style="flex:1">Player</span><span style="min-width:170px;text-align:right">Playing band</span></div>
-    ${gs.map(g => `<div class="row">
-      <span class="who">${nameField(g)}<small>${esc(g.group)}${g.band ? ' · receives ' + E.bandTotal(g.band) + ' strokes' : ''}</small></span>
-      <span class="chiprow" style="justify-content:flex-end;min-width:170px">
-        ${E.BANDS.map(b => bandBtn(g, b)).join('')}
-        ${ed && g.band ? `<button class="chip" data-act="setBand" data-a="${g.id}" data-b="" title="Clear band">×</button>` : ''}
-        ${canAdmin() ? `<button class="chip" data-act="removePerson" data-a="${g.id}" title="Remove from roster">Remove</button>` : ''}
-      </span></div>`).join('')}
+  const member = (m, pairId) => {
+    const p = E.person(T, m) || {};
+    return `<div class="pmem"${ed ? ' draggable="true"' : ''} data-act="dragGolfer" data-a="${m}">
+      <span class="grip" aria-hidden="true">≡</span>
+      <span class="mn">${esc(p.display || '?')}</span>
+      <span class="ml">${esc(p.location || '—')}</span>
+      <span class="mb num">${p.band == null ? '—' : p.band}</span>
+      ${ed ? `<select class="field small" data-act="moveGolfer" data-a="${m}" aria-label="Move ${esc(p.display)} to">${pairOptions(pairId)}</select>` : ''}
+    </div>`;
+  };
+
+  return `<div class="titlerow">
+    <h2 class="head">Pairings</h2>
+    ${ed ? `<button class="btn ghost" data-act="addPair">Add pair</button>` : ''}
   </div>
-  ${ed ? `<div class="chiprow" style="margin-top:12px"><button class="chip" data-act="addPerson" data-a="golfer">Add golfer</button></div>` : ''}
-  ${ed ? `<p class="lede" style="margin-top:8px">Tap a name to correct it. Changes save as you leave the field.</p>` : ''}
+  <p class="lede">Fixed for the week. Drag between pairs or use the Move to menu — both work one-handed. Shared with everyone.</p>
 
-  <h3 class="sub">Pairings</h3>
-  <p class="lede">Fixed for the week. A pair needs two players to score a better ball, and both in the same squad to draw a fourball match.</p>
-  <div class="panel">
-    ${T.config.pairs.map(p => `<div class="kv">
-      <span class="k">${esc(E.pairName(T, p))}<small>${p.members.length} of 2 assigned</small></span>
-      <span class="chiprow">${p.members.map(id => `<span class="chip">${esc((E.person(T, id) || {}).display || '?')}${ed ? ` <button data-act="unpair" data-a="${p.id}" data-b="${id}" aria-label="Remove from pair" style="color:inherit">×</button>` : ''}</span>`).join('')}
-      ${ed && p.members.length < 2 ? `<select class="field" data-act="addToPair" data-a="${p.id}" aria-label="Add a golfer to ${esc(E.pairName(T, p))}">
-        <option value="">Add golfer…</option>${gs.filter(g => !T.config.pairs.some(q => q.members.includes(g.id))).map(g =>
-          `<option value="${g.id}">${esc(g.display)}</option>`).join('')}</select>` : ''}</span></div>`).join('')}
+  <div class="pairgrid">
+    ${T.config.pairs.map(pr => `<div class="paircol" data-act="dropPair" data-a="${pr.id}">
+      <div class="phead">
+        ${ed ? `<input class="pname" type="text" value="${esc(pr.name || '')}" placeholder="${esc(E.pairName(T, pr))}"
+            aria-label="Name of ${esc(E.pairName(T, pr))}" maxlength="40" data-act="renamePair" data-a="${pr.id}">`
+          : `<span class="pname read">${esc(E.pairName(T, pr))}</span>`}
+        ${ed ? `<button class="ibtn" data-act="movePair" data-a="${pr.id}" data-b="-1" aria-label="Move pair up">↑</button>
+          <button class="ibtn" data-act="movePair" data-a="${pr.id}" data-b="1" aria-label="Move pair down">↓</button>
+          <button class="rm" data-act="deletePair" data-a="${pr.id}">Delete</button>` : ''}
+      </div>
+      ${pr.members.length ? pr.members.map(m => member(m, pr.id)).join('')
+        : `<div class="pdrop">Drop a golfer here</div>`}
+    </div>`).join('')}
+
+    <div class="paircol un" data-act="dropPair" data-a="unassigned">
+      <div class="phead"><span class="pname read">Unassigned (${unassigned.length})</span></div>
+      ${unassigned.length ? unassigned.map(g => member(g.id, 'unassigned')).join('')
+        : `<div class="pdrop">Everyone is paired. Eleven golfers means one is always over — that is fine.</div>`}
+    </div>
   </div>
 
-  <h3 class="sub">Officials &amp; spectators</h3>
-  <div class="rows" style="margin-top:8px">
-    ${others.map(p => `<div class="row"><span class="who">${nameField(p)}<small>${esc(p.role)} · ${esc(p.group)}</small></span>
-      ${canAdmin() ? `<span><button class="chip" data-act="removePerson" data-a="${p.id}">Remove</button></span>` : ''}</div>`).join('')}
+  <div class="titlerow" style="margin-top:44px">
+    <h3 class="sub" style="font-size:28px;font-weight:700;margin:0">Roster</h3>
+    <span class="rnote">${bandsSet} of ${gs.length} bands set. Every golfer plays off a 15, 20 or 25 band — the band is the strokes they receive.</span>
+    ${ed ? `<button class="btn ghost" data-act="addPerson" data-a="golfer">Add person</button>` : ''}
   </div>
-  ${ed ? `<div class="chiprow" style="margin-top:12px">
-    <button class="chip" data-act="addPerson" data-a="official">Add official</button>
-    <button class="chip" data-act="addPerson" data-a="spectator">Add spectator</button></div>` : ''}`;
+
+  <div class="scroller nos">
+    <table class="rtable">
+      <thead><tr><th>Name</th><th>Display</th><th>Role</th><th>Location</th><th>Group</th><th>Band</th><th></th></tr></thead>
+      <tbody>
+        ${T.config.people.map(p => `<tr>
+          <td>${ed ? `<input class="cellin" type="text" value="${esc(p.name)}" aria-label="Full name" maxlength="40"
+                data-act="setPerson" data-a="${p.id}" data-b="name">` : esc(p.name)}</td>
+          <td>${ed ? `<input class="cellin sm" type="text" value="${esc(p.display)}" aria-label="Display name" maxlength="24"
+                data-act="setPerson" data-a="${p.id}" data-b="display">` : esc(p.display)}</td>
+          <td>${ed ? `<select class="field small" data-act="setPerson" data-a="${p.id}" data-b="role" aria-label="Role">
+                ${[['golfer', 'Golfer'], ['official', 'Official'], ['spectator', 'Spectator']].map(([v, l]) =>
+                  `<option value="${v}"${p.role === v ? ' selected' : ''}>${l}</option>`).join('')}</select>` : esc(p.role)}</td>
+          <td><div class="tog">
+            ${['UK', 'USA'].map(sq => `<button class="tbtn${p.location === sq ? ' on' : ''}" data-act="setLoc"
+              data-a="${p.id}" data-b="${sq}"${ed ? '' : ' disabled'} aria-pressed="${p.location === sq}">${sq}</button>`).join('')}
+          </div></td>
+          <td>${ed ? `<select class="field small" data-act="setPerson" data-a="${p.id}" data-b="group" aria-label="Group">
+                ${['7-day', '5-day'].map(v => `<option value="${v}"${p.group === v ? ' selected' : ''}>${v}</option>`).join('')}</select>` : esc(p.group)}</td>
+          <td>${p.role === 'golfer' ? `<div class="tog">
+            ${E.BANDS.map(bnd => `<button class="tbtn${p.band === bnd ? ' on' : ''}" data-act="setBand"
+              data-a="${p.id}" data-b="${bnd}"${ed ? '' : ' disabled'} aria-pressed="${p.band === bnd}">${bnd}</button>`).join('')}
+          </div>` : ''}</td>
+          <td>${canAdmin() ? `<button class="rm" data-act="removePerson" data-a="${p.id}">Remove</button>` : ''}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
 }
 
 function scrRules() {
@@ -1134,6 +1170,17 @@ function submitPin() {
   render();
 }
 
+/** Put a golfer in one pair, or nowhere. Used by the Move to menu and by a drop. */
+function movePlayer(pid, target) {
+  store.writeConfig(c => {
+    c.pairs.forEach(p => { p.members = p.members.filter(m => m !== pid); });
+    if (target && target !== 'unassigned') {
+      const p = c.pairs.find(x => x.id === target);
+      if (p) p.members.push(pid);
+    }
+  });
+}
+
 const setRound = (rid, patch) => store.writeConfig(c => { Object.assign(c.rounds[rid], patch); });
 
 function onClick(e) {
@@ -1179,6 +1226,26 @@ function onClick(e) {
         const i = tee.players.indexOf(el.dataset.c);
         if (i >= 0) tee.players.splice(i, 1); else tee.players.push(el.dataset.c);
       });
+      return;
+    case 'addPair':
+      if (!canEdit()) return;
+      store.writeConfig(c => { c.pairs.push({ id: 'p' + Date.now().toString(36), name: null, members: [] }); });
+      return;
+    case 'deletePair':
+      if (!canEdit()) return;
+      store.writeConfig(c => { c.pairs = c.pairs.filter(p => p.id !== a); });
+      return;
+    case 'movePair':
+      if (!canEdit()) return;
+      store.writeConfig(c => {
+        const i = c.pairs.findIndex(p => p.id === a), j = i + (+b);
+        if (i < 0 || j < 0 || j >= c.pairs.length) return;
+        const [p] = c.pairs.splice(i, 1); c.pairs.splice(j, 0, p);
+      });
+      return;
+    case 'setLoc':
+      if (!canEdit()) return;
+      store.writeConfig(c => { const p = c.people.find(x => x.id === a); if (p) p.location = p.location === b ? null : b; });
       return;
     case 'courseTab': UI.courseTab = a; UI.courseHole = 0; break;
     case 'courseHole': UI.courseHole = +a; break;
@@ -1361,6 +1428,24 @@ function onChange(e) {
       c.teePicks[a] = { done: true, time: el.value, byPair: by };
       c.rounds[a].tees[0].time = el.value;
     });
+  } else if (act === 'renamePair') {
+    if (!canEdit()) return;
+    const v = el.value.trim().replace(/\s+/g, ' ');
+    store.writeConfig(c => { const p = c.pairs.find(x => x.id === a); if (p) p.name = v || null; });
+  } else if (act === 'moveGolfer') {
+    if (!canEdit()) return;
+    movePlayer(a, el.value);
+  } else if (act === 'setPerson') {
+    if (!canEdit()) return;
+    const v = el.value.trim().replace(/\s+/g, ' ');
+    store.writeConfig(c => {
+      const p = c.people.find(x => x.id === a);
+      if (!p) return;
+      if (b === 'name') { if (v) { p.name = v; if (!p.display) p.display = v; } }
+      else if (b === 'display') { if (v) p.display = v; }
+      else p[b] = v;
+    });
+    render();
   } else if (act === 'renamePerson') {
     if (!canEdit()) return;
     const name = el.value.trim().replace(/\s+/g, ' ');
@@ -1404,6 +1489,21 @@ export function boot() {
   });
   const app = document.getElementById('app');
   app.addEventListener('click', onClick);
+  app.addEventListener('dragstart', e => {
+    const el = e.target.closest('[data-act="dragGolfer"]');
+    if (!el || !canEdit()) return;
+    UI.dragging = el.dataset.a;
+    try { e.dataTransfer.setData('text/plain', el.dataset.a); e.dataTransfer.effectAllowed = 'move'; } catch (err) { /* older browsers */ }
+  });
+  app.addEventListener('dragover', e => { if (e.target.closest('[data-act="dropPair"]') && UI.dragging) e.preventDefault(); });
+  app.addEventListener('drop', e => {
+    const col = e.target.closest('[data-act="dropPair"]');
+    if (!col || !canEdit()) return;
+    e.preventDefault();
+    const pid = UI.dragging || (e.dataTransfer && e.dataTransfer.getData('text/plain'));
+    UI.dragging = null;
+    if (pid) movePlayer(pid, col.dataset.a);
+  });
   app.addEventListener('change', onChange);
   app.addEventListener('keydown', onKey);
   setInterval(() => { now = E.nowLocal(); render(); }, 30000);

@@ -554,6 +554,7 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
   .daystrip{flex-wrap:wrap}
   .dayb{flex:1 1 auto;min-width:56px}
   .rcards{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .pairgrid{grid-template-columns:1fr;gap:20px}
   .rcard{min-height:56px;padding:9px 14px}
   .rcard b{font-size:17px}
   .cgrid{gap:20px}
@@ -574,7 +575,8 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
   .strip,.cstrip{grid-template-columns:repeat(9,minmax(0,1fr));max-width:none}
   .cside{max-width:none}
   .chip,.mchip,.pchip,.gchip,.tg{min-height:44px;padding:10px 14px;font-size:15px}
-  .cardin,.cardsel,.nameedit{min-height:44px}
+  .cardin,.cardsel,.nameedit,.cellin,.pname,.tbtn,.ibtn{min-height:44px}
+  .cellin{font-size:16px;width:150px}
   .clearh,.rm,.setup-item .btn{min-height:44px}
   .rule-item summary{padding:18px 0}
   .row a,.lede a,.legend a,.titlerow a,.rule-body a,.sublede a{display:inline-flex;align-items:center;
@@ -589,3 +591,40 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
 .scroller,.tabs,.daystrip,.btabs{-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
 .scroller{scroll-snap-type:x proximity}
 .scroller table{scroll-snap-align:start}
+
+/* ---- pairings & roster ---- */
+.pairgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:28px;margin-top:18px}
+.paircol{border-left:3px solid var(--green);padding-left:16px}
+.paircol.un{border-left:3px dashed var(--gold)}
+.paircol.drop-on{background:var(--sunk)}
+.phead{display:flex;align-items:center;gap:8px}
+.pname{flex:1;min-width:0;min-height:44px;padding:4px 6px;border:none;border-bottom:1px dashed var(--rule);
+  background:none;color:var(--ink);font-family:var(--serif);font-size:19px;font-weight:600;border-radius:0}
+.pname:focus{outline:none;border-bottom-color:var(--flag)}
+.pname.read{display:flex;align-items:center;font-size:19px;font-weight:600;border-bottom:none}
+.ibtn{width:40px;height:40px;display:flex;align-items:center;justify-content:center;border:1px solid var(--rule);
+  background:var(--page);color:var(--ink);border-radius:2px;font-size:16px;flex:0 0 auto}
+.ibtn:hover{border-color:var(--ink)}
+.pmem{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--rule)}
+.pmem[draggable="true"]{cursor:grab}
+.pmem .grip{color:var(--turf);flex:0 0 auto}
+.pmem .mn{flex:1;font-size:17px;min-width:0}
+.pmem .ml{font-size:14px;color:var(--turf);min-width:34px}
+.pmem .mb{font-size:14px;color:var(--turf);min-width:22px;text-align:right}
+.pdrop{padding:10px 0;font-size:14px;color:var(--turf)}
+.rnote{font-size:14px;color:var(--turf);flex:1 1 260px}
+
+table.rtable{border-collapse:collapse;width:100%;min-width:820px}
+table.rtable th{text-align:left;font-size:14px;font-weight:400;color:var(--turf);padding:0 14px 8px 0;
+  border-bottom:2px solid var(--ink);white-space:nowrap}
+table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);vertical-align:middle}
+.cellin{width:170px;padding:6px 4px;font-family:var(--serif);font-size:16px;color:var(--ink);background:none;
+  border:none;border-bottom:1px dashed var(--rule);border-radius:0;min-height:40px}
+.cellin.sm{width:120px}
+.cellin:focus{outline:none;border-bottom-color:var(--flag)}
+.tog{display:flex;gap:4px}
+.tbtn{padding:7px 11px;border:1px solid var(--rule);background:var(--page);color:var(--turf);
+  font-size:15px;border-radius:2px;min-height:40px;font-variant-numeric:tabular-nums}
+.tbtn:hover:not(:disabled){border-color:var(--ink);color:var(--ink)}
+.tbtn.on{background:var(--ink);border-color:var(--ink);color:var(--paper);font-weight:600}
+.tbtn:disabled{opacity:.55}

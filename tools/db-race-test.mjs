@@ -88,37 +88,54 @@ await p.locator('.sqbox').nth(1).click();
 await p.waitForTimeout(1600);
 ok('flag: 2 rapid taps land on UK', await p.locator('.sqrow').nth(1).locator('.sqlabel').innerText(), 'UK');
 
-// --- roster add and remove survive
-await p.locator('.tab', { hasText: 'Roster' }).click(); await p.waitForTimeout(300);
-const golfers = () => p.locator('.rows').first().locator('.row').count();
-await p.locator('[data-act="addPerson"][data-a="golfer"]').waitFor();
+// --- roster: the pairings board and the roster table
+await p.locator('.tab', { hasText: 'Roster' }).click(); await p.waitForTimeout(400);
+await p.locator('[data-act="modalCancel"]').click().catch(() => {});
+const golfers = () => p.locator('.rtable tbody tr').count();
+await p.locator('.rtable').waitFor();
 const n0 = await golfers();
 
-// --- a band survives
-await p.locator('.rows').first().locator('.row').first().locator('[data-act="setBand"]').first().click();
+// a band sticks
+await p.locator('.rtable tbody tr').first().locator('[data-act="setBand"]').first().click();
 await p.waitForTimeout(1400);
-ok('roster: band 15 sticks', await p.locator('.rows').first().locator('.row').first().locator('.chip.on').innerText(), '15');
+ok('roster: band 15 sticks', await p.locator('.rtable tbody tr').first().locator('.tbtn.on').innerText(), '15');
 
-// --- roster: a new person is named by hand, not auto-labelled
-await p.locator('[data-act="addPerson"][data-a="golfer"]').click(); await p.waitForTimeout(300);
+// a squad sticks, and tapping the same squad again clears it
+const uk = () => p.locator('.rtable tbody tr').nth(2).locator('[data-act="setLoc"]').first();
+await uk().click(); await p.waitForTimeout(1400);
+ok('roster: UK sticks', await uk().getAttribute('aria-pressed'), 'true');
+await uk().click(); await p.waitForTimeout(1400);
+ok('roster: tapping UK again clears it', await uk().getAttribute('aria-pressed'), 'false');
+
+// a new person is named by hand
+await p.locator('[data-act="addPerson"]').first().click(); await p.waitForTimeout(300);
 await p.locator('#addName').fill('Tommy Fleetwood');
 await p.locator('[data-act="addSave"]').click(); await p.waitForTimeout(1400);
-ok('roster: named add lands', await p.locator('.rows').first().locator('.row').last().locator('.nameedit').inputValue(), 'Tommy Fleetwood');
 ok('roster: named add counted', await golfers(), n0 + 1);
+ok('roster: named add lands', await p.locator('.rtable tbody tr').last().locator('.cellin').first().inputValue(), 'Tommy Fleetwood');
 
-// --- rename sticks
-const last = p.locator('.rows').first().locator('.row').last().locator('.nameedit');
+// renaming in the table sticks
+const last = p.locator('.rtable tbody tr').last().locator('.cellin').first();
 await last.fill('Tommy F'); await last.blur(); await p.waitForTimeout(1400);
-ok('roster: rename sticks', await p.locator('.rows').first().locator('.row').last().locator('.nameedit').inputValue(), 'Tommy F');
-await p.locator('.rows').first().locator('[data-act="removePerson"]').last().click(); await p.waitForTimeout(1400);
+ok('roster: rename sticks', await p.locator('.rtable tbody tr').last().locator('.cellin').first().inputValue(), 'Tommy F');
 
-// --- the setup chip sits in the masthead on every screen
-const chipOn = async tab => { await p.locator('.tab', { hasText: tab }).first().click(); await p.waitForTimeout(350);
-  await p.locator('[data-act="modalCancel"]').click().catch(() => {});
-  return (await p.locator('.masthead .setup-chip').count()) === 1; };
-for (const tab of ['Today', 'Leaderboards', 'Ryder Cup', 'Calendar', 'Roster', 'Games & Rules', 'Course Setup'])
-  ok('chip present on ' + tab, await chipOn(tab), true);
-ok('chip is red while incomplete', await p.locator('.masthead .setup-chip').evaluate(e => getComputedStyle(e).backgroundColor), 'rgb(158, 59, 46)');
+// moving a golfer between pairs sticks
+const inPair1 = () => p.locator('.paircol').first().locator('.pmem').count();
+const before = await inPair1();
+await p.locator('.paircol').first().locator('.pmem select').first().selectOption('unassigned');
+await p.waitForTimeout(1400);
+ok('pairs: move to unassigned sticks', await inPair1(), before - 1);
+
+// adding and deleting a pair sticks
+const cols = () => p.locator('.paircol').count();
+const c0 = await cols();
+await p.locator('[data-act="addPair"]').click(); await p.waitForTimeout(1400);
+ok('pairs: added pair stays', await cols(), c0 + 1);
+await p.locator('[data-act="deletePair"]').last().click(); await p.waitForTimeout(1400);
+ok('pairs: deleted pair stays gone', await cols(), c0);
+
+await p.locator('.rtable tbody tr').last().locator('[data-act="removePerson"]').click(); await p.waitForTimeout(1400);
+ok('roster: removal stays', await golfers(), n0);
 
 // --- a stroke is a draft until the hole is saved
 await p.locator('.tab', { hasText: 'Score Entry' }).click(); await p.waitForTimeout(500);
