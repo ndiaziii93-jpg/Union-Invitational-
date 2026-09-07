@@ -88,10 +88,17 @@ docs/              the original design canvas this was built from
 ## Tests
 
 ```sh
-node tools/db-race-test.mjs
+node tools/db-race-test.mjs    # shared-store writes survive a hostile database
+node tools/mobile-audit.mjs    # no screen scrolls sideways; every tap target clears 44px
 ```
 
-Drives the real UI against a mocked shared store that behaves badly on purpose:
+The mobile audit loads the page through a wrapper carrying the same head the
+artifact host adds — charset, viewport, reset. Without it a local file lays out
+at 980px and scales down, so a phone test measures a shrunken desktop rather
+than a phone.
+
+The race test drives the real UI against a mocked shared store that behaves
+badly on purpose:
 it drops keys whose value is null, echoes a stale version of a document after a
 write, and takes a realistic round trip to save. Both of the first two silently
 reverted edits in earlier builds. Requires `npm install playwright`.

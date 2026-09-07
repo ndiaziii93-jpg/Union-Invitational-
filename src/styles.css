@@ -511,3 +511,81 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
   background:none;border:none;border-bottom:1px dashed transparent;border-radius:0;padding:2px 0;min-height:32px}
 .nameedit:hover{border-bottom-color:var(--rule)}
 .nameedit:focus{outline:none;border-bottom-color:var(--flag)}
+
+/* ================= mobile and tablet =================
+   Two rules drive everything below: nothing the thumb needs may hide behind a
+   sideways scroll, and no form control may be under 16px, which is what makes
+   iOS zoom the page on focus and leaves it panned. */
+
+.tab .sm{display:none}
+
+@media (max-width:820px){
+  /* the nav wraps instead of scrolling, using the short labels */
+  .tabs{flex-wrap:wrap;overflow-x:visible;gap:5px}
+  .tab{padding:9px 14px;font-size:16px;min-height:44px;flex:1 1 auto;text-align:center}
+  .tab .lg{display:none}
+  .tab .sm{display:inline}
+
+  /* all eighteen holes on one screen: nine across, two rows */
+  .scroller > .hstrip{min-width:0}
+  .hstrip{grid-template-columns:repeat(9,1fr);min-width:0;gap:4px}
+  .hcell{min-height:48px;padding:6px 2px}
+  .hcell .n{font-size:17px}
+
+  /* the stepper row stacks its figures rather than squeezing them */
+  .pmain{gap:10px}
+  .pwho{flex:1 1 100%}
+  .step{width:56px;height:56px;font-size:28px}
+  .fig{min-width:52px}
+  .fig.raw{min-width:58px}
+  .fig.raw .v{font-size:30px}
+  .fig.end{min-width:64px;margin-left:0;text-align:center}
+
+  /* saving stays in reach however long the hole list runs */
+  .savebar{position:sticky;top:0;z-index:30;box-shadow:0 6px 16px -10px var(--shadow)}
+
+  .masthead{gap:10px;padding:12px 0 8px}
+  .masthead img{width:46px}
+  .mast-mid{flex:1 1 100%;order:2}
+  .mast-right{order:3;flex:1 1 100%;align-items:stretch;text-align:left}
+  .mast-actions{justify-content:flex-start}
+  .weekgrid{grid-template-columns:1fr;gap:14px}
+  .daycard{min-height:0}
+  .daystrip{flex-wrap:wrap}
+  .dayb{flex:1 1 auto;min-width:56px}
+  .rcards{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .rcard{min-height:56px;padding:9px 14px}
+  .rcard b{font-size:17px}
+  .cgrid{gap:20px}
+  .cside{max-width:none;align-self:auto}
+  .btabs{gap:20px}
+  .btab{font-size:17px}
+  .legend{text-align:left}
+}
+
+/* Every tappable thing clears 44px, and every control clears the 16px that
+   stops iOS zooming — a zoom is what leaves the page panned sideways. */
+@media (max-width:1024px){
+  input,select,textarea{font-size:16px}
+  .field.small,.fieldset label,.tt-in,.cardin,.cardsel,.nameedit,.fxtime,.fxtitle{font-size:16px}
+  /* a square cell plus a 44px floor makes the cell 44 WIDE too, which pushed
+     the nine-column strips past the viewport. Height floors, width flexes. */
+  .cell{min-height:44px;font-size:16px;aspect-ratio:auto}
+  .strip,.cstrip{grid-template-columns:repeat(9,minmax(0,1fr));max-width:none}
+  .cside{max-width:none}
+  .chip,.mchip,.pchip,.gchip,.tg{min-height:44px;padding:10px 14px;font-size:15px}
+  .cardin,.cardsel,.nameedit{min-height:44px}
+  .clearh,.rm,.setup-item .btn{min-height:44px}
+  .rule-item summary{padding:18px 0}
+  .row a,.lede a,.legend a,.titlerow a,.rule-body a,.sublede a{display:inline-flex;align-items:center;
+    min-height:44px;padding:0 2px}
+  .chip{gap:8px}
+  .chip button{min-width:40px;min-height:40px;display:inline-flex;align-items:center;justify-content:center;
+    margin:-8px -6px -8px 0;font-size:18px}
+  table.scard td,table.card td{padding-top:12px;padding-bottom:12px}
+}
+
+/* A container that still scrolls sideways says so, and snaps as you swipe. */
+.scroller,.tabs,.daystrip,.btabs{-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+.scroller{scroll-snap-type:x proximity}
+.scroller table{scroll-snap-align:start}

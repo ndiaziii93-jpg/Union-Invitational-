@@ -950,8 +950,9 @@ function scrSetup() {
 /* ---------------- chrome ---------------- */
 
 const NAV = [
-  ['today', 'Today'], ['boards', 'Leaderboards'], ['ryder', 'Ryder Cup'], ['calendar', 'Calendar'],
-  ['entry', 'Score Entry'], ['roster', 'Roster & Pairings'], ['rules', 'Games & Rules'], ['courses', 'Course Setup'], ['setup', 'Setup'],
+  ['today', 'Today', 'Today'], ['boards', 'Leaderboards', 'Boards'], ['ryder', 'Ryder Cup', 'Ryder'],
+  ['calendar', 'Calendar', 'Calendar'], ['entry', 'Score Entry', 'Scores'], ['roster', 'Roster & Pairings', 'Roster'],
+  ['rules', 'Games & Rules', 'Rules'], ['courses', 'Course Setup', 'Courses'], ['setup', 'Setup', 'Setup'],
 ];
 
 /** A re-render replaces the whole tree, which would blow away half-typed text
@@ -1011,8 +1012,9 @@ function render() {
     </header>
     <div class="rule-heavy"></div>
     <nav class="tabs nos" aria-label="Sections">
-      ${NAV.filter(([id]) => id !== 'setup' || canAdmin()).map(([id, label]) =>
-        `<button class="tab" data-act="go" data-a="${id}"${UI.screen === id ? ' aria-current="page"' : ''}>${esc(label)}</button>`).join('')}
+      ${NAV.filter(([id]) => id !== 'setup' || canAdmin()).map(([id, label, short]) =>
+        `<button class="tab" data-act="go" data-a="${id}"${UI.screen === id ? ' aria-current="page"' : ''}
+          aria-label="${esc(label)}"><span class="lg">${esc(label)}</span><span class="sm">${esc(short)}</span></button>`).join('')}
     </nav>
     ${body}
     <div class="statusbar">
