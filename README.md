@@ -63,9 +63,12 @@ not an attacker.
 ## Data provenance
 
 A course card is locked while it is verified: par, stroke index and both
-yardages read as plain figures and cannot be edited. Reopening it — and locking
-it again — asks for a scorer or master PIN once PINs are armed. The lock is
-enforced on the write, not just on the controls.
+yardages read as plain figures and cannot be edited. Reopening it asks for a
+scorer or master PIN once PINs are armed — one PIN, once. The card then locks
+itself again when that scorer leaves Course Setup or switches to the other
+card, and **Done — lock card** closes it on the spot; neither costs a second
+PIN. Verifying a card this device did not open still asks. The lock is enforced
+on the write, not just on the controls.
 
 Real and verified: both Cullinan Links scorecards (par, stroke index, White and Yellow
 metres, course rating and slope), all 36 hole diagrams, the roster, the trip calendar,

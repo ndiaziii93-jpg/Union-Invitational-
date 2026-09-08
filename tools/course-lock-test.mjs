@@ -51,9 +51,23 @@ const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' })
   await par1.selectOption('5'); await p.waitForTimeout(500);
   ok('par edit lands while open', await p.locator('.cardsel').first().inputValue(), '5');
 
+  ok('the button offers to close it', await p.locator('[data-act="verifyCourse"]').innerText(), 'Done — lock card');
   await p.locator('[data-act="verifyCourse"]').click(); await p.waitForTimeout(500);
   ok('verifying locks it again', await p.locator('.cardsel').count(), 0);
   ok('the edit survived the lock', (await p.locator('.scard tbody tr').first().locator('.cardval').first().innerText()), '5');
+
+  // leaving the screen closes a card left open
+  await p.locator('[data-act="verifyCourse"]').click(); await p.waitForTimeout(500);
+  ok('reopened again', await p.locator('.cardsel').count(), 18);
+  await p.locator('.tab', { hasText: 'Today' }).click(); await p.waitForTimeout(600);
+  await p.locator('.tab', { hasText: 'Course Setup' }).click(); await p.waitForTimeout(500);
+  ok('leaving the screen re-locked it', await p.locator('.cardsel').count(), 0);
+
+  // switching card closes the one left open
+  await p.locator('[data-act="verifyCourse"]').click(); await p.waitForTimeout(500);
+  await p.locator('.ctab', { hasText: 'Olympos' }).click(); await p.waitForTimeout(500);
+  await p.locator('.ctab', { hasText: 'Aspendos' }).click(); await p.waitForTimeout(500);
+  ok('switching card re-locked it', await p.locator('.cardsel').count(), 0);
   await p.close();
 }
 
@@ -86,11 +100,19 @@ const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' })
   await p.locator('[data-act="modalOk"]').click(); await p.waitForTimeout(500);
   ok('a real PIN reopens it', await p.locator('.cardsel').count(), 18);
 
+  // closing a card THIS device opened costs no second PIN
+  await p.locator('[data-act="verifyCourse"]').click(); await p.waitForTimeout(400);
+  ok('closing it again asks for nothing', await p.locator('#pinField').count(), 0);
+  ok('and the card is locked', await p.locator('.cardsel').count(), 0);
+
+  // and leaving the screen closes it on its own, still with one PIN spent
   await p.locator('[data-act="verifyCourse"]').click(); await p.waitForTimeout(350);
-  ok('locking asks for a PIN too', await p.locator('#pinField').count(), 1);
-  await p.locator('#pinField').fill('1000');                      // master
+  await p.locator('#pinField').fill('2000');
   await p.locator('[data-act="modalOk"]').click(); await p.waitForTimeout(500);
-  ok('the master PIN locks it', await p.locator('.cardsel').count(), 0);
+  ok('one PIN reopened it', await p.locator('.cardsel').count(), 18);
+  await p.locator('.tab', { hasText: 'Today' }).click(); await p.waitForTimeout(600);
+  await p.locator('.tab', { hasText: 'Course Setup' }).click(); await p.waitForTimeout(500);
+  ok('walking away re-locked it, no second PIN', await p.locator('.cardsel').count(), 0);
   await p.close();
 }
 

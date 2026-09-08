@@ -1536,6 +1536,7 @@ const UI = {
   toast: '',
   draft: null,
   dragging: null,
+  reopened: {},   // course cards this device unlocked; they re-lock on the way out
   setupSeen: false,
   entrySeen: false,
 };
@@ -2430,11 +2431,14 @@ function scrCourses() {
   <div class="cfoot">
     <span class="num">Par ${totalPar}</span>
     ${canEdit()
-      ? `<button class="btn${c.verified ? ' ghost' : ''}" data-act="verifyCourse" data-a="${c.key}">${c.verified ? 'Verified — tap to reopen' : 'Not verified — tap to verify'}</button>`
+      ? `<button class="btn${c.verified ? ' ghost' : ''}" data-act="verifyCourse" data-a="${c.key}">${
+          c.verified ? 'Verified — tap to reopen' : UI.reopened[c.key] ? 'Done — lock card' : 'Not verified — tap to verify'}</button>`
       : `<span class="pill">${c.verified ? 'Verified' : 'Not verified'}</span>`}
     <span class="cfoot-note">${c.verified
       ? `Par, stroke index and yardages are locked.${D.PINS_ENABLED ? ' Reopening asks for a scorer or master PIN.' : ''}`
-      : `The card is open for correction.${D.PINS_ENABLED ? ' Verifying asks for a scorer or master PIN.' : ''} Nets on ${esc(c.name)} are provisional until it is verified.`}</span>
+      : UI.reopened[c.key]
+        ? `Open for correction. It locks itself when you leave this screen — no second PIN.`
+        : `The card is open for correction.${D.PINS_ENABLED ? ' Verifying asks for a scorer or master PIN.' : ''} Nets on ${esc(c.name)} are provisional until it is verified.`}</span>
   </div>`;
 }
 
@@ -2675,6 +2679,15 @@ function submitPin() {
   render();
 }
 
+/** Re-lock any card this device reopened. Called on the way out of Course
+ *  Setup and when switching cards, so a correction costs one PIN, not two. */
+function relockCards() {
+  const keys = Object.keys(UI.reopened);
+  if (!keys.length) return;
+  store.writeConfig(cf => { keys.forEach(k => { if (cf.courses[k]) cf.courses[k].verified = true; }); });
+  UI.reopened = {};
+}
+
 /** Put a golfer in one pair, or nowhere. Used by the Move to menu and by a drop. */
 function movePlayer(pid, target) {
   store.writeConfig(c => {
@@ -2698,6 +2711,7 @@ function onClick(e) {
   switch (act) {
     case 'go':
       guardDraft(() => {
+        if (UI.screen === 'courses' && a !== 'courses') relockCards();
         UI.screen = a; UI.modal = null; window.scrollTo(0, 0);
         if (a === 'entry' && !UI.entrySeen) {
           UI.entrySeen = true;
@@ -2752,17 +2766,27 @@ function onClick(e) {
       if (!canEdit()) return;
       store.writeConfig(c => { const p = c.people.find(x => x.id === a); if (p) p.location = p.location === b ? null : b; });
       return;
-    case 'courseTab': UI.courseTab = a; UI.courseHole = 0; break;
+    case 'courseTab':
+      if (a !== UI.courseTab) relockCards();
+      UI.courseTab = a; UI.courseHole = 0;
+      break;
     case 'courseHole': UI.courseHole = +a; break;
     case 'verifyCourse': {
       if (!canEdit()) return;
       const cur = E.courseByKey(T, a);
-      askPin(cur.verified ? 'Reopen the ' + cur.name + ' card' : 'Verify the ' + cur.name + ' card',
-        cur.verified
-          ? 'Reopening unlocks par, stroke index and the yardages so the card can be corrected. Enter your PIN.'
-          : 'Verifying locks the card so nothing can be changed by accident. Enter your PIN.',
-        cur.verified ? 'Reopen card' : 'Verify card',
-        () => { store.writeConfig(cf => { cf.courses[a].verified = !cf.courses[a].verified; }); render(); });
+      const setVerified = v => { store.writeConfig(cf => { cf.courses[a].verified = v; }); };
+      if (cur.verified) {
+        askPin('Reopen the ' + cur.name + ' card',
+          'Reopening unlocks par, stroke index and the yardages so the card can be corrected. It locks itself again when you leave.',
+          'Reopen card',
+          () => { UI.reopened[a] = true; setVerified(false); render(); });
+      } else if (UI.reopened[a]) {
+        setVerified(true); delete UI.reopened[a];   // this device opened it — no second PIN
+      } else {
+        askPin('Verify the ' + cur.name + ' card',
+          'Verifying locks the card so nothing can be changed by accident.',
+          'Verify card', () => { setVerified(true); render(); });
+      }
       return;
     }
     case 'revealPins': UI.revealPins = !UI.revealPins; break;
