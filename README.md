@@ -62,6 +62,11 @@ not an attacker.
 
 ## Data provenance
 
+A course card is locked while it is verified: par, stroke index and both
+yardages read as plain figures and cannot be edited. Reopening it — and locking
+it again — asks for a scorer or master PIN once PINs are armed. The lock is
+enforced on the write, not just on the controls.
+
 Real and verified: both Cullinan Links scorecards (par, stroke index, White and Yellow
 metres, course rating and slope), all 36 hole diagrams, the roster, the trip calendar,
 the golf days and the first tee times.
@@ -90,6 +95,7 @@ docs/              the original design canvas this was built from
 ```sh
 node tools/db-race-test.mjs    # shared-store writes survive a hostile database
 node tools/mobile-audit.mjs    # no screen scrolls sideways; every tap target clears 44px
+node tools/course-lock-test.mjs # a verified course card locks, and only a PIN moves that lock
 ```
 
 The mobile audit loads the page through a wrapper carrying the same head the

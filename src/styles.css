@@ -633,3 +633,4 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
 .tbtn:hover:not(:disabled){border-color:var(--ink);color:var(--ink)}
 .tbtn.on{background:var(--ink);border-color:var(--ink);color:var(--paper);font-weight:600}
 .tbtn:disabled{opacity:.55}
+.cfoot-note{font-size:14px;color:var(--turf);flex:1 1 240px;min-width:0}

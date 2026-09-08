@@ -637,6 +637,7 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
 .tbtn:hover:not(:disabled){border-color:var(--ink);color:var(--ink)}
 .tbtn.on{background:var(--ink);border-color:var(--ink);color:var(--paper);font-weight:600}
 .tbtn:disabled{opacity:.55}
+.cfoot-note{font-size:14px;color:var(--turf);flex:1 1 240px;min-width:0}
 
 </style>
 <div id="app"></div>
@@ -2369,7 +2370,7 @@ function scrCourses() {
   const h = UI.courseHole;
   const hole = c.holes[h];
   const totalPar = c.holes.reduce((a, x) => a + x.par, 0);
-  const open = canEdit(); // the card stays editable; Verified is a status the scorers set
+  const open = canEdit() && !c.verified; // a verified card is locked until it is reopened
   const photo = IMG['course_' + c.key];
   const alt = c.key === 'aspendos'
     ? 'Aerial view of Cullinan Links along the Mediterranean shore'
@@ -2429,8 +2430,11 @@ function scrCourses() {
   <div class="cfoot">
     <span class="num">Par ${totalPar}</span>
     ${canEdit()
-      ? `<button class="btn ghost" data-act="verifyCourse" data-a="${c.key}">${c.verified ? 'Verified — tap to reopen' : 'Not verified — tap to verify'}</button>`
+      ? `<button class="btn${c.verified ? ' ghost' : ''}" data-act="verifyCourse" data-a="${c.key}">${c.verified ? 'Verified — tap to reopen' : 'Not verified — tap to verify'}</button>`
       : `<span class="pill">${c.verified ? 'Verified' : 'Not verified'}</span>`}
+    <span class="cfoot-note">${c.verified
+      ? `Par, stroke index and yardages are locked.${D.PINS_ENABLED ? ' Reopening asks for a scorer or master PIN.' : ''}`
+      : `The card is open for correction.${D.PINS_ENABLED ? ' Verifying asks for a scorer or master PIN.' : ''} Nets on ${esc(c.name)} are provisional until it is verified.`}</span>
   </div>`;
 }
 
@@ -2750,10 +2754,17 @@ function onClick(e) {
       return;
     case 'courseTab': UI.courseTab = a; UI.courseHole = 0; break;
     case 'courseHole': UI.courseHole = +a; break;
-    case 'verifyCourse':
+    case 'verifyCourse': {
       if (!canEdit()) return;
-      store.writeConfig(cf => { cf.courses[a].verified = !cf.courses[a].verified; });
+      const cur = E.courseByKey(T, a);
+      askPin(cur.verified ? 'Reopen the ' + cur.name + ' card' : 'Verify the ' + cur.name + ' card',
+        cur.verified
+          ? 'Reopening unlocks par, stroke index and the yardages so the card can be corrected. Enter your PIN.'
+          : 'Verifying locks the card so nothing can be changed by accident. Enter your PIN.',
+        cur.verified ? 'Reopen card' : 'Verify card',
+        () => { store.writeConfig(cf => { cf.courses[a].verified = !cf.courses[a].verified; }); render(); });
       return;
+    }
     case 'revealPins': UI.revealPins = !UI.revealPins; break;
     case 'setupOpen': UI.modal = { kind: 'setup', scope: a || 'all' }; break;
     case 'setupGo': UI.modal = null; UI.screen = a; window.scrollTo(0, 0); break;
@@ -2916,6 +2927,7 @@ function onChange(e) {
     store.writeConfig(c => { c.pins[a] = v; c.pinsChanged = true; });
   } else if (act === 'setHole') {
     if (!canEdit()) return;
+    if (E.courseByKey(T, a).verified) { render(); return; } // locked: refuse the write, not just the control
     const { c: field } = el.dataset;
     const v = parseInt(el.value, 10);
     const lim = { par: [3, 5], si: [1, 18], mW: [40, 700], mY: [40, 700] }[field];
