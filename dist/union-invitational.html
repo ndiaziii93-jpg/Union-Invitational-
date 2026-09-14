@@ -1321,14 +1321,10 @@ function emptyState() {
   return { config: { ...cfg, people: [], pairs: [] }, scores: {}, bbb: {} };
 }
 
-/** The fields that live in config/tournament. People and pairs are kept as one
- *  document each, so removing somebody deletes a document rather than rewriting
- *  a list — a view holding a stale list can no longer bring them back. */
-function configOnly(cfg) {
-  const out = { ...cfg };
-  delete out.people; delete out.pairs;
-  return out;
-}
+/** Everything written to config/tournament. The roster is ALSO kept here as a
+ *  mirror — never read while the per-person documents exist, but never dropped
+ *  either, so no migration or bad load can lose it. */
+function configOnly(cfg) { return { ...cfg }; }
 const byOrder = (a, b) => (a.order || 0) - (b.order || 0);
 
 /* A store may drop keys whose value is null, so put them back explicitly —
@@ -1369,6 +1365,8 @@ function createStore(onChange) {
   let ready = false;
   let mode = 'local';           // 'db' | 'local'
   let peopleLoaded = false, pairsLoaded = false, splitDone = false;
+  let rosterInDocs = false;     // the config says the roster lives in its own documents
+  let sawConfig = false;
   let legacy = null;            // a roster still stored as lists inside the config
   let settled = false;          // the first load has resolved; until then, no writes
   let sawData = false;          // we have seen a real stored config this page load
@@ -1409,22 +1407,28 @@ function createStore(onChange) {
 
     if (!db) { mode = 'local'; status = 'local'; loadLocal(); ready = true; settled = true; notify(); return; }
     mode = 'db';
+    // eslint-disable-next-line no-var
+    var settle;
 
     /* The store is NEVER seeded from a single read. A read that wrongly reports
        the document absent would otherwise write the factory roster over a real
        tournament — which is exactly what was happening. Seeding needs a
        subscription AND a confirming read to agree the store is empty, and once
        any data has been seen this page load it can never seed at all. */
+    settle = () => { settled = sawConfig && (!rosterInDocs || peopleLoaded); };
+
     const takeConfig = data => {
-      sawData = true; settled = true;
-      if (!fresher('config', data)) return;
+      sawData = true; sawConfig = true;
+      if (!fresher('config', data)) { settle(); return; }
       rev.config = data.rev || 0;
-      if (Array.isArray(data.people) && data.people.length) {
-        legacy = { people: data.people, pairs: Array.isArray(data.pairs) ? data.pairs : [] };
+      rosterInDocs = data.rosterInDocs === true;
+      const fromDocs = { people: T.config.people, pairs: T.config.pairs };
+      T.config = migrate(data);                       // carries the config's mirror
+      if (rosterInDocs && peopleLoaded) { T.config.people = fromDocs.people; T.config.pairs = fromDocs.pairs; }
+      else if (Array.isArray(data.people) && data.people.length) {
+        legacy = { people: T.config.people, pairs: T.config.pairs };
       }
-      const people = T.config.people, pairs = T.config.pairs;   // owned by their own documents
-      T.config = migrate(data);
-      T.config.people = people; T.config.pairs = pairs;
+      settle();
       splitOutRoster();
     };
 
@@ -1435,9 +1439,11 @@ function createStore(onChange) {
         const check = await db.doc('config/tournament').get();   // a second opinion
         if (check.exists && check.data) { takeConfig(check.data); notify(); return; }
         const factory = defaultConfig();
-        await db.doc('config/tournament').set({ ...configOnly(factory), rev: 0 });
         await writeRoster(factory.people, factory.pairs);
-        settled = true; notify();
+        await db.doc('config/tournament').set({ ...configOnly(factory), rosterInDocs: true, rev: 0 });
+        rosterInDocs = true; peopleLoaded = pairsLoaded = true;
+        T.config = factory;
+        sawConfig = true; settled = true; notify();
       } catch (e) {
         // Could not confirm. Stay read-only rather than risk writing over data.
         status = 'error'; notify();
@@ -1455,8 +1461,9 @@ function createStore(onChange) {
     ));
     unsubs.push(db.collection('people').onSnapshot(
       s => {
-        const rows = s.docs.map(d => d.data).filter(Boolean);
-        if (rows.length) { peopleLoaded = true; T.config.people = rows.map(normPerson).sort(byOrder); }
+        const rows = takeRows('people', s.docs, T.config.people);
+        if (rows.length || rosterInDocs) { peopleLoaded = true; T.config.people = rows.map(normPerson).sort(byOrder); }
+        settle();
         notify();
         splitOutRoster();
       },
@@ -1464,8 +1471,8 @@ function createStore(onChange) {
     ));
     unsubs.push(db.collection('pairs').onSnapshot(
       s => {
-        const rows = s.docs.map(d => d.data).filter(Boolean);
-        if (rows.length) { pairsLoaded = true; T.config.pairs = rows.map(normPair).sort(byOrder); }
+        const rows = takeRows('pairs', s.docs, T.config.pairs);
+        if (rows.length || rosterInDocs) { pairsLoaded = true; T.config.pairs = rows.map(normPair).sort(byOrder); }
         notify();
       },
       () => { status = 'error'; notify(); }
@@ -1505,8 +1512,24 @@ function createStore(onChange) {
       if (have.docs.length) { legacy = null; return; }   // somebody already did it
       await writeRoster(legacy.people, legacy.pairs);
       legacy = null;
-      await writeConfig(() => {});          // rewrites config without the lists
+      peopleLoaded = pairsLoaded = true;
+      rosterInDocs = true;
+      await writeConfig(c => { c.rosterInDocs = true; });   // the mirror stays; the flag says docs win
     } catch (e) { splitDone = false; status = 'error'; notify(); }
+  }
+
+  /** Rows from a roster collection, keeping ours wherever ours is newer — the
+   *  same guard the score documents use, so a stale echo cannot undo a tap. */
+  function takeRows(coll, docs, local) {
+    const out = [];
+    for (const d of docs) {
+      const path = coll + '/' + d.id;
+      const mine = local.find(x => x.id === d.id);
+      if (mine && !fresher(path, d.data)) { out.push(mine); continue; }
+      rev[path] = (d.data && d.data.rev) || 0;
+      if (d.data) out.push(d.data);
+    }
+    return out;
   }
 
   /** Take the server's copy of each document unless ours is newer, and keep a
@@ -1532,27 +1555,30 @@ function createStore(onChange) {
     // a round added after the store was seeded still needs its slot
     out.rounds = { ...base.rounds, ...(cfg.rounds || {}) };
     out.courses = { ...base.courses, ...(cfg.courses || {}) };
-    // The roster lives in its own documents. Never let a config without one
-    // fall back to the factory roster — that is what resurrected deleted people.
-    delete out.people; delete out.pairs;
+    // Keep whatever roster this config carries — but never fall back to the
+    // factory roster, which is what used to resurrect deleted people.
+    out.people = Array.isArray(cfg.people) ? cfg.people.map(normPerson) : [];
+    out.pairs = Array.isArray(cfg.pairs) ? cfg.pairs.map(normPair) : [];
     return out;
   }
 
   /* --- writes --- */
 
-  async function writeConfig(mutate) {
-    if (!settled) { saveState = 'error'; notify(); return false; }  // still loading: refuse
+  async function writeConfig(mutate, silent) {
+    if (!settled) { if (!silent) { saveState = 'error'; notify(); } return false; }
     mutate(T.config);
     bump('config', T.config);
-    saveState = 'saving';
-    notify();
-    if (mode === 'local') { saveLocal(); saveState = 'saved'; lastSavedAt = Date.now(); notify(); return true; }
+    if (!silent) { saveState = 'saving'; notify(); }
+    if (mode === 'local') { saveLocal(); if (!silent) { saveState = 'saved'; lastSavedAt = Date.now(); } notify(); return true; }
     try {
       await db.doc('config/tournament').set(configOnly(T.config));
-      saveState = 'saved'; lastSavedAt = Date.now(); notify();
+      if (!silent) { saveState = 'saved'; lastSavedAt = Date.now(); }
+      notify();
       return true;
     } catch (e) {
-      status = 'error'; saveState = 'error'; notify();
+      status = 'error';
+      if (!silent) saveState = 'error';
+      notify();
       return false;
     }
   }
@@ -1562,6 +1588,15 @@ function createStore(onChange) {
      longer resurrect somebody by rewriting the whole list. */
 
   function localOnly() { saveLocal(); saveState = 'saved'; lastSavedAt = Date.now(); notify(); return true; }
+
+  /* Keep the config's mirror of the roster current. It is never read while the
+     per-person documents exist — it is there so the roster cannot be lost. */
+  let mirrorTimer = null;
+  function refreshMirror() {
+    if (mode !== 'db') return;
+    clearTimeout(mirrorTimer);
+    mirrorTimer = setTimeout(() => { writeConfig(() => {}, true); }, 1200);
+  }
 
   async function writeDoc(coll, id, obj) {
     const path = coll + '/' + id;
@@ -1589,7 +1624,9 @@ function createStore(onChange) {
     const p = { ...T.config.people[i] };
     mutate(p);
     T.config.people[i] = p;
-    return writeDoc('people', id, p);
+    const okd = await writeDoc('people', id, p);
+    refreshMirror();
+    return okd;
   }
 
   /** Change every person — used to clear the squads. */
@@ -1599,6 +1636,7 @@ function createStore(onChange) {
     T.config.people = list;
     notify();
     for (const p of list) await writeDoc('people', p.id, p);
+    refreshMirror();
     return true;
   }
 
@@ -1606,7 +1644,9 @@ function createStore(onChange) {
     if (!settled) return false;
     const p = { ...person, order: T.config.people.length };
     T.config.people = T.config.people.concat([p]);
-    return writeDoc('people', p.id, p);
+    const okd = await writeDoc('people', p.id, p);
+    refreshMirror();
+    return okd;
   }
 
   /** Remove a person: their document goes, and they leave every pair and tee. */
@@ -1623,6 +1663,7 @@ function createStore(onChange) {
       await writeConfig(c => { Object.values(c.rounds).forEach(r => r.tees.forEach(t => {
         t.players = t.players.filter(m => m !== id); })); });
     }
+    refreshMirror();          // the mirror must forget them too
     return true;
   }
 
@@ -1633,21 +1674,27 @@ function createStore(onChange) {
     const p = { ...T.config.pairs[i], members: [...T.config.pairs[i].members] };
     mutate(p);
     T.config.pairs[i] = p;
-    return writeDoc('pairs', id, p);
+    const okd = await writeDoc('pairs', id, p);
+    refreshMirror();
+    return okd;
   }
 
   async function addPair(pair) {
     if (!settled) return false;
     const p = { ...pair, order: T.config.pairs.length };
     T.config.pairs = T.config.pairs.concat([p]);
-    return writeDoc('pairs', p.id, p);
+    const okd = await writeDoc('pairs', p.id, p);
+    refreshMirror();
+    return okd;
   }
 
   async function removePair(id) {
     if (!settled) return false;
     T.config.pairs = T.config.pairs.filter(p => p.id !== id);
     notify();
-    return dropDoc('pairs', id);
+    const okd = await dropDoc('pairs', id);
+    refreshMirror();
+    return okd;
   }
 
   /** Move a golfer into one pair, or out of all of them. Writes only the pairs
@@ -1664,6 +1711,7 @@ function createStore(onChange) {
     for (let i = 0; i < T.config.pairs.length; i++) {
       if (T.config.pairs[i].members.join(',') !== before[i]) await writeDoc('pairs', T.config.pairs[i].id, T.config.pairs[i]);
     }
+    refreshMirror();
     return true;
   }
 
@@ -1678,6 +1726,7 @@ function createStore(onChange) {
     T.config.pairs = list.map((p, k) => ({ ...p, order: k }));
     notify();
     for (const p of T.config.pairs) await writeDoc('pairs', p.id, p);
+    refreshMirror();
     return true;
   }
 

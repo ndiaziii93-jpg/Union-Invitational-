@@ -47,11 +47,16 @@ rewriting a list, so a view holding a stale roster cannot bring them back — it
 would have to write that person's own document, which nothing does unless you
 edit that person. Scores work the same way, one document per player per round.
 
+The config document also keeps a **mirror** of the roster. It is never read
+while the per-person documents exist — a `rosterInDocs` flag says which is
+authoritative — but it is never dropped either, so no migration or bad load can
+lose the roster. Roster edits refresh the mirror in the background.
+
 The factory roster in `src/data.js` is written **only** when a store is first
 created. It is never a fallback: a config without a roster leaves the roster
 alone rather than filling it from the factory list. A tournament still holding
-the old roster-inside-config shape is split into documents once, and only when
-the `people` collection is genuinely empty.
+the roster only in its config is copied into documents on the next load, and
+only when the `people` collection is genuinely empty.
 
 ## How the shared book loads
 

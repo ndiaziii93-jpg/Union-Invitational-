@@ -112,6 +112,25 @@ for (const [label, lie] of [['a healthy store', false], ['a store whose first re
   await p.close();
 }
 
+// the exact state the live tournament is in: roster in the config, no documents
+{
+  console.log('\nrecovering a tournament whose roster is still in the config');
+  const p = await (await b.newContext({ viewport: { width: 1300, height: 900 } })).newPage();
+  await p.evaluate(() => {}).catch(() => {});
+  await p.addInitScript(MOCK, { stored: STORED, lieOnFirstRead: false, empty: false, factoryPeople: FACTORY_PEOPLE });
+  await p.goto('file://' + W); await p.waitForTimeout(3000);
+  await p.locator('[data-act="modalCancel"]').click().catch(() => {});
+  await p.locator('.tab', { hasText: 'Roster' }).click(); await p.waitForTimeout(600);
+  ok('everybody is on screen', await p.locator('.rtable tbody tr').count(), STORED.people.length);
+  ok('and now has their own document',
+    await p.evaluate(() => Object.keys(window.__mockDocs).filter(k => k.startsWith('people/')).length), STORED.people.length);
+  ok('the config keeps a copy as a backup',
+    await p.evaluate(() => (window.__mockDocs['config/tournament'].people || []).length), STORED.people.length);
+  ok('and is marked as living in documents',
+    await p.evaluate(() => window.__mockDocs['config/tournament'].rosterInDocs), true);
+  await p.close();
+}
+
 // the roster moves into its own documents, and a stale whole-list write cannot
 // resurrect anybody once it has
 {
@@ -123,8 +142,8 @@ for (const [label, lie] of [['a healthy store', false], ['a store whose first re
 
   ok('each person now has their own document',
     await p.evaluate(() => Object.keys(window.__mockDocs).filter(k => k.startsWith('people/')).length), STORED.people.length);
-  ok('config no longer carries the list',
-    await p.evaluate(() => Array.isArray(window.__mockDocs['config/tournament'].people)), false);
+  ok('the config keeps its backup copy',
+    await p.evaluate(() => (window.__mockDocs['config/tournament'].people || []).length), STORED.people.length);
 
   // a view running the old code writes the whole original roster back into config
   await p.evaluate(() => {
