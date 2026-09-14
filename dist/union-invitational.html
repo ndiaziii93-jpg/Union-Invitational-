@@ -643,6 +643,9 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
 .saverow.bad{border-left:3px solid var(--flag);background:var(--sunk)}
 .saverow .sm{font-size:15px;color:var(--turf)}
 .saverow .tick{color:var(--green);font-weight:700;margin-right:6px}
+.loadbar{margin-top:10px;padding:11px 15px;border:1px solid var(--rule);border-left:3px solid var(--gold);
+  background:var(--page);border-radius:3px;font-size:15px;color:var(--turf)}
+.loadbar.bad{border-left-color:var(--flag);color:var(--ink)}
 
 </style>
 <div id="app"></div>
@@ -1339,7 +1342,9 @@ function createStore(onChange) {
   let unsubs = [];
   let ready = false;
   let mode = 'local';           // 'db' | 'local'
-  let configWritten = false;
+  let settled = false;          // the first load has resolved; until then, no writes
+  let sawData = false;          // we have seen a real stored config this page load
+  let seeding = false;
   let saveTimer = null;
   let status = 'connecting';    // connecting | live | local | error
   let saveState = 'idle';       // idle | saving | saved | error — the last write's fate
@@ -1351,7 +1356,7 @@ function createStore(onChange) {
   const bump = (path, doc) => { doc.rev = Math.max(doc.rev || 0, rev[path] || 0) + 1; rev[path] = doc.rev; };
   const fresher = (path, doc) => ((doc && doc.rev) || 0) >= (rev[path] || 0);
 
-  const notify = () => onChange(T, { ready, mode, status, saveState, lastSavedAt });
+  const notify = () => onChange(T, { ready, mode, status, saveState, lastSavedAt, settled });
 
   function loadLocal() {
     try {
@@ -1373,22 +1378,39 @@ function createStore(onChange) {
     try { db = window.claude && window.claude.use ? await window.claude.use('db') : null; }
     catch (e) { db = null; }
 
-    if (!db) { mode = 'local'; status = 'local'; loadLocal(); ready = true; notify(); return; }
+    if (!db) { mode = 'local'; status = 'local'; loadLocal(); ready = true; settled = true; notify(); return; }
     mode = 'db';
 
-    try {
-      const snap = await db.doc('config/tournament').get();
-      if (!snap.exists) { await db.doc('config/tournament').set(T.config); configWritten = true; }
-    } catch (e) { /* another viewer may have created it in the same beat */ }
+    /* The store is NEVER seeded from a single read. A read that wrongly reports
+       the document absent would otherwise write the factory roster over a real
+       tournament — which is exactly what was happening. Seeding needs a
+       subscription AND a confirming read to agree the store is empty, and once
+       any data has been seen this page load it can never seed at all. */
+    const takeConfig = data => {
+      sawData = true; settled = true;
+      if (fresher('config', data)) { rev.config = data.rev || 0; T.config = migrate(data); }
+    };
+
+    async function seedIfTrulyEmpty() {
+      if (sawData || settled || seeding) return;
+      seeding = true;
+      try {
+        const check = await db.doc('config/tournament').get();   // a second opinion
+        if (check.exists && check.data) { takeConfig(check.data); notify(); return; }
+        await db.doc('config/tournament').set({ ...defaultConfig(), rev: 0 });
+        settled = true; notify();
+      } catch (e) {
+        // Could not confirm. Stay read-only rather than risk writing over data.
+        status = 'error'; notify();
+      } finally { seeding = false; }
+    }
 
     unsubs.push(db.doc('config/tournament').onSnapshot(
       s => {
-        if (!s.exists || !s.data) return;
         ready = true; status = 'live';
-        if (!fresher('config', s.data)) { notify(); return; }
-        rev.config = s.data.rev || 0;
-        T.config = migrate(s.data);
+        if (s.exists && s.data) { takeConfig(s.data); notify(); return; }
         notify();
+        seedIfTrulyEmpty();
       },
       () => { status = 'error'; notify(); }
     ));
@@ -1445,6 +1467,7 @@ function createStore(onChange) {
   /* --- writes --- */
 
   async function writeConfig(mutate) {
+    if (!settled) { saveState = 'error'; notify(); return false; }  // still loading: refuse
     mutate(T.config);
     bump('config', T.config);
     saveState = 'saving';
@@ -1464,6 +1487,7 @@ function createStore(onChange) {
   async function resave() { return writeConfig(() => {}); }
 
   async function writeCard(roundId, pid, mutate) {
+    if (!settled) return false;
     const key = roundId + '__' + pid;
     const prev = T.scores[key];
     const c = prev
@@ -1479,6 +1503,7 @@ function createStore(onChange) {
   }
 
   async function writeBbb(roundId, mutate) {
+    if (!settled) return false;
     const b = T.bbb[roundId] ? { holes: T.bbb[roundId].holes.map(h => ({ ...h })) } : blankBbb();
     mutate(b);
     bump('bbb/' + roundId, b);
@@ -1490,6 +1515,7 @@ function createStore(onChange) {
   }
 
   async function resetAll() {
+    if (!settled) return;
     const fresh = emptyState();
     T.config = fresh.config; T.scores = {}; T.bbb = {};
     for (const k of Object.keys(rev)) delete rev[k];
@@ -1507,6 +1533,7 @@ function createStore(onChange) {
 
   return { T, connect, writeConfig, writeCard, writeBbb, resetAll, resave,
            get mode() { return mode; }, get status() { return status; }, get ready() { return ready; },
+           get settled() { return settled; },
            destroy() { unsubs.forEach(u => { try { u(); } catch (e) {} }); } };
 }
 
@@ -1532,7 +1559,7 @@ const cls = n => n == null ? '' : n < 0 ? 'under' : n > 0 ? 'over' : 'level';
 
 let store = null;
 let T = S.emptyState();
-let meta = { ready: false, mode: 'local', status: 'connecting' };
+let meta = { ready: false, mode: 'local', status: 'connecting', settled: false };
 let now = E.nowLocal();
 
 const UI = {
@@ -1562,8 +1589,12 @@ const ROLE_KEY = 'union-invitational:role';
 function saveRole(role) { try { localStorage.setItem(ROLE_KEY, role); } catch (e) { /* storage blocked */ } }
 function loadRole() { try { return localStorage.getItem(ROLE_KEY); } catch (e) { return null; } }
 
-const canEdit = () => !D.PINS_ENABLED || S.ROLES[UI.role].canEdit;
-const canAdmin = () => !D.PINS_ENABLED || S.ROLES[UI.role].canAdmin;
+/* Nothing is editable until the shared book has loaded. Before that the page is
+   showing factory defaults, and an edit would write those over the real
+   tournament. */
+const loaded = () => meta.settled !== false;
+const canEdit = () => loaded() && (!D.PINS_ENABLED || S.ROLES[UI.role].canEdit);
+const canAdmin = () => loaded() && (!D.PINS_ENABLED || S.ROLES[UI.role].canAdmin);
 
 /* ---------------- flags ---------------- */
 
@@ -2574,6 +2605,10 @@ function render() {
       </div>
     </header>
     <div class="rule-heavy"></div>
+    ${loaded() ? '' : `<div class="loadbar${meta.status === 'error' ? ' bad' : ''}">
+      ${meta.status === 'error'
+        ? 'Cannot read the shared book. Nothing can be edited until it loads, so nothing gets overwritten. Check your connection and reload.'
+        : 'Opening the book… everything is read-only until the saved tournament arrives.'}</div>`}
     <nav class="tabs nos" aria-label="Sections">
       ${NAV.filter(([id]) => id !== 'setup' || canAdmin()).map(([id, label, short]) =>
         `<button class="tab" data-act="go" data-a="${id}"${UI.screen === id ? ' aria-current="page"' : ''}

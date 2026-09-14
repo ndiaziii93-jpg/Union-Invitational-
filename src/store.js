@@ -81,7 +81,9 @@ export function createStore(onChange) {
   let unsubs = [];
   let ready = false;
   let mode = 'local';           // 'db' | 'local'
-  let configWritten = false;
+  let settled = false;          // the first load has resolved; until then, no writes
+  let sawData = false;          // we have seen a real stored config this page load
+  let seeding = false;
   let saveTimer = null;
   let status = 'connecting';    // connecting | live | local | error
   let saveState = 'idle';       // idle | saving | saved | error — the last write's fate
@@ -93,7 +95,7 @@ export function createStore(onChange) {
   const bump = (path, doc) => { doc.rev = Math.max(doc.rev || 0, rev[path] || 0) + 1; rev[path] = doc.rev; };
   const fresher = (path, doc) => ((doc && doc.rev) || 0) >= (rev[path] || 0);
 
-  const notify = () => onChange(T, { ready, mode, status, saveState, lastSavedAt });
+  const notify = () => onChange(T, { ready, mode, status, saveState, lastSavedAt, settled });
 
   function loadLocal() {
     try {
@@ -115,22 +117,39 @@ export function createStore(onChange) {
     try { db = window.claude && window.claude.use ? await window.claude.use('db') : null; }
     catch (e) { db = null; }
 
-    if (!db) { mode = 'local'; status = 'local'; loadLocal(); ready = true; notify(); return; }
+    if (!db) { mode = 'local'; status = 'local'; loadLocal(); ready = true; settled = true; notify(); return; }
     mode = 'db';
 
-    try {
-      const snap = await db.doc('config/tournament').get();
-      if (!snap.exists) { await db.doc('config/tournament').set(T.config); configWritten = true; }
-    } catch (e) { /* another viewer may have created it in the same beat */ }
+    /* The store is NEVER seeded from a single read. A read that wrongly reports
+       the document absent would otherwise write the factory roster over a real
+       tournament — which is exactly what was happening. Seeding needs a
+       subscription AND a confirming read to agree the store is empty, and once
+       any data has been seen this page load it can never seed at all. */
+    const takeConfig = data => {
+      sawData = true; settled = true;
+      if (fresher('config', data)) { rev.config = data.rev || 0; T.config = migrate(data); }
+    };
+
+    async function seedIfTrulyEmpty() {
+      if (sawData || settled || seeding) return;
+      seeding = true;
+      try {
+        const check = await db.doc('config/tournament').get();   // a second opinion
+        if (check.exists && check.data) { takeConfig(check.data); notify(); return; }
+        await db.doc('config/tournament').set({ ...defaultConfig(), rev: 0 });
+        settled = true; notify();
+      } catch (e) {
+        // Could not confirm. Stay read-only rather than risk writing over data.
+        status = 'error'; notify();
+      } finally { seeding = false; }
+    }
 
     unsubs.push(db.doc('config/tournament').onSnapshot(
       s => {
-        if (!s.exists || !s.data) return;
         ready = true; status = 'live';
-        if (!fresher('config', s.data)) { notify(); return; }
-        rev.config = s.data.rev || 0;
-        T.config = migrate(s.data);
+        if (s.exists && s.data) { takeConfig(s.data); notify(); return; }
         notify();
+        seedIfTrulyEmpty();
       },
       () => { status = 'error'; notify(); }
     ));
@@ -187,6 +206,7 @@ export function createStore(onChange) {
   /* --- writes --- */
 
   async function writeConfig(mutate) {
+    if (!settled) { saveState = 'error'; notify(); return false; }  // still loading: refuse
     mutate(T.config);
     bump('config', T.config);
     saveState = 'saving';
@@ -206,6 +226,7 @@ export function createStore(onChange) {
   async function resave() { return writeConfig(() => {}); }
 
   async function writeCard(roundId, pid, mutate) {
+    if (!settled) return false;
     const key = roundId + '__' + pid;
     const prev = T.scores[key];
     const c = prev
@@ -221,6 +242,7 @@ export function createStore(onChange) {
   }
 
   async function writeBbb(roundId, mutate) {
+    if (!settled) return false;
     const b = T.bbb[roundId] ? { holes: T.bbb[roundId].holes.map(h => ({ ...h })) } : blankBbb();
     mutate(b);
     bump('bbb/' + roundId, b);
@@ -232,6 +254,7 @@ export function createStore(onChange) {
   }
 
   async function resetAll() {
+    if (!settled) return;
     const fresh = emptyState();
     T.config = fresh.config; T.scores = {}; T.bbb = {};
     for (const k of Object.keys(rev)) delete rev[k];
@@ -249,5 +272,6 @@ export function createStore(onChange) {
 
   return { T, connect, writeConfig, writeCard, writeBbb, resetAll, resave,
            get mode() { return mode; }, get status() { return status; }, get ready() { return ready; },
+           get settled() { return settled; },
            destroy() { unsubs.forEach(u => { try { u(); } catch (e) {} }); } };
 }

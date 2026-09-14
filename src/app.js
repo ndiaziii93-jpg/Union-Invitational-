@@ -13,7 +13,7 @@ const cls = n => n == null ? '' : n < 0 ? 'under' : n > 0 ? 'over' : 'level';
 
 let store = null;
 let T = S.emptyState();
-let meta = { ready: false, mode: 'local', status: 'connecting' };
+let meta = { ready: false, mode: 'local', status: 'connecting', settled: false };
 let now = E.nowLocal();
 
 const UI = {
@@ -43,8 +43,12 @@ const ROLE_KEY = 'union-invitational:role';
 function saveRole(role) { try { localStorage.setItem(ROLE_KEY, role); } catch (e) { /* storage blocked */ } }
 function loadRole() { try { return localStorage.getItem(ROLE_KEY); } catch (e) { return null; } }
 
-const canEdit = () => !D.PINS_ENABLED || S.ROLES[UI.role].canEdit;
-const canAdmin = () => !D.PINS_ENABLED || S.ROLES[UI.role].canAdmin;
+/* Nothing is editable until the shared book has loaded. Before that the page is
+   showing factory defaults, and an edit would write those over the real
+   tournament. */
+const loaded = () => meta.settled !== false;
+const canEdit = () => loaded() && (!D.PINS_ENABLED || S.ROLES[UI.role].canEdit);
+const canAdmin = () => loaded() && (!D.PINS_ENABLED || S.ROLES[UI.role].canAdmin);
 
 /* ---------------- flags ---------------- */
 
@@ -1055,6 +1059,10 @@ function render() {
       </div>
     </header>
     <div class="rule-heavy"></div>
+    ${loaded() ? '' : `<div class="loadbar${meta.status === 'error' ? ' bad' : ''}">
+      ${meta.status === 'error'
+        ? 'Cannot read the shared book. Nothing can be edited until it loads, so nothing gets overwritten. Check your connection and reload.'
+        : 'Opening the book… everything is read-only until the saved tournament arrives.'}</div>`}
     <nav class="tabs nos" aria-label="Sections">
       ${NAV.filter(([id]) => id !== 'setup' || canAdmin()).map(([id, label, short]) =>
         `<button class="tab" data-act="go" data-a="${id}"${UI.screen === id ? ' aria-current="page"' : ''}

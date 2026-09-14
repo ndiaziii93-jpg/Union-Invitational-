@@ -39,6 +39,18 @@ pressed, which (with PINs armed) asks for a PIN. Leaving a hole with an unsaved
 draft prompts: save it, discard it, or stay. The card records who saved each
 hole and when, so a score on a leaderboard is always one somebody signed off.
 
+## How the shared book loads
+
+The factory roster in `src/data.js` seeds the store **once**, on a first-ever
+open. After that it can never be written again: seeding needs both a live
+subscription and a confirming read to agree the store is empty, and once any
+stored data has been seen in a page load, seeding is off for that load. If the
+store cannot be read at all, the page stays read-only and says so rather than
+risk writing defaults over a real tournament.
+
+Nothing is editable until the stored book has arrived, so a tap during a slow
+load cannot write the factory roster over the real one.
+
 ## Who can score
 
 **PINs are currently OFF.** Anyone who can open the page can enter scores, open a
@@ -99,6 +111,7 @@ docs/              the original design canvas this was built from
 node tools/db-race-test.mjs    # shared-store writes survive a hostile database
 node tools/mobile-audit.mjs    # no screen scrolls sideways; every tap target clears 44px
 node tools/course-lock-test.mjs # a verified course card locks, and only a PIN moves that lock
+node tools/no-clobber-test.mjs  # the stored tournament is never overwritten by the factory roster
 ```
 
 The mobile audit loads the page through a wrapper carrying the same head the
