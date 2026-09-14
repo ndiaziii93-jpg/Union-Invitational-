@@ -2,7 +2,7 @@
    Reproduces the failure that wiped the roster on load: a store whose first
    read wrongly reports the config absent. Run: node tools/no-clobber-test.mjs */
 import { chromium } from 'playwright';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 
 const S = '/tmp/claude-0/-home-user-Union-Invitational-/8bcdc9be-12b5-528d-a069-2403e068b315/scratchpad';
 const W = S + '/preview.html';
@@ -17,12 +17,12 @@ const STORED = JSON.parse(readFileSync(S + '/db2/config/tournament.json', 'utf8'
 const FACTORY_PEOPLE = JSON.parse(readFileSync(S + '/db/config/tournament.json', 'utf8')).people
   .concat([{ id: 'g4', name: 'Manuel P', display: 'Manuel P', role: 'golfer', location: null, band: null, group: '7-day' }]);
 
-const MOCK = ({ stored, lieOnFirstRead, empty, factoryPeople }) => {
+const MOCK = ({ stored, lieOnFirstRead, empty, factoryPeople, extraDocs }) => {
   // the store outlives a reload, as a real database does
   const KEY = '__mockstore';
   let saved = null;
   try { saved = JSON.parse(sessionStorage.getItem(KEY) || 'null'); } catch (e) {}
-  const docs = saved || (empty ? {} : { 'config/tournament': stored });
+  const docs = saved || (empty ? {} : { 'config/tournament': stored, ...(extraDocs || {}) });
   const persist = () => { try { sessionStorage.setItem(KEY, JSON.stringify(docs)); } catch (e) {} };
   persist();
   window.__factoryPeople = factoryPeople;
@@ -166,6 +166,40 @@ for (const [label, lie] of [['a healthy store', false], ['a store whose first re
   await p.locator('[data-act="modalCancel"]').click().catch(() => {});
   await p.locator('.tab', { hasText: 'Roster' }).click(); await p.waitForTimeout(500);
   ok('and they stay gone after a reload', await p.locator('.rtable tbody tr').count(), n - 1);
+  await p.close();
+}
+
+// exactly what the live tournament looks like after the repair: the roster
+// lives in its own documents, while the config still carries the old mirror
+// and was never marked. The documents must win, and a removal must stick.
+{
+  console.log('\nthe repaired live tournament: documents beside an unmarked config');
+  const LIVE = JSON.parse(readFileSync(S + '/db4/config/tournament.json', 'utf8'));
+  delete LIVE.rosterInDocs;                       // the flag we could not set
+  const extra = {};
+  for (const f of readdirSync(S + '/restore/people'))
+    extra['people/' + f.replace('.json', '')] = JSON.parse(readFileSync(S + '/restore/people/' + f, 'utf8'));
+  for (const f of readdirSync(S + '/restore/pairs'))
+    extra['pairs/' + f.replace('.json', '')] = JSON.parse(readFileSync(S + '/restore/pairs/' + f, 'utf8'));
+
+  const p = await (await b.newContext({ viewport: { width: 1300, height: 900 } })).newPage();
+  await p.addInitScript(MOCK, { stored: LIVE, lieOnFirstRead: false, empty: false, extraDocs: extra });
+  await p.goto('file://' + W); await p.waitForTimeout(3000);
+  await p.locator('[data-act="modalCancel"]').click().catch(() => {});
+  await p.locator('.tab', { hasText: 'Roster' }).click(); await p.waitForTimeout(600);
+  ok('everyone is back on screen', await p.locator('.rtable tbody tr').count(), 15);
+  ok('and the pairings came back too', await p.locator(".paircol:not(.un)").count(), 5);
+
+  // remove somebody, then reload: the config mirror still lists them
+  const n = await p.locator('.rtable tbody tr').count();
+  await p.locator('.rtable tbody tr').last().locator('[data-act="removePerson"]').click();
+  await p.waitForTimeout(1000);
+  ok('their document is gone',
+    await p.evaluate(() => Object.keys(window.__mockDocs).filter(k => k.startsWith('people/')).length), n - 1);
+  await p.reload(); await p.waitForTimeout(3000);
+  await p.locator('[data-act="modalCancel"]').click().catch(() => {});
+  await p.locator('.tab', { hasText: 'Roster' }).click(); await p.waitForTimeout(600);
+  ok('and the stale config mirror cannot bring them back', await p.locator('.rtable tbody tr').count(), n - 1);
   await p.close();
 }
 

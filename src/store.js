@@ -104,7 +104,8 @@ export function createStore(onChange) {
   let ready = false;
   let mode = 'local';           // 'db' | 'local'
   let peopleLoaded = false, pairsLoaded = false, splitDone = false;
-  let rosterInDocs = false;     // the config says the roster lives in its own documents
+  let rosterInDocs = false;     // the roster lives in its own documents
+  let peopleSeen = false;       // the people collection has reported at least once
   let sawConfig = false;
   let legacy = null;            // a roster still stored as lists inside the config
   let settled = false;          // the first load has resolved; until then, no writes
@@ -154,17 +155,18 @@ export function createStore(onChange) {
        tournament — which is exactly what was happening. Seeding needs a
        subscription AND a confirming read to agree the store is empty, and once
        any data has been seen this page load it can never seed at all. */
-    settle = () => { settled = sawConfig && (!rosterInDocs || peopleLoaded); };
+    settle = () => { settled = sawConfig && peopleSeen; };
 
     const takeConfig = data => {
       sawData = true; sawConfig = true;
       if (!fresher('config', data)) { settle(); return; }
       rev.config = data.rev || 0;
-      rosterInDocs = data.rosterInDocs === true;
+      rosterInDocs = rosterInDocs || data.rosterInDocs === true;
       const fromDocs = { people: T.config.people, pairs: T.config.pairs };
       T.config = migrate(data);                       // carries the config's mirror
-      if (rosterInDocs && peopleLoaded) { T.config.people = fromDocs.people; T.config.pairs = fromDocs.pairs; }
-      else if (Array.isArray(data.people) && data.people.length) {
+      if (peopleLoaded) {                             // real documents always win
+        T.config.people = fromDocs.people; T.config.pairs = fromDocs.pairs;
+      } else if (Array.isArray(data.people) && data.people.length) {
         legacy = { people: T.config.people, pairs: T.config.pairs };
       }
       settle();
@@ -180,7 +182,7 @@ export function createStore(onChange) {
         const factory = defaultConfig();
         await writeRoster(factory.people, factory.pairs);
         await db.doc('config/tournament').set({ ...configOnly(factory), rosterInDocs: true, rev: 0 });
-        rosterInDocs = true; peopleLoaded = pairsLoaded = true;
+        rosterInDocs = true; peopleLoaded = pairsLoaded = true; peopleSeen = true;
         T.config = factory;
         sawConfig = true; settled = true; notify();
       } catch (e) {
@@ -200,8 +202,10 @@ export function createStore(onChange) {
     ));
     unsubs.push(db.collection('people').onSnapshot(
       s => {
+        peopleSeen = true;
         const rows = takeRows('people', s.docs, T.config.people);
-        if (rows.length || rosterInDocs) { peopleLoaded = true; T.config.people = rows.map(normPerson).sort(byOrder); }
+        if (rows.length) { peopleLoaded = true; rosterInDocs = true; T.config.people = rows.map(normPerson).sort(byOrder); }
+        else if (rosterInDocs) { T.config.people = []; }
         settle();
         notify();
         splitOutRoster();
@@ -211,7 +215,8 @@ export function createStore(onChange) {
     unsubs.push(db.collection('pairs').onSnapshot(
       s => {
         const rows = takeRows('pairs', s.docs, T.config.pairs);
-        if (rows.length || rosterInDocs) { pairsLoaded = true; T.config.pairs = rows.map(normPair).sort(byOrder); }
+        if (rows.length) { pairsLoaded = true; T.config.pairs = rows.map(normPair).sort(byOrder); }
+        else if (rosterInDocs) { T.config.pairs = []; }
         notify();
       },
       () => { status = 'error'; notify(); }
@@ -225,6 +230,28 @@ export function createStore(onChange) {
       () => { status = 'error'; notify(); }
     ));
     ready = true; notify();
+    confirmRoster();
+
+    /* A snapshot that reports a roster collection empty is not proof: the
+       roster once vanished behind one. A direct read confirms it, and any
+       document it finds settles the matter, because documents always win. */
+    async function confirmRoster() {
+      try {
+        const [pp, qq] = await Promise.all([
+          db.collection('people').get(), db.collection('pairs').get(),
+        ]);
+        if (pp.docs.length) {
+          peopleLoaded = true; rosterInDocs = true;
+          T.config.people = takeRows('people', pp.docs, T.config.people).map(normPerson).sort(byOrder);
+        }
+        if (qq.docs.length) {
+          pairsLoaded = true;
+          T.config.pairs = takeRows('pairs', qq.docs, T.config.pairs).map(normPair).sort(byOrder);
+        }
+        peopleSeen = true;      // the collection has answered, empty or not
+        settle(); notify();
+      } catch (e) { /* the subscriptions are still the primary path */ }
+    }
   }
 
   async function writeRoster(people, pairs) {
