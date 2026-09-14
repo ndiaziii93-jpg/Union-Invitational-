@@ -638,6 +638,11 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
 .tbtn.on{background:var(--ink);border-color:var(--ink);color:var(--paper);font-weight:600}
 .tbtn:disabled{opacity:.55}
 .cfoot-note{font-size:14px;color:var(--turf);flex:1 1 240px;min-width:0}
+.saverow{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:12px;padding:11px 14px;
+  border:1px solid var(--rule);background:var(--page);border-radius:3px}
+.saverow.bad{border-left:3px solid var(--flag);background:var(--sunk)}
+.saverow .sm{font-size:15px;color:var(--turf)}
+.saverow .tick{color:var(--green);font-weight:700;margin-right:6px}
 
 </style>
 <div id="app"></div>
@@ -1337,6 +1342,8 @@ function createStore(onChange) {
   let configWritten = false;
   let saveTimer = null;
   let status = 'connecting';    // connecting | live | local | error
+  let saveState = 'idle';       // idle | saving | saved | error — the last write's fate
+  let lastSavedAt = null;
   // Our revision per document. A snapshot older than what we last wrote is an
   // echo of a version we have already moved past, and applying it would undo
   // the change the user just made — so it is ignored.
@@ -1344,7 +1351,7 @@ function createStore(onChange) {
   const bump = (path, doc) => { doc.rev = Math.max(doc.rev || 0, rev[path] || 0) + 1; rev[path] = doc.rev; };
   const fresher = (path, doc) => ((doc && doc.rev) || 0) >= (rev[path] || 0);
 
-  const notify = () => onChange(T, { ready, mode, status });
+  const notify = () => onChange(T, { ready, mode, status, saveState, lastSavedAt });
 
   function loadLocal() {
     try {
@@ -1440,11 +1447,21 @@ function createStore(onChange) {
   async function writeConfig(mutate) {
     mutate(T.config);
     bump('config', T.config);
+    saveState = 'saving';
     notify();
-    if (mode === 'local') { saveLocal(); return; }
-    try { await db.doc('config/tournament').set(T.config); }
-    catch (e) { status = 'error'; notify(); }
+    if (mode === 'local') { saveLocal(); saveState = 'saved'; lastSavedAt = Date.now(); notify(); return true; }
+    try {
+      await db.doc('config/tournament').set(T.config);
+      saveState = 'saved'; lastSavedAt = Date.now(); notify();
+      return true;
+    } catch (e) {
+      status = 'error'; saveState = 'error'; notify();
+      return false;
+    }
   }
+
+  /** Write the config again as it stands. Confirms a save, and retries a failed one. */
+  async function resave() { return writeConfig(() => {}); }
 
   async function writeCard(roundId, pid, mutate) {
     const key = roundId + '__' + pid;
@@ -1488,7 +1505,7 @@ function createStore(onChange) {
     } catch (e) { status = 'error'; notify(); }
   }
 
-  return { T, connect, writeConfig, writeCard, writeBbb, resetAll,
+  return { T, connect, writeConfig, writeCard, writeBbb, resetAll, resave,
            get mode() { return mode; }, get status() { return status; }, get ready() { return ready; },
            destroy() { unsubs.forEach(u => { try { u(); } catch (e) {} }); } };
 }
@@ -2307,6 +2324,7 @@ function scrRoster() {
     <span class="rnote">${bandsSet} of ${gs.length} bands set. Every golfer plays off a 15, 20 or 25 band — the band is the strokes they receive.</span>
     ${ed ? `<button class="btn ghost" data-act="addPerson" data-a="golfer">Add person</button>` : ''}
   </div>
+  ${ed ? saveRow() : ''}
 
   <div class="scroller nos">
     <table class="rtable">
@@ -2679,6 +2697,22 @@ function submitPin() {
   render();
 }
 
+/** The roster and pairings save on every edit. This states that plainly, and
+ *  gives a way to write them again — which is also the retry if one failed. */
+function saveRow() {
+  const st = meta.saveState || 'idle';
+  const at = meta.lastSavedAt
+    ? E.to12(new Date(meta.lastSavedAt + D.TZ_OFFSET_MIN * 60000).toISOString().slice(11, 16))
+    : null;
+  const word = { saving: 'Saving…', error: 'That change did not save. Tap Save roster to try again.',
+                 saved: at ? 'All changes saved at ' + at + '.' : 'All changes saved.',
+                 idle: 'Every edit here saves as you make it.' }[st];
+  return `<div class="saverow${st === 'error' ? ' bad' : ''}">
+    <button class="btn${st === 'error' ? ' danger' : ' ghost'}" data-act="saveRoster"${st === 'saving' ? ' disabled' : ''}>Save roster</button>
+    <span class="sm">${st === 'saved' ? '<span class="tick">✓</span> ' : ''}${esc(word)}</span>
+  </div>`;
+}
+
 /** Re-lock any card this device reopened. Called on the way out of Course
  *  Setup and when switching cards, so a correction costs one PIN, not two. */
 function relockCards() {
@@ -2761,6 +2795,10 @@ function onClick(e) {
         if (i < 0 || j < 0 || j >= c.pairs.length) return;
         const [p] = c.pairs.splice(i, 1); c.pairs.splice(j, 0, p);
       });
+      return;
+    case 'saveRoster':
+      if (!canEdit()) return;
+      store.resave();
       return;
     case 'setLoc':
       if (!canEdit()) return;

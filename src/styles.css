@@ -634,3 +634,8 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
 .tbtn.on{background:var(--ink);border-color:var(--ink);color:var(--paper);font-weight:600}
 .tbtn:disabled{opacity:.55}
 .cfoot-note{font-size:14px;color:var(--turf);flex:1 1 240px;min-width:0}
+.saverow{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:12px;padding:11px 14px;
+  border:1px solid var(--rule);background:var(--page);border-radius:3px}
+.saverow.bad{border-left:3px solid var(--flag);background:var(--sunk)}
+.saverow .sm{font-size:15px;color:var(--turf)}
+.saverow .tick{color:var(--green);font-weight:700;margin-right:6px}

@@ -805,6 +805,7 @@ function scrRoster() {
     <span class="rnote">${bandsSet} of ${gs.length} bands set. Every golfer plays off a 15, 20 or 25 band — the band is the strokes they receive.</span>
     ${ed ? `<button class="btn ghost" data-act="addPerson" data-a="golfer">Add person</button>` : ''}
   </div>
+  ${ed ? saveRow() : ''}
 
   <div class="scroller nos">
     <table class="rtable">
@@ -1177,6 +1178,22 @@ function submitPin() {
   render();
 }
 
+/** The roster and pairings save on every edit. This states that plainly, and
+ *  gives a way to write them again — which is also the retry if one failed. */
+function saveRow() {
+  const st = meta.saveState || 'idle';
+  const at = meta.lastSavedAt
+    ? E.to12(new Date(meta.lastSavedAt + D.TZ_OFFSET_MIN * 60000).toISOString().slice(11, 16))
+    : null;
+  const word = { saving: 'Saving…', error: 'That change did not save. Tap Save roster to try again.',
+                 saved: at ? 'All changes saved at ' + at + '.' : 'All changes saved.',
+                 idle: 'Every edit here saves as you make it.' }[st];
+  return `<div class="saverow${st === 'error' ? ' bad' : ''}">
+    <button class="btn${st === 'error' ? ' danger' : ' ghost'}" data-act="saveRoster"${st === 'saving' ? ' disabled' : ''}>Save roster</button>
+    <span class="sm">${st === 'saved' ? '<span class="tick">✓</span> ' : ''}${esc(word)}</span>
+  </div>`;
+}
+
 /** Re-lock any card this device reopened. Called on the way out of Course
  *  Setup and when switching cards, so a correction costs one PIN, not two. */
 function relockCards() {
@@ -1259,6 +1276,10 @@ function onClick(e) {
         if (i < 0 || j < 0 || j >= c.pairs.length) return;
         const [p] = c.pairs.splice(i, 1); c.pairs.splice(j, 0, p);
       });
+      return;
+    case 'saveRoster':
+      if (!canEdit()) return;
+      store.resave();
       return;
     case 'setLoc':
       if (!canEdit()) return;

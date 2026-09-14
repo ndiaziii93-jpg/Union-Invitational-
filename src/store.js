@@ -84,6 +84,8 @@ export function createStore(onChange) {
   let configWritten = false;
   let saveTimer = null;
   let status = 'connecting';    // connecting | live | local | error
+  let saveState = 'idle';       // idle | saving | saved | error — the last write's fate
+  let lastSavedAt = null;
   // Our revision per document. A snapshot older than what we last wrote is an
   // echo of a version we have already moved past, and applying it would undo
   // the change the user just made — so it is ignored.
@@ -91,7 +93,7 @@ export function createStore(onChange) {
   const bump = (path, doc) => { doc.rev = Math.max(doc.rev || 0, rev[path] || 0) + 1; rev[path] = doc.rev; };
   const fresher = (path, doc) => ((doc && doc.rev) || 0) >= (rev[path] || 0);
 
-  const notify = () => onChange(T, { ready, mode, status });
+  const notify = () => onChange(T, { ready, mode, status, saveState, lastSavedAt });
 
   function loadLocal() {
     try {
@@ -187,11 +189,21 @@ export function createStore(onChange) {
   async function writeConfig(mutate) {
     mutate(T.config);
     bump('config', T.config);
+    saveState = 'saving';
     notify();
-    if (mode === 'local') { saveLocal(); return; }
-    try { await db.doc('config/tournament').set(T.config); }
-    catch (e) { status = 'error'; notify(); }
+    if (mode === 'local') { saveLocal(); saveState = 'saved'; lastSavedAt = Date.now(); notify(); return true; }
+    try {
+      await db.doc('config/tournament').set(T.config);
+      saveState = 'saved'; lastSavedAt = Date.now(); notify();
+      return true;
+    } catch (e) {
+      status = 'error'; saveState = 'error'; notify();
+      return false;
+    }
   }
+
+  /** Write the config again as it stands. Confirms a save, and retries a failed one. */
+  async function resave() { return writeConfig(() => {}); }
 
   async function writeCard(roundId, pid, mutate) {
     const key = roundId + '__' + pid;
@@ -235,7 +247,7 @@ export function createStore(onChange) {
     } catch (e) { status = 'error'; notify(); }
   }
 
-  return { T, connect, writeConfig, writeCard, writeBbb, resetAll,
+  return { T, connect, writeConfig, writeCard, writeBbb, resetAll, resave,
            get mode() { return mode; }, get status() { return status; }, get ready() { return ready; },
            destroy() { unsubs.forEach(u => { try { u(); } catch (e) {} }); } };
 }

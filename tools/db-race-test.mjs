@@ -22,6 +22,10 @@ const MOCK = () => {
 
   const LAT = 340;                                  // (3) a real round trip, not an instant one
   function write(path, data) {
+    if (window.__failNextWrite) {            // (4) a write that simply fails
+      window.__failNextWrite = false;
+      return new Promise((_, rej) => setTimeout(() => rej({ code: 'unavailable', message: 'test failure' }), 120));
+    }
     const before = path in docs ? clone(docs[path]) : null;
     const pending = strip(data);                    // (2) nulls dropped in transit
     setTimeout(() => { docs[path] = pending; }, LAT);
@@ -136,6 +140,18 @@ ok('pairs: deleted pair stays gone', await cols(), c0);
 
 await p.locator('.rtable tbody tr').last().locator('[data-act="removePerson"]').click(); await p.waitForTimeout(1400);
 ok('roster: removal stays', await golfers(), n0);
+
+// --- the roster save control tells the truth
+ok('save row confirms after an edit', (await p.locator('.saverow .sm').innerText()).includes('All changes saved at'), true);
+await p.evaluate(() => { window.__failNextWrite = true; });
+await p.locator('.rtable tbody tr').first().locator('[data-act="setBand"]').nth(1).click();
+await p.waitForTimeout(1400);
+ok('a failed write is reported', (await p.locator('.saverow .sm').innerText()).includes('did not save'), true);
+ok('and the row is flagged', await p.locator('.saverow.bad').count(), 1);
+await p.locator('[data-act="saveRoster"]').click(); await p.waitForTimeout(1400);
+ok('Save roster recovers it', (await p.locator('.saverow .sm').innerText()).includes('All changes saved at'), true);
+ok('the band that failed is on the card now', await p.evaluate(() =>
+  (window.__mockDocs['config/tournament'].people.find(x => x.id === 'g1') || {}).band), 20);
 
 // --- a stroke is a draft until the hole is saved
 await p.locator('.tab', { hasText: 'Score Entry' }).click(); await p.waitForTimeout(500);
