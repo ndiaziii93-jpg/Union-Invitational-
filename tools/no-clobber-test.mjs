@@ -12,10 +12,20 @@ writeFileSync(W, '<!doctype html><html><head><meta charset="utf-8">'
   + readFileSync('/home/user/Union-Invitational-/dist/union-invitational.html', 'utf8') + '</body></html>');
 
 /* A tournament somebody has already edited: four golfers removed. */
-const STORED = JSON.parse(readFileSync(S + '/db/config/tournament.json', 'utf8'));
+const STORED = JSON.parse(readFileSync(S + '/db2/config/tournament.json', 'utf8'));
+/* what an old build would write back: the full original roster */
+const FACTORY_PEOPLE = JSON.parse(readFileSync(S + '/db/config/tournament.json', 'utf8')).people
+  .concat([{ id: 'g4', name: 'Manuel P', display: 'Manuel P', role: 'golfer', location: null, band: null, group: '7-day' }]);
 
-const MOCK = ({ stored, lieOnFirstRead, empty }) => {
-  const docs = empty ? {} : { 'config/tournament': stored };
+const MOCK = ({ stored, lieOnFirstRead, empty, factoryPeople }) => {
+  // the store outlives a reload, as a real database does
+  const KEY = '__mockstore';
+  let saved = null;
+  try { saved = JSON.parse(sessionStorage.getItem(KEY) || 'null'); } catch (e) {}
+  const docs = saved || (empty ? {} : { 'config/tournament': stored });
+  const persist = () => { try { sessionStorage.setItem(KEY, JSON.stringify(docs)); } catch (e) {} };
+  persist();
+  window.__factoryPeople = factoryPeople;
   const subs = { doc: {}, coll: {} };
   const clone = o => JSON.parse(JSON.stringify(o));
   let reads = 0, lied = false;
@@ -27,19 +37,26 @@ const MOCK = ({ stored, lieOnFirstRead, empty }) => {
   const docRef = path => ({
     id: path.split('/').pop(), path,
     get: () => { reads++; return new Promise(r => setTimeout(() => r(snapDoc(path)), 120)); },
-    set: d => { docs[path] = clone(d); window.__writes = (window.__writes || 0) + 1;
-      setTimeout(() => (subs.doc[path] || []).forEach(f => f({ exists: true, data: clone(docs[path]) })), 120);
+    set: d => { docs[path] = clone(d); persist(); window.__writes = (window.__writes || 0) + 1;
+      setTimeout(() => { (subs.doc[path] || []).forEach(f => f({ exists: true, data: clone(docs[path]) }));
+        fireColl(path.split('/')[0]); }, 120);
       return Promise.resolve(); },
     update: d => docRef(path).set({ ...(docs[path] || {}), ...d }),
-    delete: () => { delete docs[path]; return Promise.resolve(); },
+    delete: () => { delete docs[path]; persist();
+      setTimeout(() => fireColl(path.split('/')[0]), 120); return Promise.resolve(); },
     onSnapshot(fn) { (subs.doc[path] = subs.doc[path] || []).push(fn); setTimeout(() => fn(snapDoc(path)), 200); return () => {}; },
   });
+  const collSnap = c => ({ docs: Object.keys(docs).filter(k => k.startsWith(c + '/'))
+    .map(k => ({ id: k.slice(c.length + 1), data: clone(docs[k]) })) });
+  const fireColl = c => (subs.coll[c] || []).forEach(f => f(collSnap(c)));
+  window.__fireAllColls = () => Object.keys(subs.coll).forEach(fireColl);
   const collRef = c => ({
     path: c, doc: id => docRef(c + '/' + id),
-    get: () => Promise.resolve({ docs: Object.keys(docs).filter(k => k.startsWith(c + '/')).map(k => ({ id: k.slice(c.length + 1), data: clone(docs[k]) })) }),
-    onSnapshot(fn) { (subs.coll[c] = subs.coll[c] || []).push(fn); setTimeout(() => fn({ docs: [] }), 200); return () => {}; },
+    get: () => Promise.resolve(collSnap(c)),
+    onSnapshot(fn) { (subs.coll[c] = subs.coll[c] || []).push(fn); setTimeout(() => fn(collSnap(c)), 200); return () => {}; },
   });
   window.__mockDocs = docs;
+  window.__fireConfig = d => (subs.doc['config/tournament'] || []).forEach(f => f({ exists: true, data: clone(d) }));
   window.claude = { use: async n => (n === 'db' ? { doc: docRef, collection: collRef } : null) };
 };
 
@@ -47,8 +64,12 @@ const fails = [];
 const ok = (n, got, want) => { const good = got === want;
   console.log((good ? '  PASS  ' : '  FAIL  ') + n + '  got ' + JSON.stringify(got) + (good ? '' : '  want ' + JSON.stringify(want)));
   if (!good) fails.push(n); };
-const countGolfers = p => p.evaluate(() =>
-  (((window.__mockDocs['config/tournament'] || {}).people) || []).filter(x => x.role === 'golfer').length);
+const countGolfers = p => p.evaluate(() => {
+  const d = window.__mockDocs;
+  const own = Object.keys(d).filter(k => k.startsWith('people/')).map(k => d[k]);
+  const list = own.length ? own : (((d['config/tournament'] || {}).people) || []);
+  return list.filter(x => x.role === 'golfer').length;
+});
 
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
 
@@ -85,8 +106,47 @@ for (const [label, lie] of [['a healthy store', false], ['a store whose first re
   await p.addInitScript(MOCK, { stored: STORED, lieOnFirstRead: false, empty: true });
   await p.goto('file://' + W); await p.waitForTimeout(2600);
   await p.locator('[data-act="modalCancel"]').click().catch(() => {});
-  ok('the factory roster is written once', await countGolfers(p), 11);
-  ok('written exactly once', await p.evaluate(() => window.__writes), 1);
+  ok('the factory roster is seeded', await countGolfers(p), 11);
+  ok('as one document per person',
+    await p.evaluate(() => Object.keys(window.__mockDocs).filter(k => k.startsWith('people/')).length), 23);
+  await p.close();
+}
+
+// the roster moves into its own documents, and a stale whole-list write cannot
+// resurrect anybody once it has
+{
+  console.log('\na stale view rewriting the old roster list');
+  const p = await (await b.newContext({ viewport: { width: 1300, height: 900 } })).newPage();
+  await p.addInitScript(MOCK, { stored: STORED, lieOnFirstRead: false, empty: false, factoryPeople: FACTORY_PEOPLE });
+  await p.goto('file://' + W); await p.waitForTimeout(3000);
+  await p.locator('[data-act="modalCancel"]').click().catch(() => {});
+
+  ok('each person now has their own document',
+    await p.evaluate(() => Object.keys(window.__mockDocs).filter(k => k.startsWith('people/')).length), STORED.people.length);
+  ok('config no longer carries the list',
+    await p.evaluate(() => Array.isArray(window.__mockDocs['config/tournament'].people)), false);
+
+  // a view running the old code writes the whole original roster back into config
+  await p.evaluate(() => {
+    const cfg = window.__mockDocs['config/tournament'];
+    window.__mockDocs['config/tournament'] = { ...cfg, rev: (cfg.rev || 0) + 5, people: window.__factoryPeople };
+  });
+  await p.evaluate(() => { const d = window.__mockDocs['config/tournament'];
+    (window.__fireConfig || (() => {}))(d); });
+  await p.waitForTimeout(800);
+  await p.locator('.tab', { hasText: 'Roster' }).click(); await p.waitForTimeout(500);
+  ok('the roster is unaffected', await p.locator('.rtable tbody tr').count(), STORED.people.length);
+
+  // and a removal is a deletion, not a list edit
+  const n = await p.locator('.rtable tbody tr').count();
+  await p.locator('.rtable tbody tr').last().locator('[data-act="removePerson"]').click();
+  await p.waitForTimeout(900);
+  ok('removing deletes that person\'s document',
+    await p.evaluate(() => Object.keys(window.__mockDocs).filter(k => k.startsWith('people/')).length), n - 1);
+  await p.reload(); await p.waitForTimeout(3000);
+  await p.locator('[data-act="modalCancel"]').click().catch(() => {});
+  await p.locator('.tab', { hasText: 'Roster' }).click(); await p.waitForTimeout(500);
+  ok('and they stay gone after a reload', await p.locator('.rtable tbody tr').count(), n - 1);
   await p.close();
 }
 

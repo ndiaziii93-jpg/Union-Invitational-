@@ -148,10 +148,10 @@ await p.locator('.rtable tbody tr').first().locator('[data-act="setBand"]').nth(
 await p.waitForTimeout(1400);
 ok('a failed write is reported', (await p.locator('.saverow .sm').innerText()).includes('did not save'), true);
 ok('and the row is flagged', await p.locator('.saverow.bad').count(), 1);
-await p.locator('[data-act="saveRoster"]').click(); await p.waitForTimeout(1400);
+await p.locator('[data-act="saveRoster"]').click(); await p.waitForTimeout(2200);
 ok('Save roster recovers it', (await p.locator('.saverow .sm').innerText()).includes('All changes saved at'), true);
-ok('the band that failed is on the card now', await p.evaluate(() =>
-  (window.__mockDocs['config/tournament'].people.find(x => x.id === 'g1') || {}).band), 20);
+ok('the band that failed is stored now', await p.evaluate(() =>
+  (window.__mockDocs['people/g1'] || {}).band), 20);
 
 // --- a stroke is a draft until the hole is saved
 await p.locator('.tab', { hasText: 'Score Entry' }).click(); await p.waitForTimeout(500);

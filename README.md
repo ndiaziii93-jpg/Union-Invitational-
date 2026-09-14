@@ -39,6 +39,20 @@ pressed, which (with PINs armed) asks for a PIN. Leaving a hole with an unsaved
 draft prompts: save it, discard it, or stay. The card records who saved each
 hole and when, so a score on a leaderboard is always one somebody signed off.
 
+## How the roster is stored
+
+Every person is one document (`people/<id>`), and every pair is one document
+(`pairs/<id>`). Removing somebody **deletes their document** rather than
+rewriting a list, so a view holding a stale roster cannot bring them back — it
+would have to write that person's own document, which nothing does unless you
+edit that person. Scores work the same way, one document per player per round.
+
+The factory roster in `src/data.js` is written **only** when a store is first
+created. It is never a fallback: a config without a roster leaves the roster
+alone rather than filling it from the factory list. A tournament still holding
+the old roster-inside-config shape is split into documents once, and only when
+the `people` collection is genuinely empty.
+
 ## How the shared book loads
 
 The factory roster in `src/data.js` seeds the store **once**, on a first-ever

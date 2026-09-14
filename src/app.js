@@ -1212,15 +1212,7 @@ function relockCards() {
 }
 
 /** Put a golfer in one pair, or nowhere. Used by the Move to menu and by a drop. */
-function movePlayer(pid, target) {
-  store.writeConfig(c => {
-    c.pairs.forEach(p => { p.members = p.members.filter(m => m !== pid); });
-    if (target && target !== 'unassigned') {
-      const p = c.pairs.find(x => x.id === target);
-      if (p) p.members.push(pid);
-    }
-  });
-}
+function movePlayer(pid, target) { store.movePlayer(pid, target); }
 
 const setRound = (rid, patch) => store.writeConfig(c => { Object.assign(c.rounds[rid], patch); });
 
@@ -1271,19 +1263,15 @@ function onClick(e) {
       return;
     case 'addPair':
       if (!canEdit()) return;
-      store.writeConfig(c => { c.pairs.push({ id: 'p' + Date.now().toString(36), name: null, members: [] }); });
+      store.addPair({ id: 'p' + Date.now().toString(36), name: null, members: [] });
       return;
     case 'deletePair':
       if (!canEdit()) return;
-      store.writeConfig(c => { c.pairs = c.pairs.filter(p => p.id !== a); });
+      store.removePair(a);
       return;
     case 'movePair':
       if (!canEdit()) return;
-      store.writeConfig(c => {
-        const i = c.pairs.findIndex(p => p.id === a), j = i + (+b);
-        if (i < 0 || j < 0 || j >= c.pairs.length) return;
-        const [p] = c.pairs.splice(i, 1); c.pairs.splice(j, 0, p);
-      });
+      store.movePairBy(a, +b);
       return;
     case 'saveRoster':
       if (!canEdit()) return;
@@ -1291,7 +1279,7 @@ function onClick(e) {
       return;
     case 'setLoc':
       if (!canEdit()) return;
-      store.writeConfig(c => { const p = c.people.find(x => x.id === a); if (p) p.location = p.location === b ? null : b; });
+      store.writePerson(a, p => { p.location = p.location === b ? null : b; });
       return;
     case 'courseTab':
       if (a !== UI.courseTab) relockCards();
@@ -1371,9 +1359,7 @@ function onClick(e) {
       return;
 
     case 'cycleSquad': {
-      const cycle = () => store.writeConfig(c => {
-        const p = c.people.find(x => x.id === a);
-        if (!p) return;
+      const cycle = () => store.writePerson(a, p => {
         const cur = p.location || null; // absent, null or '' all read as unassigned
         p.location = cur === null ? 'USA' : cur === 'USA' ? 'UK' : null;
       });
@@ -1387,12 +1373,12 @@ function onClick(e) {
     }
     case 'clearSquads':
       if (!canEdit()) return;
-      store.writeConfig(c => { c.people.forEach(p => { p.location = null; }); });
+      store.writeAllPeople(p => { p.location = null; });
       return;
 
     case 'setBand':
       if (!canEdit()) return;
-      store.writeConfig(c => { const p = c.people.find(x => x.id === a); if (p) p.band = b === '' ? null : +b; });
+      store.writePerson(a, p => { p.band = b === '' ? null : +b; });
       return;
     case 'addPerson':
       if (!canEdit()) return;
@@ -1405,22 +1391,18 @@ function onClick(e) {
       const role = UI.modal.role;
       const id = 'x' + Date.now().toString(36);
       UI.modal = null; UI.modalErr = '';
-      store.writeConfig(c => { c.people.push({ id, name, display: name, role, location: null, group: '7-day', band: null }); });
+      store.addPerson({ id, name, display: name, role, location: null, group: '7-day', band: null });
       return;
     }
     case 'confirmOk': { const f = UI.modal.onOk; UI.modal = null; if (f) f(); return; }
     case 'confirmAlt': { const f = UI.modal.onAlt; UI.modal = null; if (f) f(); return; }
     case 'removePerson':
       if (!canAdmin()) return;
-      store.writeConfig(c => {
-        c.people = c.people.filter(p => p.id !== a);
-        c.pairs.forEach(p => { p.members = p.members.filter(m => m !== a); });
-        Object.values(c.rounds).forEach(r => { r.tees.forEach(t => { t.players = t.players.filter(m => m !== a); }); });
-      });
+      store.removePerson(a);
       return;
     case 'unpair':
       if (!canEdit()) return;
-      store.writeConfig(c => { const p = c.pairs.find(x => x.id === a); if (p) p.members = p.members.filter(m => m !== b); });
+      store.writePair(a, p => { p.members = p.members.filter(m => m !== b); });
       return;
     case 'setCap':
       if (!canAdmin()) return;
@@ -1495,16 +1477,14 @@ function onChange(e) {
   } else if (act === 'renamePair') {
     if (!canEdit()) return;
     const v = el.value.trim().replace(/\s+/g, ' ');
-    store.writeConfig(c => { const p = c.pairs.find(x => x.id === a); if (p) p.name = v || null; });
+    store.writePair(a, p => { p.name = v || null; });
   } else if (act === 'moveGolfer') {
     if (!canEdit()) return;
     movePlayer(a, el.value);
   } else if (act === 'setPerson') {
     if (!canEdit()) return;
     const v = el.value.trim().replace(/\s+/g, ' ');
-    store.writeConfig(c => {
-      const p = c.people.find(x => x.id === a);
-      if (!p) return;
+    store.writePerson(a, p => {
       if (b === 'name') { if (v) { p.name = v; if (!p.display) p.display = v; } }
       else if (b === 'display') { if (v) p.display = v; }
       else p[b] = v;
@@ -1514,7 +1494,7 @@ function onChange(e) {
     if (!canEdit()) return;
     const name = el.value.trim().replace(/\s+/g, ' ');
     if (!name) { render(); return; }              // an empty name is a slip, not an edit
-    store.writeConfig(c => { const p = c.people.find(x => x.id === a); if (p) { p.name = name; p.display = name; } });
+    store.writePerson(a, p => { p.name = name; p.display = name; });
   } else if (act === 'addToPair') {
     if (!canEdit() || !el.value) return;
     const pid = el.value;
