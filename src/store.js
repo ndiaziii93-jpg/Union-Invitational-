@@ -106,6 +106,7 @@ export function createStore(onChange) {
   let peopleLoaded = false, pairsLoaded = false, splitDone = false;
   let rosterInDocs = false;     // the roster lives in its own documents
   let peopleSeen = false;       // the people collection has reported at least once
+  const emptySeq = { people: 0, pairs: 0 };  // guards a confirmation against a newer snapshot
   let sawConfig = false;
   let legacy = null;            // a roster still stored as lists inside the config
   let settled = false;          // the first load has resolved; until then, no writes
@@ -204,8 +205,11 @@ export function createStore(onChange) {
       s => {
         peopleSeen = true;
         const rows = takeRows('people', s.docs, T.config.people);
-        if (rows.length) { peopleLoaded = true; rosterInDocs = true; T.config.people = rows.map(normPerson).sort(byOrder); }
-        else if (rosterInDocs) { T.config.people = []; }
+        if (rows.length) {
+          emptySeq.people++;                          // any pending confirmation is stale
+          peopleLoaded = true; rosterInDocs = true;
+          T.config.people = rows.map(normPerson).sort(byOrder);
+        } else if (rosterInDocs) confirmEmpty('people');
         settle();
         notify();
         splitOutRoster();
@@ -215,8 +219,11 @@ export function createStore(onChange) {
     unsubs.push(db.collection('pairs').onSnapshot(
       s => {
         const rows = takeRows('pairs', s.docs, T.config.pairs);
-        if (rows.length) { pairsLoaded = true; T.config.pairs = rows.map(normPair).sort(byOrder); }
-        else if (rosterInDocs) { T.config.pairs = []; }
+        if (rows.length) {
+          emptySeq.pairs++;
+          pairsLoaded = true;
+          T.config.pairs = rows.map(normPair).sort(byOrder);
+        } else if (rosterInDocs) confirmEmpty('pairs');
         notify();
       },
       () => { status = 'error'; notify(); }
@@ -231,6 +238,27 @@ export function createStore(onChange) {
     ));
     ready = true; notify();
     confirmRoster();
+
+    /* An empty snapshot is not proof the roster is gone — one of those is what
+       emptied the book. It is confirmed with a direct read first, and the
+       roster is cleared only if the collection really does have nothing in it.
+       A newer snapshot arriving meanwhile wins, so a stale confirmation can
+       never undo it. */
+    async function confirmEmpty(coll) {
+      const seq = ++emptySeq[coll];
+      try {
+        const have = await db.collection(coll).get();
+        if (seq !== emptySeq[coll]) return;
+        if (coll === 'people') {
+          if (have.docs.length) peopleLoaded = true;
+          T.config.people = takeRows('people', have.docs, T.config.people).map(normPerson).sort(byOrder);
+        } else {
+          if (have.docs.length) pairsLoaded = true;
+          T.config.pairs = takeRows('pairs', have.docs, T.config.pairs).map(normPair).sort(byOrder);
+        }
+        notify();
+      } catch (e) { /* keep the roster we have: an empty book is the worse guess */ }
+    }
 
     /* A snapshot that reports a roster collection empty is not proof: the
        roster once vanished behind one. A direct read confirms it, and any

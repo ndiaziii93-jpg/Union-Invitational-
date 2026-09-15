@@ -50,6 +50,8 @@ const MOCK = ({ stored, lieOnFirstRead, empty, factoryPeople, extraDocs }) => {
     .map(k => ({ id: k.slice(c.length + 1), data: clone(docs[k]) })) });
   const fireColl = c => (subs.coll[c] || []).forEach(f => f(collSnap(c)));
   window.__fireAllColls = () => Object.keys(subs.coll).forEach(fireColl);
+  // a subscription re-establishing: one snapshot that wrongly says the collection is empty
+  window.__fireEmptyColl = c => (subs.coll[c] || []).forEach(f => f({ docs: [] }));
   const collRef = c => ({
     path: c, doc: id => docRef(c + '/' + id),
     get: () => Promise.resolve(collSnap(c)),
@@ -200,6 +202,39 @@ for (const [label, lie] of [['a healthy store', false], ['a store whose first re
   await p.locator('[data-act="modalCancel"]').click().catch(() => {});
   await p.locator('.tab', { hasText: 'Roster' }).click(); await p.waitForTimeout(600);
   ok('and the stale config mirror cannot bring them back', await p.locator('.rtable tbody tr').count(), n - 1);
+  await p.close();
+}
+
+// a snapshot that wrongly reports the collection empty must not blank the book
+{
+  console.log('\na snapshot that wrongly says the roster is empty');
+  const LIVE = JSON.parse(readFileSync(S + '/db4/config/tournament.json', 'utf8'));
+  delete LIVE.rosterInDocs;
+  const extra = {};
+  for (const f of readdirSync(S + '/restore/people'))
+    extra['people/' + f.replace('.json', '')] = JSON.parse(readFileSync(S + '/restore/people/' + f, 'utf8'));
+  for (const f of readdirSync(S + '/restore/pairs'))
+    extra['pairs/' + f.replace('.json', '')] = JSON.parse(readFileSync(S + '/restore/pairs/' + f, 'utf8'));
+
+  const p = await (await b.newContext({ viewport: { width: 1300, height: 900 } })).newPage();
+  await p.addInitScript(MOCK, { stored: LIVE, lieOnFirstRead: false, empty: false, extraDocs: extra });
+  await p.goto('file://' + W); await p.waitForTimeout(3000);
+  await p.locator('[data-act="modalCancel"]').click().catch(() => {});
+  await p.locator('.tab', { hasText: 'Roster' }).click(); await p.waitForTimeout(600);
+  ok('the roster loads', await p.locator('.rtable tbody tr').count(), 15);
+
+  await p.evaluate(() => { window.__fireEmptyColl('people'); window.__fireEmptyColl('pairs'); });
+  await p.waitForTimeout(900);
+  ok('the lie does not empty the roster', await p.locator('.rtable tbody tr').count(), 15);
+  ok('nor the pairings', await p.locator('.paircol:not(.un)').count(), 5);
+  ok('and the documents were never touched',
+    await p.evaluate(() => Object.keys(window.__mockDocs).filter(k => k.startsWith('people/')).length), 15);
+
+  // a real emptying still empties it
+  await p.evaluate(() => { Object.keys(window.__mockDocs).filter(k => k.startsWith('people/'))
+    .forEach(k => delete window.__mockDocs[k]); window.__fireEmptyColl('people'); });
+  await p.waitForTimeout(900);
+  ok('a roster really removed does clear', await p.locator('.rtable tbody tr').count(), 0);
   await p.close();
 }
 
