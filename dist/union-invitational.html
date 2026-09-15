@@ -1440,7 +1440,8 @@ function createStore(onChange) {
       seeding = true;
       try {
         const check = await db.doc('config/tournament').get();   // a second opinion
-        if (check.exists && check.data) { takeConfig(check.data); notify(); return; }
+        const held = body(check);
+        if (check.exists && held) { takeConfig(held); notify(); return; }
         const factory = defaultConfig();
         await writeRoster(factory.people, factory.pairs);
         await db.doc('config/tournament').set({ ...configOnly(factory), rosterInDocs: true, rev: 0 });
@@ -1456,7 +1457,8 @@ function createStore(onChange) {
     unsubs.push(db.doc('config/tournament').onSnapshot(
       s => {
         ready = true; status = 'live';
-        if (s.exists && s.data) { takeConfig(s.data); notify(); return; }
+        const held = body(s);
+        if (s.exists && held) { takeConfig(held); notify(); return; }
         notify();
         seedIfTrulyEmpty();
       },
@@ -1575,14 +1577,26 @@ function createStore(onChange) {
 
   /** Rows from a roster collection, keeping ours wherever ours is newer — the
    *  same guard the score documents use, so a stale echo cannot undo a tap. */
+  /** A document's body. The store hands it back from a METHOD, not a
+   *  field — reading `snap.data` without calling it yields the function
+   *  itself, whose only usable property is its name, "data". That is what
+   *  put blank names on the roster and the word "data" on every pairing.
+   *  Older snapshot shapes carried a plain field, so accept both. */
+  function body(d) {
+    if (!d) return null;
+    const v = typeof d.data === 'function' ? d.data() : d.data;
+    return v && typeof v === 'object' ? v : null;
+  }
+
   function takeRows(coll, docs, local) {
     const out = [];
     for (const d of docs) {
       const path = coll + '/' + d.id;
+      const doc = body(d);
       const mine = local.find(x => x.id === d.id);
-      if (mine && !fresher(path, d.data)) { out.push(mine); continue; }
-      rev[path] = (d.data && d.data.rev) || 0;
-      if (d.data) out.push(d.data);
+      if (mine && !fresher(path, doc)) { out.push(mine); continue; }
+      rev[path] = (doc && doc.rev) || 0;
+      if (doc) out.push(doc);
     }
     return out;
   }
@@ -1595,7 +1609,8 @@ function createStore(onChange) {
     for (const d of docs) {
       seen.add(d.id);
       const path = coll + '/' + d.id;
-      if (fresher(path, d.data)) { rev[path] = (d.data && d.data.rev) || 0; next[d.id] = d.data; }
+      const doc = body(d);
+      if (fresher(path, doc)) { rev[path] = (doc && doc.rev) || 0; next[d.id] = doc; }
       else next[d.id] = local[d.id];
     }
     for (const id of Object.keys(local)) {

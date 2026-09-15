@@ -12,11 +12,14 @@ const MOCK = () => {
   const subs = { doc: {}, coll: {} };
   const strip = o => JSON.parse(JSON.stringify(o, (k, v) => (v === null ? undefined : v)));
   const clone = o => JSON.parse(JSON.stringify(o));
-  const snapDoc = p => ({ exists: p in docs, data: p in docs ? clone(docs[p]) : null });
+  /* The real store returns the body from a METHOD, not a field. */
+  const snap = (b, exists = true, id = '') => ({ id, exists, data: () => (exists ? b : undefined),
+    metadata: { fromCache: false, hasPendingWrites: false } });
+  const snapDoc = p => snap(p in docs ? clone(docs[p]) : null, p in docs);
   const fireDoc = p => (subs.doc[p] || []).forEach(fn => fn(snapDoc(p)));
   const fireColl = c => (subs.coll[c] || []).forEach(fn => fn({
     docs: Object.keys(docs).filter(k => k.startsWith(c + '/'))
-      .map(k => ({ id: k.slice(c.length + 1), data: clone(docs[k]) })),
+      .map(k => snap(clone(docs[k]), true, k.slice(c.length + 1))),
   }));
   const fireAll = p => { fireDoc(p); fireColl(p.split('/')[0]); };
 
@@ -30,12 +33,10 @@ const MOCK = () => {
     const pending = strip(data);                    // (2) nulls dropped in transit
     setTimeout(() => { docs[path] = pending; }, LAT);
     if (before) setTimeout(() => {                  // (1) stale echo of the PREVIOUS version
-      (subs.doc[path] || []).forEach(fn => fn({ exists: true, data: before }));
+      (subs.doc[path] || []).forEach(fn => fn(snap(before)));
       (subs.coll[path.split('/')[0]] || []).forEach(fn => fn({
-        docs: Object.keys(docs).filter(k => k.startsWith(path.split('/')[0] + '/')).map(k => ({
-          id: k.slice(path.split('/')[0].length + 1),
-          data: k === path ? before : clone(docs[k]),
-        })),
+        docs: Object.keys(docs).filter(k => k.startsWith(path.split('/')[0] + '/')).map(k =>
+          snap(k === path ? before : clone(docs[k]), true, k.slice(path.split('/')[0].length + 1))),
       }));
     }, 120);
     setTimeout(() => fireAll(path), LAT + 160);     // and later, the truth
@@ -51,7 +52,7 @@ const MOCK = () => {
   });
   const collRef = c => ({
     path: c, doc: id => docRef(c + '/' + id),
-    get: () => Promise.resolve({ docs: Object.keys(docs).filter(k => k.startsWith(c + '/')).map(k => ({ id: k.slice(c.length + 1), data: clone(docs[k]) })) }),
+    get: () => Promise.resolve({ docs: Object.keys(docs).filter(k => k.startsWith(c + '/')).map(k => snap(clone(docs[k]), true, k.slice(c.length + 1))) }),
     onSnapshot(fn) { (subs.coll[c] = subs.coll[c] || []).push(fn); setTimeout(() => fireColl(c), 10); return () => {}; },
   });
   window.__mockDocs = docs;

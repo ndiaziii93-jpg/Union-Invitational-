@@ -28,17 +28,20 @@ const MOCK = ({ stored, lieOnFirstRead, empty, factoryPeople, extraDocs }) => {
   window.__factoryPeople = factoryPeople;
   const subs = { doc: {}, coll: {} };
   const clone = o => JSON.parse(JSON.stringify(o));
+  /* The real store returns the body from a METHOD, not a field. */
+  const snap = (b, exists = true, id = '') => ({ id, exists, data: () => (exists ? b : undefined),
+    metadata: { fromCache: false, hasPendingWrites: false } });
   let reads = 0, lied = false;
   const snapDoc = p => {
     // the failure under test: one read claims the document is not there
-    if (lieOnFirstRead && p === 'config/tournament' && !lied) { lied = true; return { exists: false, data: null }; }
-    return { exists: p in docs, data: p in docs ? clone(docs[p]) : null };
+    if (lieOnFirstRead && p === 'config/tournament' && !lied) { lied = true; return snap(null, false); }
+    return snap(p in docs ? clone(docs[p]) : null, p in docs);
   };
   const docRef = path => ({
     id: path.split('/').pop(), path,
     get: () => { reads++; return new Promise(r => setTimeout(() => r(snapDoc(path)), 120)); },
     set: d => { docs[path] = clone(d); persist(); window.__writes = (window.__writes || 0) + 1;
-      setTimeout(() => { (subs.doc[path] || []).forEach(f => f({ exists: true, data: clone(docs[path]) }));
+      setTimeout(() => { (subs.doc[path] || []).forEach(f => f(snap(clone(docs[path]))));
         fireColl(path.split('/')[0]); }, 120);
       return Promise.resolve(); },
     update: d => docRef(path).set({ ...(docs[path] || {}), ...d }),
@@ -47,7 +50,7 @@ const MOCK = ({ stored, lieOnFirstRead, empty, factoryPeople, extraDocs }) => {
     onSnapshot(fn) { (subs.doc[path] = subs.doc[path] || []).push(fn); setTimeout(() => fn(snapDoc(path)), 200); return () => {}; },
   });
   const collSnap = c => ({ docs: Object.keys(docs).filter(k => k.startsWith(c + '/'))
-    .map(k => ({ id: k.slice(c.length + 1), data: clone(docs[k]) })) });
+    .map(k => snap(clone(docs[k]), true, k.slice(c.length + 1))) });
   const fireColl = c => (subs.coll[c] || []).forEach(f => f(collSnap(c)));
   window.__fireAllColls = () => Object.keys(subs.coll).forEach(fireColl);
   // a subscription re-establishing: one snapshot that wrongly says the collection is empty
@@ -58,7 +61,7 @@ const MOCK = ({ stored, lieOnFirstRead, empty, factoryPeople, extraDocs }) => {
     onSnapshot(fn) { (subs.coll[c] = subs.coll[c] || []).push(fn); setTimeout(() => fn(collSnap(c)), 200); return () => {}; },
   });
   window.__mockDocs = docs;
-  window.__fireConfig = d => (subs.doc['config/tournament'] || []).forEach(f => f({ exists: true, data: clone(d) }));
+  window.__fireConfig = d => (subs.doc['config/tournament'] || []).forEach(f => f(snap(clone(d))));
   window.claude = { use: async n => (n === 'db' ? { doc: docRef, collection: collRef } : null) };
 };
 
