@@ -593,6 +593,10 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
 .scroller{scroll-snap-type:x proximity}
 .scroller table{scroll-snap-align:start}
 
+.pnote{font-size:14px;color:var(--turf);margin:8px 0 0;max-width:34ch;line-height:1.5}
+
+
+
 /* ---- pairings & roster ---- */
 .pairgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:28px;margin-top:18px}
 .paircol{border-left:3px solid var(--green);padding-left:16px}
@@ -642,3 +646,32 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
 .loadbar{margin-top:10px;padding:11px 15px;border:1px solid var(--rule);border-left:3px solid var(--gold);
   background:var(--page);border-radius:3px;font-size:15px;color:var(--turf)}
 .loadbar.bad{border-left-color:var(--flag);color:var(--ink)}
+
+/* On a phone the roster was a 900px table on a 390px screen: you had to drag
+   it sideways to reach Band and Remove, and the drag fought the page. Each
+   person becomes a card instead, so nothing scrolls sideways at all. */
+@media (max-width:720px){
+  .rosterwrap{overflow-x:visible;scroll-snap-type:none}
+  /* table.rtable carries min-width:820px — that floor is the whole reason
+     the page panned, and it only lifts at matching specificity. */
+  table.rtable{display:block;width:auto;min-width:0}
+  .rtable tbody,.rtable tr,table.rtable td{display:block;width:auto;min-width:0}
+  .rtable thead{display:none}
+  .rtable tr{border:1px solid var(--rule);border-radius:3px;background:var(--page);
+    padding:12px 14px;margin-bottom:12px}
+  table.rtable td{border:0;padding:5px 0;display:grid;grid-template-columns:74px minmax(0,1fr);
+    align-items:center;gap:12px}
+  .rtable td::before{content:attr(data-l);font-family:var(--mono);font-size:11px;letter-spacing:.09em;
+    text-transform:uppercase;color:var(--turf)}
+  /* the name leads the card, full width, no label */
+  table.rtable td:first-child{display:block;padding:0 0 6px}
+  .rtable td:first-child::before{display:none}
+  .rtable td:first-child .cellin{width:100%;font-size:18px;font-weight:700}
+  .rtable td .cellin{width:100%}
+  .rtable td .field.small{width:100%}
+  .rtable td .tog{justify-content:flex-start}
+  /* a band cell is empty for anyone who is not a golfer — hide the label too */
+  table.rtable td:empty{display:none}
+  .rtable td[data-l=""]{grid-template-columns:1fr;justify-items:start}
+  .rtable td[data-l=""]::before{display:none}
+}

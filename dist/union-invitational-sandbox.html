@@ -597,6 +597,10 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
 .scroller{scroll-snap-type:x proximity}
 .scroller table{scroll-snap-align:start}
 
+.pnote{font-size:14px;color:var(--turf);margin:8px 0 0;max-width:34ch;line-height:1.5}
+
+
+
 /* ---- pairings & roster ---- */
 .pairgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:28px;margin-top:18px}
 .paircol{border-left:3px solid var(--green);padding-left:16px}
@@ -646,6 +650,35 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
 .loadbar{margin-top:10px;padding:11px 15px;border:1px solid var(--rule);border-left:3px solid var(--gold);
   background:var(--page);border-radius:3px;font-size:15px;color:var(--turf)}
 .loadbar.bad{border-left-color:var(--flag);color:var(--ink)}
+
+/* On a phone the roster was a 900px table on a 390px screen: you had to drag
+   it sideways to reach Band and Remove, and the drag fought the page. Each
+   person becomes a card instead, so nothing scrolls sideways at all. */
+@media (max-width:720px){
+  .rosterwrap{overflow-x:visible;scroll-snap-type:none}
+  /* table.rtable carries min-width:820px — that floor is the whole reason
+     the page panned, and it only lifts at matching specificity. */
+  table.rtable{display:block;width:auto;min-width:0}
+  .rtable tbody,.rtable tr,table.rtable td{display:block;width:auto;min-width:0}
+  .rtable thead{display:none}
+  .rtable tr{border:1px solid var(--rule);border-radius:3px;background:var(--page);
+    padding:12px 14px;margin-bottom:12px}
+  table.rtable td{border:0;padding:5px 0;display:grid;grid-template-columns:74px minmax(0,1fr);
+    align-items:center;gap:12px}
+  .rtable td::before{content:attr(data-l);font-family:var(--mono);font-size:11px;letter-spacing:.09em;
+    text-transform:uppercase;color:var(--turf)}
+  /* the name leads the card, full width, no label */
+  table.rtable td:first-child{display:block;padding:0 0 6px}
+  .rtable td:first-child::before{display:none}
+  .rtable td:first-child .cellin{width:100%;font-size:18px;font-weight:700}
+  .rtable td .cellin{width:100%}
+  .rtable td .field.small{width:100%}
+  .rtable td .tog{justify-content:flex-start}
+  /* a band cell is empty for anyone who is not a golfer — hide the label too */
+  table.rtable td:empty{display:none}
+  .rtable td[data-l=""]{grid-template-columns:1fr;justify-items:start}
+  .rtable td[data-l=""]::before{display:none}
+}
 
 </style>
 <div id="app"></div>
@@ -1897,6 +1930,7 @@ let now = E.nowLocal();
 
 const UI = {
   screen: 'today',
+  reveal: null,          // something just added: scroll to it once it is drawn
   role: 'viewer',
   boardTab: 'pairs',
   boardRound: 'r1',
@@ -2641,6 +2675,7 @@ function scrRoster() {
   const assigned = new Set(T.config.pairs.flatMap(p => p.members));
   const unassigned = gs.filter(g => !assigned.has(g.id));
   const bandsSet = gs.filter(g => g.band != null).length;
+  const others = T.config.people.length - gs.length;   // on the roster, but not pairable
 
   const pairOptions = cur => [`<option value="unassigned"${cur === 'unassigned' ? ' selected' : ''}>Unassigned</option>`]
     .concat(T.config.pairs.map(p => `<option value="${p.id}"${cur === p.id ? ' selected' : ''}>${esc(E.pairName(T, p))}</option>`)).join('');
@@ -2663,7 +2698,7 @@ function scrRoster() {
   <p class="lede">Fixed for the week. Drag between pairs or use the Move to menu — both work one-handed. Shared with everyone.</p>
 
   <div class="pairgrid">
-    ${T.config.pairs.map(pr => `<div class="paircol" data-act="dropPair" data-a="${pr.id}">
+    ${T.config.pairs.map(pr => `<div class="paircol" data-act="dropPair" data-a="${pr.id}" data-reveal="pair:${pr.id}">
       <div class="phead">
         ${ed ? `<input class="pname" type="text" value="${esc(pr.name || '')}" placeholder="${esc(E.pairName(T, pr))}"
             aria-label="Name of ${esc(E.pairName(T, pr))}" maxlength="40" data-act="renamePair" data-a="${pr.id}">`
@@ -2678,6 +2713,8 @@ function scrRoster() {
 
     <div class="paircol un" data-act="dropPair" data-a="unassigned">
       <div class="phead"><span class="pname read">Unassigned (${unassigned.length})</span></div>
+      ${others ? `<p class="pnote">Only golfers can be paired. ${others} ${others > 1 ? 'people are' : 'person is'} on the roster as an
+        official or a spectator — set their role to Golfer below to pair them.</p>` : ''}
       ${unassigned.length ? unassigned.map(g => member(g.id, 'unassigned')).join('')
         : `<div class="pdrop">Everyone is paired. Eleven golfers means one is always over — that is fine.</div>`}
     </div>
@@ -2690,29 +2727,29 @@ function scrRoster() {
   </div>
   ${ed ? saveRow() : ''}
 
-  <div class="scroller nos">
+  <div class="scroller nos rosterwrap">
     <table class="rtable">
       <thead><tr><th>Name</th><th>Display</th><th>Role</th><th>Location</th><th>Group</th><th>Band</th><th></th></tr></thead>
       <tbody>
         ${T.config.people.map(p => `<tr>
-          <td>${ed ? `<input class="cellin" type="text" value="${esc(p.name)}" aria-label="Full name" maxlength="40"
+          <td data-l="Name">${ed ? `<input class="cellin" type="text" value="${esc(p.name)}" aria-label="Full name" maxlength="40"
                 data-act="setPerson" data-a="${p.id}" data-b="name">` : esc(p.name)}</td>
-          <td>${ed ? `<input class="cellin sm" type="text" value="${esc(p.display)}" aria-label="Display name" maxlength="24"
+          <td data-l="Display">${ed ? `<input class="cellin sm" type="text" value="${esc(p.display)}" aria-label="Display name" maxlength="24"
                 data-act="setPerson" data-a="${p.id}" data-b="display">` : esc(p.display)}</td>
-          <td>${ed ? `<select class="field small" data-act="setPerson" data-a="${p.id}" data-b="role" aria-label="Role">
+          <td data-l="Role">${ed ? `<select class="field small" data-act="setPerson" data-a="${p.id}" data-b="role" aria-label="Role">
                 ${[['golfer', 'Golfer'], ['official', 'Official'], ['spectator', 'Spectator']].map(([v, l]) =>
                   `<option value="${v}"${p.role === v ? ' selected' : ''}>${l}</option>`).join('')}</select>` : esc(p.role)}</td>
-          <td><div class="tog">
+          <td data-l="Squad"><div class="tog">
             ${['UK', 'USA'].map(sq => `<button class="tbtn${p.location === sq ? ' on' : ''}" data-act="setLoc"
               data-a="${p.id}" data-b="${sq}"${ed ? '' : ' disabled'} aria-pressed="${p.location === sq}">${sq}</button>`).join('')}
           </div></td>
-          <td>${ed ? `<select class="field small" data-act="setPerson" data-a="${p.id}" data-b="group" aria-label="Group">
+          <td data-l="Group">${ed ? `<select class="field small" data-act="setPerson" data-a="${p.id}" data-b="group" aria-label="Group">
                 ${['7-day', '5-day'].map(v => `<option value="${v}"${p.group === v ? ' selected' : ''}>${v}</option>`).join('')}</select>` : esc(p.group)}</td>
-          <td>${p.role === 'golfer' ? `<div class="tog">
+          <td data-l="Band">${p.role === 'golfer' ? `<div class="tog">
             ${E.BANDS.map(bnd => `<button class="tbtn${p.band === bnd ? ' on' : ''}" data-act="setBand"
               data-a="${p.id}" data-b="${bnd}"${ed ? '' : ' disabled'} aria-pressed="${p.band === bnd}">${bnd}</button>`).join('')}
           </div>` : ''}</td>
-          <td>${canAdmin() ? `<button class="rm" data-act="removePerson" data-a="${p.id}">Remove</button>` : ''}</td>
+          <td data-l="">${canAdmin() ? `<button class="rm" data-act="removePerson" data-a="${p.id}">Remove</button>` : ''}</td>
         </tr>`).join('')}
       </tbody>
     </table>
@@ -2959,6 +2996,16 @@ function render() {
   if (UI.modal && UI.modal.kind === 'pin') { const i = document.getElementById('pinField'); if (i) { i.focus(); i.select(); } }
   else if (UI.modal && UI.modal.kind === 'add') { const i = document.getElementById('addName'); if (i) i.focus(); }
   else restoreFocus(focused);
+
+  if (UI.reveal) {
+    const want = UI.reveal; UI.reveal = null;
+    const el = document.querySelector(`[data-reveal="${want}"]`);
+    if (el) {
+      el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      const field = el.querySelector('input');
+      if (field) field.focus();
+    }
+  }
 }
 
 const SETUP_SCOPES = {
@@ -3140,10 +3187,15 @@ function onClick(e) {
         if (i >= 0) tee.players.splice(i, 1); else tee.players.push(el.dataset.c);
       });
       return;
-    case 'addPair':
+    case 'addPair': {
       if (!canEdit()) return;
-      store.addPair({ id: 'p' + Date.now().toString(36), name: null, members: [] });
+      // A new pair lands at the end of a long page — off the bottom on a
+      // phone — so the tap looked like it did nothing. Show it instead.
+      const id = 'p' + Date.now().toString(36);
+      UI.reveal = 'pair:' + id;
+      store.addPair({ id, name: null, members: [] });
       return;
+    }
     case 'deletePair':
       if (!canEdit()) return;
       store.removePair(a);
