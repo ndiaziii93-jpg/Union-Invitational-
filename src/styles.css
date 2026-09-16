@@ -487,6 +487,14 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
   text-align:right;border-radius:2px;min-height:44px;flex:0 0 auto}
 .tt-in.read{display:flex;align-items:center;justify-content:flex-end;border-color:transparent;background:none;color:var(--turf)}
 
+/* hour : minute AM/PM — three wheels, one control */
+.timepick{display:inline-flex;align-items:center;gap:4px;flex:0 0 auto}
+.timepick .tsel{width:auto;min-width:0;padding:8px 4px 8px 8px;font-variant-numeric:tabular-nums;
+  text-align:center;border-radius:2px}
+.timepick .ampm{padding-right:4px}
+.timepick .tcolon{color:var(--turf);font-weight:600}
+.fx .timepick{flex:0 0 auto}
+
 .rows.tight{border-top:none}
 .rows.tight .row{padding:15px 0}
 .rows.tight .rowhead{border-bottom:2px solid var(--ink)}
@@ -670,6 +678,18 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
   .rtable td .cellin{width:100%}
   .rtable td .field.small{width:100%}
   .rtable td .tog{justify-content:flex-start}
+}
+@media (max-width:720px){
+  /* the picker sits on its own line rather than squeezing the title beside it */
+  .fx .timepick{flex:1 1 100%;justify-content:flex-start}
+  /* three wheels plus a label do not fit one 390px line — the label leads,
+     the wheels take the full width beneath it */
+  .tt-row{flex-wrap:wrap;gap:6px}
+  .tt-row > span:first-child{flex:1 1 100%}
+  .tt-row .timepick,.teerow .timepick{flex:1 1 100%}
+  .teerow{flex-wrap:wrap}
+  .timepick{width:100%;max-width:100%}
+  .timepick .tsel{flex:1 1 0;min-width:0}
   /* a band cell is empty for anyone who is not a golfer — hide the label too */
   table.rtable td:empty{display:none}
   .rtable td[data-l=""]{grid-template-columns:1fr;justify-items:start}

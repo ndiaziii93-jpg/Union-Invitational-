@@ -239,9 +239,8 @@ function roundBand(rid, act) {
     <div class="teetimes">
       <div class="tt-head">Tee times — ${esc(r.full)}</div>
       ${cfg.tees.map((t, i) => `<label class="tt-row"><span>Tee Time ${i + 1}</span>
-        ${ed ? `<input class="tt-in num" type="text" value="${esc(t.time ? E.to12(t.time) : '')}" placeholder="Add time"
-            aria-label="${esc(r.short)} tee time ${i + 1}" data-act="setTee" data-a="${rid}" data-b="${i}">`
-             : `<span class="tt-in num read">${esc(t.time ? E.to12(t.time) : '—')}</span>`}</label>`).join('')}
+        ${timePick(t.time, { kind: 'tee', a: rid, b: i, ed, clearable: true,
+          label: r.short + ' tee time ' + (i + 1) })}</label>`).join('')}
     </div>
   </div>`;
 }
@@ -504,8 +503,7 @@ function calDay() {
         ? `<span class="fxtime num">${esc(e.time ? E.to12(e.time) : '—')}</span>
            <span class="fxtitle golf">${esc(e.title)}</span>
            <span class="fxnote">Golf — tee slots below</span>`
-        : `<input class="fxtime num${ed ? ' live' : ''}" type="text" value="${esc(E.to12(e.time))}" aria-label="Time of ${esc(e.title)}"
-             data-act="setEventField" data-a="${e.id}" data-b="time"${ed ? '' : ' disabled'}>
+        : `${timePick(e.time, { kind: 'event', a: e.id, ed, clearable: false, label: 'Time of ' + e.title })}
            <input class="fxtitle${ed ? ' live' : ''}" type="text" value="${esc(e.title)}" aria-label="Title" maxlength="60"
              data-act="setEventField" data-a="${e.id}" data-b="title"${ed ? '' : ' disabled'}>
            ${ed ? `<select class="field small" data-act="setEventField" data-a="${e.id}" data-b="kind" aria-label="Kind of fixture">
@@ -521,8 +519,8 @@ function calDay() {
     ${E.roundCfg(T, r.id).tees.map((tee, i) => `<div class="teegroup">
       <div class="teerow">
         <span class="gl">Group ${i + 1}</span>
-        <input class="tt-in num" type="text" value="${esc(tee.time ? E.to12(tee.time) : '')}" placeholder="Add tee time"
-          aria-label="Group ${i + 1} tee time" data-act="setTee" data-a="${r.id}" data-b="${i}"${ed ? '' : ' disabled'}>
+        ${timePick(tee.time, { kind: 'tee', a: r.id, b: i, ed, clearable: true,
+          label: 'Group ' + (i + 1) + ' tee time' })}
       </div>
       <div class="chiprow" style="margin-top:8px">
         ${E.golfers(T).map(g => `<button class="pchip${tee.players.includes(g.id) ? ' on' : ''}"
@@ -755,6 +753,28 @@ function scrEntry() {
       </div>
     </div>
   </div>`;
+}
+
+/* Typing "7:40 AM" on a phone keyboard is a chore and every mistyping was a
+   silently refused write. Three wheels instead: hour, minute, AM or PM. The
+   stored value stays 24-hour — only the picking is 12-hour. */
+function timePick(time, o) {
+  if (!o.ed) return `<span class="tt-in num read">${esc(time ? E.to12(time) : '—')}</span>`;
+  const m = /^(\d{1,2}):(\d{2})$/.exec(time || '');
+  const h24 = m ? +m[1] : null;
+  const hh = h24 == null ? '' : String(h24 % 12 || 12);
+  const mm = m ? m[2] : '';
+  const ap = h24 == null ? '' : (h24 >= 12 ? 'PM' : 'AM');
+  const opt = (v, l, cur) => `<option value="${v}"${String(cur) === String(v) ? ' selected' : ''}>${l}</option>`;
+  const blank = o.clearable ? opt('', '––', '') : '';
+  const hours = Array.from({ length: 12 }, (_, i) => i + 1).map(x => opt(x, x, hh)).join('');
+  const mins = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0')).map(x => opt(x, x, mm)).join('');
+  return `<span class="timepick" data-tkind="${o.kind}" data-a="${esc(o.a)}" data-b="${esc(o.b == null ? '' : o.b)}">
+    <select class="field small tsel" data-act="setTime" aria-label="${esc(o.label)} — hour">${blank}${hours}</select>
+    <span class="tcolon" aria-hidden="true">:</span>
+    <select class="field small tsel" data-act="setTime" aria-label="${esc(o.label)} — minute">${blank}${mins}</select>
+    <select class="field small tsel ampm" data-act="setTime" aria-label="${esc(o.label)} — AM or PM">${blank}${opt('AM', 'AM', ap)}${opt('PM', 'PM', ap)}</select>
+  </span>`;
 }
 
 function scrRoster() {
@@ -1461,17 +1481,27 @@ function onChange(e) {
     store.writeConfig(c => {
       const e = c.schedule.find(x => x.id === a);
       if (!e) return;
-      if (b === 'time') { const t = E.to24(v); if (t) e.time = t; }
-      else if (b === 'title') { if (v) e.title = v.slice(0, 60); }
+      if (b === 'title') { if (v) e.title = v.slice(0, 60); }
       else e.kind = v;
     });
     render();
-  } else if (act === 'setTee') {
+  } else if (act === 'setTime') {
     if (!canEdit()) return;
-    const v = el.value.trim();
-    const t = v === '' ? null : E.to24(v);
-    if (v !== '' && !t) { el.value = ''; UI.toast = ''; }
-    store.writeConfig(c => { c.rounds[a].tees[+b].time = t; });
+    const box = el.closest('.timepick');
+    if (!box) return;
+    const sel = box.querySelectorAll('select');
+    const h = sel[0].value, mn = sel[1].value, ap = sel[2].value;
+    const whole = h && mn && ap;
+    // Half a time is not a time. Leave a part-made choice on screen rather
+    // than re-rendering it away before the other wheels are turned.
+    if (!whole && (h || mn || ap)) return;
+    const t = whole ? E.to24(h + ':' + mn + ' ' + ap) : null;
+    const { tkind, a: ta, b: tb } = box.dataset;
+    if (tkind === 'tee') store.writeConfig(c => { c.rounds[ta].tees[+tb].time = t; });
+    else if (tkind === 'event' && t) store.writeConfig(c => {
+      const ev = c.schedule.find(x => x.id === ta);
+      if (ev) ev.time = t;
+    });
   } else if (act === 'setPin') {
     if (!canAdmin()) return;
     const v = el.value.replace(/\D/g, '').slice(0, 8);
