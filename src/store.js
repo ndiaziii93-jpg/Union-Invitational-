@@ -106,7 +106,7 @@ export function createStore(onChange) {
   let peopleLoaded = false, pairsLoaded = false, splitDone = false;
   let rosterInDocs = false;     // the roster lives in its own documents
   let peopleSeen = false;       // the people collection has reported at least once
-  const emptySeq = { people: 0, pairs: 0 };  // guards a confirmation against a newer snapshot
+  const emptySeq = { people: 0, pairs: 0, scores: 0, bbb: 0 };  // guards a confirmation against a newer snapshot
   let sawConfig = false;
   let legacy = null;            // a roster still stored as lists inside the config
   let settled = false;          // the first load has resolved; until then, no writes
@@ -231,19 +231,30 @@ export function createStore(onChange) {
       () => { status = 'error'; notify(); }
     ));
     unsubs.push(db.collection('scores').onSnapshot(
-      s => { T.scores = mergeDocs('scores', T.scores, s.docs); notify(); },
+      s => {
+        if (!s.docs.length) { confirmEmpty('scores'); notify(); return; }
+        emptySeq.scores++;
+        T.scores = mergeDocs('scores', T.scores, s.docs);
+        notify();
+      },
       () => { status = 'error'; notify(); }
     ));
     unsubs.push(db.collection('bbb').onSnapshot(
-      s => { T.bbb = mergeDocs('bbb', T.bbb, s.docs); notify(); },
+      s => {
+        if (!s.docs.length) { confirmEmpty('bbb'); notify(); return; }
+        emptySeq.bbb++;
+        T.bbb = mergeDocs('bbb', T.bbb, s.docs);
+        notify();
+      },
       () => { status = 'error'; notify(); }
     ));
     ready = true; notify();
     confirmRoster();
 
-    /* An empty snapshot is not proof the roster is gone — one of those is what
-       emptied the book. It is confirmed with a direct read first, and the
-       roster is cleared only if the collection really does have nothing in it.
+    /* An empty snapshot is not proof anything is gone — one of those is what
+       emptied the book, and on a fresh load it takes the scores off a phone
+       whose cards were all put in by somebody else. It is confirmed with a
+       direct read first, and cleared only if the collection really is empty.
        A newer snapshot arriving meanwhile wins, so a stale confirmation can
        never undo it. */
     async function confirmEmpty(coll) {
@@ -251,6 +262,8 @@ export function createStore(onChange) {
       try {
         const have = await db.collection(coll).get();
         if (seq !== emptySeq[coll]) return;
+        if (coll === 'scores') { T.scores = mergeDocs('scores', T.scores, have.docs); notify(); return; }
+        if (coll === 'bbb') { T.bbb = mergeDocs('bbb', T.bbb, have.docs); notify(); return; }
         if (coll === 'people') {
           if (have.docs.length) peopleLoaded = true;
           T.config.people = takeRows('people', have.docs, T.config.people).map(normPerson).sort(byOrder);

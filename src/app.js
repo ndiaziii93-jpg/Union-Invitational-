@@ -536,6 +536,33 @@ function calDay() {
    Saving confirms with a PIN and only then writes to the shared card, so a
    card only ever holds scores somebody signed off. */
 
+/* A hole part-entered when a phone locks, a tab is dropped, or somebody
+   wanders out of signal must still be there when they come back. The draft is
+   kept on the device beside the book, and cleared the moment it is saved or
+   discarded. It is never shared — nobody else should see a half-made hole. */
+const DRAFT_KEY = 'union-invitational:draft';
+let draftOnDisk = '';
+function persistDraft() {
+  const raw = UI.draft && draftDirty() ? JSON.stringify(UI.draft) : '';
+  if (raw === draftOnDisk) return;
+  draftOnDisk = raw;
+  try {
+    if (raw) localStorage.setItem(DRAFT_KEY, raw);
+    else localStorage.removeItem(DRAFT_KEY);
+  } catch (e) { /* storage blocked: the hole simply is not carried over */ }
+}
+function restoreDraft() {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    if (!d || typeof d.rid !== 'string' || typeof d.hole !== 'number') return;
+    if (!d.strokes || !d.bbb) return;
+    UI.draft = d; draftOnDisk = raw;
+    UI.entryRound = d.rid; UI.entryHole = d.hole;   // come back to the hole they were on
+  } catch (e) { /* nothing carried over */ }
+}
+
 function draftFor(rid, h) {
   if (!UI.draft || UI.draft.rid !== rid || UI.draft.hole !== h) UI.draft = { rid, hole: h, strokes: {}, bbb: {} };
   return UI.draft;
@@ -579,9 +606,11 @@ function commitDraft(role) {
   UI.draft = null;
 }
 
-/** Run `proceed`, unless the current hole has unsaved entries — then ask. */
+/** Run `proceed`, unless the current hole has unsaved entries — then ask.
+ *  Only ever asks on the way OUT of score entry: walking towards the hole,
+ *  or reopening the book on it, is not leaving anything behind. */
 function guardDraft(proceed) {
-  if (!draftDirty()) { proceed(); render(); return; }
+  if (!draftDirty() || UI.screen !== 'entry') { proceed(); render(); return; }
   const n = UI.draft.hole + 1;
   UI.modal = {
     kind: 'confirm',
@@ -1105,6 +1134,8 @@ function render() {
   else if (UI.modal && UI.modal.kind === 'add') { const i = document.getElementById('addName'); if (i) i.focus(); }
   else restoreFocus(focused);
 
+  persistDraft();
+
   if (UI.reveal) {
     const want = UI.reveal; UI.reveal = null;
     const el = document.querySelector(`[data-reveal="${want}"]`);
@@ -1259,6 +1290,16 @@ function onClick(e) {
 
   switch (act) {
     case 'go':
+      if (a === 'entry') {     // going to the hole, not away from it
+        if (UI.screen === 'courses') relockCards();
+        UI.screen = a; UI.modal = null; window.scrollTo(0, 0);
+        if (!UI.entrySeen) {
+          UI.entrySeen = true;
+          if (E.setupIssues(T).some(i => SETUP_SCOPES.entry.only.includes(i.id))) UI.modal = { kind: 'setup', scope: 'entry' };
+        }
+        render();
+        return;
+      }
       guardDraft(() => {
         if (UI.screen === 'courses' && a !== 'courses') relockCards();
         UI.screen = a; UI.modal = null; window.scrollTo(0, 0);
@@ -1569,6 +1610,7 @@ export function boot() {
   const upcoming = D.ROUNDS.find(r => E.dayOf(r.dayIdx).iso >= now.iso) || D.ROUNDS[D.ROUNDS.length - 1];
   UI.entryRound = upcoming.id;
   UI.boardRound = (upcoming.counts ? upcoming : D.ROUNDS.find(r => r.counts)).id;
+  restoreDraft();          // a hole left part-entered last time comes back with them
 
   store = S.createStore((state, m) => {
     T = state; meta = m;
