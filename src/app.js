@@ -19,6 +19,7 @@ let now = E.nowLocal();
 const UI = {
   screen: 'today',
   reveal: null,          // something just added: scroll to it once it is drawn
+  timePick: {},          // a time being chosen, wheel by wheel, held here not in the DOM
   role: 'viewer',
   boardTab: 'pairs',
   boardRound: 'r1',
@@ -801,22 +802,28 @@ function scrEntry() {
 /* Typing "7:40 AM" on a phone keyboard is a chore and every mistyping was a
    silently refused write. Three wheels instead: hour, minute, AM or PM. The
    stored value stays 24-hour — only the picking is 12-hour. */
+function timeKey(o) { return o.kind + ':' + o.a + ':' + (o.b == null ? '' : o.b); }
 function timePick(time, o) {
   if (!o.ed) return `<span class="tt-in num read">${esc(time ? E.to12(time) : '—')}</span>`;
   const m = /^(\d{1,2}):(\d{2})$/.exec(time || '');
   const h24 = m ? +m[1] : null;
-  const hh = h24 == null ? '' : String(h24 % 12 || 12);
-  const mm = m ? m[2] : '';
-  const ap = h24 == null ? '' : (h24 >= 12 ? 'PM' : 'AM');
+  /* What is on the wheels comes from state, never from the last render's DOM.
+     Reading it back out of three <select> elements meant that any redraw
+     between the pick and the save handed back the stored time again — a write
+     of no change, which is exactly a time that undoes itself. */
+  const held = UI.timePick[timeKey(o)];
+  const hh = held ? held.h : h24 == null ? '' : String(h24 % 12 || 12);
+  const mm = held ? held.m : m ? m[2] : '';
+  const ap = held ? held.ap : h24 == null ? '' : (h24 >= 12 ? 'PM' : 'AM');
   const opt = (v, l, cur) => `<option value="${v}"${String(cur) === String(v) ? ' selected' : ''}>${l}</option>`;
   const blank = o.clearable ? opt('', '––', '') : '';
   const hours = Array.from({ length: 12 }, (_, i) => i + 1).map(x => opt(x, x, hh)).join('');
   const mins = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0')).map(x => opt(x, x, mm)).join('');
-  return `<span class="timepick" data-tkind="${o.kind}" data-a="${esc(o.a)}" data-b="${esc(o.b == null ? '' : o.b)}">
-    <select class="field small tsel" data-act="setTime" aria-label="${esc(o.label)} — hour">${blank}${hours}</select>
+  return `<span class="timepick" data-tkind="${o.kind}" data-a="${esc(o.a)}" data-b="${esc(o.b == null ? '' : o.b)}" data-key="${esc(timeKey(o))}">
+    <select class="field small tsel" data-act="setTime" data-part="h" aria-label="${esc(o.label)} — hour">${blank}${hours}</select>
     <span class="tcolon" aria-hidden="true">:</span>
-    <select class="field small tsel" data-act="setTime" aria-label="${esc(o.label)} — minute">${blank}${mins}</select>
-    <select class="field small tsel ampm" data-act="setTime" aria-label="${esc(o.label)} — AM or PM">${blank}${opt('AM', 'AM', ap)}${opt('PM', 'PM', ap)}</select>
+    <select class="field small tsel" data-act="setTime" data-part="m" aria-label="${esc(o.label)} — minute">${blank}${mins}</select>
+    <select class="field small tsel ampm" data-act="setTime" data-part="ap" aria-label="${esc(o.label)} — AM or PM">${blank}${opt('AM', 'AM', ap)}${opt('PM', 'PM', ap)}</select>
   </span>`;
 }
 
@@ -1332,6 +1339,7 @@ function onClick(e) {
   if (!el) return;
   const { act, a, b } = el.dataset;
   if (el.tagName === 'SELECT' || el.tagName === 'INPUT') return;
+  if (store && store.note) store.note('tap', act + ' a=' + (a || '') + ' b=' + (b || ''));
   const rid = UI.entryRound;
 
   switch (act) {
@@ -1442,7 +1450,11 @@ function onClick(e) {
 
     case 'openRound':
       askPin('Open ' + E.roundDef(a).short + ' for scoring', 'Confirm with your PIN. Both scorers can then write to this card.', 'Open round',
-        role => { setRound(a, { state: 'open', openedBy: role }); UI.entryRound = a; UI.screen = 'entry'; });
+        role => {
+          if (store.note) store.note('openRound', a + ' was ' + (T.config.rounds[a] || {}).state);
+          setRound(a, { state: 'open', openedBy: role });
+          UI.entryRound = a; UI.screen = 'entry';
+        });
       return;
     case 'lockRound':
       if (draftDirty()) { guardDraft(() => {}); return; }
@@ -1552,6 +1564,7 @@ function onChange(e) {
   if (!el) return;
   const { act, a, b } = el.dataset;
   const rid = UI.entryRound;
+  if (store && store.note) store.note('change', act + ' a=' + (a || '') + ' b=' + (b || '') + ' v=' + el.value);
   const editable = canEdit() && E.roundCfg(T, rid).state === 'open';
 
   if (act === 'setBbb') {
@@ -1576,15 +1589,26 @@ function onChange(e) {
     if (!canEdit()) return;
     const box = el.closest('.timepick');
     if (!box) return;
+    const key = box.dataset.key;
     const sel = box.querySelectorAll('select');
-    const h = sel[0].value, mn = sel[1].value, ap = sel[2].value;
+    const held = UI.timePick[key] || { h: sel[0].value, m: sel[1].value, ap: sel[2].value };
+    held[el.dataset.part] = el.value;               // only the wheel that moved
+    UI.timePick[key] = held;
+    const h = held.h, mn = held.m, ap = held.ap;
     const whole = h && mn && ap;
+    if (store && store.note) store.note('setTime',
+      box.dataset.tkind + ' a=' + box.dataset.a + ' b=' + box.dataset.b + ' -> ' + h + ':' + mn + ' ' + ap);
     // Half a time is not a time. Leave a part-made choice on screen rather
     // than re-rendering it away before the other wheels are turned.
     if (!whole && (h || mn || ap)) return;
     const t = whole ? E.to24(h + ':' + mn + ' ' + ap) : null;
+    delete UI.timePick[key];                        // stored now: read it from the book again
     const { tkind, a: ta, b: tb } = box.dataset;
-    if (tkind === 'tee') store.writeConfig(c => { c.rounds[ta].tees[+tb].time = t; });
+    if (tkind === 'tee') store.writeConfig(c => {
+      const round = c.rounds[ta];
+      store.note('tee set', ta + '[' + tb + '] ' + (round ? 'was ' + round.tees[+tb].time : 'NO SUCH ROUND') + ' -> ' + t);
+      if (round && round.tees[+tb]) round.tees[+tb].time = t;
+    });
     else if (tkind === 'event' && t) store.writeConfig(c => {
       const ev = c.schedule.find(x => x.id === ta);
       if (ev) ev.time = t;

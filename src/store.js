@@ -712,7 +712,7 @@ export function createStore(onChange) {
     } catch (e) { status = 'error'; notify(); }
   }
 
-  return { T, connect, writeConfig, writeCard, writeBbb, resetAll, resave,
+  return { T, connect, writeConfig, writeCard, writeBbb, resetAll, resave, note,
            writePerson, writeAllPeople, addPerson, removePerson,
            writePair, addPair, removePair, movePlayer, movePairBy,
            get mode() { return mode; }, get status() { return status; }, get ready() { return ready; },
