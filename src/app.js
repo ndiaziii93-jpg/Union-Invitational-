@@ -1141,6 +1141,16 @@ document.addEventListener('blur', () => setTimeout(flushRender, 0), true);
 document.addEventListener('change', () => setTimeout(flushRender, 0), true);
 
 function render() {
+  try { paint(); }
+  catch (err) {
+    // The screen is the least of it: a throw here used to abort whatever write
+    // was in flight. Record it, and let the save carry on.
+    if (store && store.note) store.note('RENDER FAILED', String((err && (err.stack || err.message)) || err).slice(0, 220));
+    else throw err;
+  }
+}
+
+function paint() {
   if (inUse()) { renderPending = true; return; }
   renderPending = false;
   const app = document.getElementById('app');
@@ -1691,6 +1701,17 @@ function onKey(e) {
 /* ---------------- boot ---------------- */
 
 export function boot() {
+  /* A write that dies inside the redraw took the whole save with it and said
+     nothing — the log showed the tap, then simply no write. Anything that
+     throws now names itself, with the line it came from. */
+  window.addEventListener('error', e => {
+    if (store && store.note) store.note('JS ERROR', (e.message || '') + ' @' + (e.lineno || '?') + ':' + (e.colno || '?'));
+  });
+  window.addEventListener('unhandledrejection', e => {
+    const r = e.reason;
+    if (store && store.note) store.note('REJECTED', String((r && (r.stack || r.message)) || r).slice(0, 200));
+  });
+
   // open the book at the round nearest to today
   const upcoming = D.ROUNDS.find(r => E.dayOf(r.dayIdx).iso >= now.iso) || D.ROUNDS[D.ROUNDS.length - 1];
   UI.entryRound = upcoming.id;
