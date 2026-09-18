@@ -134,6 +134,25 @@ function toParPair(T, roundId, pair) {
   for (let h = 0; h < 18; h++) { const s = pairHole(T, roundId, pair, h); if (s != null) { tp += s - holes[h].par; thru = h + 1; } }
   return { tp, thru };
 }
+/* One group per pairing, in the order the pairings are in. The tee slots that
+   used to define them were a fixed three, which had nothing to do with how
+   many pairs were out. A slot keeps the time; the pairing decides who is in
+   it. With no pairings yet, the stored slots still stand in. */
+export function groups(T, rid) {
+  const cfg = roundCfg(T, rid);
+  const tees = cfg.tees || [];
+  const pairs = (T.config.pairs || []).slice().sort((a, b) => (a.order || 0) - (b.order || 0));
+  if (!pairs.length) {
+    return tees.map((t, i) => ({ id: 't' + i, label: 'Group ' + (i + 1), members: t.players || [], time: t.time || null }));
+  }
+  return pairs.map((p, i) => ({
+    id: p.id,
+    label: pairName(T, p),
+    members: (p.members || []).filter(id => person(T, id)),
+    time: (tees[i] || {}).time || null,
+  }));
+}
+
 /* The practice day is its own thing: it feeds nothing, and every board that
    counts walks countingRounds(), which leaves it out. This is the one place
    it is added up, so Tuesday can have a winner of its own. */

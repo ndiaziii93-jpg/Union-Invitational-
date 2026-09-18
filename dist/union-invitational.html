@@ -760,6 +760,8 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
 .sqcell .sqlabel{font-size:14px;color:var(--turf)}
 .sqcell.uk .sqlabel,.sqcell.usa .sqlabel{color:var(--ink);font-weight:600}
 
+.gmem{font-size:14px;color:var(--turf);margin-top:6px}
+
 </style>
 <div id="app"></div>
 <script>
@@ -781,7 +783,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20260918-2038';
+const BUILD = '20260918-2206';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -1101,6 +1103,25 @@ function toParPair(T, roundId, pair) {
   for (let h = 0; h < 18; h++) { const s = pairHole(T, roundId, pair, h); if (s != null) { tp += s - holes[h].par; thru = h + 1; } }
   return { tp, thru };
 }
+/* One group per pairing, in the order the pairings are in. The tee slots that
+   used to define them were a fixed three, which had nothing to do with how
+   many pairs were out. A slot keeps the time; the pairing decides who is in
+   it. With no pairings yet, the stored slots still stand in. */
+function groups(T, rid) {
+  const cfg = roundCfg(T, rid);
+  const tees = cfg.tees || [];
+  const pairs = (T.config.pairs || []).slice().sort((a, b) => (a.order || 0) - (b.order || 0));
+  if (!pairs.length) {
+    return tees.map((t, i) => ({ id: 't' + i, label: 'Group ' + (i + 1), members: t.players || [], time: t.time || null }));
+  }
+  return pairs.map((p, i) => ({
+    id: p.id,
+    label: pairName(T, p),
+    members: (p.members || []).filter(id => person(T, id)),
+    time: (tees[i] || {}).time || null,
+  }));
+}
+
 /* The practice day is its own thing: it feeds nothing, and every board that
    counts walks countingRounds(), which leaves it out. This is the one place
    it is added up, so Tuesday can have a winner of its own. */
@@ -1402,7 +1423,7 @@ function roundToPar(T, roundId, pid) {
   return { tp, thru };
 }
 
-return {nowLocal, dayOf, hhmmToMin, to12, to24, BANDS, strokesFor, bandTotal, fmtToPar, capFor, capped, person, golfers, roundDef, roundCfg, courseByKey, courseOf, scoreKey, card, pairName, phaseOf, phaseLabel, hasScores, countingRounds, playerNet, pairHole, practiceBoard, practiceBbb, bandsLocked, pairsBoard, mvpBoard, bbbBoard, matchPlay, ryderData, holeCells, setupIssues, nextTee, fixtures, nextFixture, TEE_CHOICES, TEE_PRIV, teePrivilege, roundToPar};
+return {nowLocal, dayOf, hhmmToMin, to12, to24, BANDS, strokesFor, bandTotal, fmtToPar, capFor, capped, person, golfers, roundDef, roundCfg, courseByKey, courseOf, scoreKey, card, pairName, phaseOf, phaseLabel, hasScores, countingRounds, playerNet, pairHole, groups, practiceBoard, practiceBbb, bandsLocked, pairsBoard, mvpBoard, bbbBoard, matchPlay, ryderData, holeCells, setupIssues, nextTee, fixtures, nextFixture, TEE_CHOICES, TEE_PRIV, teePrivilege, roundToPar};
 })();
 
 const __m_store = (function(){
@@ -2384,9 +2405,9 @@ function roundBand(rid, act) {
     </div>
     <div class="teetimes">
       <div class="tt-head">Tee times — ${esc(r.full)}</div>
-      ${cfg.tees.map((t, i) => `<label class="tt-row"><span>Tee Time ${i + 1}</span>
-        ${timePick(t.time, { kind: 'tee', a: rid, b: i, ed, clearable: true,
-          label: r.short + ' tee time ' + (i + 1) })}</label>`).join('')}
+      ${E.groups(T, rid).map((g, i) => `<label class="tt-row"><span>${esc(g.label)}</span>
+        ${timePick(g.time, { kind: 'tee', a: rid, b: i, ed, clearable: true,
+          label: r.short + ' — ' + g.label + ' tee time' })}</label>`).join('')}
     </div>
   </div>`;
 }
@@ -2714,17 +2735,17 @@ function calDay() {
 
   ${r ? `<div class="teeblock">
     <h3 class="sub" style="margin-top:30px">Tee times — ${esc(E.courseOf(T, r.id).name)}</h3>
-    ${E.roundCfg(T, r.id).tees.map((tee, i) => `<div class="teegroup">
+    <p class="lede">One group per pairing, in the order they sit on Roster &amp; Pairings. Change the pairings and the
+    groups follow.</p>
+    ${E.groups(T, r.id).map((g, i) => `<div class="teegroup">
       <div class="teerow">
-        <span class="gl">Group ${i + 1}</span>
-        ${timePick(tee.time, { kind: 'tee', a: r.id, b: i, ed, clearable: true,
-          label: 'Group ' + (i + 1) + ' tee time' })}
+        <span class="gl">${esc(g.label)}</span>
+        ${timePick(g.time, { kind: 'tee', a: r.id, b: i, ed, clearable: true,
+          label: g.label + ' tee time' })}
       </div>
-      <div class="chiprow" style="margin-top:8px">
-        ${E.golfers(T).map(g => `<button class="pchip${tee.players.includes(g.id) ? ' on' : ''}"
-          data-act="teePlayer" data-a="${r.id}" data-b="${i}" data-c="${g.id}"${ed ? '' : ' disabled'}
-          aria-pressed="${tee.players.includes(g.id)}">${esc(g.display)}</button>`).join('')}
-      </div>
+      <div class="gmem">${g.members.length
+        ? g.members.map(id => esc((E.person(T, id) || {}).display || '?')).join(' · ')
+        : 'Nobody paired yet'}</div>
     </div>`).join('')}
   </div>` : ''}`;
 }
@@ -2822,18 +2843,6 @@ function guardDraft(proceed) {
   render();
 }
 
-/* The pairings are the one place anything is designated. A tee group that
-   nobody has set by hand simply follows them — four to a group, in pair
-   order — so there is nothing to keep in step and nothing to forget. Set tee
-   players by hand under Course Setup and that wins for the round. */
-function teeGroup(cfg, slot) {
-  const byHand = cfg.tees.some(t => (t.players || []).length);
-  if (byHand) return (cfg.tees[slot] || {}).players || [];
-  const paired = T.config.pairs.flatMap(pr => pr.members).filter(id => E.person(T, id));
-  const n = cfg.tees.length || 1;
-  return paired.filter((_, i) => Math.min(Math.floor(i / 4), n - 1) === slot);
-}
-
 function scrEntry() {
   const rid = UI.entryRound;
   const r = E.roundDef(rid);
@@ -2849,8 +2858,9 @@ function scrEntry() {
   const saved = holeSavedBy(rid, h);
   const ed = canEdit();
 
-  const slot = UI.entryTee === 'all' ? 0 : +UI.entryTee;
-  const slotPlayers = teeGroup(cfg, slot);
+  const groups = E.groups(T, rid);
+  const slot = Math.min(UI.entryTee === 'all' ? 0 : +UI.entryTee, Math.max(groups.length - 1, 0));
+  const slotPlayers = (groups[slot] || {}).members || [];
   const usingAll = slotPlayers.length === 0;
   const list = usingAll ? E.golfers(T) : E.golfers(T).filter(g => slotPlayers.includes(g.id));
 
@@ -2934,7 +2944,7 @@ function scrEntry() {
     </div>
     <div class="grouprow">
       <span class="gl">Group</span>
-      ${cfg.tees.map((t, i) => `<button class="gchip${slot === i ? ' on' : ''}" data-act="entryTee" data-a="${i}">Group ${i + 1}${t.time ? ' — ' + E.to12(t.time) : ''}</button>`).join('')}
+      ${groups.map((g, i) => `<button class="gchip${slot === i ? ' on' : ''}" data-act="entryTee" data-a="${i}">${esc(g.label)}${g.time ? ' — ' + E.to12(g.time) : ''}</button>`).join('')}
       ${usingAll ? `<span class="gnote">Tee groups follow the pairings, and none are made yet — so every golfer is
         listed. Pair them up under Roster &amp; Pairings and the groups fill themselves.</span>` : ''}
     </div>
@@ -3613,14 +3623,6 @@ function onClick(e) {
       if (!canEdit()) return;
       store.writeConfig(c => { c.schedule = c.schedule.filter(e => e.id !== a); });
       return;
-    case 'teePlayer':
-      if (!canEdit()) return;
-      store.writeConfig(c => {
-        const tee = c.rounds[a].tees[+b];
-        const i = tee.players.indexOf(el.dataset.c);
-        if (i >= 0) tee.players.splice(i, 1); else tee.players.push(el.dataset.c);
-      });
-      return;
     case 'addPair': {
       if (!canEdit()) return;
       // A new pair lands at the end of a long page — off the bottom on a
@@ -3843,8 +3845,11 @@ function onChange(e) {
     const { tkind, a: ta, b: tb } = box.dataset;
     if (tkind === 'tee') store.writeConfig(c => {
       const round = c.rounds[ta];
-      store.note('tee set', ta + '[' + tb + '] ' + (round ? 'was ' + round.tees[+tb].time : 'NO SUCH ROUND') + ' -> ' + t);
-      if (round && round.tees[+tb]) round.tees[+tb].time = t;
+      if (!round) { store.note('tee set', 'NO SUCH ROUND ' + ta); return; }
+      // there can be more pairings than the three slots the book shipped with
+      while (round.tees.length <= +tb) round.tees.push({ time: null, players: [] });
+      store.note('tee set', ta + '[' + tb + '] was ' + round.tees[+tb].time + ' -> ' + t);
+      round.tees[+tb].time = t;
     });
     else if (tkind === 'event' && t) store.writeConfig(c => {
       const ev = c.schedule.find(x => x.id === ta);

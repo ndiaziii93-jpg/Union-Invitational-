@@ -152,6 +152,16 @@ for (const [name, viewport, touch, dpr] of DEVICES) {
       await p.locator('.btab', { hasText: 'Practice Day' }).click(); await p.waitForTimeout(600); await dismiss();
       if (await p.locator('.rows .row').count() === 0) bad.push('Practice Day shows nothing');
     }
+    // 3f. one group per pairing, in pairing order
+    await tab('Roster');
+    const pairNames = await p.locator('.paircol:not(.un) .pname').evaluateAll(
+      els => els.map(e => (e.value || e.textContent || '').trim()));
+    await tab('Score Entry');
+    const chips = await p.locator('.gchip').allInnerTexts();
+    if (chips.length !== pairNames.length) {
+      bad.push(pairNames.length + ' pairings but ' + chips.length + ' groups');
+    }
+
     // 3e. and a golfer can be put in the 30 band
     await tab('Roster');
     const bands = await p.locator('.rtable tbody tr').first().locator('[data-act="setBand"]').allInnerTexts();
