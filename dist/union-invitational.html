@@ -703,29 +703,50 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
 /* Score Entry: the round picker, and beside it the hole being played —
    the same panel Course Setup uses, so the diagram and its numbers read
    identically in both places. */
-.entrytop{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:32px;align-items:stretch;margin-top:16px}
-/* everything that belongs to the round stacks in one column, and spreads to
-   the full height of the diagram beside it — so a bigger diagram widens the
-   spacing between the controls rather than leaving bare paper at the ends */
-.entryleft{display:flex;flex-direction:column;justify-content:space-between;gap:18px;min-width:0}
+.entrytop{display:grid;grid-template-columns:minmax(0,1fr) 420px;gap:32px;align-items:start;margin-top:16px}
+/* One rhythm down the whole screen: the same 16px that sits between the
+   standfirst and the round buttons separates every block under them. Nothing
+   is spread to fill a taller neighbour — that is what opened a hole in the
+   middle of the column. */
+.entryleft{display:flex;flex-direction:column;gap:16px;min-width:0}
 .entrytop .rcards{margin-top:0;align-content:start}
 .entrytop .rcards .note-it,.entrytop .rcards .note-red{grid-column:1/-1;margin:0}
 .entrytop .grouprow{margin-top:0}
-.entrytop .cside{flex:none;max-width:none;align-self:center}
+/* front nine over back nine, the way a card reads — and it fills the column
+   beside the diagram instead of leaving it bare */
+.entrytop .scroller{margin-top:0;overflow-x:visible}
+.entrytop .hstrip{grid-template-columns:repeat(9,minmax(0,1fr));min-width:0;gap:4px}
+/* taller cells fill the column beside the diagram, and are a better thing to
+   hit with a thumb halfway down a fairway */
+.entrytop .hstrip .hcell{min-height:74px}
+.entrytop .cside{flex:none;max-width:none;align-self:start}
 /* the diagrams are tall portraits, so they are bounded — otherwise one sets
    the height of the whole screen. Same treatment as Course Setup. */
-.entrytop .cside>img{width:auto;max-width:100%;max-height:250px;margin:0 auto}
+.entrytop .cside>img{width:auto;max-width:100%;max-height:500px;margin:0 auto}
 
 @media (max-width:900px){
   /* on a phone the hole leads, then the round picker under it */
   .entrytop{grid-template-columns:1fr;gap:18px}
   .entrytop .cside{order:-1}
+  /* a phone scrolls: too tall a diagram pushes the scoring off the screen,
+     so it keeps the size it had while the desktop gets the big one */
   .entrytop .cside>img{max-height:340px}
   .entryleft{gap:14px}
 }
 }
 
 .statusbar .build{font-size:12px;color:var(--turf);opacity:.75;letter-spacing:.04em}
+
+.gnote{max-width:52ch;line-height:1.5}
+.lnk{background:none;border:0;padding:0;font:inherit;color:var(--flag);text-decoration:underline;
+  text-underline-offset:3px;cursor:pointer;min-height:44px}
+.lnk:hover{color:var(--ink)}
+
+/* the roster's squad cell: the same flag button the Ryder Cup uses */
+.sqcell{display:inline-flex;align-items:center;gap:10px}
+.sqcell .sqbox{min-height:44px;min-width:44px}
+.sqcell .sqlabel{font-size:14px;color:var(--turf)}
+.sqcell.uk .sqlabel,.sqcell.usa .sqlabel{color:var(--ink);font-weight:600}
 
 </style>
 <div id="app"></div>
@@ -748,7 +769,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20260918-1742';
+const BUILD = '20260918-1840';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -2699,6 +2720,18 @@ function guardDraft(proceed) {
   render();
 }
 
+/* The pairings are the one place anything is designated. A tee group that
+   nobody has set by hand simply follows them — four to a group, in pair
+   order — so there is nothing to keep in step and nothing to forget. Set tee
+   players by hand under Course Setup and that wins for the round. */
+function teeGroup(cfg, slot) {
+  const byHand = cfg.tees.some(t => (t.players || []).length);
+  if (byHand) return (cfg.tees[slot] || {}).players || [];
+  const paired = T.config.pairs.flatMap(pr => pr.members).filter(id => E.person(T, id));
+  const n = cfg.tees.length || 1;
+  return paired.filter((_, i) => Math.min(Math.floor(i / 4), n - 1) === slot);
+}
+
 function scrEntry() {
   const rid = UI.entryRound;
   const r = E.roundDef(rid);
@@ -2715,7 +2748,7 @@ function scrEntry() {
   const ed = canEdit();
 
   const slot = UI.entryTee === 'all' ? 0 : +UI.entryTee;
-  const slotPlayers = (cfg.tees[slot] || {}).players || [];
+  const slotPlayers = teeGroup(cfg, slot);
   const usingAll = slotPlayers.length === 0;
   const list = usingAll ? E.golfers(T) : E.golfers(T).filter(g => slotPlayers.includes(g.id));
 
@@ -2800,8 +2833,16 @@ function scrEntry() {
     <div class="grouprow">
       <span class="gl">Group</span>
       ${cfg.tees.map((t, i) => `<button class="gchip${slot === i ? ' on' : ''}" data-act="entryTee" data-a="${i}">Group ${i + 1}${t.time ? ' — ' + E.to12(t.time) : ''}</button>`).join('')}
-      ${usingAll ? `<span class="gnote">No group assigned yet — showing all golfers.</span>` : ''}
+      ${usingAll ? `<span class="gnote">Tee groups follow the pairings, and none are made yet — so every golfer is
+        listed. Pair them up under Roster &amp; Pairings and the groups fill themselves.</span>` : ''}
     </div>
+    ${/* round, then group, then hole: every choice about where you are
+          standing sits together, beside the picture of it */ ''}
+    <div class="scroller nos"><div class="hstrip">
+      ${course.holes.map((x, i) => `<button class="hcell${i === h ? ' on' : ''}${holeSavedBy(rid, i) ? ' saved' : ''}"
+        data-act="entryHole" data-a="${i}" aria-label="Hole ${x.n}, par ${x.par}">
+        <span class="n num">${x.n}</span><span class="p num">par ${x.par}</span></button>`).join('')}
+    </div></div>
    </div>
     ${/* the hole they are standing on, drawn exactly as Course Setup draws it,
           minus its hole strip — here the card decides which hole this is */ ''}
@@ -2817,12 +2858,6 @@ function scrEntry() {
   </div>
 
   ${gate}${saveBar}
-
-  <div class="scroller nos"><div class="hstrip">
-    ${course.holes.map((x, i) => `<button class="hcell${i === h ? ' on' : ''}${holeSavedBy(rid, i) ? ' saved' : ''}"
-      data-act="entryHole" data-a="${i}" aria-label="Hole ${x.n}, par ${x.par}">
-      <span class="n num">${x.n}</span><span class="p num">par ${x.par}</span></button>`).join('')}
-  </div></div>
 
   <div class="holehead">
     <h3 class="num">Hole ${hole.n}</h3>
@@ -2971,10 +3006,15 @@ function scrRoster() {
           <td data-l="Role">${ed ? `<select class="field small" data-act="setPerson" data-a="${p.id}" data-b="role" aria-label="Role">
                 ${[['golfer', 'Golfer'], ['official', 'Official'], ['spectator', 'Spectator']].map(([v, l]) =>
                   `<option value="${v}"${p.role === v ? ' selected' : ''}>${l}</option>`).join('')}</select>` : esc(p.role)}</td>
-          <td data-l="Squad"><div class="tog">
-            ${['UK', 'USA'].map(sq => `<button class="tbtn${p.location === sq ? ' on' : ''}" data-act="setLoc"
-              data-a="${p.id}" data-b="${sq}"${ed ? '' : ' disabled'} aria-pressed="${p.location === sq}">${sq}</button>`).join('')}
-          </div></td>
+          <td data-l="Squad">${(() => {
+            const sq = p.location || null;
+            const next = sq === null ? 'United States' : sq === 'USA' ? 'United Kingdom' : 'unassigned';
+            return `<span class="sqcell ${sq === 'UK' ? 'uk' : sq === 'USA' ? 'usa' : 'none'}">
+              <button class="sqbox" data-act="cycleSquad" data-a="${p.id}"${ed ? '' : ' disabled'}
+                aria-label="${esc(p.display)} — ${sq ? esc(sq) : 'unassigned'}. Change to ${esc(next)}."
+                title="Change to ${esc(next)}">${squadFlag(sq, 34)}</button>
+              <span class="sqlabel">${sq ? esc(sq) : 'Unassigned'}</span></span>`;
+          })()}</td>
           <td data-l="Group">${ed ? `<select class="field small" data-act="setPerson" data-a="${p.id}" data-b="group" aria-label="Group">
                 ${['7-day', '5-day'].map(v => `<option value="${v}"${p.group === v ? ' selected' : ''}>${v}</option>`).join('')}</select>` : esc(p.group)}</td>
           <td data-l="Band">${p.role === 'golfer' ? `<div class="tog">
@@ -3484,10 +3524,6 @@ function onClick(e) {
     case 'saveRoster':
       if (!canEdit()) return;
       store.resave();
-      return;
-    case 'setLoc':
-      if (!canEdit()) return;
-      store.writePerson(a, p => { p.location = p.location === b ? null : b; });
       return;
     case 'courseTab':
       if (a !== UI.courseTab) relockCards();

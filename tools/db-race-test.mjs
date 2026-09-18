@@ -105,12 +105,16 @@ await p.locator('.rtable tbody tr').first().locator('[data-act="setBand"]').firs
 await p.waitForTimeout(1400);
 ok('roster: band 15 sticks', await p.locator('.rtable tbody tr').first().locator('.tbtn.on').innerText(), '15');
 
-// a squad sticks, and tapping the same squad again clears it
-const uk = () => p.locator('.rtable tbody tr').nth(2).locator('[data-act="setLoc"]').first();
-await uk().click(); await p.waitForTimeout(1400);
-ok('roster: UK sticks', await uk().getAttribute('aria-pressed'), 'true');
-await uk().click(); await p.waitForTimeout(1400);
-ok('roster: tapping UK again clears it', await uk().getAttribute('aria-pressed'), 'false');
+// a squad sticks, and cycles round to unassigned again
+const row = () => p.locator('.rtable tbody tr').nth(2);
+const flag = () => row().locator('[data-act="cycleSquad"]');
+const squad = () => row().locator('.sqlabel').innerText();
+await flag().click(); await p.waitForTimeout(1400);
+ok('roster: first tap is USA', await squad(), 'USA');
+await flag().click(); await p.waitForTimeout(1400);
+ok('roster: second tap is UK', await squad(), 'UK');
+await flag().click(); await p.waitForTimeout(1400);
+ok('roster: third tap clears it', await squad(), 'Unassigned');
 
 // a new person is named by hand
 await p.locator('[data-act="addPerson"]').first().click(); await p.waitForTimeout(300);

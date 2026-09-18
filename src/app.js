@@ -625,6 +625,18 @@ function guardDraft(proceed) {
   render();
 }
 
+/* The pairings are the one place anything is designated. A tee group that
+   nobody has set by hand simply follows them — four to a group, in pair
+   order — so there is nothing to keep in step and nothing to forget. Set tee
+   players by hand under Course Setup and that wins for the round. */
+function teeGroup(cfg, slot) {
+  const byHand = cfg.tees.some(t => (t.players || []).length);
+  if (byHand) return (cfg.tees[slot] || {}).players || [];
+  const paired = T.config.pairs.flatMap(pr => pr.members).filter(id => E.person(T, id));
+  const n = cfg.tees.length || 1;
+  return paired.filter((_, i) => Math.min(Math.floor(i / 4), n - 1) === slot);
+}
+
 function scrEntry() {
   const rid = UI.entryRound;
   const r = E.roundDef(rid);
@@ -641,7 +653,7 @@ function scrEntry() {
   const ed = canEdit();
 
   const slot = UI.entryTee === 'all' ? 0 : +UI.entryTee;
-  const slotPlayers = (cfg.tees[slot] || {}).players || [];
+  const slotPlayers = teeGroup(cfg, slot);
   const usingAll = slotPlayers.length === 0;
   const list = usingAll ? E.golfers(T) : E.golfers(T).filter(g => slotPlayers.includes(g.id));
 
@@ -726,8 +738,16 @@ function scrEntry() {
     <div class="grouprow">
       <span class="gl">Group</span>
       ${cfg.tees.map((t, i) => `<button class="gchip${slot === i ? ' on' : ''}" data-act="entryTee" data-a="${i}">Group ${i + 1}${t.time ? ' — ' + E.to12(t.time) : ''}</button>`).join('')}
-      ${usingAll ? `<span class="gnote">No group assigned yet — showing all golfers.</span>` : ''}
+      ${usingAll ? `<span class="gnote">Tee groups follow the pairings, and none are made yet — so every golfer is
+        listed. Pair them up under Roster &amp; Pairings and the groups fill themselves.</span>` : ''}
     </div>
+    ${/* round, then group, then hole: every choice about where you are
+          standing sits together, beside the picture of it */ ''}
+    <div class="scroller nos"><div class="hstrip">
+      ${course.holes.map((x, i) => `<button class="hcell${i === h ? ' on' : ''}${holeSavedBy(rid, i) ? ' saved' : ''}"
+        data-act="entryHole" data-a="${i}" aria-label="Hole ${x.n}, par ${x.par}">
+        <span class="n num">${x.n}</span><span class="p num">par ${x.par}</span></button>`).join('')}
+    </div></div>
    </div>
     ${/* the hole they are standing on, drawn exactly as Course Setup draws it,
           minus its hole strip — here the card decides which hole this is */ ''}
@@ -743,12 +763,6 @@ function scrEntry() {
   </div>
 
   ${gate}${saveBar}
-
-  <div class="scroller nos"><div class="hstrip">
-    ${course.holes.map((x, i) => `<button class="hcell${i === h ? ' on' : ''}${holeSavedBy(rid, i) ? ' saved' : ''}"
-      data-act="entryHole" data-a="${i}" aria-label="Hole ${x.n}, par ${x.par}">
-      <span class="n num">${x.n}</span><span class="p num">par ${x.par}</span></button>`).join('')}
-  </div></div>
 
   <div class="holehead">
     <h3 class="num">Hole ${hole.n}</h3>
@@ -897,10 +911,15 @@ function scrRoster() {
           <td data-l="Role">${ed ? `<select class="field small" data-act="setPerson" data-a="${p.id}" data-b="role" aria-label="Role">
                 ${[['golfer', 'Golfer'], ['official', 'Official'], ['spectator', 'Spectator']].map(([v, l]) =>
                   `<option value="${v}"${p.role === v ? ' selected' : ''}>${l}</option>`).join('')}</select>` : esc(p.role)}</td>
-          <td data-l="Squad"><div class="tog">
-            ${['UK', 'USA'].map(sq => `<button class="tbtn${p.location === sq ? ' on' : ''}" data-act="setLoc"
-              data-a="${p.id}" data-b="${sq}"${ed ? '' : ' disabled'} aria-pressed="${p.location === sq}">${sq}</button>`).join('')}
-          </div></td>
+          <td data-l="Squad">${(() => {
+            const sq = p.location || null;
+            const next = sq === null ? 'United States' : sq === 'USA' ? 'United Kingdom' : 'unassigned';
+            return `<span class="sqcell ${sq === 'UK' ? 'uk' : sq === 'USA' ? 'usa' : 'none'}">
+              <button class="sqbox" data-act="cycleSquad" data-a="${p.id}"${ed ? '' : ' disabled'}
+                aria-label="${esc(p.display)} — ${sq ? esc(sq) : 'unassigned'}. Change to ${esc(next)}."
+                title="Change to ${esc(next)}">${squadFlag(sq, 34)}</button>
+              <span class="sqlabel">${sq ? esc(sq) : 'Unassigned'}</span></span>`;
+          })()}</td>
           <td data-l="Group">${ed ? `<select class="field small" data-act="setPerson" data-a="${p.id}" data-b="group" aria-label="Group">
                 ${['7-day', '5-day'].map(v => `<option value="${v}"${p.group === v ? ' selected' : ''}>${v}</option>`).join('')}</select>` : esc(p.group)}</td>
           <td data-l="Band">${p.role === 'golfer' ? `<div class="tog">
@@ -1410,10 +1429,6 @@ function onClick(e) {
     case 'saveRoster':
       if (!canEdit()) return;
       store.resave();
-      return;
-    case 'setLoc':
-      if (!canEdit()) return;
-      store.writePerson(a, p => { p.location = p.location === b ? null : b; });
       return;
     case 'courseTab':
       if (a !== UI.courseTab) relockCards();
