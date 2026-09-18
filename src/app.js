@@ -710,16 +710,28 @@ function scrEntry() {
   return `<h2 class="head">Score Entry</h2>
   <p class="lede">Gross strokes in. Raw and adjusted sit side by side, exactly as the group’s own cards read.</p>
 
-  <div class="rcards">
-    ${D.ROUNDS.map(x => {
-      const d = E.dayOf(x.dayIdx);
-      return `<button class="rcard${x.id === rid ? ' on' : ''}${x.counts ? '' : ' practice'}" data-act="entryRound" data-a="${x.id}">
-        <b>${esc(x.short === 'Practice' ? 'Practice' : 'Round ' + x.short.slice(1))}</b>
-        <span>${esc(d.dow)} ${esc(d.date)}</span></button>`;
-    }).join('')}
+  <div class="entrytop">
+    <div class="rcards">
+      ${D.ROUNDS.map(x => {
+        const d = E.dayOf(x.dayIdx);
+        return `<button class="rcard${x.id === rid ? ' on' : ''}${x.counts ? '' : ' practice'}" data-act="entryRound" data-a="${x.id}">
+          <b>${esc(x.short === 'Practice' ? 'Practice' : 'Round ' + x.short.slice(1))}</b>
+          <span>${esc(d.dow)} ${esc(d.date)}</span></button>`;
+      }).join('')}
+      ${!r.counts ? `<p class="note-it">Get Loose Foursomes — practice. Feeds nothing; log it for the bragging rights.</p>` : ''}
+      ${r.noMulligans ? `<p class="note-red"><strong>Championship final — no mulligans today.</strong> The breakfast ball on hole 1 is retained.</p>` : ''}
+    </div>
+    ${/* the hole they are standing on, so nobody scores off the wrong card */ ''}
+    <figure class="holeview">
+      ${IMG[hole.img] ? `<img src="${IMG[hole.img]}" alt="Hole ${hole.n} at ${esc(course.name)}" loading="lazy">`
+        : `<div class="noimg">No diagram for this hole</div>`}
+      <figcaption>
+        <b>Hole ${hole.n}</b>
+        <span class="hv-meta">Par ${hole.par} · SI ${hole.si} · ${hole.mW} m</span>
+        <span class="hv-course">${esc(course.name)}</span>
+      </figcaption>
+    </figure>
   </div>
-  ${!r.counts ? `<p class="note-it">Get Loose Foursomes — practice. Feeds nothing; log it for the bragging rights.</p>` : ''}
-  ${r.noMulligans ? `<p class="note-red"><strong>Championship final — no mulligans today.</strong> The breakfast ball on hole 1 is retained.</p>` : ''}
 
   <div class="grouprow">
     <span class="gl">Group</span>
@@ -1077,7 +1089,32 @@ function restoreFocus(f) {
   try { el.setSelectionRange(f.start, f.end); } catch (e) { /* not a text input */ }
 }
 
+/* Rebuilding the page under somebody's thumb.
+   Every render replaces the whole DOM. On a phone a <select> is a native
+   wheel, and destroying the element while that wheel is open cancels it and
+   snaps the value back — which is why a tee time appeared to undo itself
+   after every pick. A write echoes back through the subscription a moment
+   later and triggers exactly that. The same storm can swallow a tap, by
+   replacing the button between the finger going down and coming up.
+   So while a control is genuinely in use, the redraw waits. */
+let renderPending = false;
+function inUse() {
+  const el = document.activeElement;
+  if (!el || !document.getElementById('app')) return false;
+  if (!document.getElementById('app').contains(el)) return false;
+  return el.tagName === 'SELECT';
+}
+function flushRender() {
+  if (!renderPending) return;
+  renderPending = false;
+  render();
+}
+document.addEventListener('blur', () => setTimeout(flushRender, 0), true);
+document.addEventListener('change', () => setTimeout(flushRender, 0), true);
+
 function render() {
+  if (inUse()) { renderPending = true; return; }
+  renderPending = false;
   const app = document.getElementById('app');
   const focused = captureFocus();
   const body = { today: scrToday, boards: scrBoards, ryder: scrRyder, calendar: scrCalendar,
@@ -1085,10 +1122,16 @@ function render() {
 
   const nt = E.nextTee(T, now);
   const role = S.ROLES[UI.role];
-  const dot = meta.status === 'live' ? 'live' : meta.status === 'error' ? 'err' : '';
-  const statusText = meta.status === 'live' ? 'Shared — every device sees this'
+  /* A write that was turned away has to say so. Silence is what made a
+     refused tee time look like a control that "resets itself", and a refused
+     Open round look like a button that does nothing. */
+  const bad = meta.status === 'error' || meta.saveState === 'error';
+  const dot = bad ? 'err' : meta.status === 'live' ? 'live' : '';
+  const statusText = bad
+    ? (loaded() ? 'Save failed — your last change may not have reached the others'
+                : 'Not saved — the book is still loading. Try again in a moment.')
+    : meta.status === 'live' ? 'Shared — every device sees this'
     : meta.status === 'local' ? 'This device only — shared storage unavailable'
-    : meta.status === 'error' ? 'Save failed — your last change may not have reached the others'
     : 'Connecting…';
 
   app.innerHTML = `

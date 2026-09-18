@@ -291,10 +291,25 @@ export function createStore(onChange) {
           pairsLoaded = true;
           T.config.pairs = takeRows('pairs', qq.docs, T.config.pairs).map(normPair).sort(byOrder);
         }
-        peopleSeen = true;      // the collection has answered, empty or not
+      } catch (e) {
+        /* The subscriptions are still the primary path. What must NOT happen
+           is the book staying unwritable because this read failed. */
+      } finally {
+        peopleSeen = true;      // asked and answered, even if the answer was an error
         settle(); notify();
-      } catch (e) { /* the subscriptions are still the primary path */ }
+      }
     }
+
+    /* Nothing may leave the book permanently read-only. If the roster has not
+       reported by the time the config has, settle anyway: a scorer standing on
+       a tee with a book that silently refuses every write is far worse than a
+       roster that arrives a moment later. */
+    setTimeout(() => {
+      if (settled || !sawConfig) return;
+      peopleSeen = true;
+      settle();
+      notify();
+    }, 5000);
   }
 
   async function writeRoster(people, pairs) {
@@ -386,23 +401,63 @@ export function createStore(onChange) {
 
   /* --- writes --- */
 
-  async function writeConfig(mutate, silent) {
-    if (!settled) { if (!silent) { saveState = 'error'; notify(); } return false; }
-    mutate(T.config);
+  /* A write asked for before the book has loaded is refused — but never
+     quietly. Silence made a refused change look like a control that undoes
+     itself, which is a far worse thing to hand a scorer on a tee. */
+  function tooEarly() {
+    if (settled) return false;
+    saveState = 'error';
+    notify();
+    return true;
+  }
+
+  /* Send only the parts of the book that this change actually touched.
+     The book is one document, so writing all of it hands back whatever this
+     view last read — which is how a tee time set on a phone was undone by a
+     laptop that still had the old one, and why every round kept springing
+     back to closed. A merge cannot undo a part it does not mention. */
+  async function pushConfig(keys, silent) {
     bump('config', T.config);
     if (!silent) { saveState = 'saving'; notify(); }
-    if (mode === 'local') { saveLocal(); if (!silent) { saveState = 'saved'; lastSavedAt = Date.now(); } notify(); return true; }
-    try {
-      await db.doc('config/tournament').set(configOnly(T.config));
+    if (mode === 'local') {
+      saveLocal();
       if (!silent) { saveState = 'saved'; lastSavedAt = Date.now(); }
       notify();
       return true;
-    } catch (e) {
-      status = 'error';
-      if (!silent) saveState = 'error';
-      notify();
-      return false;
     }
+    const patch = { rev: T.config.rev };
+    for (const k of keys) patch[k] = T.config[k];
+    const done = () => {
+      if (!silent) { saveState = 'saved'; lastSavedAt = Date.now(); }
+      notify();
+      return true;
+    };
+    try {
+      await db.doc('config/tournament').update(patch);   // merge, never replace
+      return done();
+    } catch (e) {
+      // update refuses a document that is not there yet; that one write is a
+      // create, and nobody else can have anything in it to lose.
+      try {
+        await db.doc('config/tournament').set(configOnly(T.config));
+        return done();
+      } catch (e2) {
+        status = 'error';
+        if (!silent) saveState = 'error';
+        notify();
+        return false;
+      }
+    }
+  }
+
+  async function writeConfig(mutate, silent) {
+    if (!settled) { if (!silent) { saveState = 'error'; notify(); } return false; }
+    const before = {};
+    for (const k of Object.keys(T.config)) before[k] = JSON.stringify(T.config[k]);
+    mutate(T.config);
+    const keys = Object.keys(T.config)
+      .filter(k => k !== 'rev' && JSON.stringify(T.config[k]) !== before[k]);
+    return pushConfig(keys, silent);
   }
 
   /* ---- roster writers ----
@@ -417,7 +472,8 @@ export function createStore(onChange) {
   function refreshMirror() {
     if (mode !== 'db') return;
     clearTimeout(mirrorTimer);
-    mirrorTimer = setTimeout(() => { writeConfig(() => {}, true); }, 1200);
+    // the roster writers have already changed T.config, so name the keys
+    mirrorTimer = setTimeout(() => { if (settled) pushConfig(['people', 'pairs'], true); }, 1200);
   }
 
   async function writeDoc(coll, id, obj) {
@@ -440,7 +496,7 @@ export function createStore(onChange) {
 
   /** Change one person in place. */
   async function writePerson(id, mutate) {
-    if (!settled) return false;
+    if (tooEarly()) return false;
     const i = T.config.people.findIndex(p => p.id === id);
     if (i < 0) return false;
     const p = { ...T.config.people[i] };
@@ -453,7 +509,7 @@ export function createStore(onChange) {
 
   /** Change every person — used to clear the squads. */
   async function writeAllPeople(mutate) {
-    if (!settled) return false;
+    if (tooEarly()) return false;
     const list = T.config.people.map(x => { const p = { ...x }; mutate(p); return p; });
     T.config.people = list;
     notify();
@@ -463,7 +519,7 @@ export function createStore(onChange) {
   }
 
   async function addPerson(person) {
-    if (!settled) return false;
+    if (tooEarly()) return false;
     const p = { ...person, order: T.config.people.length };
     T.config.people = T.config.people.concat([p]);
     const okd = await writeDoc('people', p.id, p);
@@ -473,7 +529,7 @@ export function createStore(onChange) {
 
   /** Remove a person: their document goes, and they leave every pair and tee. */
   async function removePerson(id) {
-    if (!settled) return false;
+    if (tooEarly()) return false;
     T.config.people = T.config.people.filter(p => p.id !== id);
     const touched = T.config.pairs.filter(p => p.members.includes(id));
     T.config.pairs = T.config.pairs.map(p => p.members.includes(id)
@@ -490,7 +546,7 @@ export function createStore(onChange) {
   }
 
   async function writePair(id, mutate) {
-    if (!settled) return false;
+    if (tooEarly()) return false;
     const i = T.config.pairs.findIndex(p => p.id === id);
     if (i < 0) return false;
     const p = { ...T.config.pairs[i], members: [...T.config.pairs[i].members] };
@@ -502,7 +558,7 @@ export function createStore(onChange) {
   }
 
   async function addPair(pair) {
-    if (!settled) return false;
+    if (tooEarly()) return false;
     const p = { ...pair, order: T.config.pairs.length };
     T.config.pairs = T.config.pairs.concat([p]);
     const okd = await writeDoc('pairs', p.id, p);
@@ -511,7 +567,7 @@ export function createStore(onChange) {
   }
 
   async function removePair(id) {
-    if (!settled) return false;
+    if (tooEarly()) return false;
     T.config.pairs = T.config.pairs.filter(p => p.id !== id);
     notify();
     const okd = await dropDoc('pairs', id);
@@ -522,7 +578,7 @@ export function createStore(onChange) {
   /** Move a golfer into one pair, or out of all of them. Writes only the pairs
    *  that actually changed. */
   async function movePlayer(pid, target) {
-    if (!settled) return false;
+    if (tooEarly()) return false;
     const before = T.config.pairs.map(p => p.members.join(','));
     T.config.pairs = T.config.pairs.map(p => ({ ...p, members: p.members.filter(m => m !== pid) }));
     if (target && target !== 'unassigned') {
@@ -539,7 +595,7 @@ export function createStore(onChange) {
 
   /** Reorder the pairs by rewriting the order on the two that swapped. */
   async function movePairBy(id, delta) {
-    if (!settled) return false;
+    if (tooEarly()) return false;
     const list = T.config.pairs.slice();
     const i = list.findIndex(p => p.id === id), j = i + delta;
     if (i < 0 || j < 0 || j >= list.length) return false;
@@ -555,7 +611,7 @@ export function createStore(onChange) {
   /** Write everything again as it stands — the config and every person and pair.
    *  Confirms a save, and is the retry when one has failed. */
   async function resave() {
-    if (!settled) return false;
+    if (tooEarly()) return false;
     // distinct documents, so they go out together rather than one round trip each
     const jobs = [writeConfig(() => {})]
       .concat(T.config.people.map(p => writeDoc('people', p.id, p)))
@@ -568,7 +624,7 @@ export function createStore(onChange) {
   }
 
   async function writeCard(roundId, pid, mutate) {
-    if (!settled) return false;
+    if (tooEarly()) return false;
     const key = roundId + '__' + pid;
     const prev = T.scores[key];
     const c = prev
@@ -584,7 +640,7 @@ export function createStore(onChange) {
   }
 
   async function writeBbb(roundId, mutate) {
-    if (!settled) return false;
+    if (tooEarly()) return false;
     const b = T.bbb[roundId] ? { holes: T.bbb[roundId].holes.map(h => ({ ...h })) } : blankBbb();
     mutate(b);
     bump('bbb/' + roundId, b);
@@ -596,7 +652,7 @@ export function createStore(onChange) {
   }
 
   async function resetAll() {
-    if (!settled) return;
+    if (tooEarly()) return;
     const fresh = emptyState();
     T.config = fresh.config; T.scores = {}; T.bbb = {};
     for (const k of Object.keys(rev)) delete rev[k];

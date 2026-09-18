@@ -695,3 +695,24 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
   .rtable td[data-l=""]{grid-template-columns:1fr;justify-items:start}
   .rtable td[data-l=""]::before{display:none}
 }
+
+/* Score Entry: the round picker, and beside it the hole being played, so a
+   scorer can see the shape and the numbers without leaving the card. */
+.entrytop{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:22px;align-items:start;margin-top:16px}
+.entrytop .rcards{margin-top:0;align-content:start}
+.entrytop .rcards .note-it,.entrytop .rcards .note-red{grid-column:1/-1;margin:6px 0 0}
+.holeview{margin:0;border:1px solid var(--rule);background:var(--page);border-radius:3px;overflow:hidden}
+.holeview img{display:block;width:100%;height:170px;object-fit:cover}
+.holeview .noimg{height:170px;display:flex;align-items:center;justify-content:center;
+  color:var(--turf);font-size:14px;background:var(--sunk)}
+.holeview figcaption{padding:10px 13px;display:flex;flex-direction:column;gap:2px}
+.holeview figcaption b{font-size:19px;line-height:1.1}
+.holeview .hv-meta{font-size:14px;color:var(--turf);font-variant-numeric:tabular-nums}
+.holeview .hv-course{font-size:13px;color:var(--turf);font-style:italic}
+
+@media (max-width:900px){
+  /* on a phone the hole leads, then the round picker under it */
+  .entrytop{grid-template-columns:1fr;gap:16px}
+  .holeview{order:-1}
+  .holeview img{height:150px}
+}
