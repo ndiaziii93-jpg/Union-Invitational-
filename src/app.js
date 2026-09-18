@@ -218,8 +218,10 @@ function scrToday() {
 
 function scrBoards() {
   const tabs = [['pairs', 'Team Competition'], ['mvp', 'MVP'], ['bbb', 'Bingo Bango Bongo'],
-                ['ryder', 'Ryder Cup'], ['prizes', 'Longest Drive & Closest to the Pin']];
-  const body = { pairs: boardPairs, mvp: boardMvp, bbb: boardBbb, ryder: scrRyder, prizes: boardPrizes }[UI.boardTab]();
+                ['ryder', 'Ryder Cup'], ['prizes', 'Longest Drive & Closest to the Pin'],
+                ['practice', 'Practice Day']];
+  const body = { pairs: boardPairs, mvp: boardMvp, bbb: boardBbb, ryder: scrRyder,
+                 prizes: boardPrizes, practice: boardPractice }[UI.boardTab]();
   return `<div class="btabs nos">${tabs.map(([id, l]) =>
       `<button class="btab${UI.boardTab === id ? ' on' : ''}" data-act="boardTab" data-a="${id}">${esc(l)}</button>`).join('')}</div>${body}`;
 }
@@ -368,6 +370,58 @@ function boardPrizes() {
     </div>`;
   }).join('')}
   ${canEdit() ? `<p class="lede" style="margin-top:16px">Nominate holes and record winners on the Score Entry screen for each round.</p>` : ''}`;
+}
+
+/* Tuesday, on its own. It counts for nothing and that is the point: a whole
+   day of the week's games with none of the consequences, and a winner by
+   the end of it. Nothing here touches the competition boards. */
+function boardPractice() {
+  const rid = 'practice';
+  const cfg = E.roundCfg(T, rid);
+  const r = E.roundDef(rid);
+  const d = E.dayOf(r.dayIdx);
+  const rows = E.practiceBoard(T);
+  const bbb = E.practiceBbb(T);
+  const nm = pid => (E.person(T, pid) || {}).display || '—';
+  const played = rows.length;
+
+  return `<h2 class="head">Practice Day</h2>
+  <p class="lede">${esc(d.dow)} ${esc(d.date)} — ${esc(E.courseOf(T, rid).name)}. Get Loose Foursomes, and a taste of
+  everything to come: the points, the Bingo Bango Bongo, the longest drive and the closest to the pin.
+  <b>None of it counts.</b> Nothing on this page feeds the Team Competition, the MVP or the Ryder Cup.</p>
+
+  ${!played ? `<p class="empty">No cards in from the practice round yet. Scores appear here hole by hole.</p>` : `
+  <h3 class="sub">The day's card</h3>
+  <div class="rows" style="margin-top:8px">
+    <div class="rowhead"><span class="pos">#</span><span class="who">Golfer</span>
+      <span class="n">Band</span><span class="n">Thru</span><span class="n">To par</span><span class="big">Points</span></div>
+    ${rows.map(x => `<div class="row"><span class="pos">${x.pos}</span>
+      <span class="who">${esc(x.name)}</span>
+      <span class="n num" style="color:var(--turf)">${x.band == null ? '—' : x.band}</span>
+      <span class="n num">${x.thru}</span>
+      <span class="n num ${x.tp < 0 ? 'under' : x.tp > 0 ? 'over' : 'level'}">${esc(E.fmtToPar(x.tp))}</span>
+      <span class="big num">${x.stb}</span></div>`).join('')}
+  </div>`}
+
+  <h3 class="sub">Bingo Bango Bongo — practice</h3>
+  ${bbb.length ? `<div class="rows" style="margin-top:8px;max-width:520px">
+    ${bbb.map(x => `<div class="row"><span class="pos">${x.pos}</span>
+      <span class="who">${esc(x.name)}</span><span class="big num">${x.pts}</span></div>`).join('')}
+  </div>` : `<p class="empty">No points yet. First on, closest once all on, first in.</p>`}
+
+  <h3 class="sub">Longest Drive &amp; Closest to the Pin — practice</h3>
+  <div class="rows" style="margin-top:8px;max-width:620px">
+    <div class="row"><span class="who">Closest to the pin<small>${cfg.ctpHole ? 'Hole ' + cfg.ctpHole : 'No hole nominated'}</small></span>
+      <span class="n" style="min-width:120px;font-size:17px">${cfg.ctpWinner ? esc(nm(cfg.ctpWinner)) : '—'}</span>
+      <span class="n num" style="min-width:74px;color:var(--turf)">${esc(cfg.ctpDist || '')}</span></div>
+    <div class="row"><span class="who">Longest drive<small>${cfg.ldHole ? 'Hole ' + cfg.ldHole : 'No hole nominated'}</small></span>
+      <span class="n" style="min-width:120px;font-size:17px">${cfg.ldWinner ? esc(nm(cfg.ldWinner)) : '—'}</span>
+      <span class="n num" style="min-width:74px;color:var(--turf)">${esc(cfg.ldDist || '')}</span></div>
+  </div>
+
+  <p class="lede" style="margin-top:18px">${E.bandsLocked(T)
+    ? 'The practice round is concluded and the bands are settled. Only a scorer or the master reviewer can move one now.'
+    : 'Bands are open while the practice round runs — this is the day to find out who is in the wrong one. They settle when the round is concluded.'}</p>`;
 }
 
 function scrRyder() {
@@ -848,6 +902,10 @@ function scrRoster() {
   const unassigned = gs.filter(g => !assigned.has(g.id));
   const bandsSet = gs.filter(g => g.band != null).length;
   const others = T.config.people.length - gs.length;   // on the roster, but not pairable
+  /* The practice day is there to find out who is in the wrong band, so bands
+     stay open all through it. Once it is concluded they settle, and only a
+     scorer or the master reviewer moves one. */
+  const bandEd = ed && (!E.bandsLocked(T) || canEdit());
 
   const pairOptions = cur => [`<option value="unassigned"${cur === 'unassigned' ? ' selected' : ''}>Unassigned</option>`]
     .concat(T.config.pairs.map(p => `<option value="${p.id}"${cur === p.id ? ' selected' : ''}>${esc(E.pairName(T, p))}</option>`)).join('');
@@ -894,7 +952,8 @@ function scrRoster() {
 
   <div class="titlerow" style="margin-top:44px">
     <h3 class="sub" style="font-size:28px;font-weight:700;margin:0">Roster</h3>
-    <span class="rnote">${bandsSet} of ${gs.length} bands set. Every golfer plays off a 15, 20 or 25 band — the band is the strokes they receive.</span>
+    <span class="rnote">${bandsSet} of ${gs.length} bands set. Every golfer plays off a 15, 20, 25 or 30 band — the band is the strokes they receive.
+      ${E.bandsLocked(T) ? 'Settled after the practice round; a scorer can still move one.' : 'Open until the practice round is concluded.'}</span>
     ${ed ? `<button class="btn ghost" data-act="addPerson" data-a="golfer">Add person</button>` : ''}
   </div>
   ${ed ? saveRow() : ''}
@@ -924,7 +983,7 @@ function scrRoster() {
                 ${['7-day', '5-day'].map(v => `<option value="${v}"${p.group === v ? ' selected' : ''}>${v}</option>`).join('')}</select>` : esc(p.group)}</td>
           <td data-l="Band">${p.role === 'golfer' ? `<div class="tog">
             ${E.BANDS.map(bnd => `<button class="tbtn${p.band === bnd ? ' on' : ''}" data-act="setBand"
-              data-a="${p.id}" data-b="${bnd}"${ed ? '' : ' disabled'} aria-pressed="${p.band === bnd}">${bnd}</button>`).join('')}
+              data-a="${p.id}" data-b="${bnd}"${bandEd ? '' : ' disabled'} aria-pressed="${p.band === bnd}">${bnd}</button>`).join('')}
           </div>` : ''}</td>
           <td data-l="">${canAdmin() ? `<button class="rm" data-act="removePerson" data-a="${p.id}">Remove</button>` : ''}</td>
         </tr>`).join('')}
@@ -1548,6 +1607,9 @@ function onClick(e) {
 
     case 'setBand':
       if (!canEdit()) return;
+      // the control is already disabled once the practice round settles them;
+      // refuse the write too, so a stale screen cannot move one
+      if (E.bandsLocked(T) && !canEdit()) return;
       store.writePerson(a, p => { p.band = b === '' ? null : +b; });
       return;
     case 'addPerson':

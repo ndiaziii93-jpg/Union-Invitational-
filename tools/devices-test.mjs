@@ -140,6 +140,23 @@ for (const [name, viewport, touch, dpr] of DEVICES) {
       if (!st.includes('locked')) bad.push('lock & conclude did nothing (' + st + ')');
     }
 
+    // 3d. the practice day stands alone: its scores show there and nowhere else
+    await tab('Leaderboards');
+    const tabNames = await p.locator('.btab').allInnerTexts();
+    if (!tabNames.some(t => t.includes('Practice'))) bad.push('no Practice Day board');
+    else {
+      for (const t of ['Team Competition', 'MVP', 'Bingo Bango Bongo']) {
+        await p.locator('.btab', { hasText: t }).click(); await p.waitForTimeout(600); await dismiss();
+        if (await p.locator('.rows .row').count() > 0) bad.push(t + ' counted a practice score');
+      }
+      await p.locator('.btab', { hasText: 'Practice Day' }).click(); await p.waitForTimeout(600); await dismiss();
+      if (await p.locator('.rows .row').count() === 0) bad.push('Practice Day shows nothing');
+    }
+    // 3e. and a golfer can be put in the 30 band
+    await tab('Roster');
+    const bands = await p.locator('.rtable tbody tr').first().locator('[data-act="setBand"]').allInnerTexts();
+    if (!bands.includes('30')) bad.push('no 30 band (' + bands.join('/') + ')');
+
     // 4. nothing off the side, on any screen
     for (const t of ['Today', 'Leaderboards', 'Ryder Cup', 'Calendar', 'Score Entry', 'Roster', 'Games & Rules', 'Course Setup']) {
       await tab(t);

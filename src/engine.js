@@ -37,7 +37,7 @@ export function to24(str) {
 
 /* ---------- handicap bands ---------- */
 
-export const BANDS = [15, 20, 25];
+export const BANDS = [15, 20, 25, 30];
 
 /** Strokes a band receives on a hole of the given stroke index.
  *  15 → 1 stroke on SI 1–15 (15 total)
@@ -47,6 +47,7 @@ export function strokesFor(band, si) {
   if (band === 15) return si <= 15 ? 1 : 0;
   if (band === 20) return 1 + (si <= 2 ? 1 : 0);
   if (band === 25) return 1 + (si <= 7 ? 1 : 0);
+  if (band === 30) return 1 + (si <= 12 ? 1 : 0);
   return null; // no band assigned — this player cannot be scored
 }
 export function bandTotal(band) {
@@ -133,6 +134,35 @@ function toParPair(T, roundId, pair) {
   for (let h = 0; h < 18; h++) { const s = pairHole(T, roundId, pair, h); if (s != null) { tp += s - holes[h].par; thru = h + 1; } }
   return { tp, thru };
 }
+/* The practice day is its own thing: it feeds nothing, and every board that
+   counts walks countingRounds(), which leaves it out. This is the one place
+   it is added up, so Tuesday can have a winner of its own. */
+export function practiceBoard(T) {
+  const rid = 'practice';
+  const rows = golfers(T).map(p => {
+    const { tp, thru, stb } = toParPlayer(T, rid, p.id);
+    return { id: p.id, name: p.display, band: p.band, tp, thru, stb };
+  }).filter(r => r.thru > 0);
+  rows.sort((a, b) => (b.stb - a.stb) || (a.tp - b.tp) || (b.thru - a.thru));
+  return rows.map((r, i) => ({ ...r, pos: i + 1 }));
+}
+
+export function practiceBbb(T) {
+  const tally = {};
+  const b = T.bbb.practice;
+  if (b) for (const cell of b.holes) for (const k of ['bingo', 'bango', 'bongo']) {
+    const pid = cell && cell[k];
+    if (pid) tally[pid] = (tally[pid] || 0) + 1;
+  }
+  const rows = Object.entries(tally).map(([pid, pts]) => ({ id: pid, name: (person(T, pid) || {}).display || '?', pts }));
+  rows.sort((a, b2) => b2.pts - a.pts);
+  return rows.map((r, i) => ({ ...r, pos: i + 1 }));
+}
+
+/** Bands are open all through the practice day — that is what it is for —
+ *  and settle when it is concluded. After that only a scorer moves one. */
+export function bandsLocked(T) { return roundCfg(T, 'practice').state === 'locked'; }
+
 function toParPlayer(T, roundId, pid) {
   const holes = courseOf(T, roundId).holes;
   let tp = 0, thru = 0, stb = 0;
