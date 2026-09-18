@@ -20,7 +20,11 @@ for (const f of readdirSync(S + '/restore/pairs')) seed['pairs/' + f.replace('.j
 const MOCK = (seed) => {
   const docs = JSON.parse(JSON.stringify(seed));
   const clone = o => JSON.parse(JSON.stringify(o));
-  const snap = (b, e = true, id = '') => ({ id, exists: e, data: () => (e ? b : undefined), metadata: { fromCache: false, hasPendingWrites: false } });
+  /* The real store hands back FROZEN bodies — a mock that does not freeze
+     proves nothing. */
+  const deepFreeze = o => { if (o && typeof o === 'object' && !Object.isFrozen(o)) {
+    Object.getOwnPropertyNames(o).forEach(k => deepFreeze(o[k])); Object.freeze(o); } return o; };
+  const snap = (b, e = true, id = '') => ({ id, exists: e, data: () => (e ? deepFreeze(b) : undefined), metadata: { fromCache: false, hasPendingWrites: false } });
   const subs = { doc: {}, coll: {} };
   const merge = (d, s) => { for (const [k, v] of Object.entries(s)) {
     if (v && typeof v === 'object' && !Array.isArray(v) && d[k] && typeof d[k] === 'object' && !Array.isArray(d[k])) merge(d[k], v);
@@ -91,6 +95,35 @@ for (const [name, viewport, touch, dpr] of DEVICES) {
       await p.locator('[data-act="saveHole"]').click(); await p.waitForTimeout(1500); await dismiss();
       const cards = await p.evaluate(() => Object.keys(window.__docs).filter(k => k.startsWith('scores/')).length);
       if (cards < 1) bad.push('the card never reached the book');
+    }
+
+    // 3b. minus works from an empty cell, without a tap up first
+    if (await p.locator('.step.minus').count()) {
+      await p.locator('.hcell').nth(5).click(); await p.waitForTimeout(500); await dismiss();
+      await p.locator('.step.minus').first().click(); await p.waitForTimeout(400);
+      const one = await p.locator('.fig.raw .v').first().innerText();
+      const par = await p.locator('.hcell.on .p').innerText();      // "par 4"
+      const want = String(parseInt(par.replace(/\D/g, ''), 10) - 1);
+      if (one !== want) bad.push('minus from empty gave "' + one + '", wanted ' + want);
+    }
+
+    // 3c. a round can be concluded
+    if (await p.locator('[data-act="lockRound"]').count()) {
+      await p.locator('[data-act="lockRound"]').first().click(); await p.waitForTimeout(1500);
+      // a draft on the hole is offered first; take the save
+      if (await p.locator('.modal').count()) {
+        await p.locator('[data-act="confirmAlt"]').click().catch(() => {});
+        await p.waitForTimeout(800);
+        if (await p.locator('[data-act="lockRound"]').count()) {
+          await p.locator('[data-act="lockRound"]').first().click(); await p.waitForTimeout(1500);
+        }
+      }
+      await dismiss();
+      const st = await p.evaluate(() => {
+        const r = window.__docs['config/tournament'].rounds;
+        return Object.values(r).map(x => x.state).join('/');
+      });
+      if (!st.includes('locked')) bad.push('lock & conclude did nothing (' + st + ')');
     }
 
     // 4. nothing off the side, on any screen

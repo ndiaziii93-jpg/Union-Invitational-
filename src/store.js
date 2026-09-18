@@ -388,7 +388,13 @@ export function createStore(onChange) {
   function body(d) {
     if (!d) return null;
     const v = typeof d.data === 'function' ? d.data() : d.data;
-    return v && typeof v === 'object' ? v : null;
+    if (!v || typeof v !== 'object') return null;
+    /* The store hands back FROZEN objects, and the same object again for a
+       document that has not changed. Put one of those into the tournament and
+       every later edit to it throws — which is exactly what stopped a round
+       opening, a round locking, and a tee time being set. Take a copy. */
+    try { return JSON.parse(JSON.stringify(v)); }
+    catch (e) { return { ...v }; }
   }
 
   function takeRows(coll, docs, local) {

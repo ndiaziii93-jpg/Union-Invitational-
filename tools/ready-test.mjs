@@ -27,7 +27,11 @@ const ok = (n, g, w) => { const good = g === w;
 const MOCK = ({ seed, breakage }) => {
   const docs = JSON.parse(JSON.stringify(seed));
   const clone = o => JSON.parse(JSON.stringify(o));
-  const snap = (b, e = true, id = '') => ({ id, exists: e, data: () => (e ? b : undefined),
+  /* The real store hands back FROZEN bodies — a mock that does not freeze
+     proves nothing. */
+  const deepFreeze = o => { if (o && typeof o === 'object' && !Object.isFrozen(o)) {
+    Object.getOwnPropertyNames(o).forEach(k => deepFreeze(o[k])); Object.freeze(o); } return o; };
+  const snap = (b, e = true, id = '') => ({ id, exists: e, data: () => (e ? deepFreeze(b) : undefined),
     metadata: { fromCache: false, hasPendingWrites: false } });
   const subs = { doc: {}, coll: {} };
   const collSnap = c => ({ docs: Object.keys(docs).filter(k => k.startsWith(c + '/'))

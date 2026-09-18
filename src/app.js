@@ -1498,7 +1498,9 @@ function onClick(e) {
       const cap = E.capFor(hole.par, T.config.capOver);
       const d = draftFor(rid, h);
       const cur = grossOf(rid, a, h);
-      let v = cur == null ? (+b > 0 ? hole.par : null) : cur + (+b);
+      // From an empty cell either button starts at par: plus lands on it,
+      // minus one under. Going below par took a tap up and a tap back.
+      let v = cur == null ? hole.par + (+b > 0 ? 0 : -1) : cur + (+b);
       if (v != null && v < 1) v = null;
       if (v != null && v > cap) v = cap;
       d.strokes[a] = v;

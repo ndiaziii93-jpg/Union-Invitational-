@@ -42,7 +42,11 @@ const srvDelete = path => { delete store[path]; listeners.forEach(f => f(path));
 
 const MOCK = () => {
   const clone = o => JSON.parse(JSON.stringify(o));
-  const snap = (b, e = true, id = '') => ({ id, exists: e, data: () => (e ? b : undefined),
+  /* The real store hands back FROZEN bodies — a mock that does not freeze
+     proves nothing. */
+  const deepFreeze = o => { if (o && typeof o === 'object' && !Object.isFrozen(o)) {
+    Object.getOwnPropertyNames(o).forEach(k => deepFreeze(o[k])); Object.freeze(o); } return o; };
+  const snap = (b, e = true, id = '') => ({ id, exists: e, data: () => (e ? deepFreeze(b) : undefined),
     metadata: { fromCache: false, hasPendingWrites: false } });
   const subs = { doc: {}, coll: {} };
   window.__deliver = async (path) => {

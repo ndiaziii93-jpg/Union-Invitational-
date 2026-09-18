@@ -769,7 +769,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20260918-1917';
+const BUILD = '20260918-1938';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -1754,7 +1754,13 @@ function createStore(onChange) {
   function body(d) {
     if (!d) return null;
     const v = typeof d.data === 'function' ? d.data() : d.data;
-    return v && typeof v === 'object' ? v : null;
+    if (!v || typeof v !== 'object') return null;
+    /* The store hands back FROZEN objects, and the same object again for a
+       document that has not changed. Put one of those into the tournament and
+       every later edit to it throws — which is exactly what stopped a round
+       opening, a round locking, and a tee time being set. Take a copy. */
+    try { return JSON.parse(JSON.stringify(v)); }
+    catch (e) { return { ...v }; }
   }
 
   function takeRows(coll, docs, local) {
@@ -3593,7 +3599,9 @@ function onClick(e) {
       const cap = E.capFor(hole.par, T.config.capOver);
       const d = draftFor(rid, h);
       const cur = grossOf(rid, a, h);
-      let v = cur == null ? (+b > 0 ? hole.par : null) : cur + (+b);
+      // From an empty cell either button starts at par: plus lands on it,
+      // minus one under. Going below par took a tap up and a tap back.
+      let v = cur == null ? hole.par + (+b > 0 ? 0 : -1) : cur + (+b);
       if (v != null && v < 1) v = null;
       if (v != null && v > cap) v = cap;
       d.strokes[a] = v;

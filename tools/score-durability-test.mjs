@@ -27,7 +27,11 @@ const MOCK = (seed) => {
   delete docs.__lie;
   const persist = () => { try { sessionStorage.setItem(KEY, JSON.stringify(docs)); } catch (e) {} };
   const clone = o => JSON.parse(JSON.stringify(o));
-  const snap = (b, exists = true, id = '') => ({ id, exists, data: () => (exists ? b : undefined),
+  /* The real store hands back FROZEN bodies — a mock that does not freeze
+     proves nothing. */
+  const deepFreeze = o => { if (o && typeof o === 'object' && !Object.isFrozen(o)) {
+    Object.getOwnPropertyNames(o).forEach(k => deepFreeze(o[k])); Object.freeze(o); } return o; };
+  const snap = (b, exists = true, id = '') => ({ id, exists, data: () => (exists ? deepFreeze(b) : undefined),
     metadata: { fromCache: false, hasPendingWrites: false } });
   const subs = { doc: {}, coll: {} };
   const collSnap = c => ({ docs: Object.keys(docs).filter(k => k.startsWith(c + '/'))

@@ -13,7 +13,11 @@ const MOCK = () => {
   const strip = o => JSON.parse(JSON.stringify(o, (k, v) => (v === null ? undefined : v)));
   const clone = o => JSON.parse(JSON.stringify(o));
   /* The real store returns the body from a METHOD, not a field. */
-  const snap = (b, exists = true, id = '') => ({ id, exists, data: () => (exists ? b : undefined),
+  /* The real store hands back FROZEN bodies — a mock that does not freeze
+     proves nothing. */
+  const deepFreeze = o => { if (o && typeof o === 'object' && !Object.isFrozen(o)) {
+    Object.getOwnPropertyNames(o).forEach(k => deepFreeze(o[k])); Object.freeze(o); } return o; };
+  const snap = (b, exists = true, id = '') => ({ id, exists, data: () => (exists ? deepFreeze(b) : undefined),
     metadata: { fromCache: false, hasPendingWrites: false } });
   const snapDoc = p => snap(p in docs ? clone(docs[p]) : null, p in docs);
   const fireDoc = p => (subs.doc[p] || []).forEach(fn => fn(snapDoc(p)));
