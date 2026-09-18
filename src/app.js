@@ -721,16 +721,17 @@ function scrEntry() {
       ${!r.counts ? `<p class="note-it">Get Loose Foursomes — practice. Feeds nothing; log it for the bragging rights.</p>` : ''}
       ${r.noMulligans ? `<p class="note-red"><strong>Championship final — no mulligans today.</strong> The breakfast ball on hole 1 is retained.</p>` : ''}
     </div>
-    ${/* the hole they are standing on, so nobody scores off the wrong card */ ''}
-    <figure class="holeview">
-      ${IMG[hole.img] ? `<img src="${IMG[hole.img]}" alt="Hole ${hole.n} at ${esc(course.name)}" loading="lazy">`
-        : `<div class="noimg">No diagram for this hole</div>`}
-      <figcaption>
-        <b>Hole ${hole.n}</b>
-        <span class="hv-meta">Par ${hole.par} · SI ${hole.si} · ${hole.mW} m</span>
-        <span class="hv-course">${esc(course.name)}</span>
-      </figcaption>
-    </figure>
+    ${/* the hole they are standing on, drawn exactly as Course Setup draws it,
+          minus its hole strip — here the card decides which hole this is */ ''}
+    <div class="cside">
+      ${IMG[hole.img] ? `<img src="${IMG[hole.img]}" alt="Diagram of hole ${hole.n} at ${esc(course.name)}">` : ''}
+      <div class="cfacts num">
+        <span class="hn">Hole ${hole.n}</span>
+        <span>Par ${hole.par}</span>
+        <span class="m">SI ${hole.si}</span>
+        <span class="m">${hole.mW} m White</span>
+      </div>
+    </div>
   </div>
 
   <div class="grouprow">
