@@ -2,7 +2,7 @@
    reviewer and every spectator see the same tournament. Falls back to
    localStorage when the db capability is unavailable (preview, offline). */
 
-import { GOLFERS, OFFICIALS, SPECTATORS, PAIRS, ROUNDS, SCHEDULE, COURSES } from './data.js';
+import { GOLFERS, OFFICIALS, SPECTATORS, PAIRS, ROUNDS, SCHEDULE, COURSES, BUILD } from './data.js';
 
 const LOCAL_KEY = 'union-invitational:v3';
 const DEFAULT_PINS = { master: '1000', s1: '2000', s2: '3000' };
@@ -125,6 +125,35 @@ export function createStore(onChange) {
 
   const notify = () => onChange(T, { ready, mode, status, saveState, lastSavedAt, settled });
 
+  /* ---- what actually happened on this device ----
+     Three attempts to fix writes that never landed have failed because the
+     failure only happens on somebody else's phone. So the phone keeps its own
+     short log and leaves it in the book, where it can be read back. It holds
+     no scores and no names: only what was attempted and what came back. */
+  const DEV_KEY = 'union-invitational:device';
+  let deviceId = 'd0';
+  try {
+    deviceId = localStorage.getItem(DEV_KEY) || ('d' + Math.random().toString(36).slice(2, 8));
+    localStorage.setItem(DEV_KEY, deviceId);
+  } catch (e) { /* storage blocked: the log is still kept for this visit */ }
+  const trace = [];
+  let traceTimer = null;
+  function note(ev, detail) {
+    trace.push({ t: new Date().toISOString().slice(11, 19), ev, d: detail == null ? '' : String(detail).slice(0, 120) });
+    while (trace.length > 30) trace.shift();
+    if (mode !== 'db' || !db) return;
+    clearTimeout(traceTimer);
+    traceTimer = setTimeout(() => {
+      db.doc('diag/' + deviceId).set({
+        build: BUILD,
+        at: new Date().toISOString(),
+        ua: String(navigator.userAgent || '').slice(0, 180),
+        settled, mode, status, saveState,
+        trace: trace.slice(),
+      }).catch(() => { /* the log is a courtesy, never a blocker */ });
+    }, 2500);
+  }
+
   function loadLocal() {
     try {
       const raw = localStorage.getItem(LOCAL_KEY);
@@ -156,12 +185,19 @@ export function createStore(onChange) {
        tournament — which is exactly what was happening. Seeding needs a
        subscription AND a confirming read to agree the store is empty, and once
        any data has been seen this page load it can never seed at all. */
-    settle = () => { settled = sawConfig && peopleSeen; };
+    settle = () => {
+      const was = settled;
+      settled = sawConfig && peopleSeen;
+      if (settled && !was) note('ready', 'writes allowed');
+    };
 
     const takeConfig = data => {
       sawData = true; sawConfig = true;
       if (!fresher('config', data)) { settle(); return; }
       rev.config = data.rev || 0;
+      note('config in', 'rev=' + (data.rev || 0)
+        + ' r1tee=' + (((data.rounds || {}).r1 || {}).tees || [{}])[0].time
+        + ' states=' + Object.keys(data.rounds || {}).map(k => data.rounds[k].state).join('/'));
       rosterInDocs = rosterInDocs || data.rosterInDocs === true;
       const fromDocs = { people: T.config.people, pairs: T.config.pairs };
       T.config = migrate(data);                       // carries the config's mirror
@@ -406,6 +442,7 @@ export function createStore(onChange) {
      itself, which is a far worse thing to hand a scorer on a tee. */
   function tooEarly() {
     if (settled) return false;
+    note('refused', 'not settled yet');
     saveState = 'error';
     notify();
     return true;
@@ -427,6 +464,7 @@ export function createStore(onChange) {
     }
     const patch = { rev: T.config.rev };
     for (const k of keys) patch[k] = T.config[k];
+    note('config write', keys.join(',') + ' rev=' + T.config.rev);
     const done = () => {
       if (!silent) { saveState = 'saved'; lastSavedAt = Date.now(); }
       notify();
@@ -434,14 +472,18 @@ export function createStore(onChange) {
     };
     try {
       await db.doc('config/tournament').update(patch);   // merge, never replace
+      note('config ok', keys.join(','));
       return done();
     } catch (e) {
+      note('update failed', (e && e.code) + ' ' + (e && e.message));
       // update refuses a document that is not there yet; that one write is a
       // create, and nobody else can have anything in it to lose.
       try {
         await db.doc('config/tournament').set(configOnly(T.config));
+        note('config ok via set', keys.join(','));
         return done();
       } catch (e2) {
+        note('config FAILED', (e2 && e2.code) + ' ' + (e2 && e2.message));
         status = 'error';
         if (!silent) saveState = 'error';
         notify();
@@ -635,8 +677,8 @@ export function createStore(onChange) {
     T.scores[key] = c;
     notify();
     if (mode === 'local') { saveLocal(); return; }
-    try { await db.doc('scores/' + key).set(c); }
-    catch (e) { status = 'error'; notify(); }
+    try { await db.doc('scores/' + key).set(c); note('card ok', key); }
+    catch (e) { note('card FAILED', key + ' ' + (e && e.code)); status = 'error'; notify(); }
   }
 
   async function writeBbb(roundId, mutate) {

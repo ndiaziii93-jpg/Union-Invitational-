@@ -711,6 +711,7 @@ function scrEntry() {
   <p class="lede">Gross strokes in. Raw and adjusted sit side by side, exactly as the group’s own cards read.</p>
 
   <div class="entrytop">
+   <div class="entryleft">
     <div class="rcards">
       ${D.ROUNDS.map(x => {
         const d = E.dayOf(x.dayIdx);
@@ -721,6 +722,12 @@ function scrEntry() {
       ${!r.counts ? `<p class="note-it">Get Loose Foursomes — practice. Feeds nothing; log it for the bragging rights.</p>` : ''}
       ${r.noMulligans ? `<p class="note-red"><strong>Championship final — no mulligans today.</strong> The breakfast ball on hole 1 is retained.</p>` : ''}
     </div>
+    <div class="grouprow">
+      <span class="gl">Group</span>
+      ${cfg.tees.map((t, i) => `<button class="gchip${slot === i ? ' on' : ''}" data-act="entryTee" data-a="${i}">Group ${i + 1}${t.time ? ' — ' + E.to12(t.time) : ''}</button>`).join('')}
+      ${usingAll ? `<span class="gnote">No group assigned yet — showing all golfers.</span>` : ''}
+    </div>
+   </div>
     ${/* the hole they are standing on, drawn exactly as Course Setup draws it,
           minus its hole strip — here the card decides which hole this is */ ''}
     <div class="cside">
@@ -732,12 +739,6 @@ function scrEntry() {
         <span class="m">${hole.mW} m White</span>
       </div>
     </div>
-  </div>
-
-  <div class="grouprow">
-    <span class="gl">Group</span>
-    ${cfg.tees.map((t, i) => `<button class="gchip${slot === i ? ' on' : ''}" data-act="entryTee" data-a="${i}">Group ${i + 1}${t.time ? ' — ' + E.to12(t.time) : ''}</button>`).join('')}
-    ${usingAll ? `<span class="gnote">No group assigned yet — showing all golfers.</span>` : ''}
   </div>
 
   ${gate}${saveBar}
@@ -1170,6 +1171,7 @@ function render() {
       <span class="dot ${dot}"></span><span>${esc(statusText)}</span>
       <span>${D.PINS_ENABLED ? esc(role.label) : 'Unlocked — anyone can score'}</span>
       <span class="sp">The Union Invitational — Belek, Türkiye — 2026</span>
+      <span class="build" title="Which copy of the book this device is running">build ${esc(D.BUILD)}</span>
     </div>
   </div>
   ${UI.modal ? modalHtml() : ''}`;

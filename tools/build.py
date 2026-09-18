@@ -4,7 +4,7 @@
 Compresses the hole diagrams to WebP data URIs, flattens the ES modules into
 one inline script (no bundler, no network), and writes dist/union-invitational.html.
 """
-import base64, io, json, os, re, sys, glob
+import base64, io, json, os, re, sys, glob, datetime
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(ROOT, 'src')
@@ -79,6 +79,9 @@ def main():
     css = open(os.path.join(SRC, 'styles.css'), encoding='utf-8').read()
     shell = open(os.path.join(SRC, 'index.html'), encoding='utf-8').read()
     bundle = '\n'.join(flatten(m) for m in MODULE_ORDER) + '\n__m_app.boot();\n'
+    # a stamp the book can show, so a phone holding an old copy gives itself away
+    stamp = datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%d-%H%M')
+    bundle = bundle.replace('__BUILD__', stamp)
     page = (shell
             .replace('/*STYLES*/', css)
             .replace('/*IMAGES*/', open(images_js, encoding='utf-8').read())

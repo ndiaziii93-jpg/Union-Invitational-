@@ -7,6 +7,10 @@
    set on the Setup screen — nothing else needs to change. */
 export const PINS_ENABLED = false;
 
+/* Stamped by tools/build.py. A phone that has kept an old copy of the book
+   looks identical to one on the newest; this is how we tell them apart. */
+export const BUILD = '__BUILD__';
+
 export const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
 export const EVENT = {
