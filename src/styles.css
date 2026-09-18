@@ -9,6 +9,9 @@
   --flag:#9E3B2E;  --gold:#8C6B2F;
   --under:#B4892B; --over:#9E3B2E; --level:#1D2E21;
   --uk:#1D3E8F;    --usa:#9E3B2E;
+  /* a hole still to score sits heavier than the paper; a hole already in
+     recedes towards it. The point is to find the gaps at a glance. */
+  --hole-todo:#CDBF9E; --hole-done:#F4EFE2;
   --shadow:rgba(29,46,33,.16);
   --serif:'Source Serif 4','Iowan Old Style',Georgia,'Times New Roman',serif;
   --mono:var(--serif);
@@ -21,7 +24,10 @@
     --flag:#D9705C;  --gold:#C9A25A;
     --under:#D6B067; --over:#D9705C; --level:#EEE7D6;
     --uk:#7FA4DE;    --usa:#D9705C;
-    --shadow:rgba(0,0,0,.5);
+    /* same meaning, different values: on a dark ground the hole still to score
+     is the one that lifts off the page, and a scored one sinks into it */
+  --hole-todo:#32402F; --hole-done:#171D18;
+  --shadow:rgba(0,0,0,.5);
   }
 }
 :root[data-theme="dark"] {
@@ -31,6 +37,9 @@
   --flag:#D9705C;  --gold:#C9A25A;
   --under:#D6B067; --over:#D9705C; --level:#EEE7D6;
   --uk:#7FA4DE;    --usa:#D9705C;
+  /* same meaning, different values: on a dark ground the hole still to score
+     is the one that lifts off the page, and a scored one sinks into it */
+  --hole-todo:#32402F; --hole-done:#171D18;
   --shadow:rgba(0,0,0,.5);
 }
 
@@ -156,13 +165,16 @@ h3.sub{font-size:19px;font-weight:600;margin:26px 0 0}
 
 .hstrip{display:grid;grid-template-columns:repeat(18,minmax(46px,1fr));gap:2px;min-width:860px}
 .hcell{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:8px 2px;
-  border:1px solid var(--rule);background:var(--sunk);color:var(--ink);border-radius:2px;min-height:52px}
+  border:1px solid var(--rule);background:var(--hole-todo);color:var(--ink);border-radius:2px;min-height:52px}
 .hcell .n{font-weight:700;font-variant-numeric:tabular-nums;font-size:16px}
 .hcell .p{font-size:11px;color:var(--turf);font-variant-numeric:tabular-nums}
 .hcell:hover{border-color:var(--ink)}
-.hcell.saved{background:var(--page)}
+/* scored: pale, quiet, done with */
+.hcell.saved{background:var(--hole-done);border-color:var(--hair)}
+.hcell.saved .n{font-weight:400}
 .hcell.on{background:var(--ink);border-color:var(--ink);color:var(--paper)}
 .hcell.on .p{color:var(--rule)}
+.hcell.on .n{font-weight:700}
 
 .holehead{display:flex;align-items:baseline;gap:22px;margin-top:16px;flex-wrap:wrap;
   border-bottom:2px solid var(--ink);padding-bottom:8px}

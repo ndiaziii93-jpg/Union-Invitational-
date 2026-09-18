@@ -1513,9 +1513,14 @@ function onClick(e) {
     }
     case 'saveHole': {
       if (!draftDirty()) return;
-      const n = UI.draft.hole + 1;
-      askPin('Save hole ' + n, 'Enter your PIN to record these scores. Only saved holes reach the leaderboards.',
-        'Save hole', role => { commitDraft(role); render(); });
+      const h = UI.draft.hole;
+      askPin('Save hole ' + (h + 1), 'Enter your PIN to record these scores. Only saved holes reach the leaderboards.',
+        'Save hole', role => {
+          commitDraft(role);
+          // walk on: a scorer saves a hole because the group has finished it
+          if (h < 17) { UI.entryHole = h + 1; window.scrollTo(0, 0); }
+          render();
+        });
       return;
     }
     case 'tgl':

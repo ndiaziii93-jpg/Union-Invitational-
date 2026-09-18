@@ -88,7 +88,9 @@ for (const breakage of ['reject', 'silent']) {
   ok('opening the round worked', await p.locator('[data-act="openRound"]').count(), 0);
   await p.locator('.step.plus').first().click(); await p.waitForTimeout(400);
   await p.locator('[data-act="saveHole"]').click(); await p.waitForTimeout(1500); await dismiss();
-  ok('a score was saved', await p.locator('.savebar .sv b').innerText(), 'Hole 1 saved');
+  ok('saving moved on to the next hole', await p.locator('.holehead h3').innerText(), 'Hole 2');
+  ok('and hole 1 is marked as scored',
+    await p.locator('.hcell').first().getAttribute('class').then(c => c.includes('saved')), true);
   ok('and a card reached the store',
     await p.evaluate(() => Object.keys(window.__docs).filter(k => k.startsWith('scores/')).length), 1);
   await p.close();

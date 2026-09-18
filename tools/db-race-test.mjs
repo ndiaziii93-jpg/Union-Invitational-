@@ -180,7 +180,9 @@ ok('entry: Stay keeps the draft', await p.locator('.fig.raw .v').first().innerTe
 
 // --- saving writes it through
 await p.locator('[data-act="saveHole"]').click(); await p.waitForTimeout(1600);
-ok('entry: saved bar confirms', await p.locator('.savebar .sv b').innerText(), 'Hole 1 saved');
+ok('entry: saving moved on', await p.locator('.holehead h3').innerText(), 'Hole 2');
+await p.locator('.hcell').nth(0).click(); await p.waitForTimeout(500);
+ok('entry: hole 1 reads as saved', await p.locator('.savebar .sv b').innerText(), 'Hole 1 saved');
 ok('entry: card written once saved', await p.evaluate(() => Object.keys(window.__mockDocs).filter(k => k.startsWith('scores/')).length), 1);
 ok('entry: stroke survives the race', await p.locator('.fig.raw .v').first().innerText(), '4');
 

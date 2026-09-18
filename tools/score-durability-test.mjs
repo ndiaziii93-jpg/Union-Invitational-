@@ -87,7 +87,9 @@ for (const mode of ['the test copy (this device only)', 'the real book (shared d
   ok('a stroke shows before saving', await shown(), '4');
   ok('and is flagged as not saved', await p.locator('.savebar .sv b').innerText(), 'Hole 1 is not saved');
   await p.locator('[data-act="saveHole"]').click(); await p.waitForTimeout(1500); await clear();
-  ok('saving confirms', await p.locator('.savebar .sv b').innerText(), 'Hole 1 saved');
+  ok('saving moved on to the next hole', await p.locator('.holehead h3').innerText(), 'Hole 2');
+  ok('and hole 1 is marked as scored', await p.locator('.hcell').first().getAttribute('class').then(c => c.includes('saved')), true);
+  await p.locator('.hcell').first().click(); await p.waitForTimeout(500); await clear();
 
   // --- the phone is put away and reopened ---
   await p.reload(); await p.waitForTimeout(2600); await clear();

@@ -91,10 +91,24 @@ for (const [name, viewport, touch, dpr] of DEVICES) {
     // 3. a stroke goes in and saves
     if (!await p.locator('.step.plus').count()) bad.push('no scoring controls');
     else {
+      const before = await p.locator('.holehead h3').innerText();
       await p.locator('.step.plus').first().click(); await p.waitForTimeout(400);
       await p.locator('[data-act="saveHole"]').click(); await p.waitForTimeout(1500); await dismiss();
       const cards = await p.evaluate(() => Object.keys(window.__docs).filter(k => k.startsWith('scores/')).length);
       if (cards < 1) bad.push('the card never reached the book');
+      // saving a hole means the group has finished it: walk on
+      const after = await p.locator('.holehead h3').innerText();
+      if (after === before) bad.push('saving did not move on from ' + before);
+      // and a scored hole must look different from one still to play
+      const tones = await p.evaluate(() => {
+        const c = document.querySelectorAll('.hstrip .hcell');
+        const done = [...c].find(e => e.classList.contains('saved') && !e.classList.contains('on'));
+        const todo = [...c].find(e => !e.classList.contains('saved') && !e.classList.contains('on'));
+        if (!done || !todo) return null;
+        return [getComputedStyle(done).backgroundColor, getComputedStyle(todo).backgroundColor];
+      });
+      if (!tones) bad.push('could not compare a scored hole with an unscored one');
+      else if (tones[0] === tones[1]) bad.push('scored and unscored holes look identical');
     }
 
     // 3b. minus works from an empty cell, without a tap up first
