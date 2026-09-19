@@ -89,6 +89,24 @@ ok('the question box is told the tournament',
 await p.keyboard.press('Escape'); await p.waitForTimeout(350);
 ok('escape closes it', await p.locator('.askbox').count(), 0);
 
+/* Typing survives a redraw. The store polls every few seconds now, so a
+   redraw lands in the middle of a sentence as a matter of routine — and the
+   box was the one text field in the book with no data-act, which is the
+   attribute the focus-restore keys on. It lost the caret, and the last
+   letter with it. */
+console.log('\ntyping in the question box');
+await p.locator('.crestbtn').click(); await p.waitForTimeout(400);
+await p.locator('#askField').click();
+await p.keyboard.type('When is check-out');
+await p.evaluate(() => window.__forceRender && window.__forceRender());
+await p.waitForTimeout(450);
+ok('the caret is still in the box', await p.evaluate(
+  () => document.activeElement && document.activeElement.id === 'askField'), true);
+ok('and every letter survived', await p.locator('#askField').inputValue(), 'When is check-out');
+await p.keyboard.type('?');
+ok('so typing carries on where it left off', await p.locator('#askField').inputValue(), 'When is check-out?');
+await p.keyboard.press('Escape'); await p.waitForTimeout(300);
+
 // --- the recap stays dark until every card is in ---
 await tab('Today');
 ok('the recap button is there', await p.locator('.recapbtn').count(), 1);

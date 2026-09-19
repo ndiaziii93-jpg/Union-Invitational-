@@ -543,7 +543,8 @@ function askPanel() {
     <p class="asknote">Anything about this tournament — scores, bands, pairings, who is up. It answers from the
     book only, so if it has not been recorded, it will say so.</p>
     <div class="askrow">
-      <textarea id="askField" class="field askin" rows="2" placeholder="Who is leading the Ryder Cup?"
+      <textarea id="askField" class="field askin" data-act="askText" rows="2"
+        placeholder="Who is leading the Ryder Cup?"
         aria-label="Your question">${esc(UI.askText)}</textarea>
       <button class="btn" data-act="askSend">Ask</button>
     </div>
@@ -2010,6 +2011,8 @@ function onClick(e) {
     case 'askOpen':
       UI.askOpen = true; UI.askFocus = true; render();
       return;
+    case 'askText':
+      return;                      // a field, not a button: typing is handled below
     case 'askClose':
       if (el.classList.contains('scrim') && e.target !== el) return;
       UI.askOpen = false; render();
@@ -2436,7 +2439,6 @@ function onKey(e) {
   if (e.key === 'Enter' && UI.modal && e.target.id === 'addName') { e.preventDefault(); onClick({ target: document.querySelector('[data-act="addSave"]') }); }
   if (e.key === 'Enter' && e.target.classList && e.target.classList.contains('nameedit')) { e.preventDefault(); e.target.blur(); }
   if (e.target && e.target.id === 'askField') {
-    UI.askText = e.target.value;
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendQuestion(); return; }
     // Escape has to get out of the box as well as off the page
     if (e.key === 'Escape') { UI.askOpen = false; render(); return; }
@@ -2635,6 +2637,14 @@ export function boot() {
     addPhotos(strip.dataset.a, e.dataTransfer.files);
   });
   app.addEventListener('keydown', onKey);
+  /* What was typed, kept as it is typed. `keydown` fires before the character
+     lands, so reading the value there is always one keystroke behind — and a
+     redraw arriving mid-sentence then rendered the box without the last
+     letter in it. With the store polling every few seconds, redraws arrive
+     mid-sentence often. */
+  app.addEventListener('input', e => {
+    if (e.target && e.target.id === 'askField') UI.askText = e.target.value;
+  });
   // the page may be allowed to ask Claude, or may not: find out once, quietly,
   // and let the crest and the recap light up if it can
   (async () => {
@@ -2660,6 +2670,9 @@ export function boot() {
     }
     render();
   })();
+  /* The store redraws whenever it hears anything; this is the same redraw,
+     on demand, so a test can land one in the middle of a sentence. */
+  window.__forceRender = render;
   setInterval(() => { now = E.nowLocal(); render(); }, 30000);
   render();
   store.connect();
