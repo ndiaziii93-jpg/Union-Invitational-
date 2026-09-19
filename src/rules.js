@@ -55,15 +55,16 @@ export const RULES = [
     example: 'Thursday, nominated hole 16. DP finds the fairway at 260 m; Devin O goes past him but into the rough. DP keeps the marker.' },
 
   { id: 'ryder', name: 'Ryder Cup — UK v USA', tag: 'Squad match play laid over the same scorecards. No extra golf.',
-    when: 'Fourballs Thursday and Friday, Singles Sunday.',
+    when: 'Singles all three sessions — Thursday, Friday and Sunday.',
     won: 'Most match points across the three sessions. One point per match, half each if all square.',
     body: [
-      'Every golfer belongs to a squad — UK or USA — set on the Ryder Cup screen. The matches are scored off the identical cards that feed everything else.',
-      'Thursday: UK pairs against USA pairs, fourballs — the better net ball of each pair, hole by hole, match play. Friday: pairs stay together, opponents are redrawn. Sunday: everyone plays one head-to-head net singles match, running concurrently with the championship final.',
+      'Every golfer belongs to a squad — UK or USA — set on the Ryder Cup screen. The matches are scored off the identical cards that feed everything else. No extra golf, no separate card.',
+      'Every session is head-to-head net singles: one UK golfer against one USA golfer, hole by hole, match play. Thursday and Friday run alongside the Better Ball rounds; Sunday runs alongside the championship final. You play your own ball in the cup whatever the day’s team format is.',
+      'The draw is redrawn each session, so you do not meet the same opponent twice. If the squads are uneven, the bigger squad rotates: whoever sits out on Thursday is in on Friday, and everyone plays at least twice.',
       'Match play notation: “2 up” means two holes ahead with holes left. “3&2” means the match closed three up with two to play. “All square” is level.',
       'Tie: if the cup finishes level, it is shared — and argued about at Mandatory Team Beers.',
     ],
-    example: 'Thursday fourballs: on hole 9 the UK pair’s better ball is net 4, the USA pair’s is net 5 — UK go 1 up. They close it 3&2 on the 16th: one point to UK.' },
+    example: 'Thursday singles: on hole 9 Duncan’s net 4 beats Ray’s net 5 — Duncan goes 1 up. He closes it 3&2 on the 16th: one point to his squad.' },
 ];
 
 export const RELIEF = {

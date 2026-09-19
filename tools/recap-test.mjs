@@ -34,6 +34,20 @@ const ok = (n, g, w) => { const good = g === w;
   console.log((good ? '  PASS  ' : '  FAIL  ') + n + '  got ' + JSON.stringify(g) + (good ? '' : '  want ' + JSON.stringify(w)));
   if (!good) fails.push(n); };
 
+/* Closest to the pin and longest drive are nominated before a card can open,
+   so every test that opens one has to make the two picks first. */
+const nominate = async pg => {
+  for (const f of ['ctpHole', 'ldHole']) {
+    const sel = pg.locator('[data-act="setRoundField"][data-a="' + f + '"]').first();
+    if (!await sel.count()) continue;
+    if (await sel.inputValue()) continue;
+    const opts = await sel.locator('option').evaluateAll(os => os.map(o => o.value).filter(Boolean));
+    if (!opts.length) continue;
+    await sel.selectOption(opts[0]);
+    await pg.waitForTimeout(450);
+  }
+};
+
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
 const p = await (await b.newContext({ viewport: { width: 1280, height: 1000 } })).newPage();
 p.on('pageerror', e => { console.log('  PAGE ERROR:', String(e).split('\n')[0]); fails.push('pageerror'); });
@@ -68,6 +82,7 @@ ok('and is not lit yet', await p.locator('.recapbtn.ready').count(), 0);
 
 await tab('Score Entry');
 if (await p.locator('[data-act="openRound"]').count()) {
+  await nominate(p); await shut();
   await p.locator('[data-act="openRound"]').first().click(); await p.waitForTimeout(1200); await shut();
 }
 const groups = await p.locator('.gchip').count();

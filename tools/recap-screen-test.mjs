@@ -34,6 +34,20 @@ const ok = (n, g, w) => { const good = JSON.stringify(g) === JSON.stringify(w);
   console.log((good ? '  PASS  ' : '  FAIL  ') + n + '  got ' + JSON.stringify(g) + (good ? '' : '  want ' + JSON.stringify(w)));
   if (!good) fails.push(n); };
 
+/* Closest to the pin and longest drive are nominated before a card can open,
+   so every test that opens one has to make the two picks first. */
+const nominate = async pg => {
+  for (const f of ['ctpHole', 'ldHole']) {
+    const sel = pg.locator('[data-act="setRoundField"][data-a="' + f + '"]').first();
+    if (!await sel.count()) continue;
+    if (await sel.inputValue()) continue;
+    const opts = await sel.locator('option').evaluateAll(os => os.map(o => o.value).filter(Boolean));
+    if (!opts.length) continue;
+    await sel.selectOption(opts[0]);
+    await pg.waitForTimeout(450);
+  }
+};
+
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
 const p = await (await b.newContext({ viewport: { width: 1280, height: 1000 } })).newPage();
 p.on('pageerror', e => { console.log('  PAGE ERROR:', String(e).split('\n')[0]); fails.push('pageerror'); });
@@ -62,6 +76,7 @@ ok('and it cannot be opened', await p.locator('.recapbtn[disabled]').count(), 1)
 // one card part-way in
 await tab('Score Entry');
 if (await p.locator('[data-act="openRound"]').count()) {
+  await nominate(p); await shut();
   await p.locator('[data-act="openRound"]').first().click(); await p.waitForTimeout(1100); await shut();
 }
 await p.locator('.step.plus').first().click(); await p.waitForTimeout(200);
@@ -83,11 +98,16 @@ for (let g = 0; g < groups; g++) {
   if (g + 1 < groups) { await p.locator('.hcell').nth(0).click(); await p.waitForTimeout(220); }
 }
 await tab('Today');
-ok('complete but unwritten asks for the report', await line(), 'Round complete — generate the report.');
+ok('complete but unwritten invites a tap', await line(), 'Round complete — tap to read the day.');
 
 console.log('\nthe recap window');
-await p.locator('.recapbtn').click(); await p.waitForTimeout(700);
+ok('the finished panel pulses for attention', await p.locator('.recapbtn.ready').evaluate(
+  el => getComputedStyle(el).animationName), 'recappulse');
+await p.locator('.recapbtn').click(); await p.waitForTimeout(1600);
 ok('it opens over the page, not instead of it', await p.locator('.recapbox').count(), 1);
+/* Opening it is the ask — nobody presses a second button to read the day. */
+ok('and it wrote itself without a second click',
+  (await p.locator('.rechead').innerText()).startsWith('Aspendos waited'), true);
 ok('Today is still behind it', await p.locator('.recapbtn').count(), 1);
 ok('the meta rail is in it', await p.locator('.metarail').count(), 1);
 ok('the meta rail has five facts', await p.locator('.metarail span').count(), 5);

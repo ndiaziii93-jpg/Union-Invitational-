@@ -59,6 +59,20 @@ const DEVICES = [
 ];
 
 const fails = [];
+/* Closest to the pin and longest drive are nominated before a card can open,
+   so every test that opens one has to make the two picks first. */
+const nominate = async pg => {
+  for (const f of ['ctpHole', 'ldHole']) {
+    const sel = pg.locator('[data-act="setRoundField"][data-a="' + f + '"]').first();
+    if (!await sel.count()) continue;
+    if (await sel.inputValue()) continue;
+    const opts = await sel.locator('option').evaluateAll(os => os.map(o => o.value).filter(Boolean));
+    if (!opts.length) continue;
+    await sel.selectOption(opts[0]);
+    await pg.waitForTimeout(450);
+  }
+};
+
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
 for (const [name, viewport, touch, dpr] of DEVICES) {
   const ctx = await b.newContext({ viewport, isMobile: touch, hasTouch: touch, deviceScaleFactor: dpr });
@@ -84,6 +98,7 @@ for (const [name, viewport, touch, dpr] of DEVICES) {
     // 2. a round opens
     await tab('Score Entry');
     if (await p.locator('[data-act="openRound"]').count()) {
+      await nominate(p); await dismiss();
       await p.locator('[data-act="openRound"]').first().click(); await p.waitForTimeout(1400); await dismiss();
     }
     if (await p.locator('[data-act="openRound"]').count()) bad.push('round would not open');

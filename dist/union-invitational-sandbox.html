@@ -172,7 +172,7 @@ h3.sub{font-size:19px;font-weight:600;margin:26px 0 0}
 
 .hstrip{display:grid;grid-template-columns:repeat(18,minmax(46px,1fr));gap:2px;min-width:860px}
 .hcell{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:8px 2px;
-  border:1px solid var(--rule);background:var(--hole-todo);color:var(--ink);border-radius:2px;min-height:52px}
+  border:1px solid var(--rule);background:var(--hole-todo);color:var(--ink);border-radius:9px;min-height:52px}
 .hcell .n{font-weight:700;font-variant-numeric:tabular-nums;font-size:16px}
 .hcell .p{font-size:11px;color:var(--turf);font-variant-numeric:tabular-nums}
 .hcell:hover{border-color:var(--ink)}
@@ -235,6 +235,8 @@ h3.sub{font-size:19px;font-weight:600;margin:26px 0 0}
 .fieldset .field.unset{border-color:var(--flag)}
 
 /* ---- gate / lock bar ---- */
+/* a gate that is waiting on something you must choose, not just confirm */
+.gate.want{border-left-color:var(--gold)}
 .gate{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:13px 15px;margin-top:16px;
   border:1px solid var(--rule);border-left:3px solid var(--flag);background:var(--page);border-radius:3px}
 .gate .msg{flex:1 1 260px;min-width:0;font-size:15px}
@@ -784,6 +786,15 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
 .recapbtn.ready .rb-t{color:var(--paper)}
 .recapbtn.ready .rb-s{color:var(--paper);opacity:.85}
 .recapbtn.ready:hover{filter:brightness(1.08)}
+/* A finished round has something to read. The panel breathes until someone
+   opens it — a slow glow, not a strobe, and nothing at all for anyone who
+   has asked their device to stop moving things. */
+@keyframes recappulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(31,74,45,0)}
+  50%{box-shadow:0 0 0 7px rgba(31,74,45,.16)}
+}
+.recapbtn.ready{animation:recappulse 2.4s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){.recapbtn.ready{animation:none}}
 
 .askbox{background:var(--page);border:1px solid var(--rule);border-radius:4px;
   width:min(680px,94vw);max-height:86vh;overflow-y:auto;padding:18px 20px 20px;box-shadow:0 18px 50px var(--shadow)}
@@ -936,7 +947,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20260919-1227';
+const BUILD = '20260919-1311';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -1089,15 +1100,16 @@ const RULES = [
     example: 'Thursday, nominated hole 16. DP finds the fairway at 260 m; Devin O goes past him but into the rough. DP keeps the marker.' },
 
   { id: 'ryder', name: 'Ryder Cup — UK v USA', tag: 'Squad match play laid over the same scorecards. No extra golf.',
-    when: 'Fourballs Thursday and Friday, Singles Sunday.',
+    when: 'Singles all three sessions — Thursday, Friday and Sunday.',
     won: 'Most match points across the three sessions. One point per match, half each if all square.',
     body: [
-      'Every golfer belongs to a squad — UK or USA — set on the Ryder Cup screen. The matches are scored off the identical cards that feed everything else.',
-      'Thursday: UK pairs against USA pairs, fourballs — the better net ball of each pair, hole by hole, match play. Friday: pairs stay together, opponents are redrawn. Sunday: everyone plays one head-to-head net singles match, running concurrently with the championship final.',
+      'Every golfer belongs to a squad — UK or USA — set on the Ryder Cup screen. The matches are scored off the identical cards that feed everything else. No extra golf, no separate card.',
+      'Every session is head-to-head net singles: one UK golfer against one USA golfer, hole by hole, match play. Thursday and Friday run alongside the Better Ball rounds; Sunday runs alongside the championship final. You play your own ball in the cup whatever the day’s team format is.',
+      'The draw is redrawn each session, so you do not meet the same opponent twice. If the squads are uneven, the bigger squad rotates: whoever sits out on Thursday is in on Friday, and everyone plays at least twice.',
       'Match play notation: “2 up” means two holes ahead with holes left. “3&2” means the match closed three up with two to play. “All square” is level.',
       'Tie: if the cup finishes level, it is shared — and argued about at Mandatory Team Beers.',
     ],
-    example: 'Thursday fourballs: on hole 9 the UK pair’s better ball is net 4, the USA pair’s is net 5 — UK go 1 up. They close it 3&2 on the 16th: one point to UK.' },
+    example: 'Thursday singles: on hole 9 Duncan’s net 4 beats Ray’s net 5 — Duncan goes 1 up. He closes it 3&2 on the 16th: one point to his squad.' },
 ];
 
 const RELIEF = {
@@ -1316,10 +1328,7 @@ function practiceBoard(T) {
 function practiceBbb(T) {
   const tally = {};
   const b = T.bbb.practice;
-  if (b) for (const cell of b.holes) for (const k of ['bingo', 'bango', 'bongo']) {
-    const pid = cell && cell[k];
-    if (pid) tally[pid] = (tally[pid] || 0) + 1;
-  }
+  if (b) for (const cell of b.holes) for (const pid of bbbMarks(cell)) tally[pid] = (tally[pid] || 0) + 1;
   const rows = Object.entries(tally).map(([pid, pts]) => ({ id: pid, name: (person(T, pid) || {}).display || '?', pts }));
   rows.sort((a, b2) => b2.pts - a.pts);
   return rows.map((r, i) => ({ ...r, pos: i + 1 }));
@@ -1383,15 +1392,27 @@ function mvpBoard(T, now) {
     totalStr: fmtToPar(r.total), stbStr: String(r.stb) }));
 }
 
+/* A hole's Bingo Bango Bongo marks, whatever shape they were written in.
+   The book used to keep one set per hole for the whole round, so two refs
+   scoring two groups on the same hole overwrote each other. Each group keeps
+   its own set now; a hole written in the old shape still counts. */
+const BBB_SLOTS = ['bingo', 'bango', 'bongo'];
+
+function bbbMarks(cell) {
+  if (!cell) return [];
+  const out = [];
+  const take = c => { for (const k of BBB_SLOTS) if (c && c[k]) out.push(c[k]); };
+  const by = cell.g && typeof cell.g === 'object' ? Object.values(cell.g) : [];
+  if (by.length) by.forEach(take); else take(cell);
+  return out;
+}
+
 function bbbBoard(T) {
   const tally = {};
   for (const r of countingRounds(T)) {
     const b = T.bbb[r.id];
     if (!b) continue;
-    for (const cell of b.holes) for (const k of ['bingo', 'bango', 'bongo']) {
-      const pid = cell && cell[k];
-      if (pid) tally[pid] = (tally[pid] || 0) + 1;
-    }
+    for (const cell of b.holes) for (const pid of bbbMarks(cell)) tally[pid] = (tally[pid] || 0) + 1;
   }
   const rows = Object.entries(tally).map(([pid, pts]) => ({ id: pid, name: (person(T, pid) || {}).display || '?', pts }));
   rows.sort((a, b) => b.pts - a.pts);
@@ -1484,10 +1505,7 @@ function roundBrief(T, rid) {
   const b = T.bbb[rid];
   if (b) {
     const tally = {};
-    b.holes.forEach(cell => ['bingo', 'bango', 'bongo'].forEach(k => {
-      const pid = cell && cell[k];
-      if (pid) tally[pid] = (tally[pid] || 0) + 1;
-    }));
+    b.holes.forEach(cell => bbbMarks(cell).forEach(pid => { tally[pid] = (tally[pid] || 0) + 1; }));
     const line = Object.entries(tally).map(([pid, n]) => ((person(T, pid) || {}).display || '?') + ' ' + n);
     if (line.length) L.push('Bingo Bango Bongo: ' + line.join(', '));
   }
@@ -1603,10 +1621,7 @@ function sideGames(T, rid) {
   const nm = id => (person(T, id) || {}).display || null;
   const bbb = {};
   const b = T.bbb[rid];
-  if (b) b.holes.forEach(cell => ['bingo', 'bango', 'bongo'].forEach(k => {
-    const pid = cell && cell[k];
-    if (pid) bbb[pid] = (bbb[pid] || 0) + 1;
-  }));
+  if (b) b.holes.forEach(cell => bbbMarks(cell).forEach(pid => { bbb[pid] = (bbb[pid] || 0) + 1; }));
   const top = Object.entries(bbb).sort((a, c) => c[1] - a[1])[0];
   const mvp = mvpBoard(T, nowLocal()).filter(x => x.played)[0];
   // how often the triple-bogey cap actually bit today
@@ -1696,48 +1711,48 @@ function matchPlay(sideA, sideB) {
 
 function ryderData(T, now) {
   const gs = golfers(T);
-  const loc = pid => (person(T, pid) || {}).location || null;
-  const pairLoc = pair => {
-    const ls = pair.members.map(loc).filter(Boolean);
-    return ls.length === pair.members.length && ls.length && ls.every(l => l === ls[0]) ? ls[0] : null;
-  };
   const sessions = [];
   let ukTotal = 0, usaTotal = 0;
 
-  for (const round of countingRounds(T)) {
-    const singles = round.id === 'r3';
+  /* Every session is singles. Fourballs tied a golfer's cup to whichever
+     squad their better-ball partner was in, which left anyone in a split
+     pairing out of two sessions of three. Head-to-head, everyone plays. */
+  const rot = (list, by) => (!list.length ? list
+    : list.slice(by % list.length).concat(list.slice(0, by % list.length)));
+
+  const rounds = countingRounds(T);
+  rounds.forEach((round, k) => {
     const matches = [];
     const started = phaseOf(T, round.id, now) !== 'upcoming' && hasScores(T, round.id);
-    if (!singles) {
-      const uk = T.config.pairs.filter(p => pairLoc(p) === 'UK');
-      const us = T.config.pairs.filter(p => pairLoc(p) === 'USA');
-      const n = Math.min(uk.length, us.length);
-      for (let i = 0; i < n; i++) {
-        const a = uk[i], b = us[round.id === 'r2' ? (i + 1) % n : i];
-        const mp = started ? matchPlay(h => pairHole(T, round.id, a, h), h => pairHole(T, round.id, b, h))
-                           : { up: 0, thru: 0, status: 'Not started', done: false, side: null };
-        matches.push({ a: pairName(T, a), b: pairName(T, b), ...mp });
-      }
-    } else {
-      const uk = gs.filter(g => g.location === 'UK'), us = gs.filter(g => g.location === 'USA');
-      const n = Math.min(uk.length, us.length);
-      for (let i = 0; i < n; i++) {
-        const a = uk[i], b = us[i];
-        const mp = started ? matchPlay(h => playerNet(T, round.id, a.id, h), h => playerNet(T, round.id, b.id, h))
-                           : { up: 0, thru: 0, status: 'Not started', done: false, side: null };
-        matches.push({ a: a.display, b: b.display, ...mp });
-      }
+    const ukAll = gs.filter(g => g.location === 'UK');
+    const usAll = gs.filter(g => g.location === 'USA');
+    /* Squads are rarely the same size. Turn the longer one by a whole session
+       each time so a different golfer sits out every session, and turn the
+       shorter one by one so nobody meets the same opponent twice. */
+    const ukBig = ukAll.length >= usAll.length;
+    const big = ukBig ? ukAll : usAll;
+    const small = ukBig ? usAll : ukAll;
+    const n = small.length;
+    const bigR = rot(big, n * k);
+    const smallR = rot(small, k);
+    for (let i = 0; i < n; i++) {
+      const uk = ukBig ? bigR[i] : smallR[i];
+      const us = ukBig ? smallR[i] : bigR[i];
+      const mp = started ? matchPlay(h => playerNet(T, round.id, uk.id, h), h => playerNet(T, round.id, us.id, h))
+                         : { up: 0, thru: 0, status: 'Not started', done: false, side: null };
+      matches.push({ a: uk.display, b: us.display, aId: uk.id, bId: us.id, ...mp });
     }
+    const out = bigR.slice(n).map(g => g.display);
     let uk = 0, us = 0;
     for (const m of matches) if (m.done) { if (m.up > 0) uk++; else if (m.up < 0) us++; else { uk += 0.5; us += 0.5; } }
     ukTotal += uk; usaTotal += us;
     const d = dayOf(round.dayIdx);
-    sessions.push({ id: round.id, label: d.dow + ' ' + d.date, format: singles ? 'Singles' : 'Fourballs', matches, uk, usa: us });
-  }
+    sessions.push({ id: round.id, label: d.dow + ' ' + d.date, format: 'Singles', matches, uk, usa: us, sitting: out });
+  });
   return {
     sessions, ukTotal, usaTotal,
     unassigned: gs.filter(g => !g.location).length,
-    splitPairs: T.config.pairs.filter(p => p.members.length === 2 && pairLoc(p) == null && p.members.every(loc)).length,
+    lopsided: Math.abs(gs.filter(g => g.location === 'UK').length - gs.filter(g => g.location === 'USA').length),
   };
 }
 
@@ -1877,7 +1892,7 @@ function roundToPar(T, roundId, pid) {
   return { tp, thru };
 }
 
-return {nowLocal, dayOf, hhmmToMin, to12, to24, BANDS, strokesFor, bandTotal, fmtToPar, capFor, capped, person, golfers, roundDef, roundCfg, courseByKey, courseOf, scoreKey, card, pairName, phaseOf, phaseLabel, hasScores, countingRounds, playerNet, pairHole, PAIRS_PER_GROUP, groups, practiceBoard, practiceBbb, bandsLocked, pairsBoard, mvpBoard, bbbBoard, roundComplete, brief, roundBrief, recapRound, roundStanding, ribbon, pairRoundBoard, recapTable, swingOfTheDay, sideGames, recapInput, matchPlay, ryderData, holeCells, setupIssues, nextTee, fixtures, nextFixture, TEE_CHOICES, TEE_PRIV, teePrivilege, roundToPar};
+return {nowLocal, dayOf, hhmmToMin, to12, to24, BANDS, strokesFor, bandTotal, fmtToPar, capFor, capped, person, golfers, roundDef, roundCfg, courseByKey, courseOf, scoreKey, card, pairName, phaseOf, phaseLabel, hasScores, countingRounds, playerNet, pairHole, PAIRS_PER_GROUP, groups, practiceBoard, practiceBbb, bandsLocked, pairsBoard, mvpBoard, BBB_SLOTS, bbbMarks, bbbBoard, roundComplete, brief, roundBrief, recapRound, roundStanding, ribbon, pairRoundBoard, recapTable, swingOfTheDay, sideGames, recapInput, matchPlay, ryderData, holeCells, setupIssues, nextTee, fixtures, nextFixture, TEE_CHOICES, TEE_PRIV, teePrivilege, roundToPar};
 })();
 
 const __m_store = (function(){
@@ -3141,7 +3156,7 @@ function recapState(rid) {
   if (!st.complete) {
     return { key: 'live', line: 'Round in progress — ' + st.inCards + ' of ' + st.field + ' cards in.' };
   }
-  if (!written) return { key: 'togen', line: 'Round complete — generate the report.' };
+  if (!written) return { key: 'togen', line: 'Round complete — tap to read the day.' };
   return { key: 'ready', line: E.roundDef(rid).short + ' is complete — read the report.' };
 }
 
@@ -3519,7 +3534,7 @@ function scrRyder() {
   const R = E.ryderData(T, now);
   const gs = E.golfers(T);
   return `<h2 class="head">Ryder Cup — UK v USA</h2>
-  <p class="lede">Squad match play laid over the same scorecards. Fourballs Thursday and Friday, singles Sunday. <a href="#rules" data-act="goRule" data-a="ryder">Full rules</a></p>
+  <p class="lede">Squad match play laid over the same scorecards. Head-to-head singles all three sessions, so everybody plays every time. <a href="#rules" data-act="goRule" data-a="ryder">Full rules</a></p>
 
   <div class="cupbar">
     <div class="side">${ukFlag(44)}<span class="pts num" style="color:var(--green)">${R.ukTotal}</span><span class="eyebrow">United Kingdom</span></div>
@@ -3544,7 +3559,7 @@ function scrRyder() {
     }).join('')}
   </div>
   ${canEdit() ? `<div class="chiprow" style="margin-top:12px"><button class="chip" data-act="clearSquads">Clear all squads</button></div>` : ''}
-  ${R.splitPairs ? `<div class="notice"><b>${R.splitPairs} pair${R.splitPairs > 1 ? 's are' : ' is'} split across squads</b><div style="font-size:15px;color:var(--turf)">Fourball matches only build from pairs whose two players share a squad. Singles on Sunday are unaffected.</div></div>` : ''}
+  ${R.lopsided ? `<div class="notice"><b>The squads are ${R.lopsided} apart</b><div style="font-size:15px;color:var(--turf)">Every session is singles, so ${R.lopsided === 1 ? 'one golfer' : R.lopsided + ' golfers'} on the bigger squad sit out each time — a different ${R.lopsided === 1 ? 'one' : 'few'} each session, so nobody misses twice before everyone has missed once. Even the squads up and they all play all three.</div></div>` : ''}
 
   ${R.sessions.map(s => `
     <h3 class="sub">${esc(s.label)} — ${esc(s.format)}</h3>
@@ -3554,7 +3569,8 @@ function scrRyder() {
         <span>${esc(m.a)}</span>
         <span class="st ${m.side === 'UK' ? 'uk' : m.side === 'USA' ? 'usa' : ''}">${esc(m.status)}${m.thru && !m.done ? ' · thru ' + m.thru : ''}</span>
         <span class="r">${esc(m.b)}</span></div>`).join('')}
-    </div>` : `<p class="empty">No matches yet — assign both squads and pair players up, and the draw builds itself.</p>`}
+    </div>` : `<p class="empty">No matches yet — put golfers in both squads and the draw builds itself.</p>`}
+    ${s.sitting && s.sitting.length ? `<p class="rnote" style="margin-top:6px">Sitting this session: ${esc(s.sitting.join(', '))}.</p>` : ''}
   `).join('')}`;
 }
 
@@ -3709,8 +3725,17 @@ function restoreDraft() {
   } catch (e) { /* nothing carried over */ }
 }
 
+/** Which group the screen is on — the one whose points a mark belongs to. */
+function curGroupId(rid) {
+  const gs = E.groups(T, rid);
+  const i = Math.min(UI.entryTee === 'all' ? 0 : +UI.entryTee || 0, Math.max(gs.length - 1, 0));
+  return (gs[i] || {}).id || 'g0';
+}
+
 function draftFor(rid, h) {
-  if (!UI.draft || UI.draft.rid !== rid || UI.draft.hole !== h) UI.draft = { rid, hole: h, strokes: {}, bbb: {} };
+  if (!UI.draft || UI.draft.rid !== rid || UI.draft.hole !== h) {
+    UI.draft = { rid, hole: h, strokes: {}, bbb: {}, gid: curGroupId(rid) };
+  }
   return UI.draft;
 }
 function draftDirty() {
@@ -3723,11 +3748,18 @@ function grossOf(rid, pid, h) {
   const c = E.card(T, rid, pid);
   return c ? c.raw[h] : null;
 }
-function bbbOf(rid, h, slot) {
+/* Bingo Bango Bongo is played inside a group, so each group keeps its own
+   three marks per hole. One set per hole meant the second ref to save wiped
+   the first ref's points without either of them seeing it. A hole written
+   before this still reads, under whichever group is looking at it. */
+function bbbOf(rid, h, slot, gid) {
   const d = UI.draft;
   if (d && d.rid === rid && d.hole === h && slot in d.bbb) return d.bbb[slot];
-  const b = T.bbb[rid];
-  return b && b.holes[h] ? b.holes[h][slot] : null;
+  const cell = (T.bbb[rid] || { holes: [] }).holes[h];
+  if (!cell) return null;
+  const mine = cell.g && cell.g[gid];
+  if (mine) return mine[slot] || null;
+  return cell.g ? null : (cell[slot] || null);
 }
 function holeSavedBy(rid, h) {
   for (const g of E.golfers(T)) {
@@ -3748,7 +3780,20 @@ function commitDraft(role) {
       else { c.by[h] = role; c.at[h] = Date.now(); }
     });
   }
-  if (Object.keys(d.bbb).length) store.writeBbb(d.rid, x => { Object.assign(x.holes[h], d.bbb); });
+  if (Object.keys(d.bbb).length) store.writeBbb(d.rid, x => {
+    const cell = x.holes[h];
+    const gid = d.gid || curGroupId(d.rid);
+    if (!cell.g) {
+      // first per-group write to this hole: whatever was already on it
+      // belongs to whoever is writing now, so it is not simply dropped
+      cell.g = {};
+      const legacy = {};
+      let any = false;
+      for (const k of E.BBB_SLOTS) if (cell[k]) { legacy[k] = cell[k]; any = true; delete cell[k]; }
+      if (any) cell.g[gid] = legacy;
+    }
+    cell.g[gid] = { ...(cell.g[gid] || {}), ...d.bbb };
+  });
   UI.draft = null;
 }
 
@@ -3785,8 +3830,14 @@ function scrEntry() {
   const saved = holeSavedBy(rid, h);
   const ed = canEdit();
 
+  /* Closest to the pin and longest drive are nominated before the first tee
+     shot, never after someone has already hit a good one. Both must be set
+     for the card to open, and only a scorer can move them afterwards. */
+  const nominated = !!cfg.ctpHole && !!cfg.ldHole;
+
   const groups = E.groups(T, rid);
   const slot = Math.min(UI.entryTee === 'all' ? 0 : +UI.entryTee, Math.max(groups.length - 1, 0));
+  const gid = (groups[slot] || {}).id || 'g0';
   const slotPlayers = (groups[slot] || {}).members || [];
   const usingAll = slotPlayers.length === 0;
   const list = usingAll ? E.golfers(T) : E.golfers(T).filter(g => slotPlayers.includes(g.id));
@@ -3802,9 +3853,12 @@ function scrEntry() {
       ${canAdmin() ? `<button class="btn ghost" data-act="unlockRound" data-a="${rid}">${D.PINS_ENABLED ? 'Reopen with master PIN' : 'Reopen'}</button>`
         : `<span class="eyebrow">Only the master reviewer can reopen a locked round.</span>`}</div>`;
   } else if (!open) {
-    gate = `<div class="gate"><div class="msg"><b>${esc(r.short)} is not open for scoring</b>
-      <span>${D.PINS_ENABLED ? 'Opening confirms with your PIN and lets both scorers write to this card.' : 'Opening lets anyone with this page write to the card.'}</span></div>
-      <button class="btn" data-act="openRound" data-a="${rid}">Open round</button></div>`;
+    gate = `<div class="gate${nominated ? '' : ' want'}"><div class="msg"><b>${esc(r.short)} is not open for scoring</b>
+      <span>${nominated
+        ? (D.PINS_ENABLED ? 'Opening confirms with your PIN and lets both scorers write to this card.' : 'Opening lets anyone with this page write to the card.')
+        : 'Nominate the closest-to-the-pin and longest-drive holes first. They are chosen before anyone tees off and only a scorer can move them once the card is open.'}</span></div>
+      ${nominated ? '' : '<button class="btn ghost" data-act="goPins">Nominate them</button>'}
+      <button class="btn" data-act="openRound" data-a="${rid}"${nominated ? '' : ' disabled'}>Open round</button></div>`;
   }
 
   const saveBar = editable ? `<div class="savebar${dirty ? ' dirty' : ''}">
@@ -3853,6 +3907,14 @@ function scrEntry() {
 
   const people = sel => `<option value="">Nobody yet</option>` + E.golfers(T).map(g =>
     `<option value="${g.id}"${sel === g.id ? ' selected' : ''}>${esc(g.display)}</option>`).join('');
+  /* Bingo Bango Bongo is played inside the group, so it can only ever be won
+     by someone in it. Two refs scoring two groups never see each other's
+     names, and neither can hand a point to the wrong fourball. A mark set
+     before the groups changed is kept on the list so it can still be undone. */
+  const inGroup = sel => `<option value="">Nobody yet</option>` + list.map(g =>
+    `<option value="${g.id}"${sel === g.id ? ' selected' : ''}>${esc(g.display)}</option>`).join('')
+    + (sel && !list.some(g => g.id === sel)
+      ? `<option value="${sel}" selected>${esc((E.person(T, sel) || {}).display || sel)} — not in this group</option>` : '');
 
   return `<h2 class="head">Score Entry</h2>
   <p class="lede">Gross strokes in. Raw and adjusted sit side by side, exactly as the group’s own cards read.</p>
@@ -3914,15 +3976,19 @@ function scrEntry() {
         <div class="fieldset">
           ${[['bingo', 'Bingo — first on the green'], ['bango', 'Bango — closest once all on'], ['bongo', 'Bongo — first to hole out']].map(([k, lbl]) =>
             `<label>${esc(lbl)}
-              <select class="field" data-act="setBbb" data-a="${k}"${editable ? '' : ' disabled'}>${people(bbbOf(rid, h, k))}</select></label>`).join('')}
+              <select class="field" data-act="setBbb" data-a="${k}"${editable ? '' : ' disabled'}>${inGroup(bbbOf(rid, h, k, gid))}</select></label>`).join('')}
         </div>
+        <p class="sublede" style="margin-top:8px">Only ${esc((groups[slot] || {}).label || 'this group')} appears here — the other group's ref scores their own.</p>
       </div>
 
-      <div class="side-g">
+      <div class="side-g" data-reveal="pins">
         <h3>Pin &amp; drive — ${esc(r.short)}</h3>
+        <p class="sublede">${nominated
+          ? (open ? 'Nominated. Moving a hole now asks a scorer to confirm.' : 'Both nominated — the round can open.')
+          : 'Both holes must be nominated before the round can open.'}</p>
         <div class="fieldset">
           <label>Closest to the Pin hole
-            <select class="field${cfg.ctpHole ? '' : ' unset'}" data-act="setRoundField" data-a="ctpHole"${ed ? '' : ' disabled'}>
+            <select class="field${cfg.ctpHole ? '' : ' unset'}" data-act="setRoundField" data-a="ctpHole"${ed && !locked ? '' : ' disabled'}>
               <option value="">Not chosen yet</option>
               ${course.holes.filter(x => x.par === 3).map(x => `<option value="${x.n}"${cfg.ctpHole === x.n ? ' selected' : ''}>Hole ${x.n}</option>`).join('')}
             </select></label>
@@ -3932,7 +3998,7 @@ function scrEntry() {
             <input class="field" type="text" value="${esc(cfg.ctpDist || '')}" placeholder="e.g. 2.4 m"
               data-act="setRoundField" data-a="ctpDist"${ed ? '' : ' disabled'}></label>
           <label>Longest Drive hole
-            <select class="field${cfg.ldHole ? '' : ' unset'}" data-act="setRoundField" data-a="ldHole"${ed ? '' : ' disabled'}>
+            <select class="field${cfg.ldHole ? '' : ' unset'}" data-act="setRoundField" data-a="ldHole"${ed && !locked ? '' : ' disabled'}>
               <option value="">Not chosen yet</option>
               ${course.holes.map(x => `<option value="${x.n}"${cfg.ldHole === x.n ? ' selected' : ''}>Hole ${x.n} — par ${x.par}</option>`).join('')}
             </select></label>
@@ -4374,7 +4440,7 @@ function paint() {
     const el = document.querySelector(`[data-reveal="${want}"]`);
     if (el) {
       el.scrollIntoView({ block: 'center', behavior: 'smooth' });
-      const field = el.querySelector('input');
+      const field = el.querySelector('select, input');
       if (field) field.focus();
     }
   }
@@ -4557,6 +4623,10 @@ function onClick(e) {
       UI.recap = { rid: a, busy: false, err: '', stream: '', edit: false, view: 'report' };
       UI.recapOpen = true;
       render();
+      /* Opening it is the ask. A finished round with nothing written yet
+         starts writing itself — nobody should have to press a second button
+         to be told what happened on a day they played. */
+      if (!T.recaps[a] || !T.recaps[a].body) writeRecap(a, false);
       return;
     case 'photoDrop1':
       if (!canAdmin() && !(T.photos[a] || {}).mine) return;
@@ -4566,6 +4636,11 @@ function onClick(e) {
       UI.recap = { rid: a, busy: false, err: '', stream: '', edit: false, view: 'report' };
       render();
       recapTop();
+      return;
+    case 'goPins':
+      UI.screen = 'entry';
+      UI.reveal = 'pins';
+      render();
       return;
     case 'recapGallery':
       UI.recap.view = UI.recap.view === 'gallery' ? 'report' : 'gallery';
@@ -4602,7 +4677,7 @@ function onClick(e) {
     case 'bookHole': UI.bookHole = +a; break;
     case 'entryRound': guardDraft(() => { UI.entryRound = a; UI.entryHole = 0; UI.entryTee = '0'; }); return;
     case 'entryHole': guardDraft(() => { UI.entryHole = +a; }); return;
-    case 'entryTee': UI.entryTee = a; break;
+    case 'entryTee': guardDraft(() => { UI.entryTee = a; }); return;
     case 'calView': UI.calView = a; break;
     case 'calDay': UI.calDay = +a; UI.calView = 'day'; window.scrollTo(0, 0); break;
     case 'addEvent':
@@ -4667,7 +4742,14 @@ function onClick(e) {
         role => { UI.role = role; saveRole(role); });
       return;
 
-    case 'openRound':
+    case 'openRound': {
+      const rc = E.roundCfg(T, a) || {};
+      if (!rc.ctpHole || !rc.ldHole) {
+        if (store.note) store.note('openRound', a + ' REFUSED — pin/drive not nominated');
+        UI.reveal = 'pins';
+        render();
+        return;
+      }
       askPin('Open ' + E.roundDef(a).short + ' for scoring', 'Confirm with your PIN. Both scorers can then write to this card.', 'Open round',
         role => {
           if (store.note) store.note('openRound', a + ' was ' + (T.config.rounds[a] || {}).state);
@@ -4675,6 +4757,7 @@ function onClick(e) {
           UI.entryRound = a; UI.screen = 'entry';
         });
       return;
+    }
     case 'lockRound':
       if (draftDirty()) { guardDraft(() => {}); return; }
       askPin('Lock and conclude ' + E.roundDef(a).short, 'Re-enter your PIN to close the card. Nothing more can be entered unless the master reviewer reopens it.', 'Lock round',
@@ -4830,9 +4913,20 @@ function onChange(e) {
     draftFor(rid, UI.entryHole).bbb[a] = el.value || null;
     render();
   } else if (act === 'setRoundField') {
-    if (!editable) return;
-    const num = a === 'ctpHole' || a === 'ldHole';
-    store.writeConfig(c => { c.rounds[rid][a] = num ? (el.value ? +el.value : null) : (el.value || (a.endsWith('Dist') ? '' : null)); });
+    const nom = a === 'ctpHole' || a === 'ldHole';
+    /* The nominations are made before the card opens, so they cannot wait on
+       the round being open the way a winner or a distance does. */
+    if (nom ? (!canEdit() || E.roundCfg(T, rid).state === 'locked') : !editable) return;
+    const v = el.value ? +el.value : null;
+    const write = () => store.writeConfig(c => {
+      c.rounds[rid][a] = nom ? v : (el.value || (a.endsWith('Dist') ? '' : null));
+    });
+    if (nom && E.roundCfg(T, rid).state === 'open') {
+      askPin('Move the nominated hole', 'The hole was chosen before anyone teed off. Confirm as a scorer to move it.',
+        'Move it', write);
+      return;
+    }
+    write();
   } else if (act === 'setEventField') {
     if (!canEdit()) return;
     const v = el.value.trim();
@@ -5034,6 +5128,10 @@ function parseRecap(raw) {
 
 async function writeRecap(rid, again) {
   if (!rid || UI.recap.busy) return;
+  /* Opening the panel writes the report by itself, but only for a round that
+     is actually finished, and only for someone who could have pressed the
+     button anyway. Half a card is not a day. */
+  if (!again && (!canEdit() || !E.roundStanding(T, rid).complete)) return;
   if (!askClaude) { UI.recap = { rid, busy: false, err: sampleError({ code: 'not_granted' }), stream: '', edit: false, view: 'report' }; render(); return; }
   if (T.recaps[rid] && T.recaps[rid].body && !again) return;   // written once, then kept
   recapCtl = new AbortController();

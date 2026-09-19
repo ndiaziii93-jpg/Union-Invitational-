@@ -59,6 +59,20 @@ const MOCK = ({ seed, breakage }) => {
   window.claude = { use: async n => (n === 'db' ? { doc: docRef, collection: collRef } : null) };
 };
 
+/* Closest to the pin and longest drive are nominated before a card can open,
+   so every test that opens one has to make the two picks first. */
+const nominate = async pg => {
+  for (const f of ['ctpHole', 'ldHole']) {
+    const sel = pg.locator('[data-act="setRoundField"][data-a="' + f + '"]').first();
+    if (!await sel.count()) continue;
+    if (await sel.inputValue()) continue;
+    const opts = await sel.locator('option').evaluateAll(os => os.map(o => o.value).filter(Boolean));
+    if (!opts.length) continue;
+    await sel.selectOption(opts[0]);
+    await pg.waitForTimeout(450);
+  }
+};
+
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
 for (const breakage of ['reject', 'silent']) {
   console.log('\n=== the roster read ' + (breakage === 'reject' ? 'fails' : 'never answers') + ' ===');
@@ -84,6 +98,8 @@ for (const breakage of ['reject', 'silent']) {
   // a round must open, and scores must go in
   await tab('Score Entry');
   ok('there is a round to open', await p.locator('[data-act="openRound"]').count(), 1);
+  ok('and it will not open unnominated', await p.locator('[data-act="openRound"][disabled]').count(), 1);
+  await nominate(p); await dismiss();
   await p.locator('[data-act="openRound"]').first().tap(); await p.waitForTimeout(1600); await dismiss();
   ok('opening the round worked', await p.locator('[data-act="openRound"]').count(), 0);
   await p.locator('.step.plus').first().click(); await p.waitForTimeout(400);

@@ -62,6 +62,20 @@ const MOCK = (seed) => {
   window.claude = { use: async n => (n === 'db' ? { doc: docRef, collection: collRef } : null) };
 };
 
+/* Closest to the pin and longest drive are nominated before a card can open,
+   so every test that opens one has to make the two picks first. */
+const nominate = async pg => {
+  for (const f of ['ctpHole', 'ldHole']) {
+    const sel = pg.locator('[data-act="setRoundField"][data-a="' + f + '"]').first();
+    if (!await sel.count()) continue;
+    if (await sel.inputValue()) continue;
+    const opts = await sel.locator('option').evaluateAll(os => os.map(o => o.value).filter(Boolean));
+    if (!opts.length) continue;
+    await sel.selectOption(opts[0]);
+    await pg.waitForTimeout(450);
+  }
+};
+
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
 
 for (const mode of ['the test copy (this device only)', 'the real book (shared database)']) {
@@ -76,7 +90,8 @@ for (const mode of ['the test copy (this device only)', 'the real book (shared d
   const tab = async t => { await clear(); await p.locator('.tab', { hasText: t }).click(); await p.waitForTimeout(500); await clear(); };
   const openEntry = async () => { await tab('Score Entry');
     const open = p.locator('[data-act="openRound"]');
-    if (await open.count()) { await open.first().click(); await p.waitForTimeout(1300); await clear(); } };
+    if (await open.count()) { await nominate(p); await clear();
+      await open.first().click(); await p.waitForTimeout(1300); await clear(); } };
   const shown = () => p.locator('.fig.raw .v').first().innerText();
 
   await p.goto('file://' + S + (isDb ? '/dur-db.html' : '/dur-local.html')); await p.waitForTimeout(2400); await clear();
@@ -136,7 +151,8 @@ for (const mode of ['the test copy (this device only)', 'the real book (shared d
   await p.goto('file://' + S + '/dur-db.html'); await p.waitForTimeout(2800); await clear();
   await p.locator('.tab', { hasText: 'Score Entry' }).click(); await p.waitForTimeout(600); await clear();
   const open = p.locator('[data-act="openRound"]');
-  if (await open.count()) { await open.first().click(); await p.waitForTimeout(1300); await clear(); }
+  if (await open.count()) { await nominate(p); await clear();
+    await open.first().click(); await p.waitForTimeout(1300); await clear(); }
   ok('the card another ref put in is on screen',
     (await p.locator('.fig.raw .v').allInnerTexts()).includes('5'), true);
   ok('and the document was never touched',
@@ -155,14 +171,16 @@ for (const mode of ['the test copy (this device only)', 'the real book (shared d
   await p.goto('file://' + S + '/dur-local.html'); await p.waitForTimeout(2400); await clear();
   await p.locator('.tab', { hasText: 'Score Entry' }).click(); await p.waitForTimeout(600); await clear();
   const open = p.locator('[data-act="openRound"]');
-  if (await open.count()) { await open.first().click(); await p.waitForTimeout(1300); await clear(); }
+  if (await open.count()) { await nominate(p); await clear();
+    await open.first().click(); await p.waitForTimeout(1300); await clear(); }
   await p.locator('.step.plus').first().click(); await p.waitForTimeout(400);
   ok('the stroke is entered', await p.locator('.fig.raw .v').first().innerText(), '4');
   // no Save tapped — the phone locks, the tab is discarded, they come back
   await p.reload(); await p.waitForTimeout(2600); await clear();
   await p.locator('.tab', { hasText: 'Score Entry' }).click(); await p.waitForTimeout(600); await clear();
   const open2 = p.locator('[data-act="openRound"]');
-  if (await open2.count()) { await open2.first().click(); await p.waitForTimeout(1300); await clear(); }
+  if (await open2.count()) { await nominate(p); await clear();
+    await open2.first().click(); await p.waitForTimeout(1300); await clear(); }
   ok('the part-entered hole is still there', await p.locator('.fig.raw .v').first().innerText(), '4');
   await p.close(); await ctx.close();
 }

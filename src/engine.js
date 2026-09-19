@@ -194,10 +194,7 @@ export function practiceBoard(T) {
 export function practiceBbb(T) {
   const tally = {};
   const b = T.bbb.practice;
-  if (b) for (const cell of b.holes) for (const k of ['bingo', 'bango', 'bongo']) {
-    const pid = cell && cell[k];
-    if (pid) tally[pid] = (tally[pid] || 0) + 1;
-  }
+  if (b) for (const cell of b.holes) for (const pid of bbbMarks(cell)) tally[pid] = (tally[pid] || 0) + 1;
   const rows = Object.entries(tally).map(([pid, pts]) => ({ id: pid, name: (person(T, pid) || {}).display || '?', pts }));
   rows.sort((a, b2) => b2.pts - a.pts);
   return rows.map((r, i) => ({ ...r, pos: i + 1 }));
@@ -261,15 +258,27 @@ export function mvpBoard(T, now) {
     totalStr: fmtToPar(r.total), stbStr: String(r.stb) }));
 }
 
+/* A hole's Bingo Bango Bongo marks, whatever shape they were written in.
+   The book used to keep one set per hole for the whole round, so two refs
+   scoring two groups on the same hole overwrote each other. Each group keeps
+   its own set now; a hole written in the old shape still counts. */
+export const BBB_SLOTS = ['bingo', 'bango', 'bongo'];
+
+export function bbbMarks(cell) {
+  if (!cell) return [];
+  const out = [];
+  const take = c => { for (const k of BBB_SLOTS) if (c && c[k]) out.push(c[k]); };
+  const by = cell.g && typeof cell.g === 'object' ? Object.values(cell.g) : [];
+  if (by.length) by.forEach(take); else take(cell);
+  return out;
+}
+
 export function bbbBoard(T) {
   const tally = {};
   for (const r of countingRounds(T)) {
     const b = T.bbb[r.id];
     if (!b) continue;
-    for (const cell of b.holes) for (const k of ['bingo', 'bango', 'bongo']) {
-      const pid = cell && cell[k];
-      if (pid) tally[pid] = (tally[pid] || 0) + 1;
-    }
+    for (const cell of b.holes) for (const pid of bbbMarks(cell)) tally[pid] = (tally[pid] || 0) + 1;
   }
   const rows = Object.entries(tally).map(([pid, pts]) => ({ id: pid, name: (person(T, pid) || {}).display || '?', pts }));
   rows.sort((a, b) => b.pts - a.pts);
@@ -362,10 +371,7 @@ export function roundBrief(T, rid) {
   const b = T.bbb[rid];
   if (b) {
     const tally = {};
-    b.holes.forEach(cell => ['bingo', 'bango', 'bongo'].forEach(k => {
-      const pid = cell && cell[k];
-      if (pid) tally[pid] = (tally[pid] || 0) + 1;
-    }));
+    b.holes.forEach(cell => bbbMarks(cell).forEach(pid => { tally[pid] = (tally[pid] || 0) + 1; }));
     const line = Object.entries(tally).map(([pid, n]) => ((person(T, pid) || {}).display || '?') + ' ' + n);
     if (line.length) L.push('Bingo Bango Bongo: ' + line.join(', '));
   }
@@ -481,10 +487,7 @@ export function sideGames(T, rid) {
   const nm = id => (person(T, id) || {}).display || null;
   const bbb = {};
   const b = T.bbb[rid];
-  if (b) b.holes.forEach(cell => ['bingo', 'bango', 'bongo'].forEach(k => {
-    const pid = cell && cell[k];
-    if (pid) bbb[pid] = (bbb[pid] || 0) + 1;
-  }));
+  if (b) b.holes.forEach(cell => bbbMarks(cell).forEach(pid => { bbb[pid] = (bbb[pid] || 0) + 1; }));
   const top = Object.entries(bbb).sort((a, c) => c[1] - a[1])[0];
   const mvp = mvpBoard(T, nowLocal()).filter(x => x.played)[0];
   // how often the triple-bogey cap actually bit today
@@ -574,48 +577,48 @@ export function matchPlay(sideA, sideB) {
 
 export function ryderData(T, now) {
   const gs = golfers(T);
-  const loc = pid => (person(T, pid) || {}).location || null;
-  const pairLoc = pair => {
-    const ls = pair.members.map(loc).filter(Boolean);
-    return ls.length === pair.members.length && ls.length && ls.every(l => l === ls[0]) ? ls[0] : null;
-  };
   const sessions = [];
   let ukTotal = 0, usaTotal = 0;
 
-  for (const round of countingRounds(T)) {
-    const singles = round.id === 'r3';
+  /* Every session is singles. Fourballs tied a golfer's cup to whichever
+     squad their better-ball partner was in, which left anyone in a split
+     pairing out of two sessions of three. Head-to-head, everyone plays. */
+  const rot = (list, by) => (!list.length ? list
+    : list.slice(by % list.length).concat(list.slice(0, by % list.length)));
+
+  const rounds = countingRounds(T);
+  rounds.forEach((round, k) => {
     const matches = [];
     const started = phaseOf(T, round.id, now) !== 'upcoming' && hasScores(T, round.id);
-    if (!singles) {
-      const uk = T.config.pairs.filter(p => pairLoc(p) === 'UK');
-      const us = T.config.pairs.filter(p => pairLoc(p) === 'USA');
-      const n = Math.min(uk.length, us.length);
-      for (let i = 0; i < n; i++) {
-        const a = uk[i], b = us[round.id === 'r2' ? (i + 1) % n : i];
-        const mp = started ? matchPlay(h => pairHole(T, round.id, a, h), h => pairHole(T, round.id, b, h))
-                           : { up: 0, thru: 0, status: 'Not started', done: false, side: null };
-        matches.push({ a: pairName(T, a), b: pairName(T, b), ...mp });
-      }
-    } else {
-      const uk = gs.filter(g => g.location === 'UK'), us = gs.filter(g => g.location === 'USA');
-      const n = Math.min(uk.length, us.length);
-      for (let i = 0; i < n; i++) {
-        const a = uk[i], b = us[i];
-        const mp = started ? matchPlay(h => playerNet(T, round.id, a.id, h), h => playerNet(T, round.id, b.id, h))
-                           : { up: 0, thru: 0, status: 'Not started', done: false, side: null };
-        matches.push({ a: a.display, b: b.display, ...mp });
-      }
+    const ukAll = gs.filter(g => g.location === 'UK');
+    const usAll = gs.filter(g => g.location === 'USA');
+    /* Squads are rarely the same size. Turn the longer one by a whole session
+       each time so a different golfer sits out every session, and turn the
+       shorter one by one so nobody meets the same opponent twice. */
+    const ukBig = ukAll.length >= usAll.length;
+    const big = ukBig ? ukAll : usAll;
+    const small = ukBig ? usAll : ukAll;
+    const n = small.length;
+    const bigR = rot(big, n * k);
+    const smallR = rot(small, k);
+    for (let i = 0; i < n; i++) {
+      const uk = ukBig ? bigR[i] : smallR[i];
+      const us = ukBig ? smallR[i] : bigR[i];
+      const mp = started ? matchPlay(h => playerNet(T, round.id, uk.id, h), h => playerNet(T, round.id, us.id, h))
+                         : { up: 0, thru: 0, status: 'Not started', done: false, side: null };
+      matches.push({ a: uk.display, b: us.display, aId: uk.id, bId: us.id, ...mp });
     }
+    const out = bigR.slice(n).map(g => g.display);
     let uk = 0, us = 0;
     for (const m of matches) if (m.done) { if (m.up > 0) uk++; else if (m.up < 0) us++; else { uk += 0.5; us += 0.5; } }
     ukTotal += uk; usaTotal += us;
     const d = dayOf(round.dayIdx);
-    sessions.push({ id: round.id, label: d.dow + ' ' + d.date, format: singles ? 'Singles' : 'Fourballs', matches, uk, usa: us });
-  }
+    sessions.push({ id: round.id, label: d.dow + ' ' + d.date, format: 'Singles', matches, uk, usa: us, sitting: out });
+  });
   return {
     sessions, ukTotal, usaTotal,
     unassigned: gs.filter(g => !g.location).length,
-    splitPairs: T.config.pairs.filter(p => p.members.length === 2 && pairLoc(p) == null && p.members.every(loc)).length,
+    lopsided: Math.abs(gs.filter(g => g.location === 'UK').length - gs.filter(g => g.location === 'USA').length),
   };
 }
 

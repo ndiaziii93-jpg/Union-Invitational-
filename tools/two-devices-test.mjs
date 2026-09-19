@@ -71,6 +71,20 @@ const MOCK = () => {
   window.claude = { use: async n => (n === 'db' ? { doc: docRef, collection: collRef } : null) };
 };
 
+/* Closest to the pin and longest drive are nominated before a card can open,
+   so every test that opens one has to make the two picks first. */
+const nominate = async pg => {
+  for (const f of ['ctpHole', 'ldHole']) {
+    const sel = pg.locator('[data-act="setRoundField"][data-a="' + f + '"]').first();
+    if (!await sel.count()) continue;
+    if (await sel.inputValue()) continue;
+    const opts = await sel.locator('option').evaluateAll(os => os.map(o => o.value).filter(Boolean));
+    if (!opts.length) continue;
+    await sel.selectOption(opts[0]);
+    await pg.waitForTimeout(450);
+  }
+};
+
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
 const ctx = await b.newContext({ viewport: { width: 1280, height: 900 } });
 const pages = [];
@@ -105,6 +119,7 @@ ok('A set the tee time', store['config/tournament'].rounds.r1.tees[0].time, '09:
 console.log('\n=== device A opens a round ===');
 await tab(A, 'Score Entry');
 if (await A.locator('[data-act="openRound"]').count()) {
+  await nominate(A); await dismiss(A);
   await A.locator('[data-act="openRound"]').first().click(); await A.waitForTimeout(1200); await dismiss(A);
 }
 const openedRound = Object.entries(store['config/tournament'].rounds).find(([, r]) => r.state === 'open');

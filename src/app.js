@@ -469,7 +469,7 @@ function recapState(rid) {
   if (!st.complete) {
     return { key: 'live', line: 'Round in progress — ' + st.inCards + ' of ' + st.field + ' cards in.' };
   }
-  if (!written) return { key: 'togen', line: 'Round complete — generate the report.' };
+  if (!written) return { key: 'togen', line: 'Round complete — tap to read the day.' };
   return { key: 'ready', line: E.roundDef(rid).short + ' is complete — read the report.' };
 }
 
@@ -847,7 +847,7 @@ function scrRyder() {
   const R = E.ryderData(T, now);
   const gs = E.golfers(T);
   return `<h2 class="head">Ryder Cup — UK v USA</h2>
-  <p class="lede">Squad match play laid over the same scorecards. Fourballs Thursday and Friday, singles Sunday. <a href="#rules" data-act="goRule" data-a="ryder">Full rules</a></p>
+  <p class="lede">Squad match play laid over the same scorecards. Head-to-head singles all three sessions, so everybody plays every time. <a href="#rules" data-act="goRule" data-a="ryder">Full rules</a></p>
 
   <div class="cupbar">
     <div class="side">${ukFlag(44)}<span class="pts num" style="color:var(--green)">${R.ukTotal}</span><span class="eyebrow">United Kingdom</span></div>
@@ -872,7 +872,7 @@ function scrRyder() {
     }).join('')}
   </div>
   ${canEdit() ? `<div class="chiprow" style="margin-top:12px"><button class="chip" data-act="clearSquads">Clear all squads</button></div>` : ''}
-  ${R.splitPairs ? `<div class="notice"><b>${R.splitPairs} pair${R.splitPairs > 1 ? 's are' : ' is'} split across squads</b><div style="font-size:15px;color:var(--turf)">Fourball matches only build from pairs whose two players share a squad. Singles on Sunday are unaffected.</div></div>` : ''}
+  ${R.lopsided ? `<div class="notice"><b>The squads are ${R.lopsided} apart</b><div style="font-size:15px;color:var(--turf)">Every session is singles, so ${R.lopsided === 1 ? 'one golfer' : R.lopsided + ' golfers'} on the bigger squad sit out each time — a different ${R.lopsided === 1 ? 'one' : 'few'} each session, so nobody misses twice before everyone has missed once. Even the squads up and they all play all three.</div></div>` : ''}
 
   ${R.sessions.map(s => `
     <h3 class="sub">${esc(s.label)} — ${esc(s.format)}</h3>
@@ -882,7 +882,8 @@ function scrRyder() {
         <span>${esc(m.a)}</span>
         <span class="st ${m.side === 'UK' ? 'uk' : m.side === 'USA' ? 'usa' : ''}">${esc(m.status)}${m.thru && !m.done ? ' · thru ' + m.thru : ''}</span>
         <span class="r">${esc(m.b)}</span></div>`).join('')}
-    </div>` : `<p class="empty">No matches yet — assign both squads and pair players up, and the draw builds itself.</p>`}
+    </div>` : `<p class="empty">No matches yet — put golfers in both squads and the draw builds itself.</p>`}
+    ${s.sitting && s.sitting.length ? `<p class="rnote" style="margin-top:6px">Sitting this session: ${esc(s.sitting.join(', '))}.</p>` : ''}
   `).join('')}`;
 }
 
@@ -1037,8 +1038,17 @@ function restoreDraft() {
   } catch (e) { /* nothing carried over */ }
 }
 
+/** Which group the screen is on — the one whose points a mark belongs to. */
+function curGroupId(rid) {
+  const gs = E.groups(T, rid);
+  const i = Math.min(UI.entryTee === 'all' ? 0 : +UI.entryTee || 0, Math.max(gs.length - 1, 0));
+  return (gs[i] || {}).id || 'g0';
+}
+
 function draftFor(rid, h) {
-  if (!UI.draft || UI.draft.rid !== rid || UI.draft.hole !== h) UI.draft = { rid, hole: h, strokes: {}, bbb: {} };
+  if (!UI.draft || UI.draft.rid !== rid || UI.draft.hole !== h) {
+    UI.draft = { rid, hole: h, strokes: {}, bbb: {}, gid: curGroupId(rid) };
+  }
   return UI.draft;
 }
 function draftDirty() {
@@ -1051,11 +1061,18 @@ function grossOf(rid, pid, h) {
   const c = E.card(T, rid, pid);
   return c ? c.raw[h] : null;
 }
-function bbbOf(rid, h, slot) {
+/* Bingo Bango Bongo is played inside a group, so each group keeps its own
+   three marks per hole. One set per hole meant the second ref to save wiped
+   the first ref's points without either of them seeing it. A hole written
+   before this still reads, under whichever group is looking at it. */
+function bbbOf(rid, h, slot, gid) {
   const d = UI.draft;
   if (d && d.rid === rid && d.hole === h && slot in d.bbb) return d.bbb[slot];
-  const b = T.bbb[rid];
-  return b && b.holes[h] ? b.holes[h][slot] : null;
+  const cell = (T.bbb[rid] || { holes: [] }).holes[h];
+  if (!cell) return null;
+  const mine = cell.g && cell.g[gid];
+  if (mine) return mine[slot] || null;
+  return cell.g ? null : (cell[slot] || null);
 }
 function holeSavedBy(rid, h) {
   for (const g of E.golfers(T)) {
@@ -1076,7 +1093,20 @@ function commitDraft(role) {
       else { c.by[h] = role; c.at[h] = Date.now(); }
     });
   }
-  if (Object.keys(d.bbb).length) store.writeBbb(d.rid, x => { Object.assign(x.holes[h], d.bbb); });
+  if (Object.keys(d.bbb).length) store.writeBbb(d.rid, x => {
+    const cell = x.holes[h];
+    const gid = d.gid || curGroupId(d.rid);
+    if (!cell.g) {
+      // first per-group write to this hole: whatever was already on it
+      // belongs to whoever is writing now, so it is not simply dropped
+      cell.g = {};
+      const legacy = {};
+      let any = false;
+      for (const k of E.BBB_SLOTS) if (cell[k]) { legacy[k] = cell[k]; any = true; delete cell[k]; }
+      if (any) cell.g[gid] = legacy;
+    }
+    cell.g[gid] = { ...(cell.g[gid] || {}), ...d.bbb };
+  });
   UI.draft = null;
 }
 
@@ -1113,8 +1143,14 @@ function scrEntry() {
   const saved = holeSavedBy(rid, h);
   const ed = canEdit();
 
+  /* Closest to the pin and longest drive are nominated before the first tee
+     shot, never after someone has already hit a good one. Both must be set
+     for the card to open, and only a scorer can move them afterwards. */
+  const nominated = !!cfg.ctpHole && !!cfg.ldHole;
+
   const groups = E.groups(T, rid);
   const slot = Math.min(UI.entryTee === 'all' ? 0 : +UI.entryTee, Math.max(groups.length - 1, 0));
+  const gid = (groups[slot] || {}).id || 'g0';
   const slotPlayers = (groups[slot] || {}).members || [];
   const usingAll = slotPlayers.length === 0;
   const list = usingAll ? E.golfers(T) : E.golfers(T).filter(g => slotPlayers.includes(g.id));
@@ -1130,9 +1166,12 @@ function scrEntry() {
       ${canAdmin() ? `<button class="btn ghost" data-act="unlockRound" data-a="${rid}">${D.PINS_ENABLED ? 'Reopen with master PIN' : 'Reopen'}</button>`
         : `<span class="eyebrow">Only the master reviewer can reopen a locked round.</span>`}</div>`;
   } else if (!open) {
-    gate = `<div class="gate"><div class="msg"><b>${esc(r.short)} is not open for scoring</b>
-      <span>${D.PINS_ENABLED ? 'Opening confirms with your PIN and lets both scorers write to this card.' : 'Opening lets anyone with this page write to the card.'}</span></div>
-      <button class="btn" data-act="openRound" data-a="${rid}">Open round</button></div>`;
+    gate = `<div class="gate${nominated ? '' : ' want'}"><div class="msg"><b>${esc(r.short)} is not open for scoring</b>
+      <span>${nominated
+        ? (D.PINS_ENABLED ? 'Opening confirms with your PIN and lets both scorers write to this card.' : 'Opening lets anyone with this page write to the card.')
+        : 'Nominate the closest-to-the-pin and longest-drive holes first. They are chosen before anyone tees off and only a scorer can move them once the card is open.'}</span></div>
+      ${nominated ? '' : '<button class="btn ghost" data-act="goPins">Nominate them</button>'}
+      <button class="btn" data-act="openRound" data-a="${rid}"${nominated ? '' : ' disabled'}>Open round</button></div>`;
   }
 
   const saveBar = editable ? `<div class="savebar${dirty ? ' dirty' : ''}">
@@ -1181,6 +1220,14 @@ function scrEntry() {
 
   const people = sel => `<option value="">Nobody yet</option>` + E.golfers(T).map(g =>
     `<option value="${g.id}"${sel === g.id ? ' selected' : ''}>${esc(g.display)}</option>`).join('');
+  /* Bingo Bango Bongo is played inside the group, so it can only ever be won
+     by someone in it. Two refs scoring two groups never see each other's
+     names, and neither can hand a point to the wrong fourball. A mark set
+     before the groups changed is kept on the list so it can still be undone. */
+  const inGroup = sel => `<option value="">Nobody yet</option>` + list.map(g =>
+    `<option value="${g.id}"${sel === g.id ? ' selected' : ''}>${esc(g.display)}</option>`).join('')
+    + (sel && !list.some(g => g.id === sel)
+      ? `<option value="${sel}" selected>${esc((E.person(T, sel) || {}).display || sel)} — not in this group</option>` : '');
 
   return `<h2 class="head">Score Entry</h2>
   <p class="lede">Gross strokes in. Raw and adjusted sit side by side, exactly as the group’s own cards read.</p>
@@ -1242,15 +1289,19 @@ function scrEntry() {
         <div class="fieldset">
           ${[['bingo', 'Bingo — first on the green'], ['bango', 'Bango — closest once all on'], ['bongo', 'Bongo — first to hole out']].map(([k, lbl]) =>
             `<label>${esc(lbl)}
-              <select class="field" data-act="setBbb" data-a="${k}"${editable ? '' : ' disabled'}>${people(bbbOf(rid, h, k))}</select></label>`).join('')}
+              <select class="field" data-act="setBbb" data-a="${k}"${editable ? '' : ' disabled'}>${inGroup(bbbOf(rid, h, k, gid))}</select></label>`).join('')}
         </div>
+        <p class="sublede" style="margin-top:8px">Only ${esc((groups[slot] || {}).label || 'this group')} appears here — the other group's ref scores their own.</p>
       </div>
 
-      <div class="side-g">
+      <div class="side-g" data-reveal="pins">
         <h3>Pin &amp; drive — ${esc(r.short)}</h3>
+        <p class="sublede">${nominated
+          ? (open ? 'Nominated. Moving a hole now asks a scorer to confirm.' : 'Both nominated — the round can open.')
+          : 'Both holes must be nominated before the round can open.'}</p>
         <div class="fieldset">
           <label>Closest to the Pin hole
-            <select class="field${cfg.ctpHole ? '' : ' unset'}" data-act="setRoundField" data-a="ctpHole"${ed ? '' : ' disabled'}>
+            <select class="field${cfg.ctpHole ? '' : ' unset'}" data-act="setRoundField" data-a="ctpHole"${ed && !locked ? '' : ' disabled'}>
               <option value="">Not chosen yet</option>
               ${course.holes.filter(x => x.par === 3).map(x => `<option value="${x.n}"${cfg.ctpHole === x.n ? ' selected' : ''}>Hole ${x.n}</option>`).join('')}
             </select></label>
@@ -1260,7 +1311,7 @@ function scrEntry() {
             <input class="field" type="text" value="${esc(cfg.ctpDist || '')}" placeholder="e.g. 2.4 m"
               data-act="setRoundField" data-a="ctpDist"${ed ? '' : ' disabled'}></label>
           <label>Longest Drive hole
-            <select class="field${cfg.ldHole ? '' : ' unset'}" data-act="setRoundField" data-a="ldHole"${ed ? '' : ' disabled'}>
+            <select class="field${cfg.ldHole ? '' : ' unset'}" data-act="setRoundField" data-a="ldHole"${ed && !locked ? '' : ' disabled'}>
               <option value="">Not chosen yet</option>
               ${course.holes.map(x => `<option value="${x.n}"${cfg.ldHole === x.n ? ' selected' : ''}>Hole ${x.n} — par ${x.par}</option>`).join('')}
             </select></label>
@@ -1702,7 +1753,7 @@ function paint() {
     const el = document.querySelector(`[data-reveal="${want}"]`);
     if (el) {
       el.scrollIntoView({ block: 'center', behavior: 'smooth' });
-      const field = el.querySelector('input');
+      const field = el.querySelector('select, input');
       if (field) field.focus();
     }
   }
@@ -1885,6 +1936,10 @@ function onClick(e) {
       UI.recap = { rid: a, busy: false, err: '', stream: '', edit: false, view: 'report' };
       UI.recapOpen = true;
       render();
+      /* Opening it is the ask. A finished round with nothing written yet
+         starts writing itself — nobody should have to press a second button
+         to be told what happened on a day they played. */
+      if (!T.recaps[a] || !T.recaps[a].body) writeRecap(a, false);
       return;
     case 'photoDrop1':
       if (!canAdmin() && !(T.photos[a] || {}).mine) return;
@@ -1894,6 +1949,11 @@ function onClick(e) {
       UI.recap = { rid: a, busy: false, err: '', stream: '', edit: false, view: 'report' };
       render();
       recapTop();
+      return;
+    case 'goPins':
+      UI.screen = 'entry';
+      UI.reveal = 'pins';
+      render();
       return;
     case 'recapGallery':
       UI.recap.view = UI.recap.view === 'gallery' ? 'report' : 'gallery';
@@ -1930,7 +1990,7 @@ function onClick(e) {
     case 'bookHole': UI.bookHole = +a; break;
     case 'entryRound': guardDraft(() => { UI.entryRound = a; UI.entryHole = 0; UI.entryTee = '0'; }); return;
     case 'entryHole': guardDraft(() => { UI.entryHole = +a; }); return;
-    case 'entryTee': UI.entryTee = a; break;
+    case 'entryTee': guardDraft(() => { UI.entryTee = a; }); return;
     case 'calView': UI.calView = a; break;
     case 'calDay': UI.calDay = +a; UI.calView = 'day'; window.scrollTo(0, 0); break;
     case 'addEvent':
@@ -1995,7 +2055,14 @@ function onClick(e) {
         role => { UI.role = role; saveRole(role); });
       return;
 
-    case 'openRound':
+    case 'openRound': {
+      const rc = E.roundCfg(T, a) || {};
+      if (!rc.ctpHole || !rc.ldHole) {
+        if (store.note) store.note('openRound', a + ' REFUSED — pin/drive not nominated');
+        UI.reveal = 'pins';
+        render();
+        return;
+      }
       askPin('Open ' + E.roundDef(a).short + ' for scoring', 'Confirm with your PIN. Both scorers can then write to this card.', 'Open round',
         role => {
           if (store.note) store.note('openRound', a + ' was ' + (T.config.rounds[a] || {}).state);
@@ -2003,6 +2070,7 @@ function onClick(e) {
           UI.entryRound = a; UI.screen = 'entry';
         });
       return;
+    }
     case 'lockRound':
       if (draftDirty()) { guardDraft(() => {}); return; }
       askPin('Lock and conclude ' + E.roundDef(a).short, 'Re-enter your PIN to close the card. Nothing more can be entered unless the master reviewer reopens it.', 'Lock round',
@@ -2158,9 +2226,20 @@ function onChange(e) {
     draftFor(rid, UI.entryHole).bbb[a] = el.value || null;
     render();
   } else if (act === 'setRoundField') {
-    if (!editable) return;
-    const num = a === 'ctpHole' || a === 'ldHole';
-    store.writeConfig(c => { c.rounds[rid][a] = num ? (el.value ? +el.value : null) : (el.value || (a.endsWith('Dist') ? '' : null)); });
+    const nom = a === 'ctpHole' || a === 'ldHole';
+    /* The nominations are made before the card opens, so they cannot wait on
+       the round being open the way a winner or a distance does. */
+    if (nom ? (!canEdit() || E.roundCfg(T, rid).state === 'locked') : !editable) return;
+    const v = el.value ? +el.value : null;
+    const write = () => store.writeConfig(c => {
+      c.rounds[rid][a] = nom ? v : (el.value || (a.endsWith('Dist') ? '' : null));
+    });
+    if (nom && E.roundCfg(T, rid).state === 'open') {
+      askPin('Move the nominated hole', 'The hole was chosen before anyone teed off. Confirm as a scorer to move it.',
+        'Move it', write);
+      return;
+    }
+    write();
   } else if (act === 'setEventField') {
     if (!canEdit()) return;
     const v = el.value.trim();
@@ -2362,6 +2441,10 @@ function parseRecap(raw) {
 
 async function writeRecap(rid, again) {
   if (!rid || UI.recap.busy) return;
+  /* Opening the panel writes the report by itself, but only for a round that
+     is actually finished, and only for someone who could have pressed the
+     button anyway. Half a card is not a day. */
+  if (!again && (!canEdit() || !E.roundStanding(T, rid).complete)) return;
   if (!askClaude) { UI.recap = { rid, busy: false, err: sampleError({ code: 'not_granted' }), stream: '', edit: false, view: 'report' }; render(); return; }
   if (T.recaps[rid] && T.recaps[rid].body && !again) return;   // written once, then kept
   recapCtl = new AbortController();

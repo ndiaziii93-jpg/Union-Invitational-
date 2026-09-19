@@ -233,5 +233,40 @@ console.log('\nthe panel on Today');
   ok('and the recap is for that round', E.recapRound(T, E.nowLocal()), 'r1');
 }
 
+/* ---------- the cup leaves nobody out ---------- */
+{
+  console.log('\nthe Ryder Cup draw');
+  const squads = n => {
+    const T = fresh();
+    T.config.people = [];
+    for (let i = 0; i < n[0]; i++) T.config.people.push({ id: 'u' + i, name: 'U' + i, display: 'U' + i, role: 'golfer', band: 20, location: 'UK', group: '7-day' });
+    for (let i = 0; i < n[1]; i++) T.config.people.push({ id: 'a' + i, name: 'A' + i, display: 'A' + i, role: 'golfer', band: 20, location: 'USA', group: '7-day' });
+    return E.ryderData(T, E.nowLocal());
+  };
+
+  const even = squads([5, 5]);
+  ok('every session is singles', even.sessions.map(s => s.format), ['Singles', 'Singles', 'Singles']);
+  ok('with even squads nobody sits', even.sessions.flatMap(s => s.sitting), []);
+  const played = {};
+  even.sessions.forEach(s => s.matches.forEach(m => { played[m.a] = (played[m.a] || 0) + 1; played[m.b] = (played[m.b] || 0) + 1; }));
+  ok('and everybody plays all three', Object.values(played), new Array(10).fill(3));
+  const seen = {};
+  even.sessions.forEach(s => s.matches.forEach(m => { seen[m.a + '|' + m.b] = (seen[m.a + '|' + m.b] || 0) + 1; }));
+  ok('nobody meets the same opponent twice', Object.values(seen).filter(n => n > 1).length, 0);
+
+  /* Six against five: one golfer has to sit each session. It must not be the
+     same one every time — that is exactly the exclusion the fourballs caused. */
+  const odd = squads([6, 5]);
+  ok('the odd squad sits one out each session', odd.sessions.map(s => s.sitting.length), [1, 1, 1]);
+  ok('and a different one every time', new Set(odd.sessions.map(s => s.sitting[0])).size, 3);
+  const p2 = {};
+  odd.sessions.forEach(s => s.matches.forEach(m => { p2[m.a] = (p2[m.a] || 0) + 1; p2[m.b] = (p2[m.b] || 0) + 1; }));
+  ok('everyone still plays at least twice', Math.min(...Object.values(p2)), 2);
+  ok('the shorter squad plays every session', Math.max(...Object.values(p2)), 3);
+  const s2 = {};
+  odd.sessions.forEach(s => s.matches.forEach(m => { s2[m.a + '|' + m.b] = (s2[m.a + '|' + m.b] || 0) + 1; }));
+  ok('and still no repeat matchups', Object.values(s2).filter(n => n > 1).length, 0);
+}
+
 console.log(fails.length ? '\nFAILED: ' + fails.join(', ') : '\nThe numbers under the recap hold.');
 process.exit(fails.length ? 1 : 0);

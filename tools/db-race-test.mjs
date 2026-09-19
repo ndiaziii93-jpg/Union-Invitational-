@@ -63,6 +63,20 @@ const MOCK = () => {
   window.claude = { use: async n => (n === 'db' ? { doc: docRef, collection: collRef } : null) };
 };
 
+/* Closest to the pin and longest drive are nominated before a card can open,
+   so every test that opens one has to make the two picks first. */
+const nominate = async pg => {
+  for (const f of ['ctpHole', 'ldHole']) {
+    const sel = pg.locator('[data-act="setRoundField"][data-a="' + f + '"]').first();
+    if (!await sel.count()) continue;
+    if (await sel.inputValue()) continue;
+    const opts = await sel.locator('option').evaluateAll(os => os.map(o => o.value).filter(Boolean));
+    if (!opts.length) continue;
+    await sel.selectOption(opts[0]);
+    await pg.waitForTimeout(450);
+  }
+};
+
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
 const p = await (await b.newContext({ viewport: { width: 1280, height: 1000 } })).newPage();
 const fails = [];
@@ -166,6 +180,7 @@ ok('the band that failed is stored now', await p.evaluate(() =>
 await p.locator('.tab', { hasText: 'Score Entry' }).click(); await p.waitForTimeout(500);
 await p.locator('[data-act="modalCancel"]').click().catch(() => {});
 ok('chip present on Score Entry', (await p.locator('.masthead .setup-chip').count()) === 1, true);
+await nominate(p);
 await p.locator('[data-act="openRound"]').first().click(); await p.waitForTimeout(1400);
 await p.locator('.step.plus').first().click(); await p.waitForTimeout(300);
 ok('entry: stroke shows as a draft', await p.locator('.fig.raw .v').first().innerText(), '4');
