@@ -503,7 +503,12 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 .cgrid{display:flex;gap:40px;align-items:flex-start;flex-wrap:wrap;margin-top:10px}
 .cgrid .scroller{flex:1 1 560px;min-width:0;margin-top:0}
 .cside{flex:1 1 320px;max-width:380px;align-self:center}
-.cside>img{display:block;width:78%;height:auto;margin:0 auto}
+/* Every hole diagram is 520x736. Saying so reserves the space before the
+   image decodes: without it the box collapses to nothing for a frame on each
+   redraw, everything below jumps up and then back, and walking hole to hole
+   reads as a glitch rather than a step. */
+.cside>img{display:block;width:78%;height:auto;margin:0 auto;aspect-ratio:520/736}
+.diagram img{aspect-ratio:520/736}
 .cfacts{display:flex;gap:18px;align-items:baseline;justify-content:center;margin-top:12px;flex-wrap:wrap}
 .cfacts .hn{font-size:22px;font-weight:700}
 .cfacts span{font-size:15px}
@@ -1044,7 +1049,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20260919-1749';
+const BUILD = '20260919-1754';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -1261,8 +1266,10 @@ return {RULES, RELIEF};
 
 const __m_engine = (function(){
 const { COURSES, DAYS, ROUNDS, TZ_OFFSET_MIN, PINS_ENABLED } = __m_data;
+const { RULES, RELIEF } = __m_rules;
 /* The Union Invitational — pure scoring engine.
    No I/O, no DOM, no randomness. Everything here is a function of state. */
+
 
 
 /* ---------- clock (Antalya, UTC+3, no DST) ---------- */
@@ -1602,6 +1609,40 @@ function brief(T, now) {
   const R = ryderData(T, now);
   L.push('\nRYDER CUP — UK ' + R.uk + ', USA ' + R.usa
     + (R.unassigned ? ' (' + R.unassigned + ' golfers unassigned)' : ''));
+
+  L.push('\nTEE TIMES');
+  for (const r of ROUNDS) {
+    const c = roundCfg(T, r.id);
+    const times = (c.tees || []).map(t => t.time).filter(Boolean).map(to12);
+    L.push('- ' + r.short + ' (' + dayOf(r.dayIdx).dow + ' ' + dayOf(r.dayIdx).date + '): '
+      + (times.length ? times.join(', ') : 'no tee time set yet'));
+  }
+
+  /* The whole calendar, which the question box could not see at all — it was
+     asked when check-out is and had to say it did not know, with the answer
+     sitting in the book two tabs away. */
+  L.push('\nTHE WEEK, DAY BY DAY');
+  DAYS.forEach((d, i) => {
+    const n = i + 1;
+    const bits = [];
+    for (const r of ROUNDS) {
+      if (r.dayIdx !== n) continue;
+      const t = ((roundCfg(T, r.id).tees || [])[0] || {}).time;
+      bits.push((t ? to12(t) + ' ' : '') + r.full + ' at ' + courseOf(T, r.id).name);
+    }
+    for (const e of (T.config.schedule || []).filter(x => x.dayIdx === n)) {
+      bits.push(to12(e.time) + ' ' + e.title);
+    }
+    L.push('- ' + d.dow + ' ' + d.date + (bits.length ? ': ' + bits.join('; ') : ': nothing scheduled'));
+  });
+
+  L.push('\nRULES AND FORMATS');
+  for (const r of RULES) {
+    L.push('- ' + r.name + '. ' + r.tag + ' When: ' + r.when + ' Won by: ' + r.won);
+  }
+  L.push('\nRELIEF, APPLYING TO EVERY COMPETITION');
+  for (const it of RELIEF.items) L.push('- ' + it.name + ': ' + it.body);
+  for (const [n, b] of RELIEF.bands) L.push('- ' + n + ': ' + b);
 
   L.push('\nLONGEST DRIVE & CLOSEST TO THE PIN');
   for (const r of ROUNDS) {
@@ -3554,7 +3595,7 @@ function boardPairs() {
         <tr class="cap"><td>Picks up at</td><td>${E.capFor(hole.par, T.config.capOver)}</td></tr>
       </tbody></table>
       ${holeStrip(rid, h, 'bookHole', leadPair)}
-      ${IMG[hole.img] ? `<figure class="diagram"><img src="${IMG[hole.img]}" alt="Diagram of hole ${hole.n} at ${esc(course.name)}" loading="lazy"></figure>` : ''}
+      ${IMG[hole.img] ? `<figure class="diagram"><img decoding="sync" src="${IMG[hole.img]}" alt="Diagram of hole ${hole.n} at ${esc(course.name)}" loading="lazy"></figure>` : ''}
       <p class="turn">Turn the page: tap a hole.</p>
     </div>
 
@@ -4585,7 +4626,7 @@ function scrEntry() {
     ${/* the hole they are standing on, drawn exactly as Course Setup draws it,
           minus its hole strip — here the card decides which hole this is */ ''}
     <div class="cside">
-      ${IMG[hole.img] ? `<img src="${IMG[hole.img]}" alt="Diagram of hole ${hole.n} at ${esc(course.name)}">` : ''}
+      ${IMG[hole.img] ? `<img decoding="sync" src="${IMG[hole.img]}" alt="Diagram of hole ${hole.n} at ${esc(course.name)}">` : ''}
       <div class="cfacts num">
         <span class="hn">Hole ${hole.n}</span>
         <span>Par ${hole.par}</span>
@@ -4854,7 +4895,7 @@ function scrCourses() {
       </table>
     </div>
     <div class="cside">
-      ${IMG[hole.img] ? `<img src="${IMG[hole.img]}" alt="Diagram of hole ${hole.n} at ${esc(c.name)}">` : ''}
+      ${IMG[hole.img] ? `<img decoding="sync" src="${IMG[hole.img]}" alt="Diagram of hole ${hole.n} at ${esc(c.name)}">` : ''}
       <div class="cfacts num">
         <span class="hn">Hole ${hole.n}</span>
         <span>Par ${hole.par}</span>

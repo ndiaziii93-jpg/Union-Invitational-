@@ -14,7 +14,11 @@ writeFileSync(S + '/recap.html', '<!doctype html><html><head><meta charset="utf-
 const MOCK = () => { window.claude = { use: async n => {
   if (n !== 'sample') return null;
   const fn = async (input, opts) => {
-    const q = typeof input === 'string' ? input : input[input.length - 1].content;
+    /* Record EVERYTHING the model was handed, not just the last turn. Taking
+       only the last message meant "the question box is told the tournament"
+       was really checking that the question was sent — which it always was —
+       while the notes it answers from went unexamined. */
+    const q = typeof input === 'string' ? input : input.map(m => m.content).join('\n\n');
     window.__lastPrompt = q;
     const text = q.includes('THE CARD')
       ? '# Tuesday belongs to Norberto III\n\nHe took it early and nobody answered.\n\nThe rest followed politely.'
@@ -70,6 +74,16 @@ ok('newest answer sits on top', qs[0].startsWith('What band'), true);
 ok('the oldest is at the bottom', qs[qs.length - 1].startsWith('Who is leading'), true);
 ok('exactly one is highlighted', await p.locator('.askitem.current').count(), 1);
 ok('and it is the newest', (await p.locator('.askitem.current .askq').innerText()).startsWith('What band'), true);
+/* The crest was asked when check-out is and said it did not know, with the
+   answer sitting in the book two tabs away. It is told the whole week now. */
+ok('the question box knows when check-out is', await p.evaluate(
+  () => String(window.__lastPrompt || '').includes('Check-out')), true);
+ok('and the whole week around it', await p.evaluate(
+  () => String(window.__lastPrompt || '').includes('THE WEEK, DAY BY DAY')), true);
+ok('and the rules it is played under', await p.evaluate(
+  () => String(window.__lastPrompt || '').includes('Breakfast ball')), true);
+ok('and every tee time', await p.evaluate(
+  () => String(window.__lastPrompt || '').includes('TEE TIMES')), true);
 ok('the question box is told the tournament',
   await p.evaluate(() => String(window.__lastPrompt || '').includes('What band is Matt D on?')), true);
 await p.keyboard.press('Escape'); await p.waitForTimeout(350);

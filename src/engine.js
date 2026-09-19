@@ -2,6 +2,7 @@
    No I/O, no DOM, no randomness. Everything here is a function of state. */
 
 import { COURSES, DAYS, ROUNDS, TZ_OFFSET_MIN, PINS_ENABLED } from './data.js';
+import { RULES, RELIEF } from './rules.js';
 
 /* ---------- clock (Antalya, UTC+3, no DST) ---------- */
 
@@ -340,6 +341,40 @@ export function brief(T, now) {
   const R = ryderData(T, now);
   L.push('\nRYDER CUP — UK ' + R.uk + ', USA ' + R.usa
     + (R.unassigned ? ' (' + R.unassigned + ' golfers unassigned)' : ''));
+
+  L.push('\nTEE TIMES');
+  for (const r of ROUNDS) {
+    const c = roundCfg(T, r.id);
+    const times = (c.tees || []).map(t => t.time).filter(Boolean).map(to12);
+    L.push('- ' + r.short + ' (' + dayOf(r.dayIdx).dow + ' ' + dayOf(r.dayIdx).date + '): '
+      + (times.length ? times.join(', ') : 'no tee time set yet'));
+  }
+
+  /* The whole calendar, which the question box could not see at all — it was
+     asked when check-out is and had to say it did not know, with the answer
+     sitting in the book two tabs away. */
+  L.push('\nTHE WEEK, DAY BY DAY');
+  DAYS.forEach((d, i) => {
+    const n = i + 1;
+    const bits = [];
+    for (const r of ROUNDS) {
+      if (r.dayIdx !== n) continue;
+      const t = ((roundCfg(T, r.id).tees || [])[0] || {}).time;
+      bits.push((t ? to12(t) + ' ' : '') + r.full + ' at ' + courseOf(T, r.id).name);
+    }
+    for (const e of (T.config.schedule || []).filter(x => x.dayIdx === n)) {
+      bits.push(to12(e.time) + ' ' + e.title);
+    }
+    L.push('- ' + d.dow + ' ' + d.date + (bits.length ? ': ' + bits.join('; ') : ': nothing scheduled'));
+  });
+
+  L.push('\nRULES AND FORMATS');
+  for (const r of RULES) {
+    L.push('- ' + r.name + '. ' + r.tag + ' When: ' + r.when + ' Won by: ' + r.won);
+  }
+  L.push('\nRELIEF, APPLYING TO EVERY COMPETITION');
+  for (const it of RELIEF.items) L.push('- ' + it.name + ': ' + it.body);
+  for (const [n, b] of RELIEF.bands) L.push('- ' + n + ': ' + b);
 
   L.push('\nLONGEST DRIVE & CLOSEST TO THE PIN');
   for (const r of ROUNDS) {

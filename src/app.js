@@ -296,7 +296,7 @@ function boardPairs() {
         <tr class="cap"><td>Picks up at</td><td>${E.capFor(hole.par, T.config.capOver)}</td></tr>
       </tbody></table>
       ${holeStrip(rid, h, 'bookHole', leadPair)}
-      ${IMG[hole.img] ? `<figure class="diagram"><img src="${IMG[hole.img]}" alt="Diagram of hole ${hole.n} at ${esc(course.name)}" loading="lazy"></figure>` : ''}
+      ${IMG[hole.img] ? `<figure class="diagram"><img decoding="sync" src="${IMG[hole.img]}" alt="Diagram of hole ${hole.n} at ${esc(course.name)}" loading="lazy"></figure>` : ''}
       <p class="turn">Turn the page: tap a hole.</p>
     </div>
 
@@ -1327,7 +1327,7 @@ function scrEntry() {
     ${/* the hole they are standing on, drawn exactly as Course Setup draws it,
           minus its hole strip — here the card decides which hole this is */ ''}
     <div class="cside">
-      ${IMG[hole.img] ? `<img src="${IMG[hole.img]}" alt="Diagram of hole ${hole.n} at ${esc(course.name)}">` : ''}
+      ${IMG[hole.img] ? `<img decoding="sync" src="${IMG[hole.img]}" alt="Diagram of hole ${hole.n} at ${esc(course.name)}">` : ''}
       <div class="cfacts num">
         <span class="hn">Hole ${hole.n}</span>
         <span>Par ${hole.par}</span>
@@ -1596,7 +1596,7 @@ function scrCourses() {
       </table>
     </div>
     <div class="cside">
-      ${IMG[hole.img] ? `<img src="${IMG[hole.img]}" alt="Diagram of hole ${hole.n} at ${esc(c.name)}">` : ''}
+      ${IMG[hole.img] ? `<img decoding="sync" src="${IMG[hole.img]}" alt="Diagram of hole ${hole.n} at ${esc(c.name)}">` : ''}
       <div class="cfacts num">
         <span class="hn">Hole ${hole.n}</span>
         <span>Par ${hole.par}</span>
