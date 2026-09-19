@@ -168,7 +168,13 @@ for (const [label, lie] of [['a healthy store', false], ['a store whose first re
   // and a removal is a deletion, not a list edit
   const n = await p.locator('.rtable tbody tr').count();
   await p.locator('.rtable tbody tr').last().locator('[data-act="removePerson"]').click();
-  await p.waitForTimeout(900);
+  // wait for the deletion to actually reach the store rather than guessing at
+  // a delay: under load a fixed wait reloads before the write has gone out,
+  // and the reload is what the assertion is about
+  await p.waitForFunction(
+    want => Object.keys(window.__mockDocs).filter(k => k.startsWith('people/')).length === want,
+    n - 1, { timeout: 15000 },
+  ).catch(() => {});
   ok('removing deletes that person\'s document',
     await p.evaluate(() => Object.keys(window.__mockDocs).filter(k => k.startsWith('people/')).length), n - 1);
   await p.reload(); await p.waitForTimeout(3000);
@@ -202,7 +208,11 @@ for (const [label, lie] of [['a healthy store', false], ['a store whose first re
   // remove somebody, then reload: the config mirror still lists them
   const n = await p.locator('.rtable tbody tr').count();
   await p.locator('.rtable tbody tr').last().locator('[data-act="removePerson"]').click();
-  await p.waitForTimeout(1000);
+  // the reload is the assertion, so wait for the write, not for a clock
+  await p.waitForFunction(
+    want => Object.keys(window.__mockDocs).filter(k => k.startsWith('people/')).length === want,
+    n - 1, { timeout: 15000 },
+  ).catch(() => {});
   ok('their document is gone',
     await p.evaluate(() => Object.keys(window.__mockDocs).filter(k => k.startsWith('people/')).length), n - 1);
   await p.reload(); await p.waitForTimeout(3000);

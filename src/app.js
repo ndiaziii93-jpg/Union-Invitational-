@@ -20,6 +20,11 @@ const UI = {
   screen: 'today',
   reveal: null,          // something just added: scroll to it once it is drawn
   timePick: {},          // a time being chosen, wheel by wheel, held here not in the DOM
+  askOpen: false,        // the crest's question box
+  askText: '',
+  asks: [],              // newest first: {id, q, a, busy, err}
+  recapOpen: false,
+  recap: { rid: null, text: '', busy: false, err: '' },
   role: 'viewer',
   boardTab: 'pairs',
   boardRound: 'r1',
@@ -197,6 +202,8 @@ function scrToday() {
           ${R.unassigned ? `<div style="font-size:14px;color:var(--flag)">${R.unassigned} location${R.unassigned > 1 ? 's' : ''} still unset</div>` : ''}
         </div>
       </div>
+
+      ${recapButton()}
 
       <div class="privilege">
         <h4>Tee-time privilege</h4>
@@ -429,6 +436,114 @@ function boardPractice() {
   <p class="lede" style="margin-top:18px">${E.bandsLocked(T)
     ? 'The practice round is concluded and the bands are settled. Only a scorer or the master reviewer can move one now.'
     : 'Bands are open while the practice round runs — this is the day to find out who is in the wrong one. They settle when the round is concluded.'}</p>`;
+}
+
+/* ---------------- asking the book ----------------
+   The page can put a question to Claude on the viewer's own account. It is
+   granted per view and per call, so everything here is written to work when
+   the answer is simply "no": the crest does nothing it cannot do, and the
+   recap says why rather than spinning. */
+let askClaude = null;          // resolved once at boot; null means unavailable
+
+/** Everything the book actually knows, as text. Never invented. */
+function brief() {
+  try { return E.brief(T, now); } catch (e) { return 'The book could not be read.'; }
+}
+
+const ASK_RULES = [
+  'You are the Union Invitational yardage book — a golf trip\'s record, answering its players.',
+  'Answer ONLY from the tournament notes below. If the notes do not say, reply that the book does not have it yet.',
+  'Never invent a score, a name, a time or a result.',
+  'Be brief and dry: two or three sentences unless asked for more. A little wit is welcome; do not overdo it.',
+].join(' ');
+
+function recapButton() {
+  const focus = E.nextFixture(T, now) || {};
+  const rid = UI.recap.rid || focusRound();
+  if (!rid) return '';
+  const ready = E.roundComplete(T, rid);
+  const r = E.roundDef(rid);
+  return `<div class="recapwrap">
+    <button class="recapbtn${ready ? ' ready' : ''}" data-act="recapOpen" data-a="${rid}"${askClaude ? '' : ' disabled'}>
+      <span class="rb-t">The Day's Recap</span>
+      <span class="rb-s">${!askClaude ? 'Not available on this copy of the book'
+        : ready ? esc(r.short) + ' is complete — read the report'
+        : 'Lights up when every card is in for ' + esc(r.short)}</span>
+    </button>
+  </div>`;
+}
+
+/** The round the Today screen is about. */
+function focusRound() {
+  const f = D.ROUNDS.find(r => E.dayOf(r.dayIdx).iso === now.iso);
+  if (f) return f.id;
+  const past = D.ROUNDS.filter(r => E.dayOf(r.dayIdx).iso < now.iso);
+  return past.length ? past[past.length - 1].id : D.ROUNDS[0].id;
+}
+
+function askPanel() {
+  if (!UI.askOpen) return '';
+  return `<div class="scrim" data-act="askClose"><div class="askbox" role="dialog" aria-modal="true" aria-label="Ask the book">
+    <div class="askhead">
+      <b>Ask the book</b>
+      <button class="rm" data-act="askClose">Close</button>
+    </div>
+    <p class="asknote">Anything about this tournament — scores, bands, pairings, who is up. It answers from the
+    book only, so if it has not been recorded, it will say so.</p>
+    <div class="askrow">
+      <textarea id="askField" class="field askin" rows="2" placeholder="Who is leading the Ryder Cup?"
+        aria-label="Your question">${esc(UI.askText)}</textarea>
+      <button class="btn" data-act="askSend">Ask</button>
+    </div>
+    <div class="asklist">
+      ${UI.asks.length ? UI.asks.map((a, i) => `<div class="askitem${i === 0 ? ' current' : ''}">
+        <div class="askq">${esc(a.q)}</div>
+        <div class="aska">${a.busy && !a.a ? '<span class="thinking">Thinking…</span>'
+          : a.err ? `<span class="askerr">${esc(a.err)}</span>`
+          : esc(a.a || '')}${a.busy && a.a ? '<span class="cursor">▍</span>' : ''}</div>
+      </div>`).join('')
+      : '<p class="empty">Nothing asked yet.</p>'}
+    </div>
+  </div></div>`;
+}
+
+function recapPanel() {
+  if (!UI.recapOpen) return '';
+  const r = E.roundDef(UI.recap.rid) || {};
+  return `<div class="scrim" data-act="recapClose"><div class="askbox" role="dialog" aria-modal="true" aria-label="The day's recap">
+    <div class="askhead">
+      <b>${esc(r.full || 'The Day')} — the recap</b>
+      <button class="rm" data-act="recapClose">Close</button>
+    </div>
+    <div class="recaptext">${UI.recap.busy && !UI.recap.text ? '<span class="thinking">Writing the report…</span>'
+      : UI.recap.err ? `<span class="askerr">${esc(UI.recap.err)}</span>`
+      : recapHtml(UI.recap.text)}${UI.recap.busy && UI.recap.text ? '<span class="cursor">▍</span>' : ''}</div>
+    ${UI.recap.busy ? '<button class="btn ghost" data-act="recapStop">Stop</button>'
+      : `<button class="btn ghost" data-act="recapAgain" data-a="${esc(UI.recap.rid || '')}">Write it again</button>`}
+  </div></div>`;
+}
+
+/** The report comes back as plain prose with blank lines. Keep it that way. */
+function recapHtml(t) {
+  return String(t || '').split(/\n{2,}/).map(p => {
+    const line = p.trim();
+    if (!line) return '';
+    if (/^#{1,3}\s/.test(line)) return `<h4>${esc(line.replace(/^#{1,3}\s*/, ''))}</h4>`;
+    return `<p>${esc(line).replace(/\n/g, '<br>')}</p>`;
+  }).join('');
+}
+
+function sampleError(e) {
+  const c = (e && e.code) || 'upstream_error';
+  if (c === 'not_granted' || c === 'sampling_disabled' || c === 'not_declared' || c === 'capability_disabled') {
+    return 'This copy of the book cannot ask Claude.';
+  }
+  if (c === 'rate_limited') return 'Too many questions at once. Give it a minute.';
+  if (c === 'session_expired') return 'Your Claude session has expired — sign in again.';
+  if (c === 'cancelled') return '';
+  if (c === 'refused') return 'It would not answer that one.';
+  if (c === 'prompt_too_large') return 'There is too much to read at once.';
+  return 'That did not come back. Try again in a moment.';
 }
 
 function scrRyder() {
@@ -1231,7 +1346,8 @@ function paint() {
   ${IMG.crest ? `<div class="watermark" style="background-image:url('${IMG.crest}')"></div>` : ''}
   <div class="wrap">
     <header class="masthead">
-      ${IMG.crest ? `<img src="${IMG.crest}" alt="The Union Invitational crest">` : ''}
+      ${IMG.crest ? `<button class="crestbtn" data-act="askOpen" title="Ask the book a question"
+        aria-label="Ask the book a question"><img src="${IMG.crest}" alt="The Union Invitational crest"></button>` : ''}
       <div class="mast-mid">
         <h1>${esc(D.EVENT.name)}</h1>
         <div class="sub">${esc(D.EVENT.venue)}, ${esc(D.EVENT.place)} — 26 October to 2 November 2026</div>
@@ -1265,8 +1381,15 @@ function paint() {
       <span class="build" title="Which copy of the book this device is running">build ${esc(D.BUILD)}</span>
     </div>
   </div>
-  ${UI.modal ? modalHtml() : ''}`;
+  ${UI.modal ? modalHtml() : ''}
+  ${askPanel()}
+  ${recapPanel()}`;
 
+  if (UI.askOpen && UI.askFocus) {
+    UI.askFocus = false;
+    const f = document.getElementById('askField');
+    if (f) { f.focus(); f.setSelectionRange(f.value.length, f.value.length); }
+  }
   if (UI.modal && UI.modal.kind === 'pin') { const i = document.getElementById('pinField'); if (i) { i.focus(); i.select(); } }
   else if (UI.modal && UI.modal.kind === 'add') { const i = document.getElementById('addName'); if (i) i.focus(); }
   else restoreFocus(focused);
@@ -1446,6 +1569,33 @@ function onClick(e) {
           if (E.setupIssues(T).some(i => SETUP_SCOPES.entry.only.includes(i.id))) UI.modal = { kind: 'setup', scope: 'entry' };
         }
       });
+      return;
+    case 'askOpen':
+      UI.askOpen = true; UI.askFocus = true; render();
+      return;
+    case 'askClose':
+      if (el.classList.contains('scrim') && e.target !== el) return;
+      UI.askOpen = false; render();
+      return;
+    case 'askSend':
+      sendQuestion();
+      return;
+    case 'recapOpen':
+      UI.recapOpen = true;
+      if (UI.recap.rid !== a) UI.recap = { rid: a, text: '', busy: false, err: '' };
+      render();
+      writeRecap(a, false);
+      return;
+    case 'recapAgain':
+      writeRecap(a || UI.recap.rid, true);
+      return;
+    case 'recapStop':
+      if (recapCtl) recapCtl.abort();
+      return;
+    case 'recapClose':
+      if (el.classList.contains('scrim') && e.target !== el) return;
+      if (recapCtl) recapCtl.abort();
+      UI.recapOpen = false; render();
       return;
     case 'goRule': UI.screen = 'rules'; render();
       { const d = document.getElementById('rule-' + a); if (d) { d.open = true; d.scrollIntoView({ block: 'center' }); } }
@@ -1755,7 +1905,89 @@ function onKey(e) {
   if (e.key === 'Enter' && UI.modal && e.target.id === 'pinField') { e.preventDefault(); submitPin(); }
   if (e.key === 'Enter' && UI.modal && e.target.id === 'addName') { e.preventDefault(); onClick({ target: document.querySelector('[data-act="addSave"]') }); }
   if (e.key === 'Enter' && e.target.classList && e.target.classList.contains('nameedit')) { e.preventDefault(); e.target.blur(); }
+  if (e.target && e.target.id === 'askField') {
+    UI.askText = e.target.value;
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendQuestion(); return; }
+    // Escape has to get out of the box as well as off the page
+    if (e.key === 'Escape') { UI.askOpen = false; render(); return; }
+    return;
+  }
+  if (e.key === 'Escape' && UI.recapOpen) { if (recapCtl) recapCtl.abort(); UI.recapOpen = false; render(); return; }
+  if (e.key === 'Escape' && UI.askOpen) { UI.askOpen = false; render(); return; }
   if (e.key === 'Escape' && UI.modal) { UI.modal = null; UI.modalErr = ''; render(); }
+}
+
+/* ---------------- putting the questions ---------------- */
+
+let askSeq = 0;
+async function sendQuestion() {
+  const field = document.getElementById('askField');
+  const q = (field ? field.value : UI.askText).trim();
+  if (!q) return;
+  if (!askClaude) {
+    UI.asks.unshift({ id: ++askSeq, q, a: '', busy: false, err: sampleError({ code: 'not_granted' }) });
+    render();
+    return;
+  }
+  const item = { id: ++askSeq, q, a: '', busy: true, err: '' };
+  UI.asks.unshift(item);
+  UI.askText = '';
+  if (field) field.value = '';
+  UI.askFocus = true;           // ready for the next question
+  render();
+  try {
+    // Every question carries the book with it: there is no memory between calls.
+    const { text } = await askClaude(
+      [{ role: 'user', content: ASK_RULES + '\n\nTOURNAMENT NOTES\n' + brief() },
+       { role: 'user', content: q }],
+      { cache: false, modelTier: 'quick', onText: ({ text }) => { item.a = text; render(); } },
+    );
+    item.a = text;
+  } catch (e) {
+    item.a = (e && e.text) || '';
+    item.err = sampleError(e);
+  } finally {
+    item.busy = false;
+    render();
+  }
+}
+
+let recapCtl = null;
+async function writeRecap(rid, again) {
+  if (!rid || !askClaude || UI.recap.busy) return;
+  if (UI.recap.rid === rid && UI.recap.text && !again) return;   // already written
+  recapCtl = new AbortController();
+  UI.recap = { rid, text: '', busy: true, err: '' };
+  render();
+  const prompt = [
+    'Write the day\'s recap for a golf trip, in the voice of a sports desk newsletter:',
+    'a headline, then three or four short paragraphs. Lead with what actually happened, name names,',
+    'call out who is hot and who is not, note any trend across the week, and close looking ahead.',
+    'Dry wit is welcome — these are old friends who rib each other — but never cruel, and never',
+    'invent anything. Use ONLY the card below: if something is not there, do not mention it.',
+    'No markdown except a single "# " headline. Around 250 words.',
+    '',
+    'THE CARD',
+    E.roundBrief(T, rid),
+    '',
+    'THE WEEK SO FAR',
+    brief(),
+  ].join('\n');
+  try {
+    const { text } = await askClaude(prompt, {
+      signal: recapCtl.signal,
+      cache: { gcTime: 900000, refresh: !!again },
+      onText: ({ text }) => { UI.recap.text = text; render(); },
+    });
+    UI.recap.text = text;
+  } catch (e) {
+    UI.recap.text = (e && e.text) || '';
+    UI.recap.err = sampleError(e);
+  } finally {
+    UI.recap.busy = false;
+    recapCtl = null;
+    render();
+  }
 }
 
 /* ---------------- boot ---------------- */
@@ -1764,6 +1996,11 @@ export function boot() {
   /* A write that dies inside the redraw took the whole save with it and said
      nothing — the log showed the tap, then simply no write. Anything that
      throws now names itself, with the line it came from. */
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    if (UI.recapOpen) { if (recapCtl) recapCtl.abort(); UI.recapOpen = false; render(); return; }
+    if (UI.askOpen) { UI.askOpen = false; render(); }
+  });
   window.addEventListener('error', e => {
     if (store && store.note) store.note('JS ERROR', (e.message || '') + ' @' + (e.lineno || '?') + ':' + (e.colno || '?'));
   });
@@ -1807,6 +2044,13 @@ export function boot() {
   });
   app.addEventListener('change', onChange);
   app.addEventListener('keydown', onKey);
+  // the page may be allowed to ask Claude, or may not: find out once, quietly,
+  // and let the crest and the recap light up if it can
+  (async () => {
+    try { askClaude = window.claude && window.claude.use ? await window.claude.use('sample') : null; }
+    catch (e) { askClaude = null; }
+    render();
+  })();
   setInterval(() => { now = E.nowLocal(); render(); }, 30000);
   render();
   store.connect();

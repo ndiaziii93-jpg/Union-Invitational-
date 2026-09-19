@@ -764,6 +764,56 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
 
 .gmem-names{display:block;color:var(--turf);opacity:.85}
 
+/* ---- the crest asks, the day reports ---- */
+.crestbtn{display:block;padding:0;border:0;background:none;border-radius:4px;line-height:0}
+.crestbtn img{display:block;width:62px;height:auto;transition:transform .12s ease}
+.crestbtn:hover img{transform:scale(1.06)}
+.crestbtn:focus-visible{outline:2px solid var(--flag);outline-offset:3px}
+
+.recapwrap{margin-top:16px}
+.recapbtn{display:block;width:100%;text-align:left;padding:13px 16px;border:1px solid var(--rule);
+  background:var(--page);border-radius:3px;min-height:60px}
+.recapbtn .rb-t{display:block;font-size:18px;font-weight:700;color:var(--turf)}
+.recapbtn .rb-s{display:block;font-size:14px;color:var(--turf);margin-top:2px}
+.recapbtn:disabled{opacity:.55;cursor:not-allowed}
+/* it lights up only when every card for the day is in */
+.recapbtn.ready{background:var(--green);border-color:var(--green)}
+.recapbtn.ready .rb-t{color:var(--paper)}
+.recapbtn.ready .rb-s{color:var(--paper);opacity:.85}
+.recapbtn.ready:hover{filter:brightness(1.08)}
+
+.askbox{background:var(--page);border:1px solid var(--rule);border-radius:4px;
+  width:min(680px,94vw);max-height:86vh;overflow-y:auto;padding:18px 20px 20px;box-shadow:0 18px 50px var(--shadow)}
+.askhead{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.askhead b{font-size:21px}
+.asknote{font-size:14px;color:var(--turf);margin:6px 0 12px;max-width:56ch}
+.askrow{display:flex;gap:8px;align-items:flex-start}
+.askin{flex:1;min-height:52px;resize:vertical;font-family:var(--serif)}
+.asklist{margin-top:16px}
+.askitem{border-top:1px solid var(--hair);padding:12px 0}
+.askitem:first-child{border-top:2px solid var(--ink)}
+/* the one you just asked, so you know where the answer is */
+.askitem.current{background:var(--green);color:var(--paper);border-radius:3px;
+  padding:12px 14px;border-top:0;margin-top:4px}
+.askitem.current .askq{color:var(--paper)}
+.askq{font-weight:700;font-size:16px}
+.aska{margin-top:5px;font-size:16px;line-height:1.55;white-space:pre-wrap}
+.askerr{color:var(--flag)}
+.askitem.current .askerr{color:var(--paper);text-decoration:underline}
+.thinking{color:var(--turf);font-style:italic}
+.askitem.current .thinking{color:var(--paper);opacity:.85}
+.cursor{opacity:.6}
+
+.recaptext{margin-top:14px;font-size:17px;line-height:1.6}
+.recaptext h4{font-size:24px;font-weight:700;margin:0 0 10px;line-height:1.15}
+.recaptext p{margin:0 0 12px}
+
+@media (max-width:720px){
+  .askbox{width:100vw;max-width:100vw;max-height:92vh;border-radius:0;padding:16px 16px 20px}
+  .askrow{flex-direction:column}
+  .askrow .btn{width:100%}
+}
+
 </style>
 <div id="app"></div>
 <script>
@@ -785,7 +835,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20260919-0703';
+const BUILD = '20260919-0743';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -1247,6 +1297,106 @@ function bbbBoard(T) {
   return rows.map((r, i) => ({ ...r, pos: i + 1, ptsStr: String(r.pts) }));
 }
 
+/** Every golfer out on a round has all eighteen holes saved. */
+function roundComplete(T, rid) {
+  const ids = groups(T, rid).flatMap(g => g.members);
+  const out = (ids.length ? golfers(T).filter(g => ids.includes(g.id)) : golfers(T));
+  if (!out.length) return false;
+  return out.every(p => {
+    const c = card(T, rid, p.id);
+    return c && c.raw.every(v => v != null);
+  });
+}
+
+/** The whole tournament in a few hundred words, for asking Claude about.
+ *  Only what is actually recorded — no invention, no placeholders. */
+function brief(T, now) {
+  const L = [];
+  const day = dayOf(ROUNDS[0].dayIdx);
+  L.push('THE UNION INVITATIONAL — Titanic Deluxe Golf Belek, Antalya, Turkiye, 26 Oct to 2 Nov 2026.');
+  L.push('Today is ' + now.dow + ' ' + now.date + '.');
+  L.push('Handicap bands are the strokes a golfer receives: 15, 20, 25 or 30.');
+
+  L.push('\nROSTER');
+  for (const p of golfers(T)) {
+    L.push('- ' + p.display + ' (golfer, band ' + (p.band == null ? 'not set' : p.band)
+      + ', squad ' + (p.location || 'unassigned') + ')');
+  }
+
+  L.push('\nPAIRINGS');
+  T.config.pairs.forEach((pr, i) => L.push('- Pair ' + (i + 1) + ': ' + pairName(T, pr)));
+
+  L.push('\nROUNDS');
+  for (const r of ROUNDS) {
+    const c = roundCfg(T, r.id);
+    L.push('- ' + r.full + ' on ' + dayOf(r.dayIdx).dow + ', ' + courseOf(T, r.id).name
+      + ' — ' + c.state + (r.counts ? '' : ' (practice, counts for nothing)'));
+  }
+
+  const pb = pairsBoard(T, now).filter(x => x.played);
+  if (pb.length) {
+    L.push('\nTEAM COMPETITION (net, counting rounds)');
+    pb.slice(0, 8).forEach(x => L.push('- ' + x.pos + '. ' + x.name + ' ' + x.totalStr));
+  }
+  const mb = mvpBoard(T, now).filter(x => x.played);
+  if (mb.length) {
+    L.push('\nMVP');
+    mb.slice(0, 8).forEach(x => L.push('- ' + x.pos + '. ' + x.name + ' ' + x.totalStr
+      + (x.stb ? ', ' + x.stb + ' pts' : '')));
+  }
+  const bb = bbbBoard(T);
+  if (bb.length) {
+    L.push('\nBINGO BANGO BONGO');
+    bb.slice(0, 6).forEach(x => L.push('- ' + x.pos + '. ' + x.name + ' ' + x.pts));
+  }
+  const R = ryderData(T, now);
+  L.push('\nRYDER CUP — UK ' + R.uk + ', USA ' + R.usa
+    + (R.unassigned ? ' (' + R.unassigned + ' golfers unassigned)' : ''));
+
+  L.push('\nLONGEST DRIVE & CLOSEST TO THE PIN');
+  for (const r of ROUNDS) {
+    const c = roundCfg(T, r.id);
+    const nm = id => (person(T, id) || {}).display || null;
+    if (c.ctpWinner || c.ldWinner) {
+      L.push('- ' + r.short + ': closest ' + (nm(c.ctpWinner) || 'nobody') + ' ' + (c.ctpDist || '')
+        + '; longest ' + (nm(c.ldWinner) || 'nobody') + ' ' + (c.ldDist || ''));
+    }
+  }
+  return L.join('\n');
+}
+
+/** One round's cards, hole by hole, for a recap of that day. */
+function roundBrief(T, rid) {
+  const r = roundDef(rid);
+  const course = courseOf(T, rid);
+  const L = ['ROUND: ' + r.full + ' at ' + course.name + ' on ' + dayOf(r.dayIdx).dow + '.'];
+  L.push('Par ' + course.holes.reduce((a, h) => a + h.par, 0) + '. Scored net off each golfer\'s band.');
+  for (const p of golfers(T)) {
+    const c = card(T, rid, p.id);
+    if (!c || c.raw.every(v => v == null)) continue;
+    const { tp, thru, stb } = toParPlayer(T, rid, p.id);
+    const gross = c.raw.reduce((a, v) => a + (v || 0), 0);
+    L.push('- ' + p.display + ' (band ' + (p.band == null ? 'none' : p.band) + '): '
+      + 'holes ' + c.raw.map(v => (v == null ? '-' : v)).join(',')
+      + ' | gross ' + gross + ', net to par ' + fmtToPar(tp) + ', ' + stb + ' pts, thru ' + thru);
+  }
+  const b = T.bbb[rid];
+  if (b) {
+    const tally = {};
+    b.holes.forEach(cell => ['bingo', 'bango', 'bongo'].forEach(k => {
+      const pid = cell && cell[k];
+      if (pid) tally[pid] = (tally[pid] || 0) + 1;
+    }));
+    const line = Object.entries(tally).map(([pid, n]) => ((person(T, pid) || {}).display || '?') + ' ' + n);
+    if (line.length) L.push('Bingo Bango Bongo: ' + line.join(', '));
+  }
+  const c = roundCfg(T, rid);
+  const nm = id => (person(T, id) || {}).display || null;
+  if (c.ctpWinner) L.push('Closest to the pin: ' + nm(c.ctpWinner) + ' ' + (c.ctpDist || ''));
+  if (c.ldWinner) L.push('Longest drive: ' + nm(c.ldWinner) + ' ' + (c.ldDist || ''));
+  return L.join('\n');
+}
+
 /* ---------- match play / Ryder Cup ---------- */
 
 function matchPlay(sideA, sideB) {
@@ -1450,7 +1600,7 @@ function roundToPar(T, roundId, pid) {
   return { tp, thru };
 }
 
-return {nowLocal, dayOf, hhmmToMin, to12, to24, BANDS, strokesFor, bandTotal, fmtToPar, capFor, capped, person, golfers, roundDef, roundCfg, courseByKey, courseOf, scoreKey, card, pairName, phaseOf, phaseLabel, hasScores, countingRounds, playerNet, pairHole, PAIRS_PER_GROUP, groups, practiceBoard, practiceBbb, bandsLocked, pairsBoard, mvpBoard, bbbBoard, matchPlay, ryderData, holeCells, setupIssues, nextTee, fixtures, nextFixture, TEE_CHOICES, TEE_PRIV, teePrivilege, roundToPar};
+return {nowLocal, dayOf, hhmmToMin, to12, to24, BANDS, strokesFor, bandTotal, fmtToPar, capFor, capped, person, golfers, roundDef, roundCfg, courseByKey, courseOf, scoreKey, card, pairName, phaseOf, phaseLabel, hasScores, countingRounds, playerNet, pairHole, PAIRS_PER_GROUP, groups, practiceBoard, practiceBbb, bandsLocked, pairsBoard, mvpBoard, bbbBoard, roundComplete, brief, roundBrief, matchPlay, ryderData, holeCells, setupIssues, nextTee, fixtures, nextFixture, TEE_CHOICES, TEE_PRIV, teePrivilege, roundToPar};
 })();
 
 const __m_store = (function(){
@@ -2211,6 +2361,11 @@ const UI = {
   screen: 'today',
   reveal: null,          // something just added: scroll to it once it is drawn
   timePick: {},          // a time being chosen, wheel by wheel, held here not in the DOM
+  askOpen: false,        // the crest's question box
+  askText: '',
+  asks: [],              // newest first: {id, q, a, busy, err}
+  recapOpen: false,
+  recap: { rid: null, text: '', busy: false, err: '' },
   role: 'viewer',
   boardTab: 'pairs',
   boardRound: 'r1',
@@ -2388,6 +2543,8 @@ function scrToday() {
           ${R.unassigned ? `<div style="font-size:14px;color:var(--flag)">${R.unassigned} location${R.unassigned > 1 ? 's' : ''} still unset</div>` : ''}
         </div>
       </div>
+
+      ${recapButton()}
 
       <div class="privilege">
         <h4>Tee-time privilege</h4>
@@ -2620,6 +2777,114 @@ function boardPractice() {
   <p class="lede" style="margin-top:18px">${E.bandsLocked(T)
     ? 'The practice round is concluded and the bands are settled. Only a scorer or the master reviewer can move one now.'
     : 'Bands are open while the practice round runs — this is the day to find out who is in the wrong one. They settle when the round is concluded.'}</p>`;
+}
+
+/* ---------------- asking the book ----------------
+   The page can put a question to Claude on the viewer's own account. It is
+   granted per view and per call, so everything here is written to work when
+   the answer is simply "no": the crest does nothing it cannot do, and the
+   recap says why rather than spinning. */
+let askClaude = null;          // resolved once at boot; null means unavailable
+
+/** Everything the book actually knows, as text. Never invented. */
+function brief() {
+  try { return E.brief(T, now); } catch (e) { return 'The book could not be read.'; }
+}
+
+const ASK_RULES = [
+  'You are the Union Invitational yardage book — a golf trip\'s record, answering its players.',
+  'Answer ONLY from the tournament notes below. If the notes do not say, reply that the book does not have it yet.',
+  'Never invent a score, a name, a time or a result.',
+  'Be brief and dry: two or three sentences unless asked for more. A little wit is welcome; do not overdo it.',
+].join(' ');
+
+function recapButton() {
+  const focus = E.nextFixture(T, now) || {};
+  const rid = UI.recap.rid || focusRound();
+  if (!rid) return '';
+  const ready = E.roundComplete(T, rid);
+  const r = E.roundDef(rid);
+  return `<div class="recapwrap">
+    <button class="recapbtn${ready ? ' ready' : ''}" data-act="recapOpen" data-a="${rid}"${askClaude ? '' : ' disabled'}>
+      <span class="rb-t">The Day's Recap</span>
+      <span class="rb-s">${!askClaude ? 'Not available on this copy of the book'
+        : ready ? esc(r.short) + ' is complete — read the report'
+        : 'Lights up when every card is in for ' + esc(r.short)}</span>
+    </button>
+  </div>`;
+}
+
+/** The round the Today screen is about. */
+function focusRound() {
+  const f = D.ROUNDS.find(r => E.dayOf(r.dayIdx).iso === now.iso);
+  if (f) return f.id;
+  const past = D.ROUNDS.filter(r => E.dayOf(r.dayIdx).iso < now.iso);
+  return past.length ? past[past.length - 1].id : D.ROUNDS[0].id;
+}
+
+function askPanel() {
+  if (!UI.askOpen) return '';
+  return `<div class="scrim" data-act="askClose"><div class="askbox" role="dialog" aria-modal="true" aria-label="Ask the book">
+    <div class="askhead">
+      <b>Ask the book</b>
+      <button class="rm" data-act="askClose">Close</button>
+    </div>
+    <p class="asknote">Anything about this tournament — scores, bands, pairings, who is up. It answers from the
+    book only, so if it has not been recorded, it will say so.</p>
+    <div class="askrow">
+      <textarea id="askField" class="field askin" rows="2" placeholder="Who is leading the Ryder Cup?"
+        aria-label="Your question">${esc(UI.askText)}</textarea>
+      <button class="btn" data-act="askSend">Ask</button>
+    </div>
+    <div class="asklist">
+      ${UI.asks.length ? UI.asks.map((a, i) => `<div class="askitem${i === 0 ? ' current' : ''}">
+        <div class="askq">${esc(a.q)}</div>
+        <div class="aska">${a.busy && !a.a ? '<span class="thinking">Thinking…</span>'
+          : a.err ? `<span class="askerr">${esc(a.err)}</span>`
+          : esc(a.a || '')}${a.busy && a.a ? '<span class="cursor">▍</span>' : ''}</div>
+      </div>`).join('')
+      : '<p class="empty">Nothing asked yet.</p>'}
+    </div>
+  </div></div>`;
+}
+
+function recapPanel() {
+  if (!UI.recapOpen) return '';
+  const r = E.roundDef(UI.recap.rid) || {};
+  return `<div class="scrim" data-act="recapClose"><div class="askbox" role="dialog" aria-modal="true" aria-label="The day's recap">
+    <div class="askhead">
+      <b>${esc(r.full || 'The Day')} — the recap</b>
+      <button class="rm" data-act="recapClose">Close</button>
+    </div>
+    <div class="recaptext">${UI.recap.busy && !UI.recap.text ? '<span class="thinking">Writing the report…</span>'
+      : UI.recap.err ? `<span class="askerr">${esc(UI.recap.err)}</span>`
+      : recapHtml(UI.recap.text)}${UI.recap.busy && UI.recap.text ? '<span class="cursor">▍</span>' : ''}</div>
+    ${UI.recap.busy ? '<button class="btn ghost" data-act="recapStop">Stop</button>'
+      : `<button class="btn ghost" data-act="recapAgain" data-a="${esc(UI.recap.rid || '')}">Write it again</button>`}
+  </div></div>`;
+}
+
+/** The report comes back as plain prose with blank lines. Keep it that way. */
+function recapHtml(t) {
+  return String(t || '').split(/\n{2,}/).map(p => {
+    const line = p.trim();
+    if (!line) return '';
+    if (/^#{1,3}\s/.test(line)) return `<h4>${esc(line.replace(/^#{1,3}\s*/, ''))}</h4>`;
+    return `<p>${esc(line).replace(/\n/g, '<br>')}</p>`;
+  }).join('');
+}
+
+function sampleError(e) {
+  const c = (e && e.code) || 'upstream_error';
+  if (c === 'not_granted' || c === 'sampling_disabled' || c === 'not_declared' || c === 'capability_disabled') {
+    return 'This copy of the book cannot ask Claude.';
+  }
+  if (c === 'rate_limited') return 'Too many questions at once. Give it a minute.';
+  if (c === 'session_expired') return 'Your Claude session has expired — sign in again.';
+  if (c === 'cancelled') return '';
+  if (c === 'refused') return 'It would not answer that one.';
+  if (c === 'prompt_too_large') return 'There is too much to read at once.';
+  return 'That did not come back. Try again in a moment.';
 }
 
 function scrRyder() {
@@ -3422,7 +3687,8 @@ function paint() {
   ${IMG.crest ? `<div class="watermark" style="background-image:url('${IMG.crest}')"></div>` : ''}
   <div class="wrap">
     <header class="masthead">
-      ${IMG.crest ? `<img src="${IMG.crest}" alt="The Union Invitational crest">` : ''}
+      ${IMG.crest ? `<button class="crestbtn" data-act="askOpen" title="Ask the book a question"
+        aria-label="Ask the book a question"><img src="${IMG.crest}" alt="The Union Invitational crest"></button>` : ''}
       <div class="mast-mid">
         <h1>${esc(D.EVENT.name)}</h1>
         <div class="sub">${esc(D.EVENT.venue)}, ${esc(D.EVENT.place)} — 26 October to 2 November 2026</div>
@@ -3456,8 +3722,15 @@ function paint() {
       <span class="build" title="Which copy of the book this device is running">build ${esc(D.BUILD)}</span>
     </div>
   </div>
-  ${UI.modal ? modalHtml() : ''}`;
+  ${UI.modal ? modalHtml() : ''}
+  ${askPanel()}
+  ${recapPanel()}`;
 
+  if (UI.askOpen && UI.askFocus) {
+    UI.askFocus = false;
+    const f = document.getElementById('askField');
+    if (f) { f.focus(); f.setSelectionRange(f.value.length, f.value.length); }
+  }
   if (UI.modal && UI.modal.kind === 'pin') { const i = document.getElementById('pinField'); if (i) { i.focus(); i.select(); } }
   else if (UI.modal && UI.modal.kind === 'add') { const i = document.getElementById('addName'); if (i) i.focus(); }
   else restoreFocus(focused);
@@ -3637,6 +3910,33 @@ function onClick(e) {
           if (E.setupIssues(T).some(i => SETUP_SCOPES.entry.only.includes(i.id))) UI.modal = { kind: 'setup', scope: 'entry' };
         }
       });
+      return;
+    case 'askOpen':
+      UI.askOpen = true; UI.askFocus = true; render();
+      return;
+    case 'askClose':
+      if (el.classList.contains('scrim') && e.target !== el) return;
+      UI.askOpen = false; render();
+      return;
+    case 'askSend':
+      sendQuestion();
+      return;
+    case 'recapOpen':
+      UI.recapOpen = true;
+      if (UI.recap.rid !== a) UI.recap = { rid: a, text: '', busy: false, err: '' };
+      render();
+      writeRecap(a, false);
+      return;
+    case 'recapAgain':
+      writeRecap(a || UI.recap.rid, true);
+      return;
+    case 'recapStop':
+      if (recapCtl) recapCtl.abort();
+      return;
+    case 'recapClose':
+      if (el.classList.contains('scrim') && e.target !== el) return;
+      if (recapCtl) recapCtl.abort();
+      UI.recapOpen = false; render();
       return;
     case 'goRule': UI.screen = 'rules'; render();
       { const d = document.getElementById('rule-' + a); if (d) { d.open = true; d.scrollIntoView({ block: 'center' }); } }
@@ -3946,7 +4246,89 @@ function onKey(e) {
   if (e.key === 'Enter' && UI.modal && e.target.id === 'pinField') { e.preventDefault(); submitPin(); }
   if (e.key === 'Enter' && UI.modal && e.target.id === 'addName') { e.preventDefault(); onClick({ target: document.querySelector('[data-act="addSave"]') }); }
   if (e.key === 'Enter' && e.target.classList && e.target.classList.contains('nameedit')) { e.preventDefault(); e.target.blur(); }
+  if (e.target && e.target.id === 'askField') {
+    UI.askText = e.target.value;
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendQuestion(); return; }
+    // Escape has to get out of the box as well as off the page
+    if (e.key === 'Escape') { UI.askOpen = false; render(); return; }
+    return;
+  }
+  if (e.key === 'Escape' && UI.recapOpen) { if (recapCtl) recapCtl.abort(); UI.recapOpen = false; render(); return; }
+  if (e.key === 'Escape' && UI.askOpen) { UI.askOpen = false; render(); return; }
   if (e.key === 'Escape' && UI.modal) { UI.modal = null; UI.modalErr = ''; render(); }
+}
+
+/* ---------------- putting the questions ---------------- */
+
+let askSeq = 0;
+async function sendQuestion() {
+  const field = document.getElementById('askField');
+  const q = (field ? field.value : UI.askText).trim();
+  if (!q) return;
+  if (!askClaude) {
+    UI.asks.unshift({ id: ++askSeq, q, a: '', busy: false, err: sampleError({ code: 'not_granted' }) });
+    render();
+    return;
+  }
+  const item = { id: ++askSeq, q, a: '', busy: true, err: '' };
+  UI.asks.unshift(item);
+  UI.askText = '';
+  if (field) field.value = '';
+  UI.askFocus = true;           // ready for the next question
+  render();
+  try {
+    // Every question carries the book with it: there is no memory between calls.
+    const { text } = await askClaude(
+      [{ role: 'user', content: ASK_RULES + '\n\nTOURNAMENT NOTES\n' + brief() },
+       { role: 'user', content: q }],
+      { cache: false, modelTier: 'quick', onText: ({ text }) => { item.a = text; render(); } },
+    );
+    item.a = text;
+  } catch (e) {
+    item.a = (e && e.text) || '';
+    item.err = sampleError(e);
+  } finally {
+    item.busy = false;
+    render();
+  }
+}
+
+let recapCtl = null;
+async function writeRecap(rid, again) {
+  if (!rid || !askClaude || UI.recap.busy) return;
+  if (UI.recap.rid === rid && UI.recap.text && !again) return;   // already written
+  recapCtl = new AbortController();
+  UI.recap = { rid, text: '', busy: true, err: '' };
+  render();
+  const prompt = [
+    'Write the day\'s recap for a golf trip, in the voice of a sports desk newsletter:',
+    'a headline, then three or four short paragraphs. Lead with what actually happened, name names,',
+    'call out who is hot and who is not, note any trend across the week, and close looking ahead.',
+    'Dry wit is welcome — these are old friends who rib each other — but never cruel, and never',
+    'invent anything. Use ONLY the card below: if something is not there, do not mention it.',
+    'No markdown except a single "# " headline. Around 250 words.',
+    '',
+    'THE CARD',
+    E.roundBrief(T, rid),
+    '',
+    'THE WEEK SO FAR',
+    brief(),
+  ].join('\n');
+  try {
+    const { text } = await askClaude(prompt, {
+      signal: recapCtl.signal,
+      cache: { gcTime: 900000, refresh: !!again },
+      onText: ({ text }) => { UI.recap.text = text; render(); },
+    });
+    UI.recap.text = text;
+  } catch (e) {
+    UI.recap.text = (e && e.text) || '';
+    UI.recap.err = sampleError(e);
+  } finally {
+    UI.recap.busy = false;
+    recapCtl = null;
+    render();
+  }
 }
 
 /* ---------------- boot ---------------- */
@@ -3955,6 +4337,11 @@ function boot() {
   /* A write that dies inside the redraw took the whole save with it and said
      nothing — the log showed the tap, then simply no write. Anything that
      throws now names itself, with the line it came from. */
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    if (UI.recapOpen) { if (recapCtl) recapCtl.abort(); UI.recapOpen = false; render(); return; }
+    if (UI.askOpen) { UI.askOpen = false; render(); }
+  });
   window.addEventListener('error', e => {
     if (store && store.note) store.note('JS ERROR', (e.message || '') + ' @' + (e.lineno || '?') + ':' + (e.colno || '?'));
   });
@@ -3998,6 +4385,13 @@ function boot() {
   });
   app.addEventListener('change', onChange);
   app.addEventListener('keydown', onKey);
+  // the page may be allowed to ask Claude, or may not: find out once, quietly,
+  // and let the crest and the recap light up if it can
+  (async () => {
+    try { askClaude = window.claude && window.claude.use ? await window.claude.use('sample') : null; }
+    catch (e) { askClaude = null; }
+    render();
+  })();
   setInterval(() => { now = E.nowLocal(); render(); }, 30000);
   render();
   store.connect();

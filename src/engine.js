@@ -276,6 +276,106 @@ export function bbbBoard(T) {
   return rows.map((r, i) => ({ ...r, pos: i + 1, ptsStr: String(r.pts) }));
 }
 
+/** Every golfer out on a round has all eighteen holes saved. */
+export function roundComplete(T, rid) {
+  const ids = groups(T, rid).flatMap(g => g.members);
+  const out = (ids.length ? golfers(T).filter(g => ids.includes(g.id)) : golfers(T));
+  if (!out.length) return false;
+  return out.every(p => {
+    const c = card(T, rid, p.id);
+    return c && c.raw.every(v => v != null);
+  });
+}
+
+/** The whole tournament in a few hundred words, for asking Claude about.
+ *  Only what is actually recorded — no invention, no placeholders. */
+export function brief(T, now) {
+  const L = [];
+  const day = dayOf(ROUNDS[0].dayIdx);
+  L.push('THE UNION INVITATIONAL — Titanic Deluxe Golf Belek, Antalya, Turkiye, 26 Oct to 2 Nov 2026.');
+  L.push('Today is ' + now.dow + ' ' + now.date + '.');
+  L.push('Handicap bands are the strokes a golfer receives: 15, 20, 25 or 30.');
+
+  L.push('\nROSTER');
+  for (const p of golfers(T)) {
+    L.push('- ' + p.display + ' (golfer, band ' + (p.band == null ? 'not set' : p.band)
+      + ', squad ' + (p.location || 'unassigned') + ')');
+  }
+
+  L.push('\nPAIRINGS');
+  T.config.pairs.forEach((pr, i) => L.push('- Pair ' + (i + 1) + ': ' + pairName(T, pr)));
+
+  L.push('\nROUNDS');
+  for (const r of ROUNDS) {
+    const c = roundCfg(T, r.id);
+    L.push('- ' + r.full + ' on ' + dayOf(r.dayIdx).dow + ', ' + courseOf(T, r.id).name
+      + ' — ' + c.state + (r.counts ? '' : ' (practice, counts for nothing)'));
+  }
+
+  const pb = pairsBoard(T, now).filter(x => x.played);
+  if (pb.length) {
+    L.push('\nTEAM COMPETITION (net, counting rounds)');
+    pb.slice(0, 8).forEach(x => L.push('- ' + x.pos + '. ' + x.name + ' ' + x.totalStr));
+  }
+  const mb = mvpBoard(T, now).filter(x => x.played);
+  if (mb.length) {
+    L.push('\nMVP');
+    mb.slice(0, 8).forEach(x => L.push('- ' + x.pos + '. ' + x.name + ' ' + x.totalStr
+      + (x.stb ? ', ' + x.stb + ' pts' : '')));
+  }
+  const bb = bbbBoard(T);
+  if (bb.length) {
+    L.push('\nBINGO BANGO BONGO');
+    bb.slice(0, 6).forEach(x => L.push('- ' + x.pos + '. ' + x.name + ' ' + x.pts));
+  }
+  const R = ryderData(T, now);
+  L.push('\nRYDER CUP — UK ' + R.uk + ', USA ' + R.usa
+    + (R.unassigned ? ' (' + R.unassigned + ' golfers unassigned)' : ''));
+
+  L.push('\nLONGEST DRIVE & CLOSEST TO THE PIN');
+  for (const r of ROUNDS) {
+    const c = roundCfg(T, r.id);
+    const nm = id => (person(T, id) || {}).display || null;
+    if (c.ctpWinner || c.ldWinner) {
+      L.push('- ' + r.short + ': closest ' + (nm(c.ctpWinner) || 'nobody') + ' ' + (c.ctpDist || '')
+        + '; longest ' + (nm(c.ldWinner) || 'nobody') + ' ' + (c.ldDist || ''));
+    }
+  }
+  return L.join('\n');
+}
+
+/** One round's cards, hole by hole, for a recap of that day. */
+export function roundBrief(T, rid) {
+  const r = roundDef(rid);
+  const course = courseOf(T, rid);
+  const L = ['ROUND: ' + r.full + ' at ' + course.name + ' on ' + dayOf(r.dayIdx).dow + '.'];
+  L.push('Par ' + course.holes.reduce((a, h) => a + h.par, 0) + '. Scored net off each golfer\'s band.');
+  for (const p of golfers(T)) {
+    const c = card(T, rid, p.id);
+    if (!c || c.raw.every(v => v == null)) continue;
+    const { tp, thru, stb } = toParPlayer(T, rid, p.id);
+    const gross = c.raw.reduce((a, v) => a + (v || 0), 0);
+    L.push('- ' + p.display + ' (band ' + (p.band == null ? 'none' : p.band) + '): '
+      + 'holes ' + c.raw.map(v => (v == null ? '-' : v)).join(',')
+      + ' | gross ' + gross + ', net to par ' + fmtToPar(tp) + ', ' + stb + ' pts, thru ' + thru);
+  }
+  const b = T.bbb[rid];
+  if (b) {
+    const tally = {};
+    b.holes.forEach(cell => ['bingo', 'bango', 'bongo'].forEach(k => {
+      const pid = cell && cell[k];
+      if (pid) tally[pid] = (tally[pid] || 0) + 1;
+    }));
+    const line = Object.entries(tally).map(([pid, n]) => ((person(T, pid) || {}).display || '?') + ' ' + n);
+    if (line.length) L.push('Bingo Bango Bongo: ' + line.join(', '));
+  }
+  const c = roundCfg(T, rid);
+  const nm = id => (person(T, id) || {}).display || null;
+  if (c.ctpWinner) L.push('Closest to the pin: ' + nm(c.ctpWinner) + ' ' + (c.ctpDist || ''));
+  if (c.ldWinner) L.push('Longest drive: ' + nm(c.ldWinner) + ' ' + (c.ldDist || ''));
+  return L.join('\n');
+}
+
 /* ---------- match play / Ryder Cup ---------- */
 
 export function matchPlay(sideA, sideB) {
