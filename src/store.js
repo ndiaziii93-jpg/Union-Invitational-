@@ -57,7 +57,7 @@ export function defaultConfig() {
  *  created — so it can never leak back in and resurrect somebody. */
 export function emptyState() {
   const cfg = defaultConfig();
-  return { config: { ...cfg, people: [], pairs: [] }, scores: {}, bbb: {} };
+  return { config: { ...cfg, people: [], pairs: [] }, scores: {}, bbb: {}, recaps: {}, photos: {} };
 }
 
 /** Everything written to config/tournament. The roster is ALSO kept here as a
@@ -106,7 +106,7 @@ export function createStore(onChange) {
   let peopleLoaded = false, pairsLoaded = false, splitDone = false;
   let rosterInDocs = false;     // the roster lives in its own documents
   let peopleSeen = false;       // the people collection has reported at least once
-  const emptySeq = { people: 0, pairs: 0, scores: 0, bbb: 0 };  // guards a confirmation against a newer snapshot
+  const emptySeq = { people: 0, pairs: 0, scores: 0, bbb: 0, recaps: 0, photos: 0 };  // guards a confirmation against a newer snapshot
   let sawConfig = false;
   let legacy = null;            // a roster still stored as lists inside the config
   let settled = false;          // the first load has resolved; until then, no writes
@@ -159,7 +159,8 @@ export function createStore(onChange) {
       const raw = localStorage.getItem(LOCAL_KEY);
       if (raw) {
         const s = JSON.parse(raw);
-        if (s && s.config && s.config.v === 3) { T.config = s.config; T.scores = s.scores || {}; T.bbb = s.bbb || {}; return; }
+        if (s && s.config && s.config.v === 3) { T.config = s.config; T.scores = s.scores || {}; T.bbb = s.bbb || {};
+          T.recaps = s.recaps || {}; T.photos = s.photos || {}; return; }
       }
     } catch (e) { /* first run, or storage blocked */ }
     T.config = defaultConfig();   // no database and nothing stored: start from the factory book
@@ -275,6 +276,24 @@ export function createStore(onChange) {
       },
       () => { status = 'error'; notify(); }
     ));
+    unsubs.push(db.collection('recaps').onSnapshot(
+      s => {
+        if (!s.docs.length) { confirmEmpty('recaps'); notify(); return; }
+        emptySeq.recaps++;
+        T.recaps = mergeDocs('recaps', T.recaps, s.docs);
+        notify();
+      },
+      () => { status = 'error'; notify(); }
+    ));
+    unsubs.push(db.collection('photos').onSnapshot(
+      s => {
+        if (!s.docs.length) { confirmEmpty('photos'); notify(); return; }
+        emptySeq.photos++;
+        T.photos = mergeDocs('photos', T.photos, s.docs);
+        notify();
+      },
+      () => { status = 'error'; notify(); }
+    ));
     unsubs.push(db.collection('bbb').onSnapshot(
       s => {
         if (!s.docs.length) { confirmEmpty('bbb'); notify(); return; }
@@ -299,6 +318,8 @@ export function createStore(onChange) {
         const have = await db.collection(coll).get();
         if (seq !== emptySeq[coll]) return;
         if (coll === 'scores') { T.scores = mergeDocs('scores', T.scores, have.docs); notify(); return; }
+        if (coll === 'recaps') { T.recaps = mergeDocs('recaps', T.recaps, have.docs); notify(); return; }
+        if (coll === 'photos') { T.photos = mergeDocs('photos', T.photos, have.docs); notify(); return; }
         if (coll === 'bbb') { T.bbb = mergeDocs('bbb', T.bbb, have.docs); notify(); return; }
         if (coll === 'people') {
           if (have.docs.length) peopleLoaded = true;
@@ -687,6 +708,39 @@ export function createStore(onChange) {
     catch (e) { note('card FAILED', key + ' ' + (e && e.code)); status = 'error'; notify(); }
   }
 
+  /** A recap is written once and kept: one document per round. */
+  async function writeRecap(rid, mutate) {
+    if (tooEarly()) return false;
+    const prev = T.recaps[rid];
+    const r = prev ? JSON.parse(JSON.stringify(prev)) : { rid, status: 'draft', body: null, at: null, by: null };
+    mutate(r);
+    bump('recaps/' + rid, r);
+    T.recaps[rid] = r;
+    notify();
+    if (mode === 'local') { saveLocal(); return true; }
+    try { await db.doc('recaps/' + rid).set(r); saveState = 'saved'; lastSavedAt = Date.now(); notify(); return true; }
+    catch (e) { status = 'error'; saveState = 'error'; notify(); return false; }
+  }
+
+  /** One document per photo, so one failure never takes the others with it. */
+  async function writePhoto(id, row) {
+    if (tooEarly()) return false;
+    const r = { ...row, id };
+    bump('photos/' + id, r);
+    T.photos[id] = r;
+    notify();
+    if (mode === 'local') { saveLocal(); return true; }
+    try { await db.doc('photos/' + id).set(r); saveState = 'saved'; lastSavedAt = Date.now(); notify(); return true; }
+    catch (e) { status = 'error'; saveState = 'error'; notify(); return false; }
+  }
+
+  async function dropPhoto(id) {
+    if (tooEarly()) return false;
+    delete T.photos[id];
+    notify();
+    return dropDoc('photos', id);
+  }
+
   async function writeBbb(roundId, mutate) {
     if (tooEarly()) return false;
     const b = T.bbb[roundId] ? { holes: T.bbb[roundId].holes.map(h => ({ ...h })) } : blankBbb();
@@ -718,7 +772,7 @@ export function createStore(onChange) {
     } catch (e) { status = 'error'; notify(); }
   }
 
-  return { T, connect, writeConfig, writeCard, writeBbb, resetAll, resave, note,
+  return { T, connect, writeConfig, writeCard, writeBbb, writeRecap, writePhoto, dropPhoto, resetAll, resave, note,
            writePerson, writeAllPeople, addPerson, removePerson,
            writePair, addPair, removePair, movePlayer, movePairBy,
            get mode() { return mode; }, get status() { return status; }, get ready() { return ready; },

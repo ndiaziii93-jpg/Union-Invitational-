@@ -84,12 +84,18 @@ for (let g = 0; g < groups; g++) {
 }
 await tab('Today');
 ok('every card in lights it up', await p.locator('.recapbtn.ready').count(), 1);
-await p.locator('.recapbtn').click(); await p.waitForTimeout(1200);
-ok('the report has a headline', (await p.locator('.recaptext h4').innerText()).length > 3, true);
-ok('and reads as paragraphs', await p.locator('.recaptext p').count() > 1, true);
+await p.locator('.recapbtn').click(); await p.waitForTimeout(900);
+ok('it opens the recap screen', await p.locator('.recapgrid').count(), 1);
+
+/* This mock answers in prose, not the JSON the generator asks for. A report is
+   only worth reading if it lines up with the table under it, so a reply the
+   book cannot parse is refused outright rather than half-rendered. */
+await p.locator('[data-act="recapGen"]').click(); await p.waitForTimeout(1400);
 ok('it was given the day\'s card',
   await p.evaluate(() => String(window.__lastPrompt || '').includes('THE CARD')), true);
-await p.locator('.askbox').screenshot({ path: S + '/recap.png' });
+ok('prose where JSON was asked for is refused', await p.locator('.askerr').count(), 1);
+ok('and nothing was written', await p.locator('.rechead').innerText(), 'No report yet');
+await p.locator('.recapgrid').screenshot({ path: S + '/recap.png' });
 await b.close();
 console.log(fails.length ? '\nFAILED: ' + fails.join(', ') : '\nThe crest answers, and the day reports itself.');
 process.exit(fails.length ? 1 : 0);

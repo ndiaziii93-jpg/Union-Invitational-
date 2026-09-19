@@ -24,7 +24,8 @@ const UI = {
   askText: '',
   asks: [],              // newest first: {id, q, a, busy, err}
   recapOpen: false,
-  recap: { rid: null, text: '', busy: false, err: '' },
+  recap: { rid: null, busy: false, err: '', stream: '', edit: false, view: 'report' },
+  upload: { queue: [], err: '' },
   role: 'viewer',
   boardTab: 'pairs',
   boardRound: 'r1',
@@ -457,28 +458,31 @@ const ASK_RULES = [
   'Be brief and dry: two or three sentences unless asked for more. A little wit is welcome; do not overdo it.',
 ].join(' ');
 
-function recapButton() {
-  const focus = E.nextFixture(T, now) || {};
-  const rid = UI.recap.rid || focusRound();
-  if (!rid) return '';
-  const ready = E.roundComplete(T, rid);
-  const r = E.roundDef(rid);
-  return `<div class="recapwrap">
-    <button class="recapbtn${ready ? ' ready' : ''}" data-act="recapOpen" data-a="${rid}"${askClaude ? '' : ' disabled'}>
-      <span class="rb-t">The Day's Recap</span>
-      <span class="rb-s">${!askClaude ? 'Not available on this copy of the book'
-        : ready ? esc(r.short) + ' is complete — read the report'
-        : 'Lights up when every card is in for ' + esc(r.short)}</span>
-    </button>
-  </div>`;
+/* The panel follows the round it is about, and says which of four things is
+   true: not started, being played, finished and unwritten, or ready to read. */
+function recapState(rid) {
+  const st = E.roundStanding(T, rid);
+  const rec = T.recaps[rid];
+  const written = rec && rec.body && (rec.status === 'published' || canEdit());
+  if (!st.started) return { key: 'idle', line: 'Today\'s round hasn\'t started.' };
+  if (!st.complete) {
+    return { key: 'live', line: 'Round in progress — ' + st.inCards + ' of ' + st.field + ' cards in.' };
+  }
+  if (!written) return { key: 'togen', line: 'Round complete — generate the report.' };
+  return { key: 'ready', line: E.roundDef(rid).short + ' is complete — read the report.' };
 }
 
-/** The round the Today screen is about. */
-function focusRound() {
-  const f = D.ROUNDS.find(r => E.dayOf(r.dayIdx).iso === now.iso);
-  if (f) return f.id;
-  const past = D.ROUNDS.filter(r => E.dayOf(r.dayIdx).iso < now.iso);
-  return past.length ? past[past.length - 1].id : D.ROUNDS[0].id;
+function recapButton() {
+  const rid = E.recapRound(T, now);
+  if (!rid) return '';
+  const st = recapState(rid);
+  const lit = st.key === 'ready' || st.key === 'togen';
+  return `<div class="recapwrap">
+    <button class="recapbtn${lit ? ' ready' : ''}" data-act="recapOpen" data-a="${rid}"${st.key === 'idle' ? ' disabled' : ''}>
+      <span class="rb-t">The Day's Recap</span>
+      <span class="rb-s">${esc(st.line)}</span>
+    </button>
+  </div>`;
 }
 
 function askPanel() {
@@ -507,30 +511,307 @@ function askPanel() {
   </div></div>`;
 }
 
-function recapPanel() {
-  if (!UI.recapOpen) return '';
-  const r = E.roundDef(UI.recap.rid) || {};
-  return `<div class="scrim" data-act="recapClose"><div class="askbox" role="dialog" aria-modal="true" aria-label="The day's recap">
-    <div class="askhead">
-      <b>${esc(r.full || 'The Day')} — the recap</b>
-      <button class="rm" data-act="recapClose">Close</button>
+/* ---------------- the recap screen ----------------
+   Everything but the words is computed from the cards, so a claim in the
+   narrative can be checked against the table under it. */
+
+function scrRecap() {
+  const rid = UI.recap.rid || E.recapRound(T, now);
+  const r = E.roundDef(rid) || {};
+  const day = E.dayOf(r.dayIdx || 0);
+  const course = E.courseOf(T, rid);
+  const st = E.roundStanding(T, rid);
+  const rec = T.recaps[rid] || null;
+  const body = rec && rec.body;
+  const published = rec && rec.status === 'published';
+  const ed = canEdit();
+  const editing = ed && !!body && UI.recap.edit;
+  const gallery = UI.recap.view === 'gallery';
+  const table = E.recapTable(T, rid, now);
+  const rib = E.ribbon(T, rid);
+  const sw = E.swingOfTheDay(T, rid);
+  const sg = E.sideGames(T, rid);
+  const nm = id => (E.person(T, id) || {}).display || '—';
+  const pairNote = pid => (body && body.pairNotes && body.pairNotes[pid]) || '';
+  const hero = IMG['course_' + course.key];
+  const shots = st.field;
+
+  const archive = D.ROUNDS.filter(x => E.roundStanding(T, x.id).started);
+
+  return `<div class="recapbar">
+    <div>${gallery ? 'The whole week\'s photos, by round.' : esc(!st.started ? 'This round has not started.'
+      : !st.complete ? 'Round in progress — ' + st.inCards + ' of ' + st.field + ' cards in. Standings only until every card is in.'
+      : !body ? 'Round is complete. The report has not been written yet.'
+      : published ? 'Round is closed and the recap is ready. Everyone in the party can read it and add photos.'
+      : 'Draft — only scorers can see this until it is published.')}${editing && !gallery
+      ? ' <b>Editing: change any line, then tap away to keep it.</b>' : ''}</div>
+    <div class="recapacts">
+      ${ed && st.complete && !gallery ? `<button class="btn" data-act="recapGen" data-a="${rid}"${UI.recap.busy ? ' disabled' : ''}>${
+        UI.recap.busy ? 'Writing…' : body ? 'Regenerate' : 'Generate the report'}</button>` : ''}
+      ${ed && body && !gallery ? `<button class="btn ghost${editing ? ' on' : ''}" data-act="recapEditToggle" aria-pressed="${editing}">${
+        editing ? 'Done editing' : 'Edit the words'}</button>` : ''}
+      ${ed && body && !published && !gallery ? `<button class="btn" data-act="recapPublish" data-a="${rid}">Share to the group</button>` : ''}
+      ${UI.recap.busy ? '<button class="btn ghost" data-act="recapStop">Stop</button>' : ''}
+      <button class="btn ghost" data-act="recapClose">Close recap</button>
     </div>
-    <div class="recaptext">${UI.recap.busy && !UI.recap.text ? '<span class="thinking">Writing the report…</span>'
-      : UI.recap.err ? `<span class="askerr">${esc(UI.recap.err)}</span>`
-      : recapHtml(UI.recap.text)}${UI.recap.busy && UI.recap.text ? '<span class="cursor">▍</span>' : ''}</div>
-    ${UI.recap.busy ? '<button class="btn ghost" data-act="recapStop">Stop</button>'
-      : `<button class="btn ghost" data-act="recapAgain" data-a="${esc(UI.recap.rid || '')}">Write it again</button>`}
-  </div></div>`;
+  </div>
+
+  <div class="chiprow recaparch">
+    <span class="gl">Recaps</span>
+    ${archive.map(x => `<button class="chip${x.id === rid && !gallery ? ' on' : ''}" data-act="recapPick" data-a="${x.id}">${esc(x.short)}</button>`).join('')}
+    ${archive.length ? '' : '<span class="rnote">No round has started yet.</span>'}
+    <button class="chip${gallery ? ' on' : ''}" data-act="recapGallery">Gallery${
+      Object.keys(T.photos || {}).length ? ' · ' + Object.keys(T.photos).length : ''}</button>
+  </div>
+
+  ${gallery ? gallery1() : `
+
+  <div class="metarail">
+    <span>${esc(r.short === 'Practice' ? 'Practice day' : 'Round ' + r.short.slice(1) + ' of 3')}</span>
+    <span>${esc(course.name)}</span>
+    <span>${esc(day.dow)} ${esc(day.date)}</span>
+    <span>${esc(r.counts ? 'Better Ball, net' : 'Practice, counts for nothing')}</span>
+    <span>${shots} player${shots === 1 ? '' : 's'}, ${st.pairs} pairing${st.pairs === 1 ? '' : 's'}</span>
+  </div>
+
+  ${UI.recap.err ? `<p class="askerr" style="margin-top:14px">${esc(UI.recap.err)}</p>` : ''}
+
+  <div class="recapgrid">
+    <div class="recapmain">
+      ${editing ? `<textarea class="field recedit head" rows="2" data-act="recapEdit" data-a="headline"
+        aria-label="Headline">${esc(body.headline || '')}</textarea>`
+        : `<h2 class="rechead">${body ? esc(body.headline || '') : UI.recap.busy ? 'Writing the report…'
+        : st.complete ? 'No report yet' : esc(r.full)}</h2>`}
+      ${editing ? (body.narrative || []).concat(['']).map((x, i) => `<textarea class="field recedit" rows="4"
+          data-act="recapEdit" data-a="para" data-b="${i}"
+          aria-label="Paragraph ${i + 1}" placeholder="${i >= (body.narrative || []).length ? 'Add a paragraph…' : ''}">${esc(x)}</textarea>`).join('')
+        : body && body.narrative ? body.narrative.filter(x => x && x.trim()).map(x => `<p class="recpara">${esc(x)}</p>`).join('')
+        : UI.recap.busy ? `<p class="recpara thinking">${esc(UI.recap.stream || 'Reading the cards…')}</p>`
+        : st.complete ? `<p class="recpara">${ed ? 'Generate the report and it will be written from today\'s cards.'
+            : 'The scorers have not written it up yet.'}</p>`
+        : `<p class="recpara">The standings below are live. The report is written once every card is in.</p>`}
+    </div>
+    <aside class="recapside">
+      ${hero ? `<figure class="rechero"><img src="${hero}" alt="${esc(course.name)}">
+        <figcaption>${esc(course.name)}.</figcaption></figure>` : ''}
+      ${sw ? `<div class="swing">
+        <div class="sw-l">Swing of the day</div>
+        <div class="sw-v num">${sw.shots} shot${sw.shots === 1 ? '' : 's'}</div>
+        <div class="sw-c">${editing ? `<input class="field recedit one" data-act="recapEdit" data-a="swing"
+          aria-label="Swing of the day caption" value="${esc((body.swing && body.swing.caption) || '')}">`
+          : body && body.swing && body.swing.caption ? esc(body.swing.caption)
+          : 'opened between the leaders and third place across holes ' + sw.fromHole + ' to ' + sw.toHole + '.'}</div>
+      </div>` : ''}
+    </aside>
+  </div>
+
+  <div class="ribwrap">
+    <div class="ribhead"><span>Leaders' hole by hole</span>
+      <span class="riblegend"><i class="rl under"></i>under <i class="rl level"></i>level <i class="rl over"></i>over</span></div>
+    <div class="scroller nos"><div class="ribbon">
+      ${rib.map(c => `<div class="ribcell ${c.d == null ? '' : c.d < 0 ? 'under' : c.d > 0 ? 'over' : 'level'}">
+        <span class="num">${c.n}</span></div>`).join('')}
+    </div></div>
+  </div>
+
+  <h3 class="sub">Pairs Championship</h3>
+  <div class="rows rectable" style="margin-top:8px">
+    <div class="rowhead"><span style="width:26px"></span><span style="flex:1">Pair</span>
+      <span style="min-width:62px;text-align:right">Today</span>
+      <span style="min-width:74px;text-align:right">Total</span></div>
+    ${table.length ? table.map(x => `<div class="row${x.pos === 1 ? ' lead' : ''}">
+      <span class="pos" style="width:26px">${x.pos}</span>
+      <span class="who" style="flex:1">${esc(x.name)}${editing
+        ? `<input class="field recedit one" data-act="recapEdit" data-a="note" data-b="${esc(x.id)}"
+            aria-label="Note on ${esc(x.name)}" placeholder="A line about this pair…" value="${esc(pairNote(x.id))}">`
+        : pairNote(x.id) ? `<small>${esc(pairNote(x.id))}</small>` : ''}</span>
+      <span class="num ${cls(x.today)}" style="min-width:62px;text-align:right">${x.today == null ? '—' : esc(E.fmtToPar(x.today))}</span>
+      <span class="num ${cls(x.total)}" style="min-width:74px;text-align:right;font-size:21px;font-weight:700">${x.total == null ? '—' : esc(E.fmtToPar(x.total))}</span>
+    </div>`).join('') : '<p class="empty">No cards in yet.</p>'}
+  </div>
+
+  <div class="recapcols">
+    <div>
+      <h3 class="sub">Worth mentioning</h3>
+      <div class="rows" style="margin-top:8px">
+        ${HONOURS.map(h => {
+          const won = body && (body.honours || []).find(x => x.slot === h.slot);
+          return `<div class="row honour"><span class="who">${esc(h.label)}
+            ${editing ? `<input class="field recedit one" data-act="recapEdit" data-a="cite" data-b="${h.slot}"
+                aria-label="Citation for ${esc(h.label)}" placeholder="What they did…" value="${esc((won && won.citation) || '')}">`
+              : `<small>${won && won.citation ? esc(won.citation) : 'Not awarded yet.'}</small>`}</span>
+            ${editing ? `<select class="field recedit pick" data-act="recapEdit" data-a="winner" data-b="${h.slot}"
+                aria-label="Winner of ${esc(h.label)}">
+                <option value="">Not awarded</option>
+                ${(T.config.people || []).map(pn => `<option value="${esc(pn.id)}"${won && won.winner === pn.id ? ' selected' : ''}>${esc(pn.display)}</option>`).join('')}
+              </select>`
+              : `<span class="n" style="min-width:110px;text-align:right;font-weight:700">${won && won.winner ? esc(nm(won.winner)) : '—'}</span>`}</div>`;
+        }).join('')}
+      </div>
+    </div>
+    <div>
+      <h3 class="sub">Side games</h3>
+      <div class="rows" style="margin-top:8px">
+        <div class="row"><span class="who">Closest to the pin${sg.ctp && sg.ctp.hole ? ', ' + sg.ctp.hole : ''}</span>
+          <span class="n" style="min-width:150px;text-align:right">${sg.ctp ? esc(sg.ctp.who + (sg.ctp.note ? ', ' + sg.ctp.note : '')) : '—'}</span></div>
+        <div class="row"><span class="who">Longest drive${sg.ld && sg.ld.hole ? ', ' + sg.ld.hole : ''}</span>
+          <span class="n" style="min-width:150px;text-align:right">${sg.ld ? esc(sg.ld.who + (sg.ld.note ? ', ' + sg.ld.note : '')) : '—'}</span></div>
+        <div class="row"><span class="who">Bingo Bango Bongo</span>
+          <span class="n" style="min-width:150px;text-align:right">${sg.bbb ? esc(sg.bbb.who + ', ' + sg.bbb.note) : '—'}</span></div>
+        <div class="row"><span class="who">MVP standings</span>
+          <span class="n" style="min-width:150px;text-align:right">${sg.mvp ? esc(sg.mvp.who + ', ' + sg.mvp.note) : '—'}</span></div>
+        <div class="row"><span class="who">Triple bogey cap hit</span>
+          <span class="n num" style="min-width:150px;text-align:right">${sg.caps} time${sg.caps === 1 ? '' : 's'} today</span></div>
+      </div>
+    </div>
+  </div>
+
+  ${photoStrip(rid)}
+  ${upNext(rid)}`}`;
 }
 
-/** The report comes back as plain prose with blank lines. Keep it that way. */
-function recapHtml(t) {
-  return String(t || '').split(/\n{2,}/).map(p => {
-    const line = p.trim();
-    if (!line) return '';
-    if (/^#{1,3}\s/.test(line)) return `<h4>${esc(line.replace(/^#{1,3}\s*/, ''))}</h4>`;
-    return `<p>${esc(line).replace(/\n/g, '<br>')}</p>`;
-  }).join('');
+/* ---------------- the standing gallery ----------------
+   Every photo of the week in one place, the rounds in the order they are
+   played, so a picture taken on the practice day is still one tap away in the
+   last week of November. */
+function gallery1() {
+  const all = Object.values(T.photos || {}).filter(Boolean);
+  const byRound = D.ROUNDS.map(r => ({ r, list: all.filter(p => p.rid === r.id) }));
+  const loose = all.filter(p => !D.ROUNDS.some(r => r.id === p.rid));
+  return `<h2 class="head" style="margin-top:14px">The Gallery</h2>
+  <p class="lede">Every photo from the week, by the round it was taken on. Anyone on the trip can add;
+  you can remove your own${canAdmin() ? ', and a commissioner can remove any' : ''}.</p>
+  ${all.length ? '' : '<p class="empty">No photos yet. Open a round below and add the first.</p>'}
+  ${byRound.map(({ r, list }) => `<div class="galsec">
+    <div class="titlerow">
+      <h3 class="sub" style="margin:0">${esc(r.short === 'Practice' ? 'Practice day' : r.full)}</h3>
+      <span class="rnote">${esc(E.dayOf(r.dayIdx).dow)} ${esc(E.dayOf(r.dayIdx).date)} · ${
+        list.length ? list.length + ' photo' + (list.length === 1 ? '' : 's') : 'nothing yet'}</span>
+    </div>
+    ${photoStrip(r.id, true)}
+  </div>`).join('')}
+  ${loose.length ? `<div class="galsec"><h3 class="sub">Elsewhere on the trip</h3>
+    <div class="phstrip">${loose.map(ph => phFig(ph)).join('')}</div></div>` : ''}`;
+}
+
+/* ---------------- photos ----------------
+   Anyone on the trip can add to a round. Phone photos are twelve megapixels
+   and resort wifi is resort wifi, so every one is resized and re-encoded here
+   before it goes anywhere. Each upload is its own document: one failure never
+   takes the rest of the queue with it. */
+let store4 = null;               // the asset store, once it answers
+
+function photosFor(rid) {
+  return Object.values(T.photos || {})
+    .filter(p => p && p.rid === rid)
+    .sort((a, b) => (b.at || 0) - (a.at || 0));
+}
+
+function phFig(ph) {
+  return `<figure class="ph">
+    <img src="${esc(ph.url)}" alt="${esc(ph.caption || 'From the round')}" loading="lazy">
+    <figcaption>${esc(ph.byName || 'Someone')}${canAdmin() || ph.mine ? `
+      <button class="rm" data-act="photoDrop1" data-a="${esc(ph.id)}">Remove</button>` : ''}</figcaption>
+  </figure>`;
+}
+
+function photoStrip(rid, bare) {
+  const list = photosFor(rid);
+  const q = UI.upload.queue.filter(u => u.rid === rid);
+  const can = !!store4;
+  return `<div class="fromround${bare ? ' bare' : ''}">
+    ${bare ? (can ? `<label class="btn ghost addph">Add photos
+        <input type="file" accept="image/*" multiple data-act="photoPick" data-a="${rid}" hidden></label>` : '') : `
+    <div class="titlerow">
+      <h3 class="sub" style="margin:0">From the round</h3>
+      <span class="rnote">${list.length ? list.length + ' so far. Everyone on the trip can add.'
+        : 'Anyone on the trip can add photos.'}</span>
+      ${can ? `<label class="btn ghost addph">Add photos
+        <input type="file" accept="image/*" multiple data-act="photoPick" data-a="${rid}" hidden></label>` : ''}
+    </div>
+    <p class="phnote">Photos are visible to everyone in the party.</p>`}
+    <div class="phstrip${can ? ' drop' : ''}" data-act="photoDrop" data-a="${rid}">
+      ${list.map(ph => phFig(ph)).join('')}
+      ${q.map(u => `<figure class="ph pending">
+        <div class="phbar"><i style="width:${u.pct}%"></i></div>
+        <figcaption>${esc(u.name)} — ${u.err ? esc(u.err) : u.pct < 100 ? u.pct + '%' : 'saving…'}</figcaption>
+      </figure>`).join('')}
+      ${!list.length && !q.length ? `<div class="phempty">No photos from this round yet.${
+        can ? ' Add the first.' : ''}</div>` : ''}
+    </div>
+  </div>`;
+}
+
+/** 12 megapixels down to something a resort connection can carry. */
+function shrink(file, max = 1600, quality = 0.82) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const scale = Math.min(1, max / Math.max(img.width, img.height));
+      const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      c.toBlob(b => (b ? resolve(b) : reject(new Error('could not read that image'))), 'image/jpeg', quality);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('not an image the browser can read')); };
+    img.src = url;
+  });
+}
+
+let upSeq = 0;
+async function addPhotos(rid, files) {
+  const list = Array.from(files || []).filter(f => /^image\//.test(f.type));
+  if (!list.length) return;
+  if (!store4) { UI.upload.err = 'This copy of the book cannot store photos.'; render(); return; }
+  const who = (E.person(T, UI.role) || {}).display || 'Someone';
+  for (const f of list) {
+    const u = { id: 'u' + (++upSeq), rid, name: f.name, pct: 5, err: '' };
+    UI.upload.queue.push(u);
+    render();
+    try {
+      const small = await shrink(f);
+      u.pct = 55; render();
+      const up = await store4.upload(small);
+      u.pct = 90; render();
+      const id = 'ph' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      await store.writePhoto(id, {
+        rid, url: up.url, assetId: up.id, at: Date.now(),
+        by: UI.role, byName: who, mine: true, bytes: up.sizeBytes || small.size,
+      });
+      u.pct = 100;
+      UI.upload.queue = UI.upload.queue.filter(x => x !== u);   // one at a time, so one failure stays put
+    } catch (e) {
+      u.err = (e && (e.message || e.code)) ? String(e.message || e.code).slice(0, 60) : 'did not upload';
+      u.pct = 100;
+    }
+    render();
+  }
+}
+
+const HONOURS = [
+  { slot: 'shot_of_the_day', label: 'Shot of the day' },
+  { slot: 'round_of_the_day', label: 'Round of the day' },
+  { slot: 'best_recovery', label: 'Best recovery' },
+  { slot: 'honest_scorecard', label: 'Honest scorecard' },
+];
+
+function upNext(rid) {
+  const i = D.ROUNDS.findIndex(x => x.id === rid);
+  const next = D.ROUNDS[i + 1];
+  const day = E.dayOf((E.roundDef(rid) || {}).dayIdx || 0);
+  const fixtures = (T.config.schedule || []).filter(e => e.dayIdx === day.n - 1 + 1);
+  return `<div class="upnext">
+    <span class="un-l">Up next</span>
+    <span>${next ? esc(next.full) + ' on ' + esc(E.dayOf(next.dayIdx).dow) + ', '
+      + esc(E.roundCfg(T, next.id).tees[0] && E.roundCfg(T, next.id).tees[0].time
+        ? E.to12(E.roundCfg(T, next.id).tees[0].time) : 'tee time to set')
+      : 'That is the last card of the week.'}</span>
+    ${fixtures.length ? `<span>${fixtures.map(f => esc(E.to12(f.time) + ' ' + f.title)).join(' · ')}</span>` : ''}
+    ${next && next.noMulligans ? '<span class="un-red">No mulligans in the final.</span>' : ''}
+  </div>`;
 }
 
 function sampleError(e) {
@@ -1264,6 +1545,7 @@ const NAV = [
   ['today', 'Today', 'Today'], ['boards', 'Leaderboards', 'Boards'], ['ryder', 'Ryder Cup', 'Ryder'],
   ['calendar', 'Calendar', 'Calendar'], ['entry', 'Score Entry', 'Scores'], ['roster', 'Roster & Pairings', 'Roster'],
   ['rules', 'Games & Rules', 'Rules'], ['courses', 'Course Setup', 'Courses'], ['setup', 'Setup', 'Setup'],
+  ['recap', 'Recap', 'Recap'],
 ];
 
 /** A re-render replaces the whole tree, which would blow away half-typed text
@@ -1326,7 +1608,8 @@ function paint() {
   const app = document.getElementById('app');
   const focused = captureFocus();
   const body = { today: scrToday, boards: scrBoards, ryder: scrRyder, calendar: scrCalendar,
-                 entry: scrEntry, roster: scrRoster, rules: scrRules, courses: scrCourses, setup: scrSetup }[UI.screen]();
+                 entry: scrEntry, roster: scrRoster, rules: scrRules, courses: scrCourses, setup: scrSetup,
+                 recap: scrRecap }[UI.screen]();
 
   const nt = E.nextTee(T, now);
   const role = S.ROLES[UI.role];
@@ -1369,7 +1652,7 @@ function paint() {
         ? 'Cannot read the shared book. Nothing can be edited until it loads, so nothing gets overwritten. Check your connection and reload.'
         : 'Opening the book… everything is read-only until the saved tournament arrives.'}</div>`}
     <nav class="tabs nos" aria-label="Sections">
-      ${NAV.filter(([id]) => id !== 'setup' || canAdmin()).map(([id, label, short]) =>
+      ${NAV.filter(([id]) => (id !== 'setup' || canAdmin()) && (id !== 'recap' || UI.screen === 'recap')).map(([id, label, short]) =>
         `<button class="tab" data-act="go" data-a="${id}"${UI.screen === id ? ' aria-current="page"' : ''}
           aria-label="${esc(label)}"><span class="lg">${esc(label)}</span><span class="sm">${esc(short)}</span></button>`).join('')}
     </nav>
@@ -1382,8 +1665,7 @@ function paint() {
     </div>
   </div>
   ${UI.modal ? modalHtml() : ''}
-  ${askPanel()}
-  ${recapPanel()}`;
+  ${askPanel()}`;
 
   if (UI.askOpen && UI.askFocus) {
     UI.askFocus = false;
@@ -1581,21 +1863,45 @@ function onClick(e) {
       sendQuestion();
       return;
     case 'recapOpen':
-      UI.recapOpen = true;
-      if (UI.recap.rid !== a) UI.recap = { rid: a, text: '', busy: false, err: '' };
+      UI.recap = { rid: a, busy: false, err: '', stream: '', edit: false, view: 'report' };
+      UI.screen = 'recap';
+      window.scrollTo(0, 0);
       render();
-      writeRecap(a, false);
       return;
-    case 'recapAgain':
-      writeRecap(a || UI.recap.rid, true);
+    case 'photoDrop1':
+      if (!canAdmin() && !(T.photos[a] || {}).mine) return;
+      store.dropPhoto(a);
+      return;
+    case 'recapPick':
+      UI.recap = { rid: a, busy: false, err: '', stream: '', edit: false, view: 'report' };
+      window.scrollTo(0, 0);
+      render();
+      return;
+    case 'recapGallery':
+      UI.recap.view = UI.recap.view === 'gallery' ? 'report' : 'gallery';
+      window.scrollTo(0, 0);
+      render();
+      return;
+    case 'recapEditToggle':
+      if (!canEdit()) return;
+      UI.recap.edit = !UI.recap.edit;
+      render();
+      return;
+    case 'recapGen':
+      writeRecap(a, true);
+      return;
+    case 'recapPublish':
+      if (!canEdit()) return;
+      store.writeRecap(a, r => { r.status = 'published'; r.at = Date.now(); });
       return;
     case 'recapStop':
       if (recapCtl) recapCtl.abort();
       return;
     case 'recapClose':
-      if (el.classList.contains('scrim') && e.target !== el) return;
       if (recapCtl) recapCtl.abort();
-      UI.recapOpen = false; render();
+      UI.screen = 'today';
+      window.scrollTo(0, 0);
+      render();
       return;
     case 'goRule': UI.screen = 'rules'; render();
       { const d = document.getElementById('rule-' + a); if (d) { d.open = true; d.scrollIntoView({ block: 'center' }); } }
@@ -1799,7 +2105,36 @@ function onChange(e) {
   if (store && store.note) store.note('change', act + ' a=' + (a || '') + ' b=' + (b || '') + ' v=' + el.value);
   const editable = canEdit() && E.roundCfg(T, rid).state === 'open';
 
-  if (act === 'setBbb') {
+  if (act === 'recapEdit') {
+    /* The words are the commissioner's to fix; the figures under them are not
+       editable anywhere, here or elsewhere. Each line keeps itself on blur. */
+    if (!canEdit()) return;
+    const rec = UI.recap.rid || E.recapRound(T, now);
+    const v = String(el.value || '');
+    store.writeRecap(rec, r => {
+      const bd = r.body || (r.body = { headline: '', narrative: [], swing: null, pairNotes: {}, honours: [] });
+      if (a === 'headline') bd.headline = v.trim().slice(0, 160);
+      else if (a === 'para') {
+        const list = (bd.narrative || []).slice();
+        while (list.length <= +b) list.push('');
+        list[+b] = v.trim().slice(0, 1200);
+        while (list.length && !list[list.length - 1]) list.pop();   // a cleared last line goes
+        bd.narrative = list;
+      } else if (a === 'swing') bd.swing = { ...(bd.swing || {}), caption: v.trim().slice(0, 200) };
+      else if (a === 'note') {
+        bd.pairNotes = { ...(bd.pairNotes || {}) };
+        if (v.trim()) bd.pairNotes[b] = v.trim().slice(0, 200); else delete bd.pairNotes[b];
+      } else if (a === 'cite' || a === 'winner') {
+        const list = (bd.honours || []).slice();
+        let h = list.find(x => x.slot === b);
+        if (!h) { h = { slot: b, winner: null, citation: '' }; list.push(h); }
+        if (a === 'cite') h.citation = v.trim().slice(0, 200); else h.winner = v || null;
+        bd.honours = list.filter(x => x.winner || x.citation);
+      }
+      r.at = Date.now();
+    });
+    render();
+  } else if (act === 'setBbb') {
     if (!editable) return;
     draftFor(rid, UI.entryHole).bbb[a] = el.value || null;
     render();
@@ -1953,38 +2288,83 @@ async function sendQuestion() {
 }
 
 let recapCtl = null;
+
+/* The register: a back-page column, not a match report and not a comedy bit.
+   Every rule here exists because breaking it would spoil the week for
+   somebody — the golf gets teased, never the golfer. */
+const RECAP_RULES = [
+  'You write the back-page column for a golf trip between old friends.',
+  'Voice: a sports columnist. A little grand. Willing to treat the golf course as a character.',
+  'Dry rather than zany. It should read like a good newspaper column, not a match report and not a joke.',
+  '',
+  'HARD RULES, all of them:',
+  '- Every factual claim must trace to a number in the card below. Invent nothing:',
+  '  not a shot, not a hole, not a conversation, not a remark anyone made.',
+  '- If you want to say somebody holed out from somewhere, the card must show that hole.',
+  '- Humour is gentle, and aimed at the golf, never at the golfer.',
+  '- Do not name any player negatively more than once in the whole piece.',
+  '- Never mention a player\'s handicap band as a criticism. It is a number of strokes, not a verdict.',
+  '- Three paragraphs of roughly 60 to 90 words each.',
+  '- At least two honours must be winnable by somebody having a bad round.',
+  '',
+  'Honour slots are fixed. You choose the winner and write the citation:',
+  '  shot_of_the_day, round_of_the_day, best_recovery, honest_scorecard.',
+  'Use the exact player and pair ids given at the end of the card.',
+  '',
+  'Reply with JSON only. No preamble, no code fence, no commentary. This shape:',
+  '{"headline":"one line","narrative":["para","para","para"],',
+  ' "swing":{"value":"4 shots","caption":"one sentence"},',
+  ' "pairNotes":{"p1":"one line"},',
+  ' "honours":[{"slot":"shot_of_the_day","winner":"g1","citation":"one or two sentences"}]}',
+].join('\n');
+
+/** Fences and preamble get stripped anyway, however firmly we asked. */
+function parseRecap(raw) {
+  let t = String(raw || '').trim();
+  t = t.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
+  const a = t.indexOf('{'), b = t.lastIndexOf('}');
+  if (a >= 0 && b > a) t = t.slice(a, b + 1);
+  const v = JSON.parse(t);
+  if (!v || typeof v !== 'object') throw new Error('not an object');
+  return {
+    headline: String(v.headline || '').slice(0, 160),
+    narrative: (Array.isArray(v.narrative) ? v.narrative : []).slice(0, 4).map(x => String(x)),
+    swing: v.swing && typeof v.swing === 'object'
+      ? { value: String(v.swing.value || ''), caption: String(v.swing.caption || '') } : null,
+    pairNotes: v.pairNotes && typeof v.pairNotes === 'object'
+      ? Object.fromEntries(Object.entries(v.pairNotes).map(([k, x]) => [String(k), String(x)])) : {},
+    honours: (Array.isArray(v.honours) ? v.honours : []).slice(0, 6).map(h => ({
+      slot: String((h && h.slot) || ''),
+      winner: String((h && h.winner) || ''),
+      citation: String((h && h.citation) || ''),
+    })),
+  };
+}
+
 async function writeRecap(rid, again) {
-  if (!rid || !askClaude || UI.recap.busy) return;
-  if (UI.recap.rid === rid && UI.recap.text && !again) return;   // already written
+  if (!rid || UI.recap.busy) return;
+  if (!askClaude) { UI.recap = { rid, busy: false, err: sampleError({ code: 'not_granted' }), stream: '', edit: false, view: 'report' }; render(); return; }
+  if (T.recaps[rid] && T.recaps[rid].body && !again) return;   // written once, then kept
   recapCtl = new AbortController();
-  UI.recap = { rid, text: '', busy: true, err: '' };
+  UI.recap = { rid, busy: true, err: '', stream: '', edit: false, view: 'report' };
   render();
-  const prompt = [
-    'Write the day\'s recap for a golf trip, in the voice of a sports desk newsletter:',
-    'a headline, then three or four short paragraphs. Lead with what actually happened, name names,',
-    'call out who is hot and who is not, note any trend across the week, and close looking ahead.',
-    'Dry wit is welcome — these are old friends who rib each other — but never cruel, and never',
-    'invent anything. Use ONLY the card below: if something is not there, do not mention it.',
-    'No markdown except a single "# " headline. Around 250 words.',
-    '',
-    'THE CARD',
-    E.roundBrief(T, rid),
-    '',
-    'THE WEEK SO FAR',
-    brief(),
-  ].join('\n');
+  const prompt = RECAP_RULES + '\n\nTHE CARD\n' + E.recapInput(T, rid, now);
   try {
     const { text } = await askClaude(prompt, {
       signal: recapCtl.signal,
-      cache: { gcTime: 900000, refresh: !!again },
-      onText: ({ text }) => { UI.recap.text = text; render(); },
+      modelTier: 'complex',
+      cache: false,
+      onText: ({ text }) => { UI.recap.stream = text.slice(-400); render(); },
     });
-    UI.recap.text = text;
+    const body = parseRecap(text);
+    if (!body.narrative.length) throw new Error('no narrative');
+    await store.writeRecap(rid, r => { r.body = body; r.status = r.status === 'published' ? 'published' : 'draft'; r.at = Date.now(); });
   } catch (e) {
-    UI.recap.text = (e && e.text) || '';
-    UI.recap.err = sampleError(e);
+    UI.recap.err = (e && e.code) ? sampleError(e)
+      : 'The report came back in a shape the book could not read. Try again.';
   } finally {
     UI.recap.busy = false;
+    UI.recap.stream = '';
     recapCtl = null;
     render();
   }
@@ -2042,13 +2422,27 @@ export function boot() {
     UI.dragging = null;
     if (pid) movePlayer(pid, col.dataset.a);
   });
-  app.addEventListener('change', onChange);
+  app.addEventListener('change', e => {
+    const f = e.target.closest('[data-act="photoPick"]');
+    if (f) { addPhotos(f.dataset.a, e.target.files); e.target.value = ''; return; }
+    onChange(e);
+  });
+  // dropping onto the strip is the same as picking
+  app.addEventListener('dragover', e => { if (e.target.closest('.phstrip.drop')) { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; } });
+  app.addEventListener('drop', e => {
+    const strip = e.target.closest('.phstrip.drop');
+    if (!strip || !e.dataTransfer || !e.dataTransfer.files || !e.dataTransfer.files.length) return;
+    e.preventDefault();
+    addPhotos(strip.dataset.a, e.dataTransfer.files);
+  });
   app.addEventListener('keydown', onKey);
   // the page may be allowed to ask Claude, or may not: find out once, quietly,
   // and let the crest and the recap light up if it can
   (async () => {
     try { askClaude = window.claude && window.claude.use ? await window.claude.use('sample') : null; }
     catch (e) { askClaude = null; }
+    try { store4 = window.claude && window.claude.use ? await window.claude.use('assets') : null; }
+    catch (e) { store4 = null; }
     render();
   })();
   setInterval(() => { now = E.nowLocal(); render(); }, 30000);

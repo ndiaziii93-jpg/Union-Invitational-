@@ -376,6 +376,182 @@ export function roundBrief(T, rid) {
   return L.join('\n');
 }
 
+/* ---------- the recap's numbers ----------
+   Everything the report shows except the words: the ribbon, the table, the
+   swing, the side games. Each figure comes off a scorecard, so a claim in the
+   narrative can always be checked against the page it sits on. */
+
+/** Which round a recap is for: the last one whose cards are all in, else the
+ *  one being played, else the first. */
+export function recapRound(T, now) {
+  /* A finished card is the signal, not the calendar — a round cannot be
+     complete unless it was played, and the book is used before the trip. */
+  const done = ROUNDS.filter(r => roundComplete(T, r.id));
+  if (done.length) return done[done.length - 1].id;
+  const started = ROUNDS.filter(r => roundStanding(T, r.id).started);
+  if (started.length) return started[started.length - 1].id;
+  const due = ROUNDS.filter(r => dayOf(r.dayIdx).iso <= now.iso);
+  return (due[due.length - 1] || ROUNDS[0]).id;
+}
+
+/** How a round stands, for the panel on Today. */
+export function roundStanding(T, rid) {
+  const cfg = roundCfg(T, rid);
+  const out = groups(T, rid).flatMap(g => g.members);
+  const field = (out.length ? golfers(T).filter(g => out.includes(g.id)) : golfers(T));
+  const inCards = field.filter(p => {
+    const c = card(T, rid, p.id);
+    return c && c.raw.some(v => v != null);
+  }).length;
+  const complete = roundComplete(T, rid);
+  const started = cfg.state !== 'closed' || inCards > 0;
+  return { started, complete, inCards, field: field.length, pairs: (T.config.pairs || []).length };
+}
+
+/** The leading pair's round, hole by hole, against par. */
+export function ribbon(T, rid) {
+  const board = pairRoundBoard(T, rid);
+  const lead = board[0];
+  const holes = courseOf(T, rid).holes;
+  const pair = lead && (T.config.pairs || []).find(p => p.id === lead.id);
+  return holes.map((h, i) => {
+    const n = pair ? pairHole(T, rid, pair, i) : null;
+    return { n: h.n, par: h.par, net: n, d: n == null ? null : n - h.par };
+  });
+}
+
+/** One round's pairs, by net against par for that round alone. */
+export function pairRoundBoard(T, rid) {
+  const rows = (T.config.pairs || []).map(pair => {
+    const { tp, thru } = toParPair(T, rid, pair);
+    return { id: pair.id, name: pairName(T, pair), today: tp, thru };
+  }).filter(r => r.thru > 0);
+  rows.sort((a, b) => (a.today - b.today) || (b.thru - a.thru));
+  return rows.map((r, i) => ({ ...r, pos: i + 1 }));
+}
+
+/** The championship table as the recap shows it: this round and the week. */
+export function recapTable(T, rid, now) {
+  const week = pairsBoard(T, now);
+  const today = pairRoundBoard(T, rid);
+  const byId = {};
+  today.forEach(r => { byId[r.id] = r; });
+  const rows = (T.config.pairs || []).map(pair => {
+    const w = week.find(x => x.id === pair.id);
+    const t = byId[pair.id];
+    return {
+      id: pair.id,
+      name: pairName(T, pair),
+      today: t ? t.today : null,
+      total: w && w.played ? w.total : null,
+      thru: t ? t.thru : 0,
+    };
+  }).filter(r => r.thru > 0 || r.total != null);
+  rows.sort((a, b) => ((a.total == null ? 99 : a.total) - (b.total == null ? 99 : b.total))
+    || ((a.today == null ? 99 : a.today) - (b.today == null ? 99 : b.today)));
+  return rows.map((r, i) => ({ ...r, pos: i + 1 }));
+}
+
+/** The biggest gap the leaders opened on the third-placed pair in one stretch. */
+export function swingOfTheDay(T, rid) {
+  const table = recapTable(T, rid, nowLocal());
+  if (table.length < 3) return null;
+  const pairs = T.config.pairs || [];
+  const lead = pairs.find(p => p.id === table[0].id);
+  const third = pairs.find(p => p.id === table[2].id);
+  if (!lead || !third) return null;
+  const holes = courseOf(T, rid).holes;
+  let best = { gap: 0, from: null, to: null };
+  let run = 0, start = null;
+  for (let h = 0; h < 18; h++) {
+    const a = pairHole(T, rid, lead, h), b = pairHole(T, rid, third, h);
+    if (a == null || b == null) { run = 0; start = null; continue; }
+    const d = (b - holes[h].par) - (a - holes[h].par);
+    if (d > 0) { if (start == null) start = h; run += d; if (run > best.gap) best = { gap: run, from: start, to: h }; }
+    else { run = 0; start = null; }
+  }
+  if (!best.gap) return null;
+  return { shots: best.gap, fromHole: holes[best.from].n, toHole: holes[best.to].n };
+}
+
+/** Side games for one round, all of it read off the cards and the card's own
+ *  nominated holes — nothing here is typed twice. */
+export function sideGames(T, rid) {
+  const cfg = roundCfg(T, rid);
+  const nm = id => (person(T, id) || {}).display || null;
+  const bbb = {};
+  const b = T.bbb[rid];
+  if (b) b.holes.forEach(cell => ['bingo', 'bango', 'bongo'].forEach(k => {
+    const pid = cell && cell[k];
+    if (pid) bbb[pid] = (bbb[pid] || 0) + 1;
+  }));
+  const top = Object.entries(bbb).sort((a, c) => c[1] - a[1])[0];
+  const mvp = mvpBoard(T, nowLocal()).filter(x => x.played)[0];
+  // how often the triple-bogey cap actually bit today
+  let capped2 = 0;
+  const holes = courseOf(T, rid).holes;
+  for (const p of golfers(T)) {
+    const c = card(T, rid, p.id);
+    if (!c) continue;
+    c.raw.forEach((v, i) => { if (v != null && v > holes[i].par + T.config.capOver) capped2++; });
+  }
+  return {
+    ctp: cfg.ctpWinner ? { who: nm(cfg.ctpWinner), note: cfg.ctpDist || '', hole: cfg.ctpHole } : null,
+    ld: cfg.ldWinner ? { who: nm(cfg.ldWinner), note: cfg.ldDist || '', hole: cfg.ldHole } : null,
+    bbb: top ? { who: nm(top[0]), note: top[1] + ' points' } : null,
+    mvp: mvp ? { who: mvp.name, note: mvp.totalStr + ' net' } : null,
+    caps: capped2,
+  };
+}
+
+/** Everything the generator is given. Only numbers that are on a card. */
+export function recapInput(T, rid, now) {
+  const r = roundDef(rid);
+  const course = courseOf(T, rid);
+  const L = [];
+  L.push('ROUND: ' + r.full + ', ' + course.name + ', ' + dayOf(r.dayIdx).dow + ' ' + dayOf(r.dayIdx).date + '.');
+  L.push('Format: ' + (r.counts ? 'Better Ball, net' : 'practice, counts for nothing') + '.');
+  L.push('It is round ' + (ROUNDS.filter(x => x.counts).findIndex(x => x.id === rid) + 1) + ' of 3 that count.');
+  L.push('Par ' + course.holes.reduce((a, h) => a + h.par, 0)
+    + '. Stroke index by hole: ' + course.holes.map(h => h.n + ':' + h.si).join(' ') + '.');
+  L.push('Triple-bogey cap: a gross score is capped at ' + T.config.capOver + ' over par before strokes come off.');
+
+  L.push('\nCARDS (gross then net, hole by hole)');
+  for (const p of golfers(T)) {
+    const c = card(T, rid, p.id);
+    if (!c || c.raw.every(v => v == null)) continue;
+    const nets = course.holes.map((h, i) => playerNet(T, rid, p.id, i));
+    const capsHit = c.raw.map((v, i) => (v != null && v > course.holes[i].par + T.config.capOver ? course.holes[i].n : null)).filter(Boolean);
+    L.push('- ' + p.display + ' (band ' + (p.band == null ? 'none' : p.band) + ')'
+      + '\n    gross: ' + c.raw.map(v => (v == null ? '-' : v)).join(',')
+      + '\n    net:   ' + nets.map(v => (v == null ? '-' : v)).join(',')
+      + (capsHit.length ? '\n    cap hit on holes: ' + capsHit.join(',') : ''));
+  }
+
+  L.push('\nPAIRS THIS ROUND (better ball, net to par)');
+  pairRoundBoard(T, rid).forEach(x => L.push('- ' + x.id + ' ' + x.name + ': ' + fmtToPar(x.today) + ' thru ' + x.thru));
+
+  L.push('\nTHE WEEK AFTER THIS ROUND');
+  recapTable(T, rid, now).forEach(x => L.push('- ' + x.id + ' ' + x.name + ': today '
+    + (x.today == null ? '-' : fmtToPar(x.today)) + ', total ' + (x.total == null ? '-' : fmtToPar(x.total))));
+
+  const sg = sideGames(T, rid);
+  L.push('\nSIDE GAMES');
+  if (sg.ctp) L.push('- Closest to the pin, hole ' + sg.ctp.hole + ': ' + sg.ctp.who + ' ' + sg.ctp.note);
+  if (sg.ld) L.push('- Longest drive, hole ' + sg.ld.hole + ': ' + sg.ld.who + ' ' + sg.ld.note);
+  if (sg.bbb) L.push('- Bingo Bango Bongo: ' + sg.bbb.who + ' ' + sg.bbb.note);
+  L.push('- Triple-bogey cap hit ' + sg.caps + ' times today.');
+
+  const sw = swingOfTheDay(T, rid);
+  if (sw) L.push('\nSWING: the leaders took ' + sw.shots + ' shots out of third place between holes '
+    + sw.fromHole + ' and ' + sw.toHole + '.');
+
+  L.push('\nPLAYER IDS (use these exactly in pairNotes and honours)');
+  golfers(T).forEach(p => L.push('- ' + p.id + ' = ' + p.display));
+  (T.config.pairs || []).forEach(p => L.push('- ' + p.id + ' = ' + pairName(T, p)));
+  return L.join('\n');
+}
+
 /* ---------- match play / Ryder Cup ---------- */
 
 export function matchPlay(sideA, sideB) {

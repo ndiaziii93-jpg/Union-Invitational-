@@ -12,6 +12,7 @@
   /* a hole still to score sits heavier than the paper; a hole already in
      recedes towards it. The point is to find the gaps at a glance. */
   --hole-todo:#CDBF9E; --hole-done:#F4EFE2;
+  --overtint:#EFDCD7; --leadtint:#E4ECE2;
   --shadow:rgba(29,46,33,.16);
   --serif:'Source Serif 4','Iowan Old Style',Georgia,'Times New Roman',serif;
   --mono:var(--serif);
@@ -27,6 +28,7 @@
     /* same meaning, different values: on a dark ground the hole still to score
      is the one that lifts off the page, and a scored one sinks into it */
   --hole-todo:#32402F; --hole-done:#171D18;
+  --overtint:#3A2523; --leadtint:#1F2C21;
   --shadow:rgba(0,0,0,.5);
   }
 }
@@ -40,6 +42,7 @@
   /* same meaning, different values: on a dark ground the hole still to score
      is the one that lifts off the page, and a scored one sinks into it */
   --hole-todo:#32402F; --hole-done:#171D18;
+  --overtint:#3A2523; --leadtint:#1F2C21;
   --shadow:rgba(0,0,0,.5);
 }
 
@@ -808,4 +811,86 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
   .askbox{width:100vw;max-width:100vw;max-height:92vh;border-radius:0;padding:16px 16px 20px}
   .askrow{flex-direction:column}
   .askrow .btn{width:100%}
+}
+
+/* ---- the recap, built from the tokens already in use ---- */
+.recapbar{display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;
+  background:var(--page);border:1px solid var(--rule);border-radius:3px;padding:11px 14px;margin-top:16px;
+  font-size:15px;color:var(--turf)}
+.recapacts{display:flex;gap:8px;flex-wrap:wrap}
+.recaparch{margin-top:12px}
+.metarail{display:flex;gap:26px;flex-wrap:wrap;align-items:baseline;padding:12px 0 9px;
+  border-bottom:1px solid var(--rule);margin-top:14px;font-size:14px;color:var(--turf)}
+.recapgrid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:34px;margin-top:20px;align-items:start}
+.rechead{font-size:clamp(28px,4.2vw,40px);font-weight:700;line-height:1.06;margin:0 0 14px;text-wrap:balance}
+.recpara{font-size:17px;line-height:1.66;margin:0 0 14px;max-width:68ch}
+/* Editing the words. The fields wear the type they replace, so the page does
+   not jump when the commissioner turns editing on. */
+.recedit{width:100%;font-family:inherit;line-height:1.5;resize:vertical;border-style:dashed}
+.recedit.head{font-size:clamp(24px,3.4vw,32px);font-weight:700;line-height:1.14;margin-bottom:14px}
+textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10px}
+.recedit.one{min-height:38px;padding:5px 8px;font-size:14px;margin-top:4px}
+.recedit.pick{min-height:38px;max-width:180px;font-size:14px}
+.btn.ghost.on{border-color:var(--green);color:var(--green)}
+.galsec{margin-top:22px;padding-top:6px;border-top:1px solid var(--rule)}
+.galsec .titlerow{align-items:baseline}
+.fromround.bare{margin-top:8px}
+.fromround.bare .addph{margin-bottom:8px}
+.rechero{margin:0}
+.rechero img{display:block;width:100%;height:auto;border:1px solid var(--rule)}
+.rechero figcaption{font-size:13px;color:var(--turf);margin-top:6px;line-height:1.45}
+.swing{margin-top:20px;padding-top:14px;border-top:1px solid var(--rule)}
+.swing .sw-l{font-size:14px;color:var(--turf)}
+.swing .sw-v{font-size:34px;font-weight:700;color:var(--green);line-height:1.1;margin:2px 0 4px}
+.swing .sw-c{font-size:14px;color:var(--turf);line-height:1.5}
+
+.ribwrap{margin-top:26px}
+.ribhead{display:flex;justify-content:space-between;align-items:baseline;gap:14px;font-size:14px;color:var(--turf)}
+.riblegend{display:inline-flex;gap:10px;align-items:center}
+.rl{display:inline-block;width:11px;height:11px;border:1px solid var(--rule);margin-right:4px;vertical-align:-1px}
+.rl.under{background:var(--green);border-color:var(--green)}
+.rl.level{background:var(--page)}
+.rl.over{background:var(--overtint);border-color:var(--flag)}
+.ribbon{display:grid;grid-template-columns:repeat(18,minmax(40px,1fr));gap:3px;margin-top:8px;scroll-snap-type:x proximity}
+.ribcell{display:flex;align-items:center;justify-content:center;min-height:34px;font-size:14px;
+  border:1px solid var(--rule);background:var(--page);border-radius:2px;scroll-snap-align:center}
+.ribcell.under{background:var(--green);border-color:var(--green);color:var(--paper);font-weight:700}
+.ribcell.over{background:var(--overtint);border-color:var(--flag)}
+
+.rectable .row.lead{background:var(--leadtint)}
+.rectable .row:nth-child(odd of .row){background:var(--page)}
+.recapcols{display:grid;grid-template-columns:1fr 1fr;gap:34px;margin-top:8px}
+.row.honour .who small{margin-top:2px}
+
+.fromround{margin-top:30px}
+.phnote{font-size:13px;color:var(--turf);margin:4px 0 10px}
+.phstrip{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start;min-height:96px;
+  border:1px dashed var(--rule);border-radius:3px;padding:10px}
+.ph{margin:0;width:150px}
+.ph img{display:block;width:150px;height:104px;object-fit:cover;border:1px solid var(--rule)}
+.ph figcaption{font-size:12px;color:var(--turf);margin-top:4px;display:flex;gap:6px;justify-content:space-between}
+.ph.pending{width:150px;height:104px;border:1px solid var(--rule);background:var(--sunk);
+  display:flex;flex-direction:column;justify-content:flex-end;padding:6px}
+.phbar{height:4px;background:var(--rule);border-radius:2px;overflow:hidden;margin-bottom:6px}
+.phbar i{display:block;height:100%;background:var(--green)}
+.phempty{color:var(--turf);font-style:italic;padding:22px 6px;font-size:15px}
+.addph{display:inline-flex;align-items:center;cursor:pointer}
+
+.upnext{display:flex;gap:26px;flex-wrap:wrap;align-items:baseline;margin-top:28px;padding-top:12px;
+  border-top:2px solid var(--ink);font-size:15px}
+.upnext .un-l{font-size:14px;color:var(--turf)}
+.upnext .un-red{color:var(--flag);font-weight:600}
+
+@media (max-width:900px){
+  /* One column on a narrow screen, in the order the report is meant to be
+     read: headline, then the words, then the picture and the swing. */
+  .recapgrid{grid-template-columns:1fr;gap:18px}
+  .recapcols{grid-template-columns:1fr;gap:10px}
+  .ribbon{grid-template-columns:repeat(18,44px);min-width:0}
+  .ribwrap .scroller{scroll-snap-type:x mandatory}
+}
+@media (max-width:720px){
+  .ph,.ph img,.ph.pending{width:132px}
+  .ph img{height:92px}
+  .metarail{gap:14px;font-size:13px}
 }
