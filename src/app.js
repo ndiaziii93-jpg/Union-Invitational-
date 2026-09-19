@@ -636,6 +636,8 @@ function recapPanel() {
   </div>
 
   ${UI.recap.err ? `<p class="askerr" style="margin-top:14px">${esc(UI.recap.err)}</p>` : ''}
+  ${UI.upload.err ? `<p class="askerr" style="margin-top:14px">${esc(UI.upload.err)}
+    <button class="rm" data-act="uploadClear">Dismiss</button></p>` : ''}
 
   <div class="recapgrid">
     <div class="recapmain">
@@ -836,6 +838,8 @@ async function addPhotos(rid, files) {
   if (!store4) { UI.upload.err = 'This copy of the book cannot store photos.'; render(); return; }
   const supa = store4.kind === 'supabase';
   const who = (E.person(T, UI.role) || {}).display || 'Someone';
+  UI.upload.err = '';
+  if (store && store.note) store.note('photo start', list.length + ' file(s), store=' + store4.kind);
   for (const f of list) {
     const u = { id: 'u' + (++upSeq), rid, name: f.name, pct: 5, err: '' };
     UI.upload.queue.push(u);
@@ -856,7 +860,13 @@ async function addPhotos(rid, files) {
       u.pct = 100;
       UI.upload.queue = UI.upload.queue.filter(x => x !== u);   // one at a time, so one failure stays put
     } catch (e) {
-      u.err = (e && (e.message || e.code)) ? String(e.message || e.code).slice(0, 60) : 'did not upload';
+      const why = (e && (e.message || e.code)) ? String(e.message || e.code) : 'did not upload';
+      u.err = why.slice(0, 60);
+      /* Loud, and at the top of the window where it cannot be scrolled past,
+         because the last one of these was invisible. And into the diagnostic
+         log, so the reason survives the page being closed. */
+      UI.upload.err = 'That photo did not go up: ' + why.slice(0, 120);
+      if (store && store.note) store.note('photo FAILED', f.name + ' — ' + why);
       u.pct = 100;
     }
     render();
@@ -1729,6 +1739,13 @@ function paint() {
   renderPending = false;
   const app = document.getElementById('app');
   const focused = captureFocus();
+  /* Every redraw replaces the whole tree, which puts the scroll back to the
+     top. On the page that was survivable; inside the recap window, where a
+     photograph uploading redraws four times, it threw the reader back to the
+     headline each time and hid the very row that says what went wrong. */
+  const wasAt = window.scrollY;
+  const box = document.getElementById('recapBox');
+  const boxAt = box ? box.scrollTop : 0;
   const body = { today: scrToday, boards: scrBoards, ryder: scrRyder, calendar: scrCalendar,
                  entry: scrEntry, roster: scrRoster, rules: scrRules, courses: scrCourses,
                  setup: scrSetup }[UI.screen]();
@@ -1792,6 +1809,10 @@ function paint() {
 
   // the page behind a window does not scroll with it
   document.documentElement.classList.toggle('noscroll', !!UI.recapOpen);
+
+  const box2 = document.getElementById('recapBox');
+  if (box2 && boxAt) box2.scrollTop = boxAt;
+  if (wasAt && !UI.recapOpen) window.scrollTo(0, wasAt);
 
   if (UI.askOpen && UI.askFocus) {
     UI.askFocus = false;
@@ -2016,6 +2037,11 @@ function onClick(e) {
     case 'goPins':
       UI.screen = 'entry';
       UI.reveal = 'pins';
+      render();
+      return;
+    case 'uploadClear':
+      UI.upload.err = '';
+      UI.upload.queue = UI.upload.queue.filter(u => !u.err);
       render();
       return;
     case 'recapGallery':
