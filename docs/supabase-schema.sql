@@ -3,6 +3,11 @@
 -- Paste the whole file into the Supabase dashboard: SQL Editor -> New query
 -- -> paste -> Run. It is safe to run more than once.
 --
+-- The editor warns that this contains destructive operations. What it is
+-- seeing is the `drop policy` and `drop trigger` lines, each of which is
+-- recreated on the line after it — that is what makes the file re-runnable.
+-- There is no drop table, no delete and no truncate anywhere in it.
+--
 -- ---------------------------------------------------------------------------
 -- Why one table and not eight
 --
@@ -84,7 +89,19 @@ create policy docs_delete on public.docs
 -- whole point of two refs scoring at once.
 -- ---------------------------------------------------------------------------
 
-alter publication supabase_realtime add table public.docs;
+-- `alter publication ... add table` has no IF NOT EXISTS, and errors on a
+-- second run. Ask first, so the file really is safe to paste again.
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+     where pubname = 'supabase_realtime'
+       and schemaname = 'public'
+       and tablename = 'docs'
+  ) then
+    alter publication supabase_realtime add table public.docs;
+  end if;
+end $$;
 
 -- realtime sends the row that changed; without this it sends only the key
 alter table public.docs replica identity full;
