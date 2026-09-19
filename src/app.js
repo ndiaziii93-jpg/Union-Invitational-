@@ -834,9 +834,37 @@ function shrink(file, max = 1600, quality = 0.82) {
 }
 
 let upSeq = 0;
+
+/* A picture picked out of an iPhone's camera roll very often arrives with an
+   EMPTY type — HEIC especially — and sometimes as image/heic. Filtering on
+   the MIME type therefore threw the photograph away and returned without a
+   word to anyone, which is precisely what "I select it and nothing happens"
+   looks like from the outside.
+   So anything the picker hands over is attempted. A file the browser cannot
+   actually decode then fails in shrink(), loudly, with a reason. Deciding
+   whether something is a picture is the decoder's job, not a guess made from
+   a string the phone did not bother to fill in. */
+function looksLikeAPicture(f) {
+  if (!f) return false;
+  if (f.type && /^image\//i.test(f.type)) return true;
+  if (f.type && !/^image\//i.test(f.type)) return false;   // a PDF is a no
+  return true;                                              // no type at all: try it
+}
+
 async function addPhotos(rid, files) {
-  const list = Array.from(files || []).filter(f => /^image\//.test(f.type));
-  if (!list.length) return;
+  const all = Array.from(files || []);
+  if (store && store.note) {
+    store.note('photo picked', all.length + ' file(s): '
+      + all.map(f => (f.name || '?') + ' [' + (f.type || 'no type') + ' ' + Math.round((f.size || 0) / 1024) + 'k]').join(', '));
+  }
+  if (!all.length) { UI.upload.err = 'The picker did not hand over a file.'; render(); return; }
+  const list = all.filter(looksLikeAPicture);
+  if (!list.length) {
+    UI.upload.err = 'That was not a picture the book could read ('
+      + all.map(f => f.type || 'no type').join(', ') + ').';
+    render();
+    return;
+  }
   if (!store4) { UI.upload.err = 'This copy of the book cannot store photos.'; render(); return; }
   const supa = store4.kind === 'supabase';
   const who = (E.person(T, UI.role) || {}).display || 'Someone';

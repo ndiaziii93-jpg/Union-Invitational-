@@ -9,6 +9,10 @@ writeFileSync(S + '/rs.html', '<!doctype html><html><head><meta charset="utf-8">
   + readFileSync('dist/union-invitational-sandbox.html', 'utf8') + '</body></html>');
 
 const MOCK = () => { window.claude = { use: async n => {
+  if (n === 'assets') {
+    let k = 0;
+    return { upload: async blob => ({ id: 'a' + (++k), url: 'blob-' + k + '.jpg', sizeBytes: blob.size }) };
+  }
   if (n !== 'sample') return null;
   const fn = async (input, opts) => {
     window.__prompt = String(input);
@@ -154,6 +158,24 @@ await last.fill('And that, as they say, was the round.');
 await p.keyboard.press('Tab'); await p.waitForTimeout(700);
 await p.locator('[data-act="recapEditToggle"]').click(); await p.waitForTimeout(600);
 ok('a fourth paragraph can be added', await p.locator('.recpara').count(), 4);
+
+/* A picture picked out of an iPhone's camera roll often arrives with an
+   EMPTY type — HEIC especially. The book filtered on the MIME type and
+   returned without a word, so selecting a photograph did nothing at all and
+   said nothing about why. Whatever the outcome now, there has to be one. */
+console.log('\na photo with no MIME type, as a phone hands it over');
+const PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+  'base64');
+ok('there is a picker to use', await p.locator('[data-act="photoPick"]').count() > 0, true);
+await p.locator('[data-act="photoPick"]').first()
+  .setInputFiles({ name: 'IMG_4821.HEIC', mimeType: '', buffer: PNG });
+await p.waitForTimeout(2200);
+const outcome = (await p.locator('.askerr, .ph figcaption, .phstrip').allInnerTexts()).join(' ');
+ok('it did not silently do nothing', outcome.replace(/\s/g, '').length > 0, true);
+ok('and it was not thrown away for having no type',
+  /not a picture the book could read/.test(outcome), false);
+ok('a photograph with no type is kept', await p.locator('.ph:not(.pending)').count() > 0, true);
 
 console.log('\nthe gallery');
 await p.locator('[data-act="recapGallery"]').click(); await p.waitForTimeout(600);
