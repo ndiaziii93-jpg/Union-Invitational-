@@ -468,7 +468,11 @@ function askViaFunction(url, key) {
     try {
       res = await fetch(endpoint, {
         method: 'POST',
-        headers: { 'content-type': 'application/json', apikey: key, authorization: 'Bearer ' + key },
+        /* The key goes in `apikey`, and nowhere else. Sending a publishable
+           key as a bearer token is the documented way to earn a 401 about a
+           token you never had: the 2026 keys are not JWTs and nothing can
+           verify them as one. */
+        headers: { 'content-type': 'application/json', apikey: key },
         body: JSON.stringify({ prompt }),
         signal: opts && opts.signal,
       });

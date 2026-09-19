@@ -8,7 +8,16 @@
  * Deploy: Supabase dashboard -> Edge Functions -> Deploy a new function ->
  * name it `recap` -> paste this file -> Deploy.
  * Then Edge Functions -> recap -> Secrets, and add ANTHROPIC_API_KEY.
+ *
+ * Note the wrapper. The book calls this with the project's PUBLISHABLE key,
+ * and the 2026 keys are not JWTs — a function left on the default JWT check
+ * rejects them before this file ever runs, and a page that sends one as a
+ * bearer token gets a 401 with a message about a token it never had. The
+ * `auth` list below is what says a publishable key may call this, and the
+ * book sends that key in the `apikey` header where it belongs.
  */
+import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
+import { withSupabase } from 'jsr:@supabase/server@^1';
 
 const MODEL = 'claude-opus-5';
 const MAX_PROMPT = 60_000;      // a whole day's cards is a few thousand characters
@@ -28,7 +37,7 @@ const json = (body: unknown, status = 200) =>
     headers: { ...CORS, 'content-type': 'application/json' },
   });
 
-Deno.serve(async (req: Request) => {
+async function handler(req: Request): Promise<Response> {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   if (req.method !== 'POST') return json({ error: 'post a prompt' }, 405);
 
@@ -109,4 +118,8 @@ Deno.serve(async (req: Request) => {
     console.error('recap', String(e).slice(0, 300));
     return json({ error: 'upstream_error', message: 'That did not come back. Try again in a moment.' }, 502);
   }
-});
+}
+
+export default {
+  fetch: withSupabase({ auth: ['publishable', 'secret'] }, handler),
+};
