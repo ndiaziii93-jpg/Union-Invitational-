@@ -85,7 +85,7 @@ for (let g = 0; g < groups; g++) {
 await tab('Today');
 ok('every card in lights it up', await p.locator('.recapbtn.ready').count(), 1);
 await p.locator('.recapbtn').click(); await p.waitForTimeout(900);
-ok('it opens the recap screen', await p.locator('.recapgrid').count(), 1);
+ok('it opens the recap window', await p.locator('.recapbox').count(), 1);
 
 /* This mock answers in prose, not the JSON the generator asks for. A report is
    only worth reading if it lines up with the table under it, so a reply the

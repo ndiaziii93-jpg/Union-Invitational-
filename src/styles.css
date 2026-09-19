@@ -814,6 +814,20 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
 }
 
 /* ---- the recap, built from the tokens already in use ---- */
+/* The recap is a window over the book, not a place you navigate to: whatever
+   screen you were on is still behind it, and closing it puts you back there. */
+.recapscrim{align-items:flex-start;padding:min(4vh,28px) 14px}
+/* One scrollbar, on the window itself: the box is capped by the padded scrim
+   rather than by a vh guess, which mobile browser chrome gets wrong. */
+.recapbox{background:var(--paper);border:1px solid var(--rule);border-top:3px solid var(--green);
+  border-radius:4px;box-shadow:0 22px 60px var(--shadow);width:min(1120px,96vw);
+  max-height:100%;overflow-y:auto;padding:0 24px 24px}
+.recaptop{position:sticky;top:0;z-index:2;display:flex;gap:12px;align-items:baseline;
+  background:var(--paper);border-bottom:1px solid var(--rule);padding:14px 0 10px}
+.recaptop b{font-size:21px}
+.recaptop .rt-s{flex:1;font-size:14px;color:var(--turf);min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+html.noscroll{overflow:hidden}
 .recapbar{display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;
   background:var(--page);border:1px solid var(--rule);border-radius:3px;padding:11px 14px;margin-top:16px;
   font-size:15px;color:var(--turf)}
@@ -883,8 +897,10 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
 
 @media (max-width:900px){
   /* One column on a narrow screen, in the order the report is meant to be
-     read: headline, then the words, then the picture and the swing. */
+     read: headline, then the words, then the picture and the swing. Full
+     width, the hero would run to half a page, so it is cropped instead. */
   .recapgrid{grid-template-columns:1fr;gap:18px}
+  .rechero img{max-height:38vh;object-fit:cover}
   .recapcols{grid-template-columns:1fr;gap:10px}
   .ribbon{grid-template-columns:repeat(18,44px);min-width:0}
   .ribwrap .scroller{scroll-snap-type:x mandatory}

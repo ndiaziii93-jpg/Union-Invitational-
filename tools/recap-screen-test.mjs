@@ -85,9 +85,11 @@ for (let g = 0; g < groups; g++) {
 await tab('Today');
 ok('complete but unwritten asks for the report', await line(), 'Round complete — generate the report.');
 
-console.log('\nthe recap screen');
+console.log('\nthe recap window');
 await p.locator('.recapbtn').click(); await p.waitForTimeout(700);
-ok('it opens as its own screen', await p.locator('.metarail').count(), 1);
+ok('it opens over the page, not instead of it', await p.locator('.recapbox').count(), 1);
+ok('Today is still behind it', await p.locator('.recapbtn').count(), 1);
+ok('the meta rail is in it', await p.locator('.metarail').count(), 1);
 ok('the meta rail has five facts', await p.locator('.metarail span').count(), 5);
 ok('the ribbon has eighteen cells', await p.locator('.ribcell').count(), 18);
 ok('the table is there', await p.locator('.rectable .row').count() > 0, true);
@@ -105,7 +107,7 @@ ok('the generator was handed the cards', await p.evaluate(() => String(window.__
 ok('and told the ids to use', await p.evaluate(() => String(window.__prompt || '').includes('PLAYER IDS')), true);
 
 console.log('\nkeeping it');
-await tab('Today');
+await p.locator('.recaptop [data-act="recapClose"]').click(); await p.waitForTimeout(600);
 ok('the panel now says it is ready', (await line()).includes('read the report'), true);
 await p.locator('.recapbtn').click(); await p.waitForTimeout(700);
 ok('and the words are still there, not rewritten', (await p.locator('.rechead').innerText()).startsWith('Aspendos waited'), true);
@@ -121,7 +123,7 @@ ok('the figures are never editable', await p.locator('.rectable .num input, .rib
 
 const head = p.locator('.recedit.head');
 await head.fill('Duncan holds on at Olympos');
-await p.locator('body').click({ position: { x: 5, y: 5 } }); await p.waitForTimeout(700);
+await p.keyboard.press('Tab'); await p.waitForTimeout(700);
 await p.locator('[data-act="recapEditToggle"]').click(); await p.waitForTimeout(600);
 ok('the edited headline stuck', await p.locator('.rechead').innerText(), 'Duncan holds on at Olympos');
 ok('and the narrative it did not touch is intact', await p.locator('.recpara').count(), 3);
@@ -129,7 +131,7 @@ ok('and the narrative it did not touch is intact', await p.locator('.recpara').c
 await p.locator('[data-act="recapEditToggle"]').click(); await p.waitForTimeout(500);
 const last = p.locator('textarea.recedit:not(.head)').last();
 await last.fill('And that, as they say, was the round.');
-await p.locator('body').click({ position: { x: 5, y: 5 } }); await p.waitForTimeout(700);
+await p.keyboard.press('Tab'); await p.waitForTimeout(700);
 await p.locator('[data-act="recapEditToggle"]').click(); await p.waitForTimeout(600);
 ok('a fourth paragraph can be added', await p.locator('.recpara').count(), 4);
 
@@ -174,8 +176,15 @@ for (const [nm2, w, h] of [['phone', 390, 844], ['tablet', 820, 1180]]) {
 }
 await p.setViewportSize({ width: 1280, height: 1000 }); await p.waitForTimeout(500);
 
-await p.locator('[data-act="recapClose"]').click(); await p.waitForTimeout(500);
-ok('close returns to Today', await p.locator('.recapbtn').count(), 1);
+await p.locator('.recaptop [data-act="recapClose"]').click(); await p.waitForTimeout(500);
+ok('close puts the window away', await p.locator('.recapbox').count(), 0);
+ok('and leaves you where you were', await p.locator('.recapbtn').count(), 1);
+await p.locator('.recapbtn').click(); await p.waitForTimeout(600);
+await p.keyboard.press('Escape'); await p.waitForTimeout(500);
+ok('escape closes it too', await p.locator('.recapbox').count(), 0);
+await p.locator('.recapbtn').click(); await p.waitForTimeout(600);
+await p.mouse.click(6, 6); await p.waitForTimeout(500);
+ok('and so does the backdrop', await p.locator('.recapbox').count(), 0);
 await b.close();
 console.log(fails.length ? '\nFAILED: ' + fails.join(', ') : '\nThe recap reports the round it is given.');
 process.exit(fails.length ? 1 : 0);

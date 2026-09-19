@@ -24,6 +24,7 @@ const UI = {
   askText: '',
   asks: [],              // newest first: {id, q, a, busy, err}
   recapOpen: false,
+  recapOpen: false,
   recap: { rid: null, busy: false, err: '', stream: '', edit: false, view: 'report' },
   upload: { queue: [], err: '' },
   role: 'viewer',
@@ -515,7 +516,14 @@ function askPanel() {
    Everything but the words is computed from the cards, so a claim in the
    narrative can be checked against the table under it. */
 
-function scrRecap() {
+/* The window scrolls its own contents; the page behind it stays where it was. */
+function recapTop() {
+  const bx = document.getElementById('recapBox');
+  if (bx) bx.scrollTop = 0;
+}
+
+function recapPanel() {
+  if (!UI.recapOpen) return '';
   const rid = UI.recap.rid || E.recapRound(T, now);
   const r = E.roundDef(rid) || {};
   const day = E.dayOf(r.dayIdx || 0);
@@ -538,7 +546,14 @@ function scrRecap() {
 
   const archive = D.ROUNDS.filter(x => E.roundStanding(T, x.id).started);
 
-  return `<div class="recapbar">
+  return `<div class="scrim recapscrim" data-act="recapClose">
+    <div class="recapbox" role="dialog" aria-modal="true" aria-label="The Day's Recap" id="recapBox">
+    <div class="recaptop">
+      <b>The Day's Recap</b>
+      <span class="rt-s">${esc(r.short === 'Practice' ? 'Practice day' : (r.full || ''))}</span>
+      <button class="rm" data-act="recapClose" aria-label="Close the recap">Close</button>
+    </div>
+    <div class="recapbar">
     <div>${gallery ? 'The whole week\'s photos, by round.' : esc(!st.started ? 'This round has not started.'
       : !st.complete ? 'Round in progress — ' + st.inCards + ' of ' + st.field + ' cards in. Standings only until every card is in.'
       : !body ? 'Round is complete. The report has not been written yet.'
@@ -552,7 +567,6 @@ function scrRecap() {
         editing ? 'Done editing' : 'Edit the words'}</button>` : ''}
       ${ed && body && !published && !gallery ? `<button class="btn" data-act="recapPublish" data-a="${rid}">Share to the group</button>` : ''}
       ${UI.recap.busy ? '<button class="btn ghost" data-act="recapStop">Stop</button>' : ''}
-      <button class="btn ghost" data-act="recapClose">Close recap</button>
     </div>
   </div>
 
@@ -667,7 +681,9 @@ function scrRecap() {
   </div>
 
   ${photoStrip(rid)}
-  ${upNext(rid)}`}`;
+  ${upNext(rid)}`}
+    </div>
+  </div>`;
 }
 
 /* ---------------- the standing gallery ----------------
@@ -1545,7 +1561,6 @@ const NAV = [
   ['today', 'Today', 'Today'], ['boards', 'Leaderboards', 'Boards'], ['ryder', 'Ryder Cup', 'Ryder'],
   ['calendar', 'Calendar', 'Calendar'], ['entry', 'Score Entry', 'Scores'], ['roster', 'Roster & Pairings', 'Roster'],
   ['rules', 'Games & Rules', 'Rules'], ['courses', 'Course Setup', 'Courses'], ['setup', 'Setup', 'Setup'],
-  ['recap', 'Recap', 'Recap'],
 ];
 
 /** A re-render replaces the whole tree, which would blow away half-typed text
@@ -1608,8 +1623,8 @@ function paint() {
   const app = document.getElementById('app');
   const focused = captureFocus();
   const body = { today: scrToday, boards: scrBoards, ryder: scrRyder, calendar: scrCalendar,
-                 entry: scrEntry, roster: scrRoster, rules: scrRules, courses: scrCourses, setup: scrSetup,
-                 recap: scrRecap }[UI.screen]();
+                 entry: scrEntry, roster: scrRoster, rules: scrRules, courses: scrCourses,
+                 setup: scrSetup }[UI.screen]();
 
   const nt = E.nextTee(T, now);
   const role = S.ROLES[UI.role];
@@ -1652,7 +1667,7 @@ function paint() {
         ? 'Cannot read the shared book. Nothing can be edited until it loads, so nothing gets overwritten. Check your connection and reload.'
         : 'Opening the book… everything is read-only until the saved tournament arrives.'}</div>`}
     <nav class="tabs nos" aria-label="Sections">
-      ${NAV.filter(([id]) => (id !== 'setup' || canAdmin()) && (id !== 'recap' || UI.screen === 'recap')).map(([id, label, short]) =>
+      ${NAV.filter(([id]) => id !== 'setup' || canAdmin()).map(([id, label, short]) =>
         `<button class="tab" data-act="go" data-a="${id}"${UI.screen === id ? ' aria-current="page"' : ''}
           aria-label="${esc(label)}"><span class="lg">${esc(label)}</span><span class="sm">${esc(short)}</span></button>`).join('')}
     </nav>
@@ -1665,7 +1680,11 @@ function paint() {
     </div>
   </div>
   ${UI.modal ? modalHtml() : ''}
-  ${askPanel()}`;
+  ${askPanel()}
+  ${recapPanel()}`;
+
+  // the page behind a window does not scroll with it
+  document.documentElement.classList.toggle('noscroll', !!UI.recapOpen);
 
   if (UI.askOpen && UI.askFocus) {
     UI.askFocus = false;
@@ -1864,8 +1883,7 @@ function onClick(e) {
       return;
     case 'recapOpen':
       UI.recap = { rid: a, busy: false, err: '', stream: '', edit: false, view: 'report' };
-      UI.screen = 'recap';
-      window.scrollTo(0, 0);
+      UI.recapOpen = true;
       render();
       return;
     case 'photoDrop1':
@@ -1874,13 +1892,13 @@ function onClick(e) {
       return;
     case 'recapPick':
       UI.recap = { rid: a, busy: false, err: '', stream: '', edit: false, view: 'report' };
-      window.scrollTo(0, 0);
       render();
+      recapTop();
       return;
     case 'recapGallery':
       UI.recap.view = UI.recap.view === 'gallery' ? 'report' : 'gallery';
-      window.scrollTo(0, 0);
       render();
+      recapTop();
       return;
     case 'recapEditToggle':
       if (!canEdit()) return;
@@ -1898,9 +1916,10 @@ function onClick(e) {
       if (recapCtl) recapCtl.abort();
       return;
     case 'recapClose':
+      // a tap on the backdrop closes; a tap inside it does not
+      if (el.classList.contains('scrim') && e.target !== el) return;
       if (recapCtl) recapCtl.abort();
-      UI.screen = 'today';
-      window.scrollTo(0, 0);
+      UI.recapOpen = false;
       render();
       return;
     case 'goRule': UI.screen = 'rules'; render();
