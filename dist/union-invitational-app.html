@@ -989,7 +989,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20260919-1909';
+const BUILD = '20260919-1928';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -4031,14 +4031,12 @@ function photoStrip(rid, bare) {
   const q = UI.upload.queue.filter(u => u.rid === rid);
   const can = !!store4;
   return `<div class="fromround${bare ? ' bare' : ''}">
-    ${bare ? (can ? `<label class="btn ghost addph">Add photos
-        <input type="file" accept="image/*" multiple data-act="photoPick" data-a="${rid}" hidden></label>` : '') : `
+    ${bare ? (can ? `<button class="btn ghost addph" data-act="photoPick" data-a="${rid}">Add photos</button>` : '') : `
     <div class="titlerow">
       <h3 class="sub" style="margin:0">From the round</h3>
       <span class="rnote">${list.length ? list.length + ' so far. Everyone on the trip can add.'
         : 'Anyone on the trip can add photos.'}</span>
-      ${can ? `<label class="btn ghost addph">Add photos
-        <input type="file" accept="image/*" multiple data-act="photoPick" data-a="${rid}" hidden></label>` : ''}
+      ${can ? `<button class="btn ghost addph" data-act="photoPick" data-a="${rid}">Add photos</button>` : ''}
     </div>
     <p class="phnote">Photos are visible to everyone in the party.</p>`}
     <div class="phstrip${can ? ' drop' : ''}" data-act="photoDrop" data-a="${rid}">
@@ -4070,6 +4068,45 @@ function shrink(file, max = 1600, quality = 0.82) {
     img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('not an image the browser can read')); };
     img.src = url;
   });
+}
+
+/* The picker lives OUTSIDE #app, and is made once.
+ *
+ * Every redraw replaces the whole of #app. Tapping "Add photos" opens the
+ * phone's picker, which stays open for as long as it takes somebody to
+ * choose a picture — and the book goes on redrawing the entire time, because
+ * the store polls behind the live socket every few seconds. So by the moment
+ * the photograph was approved, the <input> it belonged to had been destroyed
+ * and replaced several times over. iOS delivered the file to an element no
+ * longer in the document, the event had nothing to bubble to, and not one
+ * line of our code ran. Which is why it failed in complete silence, and why
+ * making failures louder changed nothing at all.
+ *
+ * It is the same fault as the tee-time <select> that appeared to undo itself:
+ * a native control destroyed while somebody is still using it. The answer
+ * there was to defer the redraw. Here it is simpler to keep the one element
+ * that matters out of the way of the redraw entirely. */
+let picker = null;
+let pickerRid = null;
+
+function makePicker() {
+  if (picker || typeof document === 'undefined') return picker;
+  picker = document.createElement('input');
+  picker.type = 'file';
+  picker.accept = 'image/*';
+  picker.multiple = true;
+  picker.style.display = 'none';
+  picker.setAttribute('aria-hidden', 'true');
+  picker.addEventListener('change', () => {
+    const files = picker.files;
+    const rid = pickerRid;
+    // read them out before clearing, and clear before any await
+    const taken = Array.from(files || []);
+    picker.value = '';
+    if (rid) addPhotos(rid, taken);
+  });
+  document.body.appendChild(picker);
+  return picker;
 }
 
 let upSeq = 0;
@@ -5296,6 +5333,10 @@ function onClick(e) {
          to be told what happened on a day they played. */
       if (!T.recaps[a] || !T.recaps[a].body) writeRecap(a, false);
       return;
+    case 'photoPick':
+      pickerRid = a;
+      makePicker().click();
+      return;
     case 'photoDrop1': {
       const ph = T.photos[a] || {};
       if (!canAdmin() && !ph.mine) return;
@@ -5890,11 +5931,8 @@ function boot() {
     UI.dragging = null;
     if (pid) movePlayer(pid, col.dataset.a);
   });
-  app.addEventListener('change', e => {
-    const f = e.target.closest('[data-act="photoPick"]');
-    if (f) { addPhotos(f.dataset.a, e.target.files); e.target.value = ''; return; }
-    onChange(e);
-  });
+  app.addEventListener('change', onChange);
+  makePicker();
   // dropping onto the strip is the same as picking
   app.addEventListener('dragover', e => { if (e.target.closest('.phstrip.drop')) { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; } });
   app.addEventListener('drop', e => {

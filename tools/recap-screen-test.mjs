@@ -167,15 +167,35 @@ console.log('\na photo with no MIME type, as a phone hands it over');
 const PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
   'base64');
-ok('there is a picker to use', await p.locator('[data-act="photoPick"]').count() > 0, true);
-await p.locator('[data-act="photoPick"]').first()
-  .setInputFiles({ name: 'IMG_4821.HEIC', mimeType: '', buffer: PNG });
-await p.waitForTimeout(2200);
-const outcome = (await p.locator('.askerr, .ph figcaption, .phstrip').allInnerTexts()).join(' ');
-ok('it did not silently do nothing', outcome.replace(/\s/g, '').length > 0, true);
-ok('and it was not thrown away for having no type',
-  /not a picture the book could read/.test(outcome), false);
-ok('a photograph with no type is kept', await p.locator('.ph:not(.pending)').count() > 0, true);
+ok('there is a button to add one', await p.locator('[data-act="photoPick"]').count() > 0, true);
+ok('the picker is kept out of the redrawn tree', await p.evaluate(
+  () => { const el = document.querySelector('input[type=file]');
+          return !!el && !document.getElementById('app').contains(el); }), true);
+
+/* The real failure, driven the way a person meets it. Tapping the button
+   opens the phone's chooser, which stays open while somebody picks — and the
+   book redraws the whole of #app every few seconds the entire time. An input
+   living inside that tree is destroyed and remade over and over, so the file
+   lands on an element no longer in the document, the event has nothing to
+   bubble to, and not one line runs. */
+const [chooser] = await Promise.all([
+  p.waitForEvent('filechooser'),
+  p.locator('[data-act="photoPick"]').first().click(),
+]);
+for (let i = 0; i < 4; i++) {                    // the store, polling, all the while
+  await p.evaluate(() => window.__forceRender && window.__forceRender());
+  await p.waitForTimeout(120);
+}
+await chooser.setFiles({ name: 'IMG_4821.HEIC', mimeType: '', buffer: PNG });
+await p.waitForTimeout(2500);
+
+ok('the photograph was kept', await p.locator('.ph:not(.pending)').count(), 1);
+ok('and nothing went wrong on the way', await p.locator('.askerr').count(), 0);
+ok('the strip is no longer empty', await p.locator('.phempty').count(), 0);
+if (!(await p.locator('.ph:not(.pending)').count())) {
+  console.log('      what the book said: ' + JSON.stringify(
+    (await p.locator('.askerr, .ph figcaption').allInnerTexts()).join(' ').slice(0, 300)));
+}
 
 console.log('\nthe gallery');
 await p.locator('[data-act="recapGallery"]').click(); await p.waitForTimeout(600);
