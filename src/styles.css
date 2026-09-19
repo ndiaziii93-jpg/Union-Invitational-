@@ -894,6 +894,11 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
 
 .fromround{margin-top:30px}
 .phnote{font-size:13px;color:var(--turf);margin:4px 0 10px}
+/* A photograph whose file will not load is a visible gap with a reason in
+   it, never an empty box that reads as "nothing uploaded". */
+.ph.broken img{display:none}
+.ph.broken a::after{content:'picture missing';display:flex;align-items:center;justify-content:center;
+  min-height:96px;padding:10px;border:1px dashed var(--flag);color:var(--flag);font-size:13px;text-align:center}
 .phstrip{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start;min-height:96px;
   border:1px dashed var(--rule);border-radius:3px;padding:10px}
 .ph{margin:0;width:150px}

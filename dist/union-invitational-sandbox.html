@@ -898,6 +898,11 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
 
 .fromround{margin-top:30px}
 .phnote{font-size:13px;color:var(--turf);margin:4px 0 10px}
+/* A photograph whose file will not load is a visible gap with a reason in
+   it, never an empty box that reads as "nothing uploaded". */
+.ph.broken img{display:none}
+.ph.broken a::after{content:'picture missing';display:flex;align-items:center;justify-content:center;
+  min-height:96px;padding:10px;border:1px dashed var(--flag);color:var(--flag);font-size:13px;text-align:center}
 .phstrip{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start;min-height:96px;
   border:1px dashed var(--rule);border-radius:3px;padding:10px}
 .ph{margin:0;width:150px}
@@ -955,7 +960,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20260919-1754';
+const BUILD = '20260919-1838';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -3984,7 +3989,8 @@ function phFig(ph) {
      did. */
   return `<figure class="ph">
     <a href="${esc(ph.url)}" target="_blank" rel="noopener" aria-label="Open this photo full size">
-      <img src="${esc(ph.thumb || ph.url)}" alt="${esc(ph.caption || 'From the round')}" loading="lazy"></a>
+      <img src="${esc(ph.thumb || ph.url)}" alt="${esc(ph.caption || 'From the round')}" loading="lazy"
+        onerror="this.closest('figure').classList.add('broken')"></a>
     <figcaption>${esc(ph.byName || 'Someone')}${canAdmin() || ph.mine ? `
       <button class="rm" data-act="photoDrop1" data-a="${esc(ph.id)}">Remove</button>` : ''}</figcaption>
   </figure>`;
@@ -4057,11 +4063,18 @@ async function addPhotos(rid, files) {
       const up = supa ? await store4.upload(small, thumb) : await store4.upload(small);
       u.pct = 90; render();
       const id = 'ph' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-      await store.writePhoto(id, {
+      /* The file is in the bucket by now. The row that points at it is a
+         separate write, and it can be refused — the store turns a write away
+         while the book is still loading — so the answer is checked rather
+         than assumed. A photograph uploaded and then not recorded is the
+         worst of both: the allowance is spent and nobody can see it. */
+      const kept = await store.writePhoto(id, {
         rid, url: up.url, thumb: up.thumbUrl || null, at: Date.now(),
         assetId: up.id || null, key: up.key || null, thumbKey: up.thumbKey || null,
         by: UI.role, byName: who, mine: true, bytes: up.sizeBytes || small.size,
       });
+      if (kept === false) throw new Error('uploaded, but the book would not record it yet');
+      if (store && store.note) store.note('photo ok', id + ' rid=' + rid + ' url=' + String(up.url).slice(-28));
       u.pct = 100;
       UI.upload.queue = UI.upload.queue.filter(x => x !== u);   // one at a time, so one failure stays put
     } catch (e) {
