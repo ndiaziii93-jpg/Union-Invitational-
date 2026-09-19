@@ -757,3 +757,5 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
 .sqcell.uk .sqlabel,.sqcell.usa .sqlabel{color:var(--ink);font-weight:600}
 
 .gmem{font-size:14px;color:var(--turf);margin-top:6px}
+
+.gmem-names{display:block;color:var(--turf);opacity:.85}

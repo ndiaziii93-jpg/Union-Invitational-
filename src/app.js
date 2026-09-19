@@ -392,15 +392,22 @@ function boardPractice() {
 
   ${!played ? `<p class="empty">No cards in from the practice round yet. Scores appear here hole by hole.</p>` : `
   <h3 class="sub">The day's card</h3>
+  <p class="lede" style="margin-bottom:0">Scored gross, so a golfer with no band yet still has a card. Points appear
+  once a band is set — which is what the day is for.</p>
   <div class="rows" style="margin-top:8px">
-    <div class="rowhead"><span class="pos">#</span><span class="who">Golfer</span>
-      <span class="n">Band</span><span class="n">Thru</span><span class="n">To par</span><span class="big">Points</span></div>
-    ${rows.map(x => `<div class="row"><span class="pos">${x.pos}</span>
-      <span class="who">${esc(x.name)}</span>
-      <span class="n num" style="color:var(--turf)">${x.band == null ? '—' : x.band}</span>
-      <span class="n num">${x.thru}</span>
-      <span class="n num ${x.tp < 0 ? 'under' : x.tp > 0 ? 'over' : 'level'}">${esc(E.fmtToPar(x.tp))}</span>
-      <span class="big num">${x.stb}</span></div>`).join('')}
+    <div class="rowhead"><span style="width:24px">#</span><span style="flex:1">Golfer</span>
+      <span style="min-width:46px;text-align:right">Band</span>
+      <span style="min-width:46px;text-align:right">Thru</span>
+      <span style="min-width:52px;text-align:right">Gross</span>
+      <span style="min-width:56px;text-align:right">To par</span>
+      <span style="min-width:74px;text-align:right">Points</span></div>
+    ${rows.map(x => `<div class="row"><span class="pos" style="width:24px">${x.pos}</span>
+      <span class="who" style="flex:1">${esc(x.name)}</span>
+      <span class="num" style="min-width:46px;text-align:right;color:var(--turf)">${x.band == null ? '—' : x.band}</span>
+      <span class="num" style="min-width:46px;text-align:right">${x.thru}</span>
+      <span class="num" style="min-width:52px;text-align:right">${x.gross}</span>
+      <span class="num ${x.tp < 0 ? 'under' : x.tp > 0 ? 'over' : 'level'}" style="min-width:56px;text-align:right">${esc(E.fmtToPar(x.tp))}</span>
+      <span class="num" style="min-width:74px;text-align:right;font-size:23px;font-weight:700">${x.stb == null ? '—' : x.stb}</span></div>`).join('')}
   </div>`}
 
   <h3 class="sub">Bingo Bango Bongo — practice</h3>
@@ -571,16 +578,16 @@ function calDay() {
 
   ${r ? `<div class="teeblock">
     <h3 class="sub" style="margin-top:30px">Tee times — ${esc(E.courseOf(T, r.id).name)}</h3>
-    <p class="lede">One group per pairing, in the order they sit on Roster &amp; Pairings. Change the pairings and the
-    groups follow.</p>
+    <p class="lede">A group is two pairs, taken in the order they sit on Roster &amp; Pairings — so Group 1 is the
+    first two pairs off. Change the pairings and the groups follow.</p>
     ${E.groups(T, r.id).map((g, i) => `<div class="teegroup">
       <div class="teerow">
         <span class="gl">${esc(g.label)}</span>
         ${timePick(g.time, { kind: 'tee', a: r.id, b: i, ed, clearable: true,
           label: g.label + ' tee time' })}
       </div>
-      <div class="gmem">${g.members.length
-        ? g.members.map(id => esc((E.person(T, id) || {}).display || '?')).join(' · ')
+      <div class="gmem">${g.pairs.length ? esc(g.pairs.join('  ·  ')) : ''}${g.members.length
+        ? `<span class="gmem-names">${g.members.map(id => esc((E.person(T, id) || {}).display || '?')).join(', ')}</span>`
         : 'Nobody paired yet'}</div>
     </div>`).join('')}
   </div>` : ''}`;

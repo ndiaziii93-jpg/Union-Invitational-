@@ -152,14 +152,21 @@ for (const [name, viewport, touch, dpr] of DEVICES) {
       await p.locator('.btab', { hasText: 'Practice Day' }).click(); await p.waitForTimeout(600); await dismiss();
       if (await p.locator('.rows .row').count() === 0) bad.push('Practice Day shows nothing');
     }
-    // 3f. one group per pairing, in pairing order
+    // 3f. a group is two pairs, in pairing order — a fourball
     await tab('Roster');
-    const pairNames = await p.locator('.paircol:not(.un) .pname').evaluateAll(
-      els => els.map(e => (e.value || e.textContent || '').trim()));
+    const nPairs = await p.locator('.paircol:not(.un)').count();
     await tab('Score Entry');
     const chips = await p.locator('.gchip').allInnerTexts();
-    if (chips.length !== pairNames.length) {
-      bad.push(pairNames.length + ' pairings but ' + chips.length + ' groups');
+    const wantGroups = Math.ceil(nPairs / 2);
+    if (chips.length !== wantGroups) {
+      bad.push(nPairs + ' pairings should make ' + wantGroups + ' groups, got ' + chips.length);
+    }
+    if (chips.length && !chips[0].startsWith('Group 1')) bad.push('first group is "' + chips[0] + '"');
+    // two pairs to a group, so never more than a fourball. It can be fewer:
+    // a pair holding somebody who is not a golfer contributes only its golfers.
+    if (nPairs >= 2) {
+      const inFirst = await p.locator('.fig.raw').count();
+      if (inFirst < 1 || inFirst > 4) bad.push('Group 1 holds ' + inFirst + ' golfers');
     }
 
     // 3e. and a golfer can be put in the 30 band

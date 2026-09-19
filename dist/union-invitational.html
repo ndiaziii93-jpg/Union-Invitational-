@@ -762,6 +762,8 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
 
 .gmem{font-size:14px;color:var(--turf);margin-top:6px}
 
+.gmem-names{display:block;color:var(--turf);opacity:.85}
+
 </style>
 <div id="app"></div>
 <script>
@@ -783,7 +785,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20260918-2206';
+const BUILD = '20260919-0703';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -1103,23 +1105,34 @@ function toParPair(T, roundId, pair) {
   for (let h = 0; h < 18; h++) { const s = pairHole(T, roundId, pair, h); if (s != null) { tp += s - holes[h].par; thru = h + 1; } }
   return { tp, thru };
 }
-/* One group per pairing, in the order the pairings are in. The tee slots that
-   used to define them were a fixed three, which had nothing to do with how
-   many pairs were out. A slot keeps the time; the pairing decides who is in
-   it. With no pairings yet, the stored slots still stand in. */
+/* A group is two pairs — a fourball — taken in the pairings' own order, so
+   Group 1 is the first two pairs off and Group 2 the next two. The count
+   follows the pairings rather than the three tee slots the book shipped with.
+   A slot carries only the time. With no pairings yet, the stored slots stand
+   in so the screen still has something to show. */
+const PAIRS_PER_GROUP = 2;
+
 function groups(T, rid) {
   const cfg = roundCfg(T, rid);
   const tees = cfg.tees || [];
   const pairs = (T.config.pairs || []).slice().sort((a, b) => (a.order || 0) - (b.order || 0));
   if (!pairs.length) {
-    return tees.map((t, i) => ({ id: 't' + i, label: 'Group ' + (i + 1), members: t.players || [], time: t.time || null }));
+    return tees.map((t, i) => ({ id: 't' + i, label: 'Group ' + (i + 1),
+      pairs: [], members: t.players || [], time: t.time || null }));
   }
-  return pairs.map((p, i) => ({
-    id: p.id,
-    label: pairName(T, p),
-    members: (p.members || []).filter(id => person(T, id)),
-    time: (tees[i] || {}).time || null,
-  }));
+  const out = [];
+  for (let i = 0; i < pairs.length; i += PAIRS_PER_GROUP) {
+    const inGroup = pairs.slice(i, i + PAIRS_PER_GROUP);
+    const n = out.length;
+    out.push({
+      id: 'g' + n,
+      label: 'Group ' + (n + 1),
+      pairs: inGroup.map(p => pairName(T, p)),
+      members: inGroup.flatMap(p => (p.members || []).filter(id => person(T, id))),
+      time: (tees[n] || {}).time || null,
+    });
+  }
+  return out;
 }
 
 /* The practice day is its own thing: it feeds nothing, and every board that
@@ -1127,11 +1140,25 @@ function groups(T, rid) {
    it is added up, so Tuesday can have a winner of its own. */
 function practiceBoard(T) {
   const rid = 'practice';
+  const holes = courseOf(T, rid).holes;
+  /* Tuesday is the day the bands get sorted out, so it is scored gross: a
+     golfer with no band yet still has a card. Points appear once a band does,
+     which is the point of playing the day at all. */
   const rows = golfers(T).map(p => {
-    const { tp, thru, stb } = toParPlayer(T, rid, p.id);
-    return { id: p.id, name: p.display, band: p.band, tp, thru, stb };
+    const c = card(T, rid, p.id);
+    let gross = 0, tp = 0, thru = 0, stb = 0, netted = false;
+    for (let h = 0; h < 18; h++) {
+      const raw = c ? c.raw[h] : null;
+      if (raw == null) continue;
+      thru = h + 1;
+      gross += raw;
+      tp += raw - holes[h].par;
+      const n = playerNet(T, rid, p.id, h);
+      if (n != null) { netted = true; stb += Math.max(0, Math.min(5, 2 - (n - holes[h].par))); }
+    }
+    return { id: p.id, name: p.display, band: p.band, gross, tp, thru, stb: netted ? stb : null };
   }).filter(r => r.thru > 0);
-  rows.sort((a, b) => (b.stb - a.stb) || (a.tp - b.tp) || (b.thru - a.thru));
+  rows.sort((a, b) => (a.tp - b.tp) || (b.thru - a.thru));
   return rows.map((r, i) => ({ ...r, pos: i + 1 }));
 }
 
@@ -1423,7 +1450,7 @@ function roundToPar(T, roundId, pid) {
   return { tp, thru };
 }
 
-return {nowLocal, dayOf, hhmmToMin, to12, to24, BANDS, strokesFor, bandTotal, fmtToPar, capFor, capped, person, golfers, roundDef, roundCfg, courseByKey, courseOf, scoreKey, card, pairName, phaseOf, phaseLabel, hasScores, countingRounds, playerNet, pairHole, groups, practiceBoard, practiceBbb, bandsLocked, pairsBoard, mvpBoard, bbbBoard, matchPlay, ryderData, holeCells, setupIssues, nextTee, fixtures, nextFixture, TEE_CHOICES, TEE_PRIV, teePrivilege, roundToPar};
+return {nowLocal, dayOf, hhmmToMin, to12, to24, BANDS, strokesFor, bandTotal, fmtToPar, capFor, capped, person, golfers, roundDef, roundCfg, courseByKey, courseOf, scoreKey, card, pairName, phaseOf, phaseLabel, hasScores, countingRounds, playerNet, pairHole, PAIRS_PER_GROUP, groups, practiceBoard, practiceBbb, bandsLocked, pairsBoard, mvpBoard, bbbBoard, matchPlay, ryderData, holeCells, setupIssues, nextTee, fixtures, nextFixture, TEE_CHOICES, TEE_PRIV, teePrivilege, roundToPar};
 })();
 
 const __m_store = (function(){
@@ -2556,15 +2583,22 @@ function boardPractice() {
 
   ${!played ? `<p class="empty">No cards in from the practice round yet. Scores appear here hole by hole.</p>` : `
   <h3 class="sub">The day's card</h3>
+  <p class="lede" style="margin-bottom:0">Scored gross, so a golfer with no band yet still has a card. Points appear
+  once a band is set — which is what the day is for.</p>
   <div class="rows" style="margin-top:8px">
-    <div class="rowhead"><span class="pos">#</span><span class="who">Golfer</span>
-      <span class="n">Band</span><span class="n">Thru</span><span class="n">To par</span><span class="big">Points</span></div>
-    ${rows.map(x => `<div class="row"><span class="pos">${x.pos}</span>
-      <span class="who">${esc(x.name)}</span>
-      <span class="n num" style="color:var(--turf)">${x.band == null ? '—' : x.band}</span>
-      <span class="n num">${x.thru}</span>
-      <span class="n num ${x.tp < 0 ? 'under' : x.tp > 0 ? 'over' : 'level'}">${esc(E.fmtToPar(x.tp))}</span>
-      <span class="big num">${x.stb}</span></div>`).join('')}
+    <div class="rowhead"><span style="width:24px">#</span><span style="flex:1">Golfer</span>
+      <span style="min-width:46px;text-align:right">Band</span>
+      <span style="min-width:46px;text-align:right">Thru</span>
+      <span style="min-width:52px;text-align:right">Gross</span>
+      <span style="min-width:56px;text-align:right">To par</span>
+      <span style="min-width:74px;text-align:right">Points</span></div>
+    ${rows.map(x => `<div class="row"><span class="pos" style="width:24px">${x.pos}</span>
+      <span class="who" style="flex:1">${esc(x.name)}</span>
+      <span class="num" style="min-width:46px;text-align:right;color:var(--turf)">${x.band == null ? '—' : x.band}</span>
+      <span class="num" style="min-width:46px;text-align:right">${x.thru}</span>
+      <span class="num" style="min-width:52px;text-align:right">${x.gross}</span>
+      <span class="num ${x.tp < 0 ? 'under' : x.tp > 0 ? 'over' : 'level'}" style="min-width:56px;text-align:right">${esc(E.fmtToPar(x.tp))}</span>
+      <span class="num" style="min-width:74px;text-align:right;font-size:23px;font-weight:700">${x.stb == null ? '—' : x.stb}</span></div>`).join('')}
   </div>`}
 
   <h3 class="sub">Bingo Bango Bongo — practice</h3>
@@ -2735,16 +2769,16 @@ function calDay() {
 
   ${r ? `<div class="teeblock">
     <h3 class="sub" style="margin-top:30px">Tee times — ${esc(E.courseOf(T, r.id).name)}</h3>
-    <p class="lede">One group per pairing, in the order they sit on Roster &amp; Pairings. Change the pairings and the
-    groups follow.</p>
+    <p class="lede">A group is two pairs, taken in the order they sit on Roster &amp; Pairings — so Group 1 is the
+    first two pairs off. Change the pairings and the groups follow.</p>
     ${E.groups(T, r.id).map((g, i) => `<div class="teegroup">
       <div class="teerow">
         <span class="gl">${esc(g.label)}</span>
         ${timePick(g.time, { kind: 'tee', a: r.id, b: i, ed, clearable: true,
           label: g.label + ' tee time' })}
       </div>
-      <div class="gmem">${g.members.length
-        ? g.members.map(id => esc((E.person(T, id) || {}).display || '?')).join(' · ')
+      <div class="gmem">${g.pairs.length ? esc(g.pairs.join('  ·  ')) : ''}${g.members.length
+        ? `<span class="gmem-names">${g.members.map(id => esc((E.person(T, id) || {}).display || '?')).join(', ')}</span>`
         : 'Nobody paired yet'}</div>
     </div>`).join('')}
   </div>` : ''}`;

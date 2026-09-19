@@ -134,23 +134,34 @@ function toParPair(T, roundId, pair) {
   for (let h = 0; h < 18; h++) { const s = pairHole(T, roundId, pair, h); if (s != null) { tp += s - holes[h].par; thru = h + 1; } }
   return { tp, thru };
 }
-/* One group per pairing, in the order the pairings are in. The tee slots that
-   used to define them were a fixed three, which had nothing to do with how
-   many pairs were out. A slot keeps the time; the pairing decides who is in
-   it. With no pairings yet, the stored slots still stand in. */
+/* A group is two pairs — a fourball — taken in the pairings' own order, so
+   Group 1 is the first two pairs off and Group 2 the next two. The count
+   follows the pairings rather than the three tee slots the book shipped with.
+   A slot carries only the time. With no pairings yet, the stored slots stand
+   in so the screen still has something to show. */
+export const PAIRS_PER_GROUP = 2;
+
 export function groups(T, rid) {
   const cfg = roundCfg(T, rid);
   const tees = cfg.tees || [];
   const pairs = (T.config.pairs || []).slice().sort((a, b) => (a.order || 0) - (b.order || 0));
   if (!pairs.length) {
-    return tees.map((t, i) => ({ id: 't' + i, label: 'Group ' + (i + 1), members: t.players || [], time: t.time || null }));
+    return tees.map((t, i) => ({ id: 't' + i, label: 'Group ' + (i + 1),
+      pairs: [], members: t.players || [], time: t.time || null }));
   }
-  return pairs.map((p, i) => ({
-    id: p.id,
-    label: pairName(T, p),
-    members: (p.members || []).filter(id => person(T, id)),
-    time: (tees[i] || {}).time || null,
-  }));
+  const out = [];
+  for (let i = 0; i < pairs.length; i += PAIRS_PER_GROUP) {
+    const inGroup = pairs.slice(i, i + PAIRS_PER_GROUP);
+    const n = out.length;
+    out.push({
+      id: 'g' + n,
+      label: 'Group ' + (n + 1),
+      pairs: inGroup.map(p => pairName(T, p)),
+      members: inGroup.flatMap(p => (p.members || []).filter(id => person(T, id))),
+      time: (tees[n] || {}).time || null,
+    });
+  }
+  return out;
 }
 
 /* The practice day is its own thing: it feeds nothing, and every board that
@@ -158,11 +169,25 @@ export function groups(T, rid) {
    it is added up, so Tuesday can have a winner of its own. */
 export function practiceBoard(T) {
   const rid = 'practice';
+  const holes = courseOf(T, rid).holes;
+  /* Tuesday is the day the bands get sorted out, so it is scored gross: a
+     golfer with no band yet still has a card. Points appear once a band does,
+     which is the point of playing the day at all. */
   const rows = golfers(T).map(p => {
-    const { tp, thru, stb } = toParPlayer(T, rid, p.id);
-    return { id: p.id, name: p.display, band: p.band, tp, thru, stb };
+    const c = card(T, rid, p.id);
+    let gross = 0, tp = 0, thru = 0, stb = 0, netted = false;
+    for (let h = 0; h < 18; h++) {
+      const raw = c ? c.raw[h] : null;
+      if (raw == null) continue;
+      thru = h + 1;
+      gross += raw;
+      tp += raw - holes[h].par;
+      const n = playerNet(T, rid, p.id, h);
+      if (n != null) { netted = true; stb += Math.max(0, Math.min(5, 2 - (n - holes[h].par))); }
+    }
+    return { id: p.id, name: p.display, band: p.band, gross, tp, thru, stb: netted ? stb : null };
   }).filter(r => r.thru > 0);
-  rows.sort((a, b) => (b.stb - a.stb) || (a.tp - b.tp) || (b.thru - a.thru));
+  rows.sort((a, b) => (a.tp - b.tp) || (b.thru - a.thru));
   return rows.map((r, i) => ({ ...r, pos: i + 1 }));
 }
 
