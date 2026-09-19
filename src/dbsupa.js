@@ -318,3 +318,65 @@ export function createSupabaseDb(opts) {
     PREFIXES,
   };
 }
+
+/* ---------------- photographs ----------------
+ *
+ * The same shape the artifact's asset store had — upload(blob) resolving to
+ * something with a url — so the strip above does not care which it got. Two
+ * differences, both of which matter here.
+ *
+ * Everyone can add. The artifact's store was writer-only: a reader got null
+ * and the button had to be hidden, which meant photographs could only come
+ * from the three people who could also change the scores. Here anyone who
+ * can open the book can add to it, which is what was wanted all along.
+ *
+ * And every photograph is stored twice: the picture, and a thumbnail. The
+ * strip shows thumbnails, so scrolling a week of the trip costs a few
+ * hundred kilobytes rather than a hundred megabytes — the free allowance is
+ * one gigabyte of storage and it is bandwidth, not space, that a party of
+ * twenty-three scrolling on hotel wifi would burn through first.
+ */
+export function createSupabaseFiles(opts) {
+  const { url, key, bucket, createClient } = opts || {};
+  if (!url || !key || typeof createClient !== 'function') return null;
+  let sb;
+  try { sb = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } }); }
+  catch (e) { return null; }
+  const store = sb.storage.from(bucket || 'photos');
+
+  const stamp = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+  return {
+    kind: 'supabase',
+    /** @returns {{key, url, thumbKey, thumbUrl, sizeBytes}} */
+    async upload(blob, thumb) {
+      const base = stamp();
+      const k = base + '.jpg';
+      const { error } = await store.upload(k, blob, { contentType: blob.type || 'image/jpeg', upsert: false });
+      if (error) throw new Error(error.message || 'upload failed');
+      const out = {
+        key: k,
+        url: store.getPublicUrl(k).data.publicUrl,
+        sizeBytes: blob.size,
+        thumbKey: null,
+        thumbUrl: null,
+      };
+      /* A missing thumbnail is a smaller picture, not a failure: the strip
+         falls back to the full one rather than losing the photograph. */
+      if (thumb) {
+        try {
+          const tk = base + '-t.jpg';
+          const r = await store.upload(tk, thumb, { contentType: thumb.type || 'image/jpeg', upsert: false });
+          if (!r.error) { out.thumbKey = tk; out.thumbUrl = store.getPublicUrl(tk).data.publicUrl; }
+        } catch (e) { /* keep the photograph */ }
+      }
+      return out;
+    },
+
+    async remove(keys) {
+      const list = (Array.isArray(keys) ? keys : [keys]).filter(Boolean);
+      if (!list.length) return true;
+      try { await store.remove(list); return true; } catch (e) { return false; }
+    },
+  };
+}

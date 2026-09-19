@@ -5,6 +5,8 @@
 import * as D from './data.js';
 import * as E from './engine.js';
 import * as S from './store.js';
+import * as CFG from './config.js';
+import { createSupabaseFiles } from './dbsupa.js';
 import { RULES, RELIEF } from './rules.js';
 
 const IMG = window.UI_IMAGES || {};
@@ -724,8 +726,13 @@ function photosFor(rid) {
 }
 
 function phFig(ph) {
+  /* The strip is thumbnails. Tapping one opens the photograph itself, so
+     scrolling a week of the trip does not pull a hundred megabytes through
+     resort wifi. A photograph stored before thumbnails shows as it always
+     did. */
   return `<figure class="ph">
-    <img src="${esc(ph.url)}" alt="${esc(ph.caption || 'From the round')}" loading="lazy">
+    <a href="${esc(ph.url)}" target="_blank" rel="noopener" aria-label="Open this photo full size">
+      <img src="${esc(ph.thumb || ph.url)}" alt="${esc(ph.caption || 'From the round')}" loading="lazy"></a>
     <figcaption>${esc(ph.byName || 'Someone')}${canAdmin() || ph.mine ? `
       <button class="rm" data-act="photoDrop1" data-a="${esc(ph.id)}">Remove</button>` : ''}</figcaption>
   </figure>`;
@@ -782,19 +789,23 @@ async function addPhotos(rid, files) {
   const list = Array.from(files || []).filter(f => /^image\//.test(f.type));
   if (!list.length) return;
   if (!store4) { UI.upload.err = 'This copy of the book cannot store photos.'; render(); return; }
+  const supa = store4.kind === 'supabase';
   const who = (E.person(T, UI.role) || {}).display || 'Someone';
   for (const f of list) {
     const u = { id: 'u' + (++upSeq), rid, name: f.name, pct: 5, err: '' };
     UI.upload.queue.push(u);
     render();
     try {
-      const small = await shrink(f);
-      u.pct = 55; render();
-      const up = await store4.upload(small);
+      const small = await shrink(f, CFG.PHOTO_MAX);
+      u.pct = 40; render();
+      const thumb = supa ? await shrink(f, CFG.THUMB_MAX, 0.7).catch(() => null) : null;
+      u.pct = 60; render();
+      const up = supa ? await store4.upload(small, thumb) : await store4.upload(small);
       u.pct = 90; render();
       const id = 'ph' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
       await store.writePhoto(id, {
-        rid, url: up.url, assetId: up.id, at: Date.now(),
+        rid, url: up.url, thumb: up.thumbUrl || null, at: Date.now(),
+        assetId: up.id || null, key: up.key || null, thumbKey: up.thumbKey || null,
         by: UI.role, byName: who, mine: true, bytes: up.sizeBytes || small.size,
       });
       u.pct = 100;
@@ -1941,10 +1952,17 @@ function onClick(e) {
          to be told what happened on a day they played. */
       if (!T.recaps[a] || !T.recaps[a].body) writeRecap(a, false);
       return;
-    case 'photoDrop1':
-      if (!canAdmin() && !(T.photos[a] || {}).mine) return;
+    case 'photoDrop1': {
+      const ph = T.photos[a] || {};
+      if (!canAdmin() && !ph.mine) return;
+      /* Take the files too. A row removed on its own leaves the picture
+         sitting in a one-gigabyte allowance with nothing pointing at it. */
+      if (store4 && store4.remove && (ph.key || ph.thumbKey)) {
+        store4.remove([ph.key, ph.thumbKey]).catch(() => {});
+      }
       store.dropPhoto(a);
       return;
+    }
     case 'recapPick':
       UI.recap = { rid: a, busy: false, err: '', stream: '', edit: false, view: 'report' };
       render();
@@ -2543,8 +2561,19 @@ export function boot() {
   (async () => {
     try { askClaude = window.claude && window.claude.use ? await window.claude.use('sample') : null; }
     catch (e) { askClaude = null; }
-    try { store4 = window.claude && window.claude.use ? await window.claude.use('assets') : null; }
-    catch (e) { store4 = null; }
+    /* The book's own bucket first — it is the one everybody can add to. The
+       artifact's asset store is writer-only, so on that copy the button only
+       appears for the three people who can also change the scores. */
+    try {
+      const mk = (typeof window !== 'undefined' && window.__supabase) ? window.__supabase.createClient : null;
+      store4 = mk ? createSupabaseFiles({
+        url: CFG.SUPABASE_URL, key: CFG.SUPABASE_KEY, bucket: CFG.PHOTO_BUCKET, createClient: mk,
+      }) : null;
+    } catch (e) { store4 = null; }
+    if (!store4) {
+      try { store4 = window.claude && window.claude.use ? await window.claude.use('assets') : null; }
+      catch (e) { store4 = null; }
+    }
     render();
   })();
   setInterval(() => { now = E.nowLocal(); render(); }, 30000);
