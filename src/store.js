@@ -1,8 +1,17 @@
-/* Shared state. Lives in the artifact db so the two scorers, the master
-   reviewer and every spectator see the same tournament. Falls back to
-   localStorage when the db capability is unavailable (preview, offline). */
+/* Shared state, so the two scorers, the master reviewer and every spectator
+   see the same tournament.
+
+   It will take that state from whichever of three places can hold it, in
+   this order: the book's own Supabase project, the artifact platform's db,
+   or this device's localStorage. The interface is identical in all three —
+   doc(path).get/set/update/delete, collection(name).get/onSnapshot — so
+   everything below this line, including every hard-won rule about not
+   overwriting a real tournament, is written once and does not know which it
+   got. The status bar tells the reader which one is in use. */
 
 import { GOLFERS, OFFICIALS, SPECTATORS, PAIRS, ROUNDS, SCHEDULE, COURSES, BUILD } from './data.js';
+import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
+import { createSupabaseDb } from './dbsupa.js';
 
 const LOCAL_KEY = 'union-invitational:v3';
 const DEFAULT_PINS = { master: '1000', s1: '2000', s2: '3000' };
@@ -103,6 +112,7 @@ export function createStore(onChange) {
   let unsubs = [];
   let ready = false;
   let mode = 'local';           // 'db' | 'local'
+  let backend = 'none';         // 'supabase' | 'artifact' | 'none'
   let peopleLoaded = false, pairsLoaded = false, splitDone = false;
   let rosterInDocs = false;     // the roster lives in its own documents
   let peopleSeen = false;       // the people collection has reported at least once
@@ -114,7 +124,7 @@ export function createStore(onChange) {
   let seeding = false;
   let saveTimer = null;
   let status = 'connecting';    // connecting | live | local | error
-  let saveState = 'idle';       // idle | saving | saved | error — the last write's fate
+  let saveState = 'idle';       // idle | saving | saved | queued | error — the last write's fate
   let lastSavedAt = null;
   // Our revision per document. A snapshot older than what we last wrote is an
   // echo of a version we have already moved past, and applying it would undo
@@ -123,7 +133,12 @@ export function createStore(onChange) {
   const bump = (path, doc) => { doc.rev = Math.max(doc.rev || 0, rev[path] || 0) + 1; rev[path] = doc.rev; };
   const fresher = (path, doc) => ((doc && doc.rev) || 0) >= (rev[path] || 0);
 
-  const notify = () => onChange(T, { ready, mode, status, saveState, lastSavedAt, settled });
+  const notify = () => {
+    keepLocal();                 // the device keeps its own copy of whatever it knows
+    onChange(T, { ready, mode, status, saveState, lastSavedAt, settled, backend,
+                  pending: (db && typeof db.pending === 'number') ? db.pending : 0,
+                  live: !!(db && db.live) });
+  };
 
   /* ---- what actually happened on this device ----
      Three attempts to fix writes that never landed have failed because the
@@ -165,6 +180,11 @@ export function createStore(onChange) {
     } catch (e) { /* first run, or storage blocked */ }
     T.config = defaultConfig();   // no database and nothing stored: start from the factory book
   }
+  /* With the book's own database, whatever has been read is also kept on the
+     device — so a phone that opens on the first tee with no signal shows the
+     tournament rather than an empty book. */
+  function keepLocal() { if (backend === 'supabase') saveLocal(); }
+
   function saveLocal() {
     clearTimeout(saveTimer);
     saveTimer = setTimeout(() => {
@@ -173,11 +193,35 @@ export function createStore(onChange) {
   }
 
   async function connect() {
-    try { db = window.claude && window.claude.use ? await window.claude.use('db') : null; }
-    catch (e) { db = null; }
+    /* The book's own database first. It is the one that works on a phone
+       with no signal, so it is preferred wherever it is configured. */
+    try {
+      const factory = (typeof window !== 'undefined' && window.__supabase)
+        ? window.__supabase.createClient : null;
+      db = factory ? createSupabaseDb({
+        url: SUPABASE_URL, key: SUPABASE_KEY, deviceId, createClient: factory,
+        onStatus: s2 => {
+          if (s2 === 'offline' || s2 === 'queued') { saveState = 'queued'; }
+          else if (s2 === 'saved' || s2 === 'flushed') { saveState = 'saved'; lastSavedAt = Date.now(); }
+          if (s2 === 'live' || s2 === 'polling') status = 'live';
+          notify();
+        },
+      }) : null;
+    } catch (e) { db = null; }
+
+    if (!db) {
+      try { db = window.claude && window.claude.use ? await window.claude.use('db') : null; }
+      catch (e) { db = null; }
+    }
 
     if (!db) { mode = 'local'; status = 'local'; loadLocal(); ready = true; settled = true; notify(); return; }
     mode = 'db';
+    backend = db.kind || 'artifact';
+
+    /* A book opened on the first tee with no signal must still show the
+       tournament. Whatever was read last time is on the device; it is put up
+       straight away and every subscription below corrects it. */
+    if (backend === 'supabase') loadLocal();
     // eslint-disable-next-line no-var
     var settle;
 
@@ -304,6 +348,7 @@ export function createStore(onChange) {
       () => { status = 'error'; notify(); }
     ));
     ready = true; notify();
+    if (db.start) db.start();          // the live socket, the poll behind it, the outbox
     confirmRoster();
 
     /* An empty snapshot is not proof anything is gone — one of those is what
@@ -777,5 +822,11 @@ export function createStore(onChange) {
            writePair, addPair, removePair, movePlayer, movePairBy,
            get mode() { return mode; }, get status() { return status; }, get ready() { return ready; },
            get settled() { return settled; },
+           get backend() { return backend; },
+           /* Writes waiting for a signal. The status bar says so, because a
+              ref who has just walked off the 9th needs to know the card in
+              their hand has not reached anyone yet. */
+           get pending() { return (db && typeof db.pending === 'number') ? db.pending : 0; },
+           get live() { return !!(db && db.live); },
            destroy() { unsubs.forEach(u => { try { u(); } catch (e) {} }); } };
 }

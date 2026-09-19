@@ -206,9 +206,9 @@ self.addEventListener('fetch', e => {{
 
 
 def main():
-    page = os.path.join(DIST, 'union-invitational.html')
+    page = os.path.join(DIST, 'union-invitational-app.html')
     if not os.path.exists(page):
-        sys.exit('run tools/build.py first — no dist/union-invitational.html')
+        sys.exit('run tools/build.py first — no dist/union-invitational-app.html')
     body = open(page, encoding='utf-8').read()
 
     # the fragment carries its own <title> and font link; the document needs

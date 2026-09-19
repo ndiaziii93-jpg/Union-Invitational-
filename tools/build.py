@@ -11,7 +11,15 @@ SRC = os.path.join(ROOT, 'src')
 DIST = os.path.join(ROOT, 'dist')
 WEB = os.path.join(SRC, 'assets', 'web')
 
-MODULE_ORDER = ['data', 'rules', 'engine', 'store', 'app']
+MODULE_ORDER = ['data', 'config', 'rules', 'engine', 'dbsupa', 'store', 'app']
+
+"""Two copies come out of one source. The artifact keeps the platform store it
+   already holds a real tournament in; the installable app talks to the book's
+   own database. Emitting both every time means neither can be forgotten, and
+   the wrong one can never be published by mistake."""
+SUPABASE_URL = 'https://zolsghkbgceularukood.supabase.co'
+SUPABASE_KEY = 'sb_publishable_g8feql6XYrOP60S6bFNz9A_rTKMPrZw'
+
 EXPORT_RE = re.compile(r'^export\s+(?:const|let|var|function|class)\s+([A-Za-z_$][\w$]*)', re.M)
 IMPORT_RE = re.compile(r"^import\s+(.+?)\s+from\s+'\./(\w+)\.js';\s*$", re.M)
 
@@ -79,17 +87,28 @@ def main():
     css = open(os.path.join(SRC, 'styles.css'), encoding='utf-8').read()
     shell = open(os.path.join(SRC, 'index.html'), encoding='utf-8').read()
     bundle = '\n'.join(flatten(m) for m in MODULE_ORDER) + '\n__m_app.boot();\n'
+    # the Supabase client, bundled by tools/vendor.sh, has to have run before
+    # the store looks for window.__supabase
+    vendor = os.path.join(SRC, 'vendor', 'supabase.min.js')
+    vendor_js = open(vendor, encoding='utf-8').read() if os.path.exists(vendor) else ''
     # a stamp the book can show, so a phone holding an old copy gives itself away
     stamp = datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%d-%H%M')
     bundle = bundle.replace('__BUILD__', stamp)
-    page = (shell
-            .replace('/*STYLES*/', css)
-            .replace('/*IMAGES*/', open(images_js, encoding='utf-8').read())
-            .replace('/*BUNDLE*/', bundle))
     os.makedirs(DIST, exist_ok=True)
-    out = os.path.join(DIST, 'union-invitational.html')
-    open(out, 'w', encoding='utf-8').write(page)
-    print('%s  %.2f MB' % (out, os.path.getsize(out) / 1048576))
+    for name, url, kkey, vend in (
+            ('union-invitational.html', '', '', ''),                    # the artifact
+            ('union-invitational-app.html', SUPABASE_URL, SUPABASE_KEY, vendor_js)):
+        page = (shell
+                .replace('/*STYLES*/', css)
+                .replace('/*IMAGES*/', open(images_js, encoding='utf-8').read())
+                .replace('/*VENDOR*/', vend)
+                .replace('/*BUNDLE*/', bundle
+                         .replace('__SUPABASE_URL__', url)
+                         .replace('__SUPABASE_KEY__', kkey)))
+        out = os.path.join(DIST, name)
+        open(out, 'w', encoding='utf-8').write(page)
+        print('%-46s %.2f MB  %s' % (name, os.path.getsize(out) / 1048576,
+                                     'supabase' if url else 'artifact store'))
 
 
 if __name__ == '__main__':

@@ -10,8 +10,12 @@
    storage and says so in the status bar, exactly as it does today when the
    artifact store is unavailable. */
 
-export const SUPABASE_URL = 'https://zolsghkbgceularukood.supabase.co';
-export const SUPABASE_KEY = 'sb_publishable_g8feql6XYrOP60S6bFNz9A_rTKMPrZw';
+/* Filled in by tools/build.py. The installable app gets the real project;
+   the artifact copy and the public test copy get empty strings and keep the
+   store they already have — the team's test scribbles must never land in the
+   tournament everyone is actually playing. */
+export const SUPABASE_URL = '__SUPABASE_URL__';
+export const SUPABASE_KEY = '__SUPABASE_KEY__';
 
 /* Photos are resized before they leave the phone. The strip shows the small
    one; the big one is only fetched when somebody taps it. Resort wifi is
