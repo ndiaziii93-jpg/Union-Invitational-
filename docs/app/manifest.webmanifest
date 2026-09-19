@@ -1,0 +1,35 @@
+{
+  "name": "The Union Invitational",
+  "short_name": "Union Inv.",
+  "description": "The yardage book for the Union Invitational \u2014 Titanic Deluxe Golf Belek, Antalya, 26 October to 2 November 2026.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#E3DBCB",
+  "theme_color": "#3E5C43",
+  "categories": [
+    "sports",
+    "utilities"
+  ],
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
