@@ -449,6 +449,47 @@ function boardPractice() {
    recap says why rather than spinning. */
 let askClaude = null;          // resolved once at boot; null means unavailable
 
+/* Off the artifact platform there is no `sample` capability to ask, and an
+   API key cannot live in a page twenty-three people install on their phones.
+   So the book asks a small function on its own project, which holds the key
+   where nobody can read it. The shape it returns is the one the rest of the
+   file is already written against — {text} — so the crest and the recap do
+   not know the difference.
+   No streaming: the answer arrives whole. A recap takes a few seconds and
+   says it is writing; a question takes one and is not worth the machinery. */
+function askViaFunction(url, key) {
+  if (!url || !key) return null;
+  const endpoint = url.replace(/\/+$/, '') + '/functions/v1/recap';
+  const fn = async (input, opts) => {
+    const prompt = typeof input === 'string'
+      ? input
+      : (input || []).map(m => m.content).join('\n\n');
+    let res;
+    try {
+      res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', apikey: key, authorization: 'Bearer ' + key },
+        body: JSON.stringify({ prompt }),
+        signal: opts && opts.signal,
+      });
+    } catch (e) {
+      if (e && e.name === 'AbortError') throw { code: 'cancelled', message: 'stopped' };
+      throw { code: 'upstream_error', message: 'No connection to the book\u2019s writer.' };
+    }
+    let body = {};
+    try { body = await res.json(); } catch (e) { /* a proxy page, or nothing at all */ }
+    if (!res.ok || body.error) {
+      throw { code: body.error || 'upstream_error', message: body.message || 'That did not come back.' };
+    }
+    const text = String(body.text || '');
+    if (opts && opts.onText) opts.onText({ text, delta: text });
+    return { text, truncated: !!body.truncated, modelTierApplied: 'complex' };
+  };
+  fn.json = async (input, opts) => JSON.parse((await fn(input, opts)).text);
+  fn.limits = async () => ({ maxPromptBytes: 60000, images: false });
+  return fn;
+}
+
 /** Everything the book actually knows, as text. Never invented. */
 function brief() {
   try { return E.brief(T, now); } catch (e) { return 'The book could not be read.'; }
@@ -2559,8 +2600,13 @@ export function boot() {
   // the page may be allowed to ask Claude, or may not: find out once, quietly,
   // and let the crest and the recap light up if it can
   (async () => {
-    try { askClaude = window.claude && window.claude.use ? await window.claude.use('sample') : null; }
-    catch (e) { askClaude = null; }
+    /* The book's own writer first; the platform's sampler only on the copy
+       that still runs as an artifact. */
+    askClaude = askViaFunction(CFG.SUPABASE_URL, CFG.SUPABASE_KEY);
+    if (!askClaude) {
+      try { askClaude = window.claude && window.claude.use ? await window.claude.use('sample') : null; }
+      catch (e) { askClaude = null; }
+    }
     /* The book's own bucket first — it is the one everybody can add to. The
        artifact's asset store is writer-only, so on that copy the button only
        appears for the three people who can also change the scores. */
