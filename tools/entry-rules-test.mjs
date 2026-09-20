@@ -134,8 +134,51 @@ ok('a finished round glows all over, not at the edges', await p.evaluate(() => {
     .filter(x => x.name === 'recappulse');
   return r.length ? [...r[0].cssRules].some(k => /brightness/.test(k.cssText)) : false;
 }), true);
-ok('the strips only pan sideways', await p.evaluate(
-  () => getComputedStyle(document.querySelector('.tabs, .btabs')).touchAction), 'pan-x');
+/* A quick diagonal flick across the competition strip must move the strip
+   and nothing else. touch-action alone is a hint the engine may decline —
+   WebKit ignores it on a momentum scroller — so the gesture is taken over
+   outright. This drives real touch events at it and watches the page. */
+await tab('Leaderboards');
+/* On a wide screen the strip fits and there is nothing to take over — the
+   gesture is only claimed by a strip that genuinely has somewhere to go, or
+   the page would stop scrolling under somebody's thumb. So: a phone. */
+await p.setViewportSize({ width: 390, height: 844 }); await p.waitForTimeout(700); await shut();
+ok('on a phone the strip overflows', await p.evaluate(
+  () => { const el = document.querySelector('.btabs'); return el.scrollWidth > el.clientWidth + 1; }), true);
+ok('the strip says it pans sideways only', await p.evaluate(
+  () => getComputedStyle(document.querySelector('.btabs')).touchAction), 'pan-x');
+
+const flick = async (dx, dy) => p.evaluate(([dx2, dy2]) => {
+  const el = document.querySelector('.btabs');
+  el.scrollLeft = 30;                       // somewhere to go in both directions
+  window.scrollTo(0, 120);
+  const box = el.getBoundingClientRect();
+  const x0 = box.left + box.width / 2, y0 = box.top + box.height / 2;
+  const pt = (x, y) => [Object.assign(new Touch({ identifier: 1, target: el, clientX: x, clientY: y }))];
+  const fire = (type, x, y, cancelable) => el.dispatchEvent(new TouchEvent(type, {
+    bubbles: true, cancelable, touches: type === 'touchend' ? [] : pt(x, y),
+    changedTouches: pt(x, y), targetTouches: type === 'touchend' ? [] : pt(x, y),
+  }));
+  const before = { page: window.scrollY, strip: el.scrollLeft };
+  fire('touchstart', x0, y0, true);
+  /* dispatchEvent answers false when something called preventDefault. A
+     listener of our own would sit below document in the bubble path and read
+     the flag before the handler had set it. */
+  let prevented = false;
+  for (let i = 1; i <= 4; i++) {
+    if (fire('touchmove', x0 + (dx2 * i) / 4, y0 + (dy2 * i) / 4, true) === false) prevented = true;
+  }
+  fire('touchend', x0 + dx2, y0 + dy2, true);
+  return { moved: el.scrollLeft !== before.strip, pageMoved: window.scrollY !== before.page, prevented };
+}, [dx, dy]);
+
+const diag = await flick(-90, 70);          // across, and a good way down
+ok('a diagonal flick moves the strip', diag.moved, true);
+ok('and the page is held still', diag.prevented, true);
+
+const steep = await flick(-20, 120);        // barely sideways, mostly down
+ok('even a mostly-vertical drag on the strip is refused the page', steep.prevented, true);
+await p.setViewportSize({ width: 1280, height: 1000 }); await p.waitForTimeout(500); await shut();
 
 console.log('\nthe cup is singles all week');
 await tab('Ryder Cup');

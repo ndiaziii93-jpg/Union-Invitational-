@@ -646,8 +646,12 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
    swipe across the sub-tabs that drifts a few degrees off level drags the
    whole page up and down under your thumb, which reads as the row being
    loose. pan-x tells the browser: this one pans across, nothing else. */
-.scroller,.tabs,.daystrip,.btabs{-webkit-overflow-scrolling:touch;
-  overscroll-behavior:contain;touch-action:pan-x}
+.scroller,.tabs,.daystrip,.btabs{overscroll-behavior:contain;touch-action:pan-x}
+/* -webkit-overflow-scrolling:touch is deliberately NOT set on the sub-tabs.
+   It hands the element to WebKit's legacy momentum scroller, which is one of
+   the places touch-action stops being honoured — and a strip that ignores
+   pan-x is the whole complaint. The other scrollers keep it. */
+.scroller,.daystrip{-webkit-overflow-scrolling:touch}
 .scroller{scroll-snap-type:x proximity}
 .scroller table{scroll-snap-align:start}
 
