@@ -1228,8 +1228,9 @@ function splashDown() {
   // nothing came forward, so there is nothing to take back
   if (!splashShown) { go(); return; }
   if (mark && !mark.classList.contains('leading')) return;
-  /* Long enough to have been a moment rather than a blink. */
-  setTimeout(go, Math.max(0, 780 - (Date.now() - splashAt)));
+  /* Six hundred of those milliseconds are the crest still arriving, so the
+     hold has to clear that before it counts as having been seen at all. */
+  setTimeout(go, Math.max(0, 1150 - (Date.now() - splashAt)));
 }
 
 /* The competition strip pans across, and only across.
