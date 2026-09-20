@@ -112,6 +112,21 @@ ok('the days are all still there to read', await p.locator('.daycard').count(), 
 await p.locator('[data-act="calUnlock"]').click(); await p.waitForTimeout(700); await shut();
 ok('the master can open it again', await p.locator('[data-act="addEvent"]').count(), 8);
 
+/* pan-x on every horizontal scroller stopped the page moving under a thumb
+   resting on the roster table, which reads as the scrolling sticking at the
+   band column. A wide table must let the page past; only the tab strip,
+   which has no vertical meaning, may keep a gesture to itself. */
+console.log('\nthe roster lets the page past');
+await tab('Roster & Pairings');
+ok('the roster table sits in a scroller', await p.locator('.scroller .rtable').count() > 0, true);
+ok('and that scroller does not claim vertical gestures', await p.evaluate(
+  () => getComputedStyle(document.querySelector('.scroller')).touchAction), 'auto');
+ok('the tab strip still does', await p.evaluate(() => {
+  const el = document.createElement('div'); el.className = 'btabs';
+  document.body.appendChild(el);
+  const v = getComputedStyle(el).touchAction; el.remove(); return v;
+}), 'pan-x');
+
 console.log('\nthe band is worn, not ticked');
 await tab('Roster & Pairings');
 ok('every band is a crest', await p.locator('.bandcrest svg path.sh').count() >= 4, true);
@@ -178,6 +193,20 @@ ok('and the page is held still', diag.prevented, true);
 
 const steep = await flick(-20, 120);        // barely sideways, mostly down
 ok('even a mostly-vertical drag on the strip is refused the page', steep.prevented, true);
+/* Tapping a sub-tab at the far right took you to the right page and then
+   snapped the row back to the far left, because the strip is rebuilt at its
+   left edge on every redraw. */
+const last = p.locator('.btab').last();
+await last.scrollIntoViewIfNeeded();
+const wasAt = await p.evaluate(() => document.querySelector('.btabs').scrollLeft);
+ok('the strip was scrolled across to reach it', wasAt > 0, true);
+await last.click(); await p.waitForTimeout(700); await shut();
+ok('the tab that was tapped is the one now on', await p.evaluate(
+  () => { const on = document.querySelector('.btab.on'); const all = [...document.querySelectorAll('.btab')];
+          return all.indexOf(on) === all.length - 1; }), true);
+ok('and the row did not snap back to the left', await p.evaluate(
+  () => document.querySelector('.btabs').scrollLeft > 0), true);
+
 await p.setViewportSize({ width: 1280, height: 1000 }); await p.waitForTimeout(500); await shut();
 
 console.log('\nthe cup is singles all week');

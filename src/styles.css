@@ -646,12 +646,20 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
    swipe across the sub-tabs that drifts a few degrees off level drags the
    whole page up and down under your thumb, which reads as the row being
    loose. pan-x tells the browser: this one pans across, nothing else. */
-.scroller,.tabs,.daystrip,.btabs{overscroll-behavior:contain;touch-action:pan-x}
-/* -webkit-overflow-scrolling:touch is deliberately NOT set on the sub-tabs.
-   It hands the element to WebKit's legacy momentum scroller, which is one of
-   the places touch-action stops being honoured — and a strip that ignores
-   pan-x is the whole complaint. The other scrollers keep it. */
+.scroller,.tabs,.daystrip,.btabs{overscroll-behavior:contain}
 .scroller,.daystrip{-webkit-overflow-scrolling:touch}
+
+/* pan-x belongs to the THIN TAB STRIP and nowhere else.
+   Applying it to every horizontal scroller was a mistake: the roster table
+   sits in one, so a vertical drag anywhere over the roster was refused and
+   the page simply would not move — it read as the scrolling sticking at the
+   band column, which is where a thumb happens to land. A wide table must let
+   the page past; only a row of tabs, which has no vertical meaning at all,
+   may keep a gesture to itself.
+   -webkit-overflow-scrolling is left off the tabs on purpose: it hands the
+   element to WebKit's legacy momentum scroller, one of the places
+   touch-action stops being honoured. */
+.btabs{touch-action:pan-x}
 .scroller{scroll-snap-type:x proximity}
 .scroller table{scroll-snap-align:start}
 
@@ -693,6 +701,31 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
   border:none;border-bottom:1px dashed var(--rule);border-radius:0;min-height:40px}
 .cellin.sm{width:120px}
 .cellin:focus{outline:none;border-bottom-color:var(--flag)}
+/* ---- the crest, on the way in ----
+   It covers the moment the book is already spending on finding itself, then
+   opens outward as the page settles into place behind it. */
+.splash{position:fixed;inset:0;z-index:200;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:14px;background:var(--paper);
+  transition:opacity .55s ease,transform .55s cubic-bezier(.3,0,.2,1)}
+.splash img{width:min(44vw,196px);height:auto;display:block;
+  animation:crestIn .75s cubic-bezier(.2,.7,.2,1) both}
+.splash .sp-s{font-size:13px;letter-spacing:.08em;color:var(--turf);text-align:center;
+  max-width:24ch;line-height:1.5;
+  animation:crestIn .75s cubic-bezier(.2,.7,.2,1) .12s both}
+.splash.going{opacity:0;transform:scale(1.14);pointer-events:none}
+@keyframes crestIn{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:scale(1)}}
+
+/* the book, arriving from just behind the crest */
+#app.behind{opacity:0;transform:scale(.982)}
+#app.arrived{opacity:1;transform:none;
+  transition:opacity .5s ease,transform .55s cubic-bezier(.3,0,.2,1)}
+
+@media (prefers-reduced-motion:reduce){
+  .splash,.splash img,.splash .sp-s,#app.arrived{animation:none;transition:opacity .25s ease}
+  .splash.going{transform:none}
+  #app.behind{transform:none}
+}
+
 /* ---- the playing band, as a crest ----
    Faint and hollow until it is chosen, then filled in the pine green of the
    crest with the number struck through it. The whole thing is one button:

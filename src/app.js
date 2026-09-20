@@ -1168,6 +1168,79 @@ function restoreDraft() {
   } catch (e) { /* nothing carried over */ }
 }
 
+/* The crest, while the book is finding itself.
+ *
+ * A splash screen that ADDS time is a bad bargain: the refs open this on
+ * every hole and would come to hate it. But an installed app already has a
+ * dead moment between the icon being tapped and the tournament arriving from
+ * the database, and that moment is currently a blank page. The crest fills
+ * time that is being spent anyway, and leaves the instant the book is ready.
+ *
+ * So there is no fixed duration. It goes when the store says it has the
+ * tournament, with a floor of four hundred milliseconds so a fast open is a
+ * flourish rather than a flicker, and a ceiling so a bad connection can never
+ * hold the book up behind it.
+ *
+ * The book is NOT hidden by a stylesheet. If any of this failed to run, a
+ * rule like that would leave a blank page for ever; the class that hides it
+ * is only ever added by the same code that removes it. */
+let splashAt = 0;
+let splashTimer = null;
+let splashShown = false;
+
+/* Armed, not shown. The book is held back from the first paint, and the
+   crest only appears if the tournament has not arrived within a sixth of a
+   second. A fast open therefore shows no crest at all — the page simply
+   appears — because a splash is only worth anything while there is a wait to
+   cover, and adds insult when there is not. */
+function splashArm() {
+  if (typeof document === 'undefined' || !IMG.crest) return;
+  const app = document.getElementById('app');
+  if (!app) return;
+  app.classList.add('behind');
+  /* A third of a second. Below that there is no wait worth covering, and a
+     crest would be adding the very delay it pretends to hide. */
+  splashTimer = setTimeout(splashUp, 350);
+  setTimeout(splashDown, 2200);          // whatever happens, the book appears
+}
+
+function splashUp() {
+  if (typeof document === 'undefined' || !IMG.crest) return;
+  const app = document.getElementById('app');
+  if (!app || splashShown) return;
+  splashShown = true;
+  const el = document.createElement('div');
+  el.className = 'splash';
+  el.id = 'splash';
+  /* The crest carries the wordmark already; setting the name under it again
+     just prints the same thing twice. The line that earns its place is the
+     one the crest does not say. */
+  el.innerHTML = '<img src="' + IMG.crest + '" alt="The Union Invitational">'
+    + '<span class="sp-s">Belek, T\u00fcrkiye \u2014 26 October to 2 November 2026</span>';
+  document.body.appendChild(el);
+  splashAt = Date.now();
+}
+
+function splashDown() {
+  clearTimeout(splashTimer);
+  const el = document.getElementById('splash');
+  const show = () => {
+    const app = document.getElementById('app');
+    if (app) { app.classList.remove('behind'); app.classList.add('arrived'); }
+  };
+  /* Nothing was ever drawn: there was no dead time, so the book just appears
+     and no time is spent pretending otherwise. */
+  if (!el) { show(); return; }
+  if (el.classList.contains('going')) return;
+  // it was shown, so let it be seen rather than blink — but barely
+  const wait = Math.max(0, 260 - (Date.now() - splashAt));
+  setTimeout(() => {
+    el.classList.add('going');
+    show();
+    setTimeout(() => { if (el.parentNode) el.remove(); }, 700);
+  }, wait);
+}
+
 /* The competition strip pans across, and only across.
  *
  * `touch-action: pan-x` is the declarative way to say this, and it is still
@@ -1880,6 +1953,11 @@ function paint() {
   const wasAt = window.scrollY;
   const box = document.getElementById('recapBox');
   const boxAt = box ? box.scrollTop : 0;
+  /* A strip that scrolls sideways is rebuilt at its left edge, so tapping a
+     sub-tab at the far right took you to the right page and then snapped the
+     row back to Team Comp. The same screen rebuilds to the same shape, so
+     each strip is put back where it was. */
+  const strips = [...document.querySelectorAll('.btabs, .scroller')].map(el => el.scrollLeft);
   const body = { today: scrToday, boards: scrBoards, ryder: scrRyder, calendar: scrCalendar,
                  entry: scrEntry, roster: scrRoster, rules: scrRules, courses: scrCourses,
                  setup: scrSetup }[UI.screen]();
@@ -1947,6 +2025,21 @@ function paint() {
   const box2 = document.getElementById('recapBox');
   if (box2 && boxAt) box2.scrollTop = boxAt;
   if (wasAt && !UI.recapOpen) window.scrollTo(0, wasAt);
+
+  const strips2 = [...document.querySelectorAll('.btabs, .scroller')];
+  strips2.forEach((el, i) => { if (strips[i]) el.scrollLeft = strips[i]; });
+  /* And whatever was just chosen has to be visible, even if it was off the
+     end before the tap — a sub-tab you cannot see is a sub-tab you cannot
+     tap again. */
+  const chosen = document.querySelector('.btab.on');
+  if (chosen && chosen.parentElement) {
+    const strip = chosen.parentElement;
+    const left = chosen.offsetLeft, right = left + chosen.offsetWidth;
+    if (left < strip.scrollLeft) strip.scrollLeft = Math.max(0, left - 16);
+    else if (right > strip.scrollLeft + strip.clientWidth) {
+      strip.scrollLeft = right - strip.clientWidth + 16;
+    }
+  }
 
   if (UI.askOpen && UI.askFocus) {
     UI.askFocus = false;
@@ -2733,6 +2826,11 @@ export function boot() {
 
   store = S.createStore((state, m) => {
     T = state; meta = m;
+    /* `ready` means the subscriptions are registered, which happens almost at
+       once and well before any tournament has arrived. `settled` means the
+       book actually has the config and the roster in hand — that is the wait
+       worth covering, and the moment there is something to show. */
+    if (m.settled) splashDown();
     if (m.ready && !UI.setupSeen) {
       UI.setupSeen = true;
       const saved = loadRole();
@@ -2770,6 +2868,7 @@ export function boot() {
   });
   app.addEventListener('keydown', onKey);
   lockStripsSideways();
+  splashArm();
   /* What was typed, kept as it is typed. `keydown` fires before the character
      lands, so reading the value there is always one keystroke behind — and a
      redraw arriving mid-sentence then rendered the box without the last

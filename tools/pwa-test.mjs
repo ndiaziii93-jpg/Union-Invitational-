@@ -50,6 +50,19 @@ ok('the book rendered', await p.locator('.masthead h1').innerText(), 'The Union 
 ok('and it does not scroll sideways', await p.evaluate(
   () => document.documentElement.scrollWidth - document.documentElement.clientWidth <= 1), true);
 
+/* The crest covers the moment the book spends finding itself, and must get
+   out of the way on its own. The failure that matters is not an ugly
+   animation: it is a splash that never clears and leaves a blank page. */
+console.log('\nthe crest, on the way in');
+ok('the book is visible by the time it settles', await p.evaluate(
+  () => { const a = document.getElementById('app');
+          return !a.classList.contains('behind') && a.getBoundingClientRect().height > 100; }), true);
+ok('and the crest has taken itself away', await p.locator('.splash').count(), 0);
+ok('the book is not hidden by a stylesheet, only by a class', await p.evaluate(() => {
+  const rules = [...document.styleSheets].flatMap(sh => { try { return [...sh.cssRules]; } catch (e) { return []; } });
+  return rules.some(r => r.selectorText === '#app' && /opacity\s*:\s*0/.test(r.cssText || ''));
+}), false);
+
 console.log('\nit asks to be installed');
 const mf = await p.evaluate(async () => {
   const link = document.querySelector('link[rel=manifest]');
