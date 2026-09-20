@@ -94,6 +94,49 @@ console.log('\nthe look of it');
 ok('a hole cell has soft corners', await p.locator('.hcell').first().evaluate(
   el => parseFloat(getComputedStyle(el).borderTopLeftRadius) >= 6), true);
 
+console.log('\nthe calendar is one week, and it can be settled');
+await tab('Calendar');
+ok('the day view is gone', await p.locator('[data-act="calView"]').count(), 0);
+ok('the whole week is on the page', await p.locator('.daycard').count(), 8);
+ok('and every day can take a fixture', await p.locator('[data-act="addEvent"]').count(), 8);
+const before = await p.locator('.de').count();
+await p.locator('[data-act="addEvent"]').first().click(); await p.waitForTimeout(700); await shut();
+ok('adding one adds one', await p.locator('.de').count(), before + 1);
+
+/* The week gets settled once and then stops moving — a stray tap on one
+   phone should not shift dinner on everyone else's. */
+await p.locator('[data-act="calLock"]').click(); await p.waitForTimeout(700); await shut();
+ok('locked, nothing can be added', await p.locator('[data-act="addEvent"]').count(), 0);
+ok('and no fixture is editable', await p.locator('.de.edit').count(), 0);
+ok('the days are all still there to read', await p.locator('.daycard').count(), 8);
+await p.locator('[data-act="calUnlock"]').click(); await p.waitForTimeout(700); await shut();
+ok('the master can open it again', await p.locator('[data-act="addEvent"]').count(), 8);
+
+console.log('\nthe band is worn, not ticked');
+await tab('Roster & Pairings');
+ok('every band is a crest', await p.locator('.bandcrest svg path.sh').count() >= 4, true);
+const crest = p.locator('.bandcrest').first();
+const faint = await crest.evaluate(el => getComputedStyle(el).opacity);
+await crest.click(); await p.waitForTimeout(600); await shut();
+ok('choosing one turns it on', await p.locator('.bandcrest.on').count() >= 1, true);
+ok('and it stops being faint', await p.locator('.bandcrest.on').first()
+  .evaluate(el => parseFloat(getComputedStyle(el).opacity) > parseFloat('' + 0)), true);
+ok('it was faint before', parseFloat(faint) < 1, true);
+ok('the number is real text, not a drawing', await p.locator('.bandcrest .bn').first().innerText(), '15');
+
+console.log('\nthe shape of the book');
+ok('Rules comes after Course Setup', await p.evaluate(() => {
+  const t = [...document.querySelectorAll('.tab')].map(x => x.dataset.a);
+  return t.indexOf('rules') > t.indexOf('courses');
+}), true);
+ok('a finished round glows all over, not at the edges', await p.evaluate(() => {
+  const r = [...document.styleSheets].flatMap(sh => { try { return [...sh.cssRules]; } catch (e) { return []; } })
+    .filter(x => x.name === 'recappulse');
+  return r.length ? [...r[0].cssRules].some(k => /brightness/.test(k.cssText)) : false;
+}), true);
+ok('the strips only pan sideways', await p.evaluate(
+  () => getComputedStyle(document.querySelector('.tabs, .btabs')).touchAction), 'pan-x');
+
 console.log('\nthe cup is singles all week');
 await tab('Ryder Cup');
 const fmts = await p.locator('.sub').allInnerTexts();

@@ -71,10 +71,13 @@ for (const [label, vp, mob] of [['phone 390', { width: 390, height: 844 }, true]
   await set(p.locator('.teetimes .timepick').nth(1), '', '', '');
   ok('clearing all three empties the slot', (await teeTimes())[1], null);
 
-  // --- calendar fixtures pick the same way ---
+  /* Calendar fixtures pick the same way. There is no day view any more —
+     the week itself is the editing surface, so the picker sits in the day
+     card rather than behind a second click. */
   await tab('Calendar');
-  await p.locator('[data-act="calView"][data-a="day"]').click(); await p.waitForTimeout(500); await clear();
-  const fx = p.locator('.fx').filter({ has: p.locator('.timepick') }).first();
+  ok('the week is the only view', await p.locator('[data-act="calView"]').count(), 0);
+  ok('and every day of it is there', await p.locator('.daycard').count(), 8);
+  const fx = p.locator('.de.edit').filter({ has: p.locator('.timepick') }).first();
   ok('a fixture is picked too', await fx.locator('.timepick select').count(), 3);
   await set(fx.locator('.timepick'), '6', '15', 'PM');
   ok('6:15 PM is kept as 18:15', await firstFixture(), '18:15');

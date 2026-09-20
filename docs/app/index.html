@@ -152,7 +152,7 @@ a{color:var(--green);text-underline-offset:3px}
 .tabs{display:flex;gap:6px;overflow-x:auto;align-items:flex-end;border-bottom:2px solid var(--ink);padding:10px 2px 0}
 .tab{padding:11px 21px;font-size:17px;color:var(--turf);background:var(--page);border:1px solid var(--rule);
   border-bottom:none;white-space:nowrap;min-height:44px;border-radius:9px 9px 0 0}
-.tab:hover{color:var(--ink);background:var(--sunk)}
+@media (hover:hover) and (pointer:fine) { .tab:hover{color:var(--ink);background:var(--sunk)} }
 .tab[aria-current="page"]{background:var(--ink);border-color:var(--ink);color:var(--paper);font-weight:700}
 
 /* ---- generic blocks ---- */
@@ -552,8 +552,14 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
   border-bottom:1px solid var(--rule);padding-bottom:0}
 .btab{padding:6px 0 11px;font-size:19px;color:var(--turf);white-space:nowrap;
   border-bottom:3px solid transparent;margin-bottom:-1px}
-.btab:hover{color:var(--ink)}
+/* A finger has no hover. On a touch screen the :hover state sticks to
+   whatever was last tapped until something else is tapped — so the tab you
+   just left kept the dark ink it takes on hover, while losing the weight and
+   the underline that marked it as chosen. Black, unbolded, and wrong, which
+   is exactly what it looked like. Hover belongs to devices that have one. */
+@media (hover:hover) and (pointer:fine) { .btab:hover{color:var(--ink)} }
 .btab.on{color:var(--ink);font-weight:700;border-bottom-color:var(--ink)}
+.btab:focus-visible{color:var(--ink);outline:2px solid var(--green);outline-offset:2px}
 .titlerow{display:flex;align-items:baseline;gap:18px;flex-wrap:wrap}
 .titlerow .head{margin-top:22px}
 
@@ -591,6 +597,17 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
 .rows.tight .rowhead{border-bottom:2px solid var(--ink)}
 .row .who.plain{font-weight:400;font-size:17px}
 .legend{font-size:15px;color:var(--turf);font-style:italic;margin:10px 0 0;text-align:right}
+/* The week is the calendar. A day that can be edited holds its fixtures as
+   controls rather than as text, so the card grows a little and its rows stop
+   being one line. */
+.daycard.editing{cursor:default}
+.de.edit{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:5px 0;
+  border-top:1px solid var(--hair)}
+.de.edit .fxtitle{flex:1 1 130px;min-width:0;font-size:15px}
+.de.edit .field.small{flex:0 0 auto}
+.daddb{margin-top:8px;width:100%;font-size:15px;padding:8px 12px}
+.teehead{font-size:17px;font-weight:700;margin:22px 0 4px}
+
 .turn{font-size:15px;color:var(--turf);font-style:italic;margin:14px 0 0}
 
 /* ---- save-per-hole ---- */
@@ -620,8 +637,12 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
 
 @media (max-width:820px){
   /* the nav wraps instead of scrolling, using the short labels */
-  .tabs{flex-wrap:wrap;overflow-x:visible;gap:5px}
-  .tab{padding:9px 14px;font-size:16px;min-height:44px;flex:1 1 auto;text-align:center}
+  /* Nine tabs laid in even columns rather than a wrapping row. A row that
+     wraps gives its last line whatever is left over, which is how Setup came
+     to sit alone across the whole bottom. */
+  .tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;
+    overflow-x:visible;touch-action:auto}
+  .tab{padding:9px 10px;font-size:16px;min-height:44px;text-align:center}
   .tab .lg{display:none}
   .tab .sm{display:inline}
 
@@ -661,6 +682,8 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
   .cside{max-width:none;align-self:auto}
   .btabs{gap:20px}
   .btab{font-size:17px}
+  /* three across, three down: nine tabs, no odd one out */
+  .tabs{grid-template-columns:repeat(3,1fr)}
   .legend{text-align:left}
 }
 
@@ -688,7 +711,12 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
 }
 
 /* A container that still scrolls sideways says so, and snaps as you swipe. */
-.scroller,.tabs,.daystrip,.btabs{-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+/* A strip that scrolls sideways should only scroll sideways. Without this a
+   swipe across the sub-tabs that drifts a few degrees off level drags the
+   whole page up and down under your thumb, which reads as the row being
+   loose. pan-x tells the browser: this one pans across, nothing else. */
+.scroller,.tabs,.daystrip,.btabs{-webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;touch-action:pan-x}
 .scroller{scroll-snap-type:x proximity}
 .scroller table{scroll-snap-align:start}
 
@@ -730,10 +758,45 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
   border:none;border-bottom:1px dashed var(--rule);border-radius:0;min-height:40px}
 .cellin.sm{width:120px}
 .cellin:focus{outline:none;border-bottom-color:var(--flag)}
+/* ---- the playing band, as a crest ----
+   Faint and hollow until it is chosen, then filled in the pine green of the
+   crest with the number struck through it. The whole thing is one button:
+   the drawing carries no text, so the number stays real text. */
+.bandrow{display:flex;gap:7px;flex-wrap:wrap}
+.bandcrest{position:relative;width:42px;height:48px;padding:0;background:none;border:0;
+  line-height:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.bandcrest svg{width:100%;height:100%;display:block;overflow:visible}
+.bandcrest .sh{fill:var(--sunk);stroke:var(--rule);stroke-width:1.6;
+  transition:fill .22s ease,stroke .22s ease}
+.bandcrest .in{fill:none;stroke:var(--rule);stroke-width:.9;opacity:.65;
+  transition:stroke .22s ease,opacity .22s ease}
+.bandcrest .bn{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  padding-bottom:5px;font-size:15px;font-weight:600;color:var(--turf);line-height:1;
+  transition:color .22s ease}
+.bandcrest{opacity:.62;transition:opacity .22s ease,transform .18s ease}
+
+/* chosen: the ink goes on, and the crest lifts off the page a little */
+.bandcrest.on{opacity:1;filter:drop-shadow(0 2px 3px var(--shadow))}
+.bandcrest.on .sh{fill:var(--green);stroke:var(--ink)}
+.bandcrest.on .in{stroke:var(--paper);opacity:.5}
+.bandcrest.on .bn{color:var(--paper);font-weight:700;font-size:16px}
+
+@media (hover:hover) and (pointer:fine){
+  .bandcrest:not(:disabled):hover{opacity:1;transform:translateY(-1px)}
+  .bandcrest:not(:disabled):hover .sh{stroke:var(--ink)}
+}
+.bandcrest:disabled{cursor:not-allowed;opacity:.4}
+.bandcrest.on:disabled{opacity:.75}
+.bandcrest:focus-visible{outline:2px solid var(--green);outline-offset:3px;border-radius:4px}
+@media (prefers-reduced-motion:reduce){
+  .bandcrest,.bandcrest .sh,.bandcrest .in,.bandcrest .bn{transition:none}
+}
+
 .tog{display:flex;gap:4px}
 .tbtn{padding:7px 11px;border:1px solid var(--rule);background:var(--page);color:var(--turf);
   font-size:15px;border-radius:2px;min-height:40px;font-variant-numeric:tabular-nums}
-.tbtn:hover:not(:disabled){border-color:var(--ink);color:var(--ink)}
+@media (hover:hover) and (pointer:fine) {
+  .tbtn:hover:not(:disabled){border-color:var(--ink);color:var(--ink)} }
 .tbtn.on{background:var(--ink);border-color:var(--ink);color:var(--paper);font-weight:600}
 .tbtn:disabled{opacity:.55}
 .cfoot-note{font-size:14px;color:var(--turf);flex:1 1 240px;min-width:0}
@@ -860,10 +923,10 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
    opens it — a slow glow, not a strobe, and nothing at all for anyone who
    has asked their device to stop moving things. */
 @keyframes recappulse{
-  0%,100%{box-shadow:0 0 0 0 rgba(31,74,45,0)}
-  50%{box-shadow:0 0 0 7px rgba(31,74,45,.16)}
+  0%,100%{box-shadow:0 0 0 0 rgba(62,92,67,0);filter:brightness(1)}
+  50%{box-shadow:0 0 26px 6px rgba(62,92,67,.5);filter:brightness(1.22)}
 }
-.recapbtn.ready{animation:recappulse 2.4s ease-in-out infinite}
+.recapbtn.ready{animation:recappulse 2.2s ease-in-out infinite}
 @media (prefers-reduced-motion:reduce){.recapbtn.ready{animation:none}}
 
 .askbox{background:var(--page);border:1px solid var(--rule);border-radius:4px;
@@ -1054,7 +1117,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20260919-1928';
+const BUILD = '20260920-0727';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -2517,6 +2580,8 @@ function defaultConfig() {
     schedule: SCHEDULE.map(e => ({ ...e })),
     pins: { ...DEFAULT_PINS },
     pinsChanged: false,
+    // the week stops moving once it is settled; only the master can reopen it
+    calLocked: false,
     // The pair leading after a counting round picks the next round's tee time.
     // Two picks only: Thursday's leader picks Friday, Friday's leader picks Sunday.
     teePicks: { r2: { done: false, time: null, byPair: null }, r3: { done: false, time: null, byPair: null } },
@@ -3342,7 +3407,6 @@ const UI = {
   entryTee: '0',
   courseTab: 'aspendos',
   courseHole: 0,
-  calDay: null,
   modal: null,       // {title, note, onOk(pin) -> string|null err}
   modalErr: '',
   revealPins: false,
@@ -4331,12 +4395,6 @@ function scrRyder() {
   `).join('')}`;
 }
 
-function calDayNumber() {
-  if (UI.calDay) return UI.calDay;
-  const i = D.DAYS.findIndex(d => d.iso === now.iso);
-  return i >= 0 ? i + 1 : 1;
-}
-
 /** Everything happening on a trip day: the round, then the social calendar.
  *  The round is fixed here — its time is set with the tee slots below. */
 function dayEntries(n) {
@@ -4360,26 +4418,34 @@ function isRestDay(n) {
 function roundOnDay(n) { return D.ROUNDS.find(r => r.dayIdx === n) || null; }
 
 function scrCalendar() {
-  const view = UI.calView === 'day' ? 'day' : 'week';
+  const locked = !!T.config.calLocked;
+  const ed = canEdit() && !locked;
+  const kinds = [['social', 'Social'], ['ceremony', 'Ceremony'], ['travel', 'Travel']];
+
   return `<div class="titlerow">
     <h2 class="head">Calendar</h2>
-    <div class="seg" role="group" aria-label="Calendar view">
-      <button class="segb${view === 'week' ? ' on' : ''}" data-act="calView" data-a="week">Week</button>
-      <button class="segb${view === 'day' ? ' on' : ''}" data-act="calView" data-a="day">Day</button>
-    </div>
   </div>
-  ${view === 'week' ? calWeek() : calDay()}`;
-}
+  <p class="lede">The whole week at once. ${locked
+    ? 'The calendar is locked — the week is settled.'
+    : ed ? 'Add a fixture to any day, change a time, or take one off.'
+    : 'Ask a scorer to change a fixture.'}</p>
 
-function calWeek() {
-  return `<div class="weekgrid">
+  ${canAdmin() ? `<div class="gate${locked ? '' : ' want'}">
+    <div class="msg"><b>${locked ? 'The calendar is locked' : 'The calendar is open for editing'}</b>
+      <span>${locked
+        ? 'Nobody can add, move or remove a fixture. Unlock it to make a change.'
+        : 'Anyone who can score can change the week. Lock it once it is settled.'}</span></div>
+    <button class="btn${locked ? ' ghost' : ''}" data-act="${locked ? 'calUnlock' : 'calLock'}">${
+      locked ? 'Unlock the calendar' : 'Lock the calendar'}</button>
+  </div>` : ''}
+
+  <div class="weekgrid">
     ${D.DAYS.map(d => {
       const es = dayEntries(d.n);
       const golf = es.find(e => e.kind === 'golf');
       const rest = isRestDay(d.n);
       const social = es.filter(e => e.kind !== 'golf');
-      return `<button class="daycard${d.iso === now.iso ? ' today' : ''}" data-act="calDay" data-a="${d.n}"
-        aria-label="${esc(d.dow)} ${esc(d.date)}, day ${d.n}. Open and edit.">
+      return `<div class="daycard${d.iso === now.iso ? ' today' : ''}${ed ? ' editing' : ''}">
         <span class="dhead">
           <span class="dn num">${d.n}</span>
           <span class="dl">${esc(d.dow)} ${esc(d.date)}</span>
@@ -4389,65 +4455,54 @@ function calWeek() {
           <span class="t num">${esc(golf.time ? E.to12(golf.time) : 'Tee time to set')}</span>
           <span class="ti">${esc(golf.title)}</span>
           <span class="sub">${esc(golf.sub)}</span></span>` : ''}
-        ${rest ? `<span class="drest">Rest day — no golf, bar open.</span>` : ''}
-        ${social.length ? `<span class="dlist">${social.map(e => `<span class="de">
-          <span class="t num">${esc(E.to12(e.time))}</span>
-          <span class="ti ${esc(e.kind)}">${esc(e.title)}</span></span>`).join('')}</span>` : ''}
-      </button>`;
+        ${rest && !social.length ? `<span class="drest">Rest day — no golf, bar open.</span>` : ''}
+
+        ${social.length ? `<span class="dlist">${social.map(e => (ed
+          ? `<span class="de edit">
+              ${timePick(e.time, { kind: 'event', a: e.id, ed: true, clearable: false,
+                                   label: 'Time of ' + e.title })}
+              <input class="fxtitle live" type="text" value="${esc(e.title)}" maxlength="60"
+                aria-label="Title of fixture" data-act="setEventField" data-a="${e.id}" data-b="title">
+              <select class="field small" data-act="setEventField" data-a="${e.id}" data-b="kind"
+                aria-label="Kind of fixture">${kinds.map(([k, l]) =>
+                  `<option value="${k}"${e.kind === k ? ' selected' : ''}>${l}</option>`).join('')}</select>
+              <button class="rm" data-act="removeEvent" data-a="${e.id}">Remove</button>
+            </span>`
+          : `<span class="de">
+              <span class="t num">${esc(E.to12(e.time))}</span>
+              <span class="ti ${esc(e.kind)}">${esc(e.title)}</span></span>`)).join('')}</span>` : ''}
+
+        ${ed ? `<button class="dashb daddb" data-act="addEvent" data-a="${d.n}">Add a fixture</button>` : ''}
+      </div>`;
     }).join('')}
   </div>
-  <p class="turn">Tap a day to open and edit it.</p>`;
+
+  ${teeBlocks()}`;
 }
 
-function calDay() {
-  const n = calDayNumber();
-  const day = E.dayOf(n);
-  const es = dayEntries(n);
-  const r = roundOnDay(n);
+/* The tee times belong to the rounds, not to the squares of the week, so
+   they sit under it rather than inside a day. Four rounds, all on one page,
+   which is how they are actually set: the night before, in one go. */
+function teeBlocks() {
   const ed = canEdit();
-  const kinds = [['social', 'Social'], ['ceremony', 'Ceremony'], ['travel', 'Travel']];
-
-  return `<div class="daystrip nos">
-    ${D.DAYS.map(d => `<button class="dayb${d.n === n ? ' on' : ''}" data-act="calDay" data-a="${d.n}"
-      aria-label="Day ${d.n}, ${esc(d.dow)} ${esc(d.date)}"${d.n === n ? ' aria-current="true"' : ''}>
-      <span class="num">${d.n}</span><span>${esc(d.dow.slice(0, 3))}</span></button>`).join('')}
-  </div>
-
-  <h3 class="dayhead">${esc(day.dow)} ${esc(day.date)} <span>day ${n} of 8</span></h3>
-  ${isRestDay(n) ? `<p class="drest big">Rest day. No golf; Mandatory Team Beers still stands at 7:00 PM.</p>` : ''}
-
-  <div class="fixtures">
-    ${es.map(e => `<div class="fx">
-      ${e.fixed
-        ? `<span class="fxtime num">${esc(e.time ? E.to12(e.time) : '—')}</span>
-           <span class="fxtitle golf">${esc(e.title)}</span>
-           <span class="fxnote">Golf — tee slots below</span>`
-        : `${timePick(e.time, { kind: 'event', a: e.id, ed, clearable: false, label: 'Time of ' + e.title })}
-           <input class="fxtitle${ed ? ' live' : ''}" type="text" value="${esc(e.title)}" aria-label="Title" maxlength="60"
-             data-act="setEventField" data-a="${e.id}" data-b="title"${ed ? '' : ' disabled'}>
-           ${ed ? `<select class="field small" data-act="setEventField" data-a="${e.id}" data-b="kind" aria-label="Kind of fixture">
-             ${kinds.map(([k, l]) => `<option value="${k}"${e.kind === k ? ' selected' : ''}>${l}</option>`).join('')}</select>
-           <button class="rm" data-act="removeEvent" data-a="${e.id}">Remove</button>`
-           : `<span class="fxnote">${esc(kinds.find(k => k[0] === e.kind) ? kinds.find(k => k[0] === e.kind)[1] : e.kind)}</span>`}`}
-    </div>`).join('')}
-    ${ed ? `<button class="dashb" data-act="addEvent" data-a="${n}">Add fixture</button>` : ''}
-  </div>
-
-  ${r ? `<div class="teeblock">
-    <h3 class="sub" style="margin-top:30px">Tee times — ${esc(E.courseOf(T, r.id).name)}</h3>
-    <p class="lede">A group is two pairs, taken in the order they sit on Roster &amp; Pairings — so Group 1 is the
-    first two pairs off. Change the pairings and the groups follow.</p>
+  const rounds = D.ROUNDS.filter(r => roundOnDay(E.dayOf(r.dayIdx).n));
+  const list = rounds.length ? rounds : D.ROUNDS;
+  return `<h3 class="sub" style="margin-top:34px">Tee times</h3>
+  <p class="lede">A group is two pairs, taken in the order they sit on Roster &amp; Pairings — so Group 1 is
+  the first two pairs off. Change the pairings and the groups follow.</p>
+  ${list.map(r => `<div class="teeblock">
+    <h4 class="teehead">${esc(r.full)} — ${esc(E.dayOf(r.dayIdx).dow)}, ${esc(E.courseOf(T, r.id).name)}</h4>
     ${E.groups(T, r.id).map((g, i) => `<div class="teegroup">
       <div class="teerow">
         <span class="gl">${esc(g.label)}</span>
         ${timePick(g.time, { kind: 'tee', a: r.id, b: i, ed, clearable: true,
-          label: g.label + ' tee time' })}
+          label: g.label + ' tee time, ' + r.short })}
       </div>
       <div class="gmem">${g.pairs.length ? esc(g.pairs.join('  ·  ')) : ''}${g.members.length
         ? `<span class="gmem-names">${g.members.map(id => esc((E.person(T, id) || {}).display || '?')).join(', ')}</span>`
         : 'Nobody paired yet'}</div>
     </div>`).join('')}
-  </div>` : ''}`;
+  </div>`).join('')}`;
 }
 
 /* ---- score entry drafts ----
@@ -4798,6 +4853,36 @@ function timePick(time, o) {
   </span>`;
 }
 
+/* The playing band, worn rather than ticked.
+ *
+ * Four numbered boxes said nothing about what the number is. A band is the
+ * strokes a golfer receives — the thing they carry round the course — so it
+ * is drawn as the crest on the front of the book: faint and empty until it is
+ * theirs, then filled in the pine green of the printing ink with the number
+ * struck through the middle of it.
+ *
+ * The shield is one path so it scales cleanly, and the inner line is a second,
+ * inset copy: the detail that stops a flat silhouette looking like a bookmark.
+ * The number is real text, not part of the drawing, so it stays selectable,
+ * searchable and legible at whatever size a phone decides to use. */
+const CREST_SHIELD = 'M3 2.5h34a1.5 1.5 0 0 1 1.5 1.5v20.5c0 8.6-7.1 14.6-17.2 19.1'
+  + 'a1.8 1.8 0 0 1-1.6 0C9.6 39.1 2.5 33.1 2.5 24.5V4A1.5 1.5 0 0 1 3 2.5Z';
+const CREST_INNER = 'M7 7h26v17c0 6.2-5.2 10.9-13 14.4C12.2 34.9 7 30.2 7 24Z';
+
+function bandCrest(p, band, editable) {
+  const on = p.band === band;
+  return `<button class="bandcrest${on ? ' on' : ''}" data-act="setBand"
+    data-a="${p.id}" data-b="${band}"${editable ? '' : ' disabled'}
+    aria-pressed="${on}" aria-label="Band ${band} — ${band} strokes${on ? ', chosen' : ''}"
+    title="${band} strokes">
+    <svg viewBox="0 0 40 46" aria-hidden="true" focusable="false">
+      <path class="sh" d="${CREST_SHIELD}"></path>
+      <path class="in" d="${CREST_INNER}"></path>
+    </svg>
+    <span class="bn num">${band}</span>
+  </button>`;
+}
+
 function scrRoster() {
   const gs = E.golfers(T);
   const ed = canEdit();
@@ -4884,9 +4969,8 @@ function scrRoster() {
           })()}</td>
           <td data-l="Group">${ed ? `<select class="field small" data-act="setPerson" data-a="${p.id}" data-b="group" aria-label="Group">
                 ${['7-day', '5-day'].map(v => `<option value="${v}"${p.group === v ? ' selected' : ''}>${v}</option>`).join('')}</select>` : esc(p.group)}</td>
-          <td data-l="Band">${p.role === 'golfer' ? `<div class="tog">
-            ${E.BANDS.map(bnd => `<button class="tbtn${p.band === bnd ? ' on' : ''}" data-act="setBand"
-              data-a="${p.id}" data-b="${bnd}"${bandEd ? '' : ' disabled'} aria-pressed="${p.band === bnd}">${bnd}</button>`).join('')}
+          <td data-l="Band">${p.role === 'golfer' ? `<div class="bandrow">
+            ${E.BANDS.map(bnd => bandCrest(p, bnd, bandEd)).join('')}
           </div>` : ''}</td>
           <td data-l="">${canAdmin() ? `<button class="rm" data-act="removePerson" data-a="${p.id}">Remove</button>` : ''}</td>
         </tr>`).join('')}
@@ -5055,7 +5139,7 @@ function scrSetup() {
 const NAV = [
   ['today', 'Today', 'Today'], ['boards', 'Leaderboards', 'Boards'], ['ryder', 'Ryder Cup', 'Ryder'],
   ['calendar', 'Calendar', 'Calendar'], ['entry', 'Score Entry', 'Scores'], ['roster', 'Roster & Pairings', 'Roster'],
-  ['rules', 'Games & Rules', 'Rules'], ['courses', 'Course Setup', 'Courses'], ['setup', 'Setup', 'Setup'],
+  ['courses', 'Course Setup', 'Courses'], ['rules', 'Games & Rules', 'Rules'], ['setup', 'Setup', 'Setup'],
 ];
 
 /** A re-render replaces the whole tree, which would blow away half-typed text
@@ -5464,8 +5548,14 @@ function onClick(e) {
     case 'entryRound': guardDraft(() => { UI.entryRound = a; UI.entryHole = 0; UI.entryTee = '0'; }); return;
     case 'entryHole': guardDraft(() => { UI.entryHole = +a; }); return;
     case 'entryTee': guardDraft(() => { UI.entryTee = a; }); return;
-    case 'calView': UI.calView = a; break;
-    case 'calDay': UI.calDay = +a; UI.calView = 'day'; window.scrollTo(0, 0); break;
+    case 'calLock':
+    case 'calUnlock':
+      if (!canAdmin()) return;
+      /* The week gets settled once and then stops moving. Locking it is what
+         stops a stray tap on somebody's phone shifting dinner by an hour on
+         everyone else's. Only the master reviewer can put it back. */
+      store.writeConfig(c => { c.calLocked = act === 'calLock'; });
+      return;
     case 'addEvent':
       if (!canEdit()) return;
       store.writeConfig(c => { c.schedule.push({ id: 'e' + Date.now().toString(36), dayIdx: +a, time: '18:00', title: 'New fixture', kind: 'social' }); });

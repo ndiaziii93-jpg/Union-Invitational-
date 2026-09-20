@@ -38,7 +38,6 @@ const UI = {
   entryTee: '0',
   courseTab: 'aspendos',
   courseHole: 0,
-  calDay: null,
   modal: null,       // {title, note, onOk(pin) -> string|null err}
   modalErr: '',
   revealPins: false,
@@ -1027,12 +1026,6 @@ function scrRyder() {
   `).join('')}`;
 }
 
-function calDayNumber() {
-  if (UI.calDay) return UI.calDay;
-  const i = D.DAYS.findIndex(d => d.iso === now.iso);
-  return i >= 0 ? i + 1 : 1;
-}
-
 /** Everything happening on a trip day: the round, then the social calendar.
  *  The round is fixed here — its time is set with the tee slots below. */
 function dayEntries(n) {
@@ -1056,26 +1049,34 @@ function isRestDay(n) {
 function roundOnDay(n) { return D.ROUNDS.find(r => r.dayIdx === n) || null; }
 
 function scrCalendar() {
-  const view = UI.calView === 'day' ? 'day' : 'week';
+  const locked = !!T.config.calLocked;
+  const ed = canEdit() && !locked;
+  const kinds = [['social', 'Social'], ['ceremony', 'Ceremony'], ['travel', 'Travel']];
+
   return `<div class="titlerow">
     <h2 class="head">Calendar</h2>
-    <div class="seg" role="group" aria-label="Calendar view">
-      <button class="segb${view === 'week' ? ' on' : ''}" data-act="calView" data-a="week">Week</button>
-      <button class="segb${view === 'day' ? ' on' : ''}" data-act="calView" data-a="day">Day</button>
-    </div>
   </div>
-  ${view === 'week' ? calWeek() : calDay()}`;
-}
+  <p class="lede">The whole week at once. ${locked
+    ? 'The calendar is locked — the week is settled.'
+    : ed ? 'Add a fixture to any day, change a time, or take one off.'
+    : 'Ask a scorer to change a fixture.'}</p>
 
-function calWeek() {
-  return `<div class="weekgrid">
+  ${canAdmin() ? `<div class="gate${locked ? '' : ' want'}">
+    <div class="msg"><b>${locked ? 'The calendar is locked' : 'The calendar is open for editing'}</b>
+      <span>${locked
+        ? 'Nobody can add, move or remove a fixture. Unlock it to make a change.'
+        : 'Anyone who can score can change the week. Lock it once it is settled.'}</span></div>
+    <button class="btn${locked ? ' ghost' : ''}" data-act="${locked ? 'calUnlock' : 'calLock'}">${
+      locked ? 'Unlock the calendar' : 'Lock the calendar'}</button>
+  </div>` : ''}
+
+  <div class="weekgrid">
     ${D.DAYS.map(d => {
       const es = dayEntries(d.n);
       const golf = es.find(e => e.kind === 'golf');
       const rest = isRestDay(d.n);
       const social = es.filter(e => e.kind !== 'golf');
-      return `<button class="daycard${d.iso === now.iso ? ' today' : ''}" data-act="calDay" data-a="${d.n}"
-        aria-label="${esc(d.dow)} ${esc(d.date)}, day ${d.n}. Open and edit.">
+      return `<div class="daycard${d.iso === now.iso ? ' today' : ''}${ed ? ' editing' : ''}">
         <span class="dhead">
           <span class="dn num">${d.n}</span>
           <span class="dl">${esc(d.dow)} ${esc(d.date)}</span>
@@ -1085,65 +1086,54 @@ function calWeek() {
           <span class="t num">${esc(golf.time ? E.to12(golf.time) : 'Tee time to set')}</span>
           <span class="ti">${esc(golf.title)}</span>
           <span class="sub">${esc(golf.sub)}</span></span>` : ''}
-        ${rest ? `<span class="drest">Rest day — no golf, bar open.</span>` : ''}
-        ${social.length ? `<span class="dlist">${social.map(e => `<span class="de">
-          <span class="t num">${esc(E.to12(e.time))}</span>
-          <span class="ti ${esc(e.kind)}">${esc(e.title)}</span></span>`).join('')}</span>` : ''}
-      </button>`;
+        ${rest && !social.length ? `<span class="drest">Rest day — no golf, bar open.</span>` : ''}
+
+        ${social.length ? `<span class="dlist">${social.map(e => (ed
+          ? `<span class="de edit">
+              ${timePick(e.time, { kind: 'event', a: e.id, ed: true, clearable: false,
+                                   label: 'Time of ' + e.title })}
+              <input class="fxtitle live" type="text" value="${esc(e.title)}" maxlength="60"
+                aria-label="Title of fixture" data-act="setEventField" data-a="${e.id}" data-b="title">
+              <select class="field small" data-act="setEventField" data-a="${e.id}" data-b="kind"
+                aria-label="Kind of fixture">${kinds.map(([k, l]) =>
+                  `<option value="${k}"${e.kind === k ? ' selected' : ''}>${l}</option>`).join('')}</select>
+              <button class="rm" data-act="removeEvent" data-a="${e.id}">Remove</button>
+            </span>`
+          : `<span class="de">
+              <span class="t num">${esc(E.to12(e.time))}</span>
+              <span class="ti ${esc(e.kind)}">${esc(e.title)}</span></span>`)).join('')}</span>` : ''}
+
+        ${ed ? `<button class="dashb daddb" data-act="addEvent" data-a="${d.n}">Add a fixture</button>` : ''}
+      </div>`;
     }).join('')}
   </div>
-  <p class="turn">Tap a day to open and edit it.</p>`;
+
+  ${teeBlocks()}`;
 }
 
-function calDay() {
-  const n = calDayNumber();
-  const day = E.dayOf(n);
-  const es = dayEntries(n);
-  const r = roundOnDay(n);
+/* The tee times belong to the rounds, not to the squares of the week, so
+   they sit under it rather than inside a day. Four rounds, all on one page,
+   which is how they are actually set: the night before, in one go. */
+function teeBlocks() {
   const ed = canEdit();
-  const kinds = [['social', 'Social'], ['ceremony', 'Ceremony'], ['travel', 'Travel']];
-
-  return `<div class="daystrip nos">
-    ${D.DAYS.map(d => `<button class="dayb${d.n === n ? ' on' : ''}" data-act="calDay" data-a="${d.n}"
-      aria-label="Day ${d.n}, ${esc(d.dow)} ${esc(d.date)}"${d.n === n ? ' aria-current="true"' : ''}>
-      <span class="num">${d.n}</span><span>${esc(d.dow.slice(0, 3))}</span></button>`).join('')}
-  </div>
-
-  <h3 class="dayhead">${esc(day.dow)} ${esc(day.date)} <span>day ${n} of 8</span></h3>
-  ${isRestDay(n) ? `<p class="drest big">Rest day. No golf; Mandatory Team Beers still stands at 7:00 PM.</p>` : ''}
-
-  <div class="fixtures">
-    ${es.map(e => `<div class="fx">
-      ${e.fixed
-        ? `<span class="fxtime num">${esc(e.time ? E.to12(e.time) : '—')}</span>
-           <span class="fxtitle golf">${esc(e.title)}</span>
-           <span class="fxnote">Golf — tee slots below</span>`
-        : `${timePick(e.time, { kind: 'event', a: e.id, ed, clearable: false, label: 'Time of ' + e.title })}
-           <input class="fxtitle${ed ? ' live' : ''}" type="text" value="${esc(e.title)}" aria-label="Title" maxlength="60"
-             data-act="setEventField" data-a="${e.id}" data-b="title"${ed ? '' : ' disabled'}>
-           ${ed ? `<select class="field small" data-act="setEventField" data-a="${e.id}" data-b="kind" aria-label="Kind of fixture">
-             ${kinds.map(([k, l]) => `<option value="${k}"${e.kind === k ? ' selected' : ''}>${l}</option>`).join('')}</select>
-           <button class="rm" data-act="removeEvent" data-a="${e.id}">Remove</button>`
-           : `<span class="fxnote">${esc(kinds.find(k => k[0] === e.kind) ? kinds.find(k => k[0] === e.kind)[1] : e.kind)}</span>`}`}
-    </div>`).join('')}
-    ${ed ? `<button class="dashb" data-act="addEvent" data-a="${n}">Add fixture</button>` : ''}
-  </div>
-
-  ${r ? `<div class="teeblock">
-    <h3 class="sub" style="margin-top:30px">Tee times — ${esc(E.courseOf(T, r.id).name)}</h3>
-    <p class="lede">A group is two pairs, taken in the order they sit on Roster &amp; Pairings — so Group 1 is the
-    first two pairs off. Change the pairings and the groups follow.</p>
+  const rounds = D.ROUNDS.filter(r => roundOnDay(E.dayOf(r.dayIdx).n));
+  const list = rounds.length ? rounds : D.ROUNDS;
+  return `<h3 class="sub" style="margin-top:34px">Tee times</h3>
+  <p class="lede">A group is two pairs, taken in the order they sit on Roster &amp; Pairings — so Group 1 is
+  the first two pairs off. Change the pairings and the groups follow.</p>
+  ${list.map(r => `<div class="teeblock">
+    <h4 class="teehead">${esc(r.full)} — ${esc(E.dayOf(r.dayIdx).dow)}, ${esc(E.courseOf(T, r.id).name)}</h4>
     ${E.groups(T, r.id).map((g, i) => `<div class="teegroup">
       <div class="teerow">
         <span class="gl">${esc(g.label)}</span>
         ${timePick(g.time, { kind: 'tee', a: r.id, b: i, ed, clearable: true,
-          label: g.label + ' tee time' })}
+          label: g.label + ' tee time, ' + r.short })}
       </div>
       <div class="gmem">${g.pairs.length ? esc(g.pairs.join('  ·  ')) : ''}${g.members.length
         ? `<span class="gmem-names">${g.members.map(id => esc((E.person(T, id) || {}).display || '?')).join(', ')}</span>`
         : 'Nobody paired yet'}</div>
     </div>`).join('')}
-  </div>` : ''}`;
+  </div>`).join('')}`;
 }
 
 /* ---- score entry drafts ----
@@ -1494,6 +1484,36 @@ function timePick(time, o) {
   </span>`;
 }
 
+/* The playing band, worn rather than ticked.
+ *
+ * Four numbered boxes said nothing about what the number is. A band is the
+ * strokes a golfer receives — the thing they carry round the course — so it
+ * is drawn as the crest on the front of the book: faint and empty until it is
+ * theirs, then filled in the pine green of the printing ink with the number
+ * struck through the middle of it.
+ *
+ * The shield is one path so it scales cleanly, and the inner line is a second,
+ * inset copy: the detail that stops a flat silhouette looking like a bookmark.
+ * The number is real text, not part of the drawing, so it stays selectable,
+ * searchable and legible at whatever size a phone decides to use. */
+const CREST_SHIELD = 'M3 2.5h34a1.5 1.5 0 0 1 1.5 1.5v20.5c0 8.6-7.1 14.6-17.2 19.1'
+  + 'a1.8 1.8 0 0 1-1.6 0C9.6 39.1 2.5 33.1 2.5 24.5V4A1.5 1.5 0 0 1 3 2.5Z';
+const CREST_INNER = 'M7 7h26v17c0 6.2-5.2 10.9-13 14.4C12.2 34.9 7 30.2 7 24Z';
+
+function bandCrest(p, band, editable) {
+  const on = p.band === band;
+  return `<button class="bandcrest${on ? ' on' : ''}" data-act="setBand"
+    data-a="${p.id}" data-b="${band}"${editable ? '' : ' disabled'}
+    aria-pressed="${on}" aria-label="Band ${band} — ${band} strokes${on ? ', chosen' : ''}"
+    title="${band} strokes">
+    <svg viewBox="0 0 40 46" aria-hidden="true" focusable="false">
+      <path class="sh" d="${CREST_SHIELD}"></path>
+      <path class="in" d="${CREST_INNER}"></path>
+    </svg>
+    <span class="bn num">${band}</span>
+  </button>`;
+}
+
 function scrRoster() {
   const gs = E.golfers(T);
   const ed = canEdit();
@@ -1580,9 +1600,8 @@ function scrRoster() {
           })()}</td>
           <td data-l="Group">${ed ? `<select class="field small" data-act="setPerson" data-a="${p.id}" data-b="group" aria-label="Group">
                 ${['7-day', '5-day'].map(v => `<option value="${v}"${p.group === v ? ' selected' : ''}>${v}</option>`).join('')}</select>` : esc(p.group)}</td>
-          <td data-l="Band">${p.role === 'golfer' ? `<div class="tog">
-            ${E.BANDS.map(bnd => `<button class="tbtn${p.band === bnd ? ' on' : ''}" data-act="setBand"
-              data-a="${p.id}" data-b="${bnd}"${bandEd ? '' : ' disabled'} aria-pressed="${p.band === bnd}">${bnd}</button>`).join('')}
+          <td data-l="Band">${p.role === 'golfer' ? `<div class="bandrow">
+            ${E.BANDS.map(bnd => bandCrest(p, bnd, bandEd)).join('')}
           </div>` : ''}</td>
           <td data-l="">${canAdmin() ? `<button class="rm" data-act="removePerson" data-a="${p.id}">Remove</button>` : ''}</td>
         </tr>`).join('')}
@@ -1751,7 +1770,7 @@ function scrSetup() {
 const NAV = [
   ['today', 'Today', 'Today'], ['boards', 'Leaderboards', 'Boards'], ['ryder', 'Ryder Cup', 'Ryder'],
   ['calendar', 'Calendar', 'Calendar'], ['entry', 'Score Entry', 'Scores'], ['roster', 'Roster & Pairings', 'Roster'],
-  ['rules', 'Games & Rules', 'Rules'], ['courses', 'Course Setup', 'Courses'], ['setup', 'Setup', 'Setup'],
+  ['courses', 'Course Setup', 'Courses'], ['rules', 'Games & Rules', 'Rules'], ['setup', 'Setup', 'Setup'],
 ];
 
 /** A re-render replaces the whole tree, which would blow away half-typed text
@@ -2160,8 +2179,14 @@ function onClick(e) {
     case 'entryRound': guardDraft(() => { UI.entryRound = a; UI.entryHole = 0; UI.entryTee = '0'; }); return;
     case 'entryHole': guardDraft(() => { UI.entryHole = +a; }); return;
     case 'entryTee': guardDraft(() => { UI.entryTee = a; }); return;
-    case 'calView': UI.calView = a; break;
-    case 'calDay': UI.calDay = +a; UI.calView = 'day'; window.scrollTo(0, 0); break;
+    case 'calLock':
+    case 'calUnlock':
+      if (!canAdmin()) return;
+      /* The week gets settled once and then stops moving. Locking it is what
+         stops a stray tap on somebody's phone shifting dinner by an hour on
+         everyone else's. Only the master reviewer can put it back. */
+      store.writeConfig(c => { c.calLocked = act === 'calLock'; });
+      return;
     case 'addEvent':
       if (!canEdit()) return;
       store.writeConfig(c => { c.schedule.push({ id: 'e' + Date.now().toString(36), dayIdx: +a, time: '18:00', title: 'New fixture', kind: 'social' }); });
