@@ -92,6 +92,18 @@ const ok = (name, got, want) => { const good = got === want;
 // --- squad flag survives the echo and the null strip
 await p.locator('.tab', { hasText: 'Ryder Cup' }).first().click();
 await p.waitForTimeout(300);
+/* Arriving at the closest-to-the-pin or longest-drive hole puts a notice up,
+   once. It is a scrim, so it intercepts the next tap even though everything
+   under it still reads fine — which is how a card that was perfectly healthy
+   timed out on the plus button. */
+const shut = async () => { for (let i = 0; i < 4; i++) {
+  const m = p.locator('.scrim [data-act="modalCancel"]');
+  if (!await m.count()) return;
+  await m.first().click({ force: true }).catch(() => {});
+  await p.waitForTimeout(220); } };
+const hole = async n => { await p.locator('.hcell').nth(n).click();
+  await p.waitForTimeout(400); await shut(); };
+
 const label = () => p.locator('.sqrow').first().locator('.sqlabel').innerText();
 await p.locator('.sqbox').first().click(); await p.waitForTimeout(1400);
 ok('flag: 1st tap sticks as USA', await label(), 'USA');
@@ -121,7 +133,9 @@ const n0 = await golfers();
 // a band sticks
 await p.locator('.rtable tbody tr').first().locator('[data-act="setBand"]').first().click();
 await p.waitForTimeout(1400);
-ok('roster: band 15 sticks', await p.locator('.rtable tbody tr').first().locator('.tbtn.on').innerText(), '15');
+/* The band is worn as a crest now, not ticked as a button. */
+ok('roster: band 15 sticks', await p.locator('.rtable tbody tr').first()
+  .locator('.bandcrest.on .bn').innerText(), '15');
 
 // a squad sticks, and cycles round to unassigned again
 const row = () => p.locator('.rtable tbody tr').nth(2);
@@ -181,7 +195,7 @@ await p.locator('.tab', { hasText: 'Score Entry' }).click(); await p.waitForTime
 await p.locator('[data-act="modalCancel"]').click().catch(() => {});
 ok('chip present on Score Entry', (await p.locator('.masthead .setup-chip').count()) === 1, true);
 await nominate(p);
-await p.locator('[data-act="openRound"]').first().click(); await p.waitForTimeout(1400);
+await p.locator('[data-act="openRound"]').first().click(); await p.waitForTimeout(1400); await shut();
 await p.locator('.step.plus').first().click(); await p.waitForTimeout(300);
 ok('entry: stroke shows as a draft', await p.locator('.fig.raw .v').first().innerText(), '4');
 ok('entry: draft is flagged unsaved', await p.locator('.savebar .sv b').innerText(), 'Hole 1 is not saved');
@@ -196,7 +210,7 @@ ok('entry: Stay keeps the draft', await p.locator('.fig.raw .v').first().innerTe
 // --- saving writes it through
 await p.locator('[data-act="saveHole"]').click(); await p.waitForTimeout(1600);
 ok('entry: saving moved on', await p.locator('.holehead h3').innerText(), 'Hole 2');
-await p.locator('.hcell').nth(0).click(); await p.waitForTimeout(500);
+await hole(0);
 ok('entry: hole 1 reads as saved', await p.locator('.savebar .sv b').innerText(), 'Hole 1 saved');
 ok('entry: card written once saved', await p.evaluate(() => Object.keys(window.__mockDocs).filter(k => k.startsWith('scores/')).length), 1);
 ok('entry: stroke survives the race', await p.locator('.fig.raw .v').first().innerText(), '4');
@@ -206,7 +220,7 @@ await p.locator('.step.plus').first().click(); await p.waitForTimeout(300);
 await p.locator('.hcell').nth(3).click(); await p.waitForTimeout(300);
 await p.locator('[data-act="confirmAlt"]').click(); await p.waitForTimeout(600);
 ok('entry: discard moved to hole 4', await p.locator('.holehead h3').innerText(), 'Hole 4');
-await p.locator('.hcell').nth(0).click(); await p.waitForTimeout(500);
+await hole(0);
 ok('entry: the saved stroke is still there', await p.locator('.fig.raw .v').first().innerText(), '4');
 
 await b.close();

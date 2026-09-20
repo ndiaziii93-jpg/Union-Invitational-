@@ -535,9 +535,9 @@ function recapButton() {
 
 function askPanel() {
   if (!UI.askOpen) return '';
-  return `<div class="scrim" data-act="askClose"><div class="askbox" role="dialog" aria-modal="true" aria-label="Ask the book">
+  return `<div class="scrim" data-act="askClose"><div class="askbox" role="dialog" aria-modal="true" aria-label="Ask the Union">
     <div class="askhead">
-      <b>Ask the book</b>
+      <b>Ask the Union</b>
       <button class="rm" data-act="askClose">Close</button>
     </div>
     <p class="asknote">Anything about this tournament — scores, bands, pairings, who is up. It answers from the
@@ -1216,7 +1216,10 @@ function splashArm() {
     splashAt = Date.now();
     wm.classList.add('leading');
   }, 350);
-  setTimeout(splashDown, 3200);        // whatever happens, the book appears
+  /* Whatever happens, the book appears. The ceiling is the hold plus the
+     time it takes to arrive plus a little: a dead connection should show the
+     same flourish as a good one, not a longer one. */
+  setTimeout(splashDown, 3400);
 }
 
 function splashDown() {
@@ -1229,9 +1232,11 @@ function splashDown() {
   // nothing came forward, so there is nothing to take back
   if (!splashShown) { go(); return; }
   if (mark && !mark.classList.contains('leading')) return;
-  /* Six hundred of those milliseconds are the crest still arriving, so the
-     hold has to clear that before it counts as having been seen at all. */
-  setTimeout(go, Math.max(0, 1150 - (Date.now() - splashAt)));
+  /* Six hundred of these milliseconds are the crest still arriving, so the
+     hold has to clear that before any of it counts as having been seen. What
+     is left — a second and a half at full size — is the pause that makes it
+     read as deliberate rather than as a flash on the way past. */
+  setTimeout(go, Math.max(0, 2100 - (Date.now() - splashAt)));
 }
 
 /* The competition strip pans across, and only across.
@@ -1311,8 +1316,16 @@ function bbbOf(rid, h, slot, gid) {
   if (mine) return mine[slot] || null;
   return cell.g ? null : (cell[slot] || null);
 }
-function holeSavedBy(rid, h) {
-  for (const g of E.golfers(T)) {
+/* Whether THIS GROUP has put a hole in — not whether anybody has.
+ *
+ * It used to walk every golfer on the card, so once the first group had been
+ * round, every cell read as scored for the second group before they had hit
+ * a shot. The strip and the save bar both exist to show a ref the state of
+ * their own card, and a card belongs to a group. Given no group — nobody is
+ * paired yet, so everyone is on one card — it answers for the whole field. */
+function holeSavedBy(rid, h, who) {
+  const list = who && who.length ? E.golfers(T).filter(g => who.includes(g.id)) : E.golfers(T);
+  for (const g of list) {
     const c = E.card(T, rid, g.id);
     if (c && c.by && c.by[h]) return { role: c.by[h], at: c.at ? c.at[h] : null };
   }
@@ -1377,7 +1390,6 @@ function scrEntry() {
   const cap = E.capFor(hole.par, T.config.capOver);
   const editable = open && canEdit();
   const dirty = draftDirty() && UI.draft.rid === rid && UI.draft.hole === h;
-  const saved = holeSavedBy(rid, h);
   const ed = canEdit();
 
   /* Closest to the pin and longest drive are nominated before the first tee
@@ -1389,6 +1401,7 @@ function scrEntry() {
   const slot = Math.min(UI.entryTee === 'all' ? 0 : +UI.entryTee, Math.max(groups.length - 1, 0));
   const gid = (groups[slot] || {}).id || 'g0';
   const slotPlayers = (groups[slot] || {}).members || [];
+  const saved = holeSavedBy(rid, h, slotPlayers);
   const usingAll = slotPlayers.length === 0;
   const list = usingAll ? E.golfers(T) : E.golfers(T).filter(g => slotPlayers.includes(g.id));
 
@@ -1507,7 +1520,7 @@ function scrEntry() {
     ${/* round, then group, then hole: every choice about where you are
           standing sits together, beside the picture of it */ ''}
     <div class="scroller nos"><div class="hstrip">
-      ${course.holes.map((x, i) => `<button class="hcell${i === h ? ' on' : ''}${holeSavedBy(rid, i) ? ' saved' : ''}"
+      ${course.holes.map((x, i) => `<button class="hcell${i === h ? ' on' : ''}${holeSavedBy(rid, i, slotPlayers) ? ' saved' : ''}"
         data-act="entryHole" data-a="${i}" aria-label="Hole ${x.n}, par ${x.par}">
         <span class="n num">${x.n}</span><span class="p num">par ${x.par}</span></button>`).join('')}
     </div></div>
@@ -1968,6 +1981,10 @@ function paint() {
      row back to Team Comp. The same screen rebuilds to the same shape, so
      each strip is put back where it was. */
   const strips = [...document.querySelectorAll('.btabs, .scroller')].map(el => el.scrollLeft);
+  /* A rule opened to be read was closing itself after fifteen seconds. The
+     book redraws on a timer, and a redraw replaces the whole tree — taking
+     the <details> open with it. Which ones were open is remembered by id. */
+  const opened = [...document.querySelectorAll('details[id][open]')].map(el => el.id);
   const body = { today: scrToday, boards: scrBoards, ryder: scrRyder, calendar: scrCalendar,
                  entry: scrEntry, roster: scrRoster, rules: scrRules, courses: scrCourses,
                  setup: scrSetup }[UI.screen]();
@@ -1989,8 +2006,8 @@ function paint() {
   app.innerHTML = `
   <div class="wrap">
     <header class="masthead">
-      ${IMG.crest ? `<button class="crestbtn" data-act="askOpen" title="Ask the book a question"
-        aria-label="Ask the book a question"><img src="${IMG.crest}" alt="The Union Invitational crest"></button>` : ''}
+      ${IMG.crest ? `<button class="crestbtn" data-act="askOpen" title="Ask the Union a question"
+        aria-label="Ask the Union a question"><img src="${IMG.crest}" alt="The Union Invitational crest"></button>` : ''}
       <div class="mast-mid">
         <h1>${esc(D.EVENT.name)}</h1>
         <div class="sub">${esc(D.EVENT.venue)}, ${esc(D.EVENT.place)} — 26 October to 2 November 2026</div>
@@ -2034,6 +2051,8 @@ function paint() {
   const box2 = document.getElementById('recapBox');
   if (box2 && boxAt) box2.scrollTop = boxAt;
   if (wasAt && !UI.recapOpen) window.scrollTo(0, wasAt);
+
+  opened.forEach(id => { const el = document.getElementById(id); if (el) el.open = true; });
 
   const strips2 = [...document.querySelectorAll('.btabs, .scroller')];
   strips2.forEach((el, i) => { if (strips[i]) el.scrollLeft = strips[i]; });

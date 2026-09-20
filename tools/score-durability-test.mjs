@@ -76,6 +76,20 @@ const nominate = async pg => {
   }
 };
 
+/* Wait for the book to have the tournament, not for a clock.
+ *
+ * These waits used to be a fixed two and a half seconds, which is plenty on
+ * an idle machine and not enough on a busy one — so the roster was counted
+ * while the config mirror was still the only thing on screen and the test
+ * failed for reasons that had nothing to do with the book. The load bar is
+ * the book's own statement that it is still opening; when it goes, the
+ * tournament is in hand. */
+const settled = async (pg, ms = 20000) => {
+  try { await pg.waitForSelector('.loadbar', { state: 'detached', timeout: ms }); }
+  catch (e) { /* it may never have been there at all */ }
+  await pg.waitForTimeout(350);        // one redraw after the last document
+};
+
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
 
 for (const mode of ['the test copy (this device only)', 'the real book (shared database)']) {
@@ -94,7 +108,7 @@ for (const mode of ['the test copy (this device only)', 'the real book (shared d
       await open.first().click(); await p.waitForTimeout(1300); await clear(); } };
   const shown = () => p.locator('.fig.raw .v').first().innerText();
 
-  await p.goto('file://' + S + (isDb ? '/dur-db.html' : '/dur-local.html')); await p.waitForTimeout(2400); await clear();
+  await p.goto('file://' + S + (isDb ? '/dur-db.html' : '/dur-local.html')); await settled(p); await clear();
 
   // --- enter a stroke and save the hole ---
   await openEntry();
@@ -107,7 +121,7 @@ for (const mode of ['the test copy (this device only)', 'the real book (shared d
   await p.locator('.hcell').first().click(); await p.waitForTimeout(500); await clear();
 
   // --- the phone is put away and reopened ---
-  await p.reload(); await p.waitForTimeout(2600); await clear();
+  await p.reload(); await settled(p); await clear();
   await openEntry();
   ok('the saved stroke survives a reload', await shown(), '4');
 
@@ -128,7 +142,7 @@ for (const mode of ['the test copy (this device only)', 'the real book (shared d
     ok('and the score document is untouched',
       await p.evaluate(() => Object.keys(window.__docs).filter(k => k.startsWith('scores/')).length), 1);
     // and it is still there after a reload, which is what the refs would see
-    await p.reload(); await p.waitForTimeout(2600); await clear();
+    await p.reload(); await settled(p); await clear();
     await openEntry();
     ok('still there on the next open', await shown(), '4');
   }
@@ -148,7 +162,7 @@ for (const mode of ['the test copy (this device only)', 'the real book (shared d
   await p.addInitScript(MOCK, { 'scores/practice__g1': card, __lie: true });
   const clear = async () => { for (let i = 0; i < 5; i++) { if (!await p.locator('.scrim').count()) return;
     await p.locator('.scrim [data-act="modalCancel"]').click({ force: true }).catch(() => {}); await p.waitForTimeout(200); } };
-  await p.goto('file://' + S + '/dur-db.html'); await p.waitForTimeout(2800); await clear();
+  await p.goto('file://' + S + '/dur-db.html'); await settled(p); await clear();
   await p.locator('.tab', { hasText: 'Score Entry' }).click(); await p.waitForTimeout(600); await clear();
   const open = p.locator('[data-act="openRound"]');
   if (await open.count()) { await nominate(p); await clear();
@@ -168,7 +182,7 @@ for (const mode of ['the test copy (this device only)', 'the real book (shared d
   p.on('pageerror', e => { console.log('  PAGE ERROR:', String(e)); fails.push('pageerror'); });
   const clear = async () => { for (let i = 0; i < 5; i++) { if (!await p.locator('.scrim').count()) return;
     await p.locator('.scrim [data-act="modalCancel"]').click({ force: true }).catch(() => {}); await p.waitForTimeout(200); } };
-  await p.goto('file://' + S + '/dur-local.html'); await p.waitForTimeout(2400); await clear();
+  await p.goto('file://' + S + '/dur-local.html'); await settled(p); await clear();
   await p.locator('.tab', { hasText: 'Score Entry' }).click(); await p.waitForTimeout(600); await clear();
   const open = p.locator('[data-act="openRound"]');
   if (await open.count()) { await nominate(p); await clear();
@@ -176,7 +190,7 @@ for (const mode of ['the test copy (this device only)', 'the real book (shared d
   await p.locator('.step.plus').first().click(); await p.waitForTimeout(400);
   ok('the stroke is entered', await p.locator('.fig.raw .v').first().innerText(), '4');
   // no Save tapped — the phone locks, the tab is discarded, they come back
-  await p.reload(); await p.waitForTimeout(2600); await clear();
+  await p.reload(); await settled(p); await clear();
   await p.locator('.tab', { hasText: 'Score Entry' }).click(); await p.waitForTimeout(600); await clear();
   const open2 = p.locator('[data-act="openRound"]');
   if (await open2.count()) { await nominate(p); await clear();

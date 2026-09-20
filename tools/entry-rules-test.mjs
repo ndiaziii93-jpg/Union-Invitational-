@@ -83,6 +83,41 @@ await p.locator('[data-act="saveHole"]').click(); await p.waitForTimeout(1100); 
 ok('the hole was saved and it walked on', await p.locator('.holehead h3').innerText(), 'Hole 2');
 ok('and the screen stayed where it was', await p.evaluate(() => window.scrollY) > 300, true);
 
+console.log('\na fresh group starts on a fresh card');
+/* The hole strip walked every golfer on the round, not every golfer in the
+   group, so the moment one group had been round every cell was already
+   filled in for the next — who had not hit a shot. The strip is a ref's
+   picture of their own card, and a card belongs to a group. */
+const hole1 = async () => p.locator('.hcell').first().evaluate(el => el.classList.contains('saved'));
+const bar = async () => p.locator('.savebar .sv').innerText();
+const gotoHole1 = async () => { await p.locator('.hcell').first().click();
+  await p.waitForTimeout(450); await shut(); };
+
+/* Group 2 has hole 1 in already, from the section above. Group 1 has not
+   been near it. */
+await p.locator('.gchip').nth(1).click(); await p.waitForTimeout(600); await shut();
+await gotoHole1();
+ok('the group that played hole 1 sees it filled', await hole1(), true);
+ok('and the bar says so', (await bar()).includes('saved'), true);
+
+await p.locator('.gchip').first().click(); await p.waitForTimeout(650); await shut();
+await gotoHole1();
+ok('the group that has not, sees it to play', await hole1(), false);
+ok('and nothing at all on their card is marked', await p.locator('.hcell.saved').count(), 0);
+ok('the bar does not tell them it is done', (await bar()).includes('saved'), false);
+
+/* And once they do play it, their own cell fills — the strip is not simply
+   blank for everybody but the first group round. */
+await p.locator('.step.plus').first().click(); await p.waitForTimeout(250);
+await p.locator('[data-act="saveHole"]').click(); await p.waitForTimeout(1100); await shut();
+await gotoHole1();
+ok('playing it fills their cell too', await hole1(), true);
+await p.locator('.gchip').nth(1).click(); await p.waitForTimeout(650); await shut();
+await gotoHole1();
+ok('and the other group still has its own', await hole1(), true);
+await p.locator('.gchip').first().click(); await p.waitForTimeout(650); await shut();
+await p.locator('.hcell').nth(1).click(); await p.waitForTimeout(450); await shut();
+
 console.log('\na mulligan is spent once');
 /* It was written as a toggle — `c[b] = !c[b]` — so a second tap handed the
    shot straight back and the chip went from "Used" to "1 left" again. That
@@ -267,6 +302,37 @@ ok('and the row did not snap back to the left', await p.evaluate(
   () => document.querySelector('.btabs').scrollLeft > 0), true);
 
 await p.setViewportSize({ width: 1280, height: 1000 }); await p.waitForTimeout(500); await shut();
+
+console.log('\na rule left open stays open');
+/* Every redraw replaced the whole page, so a <details> opened to be read
+   closed itself the next time the store polled — about fifteen seconds. */
+await tab('Games & Rules');
+const first = p.locator('details.rule-item').first();
+await first.locator('summary').click(); await p.waitForTimeout(400);
+ok('it opened', await first.evaluate(el => el.open), true);
+await p.evaluate(() => window.__forceRender());
+await p.waitForTimeout(400); await shut();
+ok('and a redraw does not close it', await first.evaluate(el => el.open), true);
+/* Not just the once, and not just the first one. */
+const second = p.locator('details.rule-item').nth(1);
+await second.locator('summary').click(); await p.waitForTimeout(350);
+for (let i = 0; i < 3; i++) { await p.evaluate(() => window.__forceRender()); await p.waitForTimeout(300); }
+await shut();
+ok('two of them, through several redraws', [await first.evaluate(el => el.open),
+  await second.evaluate(el => el.open)], [true, true]);
+await first.locator('summary').click(); await p.waitForTimeout(350);
+ok('and closing one still closes it', await first.evaluate(el => el.open), false);
+await p.evaluate(() => window.__forceRender()); await p.waitForTimeout(350); await shut();
+ok('it stays closed too', [await first.evaluate(el => el.open),
+  await second.evaluate(el => el.open)], [false, true]);
+
+console.log('\nthe crest is asked by name');
+ok('the button says whose book it is', await p.locator('[data-act="askOpen"]')
+  .first().getAttribute('aria-label'), 'Ask the Union a question');
+await p.locator('[data-act="askOpen"]').first().click(); await p.waitForTimeout(600);
+ok('and so does the window it opens', await p.locator('.askbox b').first().innerText(), 'Ask the Union');
+ok('"the book" is nowhere on it', (await p.locator('.askbox').innerText()).includes('Ask the book'), false);
+await p.locator('.askbox [data-act="askClose"]').click(); await p.waitForTimeout(400); await shut();
 
 console.log('\nthe cup is singles all week');
 await tab('Ryder Cup');
