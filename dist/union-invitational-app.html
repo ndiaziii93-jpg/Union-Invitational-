@@ -950,12 +950,20 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
 .recapscrim{align-items:flex-start;padding:min(4vh,28px) 14px}
 /* One scrollbar, on the window itself: the box is capped by the padded scrim
    rather than by a vh guess, which mobile browser chrome gets wrong. */
-.recapbox{background:var(--paper);border:1px solid var(--rule);border-top:3px solid var(--green);
-  border-radius:4px;box-shadow:0 22px 60px var(--shadow);width:min(1120px,96vw);
-  max-height:100%;overflow-y:auto;padding:0 24px 24px}
+/* ---- the recap, set as a page of newsprint ----
+   Same content, same order. What changes is that it stops looking like a
+   dialog and starts looking like something printed: square corners, a rule
+   across the top the width of the sheet, and the faintest grain so the paper
+   is not a flat fill. */
+.recapbox{background:var(--paper);border:1px solid var(--rule);border-top:4px double var(--ink);
+  border-radius:0;box-shadow:0 22px 60px var(--shadow);width:min(1120px,96vw);
+  max-height:100%;overflow-y:auto;padding:0 clamp(16px,3.4vw,40px) 30px;
+  background-image:
+    repeating-linear-gradient(0deg,rgba(29,46,33,.016) 0 1px,transparent 1px 3px),
+    repeating-linear-gradient(90deg,rgba(29,46,33,.012) 0 1px,transparent 1px 4px)}
 .recaptop{position:sticky;top:0;z-index:2;display:flex;gap:12px;align-items:baseline;
-  background:var(--paper);border-bottom:1px solid var(--rule);padding:14px 0 10px}
-.recaptop b{font-size:21px}
+  background:var(--paper);border-bottom:3px double var(--ink);padding:14px 0 8px}
+.recaptop b{font-size:clamp(19px,2.6vw,25px);letter-spacing:.06em;text-transform:uppercase}
 .recaptop .rt-s{flex:1;font-size:14px;color:var(--turf);min-width:0;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 html.noscroll{overflow:hidden}
@@ -964,11 +972,49 @@ html.noscroll{overflow:hidden}
   font-size:15px;color:var(--turf)}
 .recapacts{display:flex;gap:8px;flex-wrap:wrap}
 .recaparch{margin-top:12px}
-.metarail{display:flex;gap:26px;flex-wrap:wrap;align-items:baseline;padding:12px 0 9px;
-  border-bottom:1px solid var(--rule);margin-top:14px;font-size:14px;color:var(--turf)}
+/* The dateline. The same five facts, set the way a paper sets them: small,
+   letterspaced, in capitals, separated by rules rather than by whitespace. */
+.metarail{display:flex;gap:0;flex-wrap:wrap;align-items:baseline;padding:11px 0 9px;
+  border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);
+  margin-top:14px;font-size:11.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--turf)}
+.metarail span{padding:0 14px;border-left:1px solid var(--rule)}
+.metarail span:first-child{padding-left:0;border-left:0;color:var(--ink);font-weight:700}
+
 .recapgrid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:34px;margin-top:20px;align-items:start}
-.rechead{font-size:clamp(28px,4.2vw,40px);font-weight:700;line-height:1.06;margin:0 0 14px;text-wrap:balance}
-.recpara{font-size:17px;line-height:1.66;margin:0 0 14px;max-width:68ch}
+.rechead{font-size:clamp(30px,5.2vw,52px);font-weight:700;line-height:1.02;margin:0 0 4px;
+  letter-spacing:-.015em;text-wrap:balance}
+/* the hairline under the headline, as a paper would rule it off */
+.recapmain .rechead + .recpara{margin-top:14px;padding-top:14px;border-top:1px solid var(--rule)}
+.recpara{font-size:16.5px;line-height:1.62;margin:0 0 13px;text-align:justify;hyphens:auto}
+
+/* The opening letter, cut into the first three lines. */
+.recapmain .recpara:first-of-type::first-letter{
+  float:left;font-size:3.4em;line-height:.82;font-weight:700;color:var(--green);
+  padding:.04em .09em 0 0;margin-right:.02em}
+
+/* Two columns once there is room for them, with a rule between, which is the
+   single thing that most makes a block of type read as a newspaper. */
+@media (min-width:900px){
+  .recapmain{column-count:2;column-gap:30px;column-rule:1px solid var(--rule)}
+  .recapmain .rechead{column-span:all}
+  .recapmain .rechead + .recpara{border-top:0;padding-top:0}
+  .recpara{max-width:none}
+}
+@media (max-width:899px){ .recpara{max-width:68ch} }
+
+/* Declared here, after the rules it overrides: at equal specificity the
+   later rule wins, and placing this beside the dateline it also touches put
+   it before .recpara and quietly did nothing. */
+@media (max-width:700px){
+  /* Wrapped, a rule before each fact reads as a list rather than a dateline,
+     and justified type in a column this narrow opens rivers of white between
+     the words. Both give way on a phone. */
+  .metarail{gap:0}
+  .metarail span{border-left:0;padding:0}
+  .metarail span + span::before{content:'\00b7';padding:0 7px;color:var(--rule)}
+  .recpara{text-align:left;hyphens:none}
+  .recapmain .recpara:first-of-type::first-letter{font-size:3em}
+}
 /* Editing the words. The fields wear the type they replace, so the page does
    not jump when the commissioner turns editing on. */
 .recedit{width:100%;font-family:inherit;line-height:1.5;resize:vertical;border-style:dashed}
@@ -982,12 +1028,24 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
 .fromround.bare{margin-top:8px}
 .fromround.bare .addph{margin-bottom:8px}
 .rechero{margin:0}
-.rechero img{display:block;width:100%;height:auto;border:1px solid var(--rule)}
-.rechero figcaption{font-size:13px;color:var(--turf);margin-top:6px;line-height:1.45}
-.swing{margin-top:20px;padding-top:14px;border-top:1px solid var(--rule)}
-.swing .sw-l{font-size:14px;color:var(--turf)}
-.swing .sw-v{font-size:34px;font-weight:700;color:var(--green);line-height:1.1;margin:2px 0 4px}
-.swing .sw-c{font-size:14px;color:var(--turf);line-height:1.5}
+.rechero img{display:block;width:100%;height:auto;border:1px solid var(--ink);filter:saturate(.92)}
+.rechero figcaption{font-size:12px;color:var(--turf);margin-top:7px;line-height:1.45;
+  padding-top:6px;border-top:1px solid var(--rule);font-style:italic}
+
+/* The swing of the day, set as a pull quote in the margin. */
+.swing{margin-top:22px;padding:16px 0 4px;border-top:3px double var(--ink);
+  border-bottom:1px solid var(--rule)}
+.swing .sw-l{font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--turf)}
+.swing .sw-v{font-size:44px;font-weight:700;color:var(--green);line-height:1;margin:4px 0 6px;
+  letter-spacing:-.02em}
+.swing .sw-c{font-size:14.5px;color:var(--ink);line-height:1.5;font-style:italic;
+  padding-bottom:14px}
+
+/* Section heads, ruled off the way a paper separates its parts. */
+.recapbox .sub{font-size:13px;letter-spacing:.13em;text-transform:uppercase;font-weight:700;
+  color:var(--ink);border-bottom:1px solid var(--ink);padding-bottom:5px;margin-top:30px}
+.recapbox .rows{border-top:0}
+.recapbox .lede{font-size:14px}
 
 .ribwrap{margin-top:26px}
 .ribhead{display:flex;justify-content:space-between;align-items:baseline;gap:14px;font-size:14px;color:var(--turf)}
@@ -1100,7 +1158,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20260920-1338';
+const BUILD = '20260920-1350';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 

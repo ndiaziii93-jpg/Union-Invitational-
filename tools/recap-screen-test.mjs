@@ -135,6 +135,7 @@ await p.locator('.recaptop [data-act="recapClose"]').click(); await p.waitForTim
 ok('the panel now says it is ready', (await line()).includes('read the report'), true);
 await p.locator('.recapbtn').click(); await p.waitForTimeout(700);
 ok('and the words are still there, not rewritten', (await p.locator('.rechead').innerText()).startsWith('Aspendos waited'), true);
+await p.locator('.recapbox').screenshot({ path: S + '/recap-paper.png' }).catch(() => {});
 await p.locator('.recapgrid').screenshot({ path: S + '/recap-top.png' });
 
 console.log('\nthe commissioner has the words');
