@@ -3,8 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#3E5C43" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#16201A" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#3E5C43">
 <meta name="description" content="The yardage book for the Union Invitational.">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Union Inv.">
@@ -15,9 +14,12 @@
 <link rel="icon" href="icon-192.png" type="image/png">
 <link rel="preload" href="fonts/source-serif-latin-normal.woff2" as="font" type="font/woff2" crossorigin>
 <style>
-  :root { color-scheme: light dark; }
+  /* One palette, the printed one. Declaring it here as well as in the book's
+     own stylesheet matters: this is what the phone reads before a single
+     rule of ours has parsed, and it is what stops the browser painting its
+     own chrome dark behind a cream page. */
+  :root { color-scheme: light; }
   html, body { margin: 0; background: #E3DBCB; }
-  @media (prefers-color-scheme: dark) { html, body { background: #16201A; } }
   img { max-width: 100%; }
   [hidden] { display: none !important; }
   /* the phone's own notch and home bar, so nothing important hides under them */
@@ -69,9 +71,17 @@
 <style>
 /* The Union Invitational — yardage book.
    Palette taken from the crest: cover stock, pine printing ink, the red flag.
-   Light is the printed book; dark is the same book read at night. */
+
+   There is one palette, and it is the printed book. There was a night
+   version too, picked up from whatever the phone happened to be set to, and
+   it is gone: a yardage book is a printed thing and it should look the same
+   in everybody's hand. `color-scheme: light` is the other half of saying so
+   — without it the phone still draws its OWN parts dark, so the menus, the
+   text fields, the scrollbars and the keyboard come up in night colours on
+   top of a cream page. */
 
 :root {
+  color-scheme: light;
   --paper:#E3DBCB; --page:#EEE8D5; --sunk:#DBD2BA;
   --ink:#1D2E21;   --turf:#5C6B55;  --green:#3E5C43;
   --rule:#C4B896;  --hair:#DCD1B4;
@@ -86,35 +96,6 @@
   --serif:'Source Serif 4','Iowan Old Style',Georgia,'Times New Roman',serif;
   --mono:var(--serif);
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --paper:#141A15; --page:#1C241D; --sunk:#232D24;
-    --ink:#EEE7D6;   --turf:#9DAB95;  --green:#8FBF9B;
-    --rule:#3B483B;  --hair:#2E392F;
-    --flag:#D9705C;  --gold:#C9A25A;
-    --under:#D6B067; --over:#D9705C; --level:#EEE7D6;
-    --uk:#7FA4DE;    --usa:#D9705C;
-    /* same meaning, different values: on a dark ground the hole still to score
-     is the one that lifts off the page, and a scored one sinks into it */
-  --hole-todo:#32402F; --hole-done:#171D18;
-  --overtint:#3A2523; --leadtint:#1F2C21;
-  --shadow:rgba(0,0,0,.5);
-  }
-}
-:root[data-theme="dark"] {
-  --paper:#141A15; --page:#1C241D; --sunk:#232D24;
-  --ink:#EEE7D6;   --turf:#9DAB95;  --green:#8FBF9B;
-  --rule:#3B483B;  --hair:#2E392F;
-  --flag:#D9705C;  --gold:#C9A25A;
-  --under:#D6B067; --over:#D9705C; --level:#EEE7D6;
-  --uk:#7FA4DE;    --usa:#D9705C;
-  /* same meaning, different values: on a dark ground the hole still to score
-     is the one that lifts off the page, and a scored one sinks into it */
-  --hole-todo:#32402F; --hole-done:#171D18;
-  --overtint:#3A2523; --leadtint:#1F2C21;
-  --shadow:rgba(0,0,0,.5);
-}
-
 *,*::before,*::after{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:16px;line-height:1.5}
@@ -170,8 +151,6 @@ a{color:var(--green);text-underline-offset:3px}
    of 86vw is 69vw, and every moment after it is wider still and fainter. */
 .watermark.leading{z-index:60;opacity:1;transform:scale(.8) translateY(-2%);
   transition:transform .6s cubic-bezier(.2,.7,.25,1),opacity .4s ease-out}
-:root[data-theme="dark"] .watermark{mix-blend-mode:screen;opacity:.04}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .watermark{mix-blend-mode:screen;opacity:.04}}
 
 .masthead{display:flex;align-items:center;gap:14px;padding:16px 0 10px;flex-wrap:wrap}
 .masthead img{width:62px;height:auto;flex:0 0 auto}
@@ -1245,7 +1224,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20260920-2036';
+const BUILD = '20260920-2201';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 

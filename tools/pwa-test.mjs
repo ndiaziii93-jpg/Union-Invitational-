@@ -41,7 +41,13 @@ const shut = async () => { for (let i = 0; i < 5; i++) { const m = p.locator('.s
   if (!await m.count()) return; await m.first().click({ force: true }).catch(() => {}); await p.waitForTimeout(250); } };
 
 console.log('\nit is a whole document, not a fragment');
-await p.goto(BASE); await p.waitForTimeout(3000); await shut();
+/* Wait for the crest to hand the page over, not for a clock. The book is
+   held behind it until the tournament arrives or the ceiling fires, and a
+   fixed three seconds sat close enough to that ceiling to fail whenever the
+   two moved past each other. */
+const settled = async () => { await p.waitForSelector('#app.arrived', { timeout: 20000 })
+  .catch(() => {}); await p.waitForTimeout(400); };
+await p.goto(BASE); await settled(); await shut();
 ok('it has a doctype', await p.evaluate(() => !!document.doctype), true);
 ok('and a viewport that fits a phone', await p.evaluate(
   () => (document.querySelector('meta[name=viewport]') || {}).content || ''),
@@ -110,7 +116,7 @@ console.log('\nand then the signal goes');
 offline = true;
 const before = served;
 await p.reload({ waitUntil: 'commit' }).catch(() => {});
-await p.waitForTimeout(3500);
+await settled();
 ok('the server really was unreachable', served, before);
 ok('the book opened anyway', await p.locator('.masthead h1').innerText(), 'The Union Invitational');
 ok('with its tabs', await p.locator('.tab').count() > 6, true);

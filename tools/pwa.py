@@ -106,8 +106,7 @@ HEAD = """<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="{green}" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#16201A" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="{green}">
 <meta name="description" content="The yardage book for the Union Invitational.">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="{short}">
@@ -118,9 +117,12 @@ HEAD = """<!doctype html>
 <link rel="icon" href="icon-192.png" type="image/png">
 <link rel="preload" href="fonts/source-serif-latin-normal.woff2" as="font" type="font/woff2" crossorigin>
 <style>
-  :root {{ color-scheme: light dark; }}
+  /* One palette, the printed one. Declaring it here as well as in the book's
+     own stylesheet matters: this is what the phone reads before a single
+     rule of ours has parsed, and it is what stops the browser painting its
+     own chrome dark behind a cream page. */
+  :root {{ color-scheme: light; }}
   html, body {{ margin: 0; background: {paper}; }}
-  @media (prefers-color-scheme: dark) {{ html, body {{ background: #16201A; }} }}
   img {{ max-width: 100%; }}
   [hidden] {{ display: none !important; }}
   /* the phone's own notch and home bar, so nothing important hides under them */
