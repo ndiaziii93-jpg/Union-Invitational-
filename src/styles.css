@@ -64,8 +64,34 @@ a{color:var(--green);text-underline-offset:3px}
 .wrap{max-width:1180px;margin:0 auto;padding:0 clamp(14px,3vw,26px) 40px;position:relative;z-index:1}
 
 /* ---- watermark & masthead ---- */
+/* The crest behind every page — and, for the first moment of a slow open,
+   in front of it.
+
+   The movement is a TRANSFORM, not a change of background-size. Animating
+   background-size repaints the image on every frame and is where the
+   choppiness came from; a transform is handed to the compositor and simply
+   runs. The width cap is new: at min(52vh) the resting mark is wider than a
+   phone and crops off both edges, which meant the crest could not come
+   forward without appearing to get SMALLER.
+
+   Going BACK is the slow one — leaving `.leading` uses the transition
+   declared here, and that is the movement the reader watches: the crest
+   eases down into its resting place, shrinking and dissolving as it goes. */
 .watermark{position:fixed;inset:0;pointer-events:none;z-index:0;background-repeat:no-repeat;
-  background-position:center 58%;background-size:min(52vh,470px);opacity:.045;mix-blend-mode:multiply}
+  background-position:center 58%;background-size:min(52vh,470px);
+  opacity:.045;mix-blend-mode:multiply;
+  transform:none;transform-origin:center 58%;will-change:transform,opacity;
+  transition:transform 1.6s cubic-bezier(.22,.61,.24,1),
+             opacity 1.5s cubic-bezier(.45,0,.55,1) .1s}
+
+/* Coming FORWARD is quick — it is answering a tap, not performing — and it
+   scales DOWN to get there. At rest the mark is deliberately wider than a
+   phone, because a faint texture reads better bleeding off both edges; a
+   dark crest cropped mid-wordmark just looks like a mistake. So it arrives
+   whole and a little smaller, then grows and dissolves outward into the
+   texture it always was. */
+.watermark.leading{z-index:60;opacity:1;transform:scale(.8) translateY(-2%);
+  transition:transform .6s cubic-bezier(.2,.7,.25,1),opacity .4s ease-out}
 :root[data-theme="dark"] .watermark{mix-blend-mode:screen;opacity:.04}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .watermark{mix-blend-mode:screen;opacity:.04}}
 
@@ -701,29 +727,14 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
   border:none;border-bottom:1px dashed var(--rule);border-radius:0;min-height:40px}
 .cellin.sm{width:120px}
 .cellin:focus{outline:none;border-bottom-color:var(--flag)}
-/* ---- the crest, on the way in ----
-   It covers the moment the book is already spending on finding itself, then
-   opens outward as the page settles into place behind it. */
-.splash{position:fixed;inset:0;z-index:200;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;gap:14px;background:var(--paper);
-  transition:opacity .55s ease,transform .55s cubic-bezier(.3,0,.2,1)}
-.splash img{width:min(44vw,196px);height:auto;display:block;
-  animation:crestIn .75s cubic-bezier(.2,.7,.2,1) both}
-.splash .sp-s{font-size:13px;letter-spacing:.08em;color:var(--turf);text-align:center;
-  max-width:24ch;line-height:1.5;
-  animation:crestIn .75s cubic-bezier(.2,.7,.2,1) .12s both}
-.splash.going{opacity:0;transform:scale(1.14);pointer-events:none}
-@keyframes crestIn{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:scale(1)}}
-
-/* the book, arriving from just behind the crest */
-#app.behind{opacity:0;transform:scale(.982)}
-#app.arrived{opacity:1;transform:none;
-  transition:opacity .5s ease,transform .55s cubic-bezier(.3,0,.2,1)}
+/* The book, fading up THROUGH the crest as it goes back. Slightly quicker
+   than the crest's journey, so the page is readable before the movement
+   behind it has quite finished. */
+#app.behind{opacity:0}
+#app.arrived{opacity:1;transition:opacity 1.1s cubic-bezier(.3,0,.35,1)}
 
 @media (prefers-reduced-motion:reduce){
-  .splash,.splash img,.splash .sp-s,#app.arrived{animation:none;transition:opacity .25s ease}
-  .splash.going{transform:none}
-  #app.behind{transform:none}
+  .watermark,.watermark.leading,#app.arrived{transition:opacity .3s ease}
 }
 
 /* ---- the playing band, as a crest ----

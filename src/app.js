@@ -1168,77 +1168,68 @@ function restoreDraft() {
   } catch (e) { /* nothing carried over */ }
 }
 
-/* The crest, while the book is finding itself.
+/* The crest, arriving.
  *
- * A splash screen that ADDS time is a bad bargain: the refs open this on
- * every hole and would come to hate it. But an installed app already has a
- * dead moment between the icon being tapped and the tournament arriving from
- * the database, and that moment is currently a blank page. The crest fills
- * time that is being spent anyway, and leaves the instant the book is ready.
+ * Not a splash screen over the book — the same crest that sits behind every
+ * page, begun large and dark in the middle of the paper and then travelling
+ * to where it always rests as the book fades up through it. One element
+ * moving, which is why it is smooth: a splash and a page cross-fading are
+ * two animations that have to agree with each other, and they never quite
+ * do. That was the choppiness.
  *
- * So there is no fixed duration. It goes when the store says it has the
- * tournament, with a floor of four hundred milliseconds so a fast open is a
- * flourish rather than a flicker, and a ceiling so a bad connection can never
- * hold the book up behind it.
+ * It is not shown every time. The book is held back from the first paint,
+ * and the crest only comes forward if the tournament has not arrived within
+ * a third of a second. Below that there is nothing to cover and a flourish
+ * would only be adding the delay it pretends to hide.
  *
- * The book is NOT hidden by a stylesheet. If any of this failed to run, a
- * rule like that would leave a blank page for ever; the class that hides it
- * is only ever added by the same code that removes it. */
+ * Coming forward is quick, six hundred milliseconds, because it is answering
+ * a tap. Going back is slow and unhurried — that is the part meant to feel
+ * purposeful, and the part the reader actually watches.
+ *
+ * The book is never hidden by a stylesheet. A rule like that would leave a
+ * blank page for ever if any of this failed to run: the class that holds it
+ * back is only ever added by the code that removes it, and a ceiling reveals
+ * it regardless of what else happens.
+ */
 let splashAt = 0;
 let splashTimer = null;
 let splashShown = false;
+let mark = null;
 
-/* Armed, not shown. The book is held back from the first paint, and the
-   crest only appears if the tournament has not arrived within a sixth of a
-   second. A fast open therefore shows no crest at all — the page simply
-   appears — because a splash is only worth anything while there is a wait to
-   cover, and adds insult when there is not. */
-function splashArm() {
-  if (typeof document === 'undefined' || !IMG.crest) return;
-  const app = document.getElementById('app');
-  if (!app) return;
-  app.classList.add('behind');
-  /* A third of a second. Below that there is no wait worth covering, and a
-     crest would be adding the very delay it pretends to hide. */
-  splashTimer = setTimeout(splashUp, 350);
-  setTimeout(splashDown, 2200);          // whatever happens, the book appears
+function watermark() {
+  if (mark || typeof document === 'undefined' || !IMG.crest) return mark;
+  mark = document.createElement('div');
+  mark.className = 'watermark';
+  mark.style.backgroundImage = "url('" + IMG.crest + "')";
+  document.body.appendChild(mark);
+  return mark;
 }
 
-function splashUp() {
-  if (typeof document === 'undefined' || !IMG.crest) return;
-  const app = document.getElementById('app');
-  if (!app || splashShown) return;
-  splashShown = true;
-  const el = document.createElement('div');
-  el.className = 'splash';
-  el.id = 'splash';
-  /* The crest carries the wordmark already; setting the name under it again
-     just prints the same thing twice. The line that earns its place is the
-     one the crest does not say. */
-  el.innerHTML = '<img src="' + IMG.crest + '" alt="The Union Invitational">'
-    + '<span class="sp-s">Belek, T\u00fcrkiye \u2014 26 October to 2 November 2026</span>';
-  document.body.appendChild(el);
-  splashAt = Date.now();
+function splashArm() {
+  const wm = watermark();
+  const app = typeof document !== 'undefined' ? document.getElementById('app') : null;
+  if (!wm || !app) return;
+  app.classList.add('behind');
+  splashTimer = setTimeout(() => {
+    splashShown = true;
+    splashAt = Date.now();
+    wm.classList.add('leading');
+  }, 350);
+  setTimeout(splashDown, 3200);        // whatever happens, the book appears
 }
 
 function splashDown() {
   clearTimeout(splashTimer);
-  const el = document.getElementById('splash');
-  const show = () => {
-    const app = document.getElementById('app');
+  const app = document.getElementById('app');
+  const go = () => {
+    if (mark) mark.classList.remove('leading');
     if (app) { app.classList.remove('behind'); app.classList.add('arrived'); }
   };
-  /* Nothing was ever drawn: there was no dead time, so the book just appears
-     and no time is spent pretending otherwise. */
-  if (!el) { show(); return; }
-  if (el.classList.contains('going')) return;
-  // it was shown, so let it be seen rather than blink — but barely
-  const wait = Math.max(0, 260 - (Date.now() - splashAt));
-  setTimeout(() => {
-    el.classList.add('going');
-    show();
-    setTimeout(() => { if (el.parentNode) el.remove(); }, 700);
-  }, wait);
+  // nothing came forward, so there is nothing to take back
+  if (!splashShown) { go(); return; }
+  if (mark && !mark.classList.contains('leading')) return;
+  /* Long enough to have been a moment rather than a blink. */
+  setTimeout(go, Math.max(0, 780 - (Date.now() - splashAt)));
 }
 
 /* The competition strip pans across, and only across.
@@ -1977,7 +1968,6 @@ function paint() {
     : 'Connecting…';
 
   app.innerHTML = `
-  ${IMG.crest ? `<div class="watermark" style="background-image:url('${IMG.crest}')"></div>` : ''}
   <div class="wrap">
     <header class="masthead">
       ${IMG.crest ? `<button class="crestbtn" data-act="askOpen" title="Ask the book a question"
