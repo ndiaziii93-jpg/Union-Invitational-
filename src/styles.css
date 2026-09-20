@@ -245,8 +245,21 @@ h3.sub{font-size:19px;font-weight:600;margin:26px 0 0}
 .capchip{font-size:14px;color:#FBFAF7;background:var(--flag);padding:5px 11px;border-radius:2px}
 .mchip{padding:6px 12px;border:1px solid var(--rule);background:var(--page);color:var(--ink);
   font-size:14px;border-radius:2px;min-height:36px}
-.mchip.on{background:var(--green);border-color:var(--green);color:#FBFAF7}
-.mchip:disabled{opacity:.6}
+.mchip.on{background:var(--green);border-color:var(--green);color:#FBFAF7;font-weight:600}
+/* Spent, and disabled because it is spent — it must not read as unavailable
+   the way a chip greyed out by a closed round does. */
+.mchip:disabled{opacity:.6;cursor:not-allowed}
+.mchip.on:disabled{opacity:1}
+
+/* The word on arriving at a nominated hole. */
+/* The master's way out of a mis-tap: deliberately plain, deliberately not
+   another green chip to jab at. */
+.relq{font-size:13px;color:var(--turf);text-decoration:underline;padding:4px 6px;min-height:32px}
+.relq:hover{color:var(--flag)}
+
+.holemodal{border-top-color:var(--gold)}
+.holemodal .hm-eye{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--turf)}
+.holemodal h3{color:var(--green)}
 .clearh{min-height:36px;padding:6px 10px;color:var(--turf);font-size:14px;text-decoration:underline}
 .clearh:hover{color:var(--ink)}
 

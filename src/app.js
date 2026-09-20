@@ -25,6 +25,7 @@ const UI = {
   askOpen: false,        // the crest's question box
   askText: '',
   asks: [],              // newest first: {id, q, a, busy, err}
+  noticed: {},          // nominated holes already announced this visit
   recapOpen: false,
   recapOpen: false,
   recap: { rid: null, busy: false, err: '', stream: '', edit: false, view: 'report' },
@@ -1420,6 +1421,23 @@ function scrEntry() {
     <button class="btn danger" data-act="lockRound" data-a="${rid}">Lock &amp; conclude</button>
   </div>` : '';
 
+  /* Spent is spent. The chip goes green, says Used, and takes no further
+     taps from anybody — which is the whole point, since it was a second tap
+     that kept handing the shot back.
+     A mis-tap still needs a way out, but it must not BE another tap on the
+     same chip. The master reviewer gets a separate, quietly-labelled release
+     beside it: a different control, deliberately chosen. */
+  const relief = (g, c, key, label, spare, editable) => {
+    const used = !!(c && c[key]);
+    return `<button class="mchip${used ? ' on' : ''}" data-act="tgl"
+      data-a="${g.id}" data-b="${key}"${used || !editable ? ' disabled' : ''}
+      aria-pressed="${used}">${label}: ${used ? 'Used' : spare}</button>`
+      + (used && editable && canAdmin()
+        ? `<button class="rm relq" data-act="unspend" data-a="${g.id}" data-b="${key}"
+            aria-label="Give ${esc(g.display)} back ${esc(RELIEFNAME[key] || 'it')}">release</button>`
+        : '');
+  };
+
   const rows = list.map(g => {
     const raw = grossOf(rid, g.id, h);
     const st = E.strokesFor(g.band, hole.si);
@@ -1446,9 +1464,9 @@ function scrEntry() {
       ${ed ? `<div class="prelief">
         ${capped ? `<span class="capchip">Capped at ${cap} — pick up</span>` : ''}
         ${r.noMulligans ? '' : `
-          <button class="mchip${c && c.mF ? ' on' : ''}" data-act="tgl" data-a="${g.id}" data-b="mF"${editable ? '' : ' disabled'}>Front mulligan: ${c && c.mF ? 'Used' : '1 left'}</button>
-          <button class="mchip${c && c.mB ? ' on' : ''}" data-act="tgl" data-a="${g.id}" data-b="mB"${editable ? '' : ' disabled'}>Back mulligan: ${c && c.mB ? 'Used' : '1 left'}</button>`}
-        ${h === 0 ? `<button class="mchip${c && c.bb ? ' on' : ''}" data-act="tgl" data-a="${g.id}" data-b="bb"${editable ? '' : ' disabled'}>Breakfast ball: ${c && c.bb ? 'Used' : 'Available'}</button>` : ''}
+          ${relief(g, c, 'mF', 'Front mulligan', '1 left', editable)}
+          ${relief(g, c, 'mB', 'Back mulligan', '1 left', editable)}`}
+        ${h === 0 ? relief(g, c, 'bb', 'Breakfast ball', 'Available', editable) : ''}
         ${editable ? `<button class="clearh" data-act="clearHole" data-a="${g.id}">Clear hole</button>` : ''}
       </div>` : ''}
     </div>`;
@@ -2133,8 +2151,41 @@ function setupChip() {
         <span class="mk">✓</span>Setup complete</button>`;
 }
 
+/* Closest to the pin and longest drive are nominated before anyone tees off,
+   and are then easy to walk straight past. The book says so on arrival at
+   the hole, once, rather than leaving it to somebody remembering. */
+const RELIEFNAME = { mF: 'the front nine mulligan', mB: 'the back nine mulligan',
+                     bb: 'the breakfast ball' };
+
+function holeNotice(rid, h) {
+  const cfg = E.roundCfg(T, rid) || {};
+  const n = h + 1;
+  const on = [];
+  if (cfg.ctpHole === n) on.push('Closest to the pin');
+  if (cfg.ldHole === n) on.push('Longest drive');
+  if (!on.length) return;
+  const key = rid + ':' + n;
+  if (UI.noticed[key] || UI.modal) return;      // once, and never over a PIN box
+  UI.noticed[key] = true;
+  UI.modal = { kind: 'hole', hole: n, on };
+}
+
+function holeModalHtml() {
+  const m = UI.modal;
+  return `<div class="scrim" data-act="modalScrim"><div class="modal holemodal"
+    role="alertdialog" aria-modal="true" aria-label="Hole ${m.hole}">
+    <span class="hm-eye">Hole ${m.hole}</span>
+    <h3>${esc(m.on.join(' and '))}</h3>
+    <p>${m.on.length > 1
+      ? 'Both are played on this hole. Mark the winners in Pin &amp; drive once everybody has hit.'
+      : 'This is the nominated hole. Mark the winner in Pin &amp; drive once everybody has hit.'}</p>
+    <div class="acts"><button class="btn" data-act="modalCancel">Right you are</button></div>
+  </div></div>`;
+}
+
 function modalHtml() {
-  return UI.modal.kind === 'setup' ? setupModalHtml()
+  return UI.modal.kind === 'hole' ? holeModalHtml()
+       : UI.modal.kind === 'setup' ? setupModalHtml()
        : UI.modal.kind === 'add' ? addModalHtml()
        : UI.modal.kind === 'confirm' ? confirmModalHtml()
        : pinModalHtml();
@@ -2302,7 +2353,7 @@ function onClick(e) {
     case 'boardRound': UI.boardRound = a; UI.bookHole = 0; break;
     case 'bookHole': UI.bookHole = +a; break;
     case 'entryRound': guardDraft(() => { UI.entryRound = a; UI.entryHole = 0; UI.entryTee = '0'; }); return;
-    case 'entryHole': guardDraft(() => { UI.entryHole = +a; }); return;
+    case 'entryHole': guardDraft(() => { UI.entryHole = +a; holeNotice(UI.entryRound, +a); }); return;
     case 'entryTee': guardDraft(() => { UI.entryTee = a; }); return;
     case 'calLock':
     case 'calUnlock':
@@ -2427,15 +2478,36 @@ function onClick(e) {
         'Save hole', role => {
           commitDraft(role);
           // walk on: a scorer saves a hole because the group has finished it
-          if (h < 17) { UI.entryHole = h + 1; window.scrollTo(0, 0); }
+          /* Walk on to the next hole, but stay exactly where the scorer is
+             looking. Being thrown back to the masthead after every hole is
+             eighteen scrolls a round, for nothing. */
+          if (h < 17) { UI.entryHole = h + 1; holeNotice(rid, h + 1); }
           render();
         });
       return;
     }
-    case 'tgl':
+    case 'tgl': {
       if (!canEdit() || E.roundCfg(T, rid).state !== 'open') return;
-      store.writeCard(rid, a, c => { c[b] = !c[b]; });
+      /* A mulligan is spent, not toggled. It was written as `!c[b]`, so a
+         second tap handed it straight back and the chip went from "Used" to
+         "1 left" — a mulligan a hole, all the way up the front nine. One
+         way only, and the control refuses the write as well as hiding it. */
+      const held = E.card(T, rid, a);
+      if (held && held[b]) return;
+      store.writeCard(rid, a, c => { c[b] = true; });
       return;
+    }
+    case 'unspend': {
+      if (!canAdmin() || E.roundCfg(T, rid).state !== 'open') return;
+      const who = (E.person(T, a) || {}).display || 'that golfer';
+      UI.modal = { kind: 'confirm',
+        title: 'Give back ' + (RELIEFNAME[b] || 'it'),
+        note: 'It is marked used. Giving it back puts the shot into ' + who + '\u2019s hands again.',
+        ok: 'Give it back', cancel: 'Leave it used',
+        onOk: () => { store.writeCard(rid, a, c => { c[b] = false; }); } };
+      render();
+      return;
+    }
 
     case 'cycleSquad': {
       const cycle = () => store.writePerson(a, p => {

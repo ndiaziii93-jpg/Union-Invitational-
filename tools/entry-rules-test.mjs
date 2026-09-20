@@ -58,6 +58,62 @@ if (chips > 1) {
   ok('and shares nobody with group 1', g2.filter(x => g1.includes(x)), []);
 } else { ok('there is a second group to check', chips > 1, true); }
 
+console.log('\nthe nominated holes announce themselves');
+/* Closest to the pin and longest drive are chosen before anyone tees off and
+   are then easy to walk straight past. */
+const ctp = parseInt(await pick('ctpHole').inputValue(), 10);
+await p.locator('.hcell').nth(ctp - 1).click(); await p.waitForTimeout(700);
+ok('arriving at the nominated hole says so', await p.locator('.holemodal').count(), 1);
+ok('and names which game it is', (await p.locator('.holemodal h3').innerText())
+  .includes('Closest to the pin'), true);
+await p.locator('.holemodal [data-act="modalCancel"]').click(); await p.waitForTimeout(400);
+await p.locator('.hcell').nth(0).click(); await p.waitForTimeout(400); await shut();
+await p.locator('.hcell').nth(ctp - 1).click(); await p.waitForTimeout(600);
+ok('but only the once, not every time you pass', await p.locator('.holemodal').count(), 0);
+await shut();
+
+console.log('\nsaving a hole leaves you where you are');
+await p.locator('.hcell').nth(0).click(); await p.waitForTimeout(400); await shut();
+await p.evaluate(() => window.scrollTo(0, 420));
+await p.waitForTimeout(250);
+const before2 = await p.evaluate(() => window.scrollY);
+ok('scrolled down the card', before2 > 300, true);
+await p.locator('.step.plus').first().click(); await p.waitForTimeout(250);
+await p.locator('[data-act="saveHole"]').click(); await p.waitForTimeout(1100); await shut();
+ok('the hole was saved and it walked on', await p.locator('.holehead h3').innerText(), 'Hole 2');
+ok('and the screen stayed where it was', await p.evaluate(() => window.scrollY) > 300, true);
+
+console.log('\na mulligan is spent once');
+/* It was written as a toggle — `c[b] = !c[b]` — so a second tap handed the
+   shot straight back and the chip went from "Used" to "1 left" again. That
+   is a mulligan a hole, all the way up the front nine. */
+const front = p.locator('.mchip', { hasText: 'Front mulligan' }).first();
+ok('it starts with one in hand', (await front.innerText()).includes('1 left'), true);
+await front.click(); await p.waitForTimeout(600); await shut();
+ok('one tap spends it', (await front.innerText()).includes('Used'), true);
+ok('and it is marked', await front.evaluate(el => el.classList.contains('on')), true);
+ok('green, not grey', await front.evaluate(
+  el => getComputedStyle(el).backgroundColor), 'rgb(62, 92, 67)');
+ok('and takes no further taps', await front.isDisabled(), true);
+await front.click({ force: true }).catch(() => {}); await p.waitForTimeout(600); await shut();
+ok('a second tap does NOT hand it back', (await front.innerText()).includes('Used'), true);
+/* A mis-tap still needs a way out — but a separate, deliberately chosen
+   control, never another jab at the same chip. */
+ok('the master has a separate release', await p.locator(
+  '[data-act="unspend"][data-b="mF"]').count() > 0, true);
+await p.locator('[data-act="unspend"][data-b="mF"]').first().click(); await p.waitForTimeout(500);
+ok('which asks before it does anything', await p.locator('.modal .acts').count(), 1);
+await p.locator('[data-act="confirmOk"]').click(); await p.waitForTimeout(700); await shut();
+ok('and only then hands it back', (await p.locator('.mchip', { hasText: 'Front mulligan' })
+  .first().innerText()).includes('1 left'), true);
+await p.locator('.mchip', { hasText: 'Front mulligan' }).first().click();
+await p.waitForTimeout(600); await shut();
+const back = p.locator('.mchip', { hasText: 'Back mulligan' }).first();
+ok('the back nine keeps its own', (await back.innerText()).includes('1 left'), true);
+await back.click(); await p.waitForTimeout(600); await shut();
+await back.click({ force: true }).catch(() => {}); await p.waitForTimeout(600); await shut();
+ok('and spends it once too', (await back.innerText()).includes('Used'), true);
+
 console.log('\ntwo refs, two sets of points');
 /* One set of marks per hole meant the second ref to save wiped the first
    ref's points, silently. Each group keeps its own three. */
@@ -68,6 +124,9 @@ const mark = async (slot, idx) => {
 const marked = async slot => p.locator('[data-act="setBbb"][data-a="' + slot + '"]').inputValue();
 
 await p.locator('.gchip').first().click(); await p.waitForTimeout(500); await shut();
+/* Pin the hole. Marks are kept per hole, so a section that assumes hole one
+   has to say so rather than inherit whatever the last section left open. */
+await p.locator('.hcell').nth(0).click(); await p.waitForTimeout(450); await shut();
 await mark('bingo', 1);
 const one = await marked('bingo');
 await p.locator('[data-act="saveHole"]').click(); await p.waitForTimeout(900); await shut();
