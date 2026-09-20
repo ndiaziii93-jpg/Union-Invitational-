@@ -290,13 +290,39 @@ h3.sub{font-size:19px;font-weight:600;margin:26px 0 0}
 .cupbar .side.r{justify-content:flex-end}
 .cupbar .pts{font-size:clamp(32px,7vw,52px);font-weight:700;line-height:1}
 .cupbar .vs{font-size:19px;color:var(--turf)}
-.match{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;padding:10px 0;
-  border-bottom:1px solid var(--hair);font-size:16px}
+/* A head-to-head, with the point flown at the outer edge.
+   The UK golfer is always on the left and the USA golfer always on the
+   right, so the two gutters are the two squads: a column of flags down the
+   left margin is the UK's points, countable without reading a word. The
+   gutter is always there, flag or no flag, so the names stay in line. */
+.match{display:grid;grid-template-columns:26px 1fr auto 1fr 26px;gap:10px;align-items:center;
+  padding:10px 0;border-bottom:1px solid var(--hair);font-size:16px}
 .match .st{font-size:15px;padding:3px 9px;border:1px solid var(--rule);border-radius:999px;
-  white-space:nowrap;color:var(--turf)}
+  white-space:nowrap;color:var(--turf);justify-self:center}
 .match .st.uk{color:var(--uk);border-color:var(--uk)}
 .match .st.usa{color:var(--usa);border-color:var(--usa)}
+.match .mn{min-width:0;overflow-wrap:anywhere}
+.match .mn.r{text-align:right}
+.match .mn.win{font-weight:700}
 .match .r{text-align:right}
+.mp{display:flex;flex-direction:column;align-items:center;gap:1px;min-height:14px}
+.mp svg{display:block;border:1px solid rgba(29,46,33,.22);border-radius:1px}
+.mp .pt{font-size:11px;font-weight:700;color:var(--turf);line-height:1;font-variant-numeric:tabular-nums}
+.mp.half svg{opacity:.75}
+/* On a phone two names, a pill and two gutters will not sit on one line
+   without breaking somebody's surname in half. A match is a fixture, so it
+   reads DOWN instead: each golfer on their own line beside their own gutter,
+   and the result between them. */
+@media (max-width:560px){
+  .match{grid-template-columns:26px minmax(0,1fr) 26px;
+    grid-template-areas:"ukf uk ." ". st ." ". us usf";
+    gap:4px 9px;padding:13px 0}
+  .match>.mp:first-child{grid-area:ukf;align-self:start;margin-top:2px}
+  .match>.mp:last-child{grid-area:usf;align-self:end;margin-bottom:2px}
+  .match .mn{grid-area:uk;font-size:16px;overflow-wrap:normal}
+  .match .mn.r{grid-area:us;text-align:right}
+  .match .st{grid-area:st;justify-self:center;margin:1px 0}
+}
 
 /* ---- calendar ---- */
 .seg{display:flex;gap:2px;margin-left:auto}
@@ -1104,6 +1130,42 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
   .metarail{gap:14px;font-size:13px}
 }
 
+/* ---- the MVP board ----
+   Seven columns is a table, and a table does not fit a phone. The names ran
+   straight over the band column and the total hung off the right edge, both
+   of which are what "Pos Player Band Thru Today Pts Total" costs at 390px.
+
+   Wide, it stays the table it was. Narrow, each golfer becomes two lines:
+   what you scan for — position, name, net to par — on the first, and the
+   working out on the second, every figure under its own label. The four
+   middle figures are wrapped in .mvpmeta for exactly this, and that wrapper
+   is `display:contents` on a wide screen, which hands its children straight
+   back to the row as if it were not there. */
+.rows.mvp .n.quiet{color:var(--turf)}
+.mvpmeta{display:contents}
+
+@media (max-width:720px){
+  .rows.mvp .rowhead{display:none}
+  .rows.mvp .mvprow{display:grid;grid-template-columns:20px minmax(0,1fr) auto;
+    grid-template-areas:"pos who tot" "meta meta meta";
+    column-gap:10px;row-gap:7px;align-items:baseline;padding:14px 0}
+  .rows.mvp .mvprow .pos{grid-area:pos;width:auto;font-size:14px}
+  /* the one place a long name is allowed to end in an ellipsis rather than
+     push the figures off the screen */
+  .rows.mvp .mvprow .who{grid-area:who;min-width:0;font-size:18px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rows.mvp .mvprow .big{grid-area:tot;min-width:0;font-size:27px;line-height:1}
+  .rows.mvp .mvpmeta{grid-area:meta;display:flex;gap:8px;
+    border-top:1px solid var(--hair);padding-top:8px}
+  .rows.mvp .mvpmeta .n{flex:1 1 0;min-width:0;text-align:left;font-size:17px;
+    display:flex;flex-direction:column;gap:2px;color:var(--ink)}
+  .rows.mvp .mvpmeta .n::before{content:attr(data-l);font-size:11px;letter-spacing:.09em;
+    text-transform:uppercase;color:var(--turf);font-variant-numeric:normal;font-weight:400}
+  /* only the figure that means something keeps its colour */
+  .rows.mvp .mvpmeta .n.under{color:var(--under)}
+  .rows.mvp .mvpmeta .n.over{color:var(--over)}
+}
+
 </style>
 <div id="app"></div>
 <script>
@@ -1157,7 +1219,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20260920-2201';
+const BUILD = '20260920-2247';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -3748,16 +3810,23 @@ function boardMvp() {
   const rows = E.mvpBoard(T, now);
   return `<div class="titlerow"><h2 class="head">Tournament MVP</h2><a href="#rules" data-act="goRule" data-a="mvp">Full rules</a></div>
   <p class="lede">Your own ball, your own number, every stroke counted. Runs off the same card as the team competition.</p>
-  ${rows.length ? `<div class="rows" style="margin-top:18px">
+  ${/* Seven columns is a table, and a table does not fit a phone: the names
+        ran straight over the band and the total hung off the right edge. The
+        four working figures are wrapped so that narrow they can drop to a
+        labelled strip on a second line, while wide they stay exactly the
+        columns they were — `display:contents` hands them back to the row. */ ''}
+  ${rows.length ? `<div class="rows mvp" style="margin-top:18px">
     <div class="rowhead"><span style="width:24px">Pos</span><span style="flex:1">Player</span><span style="min-width:46px;text-align:right">Band</span><span style="min-width:46px;text-align:right">Thru</span><span style="min-width:46px;text-align:right">Today</span><span style="min-width:46px;text-align:right">Pts</span><span style="min-width:74px;text-align:right">Total</span></div>
-    ${rows.map(r => `<div class="row">
+    ${rows.map(r => `<div class="row mvprow">
       <span class="pos num">${r.pos}</span>
       <span class="who">${esc(r.name)}</span>
-      <span class="n num" style="color:var(--turf)">${esc(r.bandStr)}</span>
-      <span class="n num" style="color:var(--turf)">${esc(r.thruStr)}</span>
-      <span class="n num ${cls(r.today)}">${esc(r.todayStr)}</span>
-      <span class="n num" style="color:var(--turf)">${esc(r.stbStr)}</span>
-      <span class="big num ${cls(r.total)}">${esc(r.totalStr)}</span></div>`).join('')}
+      <span class="mvpmeta">
+        <span class="n num quiet" data-l="Band">${esc(r.bandStr)}</span>
+        <span class="n num quiet" data-l="Thru">${esc(r.thruStr)}</span>
+        <span class="n num ${cls(r.today)}" data-l="Today">${esc(r.todayStr)}</span>
+        <span class="n num quiet" data-l="Pts">${esc(r.stbStr)}</span>
+      </span>
+      <span class="big num ${cls(r.total)}" data-l="Total">${esc(r.totalStr)}</span></div>`).join('')}
   </div><p style="font-size:14px;color:var(--turf);font-style:italic;margin-top:10px">Pts is the Stableford equivalent, shown for interest — the MVP is decided on net to par.</p>`
   : `<p class="empty">No individual scores yet. Every golfer needs a playing band before their card counts.</p>`}`;
 }
@@ -4392,6 +4461,38 @@ function sampleError(e) {
   return 'That did not come back. Try again in a moment.';
 }
 
+/* One head-to-head.
+ *
+ * The status pill is coloured for the winning squad, which is a hint rather
+ * than a statement — you have to know that pine means UK and red means USA,
+ * and the two colours are not far apart at arm's length in the sun. The
+ * point itself gets a flag instead, in a gutter at the row's outer edge:
+ * the UK golfer is always on the left and the USA golfer always on the
+ * right, so a column of flags down the left margin IS the UK's points, read
+ * at a glance. A halved match flags both ends and marks each a half.
+ *
+ * Nothing is flagged until the match is done. While it is still out there
+ * the pill says who is up, and a flag would read as a result. */
+function matchRow(m) {
+  const won = s2 => m.done && m.side === s2;
+  const halved = m.done && !m.side;
+  const mark = s2 => {
+    if (!won(s2) && !halved) return '<span class="mp"></span>';
+    const who = s2 === 'UK' ? 'United Kingdom' : 'United States';
+    return `<span class="mp got${halved ? ' half' : ''}"
+      aria-label="${esc(who)} ${halved ? 'halved — half a point' : 'won the point'}"
+      title="${esc(who)} ${halved ? 'halved — half a point' : 'won the point'}"
+      >${squadFlag(s2, 22)}${halved ? '<span class="pt">\u00bd</span>' : ''}</span>`;
+  };
+  return `<div class="match${m.done ? ' done' : ''}">
+    ${mark('UK')}
+    <span class="mn${won('UK') ? ' win' : ''}">${esc(m.a)}</span>
+    <span class="st ${m.side === 'UK' ? 'uk' : m.side === 'USA' ? 'usa' : ''}">${esc(m.status)}${m.thru && !m.done ? ' \u00b7 thru ' + m.thru : ''}</span>
+    <span class="mn r${won('USA') ? ' win' : ''}">${esc(m.b)}</span>
+    ${mark('USA')}
+  </div>`;
+}
+
 function scrRyder() {
   const R = E.ryderData(T, now);
   const gs = E.golfers(T);
@@ -4427,10 +4528,7 @@ function scrRyder() {
     <h3 class="sub">${esc(s.label)} — ${esc(s.format)}</h3>
     <div style="font-family:var(--mono);font-size:13px;color:var(--turf);margin-top:2px">UK ${s.uk} · USA ${s.usa}</div>
     ${s.matches.length ? `<div class="rows" style="margin-top:8px;border-top:1px solid var(--rule)">
-      ${s.matches.map(m => `<div class="match">
-        <span>${esc(m.a)}</span>
-        <span class="st ${m.side === 'UK' ? 'uk' : m.side === 'USA' ? 'usa' : ''}">${esc(m.status)}${m.thru && !m.done ? ' · thru ' + m.thru : ''}</span>
-        <span class="r">${esc(m.b)}</span></div>`).join('')}
+      ${s.matches.map(m => matchRow(m)).join('')}
     </div>` : `<p class="empty">No matches yet — put golfers in both squads and the draw builds itself.</p>`}
     ${s.sitting && s.sitting.length ? `<p class="rnote" style="margin-top:6px">Sitting this session: ${esc(s.sitting.join(', '))}.</p>` : ''}
   `).join('')}`;

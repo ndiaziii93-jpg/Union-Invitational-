@@ -339,16 +339,23 @@ function boardMvp() {
   const rows = E.mvpBoard(T, now);
   return `<div class="titlerow"><h2 class="head">Tournament MVP</h2><a href="#rules" data-act="goRule" data-a="mvp">Full rules</a></div>
   <p class="lede">Your own ball, your own number, every stroke counted. Runs off the same card as the team competition.</p>
-  ${rows.length ? `<div class="rows" style="margin-top:18px">
+  ${/* Seven columns is a table, and a table does not fit a phone: the names
+        ran straight over the band and the total hung off the right edge. The
+        four working figures are wrapped so that narrow they can drop to a
+        labelled strip on a second line, while wide they stay exactly the
+        columns they were — `display:contents` hands them back to the row. */ ''}
+  ${rows.length ? `<div class="rows mvp" style="margin-top:18px">
     <div class="rowhead"><span style="width:24px">Pos</span><span style="flex:1">Player</span><span style="min-width:46px;text-align:right">Band</span><span style="min-width:46px;text-align:right">Thru</span><span style="min-width:46px;text-align:right">Today</span><span style="min-width:46px;text-align:right">Pts</span><span style="min-width:74px;text-align:right">Total</span></div>
-    ${rows.map(r => `<div class="row">
+    ${rows.map(r => `<div class="row mvprow">
       <span class="pos num">${r.pos}</span>
       <span class="who">${esc(r.name)}</span>
-      <span class="n num" style="color:var(--turf)">${esc(r.bandStr)}</span>
-      <span class="n num" style="color:var(--turf)">${esc(r.thruStr)}</span>
-      <span class="n num ${cls(r.today)}">${esc(r.todayStr)}</span>
-      <span class="n num" style="color:var(--turf)">${esc(r.stbStr)}</span>
-      <span class="big num ${cls(r.total)}">${esc(r.totalStr)}</span></div>`).join('')}
+      <span class="mvpmeta">
+        <span class="n num quiet" data-l="Band">${esc(r.bandStr)}</span>
+        <span class="n num quiet" data-l="Thru">${esc(r.thruStr)}</span>
+        <span class="n num ${cls(r.today)}" data-l="Today">${esc(r.todayStr)}</span>
+        <span class="n num quiet" data-l="Pts">${esc(r.stbStr)}</span>
+      </span>
+      <span class="big num ${cls(r.total)}" data-l="Total">${esc(r.totalStr)}</span></div>`).join('')}
   </div><p style="font-size:14px;color:var(--turf);font-style:italic;margin-top:10px">Pts is the Stableford equivalent, shown for interest — the MVP is decided on net to par.</p>`
   : `<p class="empty">No individual scores yet. Every golfer needs a playing band before their card counts.</p>`}`;
 }
@@ -983,6 +990,38 @@ function sampleError(e) {
   return 'That did not come back. Try again in a moment.';
 }
 
+/* One head-to-head.
+ *
+ * The status pill is coloured for the winning squad, which is a hint rather
+ * than a statement — you have to know that pine means UK and red means USA,
+ * and the two colours are not far apart at arm's length in the sun. The
+ * point itself gets a flag instead, in a gutter at the row's outer edge:
+ * the UK golfer is always on the left and the USA golfer always on the
+ * right, so a column of flags down the left margin IS the UK's points, read
+ * at a glance. A halved match flags both ends and marks each a half.
+ *
+ * Nothing is flagged until the match is done. While it is still out there
+ * the pill says who is up, and a flag would read as a result. */
+function matchRow(m) {
+  const won = s2 => m.done && m.side === s2;
+  const halved = m.done && !m.side;
+  const mark = s2 => {
+    if (!won(s2) && !halved) return '<span class="mp"></span>';
+    const who = s2 === 'UK' ? 'United Kingdom' : 'United States';
+    return `<span class="mp got${halved ? ' half' : ''}"
+      aria-label="${esc(who)} ${halved ? 'halved — half a point' : 'won the point'}"
+      title="${esc(who)} ${halved ? 'halved — half a point' : 'won the point'}"
+      >${squadFlag(s2, 22)}${halved ? '<span class="pt">\u00bd</span>' : ''}</span>`;
+  };
+  return `<div class="match${m.done ? ' done' : ''}">
+    ${mark('UK')}
+    <span class="mn${won('UK') ? ' win' : ''}">${esc(m.a)}</span>
+    <span class="st ${m.side === 'UK' ? 'uk' : m.side === 'USA' ? 'usa' : ''}">${esc(m.status)}${m.thru && !m.done ? ' \u00b7 thru ' + m.thru : ''}</span>
+    <span class="mn r${won('USA') ? ' win' : ''}">${esc(m.b)}</span>
+    ${mark('USA')}
+  </div>`;
+}
+
 function scrRyder() {
   const R = E.ryderData(T, now);
   const gs = E.golfers(T);
@@ -1018,10 +1057,7 @@ function scrRyder() {
     <h3 class="sub">${esc(s.label)} — ${esc(s.format)}</h3>
     <div style="font-family:var(--mono);font-size:13px;color:var(--turf);margin-top:2px">UK ${s.uk} · USA ${s.usa}</div>
     ${s.matches.length ? `<div class="rows" style="margin-top:8px;border-top:1px solid var(--rule)">
-      ${s.matches.map(m => `<div class="match">
-        <span>${esc(m.a)}</span>
-        <span class="st ${m.side === 'UK' ? 'uk' : m.side === 'USA' ? 'usa' : ''}">${esc(m.status)}${m.thru && !m.done ? ' · thru ' + m.thru : ''}</span>
-        <span class="r">${esc(m.b)}</span></div>`).join('')}
+      ${s.matches.map(m => matchRow(m)).join('')}
     </div>` : `<p class="empty">No matches yet — put golfers in both squads and the draw builds itself.</p>`}
     ${s.sitting && s.sitting.length ? `<p class="rnote" style="margin-top:6px">Sitting this session: ${esc(s.sitting.join(', '))}.</p>` : ''}
   `).join('')}`;
