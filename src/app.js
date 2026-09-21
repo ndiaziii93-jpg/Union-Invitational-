@@ -1205,89 +1205,10 @@ function restoreDraft() {
   } catch (e) { /* nothing carried over */ }
 }
 
-/* The crest, arriving.
- *
- * Not a splash screen over the book — the same crest that sits behind every
- * page, held large and solid in the middle of the paper and then travelling
- * to where it always rests as the book fades up through it. One element
- * moving, which is why it is smooth: a splash and a page cross-fading are
- * two animations that have to agree with each other, and they never quite
- * do. That was the choppiness.
- *
- * It is not shown every time. The book is held back from the first paint,
- * and the crest only comes forward if the tournament has not arrived within
- * a third of a second. Below that there is nothing to cover and a flourish
- * would only be adding the delay it pretends to hide.
- *
- * TWO THINGS MADE THE OPENING DIFFERENT EVERY TIME, and both are gone.
- *
- * It used to FADE IN over six hundred milliseconds, so what you saw depended
- * entirely on where the rest of the loading happened to land inside that
- * window — sometimes the whole crest, sometimes a pale thing half way up.
- * A pale crest was never a design; it was a frame of an animation caught in
- * the middle. It does not fade in at all now. It is simply there, at full
- * strength, from the first frame — see `transition:none` on `.leading`.
- *
- * And the hold used to be measured from the crest going up to the tournament
- * ARRIVING, floored at a minimum. A book that took two seconds to load
- * therefore showed the crest for two seconds; one that took three showed it
- * for three. Now the hold is the hold: once the crest is committed to it
- * gets HOLD milliseconds and the book waits, load bar and all, which is what
- * the book already shows for a slow open. The opening looks the same every
- * time, which is the whole point of having one.
- *
- * The book is never hidden by a stylesheet. A rule like that would leave a
- * blank page for ever if any of this failed to run: the class that holds it
- * back is only ever added by the code that removes it, and the reveal is
- * booked by a timer the moment the crest goes up, so nothing else has to
- * happen for the book to appear.
- */
-const WAIT = 350;     // less dead time than this is not worth covering
-const HOLD = 1800;    // and once the crest is up, it gets this. Always.
-
-let splashTimer = null;
-let splashShown = false;
-let splashDone = false;
-let mark = null;
-
-function watermark() {
-  if (mark || typeof document === 'undefined' || !IMG.crest) return mark;
-  mark = document.createElement('div');
-  mark.className = 'watermark';
-  mark.style.backgroundImage = "url('" + IMG.crest + "')";
-  document.body.appendChild(mark);
-  return mark;
-}
-
-function splashArm() {
-  const wm = watermark();
-  const app = typeof document !== 'undefined' ? document.getElementById('app') : null;
-  if (!wm || !app) return;
-  app.classList.add('behind');
-  splashTimer = setTimeout(() => {
-    /* Committed. From here the book's own progress changes nothing about
-       what is on screen, which is exactly why it now looks the same twice. */
-    splashShown = true;
-    wm.classList.add('leading');
-    setTimeout(reveal, HOLD);
-  }, WAIT);
-}
-
-/** The tournament is in hand. */
-function splashDown() {
-  if (splashShown) return;      // the crest is up and keeps its hold
-  clearTimeout(splashTimer);    // it never went up, and now it never will
-  reveal();
-}
-
-/** The book, either way. */
-function reveal() {
-  if (splashDone) return;
-  splashDone = true;
-  if (mark) mark.classList.remove('leading');
-  const app = typeof document !== 'undefined' ? document.getElementById('app') : null;
-  if (app) { app.classList.remove('behind'); app.classList.add('arrived'); }
-}
+/* The crest that opens the book is put up by src/opening.js, which runs
+   near the top of the page rather than at the end of it — see that file for
+   why. Nothing here is involved in it any more: by the time this bundle has
+   parsed, the crest has already been on screen for most of a second. */
 
 /* The competition strip pans across, and only across.
  *
@@ -2958,11 +2879,8 @@ export function boot() {
 
   store = S.createStore((state, m) => {
     T = state; meta = m;
-    /* `ready` means the subscriptions are registered, which happens almost at
-       once and well before any tournament has arrived. `settled` means the
-       book actually has the config and the roster in hand — that is the wait
-       worth covering, and the moment there is something to show. */
-    if (m.settled) splashDown();
+    /* `ready` means the subscriptions are registered, which happens almost
+       at once and well before any tournament has arrived. */
     if (m.ready && !UI.setupSeen) {
       UI.setupSeen = true;
       const saved = loadRole();
@@ -3000,7 +2918,6 @@ export function boot() {
   });
   app.addEventListener('keydown', onKey);
   lockStripsSideways();
-  splashArm();
   /* What was typed, kept as it is typed. `keydown` fires before the character
      lands, so reading the value there is always one keystroke behind — and a
      redraw arriving mid-sentence then rendered the box without the last

@@ -43,56 +43,52 @@ a{color:var(--green);text-underline-offset:3px}
 .wrap{max-width:1180px;margin:0 auto;padding:0 clamp(14px,3vw,26px) 40px;position:relative;z-index:1}
 
 /* ---- watermark & masthead ---- */
-/* The crest behind every page — and, for the first moment of a slow open,
-   in front of it.
+/* The crest behind every page — and, for the first two seconds of it, in
+   front of the page instead. This is the resting state, which is also where
+   the opening below ends.
 
    The movement is a TRANSFORM, not a change of background-size. Animating
    background-size repaints the image on every frame and is where the
    choppiness came from; a transform is handed to the compositor and simply
-   runs. The width cap is new: at min(52vh) the resting mark is wider than a
-   phone and crops off both edges, which meant the crest could not come
-   forward without appearing to get SMALLER.
-
-   Going BACK is the slow one — leaving `.leading` uses the transition
-   declared here, and that is the movement the reader watches: the crest
-   eases down into its resting place, shrinking and dissolving as it goes. */
+   runs. */
 .watermark{position:fixed;inset:0;pointer-events:none;z-index:0;background-repeat:no-repeat;
   background-position:center 58%;background-size:min(52vh,86vw,470px);
   opacity:.045;
-  transform:none;transform-origin:center 58%;will-change:transform,opacity;
-  transition:transform 1.6s cubic-bezier(.22,.61,.24,1),
-             opacity 1.5s cubic-bezier(.45,0,.55,1) .1s}
+  transform:none;transform-origin:center 58%;will-change:transform,opacity}
 /* The crest art carries its own transparency, so it needs no blend mode to
    sit on the paper. It used to multiply, which is very nearly invisible at
    four and a half percent and a needless second opinion about the colour at
    full strength — the crest should simply be the colours it is. */
 
-/* Coming FORWARD is quick — it is answering a tap, not performing — and it
-   scales DOWN to get there, so that letting go reads as zooming out of the
-   crest and into the book.
+/* THE OPENING.
+   The crest is put up by src/opening.js the moment the page has its own
+   data, which is well before the book itself exists — so this cannot be a
+   transition, because there is nothing to transition FROM. It is an
+   animation, and the animation starts the instant the element is created.
+   That is what makes the opening the same length every time: it is timed
+   from the first paint, not from how the loading happened to go.
 
-   The 86vw in the resting size above is what actually matters here. Left at
-   min(52vh,470px) the mark is WIDER than a phone, which is right for a faint
-   texture bleeding off both edges and wrong for everything else: the crest
-   only fitted at the very bottom of its scale, so for most of the movement
-   the wordmark ran off both sides and read as hitting a wall. Bounding the
-   resting width means the whole crest is whole at every moment of the
-   journey, not just at the start of it.
+   It does not fade in. The first frame is the whole crest at full strength;
+   a pale crest was only ever an animation caught half way up.
 
-   With that bound in place the leading scale can go back to .8 — the travel
-   that made the zoom read as a zoom — without cutting anything: four fifths
-   of 86vw is 69vw, and every moment after it is wider still and fainter.
+   Two animations rather than one, because the way out is two movements with
+   different minds: the crest eases OPEN over 1.6s and dissolves over 1.5s,
+   and they should not have to share an easing curve to do it. Both hold
+   first — 1800ms, which is 52.9% of 3400 and 54.5% of 3300.
 
-   `transition:none` is the important line. Coming forward used to be an
-   animation of its own, six hundred milliseconds of the crest fading and
-   scaling up, and everything the reader complained about lived inside that
-   window: a crest caught half way up is a pale crest, and how much of it you
-   saw depended on when the tournament happened to arrive. There is nothing
-   to catch now. The crest is simply there, whole and at full strength, and
-   the only movement is the one worth watching — the way back out, which
-   uses the transition declared on .watermark above. */
-.watermark.leading{z-index:60;opacity:1;transform:scale(.8) translateY(-2%);
-  transition:none}
+   The resting style above is where both animations end, so when the class is
+   taken off at the finish nothing moves.
+
+   The 86vw in the resting size is what allows the leading scale to be .8 —
+   the travel that makes this read as a zoom rather than a dissolve. Left at
+   min(52vh,470px) the mark is WIDER than a phone, and the wordmark ran off
+   both edges for most of the journey. Four fifths of 86vw is 69vw, and every
+   moment after it is wider still and fainter. */
+.watermark.opening{z-index:60;
+  animation:crestZoom 3400ms cubic-bezier(.22,.61,.24,1) both,
+            crestFade 3300ms cubic-bezier(.45,0,.55,1) both}
+@keyframes crestZoom{0%,52.9%{transform:scale(.8) translateY(-2%)}100%{transform:none}}
+@keyframes crestFade{0%,54.5%{opacity:1}100%{opacity:.045}}
 
 .masthead{display:flex;align-items:center;gap:14px;padding:16px 0 10px;flex-wrap:wrap}
 .masthead img{width:62px;height:auto;flex:0 0 auto}
@@ -771,8 +767,12 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
 #app.behind{opacity:0}
 #app.arrived{opacity:1;transition:opacity 1.1s cubic-bezier(.3,0,.35,1)}
 
+/* Reduced motion takes the MOVEMENT away, not the opening. Shortening it
+   instead would leave the book still held back by a clock that had not moved
+   with it, staring at a watermark. */
 @media (prefers-reduced-motion:reduce){
-  .watermark,.watermark.leading,#app.arrived{transition:opacity .3s ease}
+  @keyframes crestZoom{0%,100%{transform:none}}
+  #app.arrived{transition:opacity .3s ease}
 }
 
 /* ---- the playing band, as a crest ----
