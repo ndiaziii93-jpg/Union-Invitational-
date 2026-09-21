@@ -1208,7 +1208,7 @@ function restoreDraft() {
 /* The crest, arriving.
  *
  * Not a splash screen over the book — the same crest that sits behind every
- * page, begun large and dark in the middle of the paper and then travelling
+ * page, held large and solid in the middle of the paper and then travelling
  * to where it always rests as the book fades up through it. One element
  * moving, which is why it is smooth: a splash and a page cross-fading are
  * two animations that have to agree with each other, and they never quite
@@ -1219,18 +1219,35 @@ function restoreDraft() {
  * a third of a second. Below that there is nothing to cover and a flourish
  * would only be adding the delay it pretends to hide.
  *
- * Coming forward is quick, six hundred milliseconds, because it is answering
- * a tap. Going back is slow and unhurried — that is the part meant to feel
- * purposeful, and the part the reader actually watches.
+ * TWO THINGS MADE THE OPENING DIFFERENT EVERY TIME, and both are gone.
+ *
+ * It used to FADE IN over six hundred milliseconds, so what you saw depended
+ * entirely on where the rest of the loading happened to land inside that
+ * window — sometimes the whole crest, sometimes a pale thing half way up.
+ * A pale crest was never a design; it was a frame of an animation caught in
+ * the middle. It does not fade in at all now. It is simply there, at full
+ * strength, from the first frame — see `transition:none` on `.leading`.
+ *
+ * And the hold used to be measured from the crest going up to the tournament
+ * ARRIVING, floored at a minimum. A book that took two seconds to load
+ * therefore showed the crest for two seconds; one that took three showed it
+ * for three. Now the hold is the hold: once the crest is committed to it
+ * gets HOLD milliseconds and the book waits, load bar and all, which is what
+ * the book already shows for a slow open. The opening looks the same every
+ * time, which is the whole point of having one.
  *
  * The book is never hidden by a stylesheet. A rule like that would leave a
  * blank page for ever if any of this failed to run: the class that holds it
- * back is only ever added by the code that removes it, and a ceiling reveals
- * it regardless of what else happens.
+ * back is only ever added by the code that removes it, and the reveal is
+ * booked by a timer the moment the crest goes up, so nothing else has to
+ * happen for the book to appear.
  */
-let splashAt = 0;
+const WAIT = 350;     // less dead time than this is not worth covering
+const HOLD = 1800;    // and once the crest is up, it gets this. Always.
+
 let splashTimer = null;
 let splashShown = false;
+let splashDone = false;
 let mark = null;
 
 function watermark() {
@@ -1248,31 +1265,28 @@ function splashArm() {
   if (!wm || !app) return;
   app.classList.add('behind');
   splashTimer = setTimeout(() => {
+    /* Committed. From here the book's own progress changes nothing about
+       what is on screen, which is exactly why it now looks the same twice. */
     splashShown = true;
-    splashAt = Date.now();
     wm.classList.add('leading');
-  }, 350);
-  /* Whatever happens, the book appears. The ceiling is the hold plus the
-     time it takes to arrive plus a little: a dead connection should show the
-     same flourish as a good one, not a longer one. */
-  setTimeout(splashDown, 3400);
+    setTimeout(reveal, HOLD);
+  }, WAIT);
 }
 
+/** The tournament is in hand. */
 function splashDown() {
-  clearTimeout(splashTimer);
-  const app = document.getElementById('app');
-  const go = () => {
-    if (mark) mark.classList.remove('leading');
-    if (app) { app.classList.remove('behind'); app.classList.add('arrived'); }
-  };
-  // nothing came forward, so there is nothing to take back
-  if (!splashShown) { go(); return; }
-  if (mark && !mark.classList.contains('leading')) return;
-  /* Six hundred of these milliseconds are the crest still arriving, so the
-     hold has to clear that before any of it counts as having been seen. What
-     is left — a second and a half at full size — is the pause that makes it
-     read as deliberate rather than as a flash on the way past. */
-  setTimeout(go, Math.max(0, 2100 - (Date.now() - splashAt)));
+  if (splashShown) return;      // the crest is up and keeps its hold
+  clearTimeout(splashTimer);    // it never went up, and now it never will
+  reveal();
+}
+
+/** The book, either way. */
+function reveal() {
+  if (splashDone) return;
+  splashDone = true;
+  if (mark) mark.classList.remove('leading');
+  const app = typeof document !== 'undefined' ? document.getElementById('app') : null;
+  if (app) { app.classList.remove('behind'); app.classList.add('arrived'); }
 }
 
 /* The competition strip pans across, and only across.

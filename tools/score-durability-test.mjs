@@ -83,10 +83,16 @@ const nominate = async pg => {
  * while the config mirror was still the only thing on screen and the test
  * failed for reasons that had nothing to do with the book. The load bar is
  * the book's own statement that it is still opening; when it goes, the
- * tournament is in hand. */
+ * tournament is in hand.
+ *
+ * The book has to have DRAWN before that means anything, though: an empty
+ * page has no load bar either, and "the load bar is gone" would otherwise be
+ * true a frame after navigating and before a single document had arrived. */
 const settled = async (pg, ms = 20000) => {
-  try { await pg.waitForSelector('.loadbar', { state: 'detached', timeout: ms }); }
-  catch (e) { /* it may never have been there at all */ }
+  try {
+    await pg.waitForSelector('.masthead h1', { timeout: ms });
+    await pg.waitForSelector('.loadbar', { state: 'detached', timeout: ms });
+  } catch (e) { /* whatever is on screen is what the test will judge */ }
   await pg.waitForTimeout(350);        // one redraw after the last document
 };
 

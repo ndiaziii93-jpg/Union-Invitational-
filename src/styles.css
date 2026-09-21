@@ -58,10 +58,14 @@ a{color:var(--green);text-underline-offset:3px}
    eases down into its resting place, shrinking and dissolving as it goes. */
 .watermark{position:fixed;inset:0;pointer-events:none;z-index:0;background-repeat:no-repeat;
   background-position:center 58%;background-size:min(52vh,86vw,470px);
-  opacity:.045;mix-blend-mode:multiply;
+  opacity:.045;
   transform:none;transform-origin:center 58%;will-change:transform,opacity;
   transition:transform 1.6s cubic-bezier(.22,.61,.24,1),
              opacity 1.5s cubic-bezier(.45,0,.55,1) .1s}
+/* The crest art carries its own transparency, so it needs no blend mode to
+   sit on the paper. It used to multiply, which is very nearly invisible at
+   four and a half percent and a needless second opinion about the colour at
+   full strength — the crest should simply be the colours it is. */
 
 /* Coming FORWARD is quick — it is answering a tap, not performing — and it
    scales DOWN to get there, so that letting go reads as zooming out of the
@@ -77,9 +81,18 @@ a{color:var(--green);text-underline-offset:3px}
 
    With that bound in place the leading scale can go back to .8 — the travel
    that made the zoom read as a zoom — without cutting anything: four fifths
-   of 86vw is 69vw, and every moment after it is wider still and fainter. */
+   of 86vw is 69vw, and every moment after it is wider still and fainter.
+
+   `transition:none` is the important line. Coming forward used to be an
+   animation of its own, six hundred milliseconds of the crest fading and
+   scaling up, and everything the reader complained about lived inside that
+   window: a crest caught half way up is a pale crest, and how much of it you
+   saw depended on when the tournament happened to arrive. There is nothing
+   to catch now. The crest is simply there, whole and at full strength, and
+   the only movement is the one worth watching — the way back out, which
+   uses the transition declared on .watermark above. */
 .watermark.leading{z-index:60;opacity:1;transform:scale(.8) translateY(-2%);
-  transition:transform .6s cubic-bezier(.2,.7,.25,1),opacity .4s ease-out}
+  transition:none}
 
 .masthead{display:flex;align-items:center;gap:14px;padding:16px 0 10px;flex-wrap:wrap}
 .masthead img{width:62px;height:auto;flex:0 0 auto}

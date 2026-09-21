@@ -148,6 +148,10 @@ async function watch(width, height, dead) {
   return out;
 }
 
+/* How long the crest is forward: first sample with the class to last. */
+const holdOf = rows => { const l = rows.filter(s => s.lead);
+  return l.length ? l[l.length - 1].t - l[0].t : 0; };
+
 console.log('\nthe whole crest, at every moment of the journey');
 await watch(390, 844);          // the load that seeds, so the rest find it there
 for (const [w, h] of [[375, 812], [390, 844], [430, 932], [834, 1112]]) {
@@ -165,17 +169,32 @@ for (const [w, h] of [[375, 812], [390, 844], [430, 932], [834, 1112]]) {
 
 const main = await watch(390, 844);
 
-console.log('\nlong enough to be read');
-/* The complaint was never "the animation is wrong", it was "you cannot see
-   the crest before it fades". What answers that is the time at full strength
-   AFTER it has finished arriving — not the length of the whole sequence. */
-const full = main.filter(s => s.op > 0.9);
-const held = full.length ? full[full.length - 1].t - full[0].t : 0;
-console.log('        at full strength for ' + held + 'ms');
-/* A second and a quarter was the old number, and the verdict on it was that
-   you could not see the crest before it faded. Two seconds is the floor. */
-ok('it stands still for the better part of two seconds', held >= 1800, true);
-ok('and not so long that it becomes a wait', held <= 3200, true);
+console.log('\nsolid from the first frame');
+/* The complaint that mattered: "sometimes it shows the full crest and then
+   fades, others it pops mid fade". A crest caught half way through fading IN
+   is a pale crest, and which one you got depended on when the tournament
+   happened to arrive. It does not fade in any more, so the very first frame
+   it is on screen is already the whole thing. */
+const firstLead = main.find(s => s.lead);
+console.log('        first frame at opacity ' + (firstLead ? firstLead.op : '?'));
+ok('the first frame is already full strength', firstLead && firstLead.op > 0.95, true);
+ok('and it is already at its full size', firstLead
+  && Math.abs(firstLead.w - main.filter(x => x.lead).reduce((a, x) => Math.min(a, x.w), Infinity)) < 2, true);
+ok('no frame of it is ever a faint crest', main.filter(
+  s => s.lead && s.op < 0.95).length, 0);
+
+console.log('\nheld for exactly as long as it is meant to be');
+/* The hold is the time the crest spends FORWARD, which is now the time it
+   spends at full strength too, because it neither fades in nor starts fading
+   out until it is let go. Measuring `opacity > 0.9` instead would quietly
+   add the first slice of the fade — about a seventh of a second of a second
+   and a half — and report a hold nobody asked for. */
+const held = holdOf(main);
+console.log('        held at full strength for ' + held + 'ms');
+/* 1800ms, asked for by name. The sampler runs on a 40ms tick, so allow it
+   one tick at each end. */
+ok('it stands still for about one and four fifths of a second',
+  held >= 1720 && held <= 1900, true);
 
 console.log('\nit zooms out; it does not merely fade');
 /* Not the first sample with the class on it — that one is caught with the
@@ -193,21 +212,28 @@ ok('a good deal — this is a zoom, not a dissolve', last.w / tightest > 1.2, tr
 console.log('\nand then it gets out of the way');
 ok('the book is fully visible', last.book > 0.99, true);
 ok('the crest is a watermark again', last.op < 0.1, true);
-const shown = main.find(s => s.lead);
-const cleared = main.find(s => s.t > shown.t && !s.lead);
+const cleared = main.find(s => s.t > firstLead.t && !s.lead);
 console.log('        crest cleared at ' + (cleared ? cleared.t : '?') + 'ms');
+ok('the crest does clear', !!cleared, true);
 
-console.log('\nand with the wire cut, the same flourish — not a longer one');
-/* The ceiling exists so a dead connection cannot leave a blank page. It must
-   not turn the flourish into a wait either: a book that opens on the first
-   tee with no signal should look like a book that opens on the wifi. */
+console.log('\nand with the wire cut, the very same opening');
+/* This is the other half of "why is it inconsistent". The hold used to be
+   measured to the moment the tournament ARRIVED, so a slow open held the
+   crest longer than a quick one and no two openings looked alike. The hold
+   is now the hold: with nothing answering at all, the crest goes up at the
+   same moment, stays exactly as long, and the book comes up behind its own
+   load bar. */
 const gone = await watch(390, 844, true);
 const up = gone.find(s => s.lead);
 const down = gone.find(s => up && s.t > up.t && !s.lead);
 ok('the crest still came forward', !!up, true);
 ok('and the book still appeared', gone[gone.length - 1].book > 0.99, true);
-console.log('        with nothing answering, cleared at ' + (down ? down.t : '?') + 'ms');
-ok('within about three and a half seconds', !!down && down.t < 4000, true);
+const deadHeld = holdOf(gone);
+console.log('        with nothing answering: up at ' + (up ? up.t : '?')
+  + 'ms, held ' + deadHeld + 'ms, cleared at ' + (down ? down.t : '?') + 'ms');
+ok('it comes up at the same moment', !!up && Math.abs(up.t - firstLead.t) < 200, true);
+ok('and is held for the same length of time', Math.abs(deadHeld - held) < 200, true);
+ok('so the opening is the same one either way', !!down && Math.abs(down.t - cleared.t) < 250, true);
 
 await b.close();
 server.close();
