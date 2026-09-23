@@ -9,6 +9,7 @@ import * as CFG from './config.js';
 import { createSupabaseFiles } from './dbsupa.js';
 import { RULES, RELIEF } from './rules.js';
 import * as R from './resort.js';
+import * as W from './weather.js';
 
 const IMG = window.UI_IMAGES || {};
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -60,6 +61,7 @@ const UI = {
   resortPlanCat: 'all', // which part of the site plan is labelled
   resortPin: null,      // which point on the plan is selected, by index
   resortZoom: 1,        // how far into the site plan we are — 1 is the whole thing
+  resortJump: false,    // arrived at the plan from somewhere else: put it on screen
 };
 
 const ROLE_KEY = 'union-invitational:role';
@@ -2135,6 +2137,124 @@ function scrSetup() {
 }
 
 
+/* ---------------- the weather ----------------
+   Drawn rather than fetched: eight glyphs in the book's own ink, so the strip
+   works on a phone with no signal and looks like the rest of the paper. */
+
+const SKY = {
+  sun: `<circle cx="12" cy="12" r="5"/><g class="ray"><path d="M12 1v3M12 20v3M1 12h3M20 12h3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M19.8 4.2l-2.1 2.1M6.3 17.7l-2.1 2.1"/></g>`,
+  moon: `<path d="M20 14.5A8.5 8.5 0 1 1 10.5 4a6.8 6.8 0 0 0 9.5 10.5z"/>`,
+  suncloud: `<circle cx="9" cy="8.5" r="3.6"/><g class="ray"><path d="M9 1.4v2.2M1.4 8.5h2.2M3.7 3.2l1.6 1.6M14.3 3.2l-1.6 1.6"/></g><path class="cl" d="M8 20.5h9.2a3.6 3.6 0 0 0 .3-7.2 5 5 0 0 0-9.6 1.1A3 3 0 0 0 8 20.5z"/>`,
+  mooncloud: `<path d="M17.5 9.6A5.6 5.6 0 0 1 11 3.2a4.5 4.5 0 1 0 6.5 6.4z"/><path class="cl" d="M7 20.5h9.2a3.6 3.6 0 0 0 .3-7.2 5 5 0 0 0-9.6 1.1A3 3 0 0 0 7 20.5z"/>`,
+  cloud: `<path class="cl" d="M7 19.5h9.6a3.9 3.9 0 0 0 .3-7.8 5.4 5.4 0 0 0-10.4 1.2A3.3 3.3 0 0 0 7 19.5z"/>`,
+  fog: `<path class="cl" d="M7 14.5h9.6a3.9 3.9 0 0 0 .3-7.8A5.4 5.4 0 0 0 6.5 7.9 3.3 3.3 0 0 0 7 14.5z"/><path d="M3 18h18M6 21.5h12"/>`,
+  drizzle: `<path class="cl" d="M7 14.5h9.6a3.9 3.9 0 0 0 .3-7.8A5.4 5.4 0 0 0 6.5 7.9 3.3 3.3 0 0 0 7 14.5z"/><path d="M9 18v2M14 18v2"/>`,
+  rain: `<path class="cl" d="M7 14.5h9.6a3.9 3.9 0 0 0 .3-7.8A5.4 5.4 0 0 0 6.5 7.9 3.3 3.3 0 0 0 7 14.5z"/><path d="M8 17.5l-1 4M12.4 17.5l-1 4M16.8 17.5l-1 4"/>`,
+  showers: `<path class="cl" d="M7 13.5h9.6a3.9 3.9 0 0 0 .3-7.8A5.4 5.4 0 0 0 6.5 6.9 3.3 3.3 0 0 0 7 13.5z"/><path d="M8 16.5l-1 3M12.4 16.5l-1 3M16.8 16.5l-1 3M10 21l-.6 1.6M15 21l-.6 1.6"/>`,
+  snow: `<path class="cl" d="M7 13.5h9.6a3.9 3.9 0 0 0 .3-7.8A5.4 5.4 0 0 0 6.5 6.9 3.3 3.3 0 0 0 7 13.5z"/><path d="M8 17.2v3.4M6.5 18.1l3 1.6M9.5 18.1l-3 1.6M16 17.2v3.4M14.5 18.1l3 1.6M17.5 18.1l-3 1.6"/>`,
+  storm: `<path class="cl" d="M7 13.5h9.6a3.9 3.9 0 0 0 .3-7.8A5.4 5.4 0 0 0 6.5 6.9 3.3 3.3 0 0 0 7 13.5z"/><path class="bolt" d="M13 16l-4 5h3l-1 4 4.5-5.6H12.5z"/>`,
+};
+
+function sky(glyph, cls) {
+  return `<svg class="sky ${cls || ''}" viewBox="0 0 24 24" aria-hidden="true"
+    fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round">${SKY[glyph] || SKY.cloud}</svg>`;
+}
+
+/* What this phone reads temperatures in. A group split between two countries
+   will never agree, so it is a setting of the handset and not of the book. */
+const UNIT_KEY = 'union-invitational:unit';
+let unit = (() => { try { return localStorage.getItem(UNIT_KEY) === 'F' ? 'F' : 'C'; } catch (e) { return 'C'; } })();
+function setUnit(u) {
+  unit = u === 'F' ? 'F' : 'C';
+  try { localStorage.setItem(UNIT_KEY, unit); } catch (e) { /* storage blocked */ }
+}
+
+/* The last forecast that arrived, kept so the strip still says something on a
+   phone that has wandered out of signal. `wx.state` is what the strip shows:
+   'cold' before anything, 'live' once it has, 'stale' when the last attempt
+   failed but an older reading survives, 'off' when there is nothing at all. */
+const WX_KEY = 'union-invitational:wx';
+const wx = { data: null, at: 0, state: 'cold', tried: 0 };
+(() => {
+  try {
+    const held = JSON.parse(localStorage.getItem(WX_KEY) || 'null');
+    if (held && held.json && held.at) {
+      const f = W.read(held.json, Date.now());
+      if (f) { wx.data = f; wx.at = held.at; wx.state = 'stale'; }
+    }
+  } catch (e) { /* nothing kept, or nothing readable */ }
+})();
+
+async function loadWeather(force) {
+  const age = Date.now() - wx.at;
+  if (!force && wx.state === 'live' && age < 15 * 60e3) return;
+  if (Date.now() - wx.tried < 30e3) return;          // never hammer it
+  wx.tried = Date.now();
+  try {
+    const res = await fetch(W.url(), { headers: { accept: 'application/json' } });
+    if (!res.ok) throw new Error('http ' + res.status);
+    const json = await res.json();
+    const f = W.read(json, Date.now());
+    if (!f) throw new Error('not a forecast');
+    wx.data = f; wx.at = Date.now(); wx.state = 'live';
+    try { localStorage.setItem(WX_KEY, JSON.stringify({ json, at: wx.at })); } catch (e) { /* full, or blocked */ }
+  } catch (e) {
+    wx.state = wx.data ? 'stale' : 'off';
+  }
+  render();
+}
+
+/** The band under the plate: what it is doing outside, and what it will do. */
+function weatherStrip() {
+  const f = wx.data;
+  const seen = wx.at ? new Date(wx.at + (f ? f.offset : 0) * 1000) : null;
+  const toggle = `<div class="units" role="group" aria-label="Temperature units">
+    ${['C', 'F'].map(u => `<button class="ub${unit === u ? ' on' : ''}"
+      data-act="wxUnit" data-a="${u}" aria-pressed="${unit === u}">°${u}</button>`).join('')}
+  </div>`;
+
+  /* The switch goes on a line of its own above the reading. Beside it, the
+     condition and the day's range were squeezed into forty pixels on a
+     phone and broke across three lines. */
+  const head = `<div class="wx-head"><span class="wx-lbl">At the resort</span>${toggle}</div>`;
+
+  if (!f) {
+    return `<div class="wx">${head}
+      <p class="tiny wx-cold">${wx.state === 'off'
+        ? 'No forecast — it needs a connection, and this phone has not got one.'
+        : 'Fetching the forecast…'}</p></div>`;
+  }
+
+  const l = W.look(f.code, f.isDay);
+  return `<div class="wx">${head}
+    <div class="wx-now">
+      ${sky(l.glyph, 'big')}
+      <div class="wx-t num">${esc(W.degrees(f.c, unit))}</div>
+      <div class="wx-s">
+        <b>${esc(l.word)}</b>
+        <span>${f.max != null && f.min != null
+          ? 'High ' + esc(W.degrees(f.max, unit)) + ' · Low ' + esc(W.degrees(f.min, unit))
+          : f.feels != null ? 'Feels like ' + esc(W.degrees(f.feels, unit)) : ''}</span>
+      </div>
+    </div>
+    ${f.hours.length ? `<div class="wx-hours nos">${f.hours.map(h => {
+      const hl = W.look(h.code, isDaylight(h.at, f.offset));
+      return `<div class="wx-h"><span class="hh">${esc(W.hourLabel(h.at, f.offset, Date.now()))}</span>
+        ${sky(hl.glyph)}<span class="hd num">${esc(W.degrees(h.c, unit))}</span></div>`;
+    }).join('')}</div>` : ''}
+    ${wx.state === 'stale' && seen
+      ? `<p class="tiny">Last reached at ${esc(E.to12(String(seen.getUTCHours()).padStart(2, '0') + ':' + String(seen.getUTCMinutes()).padStart(2, '0')))}. Showing what it said then.</p>`
+      : ''}
+  </div>`;
+}
+
+/** Roughly, is that hour in daylight at the resort? Good enough for a glyph. */
+function isDaylight(ms, offsetSeconds) {
+  const h = new Date(ms + offsetSeconds * 1000).getUTCHours();
+  return h >= 7 && h < 19;
+}
+
 /* ---------------- The Titanic ----------------
    The resort, for the eight days somebody is not on a golf course. Everything
    in resort.js came off the hotel's own site; everything the group finds out
@@ -2222,11 +2342,12 @@ function resortNow() {
   const season = resortSeason();
   const clock = E.to12(String(now.hh).padStart(2, '0') + ':' + String(now.mm).padStart(2, '0'));
 
-  const card = (v, extra) => `<div class="vcard${v.cost === 'cover' ? ' cover' : ''}">
-    <div class="vtop"><span class="vn">${esc(v.name)}</span>${v.cuisine ? `<span class="vc">${esc(v.cuisine)}</span>` : ''}</div>
-    <div class="vwhen">${extra}</div>
+  const card = (v, extra) => `<button class="vcard${v.cost === 'cover' ? ' cover' : ''}"
+    data-act="resortVenue" data-a="${esc(v.id)}">
+    <span class="vtop"><span class="vn">${esc(v.name)}</span>${v.cuisine ? `<span class="vc">${esc(v.cuisine)}</span>` : ''}</span>
+    <span class="vwhen">${extra}</span>
     ${v.cost === 'cover' ? `<span class="vtag">Cover charge · book ahead</span>` : ''}
-  </div>`;
+  </button>`;
 
   const openNow = (s) => R.whatsOn(s, min);
   /* When it shuts — except for the bar that never does, where "until 12am"
@@ -2288,13 +2409,13 @@ function resortEat() {
       </header>
       ${lead ? `<p class="vglead">${lead}</p>` : ''}
       <div class="vlist">${list.map(v => `<div class="vrow${shutNow(v) ? ' out' : ''}">
-        <div class="vmain">
-          <div class="vtop"><span class="vn">${esc(v.name)}</span>
+        <button class="vmain plink" data-act="resortVenue" data-a="${esc(v.id)}">
+          <span class="vtop"><span class="vn">${esc(v.name)}</span>
             ${v.cuisine ? `<span class="vc">${esc(v.cuisine)}</span>` : ''}
-            ${v.tag ? `<span class="vtag">${esc(v.tag)}</span>` : ''}</div>
-          ${v.blurb ? `<p class="vb">${esc(v.blurb)}</p>` : ''}
-          ${v.note ? `<p class="vb warn">${esc(v.note)}</p>` : ''}
-        </div>
+            ${v.tag ? `<span class="vtag">${esc(v.tag)}</span>` : ''}</span>
+          ${v.blurb ? `<span class="vb">${esc(v.blurb)}</span>` : ''}
+          ${v.note ? `<span class="vb warn">${esc(v.note)}</span>` : ''}
+        </button>
         ${hoursCell(v)}
       </div>`).join('')}</div>
     </section>`;
@@ -2311,6 +2432,42 @@ function resortEat() {
 }
 
 /* ---- the plan ---- */
+
+/** The window a place opens when it is tapped, wherever it was tapped. */
+function venueModalHtml() {
+  const v = R.VENUES.find(x => x.id === UI.modal.vid);
+  if (!v) return '';
+  const i = R.planAt(v);
+  const p = i >= 0 ? R.PLAN[i] : null;
+  const eyebrow = v.cost === 'cover' ? 'Charged extra'
+    : ['bar', 'cafe'].includes(v.kind) ? 'Bar or café' : 'Included';
+  const season = resortSeason();
+  const shut = season && !R.slots(v, season);
+  return `<div class="scrim" data-act="modalScrim"><div class="modal venuemodal"
+    role="dialog" aria-modal="true" aria-label="${esc(v.name)}">
+    <span class="hm-eye${v.cost === 'cover' ? ' cover' : ''}">${esc(eyebrow)}</span>
+    <h3>${esc(v.name)}${v.cuisine ? `<span class="vc">${esc(v.cuisine)}</span>` : ''}</h3>
+    ${v.cost === 'cover'
+      ? `<p class="vb warn">Reservation required, and the hotel’s site says a cover charge applies.</p>` : ''}
+    ${v.blurb ? `<p>${esc(v.blurb)}</p>` : ''}
+    ${v.note ? `<p class="vb warn">${esc(v.note)}</p>` : ''}
+    ${shut ? `<p class="vb warn">Closed for the ${season}.</p>` : ''}
+    <h4 class="minihead">Hours</h4>
+    ${hoursCell(v)}
+    <h4 class="minihead">Where it is</h4>
+    <p class="tiny">${p
+      ? (p.t === v.name || p.now === v.name
+          ? 'Marked on the hotel’s plan.'
+          : `The plan marks this as <b>${esc(p.now || p.t)}</b>.`)
+        + ' Opening it puts the plan beside the lobby, so you can see how far it is.'
+      : 'Not marked on the hotel’s plan — it names forty-nine places and this is not one of them.'}</p>
+    <div class="acts">
+      ${p ? `<button class="btn" data-act="resortShowOnMap" data-a="${i}">Show me on the plan</button>` : ''}
+      <a class="btn ghost" href="${esc(R.findUrl(v.name))}" target="_blank" rel="noopener noreferrer">Google Maps</a>
+      <button class="btn ghost" data-act="modalCancel">Close</button>
+    </div>
+  </div></div>`;
+}
 
 /** The card that opens under the plan when a point is tapped. */
 function pinCard(i) {
@@ -2407,11 +2564,14 @@ function resortPlan() {
      The viewBox and the wrapper share an aspect ratio, so there is no
      letterboxing and a percentage across the box is a percentage across the
      plan — the two cannot drift. */
-  const pins = R.PLAN.map((p, i) => `<button class="pin${sel === i ? ' on' : ''}${p.x > 62 ? ' flip' : ''} c-${p.c}"
-    data-act="resortPin" data-a="${i}" title="${esc(p.now || p.t)}"
-    aria-label="${esc(p.now || p.t)}" aria-pressed="${sel === i}"
-    style="left:${((p.x - B.x) / B.w * 100).toFixed(2)}%;top:${((p.y - B.y) / B.h * 100).toFixed(2)}%"
-    >${art && sel === i ? `<span class="pinlabel">${esc(p.now || p.t)}</span>` : ''}</button>`).join('');
+  const pins = R.PLAN.map((p, i) => {
+    const named = art && (sel === i || (sel != null && p.key));
+    return `<button class="pin${sel === i ? ' on' : ''}${sel != null && p.key && sel !== i ? ' mark' : ''}${p.x > 62 ? ' flip' : ''} c-${p.c}"
+      data-act="resortPin" data-a="${i}" title="${esc(p.now || p.t)}"
+      aria-label="${esc(p.now || p.t)}" aria-pressed="${sel === i}"
+      style="left:${((p.x - B.x) / B.w * 100).toFixed(2)}%;top:${((p.y - B.y) / B.h * 100).toFixed(2)}%"
+      >${named ? `<span class="pinlabel">${esc(p.now || p.t)}</span>` : ''}</button>`;
+  }).join('');
 
   const key = [['all', 'Everything']].concat(R.PLAN_KEYS);
   const label = Object.fromEntries(R.PLAN_KEYS);
@@ -2527,6 +2687,7 @@ function scrResort() {
   </figure>` : ''}
   <h2 class="head">The Titanic</h2>
   <p class="lede">Titanic Deluxe Golf Belek — the other side of the week. Read off the hotel’s own book in September; corrected by whoever gets there first.</p>
+  ${weatherStrip()}
   ${seasonBand()}
   <div class="btabs nos">${tabs.map(([id, l]) =>
     `<button class="btab${UI.resortTab === id ? ' on' : ''}" data-act="resortTab" data-a="${id}">${l}</button>`).join('')}</div>
@@ -2626,6 +2787,10 @@ function paint() {
   const body = { today: scrToday, resort: scrResort, boards: scrBoards, ryder: scrRyder,
                  calendar: scrCalendar, entry: scrEntry, roster: scrRoster, rules: scrRules,
                  courses: scrCourses, setup: scrSetup }[UI.screen]();
+  /* The forecast is only ever wanted on one screen, so it is only ever asked
+     for there — and `loadWeather` itself refuses to go more often than the
+     quarter hour the reading changes on. */
+  if (UI.screen === 'resort') loadWeather();
 
   const nt = E.nextTee(T, now);
   const role = S.ROLES[UI.role];
@@ -2698,6 +2863,11 @@ function paint() {
      phone most of it is off the side. Picking a point out of the list has to
      bring it into view — otherwise the map appears not to have answered.
      Only on the tap that changes the selection, so it never fights a drag. */
+  if (UI.resortJump) {
+    UI.resortJump = false;
+    const w = document.querySelector('.planwrap');
+    if (w) w.scrollIntoView({ block: 'center' });
+  }
   if (UI.resortPin !== pinShown || UI.resortZoom !== zoomShown) {
     pinShown = UI.resortPin; zoomShown = UI.resortZoom;
     const wrap = document.querySelector('.planwrap');
@@ -2916,7 +3086,8 @@ function holeModalHtml() {
 }
 
 function modalHtml() {
-  return UI.modal.kind === 'marks' ? markSheet(UI.modal.rid, UI.modal.hole, UI.modal.who)
+  return UI.modal.kind === 'venue' ? venueModalHtml()
+       : UI.modal.kind === 'marks' ? markSheet(UI.modal.rid, UI.modal.hole, UI.modal.who)
        : UI.modal.kind === 'hole' ? holeModalHtml()
        : UI.modal.kind === 'setup' ? setupModalHtml()
        : UI.modal.kind === 'add' ? addModalHtml()
@@ -3099,6 +3270,16 @@ function onClick(e) {
     case 'resortPin':
       if (a === '') { UI.resortPin = null; UI.resortZoom = 1; }
       else { UI.resortPin = +a; if (UI.resortZoom < 2) UI.resortZoom = 2.4; }
+      break;
+    case 'wxUnit': setUnit(a); break;
+    case 'resortVenue': UI.modal = { kind: 'venue', vid: a }; break;
+    /* Straight from the window to the ground: the plan, opened at that point,
+       far enough in to read it but not so far that the lobby is off screen —
+       the question being asked is "how far is that from me", and the only
+       landmark everybody shares is the front door. */
+    case 'resortShowOnMap':
+      UI.modal = null; UI.resortTab = 'plan';
+      UI.resortPin = +a; UI.resortZoom = 1.8; UI.resortJump = true;
       break;
     case 'resortZoom':
       UI.resortZoom = a === 'fit' ? 1

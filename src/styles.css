@@ -1473,6 +1473,45 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
    A guide, not a scorecard: the type is a little larger, the rows breathe,
    and nothing is set in the tabular figures the boards use. */
 
+/* --- the weather ---
+   Set the way a weather app sets it: the picture and the number, large, and
+   an hour-by-hour run under it. Everything is drawn in the book's ink, so it
+   holds up on a phone that has lost its signal. */
+
+.wx{margin-top:18px;padding:14px 16px;background:var(--page);border:1px solid var(--rule)}
+.wx-head{display:flex;align-items:center;gap:12px;padding-bottom:12px;
+  border-bottom:1px solid var(--hair);margin-bottom:13px}
+.wx-lbl{font-size:11px;letter-spacing:.11em;text-transform:uppercase;
+  font-family:var(--mono);font-weight:700;color:var(--turf)}
+.wx-cold{margin:0}
+.wx-now{display:flex;align-items:center;gap:16px}
+.sky{width:34px;height:34px;flex:0 0 auto;color:var(--green)}
+.sky.big{width:56px;height:56px}
+.sky .cl{fill:var(--page)}
+.sky .ray{stroke-width:1.5}
+.sky .bolt{fill:currentColor;stroke-width:1}
+.wx-t{font-size:46px;font-weight:700;line-height:1;letter-spacing:-.02em}
+.wx-s{display:flex;flex-direction:column;gap:2px;font-size:15px;color:var(--turf);min-width:0}
+.wx-s b{color:var(--ink);font-size:17px}
+
+.units{margin-left:auto;display:flex;border:1px solid var(--rule);flex:0 0 auto}
+.ub{min-width:48px;min-height:40px;padding:0 10px;font-size:15px;color:var(--turf);background:var(--page)}
+.ub.on{background:var(--ink);color:var(--page);font-weight:700}
+@media (hover:hover) and (pointer:fine){ .ub:not(.on):hover{color:var(--ink)} }
+
+.wx-hours{display:flex;gap:4px;overflow-x:auto;margin-top:14px;padding-top:12px;
+  border-top:1px solid var(--hair)}
+.wx-h{flex:0 0 auto;min-width:56px;display:flex;flex-direction:column;align-items:center;gap:6px}
+.wx-h .hh{font-size:13px;color:var(--turf);white-space:nowrap}
+.wx-h .hd{font-size:18px;font-weight:700}
+.wx .tiny{margin:10px 0 0}
+@media (max-width:820px){
+  .wx{padding:13px 14px}
+  .wx-t{font-size:42px}
+  .sky.big{width:48px;height:48px}
+  .wx-now{gap:13px}
+}
+
 .seasonband{margin-top:16px;padding:14px 16px;background:var(--page);
   border:1px solid var(--rule);border-left:4px solid var(--gold)}
 .seasonband .sbs{display:flex;gap:8px;flex-wrap:wrap}
@@ -1516,9 +1555,22 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
 
 .vgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;margin-top:8px}
 .vgrid.dim .vcard{background:transparent;border-style:dashed}
-.vcard{padding:12px 14px;background:var(--page);border:1px solid var(--rule)}
+/* Every square is a way in to the place it names, so it has to look like
+   one: a button, with a mark in the corner saying it can be pressed. */
+.vcard{display:block;width:100%;text-align:left;position:relative;
+  padding:12px 30px 12px 14px;background:var(--page);border:1px solid var(--rule)}
 .vcard.cover{border-left:3px solid var(--gold)}
-.vcard .vwhen{margin-top:4px;font-size:15px;color:var(--turf)}
+.vcard .vtop{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.vcard .vwhen{display:block;margin-top:4px;font-size:15px;color:var(--turf)}
+.vcard .vtag{display:inline-block;margin-top:7px}
+.vcard::after{content:'›';position:absolute;top:10px;right:11px;font-size:20px;
+  line-height:1;color:var(--rule)}
+@media (hover:hover) and (pointer:fine){
+  .vcard:hover{border-color:var(--ink)}
+  .vcard:hover::after{color:var(--ink)}
+}
+.vgroup .plink .vb{display:block;margin:4px 0 0}
+@media (hover:hover) and (pointer:fine){ .vgroup .plink:hover .vn{text-decoration:underline} }
 
 .vlist{margin-top:8px;border-top:1px solid var(--hair)}
 .vrow{display:flex;gap:18px;align-items:flex-start;padding:12px 2px;border-bottom:1px solid var(--hair)}
@@ -1600,6 +1652,12 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
 /* The artwork carries no names of its own, so the point that was tapped says
    what it is right there — the card below the map is a scroll away on a
    phone, and a dot that answers with nothing reads as a dead map. */
+/* With something chosen, the landmarks keep their names too. The question a
+   tap asks is how far that is from here, and it cannot be answered without
+   something known to measure against. */
+.pin.mark::after{background:var(--page);border:2px solid var(--ink)}
+.pin.mark .pinlabel{background:var(--page);color:var(--ink);border:1px solid var(--ink);
+  font-weight:400;font-style:italic}
 .pinlabel{position:absolute;left:30px;top:50%;transform:translateY(-50%);
   white-space:nowrap;font-size:14px;font-weight:700;line-height:1.2;
   padding:3px 7px;background:var(--ink);color:var(--page);pointer-events:none}
@@ -1647,6 +1705,16 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
 .ticks li{position:relative;padding:4px 0 4px 22px;font-size:16px;border-bottom:1px solid var(--hair)}
 .ticks li::before{content:'✓';position:absolute;left:0;color:var(--green);font-weight:700}
 .ticks.paid li::before{content:'+';color:var(--gold);font-weight:700}
+
+/* --- the window a place opens --- */
+
+.venuemodal{max-width:520px;text-align:left}
+.venuemodal h3{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin:6px 0 0}
+.venuemodal .minihead{margin:16px 0 4px}
+.venuemodal .hrs,.venuemodal .hrs.two{flex:none;text-align:left;justify-content:flex-start}
+.venuemodal .acts{margin-top:20px;display:flex;gap:8px;flex-wrap:wrap}
+.venuemodal .acts .btn{text-decoration:none;display:inline-flex;align-items:center}
+.hm-eye.cover{color:var(--green)}
 
 /* --- the hotel's own details, and the group's notes --- */
 

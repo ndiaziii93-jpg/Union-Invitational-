@@ -11,7 +11,7 @@ SRC = os.path.join(ROOT, 'src')
 DIST = os.path.join(ROOT, 'dist')
 WEB = os.path.join(SRC, 'assets', 'web')
 
-MODULE_ORDER = ['data', 'config', 'rules', 'resort', 'engine', 'dbsupa', 'store', 'app']
+MODULE_ORDER = ['data', 'config', 'rules', 'resort', 'weather', 'engine', 'dbsupa', 'store', 'app']
 
 """Two copies come out of one source. The artifact keeps the platform store it
    already holds a real tournament in; the installable app talks to the book's

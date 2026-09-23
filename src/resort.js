@@ -57,7 +57,7 @@ export const VENUES = [
     w: [{ from: '15:00', to: '03:00' }],
     tag: 'Open latest' },
 
-  { id: 'kikoa-r', name: 'Kikoa Kids Restaurant', kind: 'buffet', cost: 'inc',
+  { id: 'kikoa-r', name: 'Kikoa Kids Restaurant', kind: 'buffet', cost: 'inc', at: 'Main Restaurant',
     blurb: 'A walled-off corner of the main restaurant built around a decorated railway carriage. It has equipment for parents to make up their own baby formula.',
     s: [{ from: '08:00', to: '11:00', what: 'Breakfast' },
         { from: '12:30', to: '14:30', what: 'Lunch' },
@@ -69,7 +69,7 @@ export const VENUES = [
     blurb: 'Poolside. Döner, grills, fast food, fresh pide, lahmacun and salads.',
     s: [{ from: '12:30', to: '16:00' }, { from: '16:00', to: '17:30' }], w: null },
 
-  { id: 'aqua-s', name: 'Aqua Snack', kind: 'snack', cost: 'inc',
+  { id: 'aqua-s', name: 'Aqua Snack', kind: 'snack', cost: 'inc', at: 'Aquapark',
     blurb: 'On the riverside by the aquapark. Soup, pizza, pasta, grills.',
     s: [{ from: '12:15', to: '16:00' }], w: null },
 
@@ -111,7 +111,7 @@ export const VENUES = [
     blurb: 'A boat on the Beşgöz, to yourselves, with dinner on it.',
     s: [{ from: '19:00', to: '21:30' }], w: null },
 
-  { id: 'club-bk', name: 'The Club Breakfast', kind: 'alacarte', cost: 'cover', cuisine: 'Turkish breakfast',
+  { id: 'club-bk', name: 'The Club Breakfast', kind: 'alacarte', cost: 'cover', cuisine: 'Turkish breakfast', at: 'The Club',
     blurb: 'Serpme kahvaltı — the spread-out village breakfast: cheeses, olives, pastries, jams, honey. Free with some room types.',
     s: [{ from: '09:00', to: '11:00' }], w: null },
 
@@ -133,7 +133,7 @@ export const VENUES = [
     s: [{ from: '16:00', to: '00:00' }], w: [{ from: '16:00', to: '00:00' }],
     tag: 'Sport on' },
 
-  { id: 'citrus', name: 'Citrus Vitamin Bar', kind: 'cafe', cost: 'inc',
+  { id: 'citrus', name: 'Citrus Vitamin Bar', kind: 'cafe', cost: 'inc', at: 'BeFine Spa',
     blurb: 'Juices and healthy things, inside the spa.',
     s: [{ from: '10:00', to: '20:00' }], w: [{ from: '10:00', to: '20:00' }] },
 
@@ -148,12 +148,12 @@ export const VENUES = [
   { id: 'sunset2', name: 'Sunset 2 Bar', kind: 'bar', cost: 'inc', s: [{ from: '09:00', to: '23:30' }], w: null },
   { id: 'olimpic', name: 'Olimpic Pool Bar', kind: 'bar', cost: 'inc', s: [{ from: '09:00', to: '18:00' }], w: null },
   { id: 'waffle', name: 'Beach Waffle Bar', kind: 'cafe', cost: 'inc', s: [{ from: '09:00', to: '19:00' }], w: null },
-  { id: 'pier-bar', name: 'Beach Pier Bar', kind: 'bar', cost: 'inc',
+  { id: 'pier-bar', name: 'Beach Pier Bar', kind: 'bar', cost: 'inc', at: 'Beach Pier',
     s: [{ from: '09:00', to: '18:00', what: 'Bar' }, { from: '11:00', to: '19:00', what: 'Patisserie' }], w: null },
-  { id: 'aqua-bar', name: 'Aqua Bar', kind: 'bar', cost: 'inc', s: [{ from: '09:00', to: '18:00' }], w: null },
+  { id: 'aqua-bar', name: 'Aqua Bar', kind: 'bar', cost: 'inc', at: 'Aquapark', s: [{ from: '09:00', to: '18:00' }], w: null },
   { id: 'beach-bar', name: 'Beach Bar', kind: 'bar', cost: 'inc', s: [{ from: '09:00', to: '18:00' }], w: null },
   { id: 'schiller', name: 'Schiller Coffee Shop', kind: 'cafe', cost: 'inc', s: [{ from: '08:00', to: '12:30' }], w: null },
-  { id: 'rivershow', name: 'River Show Bar', kind: 'bar', cost: 'inc', s: [{ from: '21:30', to: '22:30' }], w: null },
+  { id: 'rivershow', name: 'River Show Bar', kind: 'bar', cost: 'inc', at: 'Riverside Show Center', s: [{ from: '21:30', to: '22:30' }], w: null },
   { id: 'disco', name: 'Floating Disco', kind: 'bar', cost: 'cover',
     blurb: 'Over-18s, on the water. Cover charge and a reservation.',
     s: [{ from: '23:00', to: '01:00' }], w: null },
@@ -318,6 +318,19 @@ export const PLAN_KEYS = [
   ['play',  'Pools, spa & sport'],
   ['shore', 'The shore'],
 ];
+
+/** Where the hotel's plan puts a venue, as an index into PLAN, or -1.
+ *  Most are linked from the plan's own side, by `vid`. A few are not on the
+ *  plan under their own name — the kids' restaurant is a corner of the main
+ *  one, the Aqua Snack is simply "Aquapark" — and those carry `at`, naming
+ *  the point they sit at. The rest are genuinely unmarked, and the book says
+ *  so rather than dropping a pin on a guess. */
+export function planAt(v) {
+  if (!v) return -1;
+  let i = PLAN.findIndex(p => p.vid === v.id);
+  if (i < 0 && v.at) i = PLAN.findIndex(p => p.t === v.at);
+  return i;
+}
 
 /* ---------------- finding it on the ground ----------------
    Google does not hold the resort's own footpaths, and the book has no

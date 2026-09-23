@@ -99,6 +99,56 @@ ok('it sits above the heading', plate && plate.beforeHeading, 1);
 ok('it says what it is, for a reader who cannot see it', plate && plate.described, true);
 ok('and carries a caption', plate && plate.captioned, true);
 
+/* Every square on Right now is a way in to the place it names. */
+const squares = await pg.evaluate(() => {
+  const c = [...document.querySelectorAll('.vcard')];
+  return { n: c.length, allButtons: c.every(e => e.tagName === 'BUTTON' && e.dataset.act === 'resortVenue') };
+});
+ok('what is serving now is a row of squares', squares.n > 3, true);
+ok('and every one of them opens', squares.allButtons, true);
+
+await pg.locator('.vcard').first().click();
+await pg.waitForTimeout(250);
+ok('a square opens a window on the place', await pg.locator('.venuemodal').count(), 1);
+ok('with its hours in it', await pg.locator('.venuemodal .hrs').count(), 1);
+ok('and a way out to Google Maps',
+  (await pg.locator('.venuemodal a').getAttribute('href')).includes('google.com/maps'), true);
+await pg.click('.venuemodal [data-act="modalCancel"]');
+await pg.waitForTimeout(200);
+ok('and it closes', await pg.locator('.venuemodal').count(), 0);
+
+/* From the window to the ground. Not every place is on the hotel's plan, so
+   the one used here is one that is. */
+await pg.click('[data-act="resortTab"][data-a="eat"]');
+await pg.waitForTimeout(250);
+await pg.locator('.plink', { hasText: 'Main Restaurant' }).first().click();
+await pg.waitForTimeout(250);
+ok('a row in the full list opens the same window',
+  await pg.locator('.venuemodal h3').innerText(), 'Main Restaurant');
+ok('and offers to show it on the plan',
+  await pg.locator('[data-act="resortShowOnMap"]').count(), 1);
+await pg.click('[data-act="resortShowOnMap"]');
+await pg.waitForTimeout(500);
+ok('which goes to the plan', await pg.locator('.btab.on').innerText(), 'The grounds');
+ok('closing the window behind it', await pg.locator('.venuemodal').count(), 0);
+ok('with that place named on it', await pg.locator('.pin.on .pinlabel').innerText(), 'Main Restaurant');
+/* "How far is that from me" cannot be answered without something known to
+   measure against, so the landmarks keep their names too. */
+ok('and the landmarks named beside it, to judge the distance by',
+  await pg.locator('.pin.mark .pinlabel').count(), 2);
+
+/* A place the hotel does not mark says so rather than dropping a pin on a guess. */
+await pg.click('[data-act="resortZoom"][data-a="fit"]');
+await pg.click('[data-act="resortTab"][data-a="eat"]');
+await pg.waitForTimeout(250);
+await pg.locator('.plink', { hasText: 'Bistro' }).first().click();
+await pg.waitForTimeout(250);
+ok('a place the plan does not mark offers no pin',
+  await pg.locator('[data-act="resortShowOnMap"]').count(), 0);
+ok('and says why', (await pg.locator('.venuemodal').innerText()).includes('Not marked'), true);
+await pg.click('.venuemodal [data-act="modalCancel"]');
+await pg.waitForTimeout(200);
+
 /* Nothing on the page should show its own markup. An ampersand handed to a
    function that escapes its argument comes out as "Bars &amp;amp; cafes". */
 await pg.click('[data-act="resortTab"][data-a="eat"]');
