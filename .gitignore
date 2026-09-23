@@ -10,5 +10,6 @@ package.json
 *.key
 secrets.json
 
-# a throwaway contact sheet for picking the tab photo
+# throwaway contact sheets for picking the tab photo
 photo-picks.html
+banner-picks.html

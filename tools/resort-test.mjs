@@ -47,9 +47,17 @@ ok('and somewhere to walk into comes before somewhere to book',
 /* ---- 3. and now the screen ---- */
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
 const errs = [];
-const open = async (w, h) => {
+const open = async (w, h, schematic) => {
   const pg = await b.newPage({ viewport: { width: w, height: h } });
   pg.on('pageerror', e => errs.push(String(e).slice(0, 200)));
+  /* The tab draws the hotel's artwork when it has it and its own schematic
+     when it does not. Both ship, so both are tested: taking the picture away
+     before the book loads is what puts it on the fallback. */
+  if (schematic) await pg.addInitScript(() => {
+    Object.defineProperty(window, 'UI_IMAGES', {
+      get: () => window.__imgs, set: v => { delete v.resortmap; window.__imgs = v; },
+    });
+  });
   await pg.goto('file://' + S + '/rt.html');
   await pg.waitForTimeout(4200);                       // the opening crest
   for (let i = 0; i < 6; i++) {
@@ -90,60 +98,40 @@ await pg.click('[data-act="resortTab"][data-a="eat"]');
 ok('a note survives leaving the tab',
   await pg.locator('#resortNote').inputValue(), 'Beef Grill was 25 euros a head and worth it.');
 
-/* ---- 4. the plan's labels ---- */
-/* Every name has to be beside its own dot and on top of nothing else. The
-   first version of this drew "Palm Bar & PatisserieSapore". */
+/* ---- 4. the plan ---- */
 await pg.click('[data-act="resortTab"][data-a="plan"]');
-const overlaps = async () => pg.evaluate(() => {
-  const t = [...document.querySelectorAll('.plan text')].map(e => e.getBoundingClientRect());
-  let n = 0;
-  for (let i = 0; i < t.length; i++) for (let j = i + 1; j < t.length; j++) {
-    const a = t[i], c = t[j];
-    if (a.left < c.right - 1 && a.right > c.left + 1 && a.top < c.bottom - 1 && a.bottom > c.top + 1) n++;
-  }
-  return { labels: t.length, clashes: n };
-});
-const desk = await overlaps();
-ok('the plan names a useful number of them', desk.labels > 20, true);
-ok('and no two names sit on each other', desk.clashes, 0);
+ok('the hotel’s own artwork is what gets drawn', await pg.locator('.planimg').count(), 1);
 
-/* Every tap target has to sit on the dot it claims to be. They are laid out in
-   two different coordinate systems — percentages of the box for the buttons,
-   viewBox units for the drawing — and the whole point of giving the wrapper
-   the viewBox's own aspect ratio is that the two cannot drift. */
-const drift = await pg.evaluate(() => {
-  const pins = [...document.querySelectorAll('.pin')];
-  const dots = [...document.querySelectorAll('.plan .dot')];
-  let worst = 0;
-  for (let i = 0; i < pins.length; i++) {
-    const a = pins[i].getBoundingClientRect(), c = dots[i].getBoundingClientRect();
-    worst = Math.max(worst, Math.hypot((a.left + a.right) / 2 - (c.left + c.right) / 2,
-                                       (a.top + a.bottom) / 2 - (c.top + c.bottom) / 2));
-  }
-  return Math.round(worst * 10) / 10;
-});
-ok('every tap target sits on its own dot', drift < 1.5, true);
+/* The points are percentages across and down THAT picture, so a handful of
+   landmarks have to land where they belong on it. This is the check that
+   fails if the artwork is ever replaced with one framed differently. */
+const at = name => pg.evaluate(n => {
+  const s = document.querySelector('.planstage').getBoundingClientRect();
+  const b = [...document.querySelectorAll('.pin')].find(e => e.title === n).getBoundingClientRect();
+  return { x: Math.round(((b.left + b.right) / 2 - s.left) / s.width * 100),
+           y: Math.round(((b.top + b.bottom) / 2 - s.top) / s.height * 100) };
+}, name);
+const sports = await at('Sports Area'), aqua = await at('Aquapark');
+const lobby = await at('Lobby & Reception'), gaz = await at('Beach Gazebos');
+ok('the sports ground sits out on the left', sports.x < 12, true);
+ok('the lobby in the built-up top left', lobby.x > 22 && lobby.x < 38 && lobby.y < 28, true);
+ok('the aquapark down at the far end', aqua.x > 65 && aqua.y > 62, true);
+ok('and the gazebos out on the sand', gaz.x > 78, true);
 
-/* And a target you cannot hit with a thumb is not a target. */
-const tiny = await pg.evaluate(() => {
-  const r = [...document.querySelectorAll('.pin')].map(e => e.getBoundingClientRect());
-  return r.filter(x => x.width < 30 || x.height < 30).length;
-});
-ok('and is big enough to hit', tiny, 0);
-
-/* Tapping one names it, says when it is open, and offers a way to find it. */
+/* A tap names the point on the artwork itself — the card is a scroll away on
+   a phone, and a dot that answers with nothing reads as a dead map. */
 await pg.evaluate(() => {
   const i = [...document.querySelectorAll('.pin')].findIndex(b => b.title === 'Main Restaurant');
   document.querySelectorAll('.pin')[i].click();
 });
-await pg.waitForTimeout(200);
-ok('a tap opens the point', await pg.locator('#pinCard .vn').first().innerText(), 'Main Restaurant');
+await pg.waitForTimeout(250);
+ok('a tap names it on the plan', await pg.locator('.pin.on .pinlabel').innerText(), 'Main Restaurant');
+ok('and opens the point', await pg.locator('#pinCard .vn').first().innerText(), 'Main Restaurant');
 ok('with its hours on it', (await pg.locator('#pinCard .hrs').count()) > 0, true);
 const href = await pg.locator('#pinCard a').getAttribute('href');
 ok('and a Google Maps link naming the place and the hotel',
   href.startsWith('https://www.google.com/maps/search/?api=1&query=')
   && decodeURIComponent(href).includes('Main Restaurant Titanic Deluxe Golf Belek'), true);
-/* The one link the book can make good on: the hotel's real position. */
 const back = await pg.locator('a[href*="maps/dir"]').first().getAttribute('href');
 ok('and walking directions back to a real latitude and longitude',
   back.includes('travelmode=walking') && back.includes('36.86854,30.97629'), true);
@@ -152,36 +140,86 @@ await pg.click('#pinCard [data-act="resortPin"]');
 await pg.waitForTimeout(150);
 ok('closing it puts the drawing back', await pg.locator('#pinCard').count(), 0);
 
-/* The list is the precise way in, since the pins crowd each other in the middle. */
+/* Every target has to be big enough for a thumb. */
+const tiny = await pg.evaluate(() =>
+  [...document.querySelectorAll('.pin')].map(e => e.getBoundingClientRect())
+    .filter(x => x.width < 30 || x.height < 30).length);
+ok('every point is big enough to hit', tiny, 0);
+
+/* Picking out of the list opens the same card — and on the panorama, which is
+   four times as wide as it is tall, has to bring the point into view. */
 await pg.locator('.plist .plink', { hasText: 'Aquapark' }).first().click();
-await pg.waitForTimeout(200);
+await pg.waitForTimeout(250);
 ok('picking from the list opens the same card',
   await pg.locator('#pinCard .vn').first().innerText(), 'Aquapark');
 ok('and marks the row it came from', await pg.locator('.vrow.picked').count(), 1);
-await pg.click('#pinCard [data-act="resortPin"]');
-
-const box = await pg.evaluate(() => {
-  const s = document.querySelector('.plan').getBoundingClientRect();
-  return [...document.querySelectorAll('.plan text')]
-    .filter(e => { const r = e.getBoundingClientRect(); return r.left < s.left - 1 || r.right > s.right + 1; }).length;
-});
-ok('and none of them runs off the paper', box, 0);
 await pg.close();
 
-/* The same, on a phone, where the type is proportionally far larger. */
-const ph = await open(390, 844);
-await ph.click('[data-act="go"][data-a="resort"]');
-await ph.click('[data-act="resortTab"][data-a="plan"]');
-const small = await ph.evaluate(() => {
+const ph0 = await open(390, 844);
+await ph0.click('[data-act="go"][data-a="resort"]');
+await ph0.click('[data-act="resortTab"][data-a="plan"]');
+await ph0.waitForTimeout(400);
+const off = await ph0.evaluate(() => {
+  const w = document.querySelector('.planwrap');
+  return { over: w.scrollWidth - w.clientWidth, at: w.scrollLeft };
+});
+ok('on a phone the plan runs off the side, to be dragged', off.over > 200, true);
+await ph0.locator('.plist .plink', { hasText: 'Aquapark' }).first().click();
+await ph0.waitForTimeout(350);
+const shown = await ph0.evaluate(() => {
+  const w = document.querySelector('.planwrap').getBoundingClientRect();
+  const p = document.querySelector('.pin.on').getBoundingClientRect();
+  return p.left > w.left && p.right < w.right;
+});
+ok('and picking a far-off point brings it into view', shown, true);
+await ph0.close();
+
+/* ---- 5. the drawing the book falls back to, with no artwork ---- */
+/* Every name has to be beside its own dot and on top of nothing else. The
+   first version of this drew "Palm Bar & PatisserieSapore". */
+const sc = await open(1280, 900, true);
+await sc.click('[data-act="go"][data-a="resort"]');
+await sc.click('[data-act="resortTab"][data-a="plan"]');
+ok('with no artwork the book draws its own', await sc.locator('.planimg').count(), 0);
+
+const overlaps = p => p.evaluate(() => {
   const s = document.querySelector('.plan').getBoundingClientRect();
   const t = [...document.querySelectorAll('.plan text')];
-  let n = 0;
   const r = t.map(e => e.getBoundingClientRect());
+  let n = 0;
   for (let i = 0; i < r.length; i++) for (let j = i + 1; j < r.length; j++)
     if (r[i].left < r[j].right - 1 && r[i].right > r[j].left + 1
      && r[i].top < r[j].bottom - 1 && r[i].bottom > r[j].top + 1) n++;
-  return { clashes: n, off: r.filter(x => x.left < s.left - 1 || x.right > s.right + 1).length, labels: t.length };
+  return { labels: t.length, clashes: n,
+           off: r.filter(x => x.left < s.left - 1 || x.right > s.right + 1).length };
 });
+const desk = await overlaps(sc);
+ok('it names a useful number of them', desk.labels > 20, true);
+ok('no two names sit on each other', desk.clashes, 0);
+ok('and none runs off the paper', desk.off, 0);
+
+/* The tap targets and the dots are laid out in two different coordinate
+   systems. They have to agree, and they only agree if both are measured
+   against the same box. */
+const drift = await sc.evaluate(() => {
+  const pins = [...document.querySelectorAll('.pin')];
+  const dots = [...document.querySelectorAll('.plan .dot')];
+  let worst = 0;
+  for (let i = 0; i < pins.length; i++) {
+    const a = pins[i].getBoundingClientRect(), c = dots[i].getBoundingClientRect();
+    worst = Math.max(worst, Math.hypot((a.left + a.right) / 2 - (c.left + c.right) / 2,
+                                       (a.top + a.bottom) / 2 - (c.top + c.bottom) / 2));
+  }
+  return worst;
+});
+ok('every tap target sits on its own dot', drift < 1.5, true);
+await sc.close();
+
+/* The same, on a phone, where the type is proportionally far larger. */
+const ph = await open(390, 844, true);
+await ph.click('[data-act="go"][data-a="resort"]');
+await ph.click('[data-act="resortTab"][data-a="plan"]');
+const small = await overlaps(ph);
 ok('on a phone too, nothing clashes', small.clashes, 0);
 ok('and nothing is cut off', small.off, 0);
 ok('and it is still worth looking at', small.labels > 8, true);

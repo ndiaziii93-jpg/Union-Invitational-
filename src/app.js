@@ -2393,10 +2393,11 @@ function resortPlan() {
      The viewBox and the wrapper share an aspect ratio, so there is no
      letterboxing and a percentage across the box is a percentage across the
      plan — the two cannot drift. */
-  const pins = R.PLAN.map((p, i) => `<button class="pin${sel === i ? ' on' : ''} c-${p.c}"
+  const pins = R.PLAN.map((p, i) => `<button class="pin${sel === i ? ' on' : ''}${p.x > 62 ? ' flip' : ''} c-${p.c}"
     data-act="resortPin" data-a="${i}" title="${esc(p.now || p.t)}"
     aria-label="${esc(p.now || p.t)}" aria-pressed="${sel === i}"
-    style="left:${((p.x - B.x) / B.w * 100).toFixed(2)}%;top:${((p.y - B.y) / B.h * 100).toFixed(2)}%"></button>`).join('');
+    style="left:${((p.x - B.x) / B.w * 100).toFixed(2)}%;top:${((p.y - B.y) / B.h * 100).toFixed(2)}%"
+    >${art && sel === i ? `<span class="pinlabel">${esc(p.now || p.t)}</span>` : ''}</button>`).join('');
 
   const key = [['all', 'Everything']].concat(R.PLAN_KEYS);
   const label = Object.fromEntries(R.PLAN_KEYS);
@@ -2418,12 +2419,13 @@ function resortPlan() {
   <div class="pkeys nos">${key.map(([id, l]) =>
     `<button class="pkey${cat === id ? ' on' : ''}" data-act="resortPlanCat" data-a="${id}">${
       id === 'all' ? '' : `<span class="dotk c-${id}"></span>`}${esc(l)}</button>`).join('')}</div>
-  <div class="planwrap${art ? ' art' : ''}"${art ? '' : ` style="aspect-ratio:${B.w}/${B.h}"`}>
-    ${art ? `<img class="planimg" src="${art}" alt="The resort’s site plan">` : ''}
-    <svg class="plan" viewBox="${B.x} ${B.y} ${B.w} ${B.h}" font-size="${FS}"
-      preserveAspectRatio="none" role="${art ? 'presentation' : 'img'}"
-      ${art ? 'aria-hidden="true"' : 'aria-label="Schematic plan of the resort"'}>${dots}</svg>
-    <div class="pins">${pins}</div>
+  <div class="planwrap${art ? ' art nos' : ''}">
+    <div class="planstage"${art ? '' : ` style="aspect-ratio:${B.w}/${B.h}"`}>
+      ${art ? `<img class="planimg" src="${art}" alt="An illustrated plan of the resort, the sea along one side and the river along the other">` : ''}
+      ${art ? '' : `<svg class="plan" viewBox="${B.x} ${B.y} ${B.w} ${B.h}" font-size="${FS}"
+        preserveAspectRatio="none" role="img" aria-label="Schematic plan of the resort">${dots}</svg>`}
+      <div class="pins">${pins}</div>
+    </div>
   </div>
   ${sel != null ? pinCard(sel) : `<p class="tiny">${art
     ? 'Forty-nine points are marked. Tap one for what it is.'
@@ -2546,6 +2548,7 @@ function restoreFocus(f) {
    replacing the button between the finger going down and coming up.
    So while a control is genuinely in use, the redraw waits. */
 let renderPending = false;
+let pinShown = null;     // the point the site plan was last scrolled to
 function inUse() {
   const el = document.activeElement;
   if (!el || !document.getElementById('app')) return false;
@@ -2586,7 +2589,7 @@ function paint() {
      sub-tab at the far right took you to the right page and then snapped the
      row back to Team Comp. The same screen rebuilds to the same shape, so
      each strip is put back where it was. */
-  const strips = [...document.querySelectorAll('.btabs, .scroller')].map(el => el.scrollLeft);
+  const strips = [...document.querySelectorAll('.btabs, .scroller, .planwrap')].map(el => el.scrollLeft);
   /* A rule opened to be read was closing itself after fifteen seconds. The
      book redraws on a timer, and a redraw replaces the whole tree — taking
      the <details> open with it. Which ones were open is remembered by id. */
@@ -2660,8 +2663,20 @@ function paint() {
 
   opened.forEach(id => { const el = document.getElementById(id); if (el) el.open = true; });
 
-  const strips2 = [...document.querySelectorAll('.btabs, .scroller')];
+  const strips2 = [...document.querySelectorAll('.btabs, .scroller, .planwrap')];
   strips2.forEach((el, i) => { if (strips[i]) el.scrollLeft = strips[i]; });
+  /* The site plan is a panorama four times as wide as it is tall, so on a
+     phone most of it is off the side. Picking a point out of the list has to
+     bring it into view — otherwise the map appears not to have answered.
+     Only on the tap that changes the selection, so it never fights a drag. */
+  if (UI.resortPin !== pinShown) {
+    pinShown = UI.resortPin;
+    const wrap = document.querySelector('.planwrap');
+    const pin = document.querySelector('.pin.on');
+    if (wrap && pin && wrap.scrollWidth > wrap.clientWidth + 1) {
+      wrap.scrollLeft = pin.offsetLeft + pin.offsetWidth / 2 - wrap.clientWidth / 2;
+    }
+  }
   /* And whatever was just chosen has to be visible, even if it was off the
      end before the tap — a sub-tab you cannot see is a sub-tab you cannot
      tap again. */

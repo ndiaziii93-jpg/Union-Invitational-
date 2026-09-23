@@ -1513,8 +1513,8 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
 /* SVG text scales with the box it is drawn in, so a plan allowed to run the
    full width of a desktop window sets its labels at forty points. Capping the
    width is what keeps them readable, at every size. */
-.planwrap{position:relative;margin-top:12px;border:1px solid var(--rule);
-  background:var(--page);max-width:660px}
+.planwrap{margin-top:12px;border:1px solid var(--rule);background:var(--page);max-width:660px}
+.planstage{position:relative}
 .plan{display:block;width:100%;height:100%}
 .plan .pbg{fill:var(--page)}
 .plan .pt .dot{fill:var(--rule)}
@@ -1525,10 +1525,14 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
    they do overlap in the crowded middle, which is what the list below is
    for — picking from it is exact. */
 /* With the hotel's artwork behind them the drawing has no shape of its own:
-   the picture sets the height and everything else is laid over it. */
-.planwrap.art{background:var(--paper)}
+   the picture sets the height and everything else is laid over it.
+   It is a panorama nearly four times as wide as it is tall, so on anything
+   narrower than a laptop it has to be dragged sideways rather than shrunk to
+   a hundred pixels of nothing — which is what the hotel's own map does too. */
+.planwrap.art{background:var(--paper);max-width:1100px;overflow-x:auto;
+  -webkit-overflow-scrolling:touch}
+.planwrap.art .planstage{min-width:960px}
 .planimg{display:block;width:100%;height:auto}
-.planwrap.art .plan{position:absolute;inset:0}
 .pins{position:absolute;inset:0}
 .pin{position:absolute;width:32px;height:32px;margin:-16px 0 0 -16px;padding:0;
   border:none;background:none;border-radius:50%}
@@ -1541,6 +1545,13 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
 .planwrap.art .pin.c-play::after{background:var(--green)}
 .planwrap.art .pin.c-shore::after{background:var(--flag)}
 .planwrap.art .pin.on::after{inset:6px;box-shadow:0 0 0 2px var(--page),0 0 0 4px var(--ink)}
+/* The artwork carries no names of its own, so the point that was tapped says
+   what it is right there — the card below the map is a scroll away on a
+   phone, and a dot that answers with nothing reads as a dead map. */
+.pinlabel{position:absolute;left:30px;top:50%;transform:translateY(-50%);
+  white-space:nowrap;font-size:14px;font-weight:700;line-height:1.2;
+  padding:3px 7px;background:var(--ink);color:var(--page);pointer-events:none}
+.pin.flip .pinlabel{left:auto;right:30px}
 .pin.on::after{box-shadow:0 0 0 2px var(--page),0 0 0 4px var(--ink)}
 .pin:focus-visible{outline:none}
 .pin:focus-visible::after{box-shadow:0 0 0 2px var(--page),0 0 0 4px var(--flag)}
