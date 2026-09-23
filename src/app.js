@@ -53,6 +53,7 @@ const UI = {
   mineHole: 0,
   mineDraft: null,      // {rid, h, v} — a line being typed, held here so a
                         // redraw arriving mid-sentence does not take it back
+  sayDraft: null,       // {rid, v} — the same, for the line about the round
 };
 
 const ROLE_KEY = 'union-invitational:role';
@@ -1398,6 +1399,17 @@ function commitMine() {
   });
 }
 
+/** The same, for the one line about the whole round. */
+function commitSay() {
+  const d = UI.sayDraft;
+  UI.sayDraft = null;
+  if (!d || !UI.me || !store) return;
+  const v = String(d.v || '').trim().slice(0, 200);
+  const had = E.selfLog(T, d.rid, UI.me);
+  if (v === String((had && had.say) || '')) return;
+  store.writeNote(d.rid, UI.me, n => { n.say = v; });
+}
+
 function scrMine(rid) {
   const r = E.roundDef(rid);
   const gs = E.golfers(T);
@@ -1431,6 +1443,9 @@ function scrMine(rid) {
   const text = (UI.mineDraft && UI.mineDraft.rid === rid && UI.mineDraft.h === h)
     ? UI.mineDraft.v
     : (note && note.text ? (note.text[h] || '') : '');
+  const sayText = (UI.sayDraft && UI.sayDraft.rid === rid)
+    ? UI.sayDraft.v
+    : (note ? String(note.say || '') : '');
   const kept = [];
   for (let i = 0; i < 18; i++) {
     const ks = E.selfMarks(T, rid, me, i);
@@ -1469,8 +1484,35 @@ function scrMine(rid) {
   <label class="minesay">
     <span class="sublede">Anything worth saying about hole ${hole.n}?</span>
     <input class="field" id="mineText" data-act="mineText" data-b="${h}"
-      maxlength="140" placeholder="Chipped in from the bunker."
+      maxlength="140" placeholder="Tried to cut the corner. Did not cut the corner."
       value="${esc(text)}">
+  </label>
+
+  ${/* The end of the round, asked once. Deliberately NOT the four marks
+        again: the ref can already see where the ball went, and asking a
+        golfer the same question only produces two answers to arbitrate.
+        These are the things nobody else can answer. */ ''}
+  <h3 class="sub">How was the round?</h3>
+  <p class="sublede">Once for the whole day, and only you can answer it. None of
+  it can clash with the card — a feeling is not a rival claim about a fact.</p>
+  <div class="moodrow">
+    ${E.MOODS.map(m => `<button class="mdchip ${m.tone}${(note && note.mood) === m.key ? ' on' : ''}"
+      data-act="setMood" data-a="${m.key}"
+      aria-pressed="${(note && note.mood) === m.key}">${esc(m.label)}</button>`).join('')}
+  </div>
+  <div class="ownsrow">
+    <span class="sublede">Anything to own up to?</span>
+    ${E.OWNS.map(o => {
+      const on = !!(note && (note.owns || []).includes(o.key));
+      return `<button class="mnchip bad${on ? ' on' : ''}" data-act="tglOwn" data-a="${o.key}"
+        aria-pressed="${on}">${esc(o.label)}</button>`;
+    }).join('')}
+  </div>
+  <label class="minesay">
+    <span class="sublede">And the round in a line?</span>
+    <input class="field" id="mineSay" data-act="mineSay"
+      maxlength="200" placeholder="Started well. Stopped."
+      value="${esc(sayText)}">
   </label>
 
   ${kept.length ? `<h3 class="sub">Your round so far</h3>
@@ -2473,6 +2515,7 @@ function onClick(e) {
      the ordinary case; this is for the cases where the box is taken away
      before it ever gets one. */
   if (UI.mineDraft) commitMine();
+  if (UI.sayDraft) commitSay();
 
   switch (act) {
     case 'go':
@@ -2737,6 +2780,23 @@ function onClick(e) {
       UI.mineHole = +a;
       render();
       return;
+    /* One mood for the round, and tapping the one already on takes it off —
+       a mis-tap needs a way back and there is nothing here worth confirming. */
+    case 'setMood': {
+      if (!UI.me) return;
+      store.writeNote(rid, UI.me, n => { n.mood = n.mood === a ? null : a; });
+      render();
+      return;
+    }
+    case 'tglOwn': {
+      if (!UI.me) return;
+      store.writeNote(rid, UI.me, n => {
+        const was = Array.isArray(n.owns) ? n.owns : [];
+        n.owns = was.includes(a) ? was.filter(k => k !== a) : was.concat(a);
+      });
+      render();
+      return;
+    }
     case 'tglMine': {
       if (!UI.me) return;
       const h = +b;
@@ -2862,6 +2922,7 @@ function onChange(e) {
 
   /* A line about a hole, kept when the box loses focus. */
   if (act === 'mineText') { UI.mineDraft = { rid, h: +b, v: el.value }; commitMine(); render(); return; }
+  if (act === 'mineSay') { UI.sayDraft = { rid, v: el.value }; commitSay(); render(); return; }
 
   if (store && store.note) store.note('change', act + ' a=' + (a || '') + ' b=' + (b || '') + ' v=' + el.value);
   const editable = canEdit() && E.roundCfg(T, rid).state === 'open';
@@ -3236,6 +3297,9 @@ export function boot() {
     if (e.target && e.target.id === 'askField') UI.askText = e.target.value;
     if (e.target && e.target.id === 'mineText') {
       UI.mineDraft = { rid: UI.entryRound, h: +e.target.dataset.b, v: e.target.value };
+    }
+    if (e.target && e.target.id === 'mineSay') {
+      UI.sayDraft = { rid: UI.entryRound, v: e.target.value };
     }
   });
   // the page may be allowed to ask Claude, or may not: find out once, quietly,

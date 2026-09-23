@@ -307,6 +307,46 @@ export const MARKS = [
     said: 'played the shot of the hole' },
 ];
 export const MARK_KEYS = MARKS.map(m => m.key);
+
+/* ---------- the end of the round, in the golfer's own words ----------
+ *
+ * The marks above are the REF'S, and they are facts: where the ball went,
+ * how many putts, who hit the best shot. Somebody standing there can settle
+ * every one of them.
+ *
+ * This is the other kind of thing entirely, and the reason it is a separate
+ * set of questions rather than the same ones asked twice. Ask a golfer what
+ * a ref can already see and you get two answers to arbitrate; ask them what
+ * only they know and you get the half a scorecard has never held. Nobody
+ * else can say whether a round felt like a grind, whether the four came off
+ * the wrong club, or whether a good score was deserved.
+ *
+ * So none of it can contradict the card — a feeling is not a rival claim
+ * about a fact. Where the two diverge, that divergence IS the story: a man
+ * who three-putted twice and called it striping it has told you more about
+ * his week than either line on its own. */
+export const MOODS = [
+  { key: 'striped', label: 'Striped it', tone: 'good' },
+  { key: 'grinding', label: 'Grinding', tone: 'mid' },
+  { key: 'scrappy', label: 'Scrappy', tone: 'mid' },
+  { key: 'dontask', label: "Don't ask", tone: 'bad' },
+];
+
+/* Things a ref cannot possibly know, which is the test each of these had to
+   pass to be here. */
+export const OWNS = [
+  { key: 'club', label: 'Wrong club, all day' },
+  { key: 'layup', label: "Should've laid up" },
+  { key: 'putter', label: 'The putter let me down' },
+  { key: 'nerves', label: 'Got the nerves' },
+  { key: 'lucky', label: 'Got away with one' },
+];
+const moodOf = k => MOODS.find(m => m.key === k) || null;
+const ownOf = k => OWNS.find(m => m.key === k) || null;
+export function moodLabel(k) { const m = moodOf(k); return m ? m.label : ''; }
+export function ownLabels(keys) {
+  return (Array.isArray(keys) ? keys : []).map(ownOf).filter(Boolean).map(o => o.label);
+}
 const markDef = k => MARKS.find(m => m.key === k) || null;
 
 /** The marks a REF put on one golfer's hole. Always an array. */
@@ -535,14 +575,31 @@ export function roundBrief(T, rid) {
       .map(Number).sort((a, b) => a - b)
       .filter(h => String(n.text[h] || '').trim())
       .map(h => 'hole ' + (h + 1) + ': "' + String(n.text[h]).trim() + '"');
-    if (!line && !words.length) continue;
-    said.push('- ' + p.display + (line ? ': ' + line : ':')
-      + (words.length ? ' — in their own words, ' + words.join('; ') : ''));
+    /* The end-of-round questionnaire: how it felt, what they will own up to,
+       and a line about the day. None of it is checkable and none of it is
+       meant to be. */
+    const bits = [];
+    if (n.mood) bits.push('felt like: ' + moodLabel(n.mood));
+    const owns = ownLabels(n.owns);
+    if (owns.length) bits.push('owns up to: ' + owns.join(', '));
+    const say = String(n.say || '').trim();
+    if (say) bits.push('on the round: "' + say + '"');
+    if (!line && !words.length && !bits.length) continue;
+    const parts = [];
+    if (line) parts.push(line);
+    if (words.length) parts.push('in their own words, ' + words.join('; '));
+    if (bits.length) parts.push(bits.join('; '));
+    said.push('- ' + p.display + ': ' + parts.join(' | '));
   }
   if (said.length) {
     L.push('\nWHAT THE GOLFERS SAID ABOUT THEIR OWN ROUNDS');
-    L.push('Self-reported, not the ref\'s card. Good for colour and for a quote;');
-    L.push('attribute it to them rather than stating it as fact.');
+    L.push('Self-reported, and deliberately about things the ref CANNOT see —');
+    L.push('how a round felt, what they blame, whether they got away with it.');
+    L.push('None of it can contradict the card, because none of it is a claim');
+    L.push('about a fact. Where a golfer\'s account and the marks pull apart,');
+    L.push('that gap is the best material on this page — a man who three-putted');
+    L.push('twice and called it striping it has told you something. Attribute');
+    L.push('it to them; never restate it as established fact.');
     L.push(...said);
   }
 

@@ -24,7 +24,11 @@ const DEFAULT_PINS = { master: '1000', s1: '2000', s2: '3000' };
    the recap only: nothing in it reaches a leaderboard. A card written before
    marks existed simply has none. */
 export function blankCard() { return { raw: Array(18).fill(null), by: {}, at: {}, marks: {}, mF: false, mB: false, bb: false }; }
-export function blankNote(rid, pid) { return { rid, pid, marks: {}, text: {}, at: {} }; }
+/* `marks` and `text` are per hole; `mood`, `owns` and `say` are the end of
+   the round, asked once. */
+export function blankNote(rid, pid) {
+  return { rid, pid, marks: {}, text: {}, at: {}, mood: null, owns: [], say: '' };
+}
 export function blankBbb() { return { holes: Array.from({ length: 18 }, () => ({ bingo: null, bango: null, bongo: null })) }; }
 
 export function defaultConfig() {
@@ -860,7 +864,8 @@ export function createStore(onChange) {
     const prev = T.notes[key];
     const n = prev
       ? { ...blankNote(rid, pid), ...prev, marks: { ...(prev.marks || {}) },
-          text: { ...(prev.text || {}) }, at: { ...(prev.at || {}) } }
+          text: { ...(prev.text || {}) }, at: { ...(prev.at || {}) },
+          owns: [...(prev.owns || [])] }
       : blankNote(rid, pid);
     mutate(n);
     bump('notes/' + key, n);

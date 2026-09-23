@@ -133,12 +133,12 @@ ok('and offers the golfers', await p.locator('.minepick .chip').count() > 3, tru
 const me = await p.locator('.minepick .chip').nth(1).innerText();
 await p.locator('.minepick .chip').nth(1).click(); await p.waitForTimeout(700); await shut();
 ok('it takes your name', (await p.locator('h3.sub').first().innerText()).includes(me), true);
-ok('four marks, as big as a thumb', await p.locator('.mnchip').count(), 4);
+ok('four marks, as big as a thumb', await p.locator('.minemarks .mnchip').count(), 4);
 ok('and every one of them clears 44px', await p.evaluate(
   () => [...document.querySelectorAll('.mnchip')].every(e => e.getBoundingClientRect().height >= 44)), true);
 
-await p.locator('.mnchip').first().click(); await p.waitForTimeout(450);
-ok('a mark goes on', await p.locator('.mnchip.on').count(), 1);
+await p.locator('.minemarks .mnchip').first().click(); await p.waitForTimeout(450);
+ok('a mark goes on', await p.locator('.minemarks .mnchip.on').count(), 1);
 const LINE = 'Chipped in from the bunker.';
 await p.locator('#mineText').click();
 await p.locator('#mineText').type(LINE.slice(0, 12), { delay: 15 });
@@ -165,6 +165,45 @@ ok('and a line walked away from is kept too',
 ok('beside the mark, on the right hole', (await p.locator('.minerow').first().innerText())
   .includes('3-putt'), true);
 ok('the hole wears a dot here too', await p.locator('.hcell.marked').count() >= 1, true);
+
+console.log('\nand at the end, the part only they can answer');
+/* Deliberately NOT the four marks again. Ask a golfer what the ref can
+   already see and you get two answers to arbitrate; ask them what only they
+   know and you get the half a scorecard has never held. */
+const moods = await p.locator('.mdchip').allInnerTexts();
+ok('one mood for the round', moods, ['Striped it', 'Grinding', 'Scrappy', "Don't ask"]);
+/* The test is not "contains no golf word" — "the putter let me down" is a
+   judgement about cause, and a perfectly good one. It is that no question
+   here ASKS THE SAME THING the ref is already answering, so the two can
+   never come back with contradicting answers about one fact. */
+ok('and none of them asks what the ref is already answering', await p.evaluate(
+  refLabels => { const mine = [...document.querySelectorAll('.mdchip, .ownsrow .mnchip')]
+    .map(e => e.textContent.trim().toLowerCase());
+    return refLabels.filter(l => mine.includes(l.toLowerCase())); },
+  ['Three-putt', 'Out of bounds', 'In the water', 'Shot of the hole']), []);
+await p.locator('.mdchip').first().click(); await p.waitForTimeout(600); await shut();
+ok('a mood goes on', await p.locator('.mdchip.on').count(), 1);
+await p.locator('.mdchip').nth(2).click(); await p.waitForTimeout(600); await shut();
+ok('and only ever one at a time', await p.locator('.mdchip.on').count(), 1);
+ok('the last one tapped is the one that stuck',
+  await p.locator('.mdchip.on').innerText(), 'Scrappy');
+await p.locator('.mdchip').nth(2).click(); await p.waitForTimeout(600); await shut();
+ok('tapping it again takes it off — a mis-tap needs a way back',
+  await p.locator('.mdchip.on').count(), 0);
+
+const owns = await p.locator('.ownsrow .mnchip').count();
+ok('several things to own up to', owns > 2, true);
+await p.locator('.ownsrow .mnchip').first().click(); await p.waitForTimeout(500); await shut();
+await p.locator('.ownsrow .mnchip').nth(1).click(); await p.waitForTimeout(500); await shut();
+ok('and you can own up to more than one', await p.locator('.ownsrow .mnchip.on').count(), 2);
+
+await p.locator('#mineSay').click();
+await p.locator('#mineSay').fill('Started well. Stopped.');
+await p.locator('#mineSay').press('Tab'); await p.waitForTimeout(700); await shut();
+await p.evaluate(() => window.__forceRender()); await p.waitForTimeout(500); await shut();
+ok('the line about the round is kept', await p.locator('#mineSay').inputValue(),
+  'Started well. Stopped.');
+ok('and the mood survives a redraw too', await p.locator('.ownsrow .mnchip.on').count(), 2);
 
 console.log('\nbut it is not a second scorecard');
 await p.locator('.lane', { hasText: 'Score the group' }).click(); await p.waitForTimeout(700); await shut();

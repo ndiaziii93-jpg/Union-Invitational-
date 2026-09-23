@@ -1254,3 +1254,19 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
   .ms-who{font-size:15px}
   .mnchip{flex:1 1 100%}
 }
+
+/* ---- the end of the round, in the golfer's own words ----
+   One mood, mutually exclusive, so it reads as a single answer rather than a
+   set of switches. The confessions beside it reuse the My Round chip. */
+.moodrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.mdchip{flex:1 1 140px;min-height:52px;padding:12px 14px;border:1px solid var(--rule);
+  background:var(--page);color:var(--ink);border-radius:9px;font-size:16px;
+  -webkit-tap-highlight-color:transparent;transition:background .15s ease,border-color .15s ease}
+@media (hover:hover) and (pointer:fine){.mdchip:not(.on):hover{border-color:var(--ink)}}
+.mdchip.on{color:#FBFAF7;font-weight:700}
+.mdchip.good.on{background:var(--green);border-color:var(--green)}
+.mdchip.mid.on{background:var(--gold);border-color:var(--gold)}
+.mdchip.bad.on{background:var(--flag);border-color:var(--flag)}
+.ownsrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px;align-items:center}
+.ownsrow .sublede{flex:1 1 100%;margin:0}
+@media (max-width:560px){.mdchip{flex:1 1 calc(50% - 4px)}}
