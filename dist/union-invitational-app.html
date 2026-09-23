@@ -1031,27 +1031,31 @@ html.noscroll{overflow:hidden}
 .recapgrid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:34px;margin-top:20px;align-items:start}
 .rechead{font-size:clamp(30px,5.2vw,52px);font-weight:700;line-height:1.02;margin:0 0 4px;
   letter-spacing:-.015em;text-wrap:balance}
-/* the hairline under the headline, as a paper would rule it off — unless a
-   byline is doing that job already */
-.recapmain .rechead + .recpara{margin-top:14px;padding-top:14px;border-top:1px solid var(--rule)}
-.recapmain .byline + .recpara{margin-top:13px}
+/* The head block rules itself off from the body; with no byline it is the
+   headline's own hairline. */
+.arthead{margin-bottom:13px}
+.arthead .rechead:last-child{padding-bottom:13px;border-bottom:1px solid var(--rule)}
 .recpara{font-size:16.5px;line-height:1.62;margin:0 0 13px;text-align:justify;hyphens:auto}
 
 /* The opening letter, cut into the first three lines.
    Keyed to a CLASS, not to :first-of-type: the byline is a <p> too, and the
    day a byline was added the drop cap silently went to it instead. */
-.recapmain .recpara.lead::first-letter{
+.artbody .recpara.lead::first-letter{
   float:left;font-size:3.4em;line-height:.82;font-weight:700;color:var(--green);
   padding:.04em .09em 0 0;margin-right:.02em}
 
 /* Two columns once there is room for them, with a rule between, which is the
    single thing that most makes a block of type read as a newspaper. */
 @media (min-width:900px){
-  .recapmain{column-count:2;column-gap:30px;column-rule:1px solid var(--rule)}
-  .recapmain .rechead{column-span:all}
-  /* The kicker and the byline belong to the headline, not to a column. */
-  .recapmain .kicker,.recapmain .byline{column-span:all}
-  .recapmain .rechead + .recpara{border-top:0;padding-top:0}
+  /* Only the BODY is columned, and the head is a block above it — so nothing
+     here needs `column-span: all`. That declaration is the one WebKit gets
+     wrong: on an iPad it painted the opening paragraph a second time, above
+     the headline and clipped. A layout that never asks for the feature
+     cannot meet the bug, which is a better fix than a workaround. */
+  .artbody{column-count:2;column-gap:30px;column-rule:1px solid var(--rule)}
+  /* Editing turns them off — a column of textareas is not a thing anybody
+     wants to type into. */
+  .artbody.editing{column-count:1}
   .recpara{max-width:none}
 }
 @media (max-width:899px){ .recpara{max-width:68ch} }
@@ -1074,7 +1078,7 @@ html.noscroll{overflow:hidden}
      block display was changed to avoid. */
   .metarail span:not(:last-child)::after{content:'\00a0\00b7';color:var(--rule);padding-right:7px}
   .recpara{text-align:left;hyphens:none}
-  .recapmain .recpara.lead::first-letter{font-size:3em}
+  .artbody .recpara.lead::first-letter{font-size:3em}
 }
 /* Editing the words. The fields wear the type they replace, so the page does
    not jump when the commissioner turns editing on. */
@@ -1436,6 +1440,20 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
   .folio{margin-top:26px;padding:14px 0 20px}
 }
 
+/* ---- the crest on the Day's Recap button ----
+   The same drawing as the nameplate's, on the right of the box. It is
+   decoration, so it carries no alt text and no tap target of its own: the
+   whole panel is one button. */
+.recapbtn{display:flex;align-items:center;gap:14px}
+.recapbtn .rb-w{flex:1 1 auto;min-width:0}
+.recapbtn .rb-c{flex:0 0 auto;width:46px;height:auto;opacity:.22;
+  transition:opacity .2s ease,filter .2s ease}
+/* Lit, the panel is pine and the crest is inverted onto it — linework white,
+   the panels it encloses reading as the green underneath, exactly as on the
+   nameplate. */
+.recapbtn.ready .rb-c{filter:invert(1);opacity:.9}
+@media (max-width:560px){.recapbtn .rb-c{width:38px}}
+
 </style>
 <div id="app"></div>
 <!-- The crest, and the opening it pays for, ahead of everything else. A few
@@ -1547,7 +1565,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20260923-1334';
+const BUILD = '20260923-1414';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -4670,8 +4688,11 @@ function recapButton() {
   const lit = st.key === 'ready' || st.key === 'togen';
   return `<div class="recapwrap">
     <button class="recapbtn${lit ? ' ready' : ''}" data-act="recapOpen" data-a="${rid}"${st.key === 'idle' ? ' disabled' : ''}>
-      <span class="rb-t">The Day's Recap</span>
-      <span class="rb-s">${esc(st.line)}</span>
+      <span class="rb-w">
+        <span class="rb-t">The Day's Recap</span>
+        <span class="rb-s">${esc(st.line)}</span>
+      </span>
+      ${IMG.crest ? `<img class="rb-c" src="${IMG.crest}" alt="">` : ''}
     </button>
   </div>`;
 }
@@ -4795,6 +4816,13 @@ function recapPanel() {
 
   <div class="recapgrid">
     <div class="recapmain">
+      ${/* The head of the article sits OUTSIDE the columned element, in a
+            block of its own. It used to live inside it and reach across with
+            `column-span: all`, which WebKit renders wrong: on an iPad the
+            opening paragraph was painted a second time, above the headline,
+            clipped. Taking the head out means no spanner is needed at all,
+            and the whole class of multi-column bugs goes with it. */ ''}
+      <div class="arthead">
       ${editing ? `<textarea class="field recedit head" rows="2" data-act="recapEdit" data-a="headline"
         aria-label="Headline">${esc(body.headline || '')}</textarea>`
         : `<p class="kicker">${esc(r.short === 'Practice' ? 'Practice day' : 'Round ' + r.short.slice(1) + ' of 3')} <span>·</span> ${esc(day.dow)} ${esc(day.date)}</p>
@@ -4803,6 +4831,8 @@ function recapPanel() {
         ${body ? `<p class="byline"><b>By the Union Register</b>${
           rec && rec.at ? `<span>${esc(E.to12(new Date(rec.at + D.TZ_OFFSET_MIN * 60000).toISOString().slice(11, 16)))}</span>` : ''}${
           published ? '' : '<span class="draftflag">Draft</span>'}</p>` : ''}`}
+      </div>
+      <div class="artbody${editing ? ' editing' : ''}">
       ${editing ? (body.narrative || []).concat(['']).map((x, i) => `<textarea class="field recedit" rows="4"
           data-act="recapEdit" data-a="para" data-b="${i}"
           aria-label="Paragraph ${i + 1}" placeholder="${i >= (body.narrative || []).length ? 'Add a paragraph…' : ''}">${esc(x)}</textarea>`).join('')
@@ -4812,6 +4842,7 @@ function recapPanel() {
         : st.complete ? `<p class="recpara">${ed ? 'Generate the report and it will be written from today\'s cards.'
             : 'The scorers have not written it up yet.'}</p>`
         : `<p class="recpara">The standings below are live. The report is written once every card is in.</p>`}
+      </div>
     </div>
     <aside class="recapside">
       ${hero ? `<figure class="rechero"><img src="${hero}" alt="${esc(course.name)}">

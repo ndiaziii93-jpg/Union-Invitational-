@@ -548,8 +548,11 @@ function recapButton() {
   const lit = st.key === 'ready' || st.key === 'togen';
   return `<div class="recapwrap">
     <button class="recapbtn${lit ? ' ready' : ''}" data-act="recapOpen" data-a="${rid}"${st.key === 'idle' ? ' disabled' : ''}>
-      <span class="rb-t">The Day's Recap</span>
-      <span class="rb-s">${esc(st.line)}</span>
+      <span class="rb-w">
+        <span class="rb-t">The Day's Recap</span>
+        <span class="rb-s">${esc(st.line)}</span>
+      </span>
+      ${IMG.crest ? `<img class="rb-c" src="${IMG.crest}" alt="">` : ''}
     </button>
   </div>`;
 }
@@ -673,6 +676,13 @@ function recapPanel() {
 
   <div class="recapgrid">
     <div class="recapmain">
+      ${/* The head of the article sits OUTSIDE the columned element, in a
+            block of its own. It used to live inside it and reach across with
+            `column-span: all`, which WebKit renders wrong: on an iPad the
+            opening paragraph was painted a second time, above the headline,
+            clipped. Taking the head out means no spanner is needed at all,
+            and the whole class of multi-column bugs goes with it. */ ''}
+      <div class="arthead">
       ${editing ? `<textarea class="field recedit head" rows="2" data-act="recapEdit" data-a="headline"
         aria-label="Headline">${esc(body.headline || '')}</textarea>`
         : `<p class="kicker">${esc(r.short === 'Practice' ? 'Practice day' : 'Round ' + r.short.slice(1) + ' of 3')} <span>·</span> ${esc(day.dow)} ${esc(day.date)}</p>
@@ -681,6 +691,8 @@ function recapPanel() {
         ${body ? `<p class="byline"><b>By the Union Register</b>${
           rec && rec.at ? `<span>${esc(E.to12(new Date(rec.at + D.TZ_OFFSET_MIN * 60000).toISOString().slice(11, 16)))}</span>` : ''}${
           published ? '' : '<span class="draftflag">Draft</span>'}</p>` : ''}`}
+      </div>
+      <div class="artbody${editing ? ' editing' : ''}">
       ${editing ? (body.narrative || []).concat(['']).map((x, i) => `<textarea class="field recedit" rows="4"
           data-act="recapEdit" data-a="para" data-b="${i}"
           aria-label="Paragraph ${i + 1}" placeholder="${i >= (body.narrative || []).length ? 'Add a paragraph…' : ''}">${esc(x)}</textarea>`).join('')
@@ -690,6 +702,7 @@ function recapPanel() {
         : st.complete ? `<p class="recpara">${ed ? 'Generate the report and it will be written from today\'s cards.'
             : 'The scorers have not written it up yet.'}</p>`
         : `<p class="recpara">The standings below are live. The report is written once every card is in.</p>`}
+      </div>
     </div>
     <aside class="recapside">
       ${hero ? `<figure class="rechero"><img src="${hero}" alt="${esc(course.name)}">

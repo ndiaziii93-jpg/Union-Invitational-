@@ -123,6 +123,33 @@ ok('and up next closes it', await p.locator('.upnext').count(), 1);
 
 console.log('\nwriting it');
 await p.locator('[data-act="recapGen"]').click(); await p.waitForTimeout(1600);
+/* An iPad painted the opening paragraph TWICE — once in its column and once
+   above the headline, clipped. The cause was `column-span: all`, which
+   WebKit renders wrong inside a multi-column block that also carries a
+   floated ::first-letter. Chromium does not, which is why the tests here
+   could never have caught it.
+ *
+ * So the property worth holding is structural, and it is checkable in any
+ * engine: the article head is a BLOCK ABOVE the columned body rather than a
+ * spanner inside it, and nothing in the stylesheet asks for column-span at
+ * all. A layout that never uses the feature cannot meet the bug. */
+console.log('\nthe article head is out of the columns entirely');
+await p.setViewportSize({ width: 1280, height: 1000 }); await p.waitForTimeout(700);
+ok('the head is its own block', await p.locator('.arthead').count(), 1);
+ok('and the body is the only thing in columns', await p.evaluate(
+  () => getComputedStyle(document.querySelector('.artbody')).columnCount), '2');
+ok('the headline is NOT inside the columned element', await p.evaluate(
+  () => !document.querySelector('.artbody .rechead')), true);
+ok('nor is the kicker or the byline', await p.evaluate(
+  () => !document.querySelector('.artbody .kicker, .artbody .byline')), true);
+ok('and not one rule anywhere asks for column-span', await p.evaluate(() =>
+  [...document.styleSheets].flatMap(sh => { try { return [...sh.cssRules]; } catch (e) { return []; } })
+    .flatMap(r => r.cssRules ? [...r.cssRules] : [r])
+    .filter(r => /column-span/.test(r.cssText || '')).length), 0);
+ok('the opening letter is still cut into the first paragraph', await p.evaluate(
+  () => parseFloat(getComputedStyle(
+    document.querySelector('.artbody .recpara.lead'), '::first-letter').fontSize) > 30), true);
+
 /* On a tablet the sheet is nine hundred pixels wide, and a figure pinned to
    its right-hand edge has nothing to do with the name at the other end of
    the row — the eye has to cross the page to pair them up. Columns, centred,
