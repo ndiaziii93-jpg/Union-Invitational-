@@ -699,7 +699,7 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
 
 @media (max-width:820px){
   /* the nav wraps instead of scrolling, using the short labels */
-  /* Nine tabs laid in even columns rather than a wrapping row. A row that
+  /* The tabs are laid in even columns rather than a wrapping row. A row that
      wraps gives its last line whatever is left over, which is how Setup came
      to sit alone across the whole bottom. */
   .tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;
@@ -744,8 +744,13 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
   .cside{max-width:none;align-self:auto}
   .btabs{gap:20px}
   .btab{font-size:17px}
-  /* three across, three down: nine tabs, no odd one out */
+  /* Three across. Without Setup — which is what everyone but the master
+     sees — that is nine tabs in a clean three-by-three. The master has ten,
+     and rather than leave one stranded in a column of its own, the last one
+     takes the whole width. `orphan` is set by the nav itself, which is the
+     only thing that knows how many tabs it drew. */
   .tabs{grid-template-columns:repeat(3,1fr)}
+  .tabs.orphan .tab:last-child{grid-column:1 / -1}
   .legend{text-align:left}
 }
 
@@ -1521,6 +1526,116 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
 .recapbtn.ready .rb-c{filter:invert(1);opacity:.9}
 @media (max-width:560px){.recapbtn .rb-c{width:38px}}
 
+/* ---------------- The Titanic ----------------
+   A guide, not a scorecard: the type is a little larger, the rows breathe,
+   and nothing is set in the tabular figures the boards use. */
+
+.seasonband{margin-top:16px;padding:14px 16px;background:var(--page);
+  border:1px solid var(--rule);border-left:4px solid var(--gold)}
+.seasonband .sbs{display:flex;gap:8px;flex-wrap:wrap}
+.sbtn{padding:8px 14px;min-height:44px;font-size:16px;color:var(--turf);
+  background:var(--paper);border:1px solid var(--rule)}
+.sbtn.on{background:var(--ink);color:var(--page);border-color:var(--ink);font-weight:700}
+.sbtn:disabled{opacity:.55;cursor:default}
+@media (hover:hover) and (pointer:fine){ .sbtn:not(.on):not(:disabled):hover{color:var(--ink);border-color:var(--ink)} }
+.seasonband .tiny{margin:10px 0 0;max-width:72ch}
+
+.tiny{font-size:13px;color:var(--turf);line-height:1.5}
+.minihead{margin:18px 0 6px;font-size:12px;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--turf);font-family:var(--mono);font-weight:700}
+
+/* --- a venue, as a card (Right now) and as a row (the lists) --- */
+
+.vgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;margin-top:8px}
+.vgrid.dim .vcard{background:transparent;border-style:dashed}
+.vcard{padding:12px 14px;background:var(--page);border:1px solid var(--rule)}
+.vcard.cover{border-left:3px solid var(--gold)}
+.vcard .vwhen{margin-top:4px;font-size:15px;color:var(--turf)}
+
+.vlist{margin-top:8px;border-top:1px solid var(--hair)}
+.vrow{display:flex;gap:18px;align-items:flex-start;padding:12px 2px;border-bottom:1px solid var(--hair)}
+.vrow.out{opacity:.5}
+.vmain{flex:1 1 auto;min-width:0}
+.vtop{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.vn{font-size:18px;font-weight:700}
+.vc{font-size:14px;color:var(--turf);font-style:italic}
+.vtag{font-size:11px;letter-spacing:.07em;text-transform:uppercase;font-family:var(--mono);
+  color:var(--gold);border:1px solid var(--gold);padding:1px 6px;white-space:nowrap}
+.vtag.warmtag{color:var(--flag);border-color:var(--flag)}
+.vb{margin:4px 0 0;font-size:15px;color:var(--turf);max-width:68ch;line-height:1.55}
+.vb.warn{color:var(--flag)}
+
+.hrs{flex:0 0 190px;text-align:right;font-size:15px}
+.hrs .slot{display:block}
+.hrs .slot i{display:block;font-size:12px;font-style:normal;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--turf);font-family:var(--mono)}
+.hrs .shut{color:var(--flag);font-style:italic}
+.hrs.two{display:flex;gap:16px;flex:0 0 300px;justify-content:flex-end}
+.hrs.two > div{min-width:0}
+.hrs.two b{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--turf);font-family:var(--mono);font-weight:700}
+
+/* --- the site plan --- */
+
+.pkeys{display:flex;gap:6px;flex-wrap:wrap;margin-top:14px}
+.pkey{padding:7px 12px;min-height:40px;font-size:15px;color:var(--turf);
+  background:var(--page);border:1px solid var(--rule)}
+.pkey.on{background:var(--ink);color:var(--page);border-color:var(--ink);font-weight:700}
+/* SVG text scales with the box it is drawn in, so a plan allowed to run the
+   full width of a desktop window sets its labels at forty points. Capping the
+   width is what keeps them readable, at every size. */
+.planwrap{margin-top:12px;border:1px solid var(--rule);background:var(--page);max-width:660px}
+.plan{display:block;width:100%;height:auto}
+.plan .pbg{fill:var(--page)}
+.plan .pt circle{fill:var(--rule)}
+.plan .pt text{font-family:var(--serif);fill:var(--ink);
+  paint-order:stroke;stroke:var(--page);stroke-width:.9px;stroke-linejoin:round}
+.plan .pt.on.c-core circle,.dotk.c-core{fill:var(--ink);background:var(--ink)}
+.plan .pt.on.c-stay circle,.dotk.c-stay{fill:var(--turf);background:var(--turf)}
+.plan .pt.on.c-eat  circle,.dotk.c-eat {fill:var(--gold);background:var(--gold)}
+.plan .pt.on.c-play circle,.dotk.c-play{fill:var(--green);background:var(--green)}
+.plan .pt.on.c-shore circle,.dotk.c-shore{fill:var(--flag);background:var(--flag)}
+.dotk{display:inline-block;width:9px;height:9px;border-radius:50%;flex:0 0 auto;
+  position:relative;top:-1px}
+.plist .vrow{padding:9px 2px}
+.plist .vn{font-size:16px}
+
+/* --- spa --- */
+
+.twocol{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:8px}
+.ticks{margin:0;padding:0;list-style:none}
+.ticks li{position:relative;padding:4px 0 4px 22px;font-size:16px;border-bottom:1px solid var(--hair)}
+.ticks li::before{content:'✓';position:absolute;left:0;color:var(--green);font-weight:700}
+.ticks.paid li::before{content:'+';color:var(--gold);font-weight:700}
+
+/* --- the hotel's own details, and the group's notes --- */
+
+.addr{margin-top:8px;padding:14px 16px;background:var(--page);border:1px solid var(--rule);
+  max-width:420px;font-size:16px}
+.addr p{margin:0 0 10px}
+.addr p:last-child{margin-bottom:0}
+
+.rnote{margin-top:28px;padding-top:4px;border-top:2px solid var(--ink)}
+.rnote textarea{width:100%;max-width:70ch;resize:vertical;padding:10px 12px;
+  background:var(--page);border:1px solid var(--rule);color:var(--ink);line-height:1.5}
+.rnote .said{margin:6px 0 0;max-width:70ch;font-size:16px;white-space:pre-wrap}
+.rnote .tiny{margin:6px 0 0;max-width:70ch}
+
+@media (max-width:820px){
+  /* the hours come out from beside the name and sit under it, where there is
+     room for them — the two-season form is far too wide to keep in a column */
+  .vrow{flex-wrap:wrap;gap:6px}
+  .hrs,.hrs.two{flex:1 1 100%;text-align:left;justify-content:flex-start}
+  .hrs.two{gap:22px}
+  .twocol{grid-template-columns:1fr;gap:4px}
+  .vgrid{grid-template-columns:1fr 1fr;gap:8px}
+  .vcard{padding:10px 12px}
+  .vn{font-size:17px}
+}
+@media (max-width:420px){
+  .vgrid{grid-template-columns:1fr}
+}
+
 </style>
 <div id="app"></div>
 <!-- The crest, and the opening it pays for, ahead of everything else. A few
@@ -1632,7 +1747,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20260923-1414';
+const BUILD = '20260923-1830';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -1845,6 +1960,422 @@ const RELIEF = {
 };
 
 return {RULES, RELIEF};
+})();
+
+const __m_resort = (function(){
+
+/* The Titanic — the resort, for the people who are not on the golf course.
+ *
+ * Everything here was read off the hotel's own website in September 2026 and
+ * is reproduced as reference, not as promise. Two facts shape the whole tab:
+ *
+ *  1. The resort runs a SUMMER and a WINTER operation, and most of the
+ *     outdoor half of it simply closes for the winter. The hotel publishes
+ *     both timetables but never says which date it turns over — so the book
+ *     carries both, and the group sets the switch once somebody asks at
+ *     reception. Our week, 26 October to 2 November, sits right on the seam.
+ *
+ *  2. The à la carte restaurants are marked on the hotel's site as "paid
+ *     à la carte, reservations required, cover charge applies". The golf
+ *     booking company told us something different. Until that is settled
+ *     with the hotel, both readings are shown and neither is presented as
+ *     the answer.
+ *
+ * Hours are HH:MM in resort local time. `null` means closed for that season.
+ */
+
+const SEASONS = ['summer', 'winter'];
+
+/* The hotel's address book. */
+const RESORT = {
+  name: 'Titanic Deluxe Golf Belek',
+  address: ['Kadriye Mah. Canada Cad. 32 K', 'Serik, 07525, Antalya, Türkiye'],
+  phone: '+90 242 710 44 44',
+  email: 'deluxegolf.belek@titanic-hotels.com',
+  lat: 36.86854,
+  lng: 30.97629,
+};
+
+/* ---------------- eating and drinking ----------------
+   `kind`   buffet · snack · alacarte · bar · cafe
+   `cost`   'inc'  included in all inclusive
+            'cover' cover charge and a reservation, per the hotel's site
+   `s` / `w` are lists of {from, to, what} — `what` only where the venue
+   serves different things at different times.                             */
+
+const VENUES = [
+  /* --- included --- */
+  { id: 'main', name: 'Main Restaurant', kind: 'buffet', cost: 'inc',
+    blurb: 'The buffet. Six sections under one roof, each with its own concept, and a separate area for children. Vegetarian, vegan and gluten-free are catered for without asking.',
+    s: [{ from: '06:00', to: '08:00', what: 'Early breakfast — mini buffet' },
+        { from: '08:00', to: '11:00', what: 'Breakfast' },
+        { from: '12:30', to: '14:30', what: 'Lunch' },
+        { from: '18:30', to: '21:15', what: 'Dinner' }],
+    w: [{ from: '06:00', to: '08:00', what: 'Early breakfast — mini buffet' },
+        { from: '08:00', to: '11:00', what: 'Breakfast' },
+        { from: '12:30', to: '14:30', what: 'Lunch' },
+        { from: '18:30', to: '21:00', what: 'Dinner' }],
+    tag: 'The default' },
+
+  { id: 'bistro', name: 'Bistro', kind: 'alacarte', cost: 'inc',
+    blurb: 'Indoor and out, à la carte, and — the part that matters to anyone coming off a late round — no reservation, ever. Salads, pasta, burgers, grills.',
+    s: [{ from: '18:00', to: '03:00' }],
+    w: [{ from: '15:00', to: '03:00' }],
+    tag: 'Open latest' },
+
+  { id: 'kikoa-r', name: 'Kikoa Kids Restaurant', kind: 'buffet', cost: 'inc',
+    blurb: 'A walled-off corner of the main restaurant built around a decorated railway carriage. It has equipment for parents to make up their own baby formula.',
+    s: [{ from: '08:00', to: '11:00', what: 'Breakfast' },
+        { from: '12:30', to: '14:30', what: 'Lunch' },
+        { from: '18:30', to: '21:15', what: 'Dinner' }],
+    w: null,
+    note: 'Shown as closed in winter. If it is, ask where the formula-making kit has moved to — it will not have gone away.' },
+
+  { id: 'hasir-s', name: 'Hasır Snack', kind: 'snack', cost: 'inc',
+    blurb: 'Poolside. Döner, grills, fast food, fresh pide, lahmacun and salads.',
+    s: [{ from: '12:30', to: '16:00' }, { from: '16:00', to: '17:30' }], w: null },
+
+  { id: 'aqua-s', name: 'Aqua Snack', kind: 'snack', cost: 'inc',
+    blurb: 'On the riverside by the aquapark. Soup, pizza, pasta, grills.',
+    s: [{ from: '12:15', to: '16:00' }], w: null },
+
+  { id: 'riva', name: 'Riva Beach Snack', kind: 'snack', cost: 'inc',
+    blurb: 'On the sand. Fish and salads.',
+    s: [{ from: '12:30', to: '16:00' }], w: null },
+
+  { id: 'sapore', name: 'Sapore Beach Snack', kind: 'snack', cost: 'inc',
+    blurb: 'Also on the sand. Pizza, pasta, salads.',
+    s: [{ from: '12:30', to: '16:00' }], w: null },
+
+  /* --- cover charge, per the hotel --- */
+  { id: 'pascarella', name: 'Pascarella', kind: 'alacarte', cost: 'cover', cuisine: 'Italian',
+    blurb: 'Trattoria by the river, with a wine list worth the walk. In winter it serves a fish menu on some nights and the Italian menu on the rest.',
+    s: [{ from: '19:00', to: '21:30' }], w: [{ from: '19:00', to: '21:30' }] },
+
+  { id: 'nori', name: 'Nori', kind: 'alacarte', cost: 'cover', cuisine: 'Asian',
+    blurb: 'Chinese and Japanese, riverside.',
+    s: [{ from: '19:00', to: '21:30' }], w: [{ from: '19:00', to: '21:30' }] },
+
+  { id: 'teppan', name: 'Teppanyaki', kind: 'alacarte', cost: 'cover', cuisine: 'Japanese',
+    blurb: 'Steak, chicken and seafood cooked on the iron griddle in front of you. It is a show as much as a dinner.',
+    s: [{ from: '19:00', to: '22:00' }], w: [{ from: '19:00', to: '22:00' }],
+    tag: 'Open all year' },
+
+  { id: 'beef', name: 'Beef Grill Club', kind: 'alacarte', cost: 'cover', cuisine: 'Steak',
+    blurb: 'Aged and dry-stored cuts, by the river. Villa guests can also take the village breakfast here.',
+    s: [{ from: '19:00', to: '21:30' }], w: [{ from: '19:00', to: '21:30' }] },
+
+  { id: 'hasir-a', name: 'Hasır', kind: 'alacarte', cost: 'cover', cuisine: 'Turkish',
+    blurb: 'Mezes, grills and kebabs out of the Anatolian tradition, set on the river.',
+    s: [{ from: '19:00', to: '21:30' }], w: null },
+
+  { id: 'yamas', name: 'Yamas', kind: 'alacarte', cost: 'cover', cuisine: 'Greek & seafood',
+    blurb: 'Fish and premium seafood, riverside, done up with a Greek accent.',
+    s: [{ from: '19:00', to: '21:30' }], w: null },
+
+  { id: 'boat', name: 'Dinner on the Boat', kind: 'alacarte', cost: 'cover', cuisine: 'Set menu',
+    blurb: 'A boat on the Beşgöz, to yourselves, with dinner on it.',
+    s: [{ from: '19:00', to: '21:30' }], w: null },
+
+  { id: 'club-bk', name: 'The Club Breakfast', kind: 'alacarte', cost: 'cover', cuisine: 'Turkish breakfast',
+    blurb: 'Serpme kahvaltı — the spread-out village breakfast: cheeses, olives, pastries, jams, honey. Free with some room types.',
+    s: [{ from: '09:00', to: '11:00' }], w: null },
+
+  /* --- bars and cafés --- */
+  { id: 'cordelia', name: 'Cordelia Lobby Bar', kind: 'bar', cost: 'inc',
+    blurb: 'The lobby bar. Turkish coffee after breakfast, and the obvious place to agree to meet.',
+    s: [{ from: '09:00', to: '23:30' }], w: [{ from: '09:00', to: '23:30' }] },
+
+  { id: 'caprice', name: 'Caprice Bar & Patisserie', kind: 'cafe', cost: 'inc',
+    blurb: 'The bar never shuts. The cake counter keeps office hours.',
+    s: [{ from: '00:00', to: '24:00', what: 'Bar — 24 hours' },
+        { from: '14:30', to: '22:00', what: 'Patisserie' }],
+    w: [{ from: '00:00', to: '24:00', what: 'Bar — 24 hours' },
+        { from: '14:30', to: '22:00', what: 'Patisserie' }],
+    tag: '24 hours' },
+
+  { id: 'noble', name: 'Noble Irish Bar', kind: 'bar', cost: 'inc',
+    blurb: 'The one with the football on. Open all year, and open late.',
+    s: [{ from: '16:00', to: '00:00' }], w: [{ from: '16:00', to: '00:00' }],
+    tag: 'Sport on' },
+
+  { id: 'citrus', name: 'Citrus Vitamin Bar', kind: 'cafe', cost: 'inc',
+    blurb: 'Juices and healthy things, inside the spa.',
+    s: [{ from: '10:00', to: '20:00' }], w: [{ from: '10:00', to: '20:00' }] },
+
+  { id: 'bebek', name: 'Bebek Café', kind: 'cafe', cost: 'inc',
+    blurb: 'Opens earlier in winter than in summer, which makes it the daytime café once the season turns.',
+    s: [{ from: '16:00', to: '23:30' }], w: [{ from: '09:00', to: '23:30' }] },
+
+  { id: 'jacaranda', name: 'Jacaranda Bar', kind: 'bar', cost: 'inc',
+    s: [{ from: '09:00', to: '00:00', what: 'Bar' }, { from: '11:00', to: '18:00', what: 'Patisserie' }], w: null },
+  { id: 'dalia', name: 'Dalia Bar', kind: 'bar', cost: 'inc', s: [{ from: '09:00', to: '18:00' }], w: null },
+  { id: 'sunset1', name: 'Sunset 1 Bar', kind: 'bar', cost: 'inc', s: [{ from: '19:00', to: '23:30' }], w: null },
+  { id: 'sunset2', name: 'Sunset 2 Bar', kind: 'bar', cost: 'inc', s: [{ from: '09:00', to: '23:30' }], w: null },
+  { id: 'olimpic', name: 'Olimpic Pool Bar', kind: 'bar', cost: 'inc', s: [{ from: '09:00', to: '18:00' }], w: null },
+  { id: 'waffle', name: 'Beach Waffle Bar', kind: 'cafe', cost: 'inc', s: [{ from: '09:00', to: '19:00' }], w: null },
+  { id: 'pier-bar', name: 'Beach Pier Bar', kind: 'bar', cost: 'inc',
+    s: [{ from: '09:00', to: '18:00', what: 'Bar' }, { from: '11:00', to: '19:00', what: 'Patisserie' }], w: null },
+  { id: 'aqua-bar', name: 'Aqua Bar', kind: 'bar', cost: 'inc', s: [{ from: '09:00', to: '18:00' }], w: null },
+  { id: 'beach-bar', name: 'Beach Bar', kind: 'bar', cost: 'inc', s: [{ from: '09:00', to: '18:00' }], w: null },
+  { id: 'schiller', name: 'Schiller Coffee Shop', kind: 'cafe', cost: 'inc', s: [{ from: '08:00', to: '12:30' }], w: null },
+  { id: 'rivershow', name: 'River Show Bar', kind: 'bar', cost: 'inc', s: [{ from: '21:30', to: '22:30' }], w: null },
+  { id: 'disco', name: 'Floating Disco', kind: 'bar', cost: 'cover',
+    blurb: 'Over-18s, on the water. Cover charge and a reservation.',
+    s: [{ from: '23:00', to: '01:00' }], w: null },
+];
+
+/* ---------------- the spa ----------------
+   The hotel publishes no opening hours for BeFine at all, so the book does
+   not invent any. What is free and what is charged came from the golf
+   booking company's own list of inclusions, which is the more reliable of
+   the two sources on that question. */
+
+const SPA = {
+  name: 'BeFine Spa',
+  size: '13,000 m²',
+  blurb: 'Thirteen thousand square metres of Ottoman-orientalist bathhouse: hamam, saunas, steam rooms, an ice grotto, adventure showers and a run of pools at graded temperatures. The hotel publishes no opening hours for it — worth asking at reception on the first evening.',
+  free: [
+    'Turkish bath (hamam)',
+    'Sauna — traditional and bio',
+    'Steam bath',
+    'Resting lodges',
+    'Snow fountain',
+    'Shock showers, warm pools and the shock pool',
+    'Indoor swimming pools (semi-Olympic)',
+    'Outdoor seawater pool',
+    'Fitness centre',
+    'Vitamin bar',
+  ],
+  paid: [
+    'Massage and foam-rub services',
+    'Skin and body care',
+    'VIP spa and the Spa Suites',
+  ],
+  detail: [
+    ['The hamam', 'Six pillars and two private chambers, ceramics painted with scenes of Ottoman baths, a lion’s-head hot pool and a marble massage platform — heated by hot water under the floor, as the originals were. The Valide Sultan bath alongside it has three closed chambers with basins.'],
+    ['The pools', 'Four in the spa: a 300 m² warm pool, an indoor pre-Olympic pool, a cold pool and an outdoor seawater pool, plus a heated children’s pool. Four more small relaxation pools are held at 20, 25 and 30 degrees.'],
+    ['Relaxation chambers', 'A star-shaped pool under an orientalist ceiling, floors heated from below, and the vitamin bar serving hot and cold drinks.'],
+    ['Spa suites', 'Private sauna, steam room, bath and rest area, taken as a single booking. Charged.'],
+  ],
+};
+
+/* ---------------- water, indoors and out ----------------
+   Twelve pools. In late October the distinction that matters is heated or
+   not, so that is what the book leads with. */
+
+const POOLS = [
+  { name: 'Indoor pool', heated: true, indoor: true },
+  { name: 'Indoor kids’ pool', heated: true, indoor: true },
+  { name: 'Indoor jacuzzi pool', heated: true, indoor: true },
+  { name: 'Outdoor seawater pool', heated: true, indoor: false },
+  { name: 'Lion’s Mouth hamam pool', heated: true, indoor: true },
+  { name: 'Olympic pool', heated: true, indoor: false, note: '50 × 25 m, ten lanes, 2.2 m deep. Held for groups.' },
+  { name: 'Main outdoor pool', heated: false, indoor: false },
+  { name: 'Relax pool', heated: false, indoor: false },
+  { name: 'Family kids’ pool', heated: false, indoor: false },
+  { name: 'Activity kids’ pool', heated: false, indoor: false },
+  { name: 'Slide pool — adults', heated: false, indoor: false },
+  { name: 'Slide pool — kids', heated: false, indoor: false },
+];
+
+/* ---------------- everything else on the grounds ---------------- */
+
+const DOING = [
+  { id: 'beach', name: 'The beach', season: 'all',
+    body: 'Over a kilometre of private sand, with a wooden playground at one end and gazebos you can take for the day. The gazebos are charged.' },
+  { id: 'spa', name: 'BeFine Spa', season: 'all',
+    body: 'See the spa section. Free to use; treatments are charged.' },
+  { id: 'fitness', name: 'Fitness centre', season: 'all',
+    body: 'Two floors, 620 m², Technogym throughout, with a stretching area and a running track.' },
+  { id: 'tennis', name: 'Tennis', season: 'all',
+    body: 'Three clay courts, all floodlit.' },
+  { id: 'river', name: 'The Beşgöz river', season: 'all',
+    body: 'Runs through the resort to the sea. Turtles, ducks and reed beds; canoes and kayaks; a boat down to the beach, and a walk along the golf course beside it. Birdwatching and fishing if you want them.' },
+  { id: 'golf', name: 'Cullinan Links Golf Club', season: 'all',
+    body: 'Next door, between the river and the sea, with the Taurus mountains behind. A free shuttle runs from the hotel — which is also how to get out and watch a few holes without playing.' },
+  { id: 'kids', name: 'Kikoa Kids Club', season: 'all',
+    body: 'Six thousand square metres. Summer 09:00–00:00, winter 10:00–21:00. Ages 0–3 stay with a parent in a room fitted with a bedroom, a nursing room and a changing room; 4–6, 7–11 and 11+ each have their own programme. Paid care for over-24-months. Kikoa Gurme serves snacks 09:00–21:00 and an à la carte children’s menu at meal times.' },
+  { id: 'aquapark', name: 'Aquapark', season: 'summer',
+    body: 'Fifteen thousand square metres, nine adult slides across three towers and a children’s tower with seven more. The Looping Rocket fires you twenty metres up before the drop; the Rift is the only one of its kind in the region. Both restaurants that serve it close for the winter, so assume the park does too.' },
+  { id: 'entertainment', name: 'Shows and clubs', season: 'summer',
+    body: 'The open-air Riverside Show Center sits between the monumental pool and the river — dance, acrobatics, DJs and live acts. The Eternity Club and The Pier run theme nights. A mini disco for children every evening.' },
+  { id: 'sports', name: 'Games and lessons', season: 'summer',
+    body: 'Canoeing, water cycling, beach football, beach volleyball, water polo, darts, table tennis, basketball, step and aerobics, water gymnastics, kangoo jump, five-a-side, bowling, billiards and a PlayStation room. Private lessons and the sport academy are charged.' },
+];
+
+/* ---------------- the ground itself ----------------
+   Taken from the hotel's own interactive site plan, which positions every
+   point as a percentage across and down the map. The percentages are
+   reproduced here so the book can draw its own plan rather than borrow
+   theirs — offline, on brand, and legible on a phone.
+
+   The hotel's plan is older than its restaurant list, so a few names on it
+   have since changed; `now` carries the current one where it has.          */
+
+const PLAN = [
+  { t: 'Lobby & Reception',        c: 'core',  x: 30.13, y: 18.82, key: true },
+  { t: 'Fireplace Lounge',         c: 'core',  x: 28.15, y: 20.26 },
+  { t: 'Titanic Square',           c: 'core',  x: 28.85, y: 32.36, key: true },
+  { t: 'Convention Center',        c: 'core',  x: 19.39, y: 25.49 },
+  { t: 'Titanic Villas',           c: 'stay',  x: 48.78, y: 33.66 },
+  { t: 'Maldive Houses',           c: 'stay',  x: 45.28, y: 46.52 },
+  { t: 'Family Pool Suites',       c: 'stay',  x: 51.79, y: 43.60 },
+
+  { t: 'Main Restaurant',          c: 'eat',   x: 22.36, y: 42.27, vid: 'main' },
+  { t: 'Cordelia Bar',             c: 'eat',   x: 33.36, y: 23.83, vid: 'cordelia' },
+  { t: 'Caprice Bar & Patisserie', c: 'eat',   x: 28.00, y: 44.39, vid: 'caprice' },
+  { t: 'Pascarella',               c: 'eat',   x: 31.38, y: 38.89, vid: 'pascarella' },
+  { t: 'Okeanos',                  c: 'eat',   x: 29.85, y: 62.75, now: 'Yamas', vid: 'yamas' },
+  { t: 'Asian Kitchen',            c: 'eat',   x: 60.97, y: 60.79, now: 'Nori', vid: 'nori' },
+  { t: 'Beef Grill Club',          c: 'eat',   x: 64.11, y: 64.06, vid: 'beef' },
+  { t: 'Hasır',                    c: 'eat',   x: 40.30, y: 67.41, vid: 'hasir-a' },
+  { t: 'Pita Pan Snack',           c: 'eat',   x: 41.89, y: 62.80 },
+  { t: 'Sapore',                   c: 'eat',   x: 62.95, y: 37.68, vid: 'sapore' },
+  { t: 'Stella Beach Snack & Bar', c: 'eat',   x: 68.92, y: 54.16 },
+  { t: 'The Club',                 c: 'eat',   x: 62.58, y: 57.52 },
+  { t: 'Palm Bar & Patisserie',    c: 'eat',   x: 64.64, y: 40.91 },
+  { t: 'Centric Pool Bar',         c: 'eat',   x: 38.32, y: 53.27 },
+  { t: 'Comfort Pool Bar',         c: 'eat',   x: 51.80, y: 54.16 },
+  { t: 'Olympic Pool Bar',         c: 'eat',   x: 43.73, y: 37.91, vid: 'olimpic' },
+  { t: 'The Pier Night Club',      c: 'eat',   x: 46.01, y: 64.83, vid: 'disco' },
+
+  { t: 'BeFine Spa',               c: 'play',  x: 38.54, y: 32.19 },
+  { t: 'Main Pool',                c: 'play',  x: 40.94, y: 47.39 },
+  { t: 'Seawater Pool — heated',   c: 'play',  x: 40.94, y: 33.34 },
+  { t: 'Olympic Pool — heated',    c: 'play',  x: 46.44, y: 41.18 },
+  { t: 'Pool Cabanas',             c: 'play',  x: 36.71, y: 42.19 },
+  { t: 'Aquapark',                 c: 'play',  x: 73.66, y: 72.81 },
+  { t: 'Kids’ Aquapark',           c: 'play',  x: 60.42, y: 52.80 },
+  { t: 'Kikoa Kids Club',          c: 'play',  x: 40.67, y: 24.19, now: 'Kikoa' },
+  { t: 'Kids’ Amphitheatre',       c: 'play',  x: 43.19, y: 26.47 },
+  { t: 'Kids’ Play Area',          c: 'play',  x: 70.26, y: 50.93 },
+  { t: 'Riverside Show Center',    c: 'play',  x: 35.31, y: 61.60 },
+  { t: 'Woodsman Fitness',         c: 'play',  x: 62.94, y: 24.84 },
+  { t: 'Sports Area',              c: 'play',  x:  6.76, y: 38.89 },
+  { t: 'Activity Area',            c: 'play',  x: 51.36, y: 62.57 },
+  { t: 'River Sport',              c: 'play',  x: 20.24, y: 63.86 },
+  { t: 'Beach Volley',             c: 'play',  x: 23.81, y: 52.95 },
+  { t: 'Beach Volley — north',     c: 'play',  x: 58.04, y: 22.49 },
+  { t: 'Beach Football',           c: 'play',  x: 74.18, y: 62.57 },
+  { t: 'Water Sports',             c: 'play',  x: 67.50, y:  8.36 },
+  { t: 'Cullinan Links Golf Club', c: 'play',  x: 51.44, y: 27.02 },
+
+  { t: 'Beach Pier',               c: 'shore', x: 69.19, y: 66.12 },
+  { t: 'Haydarpaşa Pier',          c: 'shore', x: 67.05, y: 64.12 },
+  { t: 'Beach Gazebos',            c: 'shore', x: 83.45, y: 55.46 },
+  { t: 'Sunbeds',                  c: 'shore', x: 68.83, y: 19.91 },
+  { t: 'Beach & Golf Club Road',   c: 'shore', x: 64.29, y: 54.58 },
+];
+
+/* `key: true` marks the two points the whole resort is navigated by. They
+   keep their names on the plan whatever is selected; naming all four of the
+   arrival points at once has them sitting on top of one another. */
+
+/** The bounding box of every point, with room left for the labels that sit
+ *  above them. The plan is drawn to this rather than to a round 0–100, which
+ *  would be four fifths empty paper. */
+const PLAN_BOX = { x: 2, y: 3, w: 87, h: 75 };
+
+const PLAN_KEYS = [
+  ['core',  'Arrival & square'],
+  ['stay',  'Where you sleep'],
+  ['eat',   'Eating & drinking'],
+  ['play',  'Pools, spa & sport'],
+  ['shore', 'The shore'],
+];
+
+/* ---------------- things it is useful to know ---------------- */
+
+const PRACTICAL = [
+  { q: 'Getting here',
+    a: 'Antalya International Airport is about 35 km west. The hotel’s own site says twenty minutes; allow forty and you will not be wrong.' },
+  { q: 'Wi-Fi',
+    a: 'Free, and in every room.' },
+  { q: 'Which season are we in?',
+    a: 'Our week sits on the join. The hotel runs two timetables and does not publish the changeover date, so whoever asks at reception first should set the switch at the top of this tab — it re-times everything below.' },
+  { q: 'Do the à la carte restaurants cost extra?',
+    a: 'The hotel’s website says yes — cover charge, reservation required — on every one of them. The golf booking company indicated otherwise. Nobody should assume until it has been asked at reception, and whoever asks should write the answer into the note below.' },
+  { q: 'Booking a table',
+    a: 'Every à la carte needs a reservation. Bistro never does, and it runs to three in the morning, which makes it the fallback after a long day.' },
+  { q: 'With a baby',
+    a: 'The kids’ restaurant has equipment for making up formula, the kids’ club has a nursing room and a changing room, and paid care starts at 24 months. Indoor pools are heated; most outdoor pools are not. The spa’s small pools are held at 20, 25 and 30 degrees.' },
+  { q: 'Watching the golf',
+    a: 'Cullinan Links is next door and a free shuttle runs from the hotel, so anyone can come out for a few holes and get a lift back.' },
+];
+
+/* ---------------- clock helpers ----------------
+   A venue can run past midnight — the Bistro shuts at three — so an interval
+   is treated as a window on a circle rather than a line. */
+
+function toMin(hhmm) {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(String(hhmm || ''));
+  return m ? (+m[1]) * 60 + (+m[2]) : null;
+}
+
+function fmt(hhmm) {
+  const t = toMin(hhmm);
+  if (t == null) return '';
+  const h = Math.floor(t / 60) % 24, mm = t % 60;
+  const ap = h < 12 ? 'am' : 'pm';
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return mm ? `${h12}:${String(mm).padStart(2, '0')}${ap}` : `${h12}${ap}`;
+}
+
+/** The hours a venue keeps in the given season, or null if it is shut. */
+function slots(v, season) {
+  return (season === 'winter' ? v.w : v.s) || null;
+}
+
+/** Is `min` (minutes past midnight) inside this slot? Handles wrapping. */
+function inSlot(slot, min) {
+  const a = toMin(slot.from), b = toMin(slot.to);
+  if (a == null || b == null) return false;
+  if (b === 1440 && a === 0) return true;          // the 24-hour bar
+  return b > a ? (min >= a && min < b) : (min >= a || min < b);
+}
+
+/** Minutes until this slot opens, or 0 if it is open now. */
+function untilOpen(slot, min) {
+  if (inSlot(slot, min)) return 0;
+  const a = toMin(slot.from);
+  if (a == null) return Infinity;
+  return a >= min ? a - min : a + 1440 - min;
+}
+
+/** Everything serving at `min`, and what opens next, for one season. */
+function whatsOn(season, min) {
+  const open = [], soon = [];
+  for (const v of VENUES) {
+    const ss = slots(v, season);
+    if (!ss) continue;
+    const now = ss.filter(s => inSlot(s, min));
+    if (now.length) { open.push({ v, slots: now }); continue; }
+    let best = null;
+    for (const s of ss) {
+      const d = untilOpen(s, min);
+      if (best == null || d < best.in) best = { slot: s, in: d };
+    }
+    if (best && best.in <= 240) soon.push({ v, slot: best.slot, in: best.in });
+  }
+  /* Somewhere you can walk into comes before somewhere that wants a
+     reservation and a cover charge — at half past nine at night that is the
+     whole of the difference between the two. */
+  const rank = { buffet: 0, alacarte: 1, snack: 2, bar: 3, cafe: 4 };
+  open.sort((a, b) => (a.v.cost === b.v.cost ? 0 : a.v.cost === 'inc' ? -1 : 1)
+    || (rank[a.v.kind] - rank[b.v.kind]) || a.v.name.localeCompare(b.v.name));
+  soon.sort((a, b) => a.in - b.in);
+  return { open, soon };
+}
+
+/** How many of everything stays open once the season turns. */
+function seasonToll() {
+  let shut = 0;
+  for (const v of VENUES) if (!v.w) shut++;
+  return { total: VENUES.length, shut, open: VENUES.length - shut };
+}
+
+return {SEASONS, RESORT, VENUES, SPA, POOLS, DOING, PLAN, PLAN_BOX, PLAN_KEYS, PRACTICAL, toMin, fmt, slots, inSlot, untilOpen, whatsOn, seasonToll};
 })();
 
 const __m_engine = (function(){
@@ -3345,6 +3876,11 @@ function defaultConfig() {
     // The pair leading after a counting round picks the next round's tee time.
     // Two picks only: Thursday's leader picks Friday, Friday's leader picks Sunday.
     teePicks: { r2: { done: false, time: null, byPair: null }, r3: { done: false, time: null, byPair: null } },
+    /* The Titanic tab. `season` says which of the hotel's two timetables is
+       running — null until somebody asks at reception. `notes` is whatever
+       the group has since found out, keyed by sub-tab. Anyone who can score
+       can change either; nothing here touches a card or a point. */
+    resort: { season: null, notes: {} },
   };
 }
 
@@ -4206,9 +4742,11 @@ const S = __m_store;
 const CFG = __m_config;
 const { createSupabaseFiles } = __m_dbsupa;
 const { RULES, RELIEF } = __m_rules;
+const R = __m_resort;
 /* The Union Invitational — yardage book application.
    Vanilla render + delegated dispatch. Every screen is a pure function of
    (tournament state, ui state, clock). */
+
 
 
 
@@ -4261,6 +4799,9 @@ const UI = {
   mineDraft: null,      // {rid, h, v} — a line being typed, held here so a
                         // redraw arriving mid-sentence does not take it back
   sayDraft: null,       // {rid, v} — the same, for the line about the round
+  resortTab: 'now',     // The Titanic: which part of the resort is on screen
+  resortNote: null,     // {k, v} — a note being typed, held out of the DOM
+  resortPlanCat: 'all', // which part of the site plan is labelled
 };
 
 const ROLE_KEY = 'union-invitational:role';
@@ -6335,10 +6876,336 @@ function scrSetup() {
   </div>`;
 }
 
+
+/* ---------------- The Titanic ----------------
+   The resort, for the eight days somebody is not on a golf course. Everything
+   in resort.js came off the hotel's own site; everything the group finds out
+   on the ground goes in the notes, which anybody can write. */
+
+/** Which timetable the resort is running. `null` until somebody asks. */
+const resortCfg = () => (T.config && T.config.resort) || { season: null, notes: {} };
+const resortSeason = () => resortCfg().season;
+
+function setResortSeason(v) {
+  if (!store || !canEdit()) return;
+  const season = v === 'summer' || v === 'winter' ? v : null;
+  store.writeConfig(c => { c.resort = { ...(c.resort || { notes: {} }), season }; });
+}
+
+function commitResortNote() {
+  const d = UI.resortNote;
+  UI.resortNote = null;
+  if (!d || !store || !canEdit()) return;
+  const v = String(d.v || '').trim().slice(0, 600);
+  const had = (resortCfg().notes || {})[d.k] || '';
+  if (v === had) return;
+  store.writeConfig(c => {
+    const r = { ...(c.resort || { season: null }), notes: { ...((c.resort || {}).notes || {}) } };
+    if (v) r.notes[d.k] = v; else delete r.notes[d.k];
+    c.resort = r;
+  });
+}
+
+/** One venue's hours, written out for a season. */
+function hoursLine(v, season) {
+  const ss = R.slots(v, season);
+  if (!ss) return `<span class="shut">Closed for the ${season}</span>`;
+  return ss.map(s => `<span class="slot">${s.what ? `<i>${esc(s.what)}</i>` : ''}${esc(R.fmt(s.from))}–${esc(R.fmt(s.to))}</span>`).join('');
+}
+
+/** The hours cell: one season if the group has settled it, otherwise both. */
+function hoursCell(v) {
+  const season = resortSeason();
+  if (season) return `<div class="hrs">${hoursLine(v, season)}</div>`;
+  const same = JSON.stringify(v.s || null) === JSON.stringify(v.w || null);
+  if (same) return `<div class="hrs">${hoursLine(v, 'summer')}</div>`;
+  return `<div class="hrs two">
+    <div><b>Summer</b>${hoursLine(v, 'summer')}</div>
+    <div><b>Winter</b>${hoursLine(v, 'winter')}</div></div>`;
+}
+
+/** The note box that closes every sub-tab. Anyone who can score can write it. */
+function resortNote(key, title, prompt) {
+  const saved = (resortCfg().notes || {})[key] || '';
+  const val = (UI.resortNote && UI.resortNote.k === key) ? UI.resortNote.v : saved;
+  const ed = canEdit();
+  if (!ed && !saved) return '';
+  return `<div class="rnote">
+    <h3 class="sub">${esc(title)}</h3>
+    ${ed
+      ? `<textarea id="resortNote" class="field" rows="3" data-act="resortNote" data-a="${esc(key)}"
+           placeholder="${esc(prompt)}">${esc(val)}</textarea>
+         <p class="tiny">Everyone can write here, and everyone sees it. Corrections to anything above are especially welcome.</p>`
+      : `<p class="said">${esc(saved)}</p>`}
+  </div>`;
+}
+
+/** The season switch, and what it costs. */
+function seasonBand() {
+  const season = resortSeason();
+  const toll = R.seasonToll();
+  const ed = canEdit();
+  const pick = (id, label) => `<button class="sbtn${season === id ? ' on' : ''}"${ed ? ` data-act="resortSeason" data-a="${id || ''}"` : ' disabled'}>${esc(label)}</button>`;
+  return `<div class="seasonband">
+    <div class="sbs">${pick('summer', 'Summer hours')}${pick('winter', 'Winter hours')}${pick('', 'Not asked yet')}</div>
+    <p class="tiny">${season === 'winter'
+      ? `Winter. ${toll.shut} of the ${toll.total} places to eat and drink are shut, and the ${toll.open} below are what is left.`
+      : season === 'summer'
+        ? `Summer. Everything is running.`
+        : `Our week — 26 October to 2 November — lands on the changeover. The hotel runs two timetables and does not publish the date it switches, so both are shown. ${toll.shut} of ${toll.total} bars and restaurants close for the winter, so it is worth asking at reception on the first evening and setting this.`}</p>
+  </div>`;
+}
+
+/* ---- what is open, right now ---- */
+
+function resortNow() {
+  const min = now.minutes;
+  const season = resortSeason();
+  const clock = E.to12(String(now.hh).padStart(2, '0') + ':' + String(now.mm).padStart(2, '0'));
+
+  const card = (v, extra) => `<div class="vcard${v.cost === 'cover' ? ' cover' : ''}">
+    <div class="vtop"><span class="vn">${esc(v.name)}</span>${v.cuisine ? `<span class="vc">${esc(v.cuisine)}</span>` : ''}</div>
+    <div class="vwhen">${extra}</div>
+    ${v.cost === 'cover' ? `<span class="vtag">Cover charge · book ahead</span>` : ''}
+  </div>`;
+
+  const openNow = (s) => R.whatsOn(s, min);
+
+  let sections;
+  if (season) {
+    const { open, soon } = openNow(season);
+    sections = `
+      <h3 class="sub">Open now</h3>
+      ${open.length ? `<div class="vgrid">${open.map(o => card(o.v,
+        o.slots.map(s => `${s.what ? esc(s.what) + ' — ' : ''}until ${esc(R.fmt(s.to))}`).join('<br>'))).join('')}</div>`
+        : `<p class="lede">Nothing is serving at ${esc(clock)}. The Caprice bar runs around the clock.</p>`}
+      ${soon.length ? `<h3 class="sub">Opening soon</h3><div class="vgrid">${soon.map(o =>
+        card(o.v, `${esc(R.fmt(o.slot.from))} — in ${o.in < 60 ? o.in + ' min' : Math.round(o.in / 60) + ' hr'}`)).join('')}</div>` : ''}`;
+  } else {
+    /* Season unknown, so say what is certain and what is only a maybe rather
+       than picking one and sounding sure. */
+    const S1 = openNow('summer'), W1 = openNow('winter');
+    const win = new Set(W1.open.map(o => o.v.id));
+    const sum = new Set(S1.open.map(o => o.v.id));
+    const both = W1.open.filter(o => sum.has(o.v.id));
+    const onlyS = S1.open.filter(o => !win.has(o.v.id));
+    const onlyW = W1.open.filter(o => !sum.has(o.v.id));
+    sections = `
+      <h3 class="sub">Open now, whichever season it is</h3>
+      ${both.length ? `<div class="vgrid">${both.map(o => card(o.v,
+        o.slots.map(s => `${s.what ? esc(s.what) + ' — ' : ''}until ${esc(R.fmt(s.to))}`).join('<br>'))).join('')}</div>`
+        : `<p class="lede">Nothing is certain to be serving at ${esc(clock)}.</p>`}
+      ${onlyS.length ? `<h3 class="sub">Only if the resort is still on summer hours</h3>
+        <div class="vgrid dim">${onlyS.map(o => card(o.v, o.slots.map(s => `until ${esc(R.fmt(s.to))}`).join('<br>'))).join('')}</div>` : ''}
+      ${onlyW.length ? `<h3 class="sub">Only once it has turned over to winter</h3>
+        <div class="vgrid dim">${onlyW.map(o => card(o.v, o.slots.map(s => `until ${esc(R.fmt(s.to))}`).join('<br>'))).join('')}</div>` : ''}`;
+  }
+
+  return `<p class="lede">It is ${esc(clock)} at the resort.</p>${sections}
+  ${resortNote('now', 'What we have found out', 'Anything the book has wrong — a place that was shut, a time that had moved.')}`;
+}
+
+/* ---- the whole list ---- */
+
+function resortEat() {
+  const season = resortSeason();
+  const shutNow = v => season ? !R.slots(v, season) : false;
+  const group = (title, blurb, list) => !list.length ? '' : `
+    <h3 class="sub">${esc(title)}</h3>
+    ${blurb ? `<p class="lede">${blurb}</p>` : ''}
+    <div class="vlist">${list.map(v => `<div class="vrow${shutNow(v) ? ' out' : ''}">
+      <div class="vmain">
+        <div class="vtop"><span class="vn">${esc(v.name)}</span>
+          ${v.cuisine ? `<span class="vc">${esc(v.cuisine)}</span>` : ''}
+          ${v.tag ? `<span class="vtag">${esc(v.tag)}</span>` : ''}</div>
+        ${v.blurb ? `<p class="vb">${esc(v.blurb)}</p>` : ''}
+        ${v.note ? `<p class="vb warn">${esc(v.note)}</p>` : ''}
+      </div>
+      ${hoursCell(v)}
+    </div>`).join('')}</div>`;
+
+  const inc = R.VENUES.filter(v => v.cost === 'inc' && ['buffet', 'alacarte', 'snack'].includes(v.kind));
+  const cov = R.VENUES.filter(v => v.cost === 'cover' && v.kind === 'alacarte');
+  const bar = R.VENUES.filter(v => ['bar', 'cafe'].includes(v.kind));
+
+  return `<p class="lede">Thirty-two places to eat and drink. What is included, what is not, and when each of them is actually open.</p>
+  ${group('Included', 'No booking, no bill.', inc)}
+  ${group('Cover charge', 'The hotel’s own site marks every one of these “paid à la carte, reservations required, cover charge applies”. The golf company said otherwise. Ask at reception before anyone orders.', cov)}
+  ${group('Bars &amp; cafés', '', bar)}
+  ${resortNote('eat', 'Bookings and verdicts', 'Who booked what, what it cost, and whether it was worth it.')}`;
+}
+
+/* ---- the plan ---- */
+
+function resortPlan() {
+  const cat = UI.resortPlanCat || 'all';
+  const B = R.PLAN_BOX;
+  /* The four points everybody navigates by stay named whatever is selected —
+     a plan with no labels at all is a handful of coloured dots. */
+
+  /* Half of these points are within a couple of units of a neighbour, so a
+     label drawn at a fixed offset lands on top of the one beside it — which
+     is what "Palm Bar & PatisserieSapore" was. Each name is tried above the
+     dot, then below, then further above and further below, and takes the
+     first slot nothing else has claimed. A name that fits nowhere is left
+     off the drawing; the list underneath carries all forty-nine regardless,
+     so nothing is actually lost by dropping one. */
+  /* The type size is settled here and handed to the drawing, rather than set
+     in the stylesheet: the placement below measures every name against it,
+     and a phone rendering at one size while the maths assumed another is
+     exactly how the labels came to run off the edge of the paper. */
+  const FS = 2.6, CH = FS * 0.46, LH = FS * 1.15;   // a serif character, near enough
+  /* The dots are in the way too — a name laid across one reads as a smudge.
+     They are claimed before any label is placed, so the labels go round. */
+  const taken = R.PLAN.filter(p => cat === 'all' || p.c === cat)
+    .map(p => [p.x - 1.3, p.x + 1.3, p.y - 1.3, p.y + 1.3]);
+
+  /* Eight seats around the dot, tried in order of preference: beside it
+     first, because a name a long way from its dot belongs to nothing.
+     [dx, dy, anchor]. */
+  const SEATS = [
+    [1.8, 0.7, 'start'], [-1.8, 0.7, 'end'],
+    [0, -1.6, 'middle'], [0, 3.0, 'middle'],
+    [1.8, -1.4, 'start'], [-1.8, -1.4, 'end'],
+    [1.8, 2.7, 'start'], [-1.8, 2.7, 'end'],
+  ];
+  const placeLabel = p => {
+    const txt = p.now || p.t;
+    const w = Math.max(txt.length * CH, 3);
+    for (const [dx, dy, anc] of SEATS) {
+      const x = p.x + dx;
+      const x1 = anc === 'start' ? x : anc === 'end' ? x - w : x - w / 2;
+      const x2 = x1 + w;
+      if (x1 < B.x + 0.4 || x2 > B.x + B.w - 0.4) continue;      // off the paper
+      const box = [x1, x2, p.y + dy - LH * 0.82, p.y + dy + LH * 0.22];
+      if (taken.some(q => box[0] < q[1] && box[1] > q[0] && box[2] < q[3] && box[3] > q[2])) continue;
+      taken.push(box);
+      return `<text x="${x.toFixed(2)}" y="${(p.y + dy).toFixed(2)}" text-anchor="${anc}">${esc(txt)}</text>`;
+    }
+    return '';
+  };
+
+  /* Every point is offered a label; the seating above drops the ones with
+     nowhere to go, which on a plan this crowded is around half of them. The
+     order is therefore the whole of the editing: the two landmarks first, then
+     whatever group is selected, then everything else in reading order. So the
+     names you asked for are the names you get, and the rest fill the gaps. */
+  const rank = p => (p.key ? 0 : p.c === cat ? 1 : 2);
+  const order = R.PLAN.slice()
+    .sort((a, b) => rank(a) - rank(b) || a.y - b.y || a.x - b.x);
+  const texts = new Map(order.map(p => [p, placeLabel(p)]));
+
+  const dots = R.PLAN.map(p => {
+    const lit = cat === 'all' || p.c === cat;
+    return `<g class="pt c-${p.c}${lit ? ' on' : ''}">
+      <circle cx="${p.x.toFixed(2)}" cy="${p.y.toFixed(2)}" r="${lit ? 1.1 : 0.7}"></circle>
+      ${texts.get(p) || ''}
+    </g>`;
+  }).join('');
+
+  const key = [['all', 'Everything']].concat(R.PLAN_KEYS);
+  const label = Object.fromEntries(R.PLAN_KEYS);
+  const shown = cat === 'all' ? R.PLAN_KEYS.map(([id]) => id) : [cat];
+
+  const row = p => {
+    const v = p.vid && R.VENUES.find(x => x.id === p.vid);
+    return `<div class="vrow"><div class="vmain"><div class="vtop">
+      <span class="dotk c-${p.c}"></span><span class="vn">${esc(p.now || p.t)}</span>
+      ${p.now ? `<span class="vc">was ${esc(p.t)}</span>` : ''}
+    </div></div>${v ? hoursCell(v) : ''}</div>`;
+  };
+
+  return `<p class="lede">The hotel’s own site plan, redrawn. The positions are theirs and are true to each other; the distances are not to scale. A few names on their plan are older than their restaurant list — where one has changed, the current name is the one shown.</p>
+  <div class="pkeys nos">${key.map(([id, l]) =>
+    `<button class="pkey${cat === id ? ' on' : ''}" data-act="resortPlanCat" data-a="${id}">${
+      id === 'all' ? '' : `<span class="dotk c-${id}"></span>`}${esc(l)}</button>`).join('')}</div>
+  <div class="planwrap">
+    <svg class="plan" viewBox="${B.x} ${B.y} ${B.w} ${B.h}" font-size="${FS}" role="img"
+      aria-label="Schematic plan of the resort">${dots}</svg>
+  </div>
+  <p class="tiny">${cat === 'all'
+    ? 'Forty-nine points, and only so much paper: a name with nowhere clear to sit is left off the drawing. Pick a colour above and that group is named first.'
+    : `${esc(label[cat])} is named first; the rest fill whatever room is left. Every one of them is in the list below.`}</p>
+  ${shown.map(id => `
+    <h3 class="sub">${esc(label[id])}</h3>
+    <div class="vlist plist">${R.PLAN.filter(p => p.c === id)
+      .slice().sort((a, b) => (a.now || a.t).localeCompare(b.now || b.t)).map(row).join('')}</div>`).join('')}
+  ${resortNote('plan', 'Getting about', 'How long things actually take on foot, where the buggies run, which way out to the course.')}`;
+}
+
+/* ---- spa, and water generally ---- */
+
+function resortSpa() {
+  const heated = R.POOLS.filter(p => p.heated), cold = R.POOLS.filter(p => !p.heated);
+  const pool = p => `<div class="vrow"><div class="vmain"><div class="vtop">
+      <span class="vn">${esc(p.name)}</span>
+      ${p.indoor ? `<span class="vc">indoor</span>` : ''}
+      ${p.heated ? `<span class="vtag warmtag">heated</span>` : ''}</div>
+      ${p.note ? `<p class="vb">${esc(p.note)}</p>` : ''}</div></div>`;
+
+  return `<h3 class="sub">${esc(R.SPA.name)}</h3>
+  <p class="lede">${esc(R.SPA.blurb)}</p>
+  <div class="twocol">
+    <div><h4 class="minihead">Included</h4><ul class="ticks">${R.SPA.free.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>
+    <div><h4 class="minihead">Charged</h4><ul class="ticks paid">${R.SPA.paid.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>
+  </div>
+  <div class="vlist">${R.SPA.detail.map(([t, b]) => `<div class="vrow"><div class="vmain">
+    <div class="vtop"><span class="vn">${esc(t)}</span></div><p class="vb">${esc(b)}</p></div></div>`).join('')}</div>
+
+  <h3 class="sub">Twelve pools</h3>
+  <p class="lede">In late October the only question that matters is which of them are heated.</p>
+  <h4 class="minihead">Heated</h4><div class="vlist">${heated.map(pool).join('')}</div>
+  <h4 class="minihead">Not heated</h4><div class="vlist">${cold.map(pool).join('')}</div>
+  ${resortNote('spa', 'Treatments and bookings', 'Prices, how far ahead to book, which therapist to ask for.')}`;
+}
+
+/* ---- everything else ---- */
+
+function resortPractical() {
+  const season = resortSeason();
+  const doing = R.DOING.filter(d => d.season === 'all' || season !== 'winter');
+  return `<h3 class="sub">On the grounds</h3>
+  <div class="vlist">${doing.map(d => `<div class="vrow"><div class="vmain">
+    <div class="vtop"><span class="vn">${esc(d.name)}</span>
+      ${d.season === 'summer' ? `<span class="vtag">summer only</span>` : ''}</div>
+    <p class="vb">${esc(d.body)}</p></div></div>`).join('')}</div>
+
+  <h3 class="sub">Worth knowing</h3>
+  <div class="vlist">${R.PRACTICAL.map(x => `<div class="vrow"><div class="vmain">
+    <div class="vtop"><span class="vn">${esc(x.q)}</span></div>
+    <p class="vb">${esc(x.a)}</p></div></div>`).join('')}</div>
+
+  <h3 class="sub">The hotel</h3>
+  <div class="addr">
+    <p>${R.RESORT.address.map(esc).join('<br>')}</p>
+    <p><a href="tel:${esc(R.RESORT.phone.replace(/\s/g, ''))}">${esc(R.RESORT.phone)}</a><br>
+       <a href="mailto:${esc(R.RESORT.email)}">${esc(R.RESORT.email)}</a></p>
+    <p class="tiny num">${R.RESORT.lat.toFixed(5)}, ${R.RESORT.lng.toFixed(5)}</p>
+  </div>
+  ${resortNote('prac', 'Anything else', 'Numbers worth having, the name of the person who sorted something out, what the taxi cost.')}`;
+}
+
+function scrResort() {
+  const tabs = [['now', 'Right now'], ['eat', 'Eat &amp; drink'], ['plan', 'The grounds'],
+                ['spa', 'Spa &amp; pools'], ['prac', 'Practical']];
+  const body = { now: resortNow, eat: resortEat, plan: resortPlan, spa: resortSpa, prac: resortPractical }[UI.resortTab] || resortNow;
+  return `<h2 class="head">The Titanic</h2>
+  <p class="lede">Titanic Deluxe Golf Belek — the other side of the week. Read off the hotel’s own book in September; corrected by whoever gets there first.</p>
+  ${seasonBand()}
+  <div class="btabs nos">${tabs.map(([id, l]) =>
+    `<button class="btab${UI.resortTab === id ? ' on' : ''}" data-act="resortTab" data-a="${id}">${l}</button>`).join('')}</div>
+  ${body()}`;
+}
+
 /* ---------------- chrome ---------------- */
 
+/** The tabs this reader actually gets. Setup is the master's alone, which
+ *  is why the count has to be asked for rather than assumed. */
+const navTabs = () => NAV.filter(([id]) => id !== 'setup' || canAdmin());
+
 const NAV = [
-  ['today', 'Today', 'Today'], ['boards', 'Leaderboards', 'Boards'], ['ryder', 'Ryder Cup', 'Ryder'],
+  ['today', 'Today', 'Today'], ['resort', 'The Titanic', 'Titanic'],
+  ['boards', 'Leaderboards', 'Boards'], ['ryder', 'Ryder Cup', 'Ryder'],
   ['calendar', 'Calendar', 'Calendar'], ['entry', 'Score Entry', 'Scores'], ['roster', 'Roster & Pairings', 'Roster'],
   ['courses', 'Course Setup', 'Courses'], ['rules', 'Games & Rules', 'Rules'], ['setup', 'Setup', 'Setup'],
 ];
@@ -6418,9 +7285,9 @@ function paint() {
      book redraws on a timer, and a redraw replaces the whole tree — taking
      the <details> open with it. Which ones were open is remembered by id. */
   const opened = [...document.querySelectorAll('details[id][open]')].map(el => el.id);
-  const body = { today: scrToday, boards: scrBoards, ryder: scrRyder, calendar: scrCalendar,
-                 entry: scrEntry, roster: scrRoster, rules: scrRules, courses: scrCourses,
-                 setup: scrSetup }[UI.screen]();
+  const body = { today: scrToday, resort: scrResort, boards: scrBoards, ryder: scrRyder,
+                 calendar: scrCalendar, entry: scrEntry, roster: scrRoster, rules: scrRules,
+                 courses: scrCourses, setup: scrSetup }[UI.screen]();
 
   const nt = E.nextTee(T, now);
   const role = S.ROLES[UI.role];
@@ -6461,8 +7328,8 @@ function paint() {
       ${meta.status === 'error'
         ? 'Cannot read the shared book. Nothing can be edited until it loads, so nothing gets overwritten. Check your connection and reload.'
         : 'Opening the book… everything is read-only until the saved tournament arrives.'}</div>`}
-    <nav class="tabs nos" aria-label="Sections">
-      ${NAV.filter(([id]) => id !== 'setup' || canAdmin()).map(([id, label, short]) =>
+    <nav class="tabs nos${navTabs().length % 3 === 1 ? ' orphan' : ''}" aria-label="Sections">
+      ${navTabs().map(([id, label, short]) =>
         `<button class="tab" data-act="go" data-a="${id}"${UI.screen === id ? ' aria-current="page"' : ''}
           aria-label="${esc(label)}"><span class="lg">${esc(label)}</span><span class="sm">${esc(short)}</span></button>`).join('')}
     </nav>
@@ -6767,6 +7634,7 @@ function onClick(e) {
      before it ever gets one. */
   if (UI.mineDraft) commitMine();
   if (UI.sayDraft) commitSay();
+  if (UI.resortNote) commitResortNote();
 
   switch (act) {
     case 'go':
@@ -6871,6 +7739,9 @@ function onClick(e) {
       { const d = document.getElementById('rule-' + a); if (d) { d.open = true; d.scrollIntoView({ block: 'center' }); } }
       return;
     case 'boardTab': UI.boardTab = a; break;
+    case 'resortTab': commitResortNote(); UI.resortTab = a; break;
+    case 'resortPlanCat': UI.resortPlanCat = a; break;
+    case 'resortSeason': setResortSeason(a); break;
     case 'boardRound': UI.boardRound = a; UI.bookHole = 0; break;
     case 'bookHole': UI.bookHole = +a; break;
     case 'entryRound': guardDraft(() => { UI.entryRound = a; UI.entryHole = 0; UI.entryTee = '0'; }); return;
@@ -7174,6 +8045,7 @@ function onChange(e) {
   /* A line about a hole, kept when the box loses focus. */
   if (act === 'mineText') { UI.mineDraft = { rid, h: +b, v: el.value }; commitMine(); render(); return; }
   if (act === 'mineSay') { UI.sayDraft = { rid, v: el.value }; commitSay(); render(); return; }
+  if (act === 'resortNote') { UI.resortNote = { k: a, v: el.value }; commitResortNote(); render(); return; }
 
   if (store && store.note) store.note('change', act + ' a=' + (a || '') + ' b=' + (b || '') + ' v=' + el.value);
   const editable = canEdit() && E.roundCfg(T, rid).state === 'open';
@@ -7551,6 +8423,9 @@ function boot() {
     }
     if (e.target && e.target.id === 'mineSay') {
       UI.sayDraft = { rid: UI.entryRound, v: e.target.value };
+    }
+    if (e.target && e.target.id === 'resortNote') {
+      UI.resortNote = { k: e.target.dataset.a, v: e.target.value };
     }
   });
   // the page may be allowed to ask Claude, or may not: find out once, quietly,

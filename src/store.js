@@ -70,6 +70,11 @@ export function defaultConfig() {
     // The pair leading after a counting round picks the next round's tee time.
     // Two picks only: Thursday's leader picks Friday, Friday's leader picks Sunday.
     teePicks: { r2: { done: false, time: null, byPair: null }, r3: { done: false, time: null, byPair: null } },
+    /* The Titanic tab. `season` says which of the hotel's two timetables is
+       running — null until somebody asks at reception. `notes` is whatever
+       the group has since found out, keyed by sub-tab. Anyone who can score
+       can change either; nothing here touches a card or a point. */
+    resort: { season: null, notes: {} },
   };
 }
 

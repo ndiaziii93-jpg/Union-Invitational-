@@ -628,7 +628,7 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
 
 @media (max-width:820px){
   /* the nav wraps instead of scrolling, using the short labels */
-  /* Nine tabs laid in even columns rather than a wrapping row. A row that
+  /* The tabs are laid in even columns rather than a wrapping row. A row that
      wraps gives its last line whatever is left over, which is how Setup came
      to sit alone across the whole bottom. */
   .tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;
@@ -673,8 +673,13 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
   .cside{max-width:none;align-self:auto}
   .btabs{gap:20px}
   .btab{font-size:17px}
-  /* three across, three down: nine tabs, no odd one out */
+  /* Three across. Without Setup — which is what everyone but the master
+     sees — that is nine tabs in a clean three-by-three. The master has ten,
+     and rather than leave one stranded in a column of its own, the last one
+     takes the whole width. `orphan` is set by the nav itself, which is the
+     only thing that knows how many tabs it drew. */
   .tabs{grid-template-columns:repeat(3,1fr)}
+  .tabs.orphan .tab:last-child{grid-column:1 / -1}
   .legend{text-align:left}
 }
 
@@ -1449,3 +1454,113 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
    nameplate. */
 .recapbtn.ready .rb-c{filter:invert(1);opacity:.9}
 @media (max-width:560px){.recapbtn .rb-c{width:38px}}
+
+/* ---------------- The Titanic ----------------
+   A guide, not a scorecard: the type is a little larger, the rows breathe,
+   and nothing is set in the tabular figures the boards use. */
+
+.seasonband{margin-top:16px;padding:14px 16px;background:var(--page);
+  border:1px solid var(--rule);border-left:4px solid var(--gold)}
+.seasonband .sbs{display:flex;gap:8px;flex-wrap:wrap}
+.sbtn{padding:8px 14px;min-height:44px;font-size:16px;color:var(--turf);
+  background:var(--paper);border:1px solid var(--rule)}
+.sbtn.on{background:var(--ink);color:var(--page);border-color:var(--ink);font-weight:700}
+.sbtn:disabled{opacity:.55;cursor:default}
+@media (hover:hover) and (pointer:fine){ .sbtn:not(.on):not(:disabled):hover{color:var(--ink);border-color:var(--ink)} }
+.seasonband .tiny{margin:10px 0 0;max-width:72ch}
+
+.tiny{font-size:13px;color:var(--turf);line-height:1.5}
+.minihead{margin:18px 0 6px;font-size:12px;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--turf);font-family:var(--mono);font-weight:700}
+
+/* --- a venue, as a card (Right now) and as a row (the lists) --- */
+
+.vgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;margin-top:8px}
+.vgrid.dim .vcard{background:transparent;border-style:dashed}
+.vcard{padding:12px 14px;background:var(--page);border:1px solid var(--rule)}
+.vcard.cover{border-left:3px solid var(--gold)}
+.vcard .vwhen{margin-top:4px;font-size:15px;color:var(--turf)}
+
+.vlist{margin-top:8px;border-top:1px solid var(--hair)}
+.vrow{display:flex;gap:18px;align-items:flex-start;padding:12px 2px;border-bottom:1px solid var(--hair)}
+.vrow.out{opacity:.5}
+.vmain{flex:1 1 auto;min-width:0}
+.vtop{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.vn{font-size:18px;font-weight:700}
+.vc{font-size:14px;color:var(--turf);font-style:italic}
+.vtag{font-size:11px;letter-spacing:.07em;text-transform:uppercase;font-family:var(--mono);
+  color:var(--gold);border:1px solid var(--gold);padding:1px 6px;white-space:nowrap}
+.vtag.warmtag{color:var(--flag);border-color:var(--flag)}
+.vb{margin:4px 0 0;font-size:15px;color:var(--turf);max-width:68ch;line-height:1.55}
+.vb.warn{color:var(--flag)}
+
+.hrs{flex:0 0 190px;text-align:right;font-size:15px}
+.hrs .slot{display:block}
+.hrs .slot i{display:block;font-size:12px;font-style:normal;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--turf);font-family:var(--mono)}
+.hrs .shut{color:var(--flag);font-style:italic}
+.hrs.two{display:flex;gap:16px;flex:0 0 300px;justify-content:flex-end}
+.hrs.two > div{min-width:0}
+.hrs.two b{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--turf);font-family:var(--mono);font-weight:700}
+
+/* --- the site plan --- */
+
+.pkeys{display:flex;gap:6px;flex-wrap:wrap;margin-top:14px}
+.pkey{padding:7px 12px;min-height:40px;font-size:15px;color:var(--turf);
+  background:var(--page);border:1px solid var(--rule)}
+.pkey.on{background:var(--ink);color:var(--page);border-color:var(--ink);font-weight:700}
+/* SVG text scales with the box it is drawn in, so a plan allowed to run the
+   full width of a desktop window sets its labels at forty points. Capping the
+   width is what keeps them readable, at every size. */
+.planwrap{margin-top:12px;border:1px solid var(--rule);background:var(--page);max-width:660px}
+.plan{display:block;width:100%;height:auto}
+.plan .pbg{fill:var(--page)}
+.plan .pt circle{fill:var(--rule)}
+.plan .pt text{font-family:var(--serif);fill:var(--ink);
+  paint-order:stroke;stroke:var(--page);stroke-width:.9px;stroke-linejoin:round}
+.plan .pt.on.c-core circle,.dotk.c-core{fill:var(--ink);background:var(--ink)}
+.plan .pt.on.c-stay circle,.dotk.c-stay{fill:var(--turf);background:var(--turf)}
+.plan .pt.on.c-eat  circle,.dotk.c-eat {fill:var(--gold);background:var(--gold)}
+.plan .pt.on.c-play circle,.dotk.c-play{fill:var(--green);background:var(--green)}
+.plan .pt.on.c-shore circle,.dotk.c-shore{fill:var(--flag);background:var(--flag)}
+.dotk{display:inline-block;width:9px;height:9px;border-radius:50%;flex:0 0 auto;
+  position:relative;top:-1px}
+.plist .vrow{padding:9px 2px}
+.plist .vn{font-size:16px}
+
+/* --- spa --- */
+
+.twocol{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:8px}
+.ticks{margin:0;padding:0;list-style:none}
+.ticks li{position:relative;padding:4px 0 4px 22px;font-size:16px;border-bottom:1px solid var(--hair)}
+.ticks li::before{content:'✓';position:absolute;left:0;color:var(--green);font-weight:700}
+.ticks.paid li::before{content:'+';color:var(--gold);font-weight:700}
+
+/* --- the hotel's own details, and the group's notes --- */
+
+.addr{margin-top:8px;padding:14px 16px;background:var(--page);border:1px solid var(--rule);
+  max-width:420px;font-size:16px}
+.addr p{margin:0 0 10px}
+.addr p:last-child{margin-bottom:0}
+
+.rnote{margin-top:28px;padding-top:4px;border-top:2px solid var(--ink)}
+.rnote textarea{width:100%;max-width:70ch;resize:vertical;padding:10px 12px;
+  background:var(--page);border:1px solid var(--rule);color:var(--ink);line-height:1.5}
+.rnote .said{margin:6px 0 0;max-width:70ch;font-size:16px;white-space:pre-wrap}
+.rnote .tiny{margin:6px 0 0;max-width:70ch}
+
+@media (max-width:820px){
+  /* the hours come out from beside the name and sit under it, where there is
+     room for them — the two-season form is far too wide to keep in a column */
+  .vrow{flex-wrap:wrap;gap:6px}
+  .hrs,.hrs.two{flex:1 1 100%;text-align:left;justify-content:flex-start}
+  .hrs.two{gap:22px}
+  .twocol{grid-template-columns:1fr;gap:4px}
+  .vgrid{grid-template-columns:1fr 1fr;gap:8px}
+  .vcard{padding:10px 12px}
+  .vn{font-size:17px}
+}
+@media (max-width:420px){
+  .vgrid{grid-template-columns:1fr}
+}

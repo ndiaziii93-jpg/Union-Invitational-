@@ -8,6 +8,7 @@ import * as S from './store.js';
 import * as CFG from './config.js';
 import { createSupabaseFiles } from './dbsupa.js';
 import { RULES, RELIEF } from './rules.js';
+import * as R from './resort.js';
 
 const IMG = window.UI_IMAGES || {};
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -54,6 +55,9 @@ const UI = {
   mineDraft: null,      // {rid, h, v} — a line being typed, held here so a
                         // redraw arriving mid-sentence does not take it back
   sayDraft: null,       // {rid, v} — the same, for the line about the round
+  resortTab: 'now',     // The Titanic: which part of the resort is on screen
+  resortNote: null,     // {k, v} — a note being typed, held out of the DOM
+  resortPlanCat: 'all', // which part of the site plan is labelled
 };
 
 const ROLE_KEY = 'union-invitational:role';
@@ -2128,10 +2132,341 @@ function scrSetup() {
   </div>`;
 }
 
+
+/* ---------------- The Titanic ----------------
+   The resort, for the eight days somebody is not on a golf course. Everything
+   in resort.js came off the hotel's own site; everything the group finds out
+   on the ground goes in the notes, which anybody can write. */
+
+/** Which timetable the resort is running. `null` until somebody asks. */
+const resortCfg = () => (T.config && T.config.resort) || { season: null, notes: {} };
+const resortSeason = () => resortCfg().season;
+
+function setResortSeason(v) {
+  if (!store || !canEdit()) return;
+  const season = v === 'summer' || v === 'winter' ? v : null;
+  store.writeConfig(c => { c.resort = { ...(c.resort || { notes: {} }), season }; });
+}
+
+function commitResortNote() {
+  const d = UI.resortNote;
+  UI.resortNote = null;
+  if (!d || !store || !canEdit()) return;
+  const v = String(d.v || '').trim().slice(0, 600);
+  const had = (resortCfg().notes || {})[d.k] || '';
+  if (v === had) return;
+  store.writeConfig(c => {
+    const r = { ...(c.resort || { season: null }), notes: { ...((c.resort || {}).notes || {}) } };
+    if (v) r.notes[d.k] = v; else delete r.notes[d.k];
+    c.resort = r;
+  });
+}
+
+/** One venue's hours, written out for a season. */
+function hoursLine(v, season) {
+  const ss = R.slots(v, season);
+  if (!ss) return `<span class="shut">Closed for the ${season}</span>`;
+  return ss.map(s => `<span class="slot">${s.what ? `<i>${esc(s.what)}</i>` : ''}${
+    R.isAllDay(s) ? 'Around the clock' : esc(R.fmt(s.from)) + '–' + esc(R.fmt(s.to))}</span>`).join('');
+}
+
+/** The hours cell: one season if the group has settled it, otherwise both. */
+function hoursCell(v) {
+  const season = resortSeason();
+  if (season) return `<div class="hrs">${hoursLine(v, season)}</div>`;
+  const same = JSON.stringify(v.s || null) === JSON.stringify(v.w || null);
+  if (same) return `<div class="hrs">${hoursLine(v, 'summer')}</div>`;
+  return `<div class="hrs two">
+    <div><b>Summer</b>${hoursLine(v, 'summer')}</div>
+    <div><b>Winter</b>${hoursLine(v, 'winter')}</div></div>`;
+}
+
+/** The note box that closes every sub-tab. Anyone who can score can write it. */
+function resortNote(key, title, prompt) {
+  const saved = (resortCfg().notes || {})[key] || '';
+  const val = (UI.resortNote && UI.resortNote.k === key) ? UI.resortNote.v : saved;
+  const ed = canEdit();
+  if (!ed && !saved) return '';
+  return `<div class="rnote">
+    <h3 class="sub">${esc(title)}</h3>
+    ${ed
+      ? `<textarea id="resortNote" class="field" rows="3" data-act="resortNote" data-a="${esc(key)}"
+           placeholder="${esc(prompt)}">${esc(val)}</textarea>
+         <p class="tiny">Everyone can write here, and everyone sees it. Corrections to anything above are especially welcome.</p>`
+      : `<p class="said">${esc(saved)}</p>`}
+  </div>`;
+}
+
+/** The season switch, and what it costs. */
+function seasonBand() {
+  const season = resortSeason();
+  const toll = R.seasonToll();
+  const ed = canEdit();
+  const pick = (id, label) => `<button class="sbtn${season === id ? ' on' : ''}"${ed ? ` data-act="resortSeason" data-a="${id || ''}"` : ' disabled'}>${esc(label)}</button>`;
+  return `<div class="seasonband">
+    <div class="sbs">${pick('summer', 'Summer hours')}${pick('winter', 'Winter hours')}${pick('', 'Not asked yet')}</div>
+    <p class="tiny">${season === 'winter'
+      ? `Winter. ${toll.shut} of the ${toll.total} places to eat and drink are shut, and the ${toll.open} below are what is left.`
+      : season === 'summer'
+        ? `Summer. Everything is running.`
+        : `Our week — 26 October to 2 November — lands on the changeover. The hotel runs two timetables and does not publish the date it switches, so both are shown. ${toll.shut} of ${toll.total} bars and restaurants close for the winter, so it is worth asking at reception on the first evening and setting this.`}</p>
+  </div>`;
+}
+
+/* ---- what is open, right now ---- */
+
+function resortNow() {
+  const min = now.minutes;
+  const season = resortSeason();
+  const clock = E.to12(String(now.hh).padStart(2, '0') + ':' + String(now.mm).padStart(2, '0'));
+
+  const card = (v, extra) => `<div class="vcard${v.cost === 'cover' ? ' cover' : ''}">
+    <div class="vtop"><span class="vn">${esc(v.name)}</span>${v.cuisine ? `<span class="vc">${esc(v.cuisine)}</span>` : ''}</div>
+    <div class="vwhen">${extra}</div>
+    ${v.cost === 'cover' ? `<span class="vtag">Cover charge · book ahead</span>` : ''}
+  </div>`;
+
+  const openNow = (s) => R.whatsOn(s, min);
+  /* When it shuts — except for the bar that never does, where "until 12am"
+     was both wrong and the opposite of the useful thing to say. */
+  const til = s => (s.what ? esc(s.what) + ' — ' : '')
+    + (R.isAllDay(s) ? 'open around the clock' : 'until ' + esc(R.fmt(s.to)));
+
+  let sections;
+  if (season) {
+    const { open, soon } = openNow(season);
+    sections = `
+      <h3 class="sub">Open now</h3>
+      ${open.length ? `<div class="vgrid">${open.map(o => card(o.v,
+        o.slots.map(til).join('<br>'))).join('')}</div>`
+        : `<p class="lede">Nothing is serving at ${esc(clock)}. The Caprice bar runs around the clock.</p>`}
+      ${soon.length ? `<h3 class="sub">Opening soon</h3><div class="vgrid">${soon.map(o =>
+        card(o.v, `${esc(R.fmt(o.slot.from))} — in ${o.in < 60 ? o.in + ' min' : Math.round(o.in / 60) + ' hr'}`)).join('')}</div>` : ''}`;
+  } else {
+    /* Season unknown, so say what is certain and what is only a maybe rather
+       than picking one and sounding sure. */
+    const S1 = openNow('summer'), W1 = openNow('winter');
+    const win = new Set(W1.open.map(o => o.v.id));
+    const sum = new Set(S1.open.map(o => o.v.id));
+    const both = W1.open.filter(o => sum.has(o.v.id));
+    const onlyS = S1.open.filter(o => !win.has(o.v.id));
+    const onlyW = W1.open.filter(o => !sum.has(o.v.id));
+    sections = `
+      <h3 class="sub">Open now, whichever season it is</h3>
+      ${both.length ? `<div class="vgrid">${both.map(o => card(o.v,
+        o.slots.map(til).join('<br>'))).join('')}</div>`
+        : `<p class="lede">Nothing is certain to be serving at ${esc(clock)}.</p>`}
+      ${onlyS.length ? `<h3 class="sub">Only if the resort is still on summer hours</h3>
+        <div class="vgrid dim">${onlyS.map(o => card(o.v, o.slots.map(til).join('<br>'))).join('')}</div>` : ''}
+      ${onlyW.length ? `<h3 class="sub">Only once it has turned over to winter</h3>
+        <div class="vgrid dim">${onlyW.map(o => card(o.v, o.slots.map(til).join('<br>'))).join('')}</div>` : ''}`;
+  }
+
+  return `<p class="lede">It is ${esc(clock)} at the resort.</p>${sections}
+  ${resortNote('now', 'What we have found out', 'Anything the book has wrong — a place that was shut, a time that had moved.')}`;
+}
+
+/* ---- the whole list ---- */
+
+function resortEat() {
+  const season = resortSeason();
+  const shutNow = v => season ? !R.slots(v, season) : false;
+  const group = (title, blurb, list) => !list.length ? '' : `
+    <h3 class="sub">${esc(title)}</h3>
+    ${blurb ? `<p class="lede">${blurb}</p>` : ''}
+    <div class="vlist">${list.map(v => `<div class="vrow${shutNow(v) ? ' out' : ''}">
+      <div class="vmain">
+        <div class="vtop"><span class="vn">${esc(v.name)}</span>
+          ${v.cuisine ? `<span class="vc">${esc(v.cuisine)}</span>` : ''}
+          ${v.tag ? `<span class="vtag">${esc(v.tag)}</span>` : ''}</div>
+        ${v.blurb ? `<p class="vb">${esc(v.blurb)}</p>` : ''}
+        ${v.note ? `<p class="vb warn">${esc(v.note)}</p>` : ''}
+      </div>
+      ${hoursCell(v)}
+    </div>`).join('')}</div>`;
+
+  const inc = R.VENUES.filter(v => v.cost === 'inc' && ['buffet', 'alacarte', 'snack'].includes(v.kind));
+  const cov = R.VENUES.filter(v => v.cost === 'cover' && v.kind === 'alacarte');
+  const bar = R.VENUES.filter(v => ['bar', 'cafe'].includes(v.kind));
+
+  return `<p class="lede">Thirty-two places to eat and drink. What is included, what is not, and when each of them is actually open.</p>
+  ${group('Included', 'No booking, no bill.', inc)}
+  ${group('Cover charge', 'The hotel’s own site marks every one of these “paid à la carte, reservations required, cover charge applies”. The golf company said otherwise. Ask at reception before anyone orders.', cov)}
+  ${group('Bars &amp; cafés', '', bar)}
+  ${resortNote('eat', 'Bookings and verdicts', 'Who booked what, what it cost, and whether it was worth it.')}`;
+}
+
+/* ---- the plan ---- */
+
+function resortPlan() {
+  const cat = UI.resortPlanCat || 'all';
+  const B = R.PLAN_BOX;
+  /* The four points everybody navigates by stay named whatever is selected —
+     a plan with no labels at all is a handful of coloured dots. */
+
+  /* Half of these points are within a couple of units of a neighbour, so a
+     label drawn at a fixed offset lands on top of the one beside it — which
+     is what "Palm Bar & PatisserieSapore" was. Each name is tried above the
+     dot, then below, then further above and further below, and takes the
+     first slot nothing else has claimed. A name that fits nowhere is left
+     off the drawing; the list underneath carries all forty-nine regardless,
+     so nothing is actually lost by dropping one. */
+  /* The type size is settled here and handed to the drawing, rather than set
+     in the stylesheet: the placement below measures every name against it,
+     and a phone rendering at one size while the maths assumed another is
+     exactly how the labels came to run off the edge of the paper. */
+  const FS = 2.6, CH = FS * 0.46, LH = FS * 1.15;   // a serif character, near enough
+  /* The dots are in the way too — a name laid across one reads as a smudge.
+     They are claimed before any label is placed, so the labels go round. */
+  const taken = R.PLAN.filter(p => cat === 'all' || p.c === cat)
+    .map(p => [p.x - 1.3, p.x + 1.3, p.y - 1.3, p.y + 1.3]);
+
+  /* Eight seats around the dot, tried in order of preference: beside it
+     first, because a name a long way from its dot belongs to nothing.
+     [dx, dy, anchor]. */
+  const SEATS = [
+    [1.8, 0.7, 'start'], [-1.8, 0.7, 'end'],
+    [0, -1.6, 'middle'], [0, 3.0, 'middle'],
+    [1.8, -1.4, 'start'], [-1.8, -1.4, 'end'],
+    [1.8, 2.7, 'start'], [-1.8, 2.7, 'end'],
+  ];
+  const placeLabel = p => {
+    const txt = p.now || p.t;
+    const w = Math.max(txt.length * CH, 3);
+    for (const [dx, dy, anc] of SEATS) {
+      const x = p.x + dx;
+      const x1 = anc === 'start' ? x : anc === 'end' ? x - w : x - w / 2;
+      const x2 = x1 + w;
+      if (x1 < B.x + 0.4 || x2 > B.x + B.w - 0.4) continue;      // off the paper
+      const box = [x1, x2, p.y + dy - LH * 0.82, p.y + dy + LH * 0.22];
+      if (taken.some(q => box[0] < q[1] && box[1] > q[0] && box[2] < q[3] && box[3] > q[2])) continue;
+      taken.push(box);
+      return `<text x="${x.toFixed(2)}" y="${(p.y + dy).toFixed(2)}" text-anchor="${anc}">${esc(txt)}</text>`;
+    }
+    return '';
+  };
+
+  /* Every point is offered a label; the seating above drops the ones with
+     nowhere to go, which on a plan this crowded is around half of them. The
+     order is therefore the whole of the editing: the two landmarks first, then
+     whatever group is selected, then everything else in reading order. So the
+     names you asked for are the names you get, and the rest fill the gaps. */
+  const rank = p => (p.key ? 0 : p.c === cat ? 1 : 2);
+  const order = R.PLAN.slice()
+    .sort((a, b) => rank(a) - rank(b) || a.y - b.y || a.x - b.x);
+  const texts = new Map(order.map(p => [p, placeLabel(p)]));
+
+  const dots = R.PLAN.map(p => {
+    const lit = cat === 'all' || p.c === cat;
+    return `<g class="pt c-${p.c}${lit ? ' on' : ''}">
+      <circle cx="${p.x.toFixed(2)}" cy="${p.y.toFixed(2)}" r="${lit ? 1.1 : 0.7}"></circle>
+      ${texts.get(p) || ''}
+    </g>`;
+  }).join('');
+
+  const key = [['all', 'Everything']].concat(R.PLAN_KEYS);
+  const label = Object.fromEntries(R.PLAN_KEYS);
+  const shown = cat === 'all' ? R.PLAN_KEYS.map(([id]) => id) : [cat];
+
+  const row = p => {
+    const v = p.vid && R.VENUES.find(x => x.id === p.vid);
+    return `<div class="vrow"><div class="vmain"><div class="vtop">
+      <span class="dotk c-${p.c}"></span><span class="vn">${esc(p.now || p.t)}</span>
+      ${p.now ? `<span class="vc">was ${esc(p.t)}</span>` : ''}
+    </div></div>${v ? hoursCell(v) : ''}</div>`;
+  };
+
+  return `<p class="lede">The hotel’s own site plan, redrawn. The positions are theirs and are true to each other; the distances are not to scale. A few names on their plan are older than their restaurant list — where one has changed, the current name is the one shown.</p>
+  <div class="pkeys nos">${key.map(([id, l]) =>
+    `<button class="pkey${cat === id ? ' on' : ''}" data-act="resortPlanCat" data-a="${id}">${
+      id === 'all' ? '' : `<span class="dotk c-${id}"></span>`}${esc(l)}</button>`).join('')}</div>
+  <div class="planwrap">
+    <svg class="plan" viewBox="${B.x} ${B.y} ${B.w} ${B.h}" font-size="${FS}" role="img"
+      aria-label="Schematic plan of the resort">${dots}</svg>
+  </div>
+  <p class="tiny">${cat === 'all'
+    ? 'Forty-nine points, and only so much paper: a name with nowhere clear to sit is left off the drawing. Pick a colour above and that group is named first.'
+    : `${esc(label[cat])} is named first; the rest fill whatever room is left. Every one of them is in the list below.`}</p>
+  ${shown.map(id => `
+    <h3 class="sub">${esc(label[id])}</h3>
+    <div class="vlist plist">${R.PLAN.filter(p => p.c === id)
+      .slice().sort((a, b) => (a.now || a.t).localeCompare(b.now || b.t)).map(row).join('')}</div>`).join('')}
+  ${resortNote('plan', 'Getting about', 'How long things actually take on foot, where the buggies run, which way out to the course.')}`;
+}
+
+/* ---- spa, and water generally ---- */
+
+function resortSpa() {
+  const heated = R.POOLS.filter(p => p.heated), cold = R.POOLS.filter(p => !p.heated);
+  const pool = p => `<div class="vrow"><div class="vmain"><div class="vtop">
+      <span class="vn">${esc(p.name)}</span>
+      ${p.indoor ? `<span class="vc">indoor</span>` : ''}
+      ${p.heated ? `<span class="vtag warmtag">heated</span>` : ''}</div>
+      ${p.note ? `<p class="vb">${esc(p.note)}</p>` : ''}</div></div>`;
+
+  return `<h3 class="sub">${esc(R.SPA.name)}</h3>
+  <p class="lede">${esc(R.SPA.blurb)}</p>
+  <div class="twocol">
+    <div><h4 class="minihead">Included</h4><ul class="ticks">${R.SPA.free.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>
+    <div><h4 class="minihead">Charged</h4><ul class="ticks paid">${R.SPA.paid.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>
+  </div>
+  <div class="vlist">${R.SPA.detail.map(([t, b]) => `<div class="vrow"><div class="vmain">
+    <div class="vtop"><span class="vn">${esc(t)}</span></div><p class="vb">${esc(b)}</p></div></div>`).join('')}</div>
+
+  <h3 class="sub">Twelve pools</h3>
+  <p class="lede">In late October the only question that matters is which of them are heated.</p>
+  <h4 class="minihead">Heated</h4><div class="vlist">${heated.map(pool).join('')}</div>
+  <h4 class="minihead">Not heated</h4><div class="vlist">${cold.map(pool).join('')}</div>
+  ${resortNote('spa', 'Treatments and bookings', 'Prices, how far ahead to book, which therapist to ask for.')}`;
+}
+
+/* ---- everything else ---- */
+
+function resortPractical() {
+  const season = resortSeason();
+  const doing = R.DOING.filter(d => d.season === 'all' || season !== 'winter');
+  return `<h3 class="sub">On the grounds</h3>
+  <div class="vlist">${doing.map(d => `<div class="vrow"><div class="vmain">
+    <div class="vtop"><span class="vn">${esc(d.name)}</span>
+      ${d.season === 'summer' ? `<span class="vtag">summer only</span>` : ''}</div>
+    <p class="vb">${esc(d.body)}</p></div></div>`).join('')}</div>
+
+  <h3 class="sub">Worth knowing</h3>
+  <div class="vlist">${R.PRACTICAL.map(x => `<div class="vrow"><div class="vmain">
+    <div class="vtop"><span class="vn">${esc(x.q)}</span></div>
+    <p class="vb">${esc(x.a)}</p></div></div>`).join('')}</div>
+
+  <h3 class="sub">The hotel</h3>
+  <div class="addr">
+    <p>${R.RESORT.address.map(esc).join('<br>')}</p>
+    <p><a href="tel:${esc(R.RESORT.phone.replace(/\s/g, ''))}">${esc(R.RESORT.phone)}</a><br>
+       <a href="mailto:${esc(R.RESORT.email)}">${esc(R.RESORT.email)}</a></p>
+    <p class="tiny num">${R.RESORT.lat.toFixed(5)}, ${R.RESORT.lng.toFixed(5)}</p>
+  </div>
+  ${resortNote('prac', 'Anything else', 'Numbers worth having, the name of the person who sorted something out, what the taxi cost.')}`;
+}
+
+function scrResort() {
+  const tabs = [['now', 'Right now'], ['eat', 'Eat &amp; drink'], ['plan', 'The grounds'],
+                ['spa', 'Spa &amp; pools'], ['prac', 'Practical']];
+  const body = { now: resortNow, eat: resortEat, plan: resortPlan, spa: resortSpa, prac: resortPractical }[UI.resortTab] || resortNow;
+  return `<h2 class="head">The Titanic</h2>
+  <p class="lede">Titanic Deluxe Golf Belek — the other side of the week. Read off the hotel’s own book in September; corrected by whoever gets there first.</p>
+  ${seasonBand()}
+  <div class="btabs nos">${tabs.map(([id, l]) =>
+    `<button class="btab${UI.resortTab === id ? ' on' : ''}" data-act="resortTab" data-a="${id}">${l}</button>`).join('')}</div>
+  ${body()}`;
+}
+
 /* ---------------- chrome ---------------- */
 
+/** The tabs this reader actually gets. Setup is the master's alone, which
+ *  is why the count has to be asked for rather than assumed. */
+const navTabs = () => NAV.filter(([id]) => id !== 'setup' || canAdmin());
+
 const NAV = [
-  ['today', 'Today', 'Today'], ['boards', 'Leaderboards', 'Boards'], ['ryder', 'Ryder Cup', 'Ryder'],
+  ['today', 'Today', 'Today'], ['resort', 'The Titanic', 'Titanic'],
+  ['boards', 'Leaderboards', 'Boards'], ['ryder', 'Ryder Cup', 'Ryder'],
   ['calendar', 'Calendar', 'Calendar'], ['entry', 'Score Entry', 'Scores'], ['roster', 'Roster & Pairings', 'Roster'],
   ['courses', 'Course Setup', 'Courses'], ['rules', 'Games & Rules', 'Rules'], ['setup', 'Setup', 'Setup'],
 ];
@@ -2211,9 +2546,9 @@ function paint() {
      book redraws on a timer, and a redraw replaces the whole tree — taking
      the <details> open with it. Which ones were open is remembered by id. */
   const opened = [...document.querySelectorAll('details[id][open]')].map(el => el.id);
-  const body = { today: scrToday, boards: scrBoards, ryder: scrRyder, calendar: scrCalendar,
-                 entry: scrEntry, roster: scrRoster, rules: scrRules, courses: scrCourses,
-                 setup: scrSetup }[UI.screen]();
+  const body = { today: scrToday, resort: scrResort, boards: scrBoards, ryder: scrRyder,
+                 calendar: scrCalendar, entry: scrEntry, roster: scrRoster, rules: scrRules,
+                 courses: scrCourses, setup: scrSetup }[UI.screen]();
 
   const nt = E.nextTee(T, now);
   const role = S.ROLES[UI.role];
@@ -2254,8 +2589,8 @@ function paint() {
       ${meta.status === 'error'
         ? 'Cannot read the shared book. Nothing can be edited until it loads, so nothing gets overwritten. Check your connection and reload.'
         : 'Opening the book… everything is read-only until the saved tournament arrives.'}</div>`}
-    <nav class="tabs nos" aria-label="Sections">
-      ${NAV.filter(([id]) => id !== 'setup' || canAdmin()).map(([id, label, short]) =>
+    <nav class="tabs nos${navTabs().length % 3 === 1 ? ' orphan' : ''}" aria-label="Sections">
+      ${navTabs().map(([id, label, short]) =>
         `<button class="tab" data-act="go" data-a="${id}"${UI.screen === id ? ' aria-current="page"' : ''}
           aria-label="${esc(label)}"><span class="lg">${esc(label)}</span><span class="sm">${esc(short)}</span></button>`).join('')}
     </nav>
@@ -2560,6 +2895,7 @@ function onClick(e) {
      before it ever gets one. */
   if (UI.mineDraft) commitMine();
   if (UI.sayDraft) commitSay();
+  if (UI.resortNote) commitResortNote();
 
   switch (act) {
     case 'go':
@@ -2664,6 +3000,9 @@ function onClick(e) {
       { const d = document.getElementById('rule-' + a); if (d) { d.open = true; d.scrollIntoView({ block: 'center' }); } }
       return;
     case 'boardTab': UI.boardTab = a; break;
+    case 'resortTab': commitResortNote(); UI.resortTab = a; break;
+    case 'resortPlanCat': UI.resortPlanCat = a; break;
+    case 'resortSeason': setResortSeason(a); break;
     case 'boardRound': UI.boardRound = a; UI.bookHole = 0; break;
     case 'bookHole': UI.bookHole = +a; break;
     case 'entryRound': guardDraft(() => { UI.entryRound = a; UI.entryHole = 0; UI.entryTee = '0'; }); return;
@@ -2967,6 +3306,7 @@ function onChange(e) {
   /* A line about a hole, kept when the box loses focus. */
   if (act === 'mineText') { UI.mineDraft = { rid, h: +b, v: el.value }; commitMine(); render(); return; }
   if (act === 'mineSay') { UI.sayDraft = { rid, v: el.value }; commitSay(); render(); return; }
+  if (act === 'resortNote') { UI.resortNote = { k: a, v: el.value }; commitResortNote(); render(); return; }
 
   if (store && store.note) store.note('change', act + ' a=' + (a || '') + ' b=' + (b || '') + ' v=' + el.value);
   const editable = canEdit() && E.roundCfg(T, rid).state === 'open';
@@ -3344,6 +3684,9 @@ export function boot() {
     }
     if (e.target && e.target.id === 'mineSay') {
       UI.sayDraft = { rid: UI.entryRound, v: e.target.value };
+    }
+    if (e.target && e.target.id === 'resortNote') {
+      UI.resortNote = { k: e.target.dataset.a, v: e.target.value };
     }
   });
   // the page may be allowed to ask Claude, or may not: find out once, quietly,
