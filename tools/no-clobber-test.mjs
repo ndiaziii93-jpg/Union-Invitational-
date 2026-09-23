@@ -341,10 +341,21 @@ for (const [label, lie] of [['a healthy store', false], ['a store whose first re
     want => Object.keys(window.__mockDocs).filter(k => k.startsWith('people/')).length === want,
     n - 1, { timeout: 15000 },
   ).catch(() => {});
+  /* Whether the delete actually reached the store BEFORE the reload is the
+     difference between this test finding a resurrection and this test
+     finding its own impatience. Record it either way. */
+  const goneBefore = await p.evaluate(() =>
+    Object.keys(window.__mockDocs).filter(k => k.startsWith('people/')).length);
   await p.reload(); await settled(p);
   await p.locator('[data-act="modalCancel"]').click().catch(() => {});
   await p.locator('.tab', { hasText: 'Roster' }).click(); await p.waitForTimeout(600);
-  ok('a golfer taken off stays off', await steady(p, '.rtable tbody tr'), n - 1);
+  const after = await steady(p, '.rtable tbody tr');
+  const docsAfter = await p.evaluate(() =>
+    Object.keys(window.__mockDocs).filter(k => k.startsWith('people/')).length);
+  if (after !== n - 1) console.log('    [why] people docs before reload =', goneBefore,
+    ' after =', docsAfter, ' rows =', after, ' (wanted', n - 1, ')');
+  ok('the removal reached the store before the reload', goneBefore, n - 1);
+  ok('a golfer taken off stays off', after, n - 1);
   ok('and nothing wrote a roster back', await p.evaluate(
     () => Object.keys(window.__mockDocs).filter(k => k.startsWith('people/')).length), n - 1);
   ok('the config is still clean', await p.evaluate(
