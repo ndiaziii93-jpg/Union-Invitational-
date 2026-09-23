@@ -53,6 +53,18 @@ const open = async (w, h, schematic) => {
   /* The tab draws the hotel's artwork when it has it and its own schematic
      when it does not. Both ship, so both are tested: taking the picture away
      before the book loads is what puts it on the fallback. */
+  /* The tab is a clock as much as a page: what is serving depends on the
+     hour, so a test that reads the real one passes in the afternoon and
+     fails at midnight. Every page here opens at one in the afternoon at the
+     resort, when there is plenty on. */
+  await pg.addInitScript(() => {
+    const fixed = Date.UTC(2026, 9, 28, 10, 0);        // 13:00 at the resort
+    const D = Date;
+    window.Date = class extends D {
+      constructor(...a) { super(...(a.length ? a : [fixed])); }
+      static now() { return fixed; }
+    };
+  });
   if (schematic) await pg.addInitScript(() => {
     Object.defineProperty(window, 'UI_IMAGES', {
       get: () => window.__imgs, set: v => { delete v.resortmap; window.__imgs = v; },
