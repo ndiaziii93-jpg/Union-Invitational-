@@ -716,17 +716,20 @@ function recapPanel() {
 
   <h3 class="sub">Pairs Championship</h3>
   <div class="rows rectable" style="margin-top:8px">
-    <div class="rowhead"><span style="width:26px"></span><span style="flex:1">Pair</span>
-      <span style="min-width:62px;text-align:right">Today</span>
-      <span style="min-width:74px;text-align:right">Total</span></div>
+    ${/* Columns, not edges. Widths and alignment live in the stylesheet so
+          the figures can be centred in their own column rather than flung to
+          the far side of a sheet that is nine hundred pixels wide. */ ''}
+    <div class="rowhead"><span class="rt-pos"></span><span class="rt-who">Pair</span>
+      <span class="rt-n">Today</span>
+      <span class="rt-t">Total</span></div>
     ${table.length ? table.map(x => `<div class="row${x.pos === 1 ? ' lead' : ''}">
-      <span class="pos" style="width:26px">${x.pos}</span>
-      <span class="who" style="flex:1">${esc(x.name)}${editing
+      <span class="pos rt-pos">${x.pos}</span>
+      <span class="who rt-who">${esc(x.name)}${editing
         ? `<input class="field recedit one" data-act="recapEdit" data-a="note" data-b="${esc(x.id)}"
             aria-label="Note on ${esc(x.name)}" placeholder="A line about this pair…" value="${esc(pairNote(x.id))}">`
         : pairNote(x.id) ? `<small>${esc(pairNote(x.id))}</small>` : ''}</span>
-      <span class="num ${cls(x.today)}" style="min-width:62px;text-align:right">${x.today == null ? '—' : esc(E.fmtToPar(x.today))}</span>
-      <span class="num ${cls(x.total)}" style="min-width:74px;text-align:right;font-size:21px;font-weight:700">${x.total == null ? '—' : esc(E.fmtToPar(x.total))}</span>
+      <span class="num rt-n ${cls(x.today)}">${x.today == null ? '—' : esc(E.fmtToPar(x.today))}</span>
+      <span class="num rt-t ${cls(x.total)}">${x.total == null ? '—' : esc(E.fmtToPar(x.total))}</span>
     </div>`).join('') : '<p class="empty">No cards in yet.</p>'}
   </div>
 
@@ -745,7 +748,7 @@ function recapPanel() {
                 <option value="">Not awarded</option>
                 ${(T.config.people || []).map(pn => `<option value="${esc(pn.id)}"${won && won.winner === pn.id ? ' selected' : ''}>${esc(pn.display)}</option>`).join('')}
               </select>`
-              : `<span class="n" style="min-width:110px;text-align:right;font-weight:700">${won && won.winner ? esc(nm(won.winner)) : '—'}</span>`}</div>`;
+              : `<span class="n rt-v win">${won && won.winner ? esc(nm(won.winner)) : '—'}</span>`}</div>`;
         }).join('')}
       </div>
     </div>
@@ -753,15 +756,15 @@ function recapPanel() {
       <h3 class="sub">Side games</h3>
       <div class="rows" style="margin-top:8px">
         <div class="row"><span class="who">Closest to the pin${sg.ctp && sg.ctp.hole ? ', ' + sg.ctp.hole : ''}</span>
-          <span class="n" style="min-width:150px;text-align:right">${sg.ctp ? esc(sg.ctp.who + (sg.ctp.note ? ', ' + sg.ctp.note : '')) : '—'}</span></div>
+          <span class="n rt-v">${sg.ctp ? esc(sg.ctp.who + (sg.ctp.note ? ', ' + sg.ctp.note : '')) : '—'}</span></div>
         <div class="row"><span class="who">Longest drive${sg.ld && sg.ld.hole ? ', ' + sg.ld.hole : ''}</span>
-          <span class="n" style="min-width:150px;text-align:right">${sg.ld ? esc(sg.ld.who + (sg.ld.note ? ', ' + sg.ld.note : '')) : '—'}</span></div>
+          <span class="n rt-v">${sg.ld ? esc(sg.ld.who + (sg.ld.note ? ', ' + sg.ld.note : '')) : '—'}</span></div>
         <div class="row"><span class="who">Bingo Bango Bongo</span>
-          <span class="n" style="min-width:150px;text-align:right">${sg.bbb ? esc(sg.bbb.who + ', ' + sg.bbb.note) : '—'}</span></div>
+          <span class="n rt-v">${sg.bbb ? esc(sg.bbb.who + ', ' + sg.bbb.note) : '—'}</span></div>
         <div class="row"><span class="who">MVP standings</span>
-          <span class="n" style="min-width:150px;text-align:right">${sg.mvp ? esc(sg.mvp.who + ', ' + sg.mvp.note) : '—'}</span></div>
+          <span class="n rt-v">${sg.mvp ? esc(sg.mvp.who + ', ' + sg.mvp.note) : '—'}</span></div>
         <div class="row"><span class="who">Triple bogey cap hit</span>
-          <span class="n num" style="min-width:150px;text-align:right">${sg.caps} time${sg.caps === 1 ? '' : 's'} today</span></div>
+          <span class="n num rt-v">${sg.caps} time${sg.caps === 1 ? '' : 's'} today</span></div>
       </div>
     </div>
   </div>

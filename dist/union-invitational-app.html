@@ -1316,8 +1316,16 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
 .artplate{display:flex;align-items:center;gap:12px;margin-top:16px;
   background:var(--ink);color:var(--paper);padding:10px clamp(12px,2vw,18px);
   border-bottom:3px solid var(--green)}
-.artplate .ap-crest{width:30px;height:auto;flex:0 0 auto;
-  filter:brightness(0) invert(1);opacity:.93}
+/* The crest on a dark band, with its drawing intact.
+   `brightness(0) invert(1)` forces EVERY opaque pixel to the same white, so
+   the linework and the panels it encloses come out identical and the whole
+   thing collapses to a silhouette. The art is 57% transparent, 33% dark
+   linework and a few per cent of light interiors — inverting it instead
+   sends the linework to near-white and those interiors to near-black, which
+   on a #1D2E21 band reads as the green showing through the drawing. And it
+   is given enough size to be worth looking at: detail at thirty pixels is
+   detail nobody sees. */
+.artplate .ap-crest{width:42px;height:auto;flex:0 0 auto;filter:invert(1);opacity:.96}
 .artplate .ap-name{flex:1;min-width:0;font-size:clamp(15px,2.3vw,20px);font-weight:700;
   letter-spacing:.15em;text-transform:uppercase;white-space:nowrap;
   overflow:hidden;text-overflow:ellipsis}
@@ -1349,9 +1357,83 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
 @media (max-width:700px){
   .artplate{gap:9px;padding:9px 11px}
   .artplate .ap-ed{display:none}
-  .artplate .ap-crest{width:24px}
+  .artplate .ap-crest{width:34px}
   .byline span{padding-left:9px;margin-left:9px}
   .folio .fl-t{white-space:normal;letter-spacing:.12em}
+}
+
+/* ---- the recap's scoreboard ----
+   A figure pinned to the right-hand edge of a nine-hundred-pixel sheet has
+   nothing to do with the name at the other end of the row — the eye has to
+   cross the whole page to pair them up, and on a tablet that is a long way.
+   Every scoreboard worth reading puts its numbers in COLUMNS of their own
+   and centres them there. Tabular figures keep the digits lined up inside
+   the column, so centring costs nothing in comparability. */
+.rectable .rt-pos{width:30px;flex:0 0 auto;text-align:center}
+.rectable .rt-who{flex:1 1 auto;min-width:0}
+.rectable .rt-n,.rectable .rt-t{flex:0 0 auto;text-align:center;
+  font-variant-numeric:tabular-nums}
+.rectable .rt-n{width:96px}
+.rectable .rt-t{width:104px;font-size:21px;font-weight:700}
+.rectable .rowhead .rt-n,.rectable .rowhead .rt-t{font-size:13px}
+
+/* The honours and the side games are the same shape of problem: a title at
+   one end of the sheet and its answer at the other. A column, again. */
+.recapbox .row .rt-v{flex:0 0 auto;width:176px;min-width:0;text-align:center;
+  overflow-wrap:anywhere}
+.recapbox .row .rt-v.win{font-weight:700}
+
+/* Narrow, the columns give ground before the names do. */
+@media (max-width:700px){
+  .rectable .rt-pos{width:22px}
+  .rectable .rt-n{width:62px}
+  .rectable .rt-t{width:68px;font-size:19px}
+  .recapbox .row .rt-v{width:auto;max-width:47%;text-align:right}
+}
+
+/* ---- the recap on a phone ----
+ *
+ * It was reading as squeezed because it was a card inside a frame inside a
+ * frame: the scrim held eighteen pixels of padding, the sheet took 96vw of
+ * what was left, and the sheet's own padding took another forty. On a 390px
+ * screen that is a hundred pixels of margin around a column of type, and the
+ * article never had a chance.
+ *
+ * A phone is not a desk with a sheet of paper on it. The page IS the screen,
+ * so it goes full bleed — and the desk metaphor goes with it: no stacked
+ * pages behind, no drop shadow, no rounded frame. The pine spine stays,
+ * because it still marks the edge of the page and costs nothing.
+ *
+ * The rest is the chrome giving way to the article. Three full-size buttons
+ * and a paragraph of status was four lines of furniture before a reader got
+ * to the headline.
+ */
+@media (max-width:700px){
+  .recapscrim{padding:env(safe-area-inset-top,0px) 0 0}
+  .recapbox{width:100vw;max-width:100vw;border-left:0;border-right:0;
+    padding:0 15px calc(env(safe-area-inset-bottom,0px) + 4px);
+    box-shadow:inset 4px 0 0 var(--green),inset 5px 0 0 var(--paper)}
+
+  .recaptop{padding:11px 0 7px}
+  .recaptop b{font-size:18px;letter-spacing:.05em}
+
+  /* status and actions, at the size of a thing you read past rather than a
+     thing you stop at */
+  .recapbar{padding:9px 11px;margin-top:12px;font-size:13.5px;gap:9px}
+  .recapacts{gap:6px}
+  .recapacts .btn{min-height:40px;padding:8px 12px;font-size:14px}
+  .recaparch{margin-top:10px}
+
+  .artplate{margin-top:12px;padding:8px 11px}
+  .artplate .ap-name{font-size:15px;letter-spacing:.11em}
+
+  .metarail{margin-top:11px;padding:8px 0 7px;font-size:10.5px;letter-spacing:.08em;line-height:1.8}
+  .kicker{font-size:11px;letter-spacing:.13em;margin:15px 0 6px}
+  .rechead{font-size:clamp(28px,7.6vw,36px);line-height:1.04}
+  .byline{font-size:10.5px;letter-spacing:.08em;padding:6px 0}
+  .byline span{padding-left:9px;margin-left:9px}
+  .recpara{font-size:17px;line-height:1.6}
+  .folio{margin-top:26px;padding:14px 0 20px}
 }
 
 </style>
@@ -1465,7 +1547,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20260923-1228';
+const BUILD = '20260923-1334';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -4756,17 +4838,20 @@ function recapPanel() {
 
   <h3 class="sub">Pairs Championship</h3>
   <div class="rows rectable" style="margin-top:8px">
-    <div class="rowhead"><span style="width:26px"></span><span style="flex:1">Pair</span>
-      <span style="min-width:62px;text-align:right">Today</span>
-      <span style="min-width:74px;text-align:right">Total</span></div>
+    ${/* Columns, not edges. Widths and alignment live in the stylesheet so
+          the figures can be centred in their own column rather than flung to
+          the far side of a sheet that is nine hundred pixels wide. */ ''}
+    <div class="rowhead"><span class="rt-pos"></span><span class="rt-who">Pair</span>
+      <span class="rt-n">Today</span>
+      <span class="rt-t">Total</span></div>
     ${table.length ? table.map(x => `<div class="row${x.pos === 1 ? ' lead' : ''}">
-      <span class="pos" style="width:26px">${x.pos}</span>
-      <span class="who" style="flex:1">${esc(x.name)}${editing
+      <span class="pos rt-pos">${x.pos}</span>
+      <span class="who rt-who">${esc(x.name)}${editing
         ? `<input class="field recedit one" data-act="recapEdit" data-a="note" data-b="${esc(x.id)}"
             aria-label="Note on ${esc(x.name)}" placeholder="A line about this pair…" value="${esc(pairNote(x.id))}">`
         : pairNote(x.id) ? `<small>${esc(pairNote(x.id))}</small>` : ''}</span>
-      <span class="num ${cls(x.today)}" style="min-width:62px;text-align:right">${x.today == null ? '—' : esc(E.fmtToPar(x.today))}</span>
-      <span class="num ${cls(x.total)}" style="min-width:74px;text-align:right;font-size:21px;font-weight:700">${x.total == null ? '—' : esc(E.fmtToPar(x.total))}</span>
+      <span class="num rt-n ${cls(x.today)}">${x.today == null ? '—' : esc(E.fmtToPar(x.today))}</span>
+      <span class="num rt-t ${cls(x.total)}">${x.total == null ? '—' : esc(E.fmtToPar(x.total))}</span>
     </div>`).join('') : '<p class="empty">No cards in yet.</p>'}
   </div>
 
@@ -4785,7 +4870,7 @@ function recapPanel() {
                 <option value="">Not awarded</option>
                 ${(T.config.people || []).map(pn => `<option value="${esc(pn.id)}"${won && won.winner === pn.id ? ' selected' : ''}>${esc(pn.display)}</option>`).join('')}
               </select>`
-              : `<span class="n" style="min-width:110px;text-align:right;font-weight:700">${won && won.winner ? esc(nm(won.winner)) : '—'}</span>`}</div>`;
+              : `<span class="n rt-v win">${won && won.winner ? esc(nm(won.winner)) : '—'}</span>`}</div>`;
         }).join('')}
       </div>
     </div>
@@ -4793,15 +4878,15 @@ function recapPanel() {
       <h3 class="sub">Side games</h3>
       <div class="rows" style="margin-top:8px">
         <div class="row"><span class="who">Closest to the pin${sg.ctp && sg.ctp.hole ? ', ' + sg.ctp.hole : ''}</span>
-          <span class="n" style="min-width:150px;text-align:right">${sg.ctp ? esc(sg.ctp.who + (sg.ctp.note ? ', ' + sg.ctp.note : '')) : '—'}</span></div>
+          <span class="n rt-v">${sg.ctp ? esc(sg.ctp.who + (sg.ctp.note ? ', ' + sg.ctp.note : '')) : '—'}</span></div>
         <div class="row"><span class="who">Longest drive${sg.ld && sg.ld.hole ? ', ' + sg.ld.hole : ''}</span>
-          <span class="n" style="min-width:150px;text-align:right">${sg.ld ? esc(sg.ld.who + (sg.ld.note ? ', ' + sg.ld.note : '')) : '—'}</span></div>
+          <span class="n rt-v">${sg.ld ? esc(sg.ld.who + (sg.ld.note ? ', ' + sg.ld.note : '')) : '—'}</span></div>
         <div class="row"><span class="who">Bingo Bango Bongo</span>
-          <span class="n" style="min-width:150px;text-align:right">${sg.bbb ? esc(sg.bbb.who + ', ' + sg.bbb.note) : '—'}</span></div>
+          <span class="n rt-v">${sg.bbb ? esc(sg.bbb.who + ', ' + sg.bbb.note) : '—'}</span></div>
         <div class="row"><span class="who">MVP standings</span>
-          <span class="n" style="min-width:150px;text-align:right">${sg.mvp ? esc(sg.mvp.who + ', ' + sg.mvp.note) : '—'}</span></div>
+          <span class="n rt-v">${sg.mvp ? esc(sg.mvp.who + ', ' + sg.mvp.note) : '—'}</span></div>
         <div class="row"><span class="who">Triple bogey cap hit</span>
-          <span class="n num" style="min-width:150px;text-align:right">${sg.caps} time${sg.caps === 1 ? '' : 's'} today</span></div>
+          <span class="n num rt-v">${sg.caps} time${sg.caps === 1 ? '' : 's'} today</span></div>
       </div>
     </div>
   </div>

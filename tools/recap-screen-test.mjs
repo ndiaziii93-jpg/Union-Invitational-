@@ -123,6 +123,38 @@ ok('and up next closes it', await p.locator('.upnext').count(), 1);
 
 console.log('\nwriting it');
 await p.locator('[data-act="recapGen"]').click(); await p.waitForTimeout(1600);
+/* On a tablet the sheet is nine hundred pixels wide, and a figure pinned to
+   its right-hand edge has nothing to do with the name at the other end of
+   the row — the eye has to cross the page to pair them up. Columns, centred,
+   with the right edge kept clear. */
+console.log('\nthe scoreboard reads as columns, not as edges');
+await p.setViewportSize({ width: 834, height: 1112 }); await p.waitForTimeout(700);
+ok('the figures are centred in a column of their own', await p.evaluate(
+  () => getComputedStyle(document.querySelector('.rectable .rt-t')).textAlign), 'center');
+ok('and the column is not flush with the edge of the sheet', await p.evaluate(() => {
+  const box = document.getElementById('recapBox').getBoundingClientRect();
+  return [...document.querySelectorAll('.rectable .rt-t, .recapbox .row .rt-v')]
+    .every(e => box.right - e.getBoundingClientRect().right > 20);
+}), true);
+ok('every honour and side game sits in that column too',
+  await p.locator('.recapbox .row .rt-v').count() > 6, true);
+
+/* And the phone: the sheet IS the page, not a card inside a frame inside a
+   frame, which is what made it read as squeezed. */
+console.log('\nand on a phone it goes edge to edge');
+await p.setViewportSize({ width: 390, height: 844 }); await p.waitForTimeout(700);
+const bleed = await p.evaluate(() => {
+  const b = document.getElementById('recapBox').getBoundingClientRect();
+  return { gap: Math.round(Math.min(b.left, window.innerWidth - b.right)),
+    text: Math.round(document.querySelector('.recpara').getBoundingClientRect().width) };
+});
+console.log('        side gutter ' + bleed.gap + 'px, column of type ' + bleed.text + 'px');
+ok('the sheet reaches both edges', bleed.gap <= 1, true);
+ok('which leaves a column of type worth reading', bleed.text >= 340, true);
+ok('and nothing scrolls sideways', await p.evaluate(
+  () => document.documentElement.scrollWidth - document.documentElement.clientWidth <= 1), true);
+await p.setViewportSize({ width: 1280, height: 1000 }); await p.waitForTimeout(600);
+
 ok('the fenced JSON was still parsed', (await p.locator('.rechead').innerText()).startsWith('Aspendos waited'), true);
 ok('three paragraphs', await p.locator('.recpara').count(), 3);
 ok('the pair note landed under the pair', (await p.locator('.rectable .row .who small').first().innerText()).length > 5, true);
