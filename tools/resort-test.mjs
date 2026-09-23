@@ -107,6 +107,59 @@ const desk = await overlaps();
 ok('the plan names a useful number of them', desk.labels > 20, true);
 ok('and no two names sit on each other', desk.clashes, 0);
 
+/* Every tap target has to sit on the dot it claims to be. They are laid out in
+   two different coordinate systems — percentages of the box for the buttons,
+   viewBox units for the drawing — and the whole point of giving the wrapper
+   the viewBox's own aspect ratio is that the two cannot drift. */
+const drift = await pg.evaluate(() => {
+  const pins = [...document.querySelectorAll('.pin')];
+  const dots = [...document.querySelectorAll('.plan .dot')];
+  let worst = 0;
+  for (let i = 0; i < pins.length; i++) {
+    const a = pins[i].getBoundingClientRect(), c = dots[i].getBoundingClientRect();
+    worst = Math.max(worst, Math.hypot((a.left + a.right) / 2 - (c.left + c.right) / 2,
+                                       (a.top + a.bottom) / 2 - (c.top + c.bottom) / 2));
+  }
+  return Math.round(worst * 10) / 10;
+});
+ok('every tap target sits on its own dot', drift < 1.5, true);
+
+/* And a target you cannot hit with a thumb is not a target. */
+const tiny = await pg.evaluate(() => {
+  const r = [...document.querySelectorAll('.pin')].map(e => e.getBoundingClientRect());
+  return r.filter(x => x.width < 30 || x.height < 30).length;
+});
+ok('and is big enough to hit', tiny, 0);
+
+/* Tapping one names it, says when it is open, and offers a way to find it. */
+await pg.evaluate(() => {
+  const i = [...document.querySelectorAll('.pin')].findIndex(b => b.title === 'Main Restaurant');
+  document.querySelectorAll('.pin')[i].click();
+});
+await pg.waitForTimeout(200);
+ok('a tap opens the point', await pg.locator('#pinCard .vn').first().innerText(), 'Main Restaurant');
+ok('with its hours on it', (await pg.locator('#pinCard .hrs').count()) > 0, true);
+const href = await pg.locator('#pinCard a').getAttribute('href');
+ok('and a Google Maps link naming the place and the hotel',
+  href.startsWith('https://www.google.com/maps/search/?api=1&query=')
+  && decodeURIComponent(href).includes('Main Restaurant Titanic Deluxe Golf Belek'), true);
+/* The one link the book can make good on: the hotel's real position. */
+const back = await pg.locator('a[href*="maps/dir"]').first().getAttribute('href');
+ok('and walking directions back to a real latitude and longitude',
+  back.includes('travelmode=walking') && back.includes('36.86854,30.97629'), true);
+
+await pg.click('#pinCard [data-act="resortPin"]');
+await pg.waitForTimeout(150);
+ok('closing it puts the drawing back', await pg.locator('#pinCard').count(), 0);
+
+/* The list is the precise way in, since the pins crowd each other in the middle. */
+await pg.locator('.plist .plink', { hasText: 'Aquapark' }).first().click();
+await pg.waitForTimeout(200);
+ok('picking from the list opens the same card',
+  await pg.locator('#pinCard .vn').first().innerText(), 'Aquapark');
+ok('and marks the row it came from', await pg.locator('.vrow.picked').count(), 1);
+await pg.click('#pinCard [data-act="resortPin"]');
+
 const box = await pg.evaluate(() => {
   const s = document.querySelector('.plan').getBoundingClientRect();
   return [...document.querySelectorAll('.plan text')]

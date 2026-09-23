@@ -58,6 +58,7 @@ const UI = {
   resortTab: 'now',     // The Titanic: which part of the resort is on screen
   resortNote: null,     // {k, v} — a note being typed, held out of the DOM
   resortPlanCat: 'all', // which part of the site plan is labelled
+  resortPin: null,      // which point on the plan is selected, by index
 };
 
 const ROLE_KEY = 'union-invitational:role';
@@ -2298,19 +2299,41 @@ function resortEat() {
 
 /* ---- the plan ---- */
 
+/** The card that opens under the plan when a point is tapped. */
+function pinCard(i) {
+  const p = R.PLAN[i];
+  if (!p) return '';
+  const v = p.vid && R.VENUES.find(x => x.id === p.vid);
+  const name = p.now || p.t;
+  const where = Object.fromEntries(R.PLAN_KEYS)[p.c] || '';
+  return `<div class="pincard" id="pinCard">
+    <div class="vtop"><span class="dotk c-${p.c}"></span><span class="vn">${esc(name)}</span>
+      ${p.now ? `<span class="vc">was ${esc(p.t)}</span>` : ''}
+      ${v && v.cuisine ? `<span class="vc">${esc(v.cuisine)}</span>` : ''}
+      ${v && v.cost === 'cover' ? `<span class="vtag">Cover charge · book ahead</span>` : ''}</div>
+    <p class="tiny">${esc(where)}</p>
+    ${v && v.blurb ? `<p class="vb">${esc(v.blurb)}</p>` : ''}
+    ${v ? hoursCell(v) : ''}
+    <div class="pinacts">
+      <a class="btn ghost sm" href="${esc(R.findUrl(name))}" target="_blank" rel="noopener noreferrer">Find it on Google Maps</a>
+      <button class="btn ghost sm" data-act="resortPin" data-a="">Close</button>
+    </div>
+  </div>`;
+}
+
 function resortPlan() {
   const cat = UI.resortPlanCat || 'all';
-  const B = R.PLAN_BOX;
-  /* The four points everybody navigates by stay named whatever is selected —
-     a plan with no labels at all is a handful of coloured dots. */
+  const sel = UI.resortPin;
+  /* The hotel's own plan, where we have a copy of it. Its points are given as
+     percentages across and down that drawing, so with the art behind them the
+     box IS nought to a hundred on both axes, stretched to whatever shape the
+     picture happens to be. Text cannot be drawn into a box stretched unevenly
+     like that without coming out squashed — and the artwork carries its own
+     names anyway — so on the photographed plan the names live in the card a
+     tap opens, and only the schematic labels itself. */
+  const art = IMG.resortmap || null;
+  const B = art ? { x: 0, y: 0, w: 100, h: 100 } : R.PLAN_BOX;
 
-  /* Half of these points are within a couple of units of a neighbour, so a
-     label drawn at a fixed offset lands on top of the one beside it — which
-     is what "Palm Bar & PatisserieSapore" was. Each name is tried above the
-     dot, then below, then further above and further below, and takes the
-     first slot nothing else has claimed. A name that fits nowhere is left
-     off the drawing; the list underneath carries all forty-nine regardless,
-     so nothing is actually lost by dropping one. */
   /* The type size is settled here and handed to the drawing, rather than set
      in the stylesheet: the placement below measures every name against it,
      and a phone rendering at one size while the maths assumed another is
@@ -2337,7 +2360,7 @@ function resortPlan() {
       const x = p.x + dx;
       const x1 = anc === 'start' ? x : anc === 'end' ? x - w : x - w / 2;
       const x2 = x1 + w;
-      if (x1 < B.x + 0.4 || x2 > B.x + B.w - 0.4) continue;      // off the paper
+      if (x1 < B.x + 1 || x2 > B.x + B.w - 1) continue;        // off the paper
       const box = [x1, x2, p.y + dy - LH * 0.82, p.y + dy + LH * 0.22];
       if (taken.some(q => box[0] < q[1] && box[1] > q[0] && box[2] < q[3] && box[3] > q[2])) continue;
       taken.push(box);
@@ -2348,45 +2371,67 @@ function resortPlan() {
 
   /* Every point is offered a label; the seating above drops the ones with
      nowhere to go, which on a plan this crowded is around half of them. The
-     order is therefore the whole of the editing: the two landmarks first, then
-     whatever group is selected, then everything else in reading order. So the
-     names you asked for are the names you get, and the rest fill the gaps. */
-  const rank = p => (p.key ? 0 : p.c === cat ? 1 : 2);
-  const order = R.PLAN.slice()
+     order is therefore the whole of the editing: the selected point first so
+     a tap always names what it hit, then the two landmarks, then whatever
+     group is chosen, then everything else in reading order. */
+  const rank = p => (R.PLAN[sel] === p ? 0 : p.key ? 1 : p.c === cat ? 2 : 3);
+  const order = art ? [] : R.PLAN.slice()
     .sort((a, b) => rank(a) - rank(b) || a.y - b.y || a.x - b.x);
   const texts = new Map(order.map(p => [p, placeLabel(p)]));
 
-  const dots = R.PLAN.map(p => {
+  const dots = art ? '' : R.PLAN.map((p, i) => {
     const lit = cat === 'all' || p.c === cat;
-    return `<g class="pt c-${p.c}${lit ? ' on' : ''}">
-      <circle cx="${p.x.toFixed(2)}" cy="${p.y.toFixed(2)}" r="${lit ? 1.1 : 0.7}"></circle>
+    return `<g class="pt c-${p.c}${lit ? ' on' : ''}${sel === i ? ' sel' : ''}">
+      <circle class="dot" cx="${p.x.toFixed(2)}" cy="${p.y.toFixed(2)}" r="${lit || sel === i ? 1.1 : 0.7}"></circle>
       ${texts.get(p) || ''}
     </g>`;
   }).join('');
+
+  /* The tap targets are HTML buttons laid over the drawing rather than the
+     SVG circles themselves: a circle a couple of units across is four pixels
+     on a phone, and a real button also focuses and answers the keyboard.
+     The viewBox and the wrapper share an aspect ratio, so there is no
+     letterboxing and a percentage across the box is a percentage across the
+     plan — the two cannot drift. */
+  const pins = R.PLAN.map((p, i) => `<button class="pin${sel === i ? ' on' : ''} c-${p.c}"
+    data-act="resortPin" data-a="${i}" title="${esc(p.now || p.t)}"
+    aria-label="${esc(p.now || p.t)}" aria-pressed="${sel === i}"
+    style="left:${((p.x - B.x) / B.w * 100).toFixed(2)}%;top:${((p.y - B.y) / B.h * 100).toFixed(2)}%"></button>`).join('');
 
   const key = [['all', 'Everything']].concat(R.PLAN_KEYS);
   const label = Object.fromEntries(R.PLAN_KEYS);
   const shown = cat === 'all' ? R.PLAN_KEYS.map(([id]) => id) : [cat];
 
-  const row = p => {
+  const row = (p) => {
+    const i = R.PLAN.indexOf(p);
     const v = p.vid && R.VENUES.find(x => x.id === p.vid);
-    return `<div class="vrow"><div class="vmain"><div class="vtop">
-      <span class="dotk c-${p.c}"></span><span class="vn">${esc(p.now || p.t)}</span>
-      ${p.now ? `<span class="vc">was ${esc(p.t)}</span>` : ''}
-    </div></div>${v ? hoursCell(v) : ''}</div>`;
+    return `<div class="vrow${sel === i ? ' picked' : ''}">
+      <button class="vmain plink" data-act="resortPin" data-a="${sel === i ? '' : i}"><span class="vtop">
+        <span class="dotk c-${p.c}"></span><span class="vn">${esc(p.now || p.t)}</span>
+        ${p.now ? `<span class="vc">was ${esc(p.t)}</span>` : ''}
+      </span></button>${v ? hoursCell(v) : ''}</div>`;
   };
 
-  return `<p class="lede">The hotel’s own site plan, redrawn. The positions are theirs and are true to each other; the distances are not to scale. A few names on their plan are older than their restaurant list — where one has changed, the current name is the one shown.</p>
+  return `<p class="lede">${art
+    ? 'The hotel’s own site plan. Tap any point — on the plan or in the list below — for what it is, when it is open, and a way to find it.'
+    : 'The hotel’s own site plan, redrawn. The positions are theirs and are true to each other; the distances are not to scale. Tap any point — on the plan or in the list below — for what it is and a way to find it.'}</p>
   <div class="pkeys nos">${key.map(([id, l]) =>
     `<button class="pkey${cat === id ? ' on' : ''}" data-act="resortPlanCat" data-a="${id}">${
       id === 'all' ? '' : `<span class="dotk c-${id}"></span>`}${esc(l)}</button>`).join('')}</div>
-  <div class="planwrap">
-    <svg class="plan" viewBox="${B.x} ${B.y} ${B.w} ${B.h}" font-size="${FS}" role="img"
-      aria-label="Schematic plan of the resort">${dots}</svg>
+  <div class="planwrap${art ? ' art' : ''}"${art ? '' : ` style="aspect-ratio:${B.w}/${B.h}"`}>
+    ${art ? `<img class="planimg" src="${art}" alt="The resort’s site plan">` : ''}
+    <svg class="plan" viewBox="${B.x} ${B.y} ${B.w} ${B.h}" font-size="${FS}"
+      preserveAspectRatio="none" role="${art ? 'presentation' : 'img'}"
+      ${art ? 'aria-hidden="true"' : 'aria-label="Schematic plan of the resort"'}>${dots}</svg>
+    <div class="pins">${pins}</div>
   </div>
-  <p class="tiny">${cat === 'all'
-    ? 'Forty-nine points, and only so much paper: a name with nowhere clear to sit is left off the drawing. Pick a colour above and that group is named first.'
-    : `${esc(label[cat])} is named first; the rest fill whatever room is left. Every one of them is in the list below.`}</p>
+  ${sel != null ? pinCard(sel) : `<p class="tiny">${art
+    ? 'Forty-nine points are marked. Tap one for what it is.'
+    : cat === 'all'
+      ? 'Forty-nine points, and only so much paper: a name with nowhere clear to sit is left off the drawing. Pick a colour above and that group is named first.'
+      : `${esc(label[cat])} is named first; the rest fill whatever room is left. Every one of them is in the list below.`}</p>`}
+  <p class="tiny">Google does not hold the resort’s own footpaths, and the book has no satellite fix for a single bar inside the grounds — so “find it on Google Maps” searches for the place by name and lands on the hotel where Google has never heard of it. Within the gates this plan is the better guide.
+    <a href="${esc(R.hotelUrl())}" target="_blank" rel="noopener noreferrer">Walking directions back to the hotel</a> are a real fix, and are the ones to use from outside.</p>
   ${shown.map(id => `
     <h3 class="sub">${esc(label[id])}</h3>
     <div class="vlist plist">${R.PLAN.filter(p => p.c === id)
@@ -3001,7 +3046,8 @@ function onClick(e) {
       return;
     case 'boardTab': UI.boardTab = a; break;
     case 'resortTab': commitResortNote(); UI.resortTab = a; break;
-    case 'resortPlanCat': UI.resortPlanCat = a; break;
+    case 'resortPlanCat': UI.resortPlanCat = a; UI.resortPin = null; break;
+    case 'resortPin': UI.resortPin = a === '' ? null : +a; break;
     case 'resortSeason': setResortSeason(a); break;
     case 'boardRound': UI.boardRound = a; UI.bookHole = 0; break;
     case 'bookHole': UI.bookHole = +a; break;

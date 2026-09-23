@@ -319,6 +319,26 @@ export const PLAN_KEYS = [
   ['shore', 'The shore'],
 ];
 
+/* ---------------- finding it on the ground ----------------
+   Google does not hold the resort's own footpaths, and the book has no
+   satellite fix for any single bar within the grounds — the site plan gives
+   each point only as a percentage across a drawing. So a link out is a
+   SEARCH for the place by name against the hotel, which lands on the venue
+   where Google knows it and on the hotel where it does not, rather than a
+   set of coordinates the book would be making up. The hotel itself is the
+   one thing we do have a real fix for, so that link is a true one. */
+
+export function findUrl(name) {
+  return 'https://www.google.com/maps/search/?api=1&query='
+    + encodeURIComponent(name + ' ' + RESORT.name);
+}
+
+/** Walking directions back to the hotel — from an actual latitude and longitude. */
+export function hotelUrl() {
+  return 'https://www.google.com/maps/dir/?api=1&travelmode=walking&destination='
+    + RESORT.lat + ',' + RESORT.lng;
+}
+
 /* ---------------- things it is useful to know ---------------- */
 
 export const PRACTICAL = [

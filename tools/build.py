@@ -52,6 +52,18 @@ def build_images(force=False):
     d = buf.getvalue()
     open(os.path.join(WEB, 'hero.webp'), 'wb').write(d)
     table['hero'] = 'data:image/webp;base64,' + base64.b64encode(d).decode()
+    # The resort's own site plan, if we have been given a copy of it. The tab
+    # draws its own schematic when we have not, so this is allowed to be absent
+    # and the build must not fall over when it is.
+    plan = os.path.join(SRC, 'assets', 'brand', 'resort-map.jpg')
+    if os.path.exists(plan):
+        im = Image.open(plan).convert('RGB')
+        im.thumbnail((1800, 1800), Image.LANCZOS)
+        buf = io.BytesIO(); im.save(buf, 'WEBP', quality=82, method=6)
+        d = buf.getvalue()
+        open(os.path.join(WEB, 'resortmap.webp'), 'wb').write(d)
+        table['resortmap'] = 'data:image/webp;base64,' + base64.b64encode(d).decode()
+
     crest = os.path.join(SRC, 'assets', 'brand', 'efed30fc-173f-48a7-b168-923ebf5d103f.png')
     im = Image.open(crest).convert('RGBA')
     im.thumbnail((620, 620), Image.LANCZOS)

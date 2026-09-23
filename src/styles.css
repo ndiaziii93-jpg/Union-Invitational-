@@ -1513,10 +1513,58 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
 /* SVG text scales with the box it is drawn in, so a plan allowed to run the
    full width of a desktop window sets its labels at forty points. Capping the
    width is what keeps them readable, at every size. */
-.planwrap{margin-top:12px;border:1px solid var(--rule);background:var(--page);max-width:660px}
-.plan{display:block;width:100%;height:auto}
+.planwrap{position:relative;margin-top:12px;border:1px solid var(--rule);
+  background:var(--page);max-width:660px}
+.plan{display:block;width:100%;height:100%}
 .plan .pbg{fill:var(--page)}
-.plan .pt circle{fill:var(--rule)}
+.plan .pt .dot{fill:var(--rule)}
+
+/* The tap targets sit over the drawing, not in it: a dot two units across is
+   four pixels on a phone, and a button focuses and answers a keyboard where
+   an SVG circle does not. Thirty-two pixels is the smallest honest target;
+   they do overlap in the crowded middle, which is what the list below is
+   for — picking from it is exact. */
+/* With the hotel's artwork behind them the drawing has no shape of its own:
+   the picture sets the height and everything else is laid over it. */
+.planwrap.art{background:var(--paper)}
+.planimg{display:block;width:100%;height:auto}
+.planwrap.art .plan{position:absolute;inset:0}
+.pins{position:absolute;inset:0}
+.pin{position:absolute;width:32px;height:32px;margin:-16px 0 0 -16px;padding:0;
+  border:none;background:none;border-radius:50%}
+.pin::after{content:'';position:absolute;inset:8px;border-radius:50%}
+.planwrap.art .pin::after{inset:10px;border:1.5px solid var(--page);
+  box-shadow:0 1px 3px var(--shadow)}
+.planwrap.art .pin.c-core::after{background:var(--ink)}
+.planwrap.art .pin.c-stay::after{background:var(--turf)}
+.planwrap.art .pin.c-eat::after{background:var(--gold)}
+.planwrap.art .pin.c-play::after{background:var(--green)}
+.planwrap.art .pin.c-shore::after{background:var(--flag)}
+.planwrap.art .pin.on::after{inset:6px;box-shadow:0 0 0 2px var(--page),0 0 0 4px var(--ink)}
+.pin.on::after{box-shadow:0 0 0 2px var(--page),0 0 0 4px var(--ink)}
+.pin:focus-visible{outline:none}
+.pin:focus-visible::after{box-shadow:0 0 0 2px var(--page),0 0 0 4px var(--flag)}
+@media (hover:hover) and (pointer:fine){
+  .pin:hover::after{box-shadow:0 0 0 2px var(--page),0 0 0 3px var(--turf)}
+}
+.plan .pt.sel .dot{stroke:var(--ink);stroke-width:.5px}
+.plan .pt.sel text{font-weight:700}
+
+/* the card the tap opens */
+.pincard{margin-top:12px;padding:14px 16px;background:var(--page);
+  border:1px solid var(--rule);border-left:4px solid var(--ink);max-width:660px}
+.pincard .tiny{margin:2px 0 0}
+.pincard .vb{margin-top:8px}
+.pincard .hrs,.pincard .hrs.two{flex:none;text-align:left;justify-content:flex-start;margin-top:8px}
+.pinacts{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.pinacts .btn{text-decoration:none}
+
+/* a row in the list is a way of picking a point, so it has to look like one */
+.plink{display:block;width:100%;text-align:left;background:none;border:none;
+  padding:0;min-height:32px}
+.plink .vtop{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+@media (hover:hover) and (pointer:fine){ .plink:hover .vn{text-decoration:underline} }
+.vrow.picked{background:var(--page);box-shadow:inset 3px 0 0 var(--ink);padding-left:10px}
 .plan .pt text{font-family:var(--serif);fill:var(--ink);
   paint-order:stroke;stroke:var(--page);stroke-width:.9px;stroke-linejoin:round}
 .plan .pt.on.c-core circle,.dotk.c-core{fill:var(--ink);background:var(--ink)}
