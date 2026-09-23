@@ -99,6 +99,27 @@ ok('it sits above the heading', plate && plate.beforeHeading, 1);
 ok('it says what it is, for a reader who cannot see it', plate && plate.described, true);
 ok('and carries a caption', plate && plate.captioned, true);
 
+/* Nothing on the page should show its own markup. An ampersand handed to a
+   function that escapes its argument comes out as "Bars &amp;amp; cafes". */
+await pg.click('[data-act="resortTab"][data-a="eat"]');
+const raw = await pg.evaluate(() => document.getElementById('app').innerText);
+ok('no escaped markup leaks into the type', /&(amp|lt|gt|quot|#39);/.test(raw), false);
+
+/* Three blocks, and the one that will put a charge on the room has to be
+   visibly a different thing on the page rather than another heading. */
+const blocks = await pg.evaluate(() => {
+  const g = [...document.querySelectorAll('.vgroup')];
+  const bg = e => getComputedStyle(e).backgroundColor;
+  const cover = document.querySelector('.vg-cover');
+  return { n: g.length, heads: g.map(e => e.querySelector('.vghead h3').innerText),
+           tinted: cover ? bg(cover) !== bg(document.querySelector('.vg-inc')) : false,
+           counted: g.every(e => /\d+ place/i.test(e.querySelector('.vgn').innerText)) };
+});
+ok('eating and drinking comes in three blocks', blocks.n, 3);
+ok('named for what they cost', blocks.heads, ['Included', 'Charged extra', 'Bars & cafés']);
+ok('the charged one is tinted apart from the rest', blocks.tinted, true);
+ok('and each says how many places are in it', blocks.counted, true);
+
 /* The season switch re-times everything under it. */
 await pg.click('[data-act="resortSeason"][data-a="winter"]');
 await pg.click('[data-act="resortTab"][data-a="eat"]');
@@ -122,6 +143,16 @@ ok('a note survives leaving the tab',
 /* ---- 4. the plan ---- */
 await pg.click('[data-act="resortTab"][data-a="plan"]');
 ok('the hotel’s own artwork is what gets drawn', await pg.locator('.planimg').count(), 1);
+
+/* The key dots were sitting against their own labels. */
+const keygap = await pg.evaluate(() => {
+  const k = [...document.querySelectorAll('.pkey')].find(e => e.querySelector('.dotk'));
+  const d = k.querySelector('.dotk').getBoundingClientRect();
+  const r = document.createRange();
+  r.selectNodeContents(k); r.setStart(k, 1);
+  return Math.round(r.getBoundingClientRect().left - d.right);
+});
+ok('a key dot is clear of its own label', keygap >= 6, true);
 
 /* The points are percentages across and down THAT picture, so a handful of
    landmarks have to land where they belong on it. This is the check that
@@ -156,6 +187,26 @@ ok('and a Google Maps link naming the place and the hotel',
 const back = await pg.locator('a[href*="maps/dir"]').first().getAttribute('href');
 ok('and walking directions back to a real latitude and longitude',
   back.includes('travelmode=walking') && back.includes('36.86854,30.97629'), true);
+
+/* Choosing a point is a request to see it closely, so the plan goes in —
+   and the point has to still be on screen when it gets there. */
+const zoomed = await pg.evaluate(() => {
+  const w = document.querySelector('.planwrap'), s = document.querySelector('.planstage');
+  const p = document.querySelector('.pin.on').getBoundingClientRect(), r = w.getBoundingClientRect();
+  return { wide: s.getBoundingClientRect().width > r.width * 1.8,
+           tall: w.scrollHeight > w.clientHeight + 1,
+           inView: p.left > r.left && p.right < r.right && p.top > r.top && p.bottom < r.bottom };
+});
+ok('a tap takes the plan in close', zoomed.wide, true);
+ok('far enough that it has to be dragged in both directions', zoomed.tall, true);
+ok('and the point chosen is what you are looking at', zoomed.inView, true);
+ok('with a way back out', await pg.locator('[data-act="resortZoom"][data-a="fit"]').count(), 1);
+await pg.click('[data-act="resortZoom"][data-a="fit"]');
+await pg.waitForTimeout(250);
+ok('which shows the whole plan again', await pg.evaluate(() => {
+  const w = document.querySelector('.planwrap');
+  return w.scrollHeight <= w.clientHeight + 1;
+}), true);
 
 await pg.click('#pinCard [data-act="resortPin"]');
 await pg.waitForTimeout(150);

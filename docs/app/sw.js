@@ -1,5 +1,5 @@
 /* The Union Invitational — offline shell.
-   Build 20260923-1929.
+   Build 20260923-2008.
 
    The book is one file, so there is little to cache and no dependency graph
    to get wrong. The page itself is served network-first, so a phone picks up
@@ -10,7 +10,7 @@
    Anything that is not a GET — every score, every photo — is left entirely
    alone. Writes are the store's business, and it queues them itself. */
 
-const CACHE = 'union-20260923-1929';
+const CACHE = 'union-20260923-2008';
 const SHELL = ['./', './index.html', './manifest.webmanifest',
                './icon-192.png', './icon-512.png', './apple-touch-icon.png',
                './fonts/source-serif-latin-normal.woff2',

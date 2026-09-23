@@ -59,6 +59,7 @@ const UI = {
   resortNote: null,     // {k, v} — a note being typed, held out of the DOM
   resortPlanCat: 'all', // which part of the site plan is labelled
   resortPin: null,      // which point on the plan is selected, by index
+  resortZoom: 1,        // how far into the site plan we are — 1 is the whole thing
 };
 
 const ROLE_KEY = 'union-invitational:role';
@@ -2272,28 +2273,40 @@ function resortNow() {
 function resortEat() {
   const season = resortSeason();
   const shutNow = v => season ? !R.slots(v, season) : false;
-  const group = (title, blurb, list) => !list.length ? '' : `
-    <h3 class="sub">${esc(title)}</h3>
-    ${blurb ? `<p class="lede">${blurb}</p>` : ''}
-    <div class="vlist">${list.map(v => `<div class="vrow${shutNow(v) ? ' out' : ''}">
-      <div class="vmain">
-        <div class="vtop"><span class="vn">${esc(v.name)}</span>
-          ${v.cuisine ? `<span class="vc">${esc(v.cuisine)}</span>` : ''}
-          ${v.tag ? `<span class="vtag">${esc(v.tag)}</span>` : ''}</div>
-        ${v.blurb ? `<p class="vb">${esc(v.blurb)}</p>` : ''}
-        ${v.note ? `<p class="vb warn">${esc(v.note)}</p>` : ''}
-      </div>
-      ${hoursCell(v)}
-    </div>`).join('')}</div>`;
+
+  /* Three kinds of place, and the difference between them is the whole
+     point of the page — one of them will put a charge on the room. So each
+     is a block of its own with a banded head, rather than three lists in a
+     row separated by nothing but a heading. The charged block is tinted the
+     banner green, faintly: enough to be a different thing on the page,
+     not so much that the type has to fight it. */
+  const group = (key, title, lead, list) => !list.length ? '' : `
+    <section class="vgroup vg-${key}">
+      <header class="vghead">
+        <h3>${esc(title)}</h3>
+        <span class="vgn">${list.length} ${list.length === 1 ? 'place' : 'places'}</span>
+      </header>
+      ${lead ? `<p class="vglead">${lead}</p>` : ''}
+      <div class="vlist">${list.map(v => `<div class="vrow${shutNow(v) ? ' out' : ''}">
+        <div class="vmain">
+          <div class="vtop"><span class="vn">${esc(v.name)}</span>
+            ${v.cuisine ? `<span class="vc">${esc(v.cuisine)}</span>` : ''}
+            ${v.tag ? `<span class="vtag">${esc(v.tag)}</span>` : ''}</div>
+          ${v.blurb ? `<p class="vb">${esc(v.blurb)}</p>` : ''}
+          ${v.note ? `<p class="vb warn">${esc(v.note)}</p>` : ''}
+        </div>
+        ${hoursCell(v)}
+      </div>`).join('')}</div>
+    </section>`;
 
   const inc = R.VENUES.filter(v => v.cost === 'inc' && ['buffet', 'alacarte', 'snack'].includes(v.kind));
   const cov = R.VENUES.filter(v => v.cost === 'cover' && v.kind === 'alacarte');
   const bar = R.VENUES.filter(v => ['bar', 'cafe'].includes(v.kind));
 
   return `<p class="lede">Thirty-two places to eat and drink. What is included, what is not, and when each of them is actually open.</p>
-  ${group('Included', 'No booking, no bill.', inc)}
-  ${group('Cover charge', 'The hotel’s own site marks every one of these “paid à la carte, reservations required, cover charge applies”. The golf company said otherwise. Ask at reception before anyone orders.', cov)}
-  ${group('Bars &amp; cafés', '', bar)}
+  ${group('inc', 'Included', 'Walk in, sit down, no bill. Nothing here needs booking.', inc)}
+  ${group('cover', 'Charged extra', 'The hotel’s own site marks every one of these <b>“paid à la carte, reservations required, cover charge applies”</b>. The golf company told us otherwise. Nobody should assume until it has been asked at reception — and whoever asks should write the answer in at the bottom of this page.', cov)}
+  ${group('bar', 'Bars & cafés', 'All included.', bar)}
   ${resortNote('eat', 'Bookings and verdicts', 'Who booked what, what it cost, and whether it was worth it.')}`;
 }
 
@@ -2333,6 +2346,7 @@ function resortPlan() {
      tap opens, and only the schematic labels itself. */
   const art = IMG.resortmap || null;
   const B = art ? { x: 0, y: 0, w: 100, h: 100 } : R.PLAN_BOX;
+  const z = art ? (UI.resortZoom || 1) : 1;
 
   /* The type size is settled here and handed to the drawing, rather than set
      in the stylesheet: the placement below measures every name against it,
@@ -2419,7 +2433,14 @@ function resortPlan() {
   <div class="pkeys nos">${key.map(([id, l]) =>
     `<button class="pkey${cat === id ? ' on' : ''}" data-act="resortPlanCat" data-a="${id}">${
       id === 'all' ? '' : `<span class="dotk c-${id}"></span>`}${esc(l)}</button>`).join('')}</div>
-  <div class="planwrap${art ? ' art nos' : ''}">
+  ${art ? `<div class="zoomrow">
+    <button class="zb" data-act="resortZoom" data-a="out"${z <= 1 ? ' disabled' : ''} aria-label="Zoom out">−</button>
+    <span class="zn num">${z === 1 ? 'Whole plan' : '×' + z.toFixed(1)}</span>
+    <button class="zb" data-act="resortZoom" data-a="in"${z >= 3 ? ' disabled' : ''} aria-label="Zoom in">+</button>
+    ${z > 1 ? `<button class="zb wide" data-act="resortZoom" data-a="fit">Show the whole plan</button>` : ''}
+    <span class="tiny">${z > 1 ? 'Drag the plan to move about.' : 'Tap a point, or a name in the list, to go in close.'}</span>
+  </div>` : ''}
+  <div class="planwrap${art ? ' art nos' : ''}${art && z > 1 ? ' zoomed' : ''}"${art ? ` style="--z:${z}"` : ''}>
     <div class="planstage"${art ? '' : ` style="aspect-ratio:${B.w}/${B.h}"`}>
       ${art ? `<img class="planimg" src="${art}" alt="An illustrated plan of the resort, the sea along one side and the river along the other">` : ''}
       ${art ? '' : `<svg class="plan" viewBox="${B.x} ${B.y} ${B.w} ${B.h}" font-size="${FS}"
@@ -2501,8 +2522,8 @@ function scrResort() {
      own — a band of photograph above the heading rather than a heading laid
      over a photograph. The book is a printed thing and behaves like one. */
   return `${IMG.resorthero ? `<figure class="rhero">
-    <img src="${IMG.resorthero}" alt="The resort at dusk, seen across the Beşgöz river: the hotel lit up, the riverside restaurants along the water, pine forest in the foreground">
-    <figcaption>Titanic Deluxe Golf Belek from across the Beşgöz, at dusk. The lit terraces along the water are the à la carte restaurants.</figcaption>
+    <img src="${IMG.resorthero}" alt="The hotel lobby: white arches on tall columns, a shallow water channel running through planting on one side, a broad marble staircase on the other">
+    <figcaption>The lobby. The water channel runs through it, and the stairs on the right go up to reception — which is where to ask which season the resort is running.</figcaption>
   </figure>` : ''}
   <h2 class="head">The Titanic</h2>
   <p class="lede">Titanic Deluxe Golf Belek — the other side of the week. Read off the hotel’s own book in September; corrected by whoever gets there first.</p>
@@ -2556,6 +2577,7 @@ function restoreFocus(f) {
    So while a control is genuinely in use, the redraw waits. */
 let renderPending = false;
 let pinShown = null;     // the point the site plan was last scrolled to
+let zoomShown = 1;       // and how far in it was when that happened
 function inUse() {
   const el = document.activeElement;
   if (!el || !document.getElementById('app')) return false;
@@ -2596,7 +2618,7 @@ function paint() {
      sub-tab at the far right took you to the right page and then snapped the
      row back to Team Comp. The same screen rebuilds to the same shape, so
      each strip is put back where it was. */
-  const strips = [...document.querySelectorAll('.btabs, .scroller, .planwrap')].map(el => el.scrollLeft);
+  const strips = [...document.querySelectorAll('.btabs, .scroller, .planwrap')].map(el => [el.scrollLeft, el.scrollTop]);
   /* A rule opened to be read was closing itself after fifteen seconds. The
      book redraws on a timer, and a redraw replaces the whole tree — taking
      the <details> open with it. Which ones were open is remembered by id. */
@@ -2671,17 +2693,19 @@ function paint() {
   opened.forEach(id => { const el = document.getElementById(id); if (el) el.open = true; });
 
   const strips2 = [...document.querySelectorAll('.btabs, .scroller, .planwrap')];
-  strips2.forEach((el, i) => { if (strips[i]) el.scrollLeft = strips[i]; });
+  strips2.forEach((el, i) => { if (strips[i]) { el.scrollLeft = strips[i][0]; el.scrollTop = strips[i][1]; } });
   /* The site plan is a panorama four times as wide as it is tall, so on a
      phone most of it is off the side. Picking a point out of the list has to
      bring it into view — otherwise the map appears not to have answered.
      Only on the tap that changes the selection, so it never fights a drag. */
-  if (UI.resortPin !== pinShown) {
-    pinShown = UI.resortPin;
+  if (UI.resortPin !== pinShown || UI.resortZoom !== zoomShown) {
+    pinShown = UI.resortPin; zoomShown = UI.resortZoom;
     const wrap = document.querySelector('.planwrap');
     const pin = document.querySelector('.pin.on');
-    if (wrap && pin && wrap.scrollWidth > wrap.clientWidth + 1) {
-      wrap.scrollLeft = pin.offsetLeft + pin.offsetWidth / 2 - wrap.clientWidth / 2;
+    if (wrap && pin) {
+      const cx = pin.offsetLeft + pin.offsetWidth / 2, cy = pin.offsetTop + pin.offsetHeight / 2;
+      if (wrap.scrollWidth > wrap.clientWidth + 1) wrap.scrollLeft = cx - wrap.clientWidth / 2;
+      if (wrap.scrollHeight > wrap.clientHeight + 1) wrap.scrollTop = cy - wrap.clientHeight / 2;
     }
   }
   /* And whatever was just chosen has to be visible, even if it was off the
@@ -3069,7 +3093,18 @@ function onClick(e) {
     case 'boardTab': UI.boardTab = a; break;
     case 'resortTab': commitResortNote(); UI.resortTab = a; break;
     case 'resortPlanCat': UI.resortPlanCat = a; UI.resortPin = null; break;
-    case 'resortPin': UI.resortPin = a === '' ? null : +a; break;
+    /* Choosing a point is a request to look at it closely. From the whole
+       plan that means going in; from a level somebody has already chosen it
+       means staying there and moving across. Letting go zooms back out. */
+    case 'resortPin':
+      if (a === '') { UI.resortPin = null; UI.resortZoom = 1; }
+      else { UI.resortPin = +a; if (UI.resortZoom < 2) UI.resortZoom = 2.4; }
+      break;
+    case 'resortZoom':
+      UI.resortZoom = a === 'fit' ? 1
+        : a === 'in' ? Math.min(3, Math.round((UI.resortZoom + 0.7) * 10) / 10)
+        : Math.max(1, Math.round((UI.resortZoom - 0.7) * 10) / 10);
+      break;
     case 'resortSeason': setResortSeason(a); break;
     case 'boardRound': UI.boardRound = a; UI.bookHole = 0; break;
     case 'bookHole': UI.bookHole = +a; break;
