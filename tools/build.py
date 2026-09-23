@@ -55,11 +55,15 @@ def build_images(force=False):
     # The resort's own site plan, if we have been given a copy of it. The tab
     # draws its own schematic when we have not, so this is allowed to be absent
     # and the build must not fall over when it is.
-    plan = os.path.join(SRC, 'assets', 'brand', 'resort-map.jpg')
+    # The site plan is the one picture in the book that gets magnified, so it
+    # keeps every pixel it came with. It used to be shrunk to 1800 and then
+    # squeezed at quality 82 on top of an already lossy JPEG, and the zoom was
+    # magnifying the compression as much as the drawing. The master is the
+    # lossless PNG now, kept at its own size, encoded once and gently.
+    plan = os.path.join(SRC, 'assets', 'brand', 'resort-map.png')
     if os.path.exists(plan):
         im = Image.open(plan).convert('RGB')
-        im.thumbnail((1800, 1800), Image.LANCZOS)
-        buf = io.BytesIO(); im.save(buf, 'WEBP', quality=82, method=6)
+        buf = io.BytesIO(); im.save(buf, 'WEBP', quality=95, method=6)
         d = buf.getvalue()
         open(os.path.join(WEB, 'resortmap.webp'), 'wb').write(d)
         table['resortmap'] = 'data:image/webp;base64,' + base64.b64encode(d).decode()

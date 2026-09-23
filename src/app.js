@@ -2462,8 +2462,14 @@ function venueModalHtml() {
         + ' Opening it puts the plan beside the lobby, so you can see how far it is.'
       : 'Not marked on the hotel’s plan — it names forty-nine places and this is not one of them.'}</p>
     <div class="acts">
-      ${p ? `<button class="btn" data-act="resortShowOnMap" data-a="${i}">Show me on the plan</button>` : ''}
-      <a class="btn ghost" href="${esc(R.findUrl(v.name))}" target="_blank" rel="noopener noreferrer">Google Maps</a>
+      ${p
+        /* Our own plan first and alone. Somebody asking where the Noble Irish
+           is wants to see it on the resort, not be thrown out to a street map
+           that does not know the resort's paths. Google is offered on the
+           plan itself, once you are looking at the right place — and here
+           only for the fourteen the hotel never marked. */
+        ? `<button class="btn" data-act="resortShowOnMap" data-a="${i}">Show me on the plan</button>`
+        : `<a class="btn" href="${esc(R.findUrl(v.name))}" target="_blank" rel="noopener noreferrer">Try it on Google Maps</a>`}
       <button class="btn ghost" data-act="modalCancel">Close</button>
     </div>
   </div></div>`;

@@ -111,8 +111,11 @@ await pg.locator('.vcard').first().click();
 await pg.waitForTimeout(250);
 ok('a square opens a window on the place', await pg.locator('.venuemodal').count(), 1);
 ok('with its hours in it', await pg.locator('.venuemodal .hrs').count(), 1);
-ok('and a way out to Google Maps',
-  (await pg.locator('.venuemodal a').getAttribute('href')).includes('google.com/maps'), true);
+/* The way in is our own plan, not a street map that has never heard of the
+   resort's footpaths. Google is offered on the plan itself, once you are
+   looking at the right place. */
+ok('and exactly one way on from it',
+  await pg.locator('.venuemodal .acts .btn:not(.ghost)').count(), 1);
 await pg.click('.venuemodal [data-act="modalCancel"]');
 await pg.waitForTimeout(200);
 ok('and it closes', await pg.locator('.venuemodal').count(), 0);
@@ -127,11 +130,15 @@ ok('a row in the full list opens the same window',
   await pg.locator('.venuemodal h3').innerText(), 'Main Restaurant');
 ok('and offers to show it on the plan',
   await pg.locator('[data-act="resortShowOnMap"]').count(), 1);
+ok('and does not send you to Google instead',
+  await pg.locator('.venuemodal a[href*="google"]').count(), 0);
 await pg.click('[data-act="resortShowOnMap"]');
 await pg.waitForTimeout(500);
 ok('which goes to the plan', await pg.locator('.btab.on').innerText(), 'The grounds');
 ok('closing the window behind it', await pg.locator('.venuemodal').count(), 0);
 ok('with that place named on it', await pg.locator('.pin.on .pinlabel').innerText(), 'Main Restaurant');
+ok('and the card on the plan is where Google is offered',
+  await pg.locator('#pinCard a[href*="google.com/maps"]').count(), 1);
 /* "How far is that from me" cannot be answered without something known to
    measure against, so the landmarks keep their names too. */
 ok('and the landmarks named beside it, to judge the distance by',
@@ -146,8 +153,71 @@ await pg.waitForTimeout(250);
 ok('a place the plan does not mark offers no pin',
   await pg.locator('[data-act="resortShowOnMap"]').count(), 0);
 ok('and says why', (await pg.locator('.venuemodal').innerText()).includes('Not marked'), true);
+/* Only then is Google any use, and only then is it offered. */
+ok('falling back to Google, which is what it is for',
+  await pg.locator('.venuemodal a[href*="google.com/maps"]').count(), 1);
 await pg.click('.venuemodal [data-act="modalCancel"]');
 await pg.waitForTimeout(200);
+
+/* The Floating Disco's tag reads "Cover charge · book ahead", which is wider
+   than a card in a two-column grid on a phone. Set not to wrap, it did not
+   overflow the card so much as shove the whole grid past the side of the
+   page. Checked at the hour that venue is the one serving. */
+{
+  const wee = await b.newPage({ viewport: { width: 440, height: 900 } });
+  await wee.addInitScript(() => {
+    const fixed = Date.UTC(2026, 9, 28, 20, 40);        // 23:40 at the resort
+    const D = Date;
+    window.Date = class extends D {
+      constructor(...a) { super(...(a.length ? a : [fixed])); }
+      static now() { return fixed; }
+    };
+  });
+  await wee.goto('file://' + S + '/rt.html');
+  await wee.waitForTimeout(4200);
+  for (let i = 0; i < 6; i++) { const d = wee.locator('[data-act="modalCancel"]');
+    if (await d.count()) { await d.first().click({ force: true }); await wee.waitForTimeout(150); } else break; }
+  await wee.click('[data-act="go"][data-a="resort"]');
+  await wee.click('[data-act="resortSeason"][data-a="summer"]');
+  await wee.waitForTimeout(400);
+  const names = await wee.locator('.vcard .vn').allInnerTexts();
+  ok('the late-night card is the one on test', names.includes('Floating Disco'), true);
+  const over = await wee.evaluate(() => {
+    const e = document.documentElement;
+    const tag = [...document.querySelectorAll('.vcard')]
+      .find(c => c.innerText.includes('Floating Disco'));
+    const cs = getComputedStyle(tag), r = tag.getBoundingClientRect();
+    const inner = r.width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    const t = tag.querySelector('.vtag').getBoundingClientRect();
+    return { page: Math.round(e.scrollWidth - e.clientWidth), spill: Math.round(t.width - inner) };
+  });
+  ok('its tag stays inside the card', over.spill <= 0, true);
+  ok('and nothing is pushed off the side of the page', over.page, 0);
+
+  /* It fits in THIS engine, at this size, in this font. It was reported not
+     fitting in Safari, which cannot be run here and whose metrics are its
+     own. So the thing tested is not that it happens to fit — it is that it
+     CANNOT do anything else: the tag is allowed to wrap and is bounded by
+     its card. Made a third again as wide, which is more than any font
+     substitution would do, it still has to stay in the box. */
+  const stress = await wee.evaluate(() => {
+    const st = document.createElement('style');
+    st.textContent = '.vtag{font-size:15px!important;letter-spacing:.14em!important}';
+    document.head.appendChild(st);
+    const c = [...document.querySelectorAll('.vcard')].find(x => x.innerText.includes('Floating Disco'));
+    const cs = getComputedStyle(c), r = c.getBoundingClientRect();
+    const inner = r.width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    const t = c.querySelector('.vtag');
+    const e = document.documentElement;
+    return { canWrap: getComputedStyle(t).whiteSpace !== 'nowrap',
+             spill: Math.round(t.getBoundingClientRect().width - inner),
+             page: Math.round(e.scrollWidth - e.clientWidth) };
+  });
+  ok('the tag is allowed to wrap rather than run on', stress.canWrap, true);
+  ok('so a wider font still cannot burst the card', stress.spill <= 0, true);
+  ok('nor push the page sideways', stress.page, 0);
+  await wee.close();
+}
 
 /* Nothing on the page should show its own markup. An ampersand handed to a
    function that escapes its argument comes out as "Bars &amp;amp; cafes". */

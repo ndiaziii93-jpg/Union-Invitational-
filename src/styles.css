@@ -1562,7 +1562,7 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
 .vcard.cover{border-left:3px solid var(--gold)}
 .vcard .vtop{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
 .vcard .vwhen{display:block;margin-top:4px;font-size:15px;color:var(--turf)}
-.vcard .vtag{display:inline-block;margin-top:7px}
+.vcard .vtag{display:inline-block;margin-top:7px;white-space:normal;line-height:1.5}
 .vcard::after{content:'›';position:absolute;top:10px;right:11px;font-size:20px;
   line-height:1;color:var(--rule)}
 @media (hover:hover) and (pointer:fine){
@@ -1580,7 +1580,9 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
 .vn{font-size:18px;font-weight:700}
 .vc{font-size:14px;color:var(--turf);font-style:italic}
 .vtag{font-size:11px;letter-spacing:.07em;text-transform:uppercase;font-family:var(--mono);
-  color:var(--gold);border:1px solid var(--gold);padding:1px 6px;white-space:nowrap}
+  color:var(--gold);border:1px solid var(--gold);padding:1px 6px;white-space:nowrap;
+  max-width:100%;overflow-wrap:anywhere}
+.vcard .vtag{white-space:normal;line-height:1.5}
 .vtag.warmtag{color:var(--flag);border-color:var(--flag)}
 .vb{margin:4px 0 0;font-size:15px;color:var(--turf);max-width:68ch;line-height:1.55}
 .vb.warn{color:var(--flag)}
