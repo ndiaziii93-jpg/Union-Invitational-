@@ -1370,7 +1370,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20260923-0814';
+const BUILD = '20260923-1015';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -3223,7 +3223,15 @@ function createStore(onChange) {
           emptySeq.people++;                          // any pending confirmation is stale
           peopleLoaded = true; rosterInDocs = true;
           T.config.people = rows.map(normPerson).sort(byOrder);
-        } else if (rosterInDocs) confirmEmpty('people');
+        } else confirmEmpty('people');
+        /* An empty snapshot used to be ignored outright unless the config had
+           already told us the roster lives in documents — and on a reload the
+           collection can report before the config has arrived, so the flag is
+           not known yet. The snapshot was dropped, the config's stale mirror
+           landed a moment later, and nothing ever came back to correct it: a
+           golfer removed yesterday was on the roster again today.
+           It is always confirmed now. The confirmation is what is careful —
+           it only replaces the roster when it FINDS one. */
         settle();
         notify();
         splitOutRoster();
@@ -3310,12 +3318,20 @@ function createStore(onChange) {
         if (coll === 'photos') { T.photos = mergeDocs('photos', T.photos, have.docs); notify(); return; }
         if (coll === 'bbb') { T.bbb = mergeDocs('bbb', T.bbb, have.docs); notify(); return; }
         if (coll === 'notes') { T.notes = mergeDocs('notes', T.notes, have.docs); notify(); return; }
+        /* A read that finds documents is the answer. A read that finds none
+           is only the answer once the config has said documents are where
+           the roster lives — otherwise it is a collection that has not
+           loaded yet, and taking it at its word empties the book. */
         if (coll === 'people') {
-          if (have.docs.length) peopleLoaded = true;
-          T.config.people = takeRows('people', have.docs, T.config.people).map(normPerson).sort(byOrder);
+          if (have.docs.length) { peopleLoaded = true; rosterInDocs = true; }
+          if (have.docs.length || rosterInDocs) {
+            T.config.people = takeRows('people', have.docs, T.config.people).map(normPerson).sort(byOrder);
+          }
         } else {
           if (have.docs.length) pairsLoaded = true;
-          T.config.pairs = takeRows('pairs', have.docs, T.config.pairs).map(normPair).sort(byOrder);
+          if (have.docs.length || rosterInDocs) {
+            T.config.pairs = takeRows('pairs', have.docs, T.config.pairs).map(normPair).sort(byOrder);
+          }
         }
         notify();
       } catch (e) { /* keep the roster we have: an empty book is the worse guess */ }
@@ -3371,15 +3387,44 @@ function createStore(onChange) {
     }
   }
 
-  /** One-time move of a roster still stored as lists inside the config. Runs
-   *  only when the people collection is genuinely empty, so it cannot undo
-   *  anybody's work. */
+  /** One-time move of a roster still stored as lists inside the config.
+   *
+   * This is the most dangerous function in the book, because what it does
+   * when it is wrong is WRITE THE CONFIG'S MIRROR BACK AS DOCUMENTS — and
+   * that mirror is a snapshot of the roster as it was before anybody was
+   * ever removed. Getting it wrong resurrects the dead.
+   *
+   * It used to decide on a single read. If that read came back empty — a
+   * page that has only just loaded, a request that landed during a
+   * reconnect, an error shaped like no rows — it wrote fifteen people over a
+   * roster of fourteen and the golfer who had been taken off was back. That
+   * is exactly the fault `seedIfTrulyEmpty` was given its second opinion
+   * for; this is the same discipline, arrived at the same way.
+   *
+   * Four things now have to agree that the roster has never been split out:
+   *
+   *   the config's own flag does not already say the documents win;
+   *   no people document has been seen at any point this page load;
+   *   a read finds the collection empty;
+   *   and a SECOND read, a beat later, still finds it empty.
+   *
+   * Any of them dissenting and the mirror is dropped rather than written.
+   * The cost of being wrong in that direction is a roster that stays in the
+   * config for another page load. The cost of being wrong in the other
+   * direction is somebody's deletion undone, silently, on a phone. */
   async function splitOutRoster() {
     if (splitDone || !settled || mode !== 'db' || !legacy) return;
+    if (rosterInDocs || peopleLoaded) { legacy = null; return; }
     splitDone = true;
     try {
       const have = await db.collection('people').get();
       if (have.docs.length) { legacy = null; return; }   // somebody already did it
+      /* A second opinion, after a beat, and the flags re-read — a snapshot
+         may well have arrived while the first read was in flight. */
+      await new Promise(r => setTimeout(r, 1200));
+      if (rosterInDocs || peopleLoaded || !legacy) { legacy = null; return; }
+      const again = await db.collection('people').get();
+      if (again.docs.length) { legacy = null; return; }
       await writeRoster(legacy.people, legacy.pairs);
       legacy = null;
       peopleLoaded = pairsLoaded = true;
