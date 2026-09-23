@@ -78,6 +78,27 @@ await pg.click('[data-act="go"][data-a="resort"]');
 ok('and opens on what is serving now',
   await pg.locator('.btab.on').innerText(), 'Right now');
 
+/* The plate at the head of the guide: a photograph with a line of type under
+   it, above the heading — set the way the Today page sets its own, not as a
+   heading dropped on a picture. */
+const plate = await pg.evaluate(() => {
+  const f = document.querySelector('.rhero');
+  if (!f) return null;
+  const img = f.querySelector('img'), cap = f.querySelector('figcaption');
+  const h = document.querySelector('.head');
+  return { h: Math.round(img.getBoundingClientRect().height),
+           described: (img.alt || '').length > 40,
+           captioned: !!cap && cap.innerText.length > 20,
+           beforeHeading: f.compareDocumentPosition(h) & Node.DOCUMENT_POSITION_FOLLOWING ? 1 : 0,
+           loaded: img.naturalWidth > 600 };
+});
+ok('the guide opens on a plate', !!plate, true);
+ok('the photograph actually loaded', plate && plate.loaded, true);
+ok('it is a band, not a page', plate && plate.h > 150 && plate.h < 320, true);
+ok('it sits above the heading', plate && plate.beforeHeading, 1);
+ok('it says what it is, for a reader who cannot see it', plate && plate.described, true);
+ok('and carries a caption', plate && plate.captioned, true);
+
 /* The season switch re-times everything under it. */
 await pg.click('[data-act="resortSeason"][data-a="winter"]');
 await pg.click('[data-act="resortTab"][data-a="eat"]');

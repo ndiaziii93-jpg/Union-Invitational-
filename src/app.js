@@ -2497,7 +2497,14 @@ function scrResort() {
   const tabs = [['now', 'Right now'], ['eat', 'Eat &amp; drink'], ['plan', 'The grounds'],
                 ['spa', 'Spa &amp; pools'], ['prac', 'Practical']];
   const body = { now: resortNow, eat: resortEat, plan: resortPlan, spa: resortSpa, prac: resortPractical }[UI.resortTab] || resortNow;
-  return `<h2 class="head">The Titanic</h2>
+  /* A plate at the head of the guide, set the way the Today page sets its
+     own — a band of photograph above the heading rather than a heading laid
+     over a photograph. The book is a printed thing and behaves like one. */
+  return `${IMG.resorthero ? `<figure class="rhero">
+    <img src="${IMG.resorthero}" alt="The resort at dusk, seen across the Beşgöz river: the hotel lit up, the riverside restaurants along the water, pine forest in the foreground">
+    <figcaption>Titanic Deluxe Golf Belek from across the Beşgöz, at dusk. The lit terraces along the water are the à la carte restaurants.</figcaption>
+  </figure>` : ''}
+  <h2 class="head">The Titanic</h2>
   <p class="lede">Titanic Deluxe Golf Belek — the other side of the week. Read off the hotel’s own book in September; corrected by whoever gets there first.</p>
   ${seasonBand()}
   <div class="btabs nos">${tabs.map(([id, l]) =>

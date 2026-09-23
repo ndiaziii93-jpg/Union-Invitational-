@@ -64,6 +64,16 @@ def build_images(force=False):
         open(os.path.join(WEB, 'resortmap.webp'), 'wb').write(d)
         table['resortmap'] = 'data:image/webp;base64,' + base64.b64encode(d).decode()
 
+    # The photograph at the head of The Titanic tab. Optional, like the plan.
+    rhero = os.path.join(SRC, 'assets', 'brand', 'resort-hero.jpg')
+    if os.path.exists(rhero):
+        im = Image.open(rhero).convert('RGB')
+        im.thumbnail((1600, 1600), Image.LANCZOS)
+        buf = io.BytesIO(); im.save(buf, 'WEBP', quality=80, method=6)
+        d = buf.getvalue()
+        open(os.path.join(WEB, 'resorthero.webp'), 'wb').write(d)
+        table['resorthero'] = 'data:image/webp;base64,' + base64.b64encode(d).decode()
+
     crest = os.path.join(SRC, 'assets', 'brand', 'efed30fc-173f-48a7-b168-923ebf5d103f.png')
     im = Image.open(crest).convert('RGBA')
     im.thumbnail((620, 620), Image.LANCZOS)
