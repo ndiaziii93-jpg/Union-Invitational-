@@ -134,6 +134,19 @@ const me = await p.locator('.minepick .chip').nth(1).innerText();
 await p.locator('.minepick .chip').nth(1).click(); await p.waitForTimeout(700); await shut();
 ok('it takes your name', (await p.locator('h3.sub').first().innerText()).includes(me), true);
 ok('four marks, as big as a thumb', await p.locator('.minemarks .mnchip').count(), 4);
+/* THE point of the second lane. Ask a golfer what the ref is already
+   writing down and you get two answers to arbitrate, and the ref's is the
+   one with a witness. */
+ok('and not one of them is a question the ref is already answering', await p.evaluate(
+  refLabels => { const mine = [...document.querySelectorAll('.minemarks .mnchip b')]
+    .map(e => e.textContent.trim().toLowerCase());
+    return refLabels.filter(l => mine.includes(l.toLowerCase())); },
+  ['Three-putt', 'Out of bounds', 'In the water', 'Shot of the hole']), []);
+ok('they are the things only the man who hit it knows', await p.evaluate(
+  () => [...document.querySelectorAll('.minemarks .mnchip b')].map(e => e.textContent.trim())),
+  ['Robbed', 'Got away with it', 'Wrong club', 'Bottled it']);
+ok('and each says what it means, so nobody has to guess on a tee box',
+  await p.locator('.minemarks .mnchip span').count(), 4);
 ok('and every one of them clears 44px', await p.evaluate(
   () => [...document.querySelectorAll('.mnchip')].every(e => e.getBoundingClientRect().height >= 44)), true);
 
@@ -163,7 +176,7 @@ await p.locator('.hcell').first().click(); await p.waitForTimeout(700); await sh
 ok('and a line walked away from is kept too',
   await p.locator('#mineText').inputValue(), LINE + ' Twice.');
 ok('beside the mark, on the right hole', (await p.locator('.minerow').first().innerText())
-  .includes('3-putt'), true);
+  .includes('Robbed'), true);
 ok('the hole wears a dot here too', await p.locator('.hcell.marked').count() >= 1, true);
 
 console.log('\nand at the end, the part only they can answer');
@@ -181,6 +194,12 @@ ok('and none of them asks what the ref is already answering', await p.evaluate(
     .map(e => e.textContent.trim().toLowerCase());
     return refLabels.filter(l => mine.includes(l.toLowerCase())); },
   ['Three-putt', 'Out of bounds', 'In the water', 'Shot of the hole']), []);
+/* and the end-of-round questions must not repeat the per-hole ones either */
+ok('nor does the end of the round ask the per-hole questions again', await p.evaluate(
+  () => { const hole = ['Robbed', 'Got away with it', 'Wrong club', 'Bottled it']
+            .map(s2 => s2.toLowerCase());
+          return [...document.querySelectorAll('.mdchip, .ownsrow .mnchip')]
+            .map(e => e.textContent.trim().toLowerCase()).filter(t => hole.includes(t)); }), []);
 await p.locator('.mdchip').first().click(); await p.waitForTimeout(600); await shut();
 ok('a mood goes on', await p.locator('.mdchip.on').count(), 1);
 await p.locator('.mdchip').nth(2).click(); await p.waitForTimeout(600); await shut();

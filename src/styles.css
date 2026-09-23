@@ -1238,6 +1238,12 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
 .mnchip.on{color:#FBFAF7;font-weight:600}
 .mnchip.bad.on{background:var(--flag);border-color:var(--flag)}
 .mnchip.good.on{background:var(--green);border-color:var(--green)}
+/* the per-hole chips carry a line of their own, so "Robbed" and "Got away
+   with it" need no explaining on a tee box */
+.minemarks .mnchip{display:flex;flex-direction:column;gap:2px;min-height:60px}
+.minemarks .mnchip b{font-weight:600}
+.minemarks .mnchip span{font-size:13px;color:var(--turf)}
+.minemarks .mnchip.on span{color:rgba(251,250,247,.82)}
 .minesay{display:block;margin-top:18px;max-width:560px}
 .minesay .field{width:100%;margin-top:6px}
 .minerow{align-items:baseline}

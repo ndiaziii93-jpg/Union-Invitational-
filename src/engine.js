@@ -332,14 +332,14 @@ export const MOODS = [
   { key: 'dontask', label: "Don't ask", tone: 'bad' },
 ];
 
-/* Things a ref cannot possibly know, which is the test each of these had to
-   pass to be here. */
+/* The same test at the scale of a whole day. Each had to be true of a ROUND
+   rather than of a hole — the hole-shaped ones are OWN_MARKS, and a question
+   asked in both places is a question asked twice. */
 export const OWNS = [
-  { key: 'club', label: 'Wrong club, all day' },
-  { key: 'layup', label: "Should've laid up" },
+  { key: 'slow', label: 'Never got going' },
+  { key: 'late', label: 'Found it too late' },
   { key: 'putter', label: 'The putter let me down' },
-  { key: 'nerves', label: 'Got the nerves' },
-  { key: 'lucky', label: 'Got away with one' },
+  { key: 'better', label: 'Should have scored better' },
 ];
 const moodOf = k => MOODS.find(m => m.key === k) || null;
 const ownOf = k => OWNS.find(m => m.key === k) || null;
@@ -348,6 +348,36 @@ export function ownLabels(keys) {
   return (Array.isArray(keys) ? keys : []).map(ownOf).filter(Boolean).map(o => o.label);
 }
 const markDef = k => MARKS.find(m => m.key === k) || null;
+
+/* ---------- the same hole, from the inside ----------
+ *
+ * What the GOLFER marks on a hole, and deliberately not one of the four
+ * above. A ref can settle where the ball went; asking a golfer the same
+ * question only produces a second answer to arbitrate, and the ref's is the
+ * one with a witness. So these four are the things a ref cannot possibly
+ * know, however closely they were watching:
+ *
+ *   two about luck, in both directions — a shot can deserve better than it
+ *   got and it can deserve a great deal worse, and only the man who hit it
+ *   knows which;
+ *
+ *   two about fault — whether the trouble came before the swing or during
+ *   it. A ref sees a ball in a bunker. Nobody but the player knows it was
+ *   the wrong club rather than a bad swing.
+ *
+ * Every one is a judgement about a shot the card has already recorded, so
+ * none of them can contradict anything on it. */
+export const OWN_MARKS = [
+  { key: 'robbed', label: 'Robbed', short: 'Robbed', tone: 'bad',
+    hint: 'deserved better than it got' },
+  { key: 'away', label: 'Got away with it', short: 'Got away', tone: 'good',
+    hint: 'deserved a good deal worse' },
+  { key: 'club', label: 'Wrong club', short: 'Wrong club', tone: 'bad',
+    hint: 'beaten before the swing' },
+  { key: 'bottled', label: 'Bottled it', short: 'Bottled', tone: 'bad',
+    hint: 'had it, and did not' },
+];
+export const OWN_KEYS = OWN_MARKS.map(m => m.key);
 
 /** The marks a REF put on one golfer's hole. Always an array. */
 export function holeMarks(T, rid, pid, h) {
@@ -366,7 +396,10 @@ export function selfLog(T, rid, pid) {
 export function selfMarks(T, rid, pid, h) {
   const n = selfLog(T, rid, pid);
   const got = n && n.marks ? n.marks[h] : null;
-  return Array.isArray(got) ? got.filter(k => MARK_KEYS.includes(k)) : [];
+  /* Filtered against the golfer's OWN list, so a note kept before these
+     questions changed drops the marks no longer asked for rather than
+     showing a word nobody can explain. */
+  return Array.isArray(got) ? got.filter(k => OWN_KEYS.includes(k)) : [];
 }
 
 /** How many of a golfer's played holes carry a ref's mark.
@@ -402,7 +435,7 @@ export function markTally(T, rid, pid, self) {
 export function markLine(T, rid, pid, self) {
   const t = markTally(T, rid, pid, self);
   const bits = [];
-  for (const m of MARKS) {
+  for (const m of (self ? OWN_MARKS : MARKS)) {
     const holes = t[m.key];
     if (!holes || !holes.length) continue;
     bits.push(m.short + ' \u00d7' + holes.length + ' (hole' + (holes.length > 1 ? 's ' : ' ')

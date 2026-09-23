@@ -1475,10 +1475,15 @@ function scrMine(rid) {
       : '<span class="m">Not scored yet</span>'}
   </div>
 
+  ${/* NOT the ref's four. They can settle where the ball went; these are the
+        things nobody watching could know — whether it deserved better, or a
+        great deal worse, and whether the trouble came before the swing or
+        during it. */ ''}
+  <p class="sublede">Only you know these. The ref is already writing down where the ball went.</p>
   <div class="minemarks">
-    ${E.MARKS.map(m => `<button class="mnchip ${m.tone}${on.includes(m.key) ? ' on' : ''}"
+    ${E.OWN_MARKS.map(m => `<button class="mnchip ${m.tone}${on.includes(m.key) ? ' on' : ''}"
       data-act="tglMine" data-a="${m.key}" data-b="${h}"
-      aria-pressed="${on.includes(m.key)}">${esc(m.label)}</button>`).join('')}
+      aria-pressed="${on.includes(m.key)}"><b>${esc(m.label)}</b><span>${esc(m.hint)}</span></button>`).join('')}
   </div>
 
   <label class="minesay">
@@ -1520,7 +1525,7 @@ function scrMine(rid) {
       ${kept.map(k => `<div class="row minerow">
         <span class="pos num">${k.i + 1}</span>
         <span class="who plain">${k.ks.map(key => {
-          const m = E.MARKS.find(x => x.key === key) || {};
+          const m = E.OWN_MARKS.find(x => x.key === key) || {};
           return `<span class="mntag ${m.tone || ''}">${esc(m.short || key)}</span>`;
         }).join(' ')}${k.tx ? ` <span class="minetx">${esc(k.tx)}</span>` : ''}</span>
       </div>`).join('')}

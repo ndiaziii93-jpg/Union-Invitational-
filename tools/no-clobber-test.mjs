@@ -298,6 +298,68 @@ for (const [label, lie] of [['a healthy store', false], ['a store whose first re
   await p.close();
 }
 
+/* The shape the live tournament is in from today: the roster lives in
+   documents, the config has been MARKED to say so, and the old copy of the
+   roster that used to sit inside the config is gone.
+ *
+ * That copy was the ammunition. Every resurrection this file guards against
+ * — a golfer removed and back after a reload — worked by the book deciding
+ * the roster had never been moved out and writing that copy over the real
+ * one. With no copy in the config there is nothing to write, whatever else
+ * goes wrong, so this is the guarantee worth having in a test rather than
+ * in a commit message.
+ *
+ * It is also the state the SQL in docs/strip-mirror.sql puts a book into,
+ * so this is that file's regression test as much as the store's. */
+{
+  console.log('\na config with no roster copy in it — the live shape');
+  const extra = {};
+  for (const f of readdirSync(S + '/restore/people'))
+    extra['people/' + f.replace('.json', '')] = JSON.parse(readFileSync(S + '/restore/people/' + f, 'utf8'));
+  for (const f of readdirSync(S + '/restore/pairs'))
+    extra['pairs/' + f.replace('.json', '')] = JSON.parse(readFileSync(S + '/restore/pairs/' + f, 'utf8'));
+  const stripped = JSON.parse(readFileSync(S + '/db4/config/tournament.json', 'utf8'));
+  stripped.rosterInDocs = true;      // what the SQL sets
+  delete stripped.people;            // and what the SQL takes away
+  delete stripped.pairs;
+
+  const p = await (await b.newContext({ viewport: { width: 1300, height: 900 } })).newPage();
+  await p.addInitScript(MOCK, { stored: stripped, lieOnFirstRead: false, empty: false, extraDocs: extra });
+  await p.goto('file://' + W); await settled(p);
+  await p.locator('[data-act="modalCancel"]').click().catch(() => {});
+  await p.locator('.tab', { hasText: 'Roster' }).click(); await p.waitForTimeout(600);
+  const n = await steady(p, '.rtable tbody tr');
+  ok('the roster is the documents, and only the documents', n, 15);
+  ok('and the config is not carrying a second copy of it', await p.evaluate(
+    () => { const c = window.__mockDocs['config/tournament'];
+            return !!(c.people || c.pairs); }), false);
+
+  /* Take somebody off and reload — the case that has been resurrecting
+     people. There is nothing left to resurrect them FROM. */
+  await p.locator('.rtable tbody tr').last().locator('[data-act="removePerson"]').click();
+  await p.waitForFunction(
+    want => Object.keys(window.__mockDocs).filter(k => k.startsWith('people/')).length === want,
+    n - 1, { timeout: 15000 },
+  ).catch(() => {});
+  await p.reload(); await settled(p);
+  await p.locator('[data-act="modalCancel"]').click().catch(() => {});
+  await p.locator('.tab', { hasText: 'Roster' }).click(); await p.waitForTimeout(600);
+  ok('a golfer taken off stays off', await steady(p, '.rtable tbody tr'), n - 1);
+  ok('and nothing wrote a roster back', await p.evaluate(
+    () => Object.keys(window.__mockDocs).filter(k => k.startsWith('people/')).length), n - 1);
+  ok('the config is still clean', await p.evaluate(
+    () => { const c = window.__mockDocs['config/tournament'];
+            return !!(c.people || c.pairs); }), false);
+
+  /* And the empty snapshot that used to be the trigger — a subscription
+     re-establishing and reporting nothing — must now change nothing at all. */
+  await p.evaluate(() => window.__fireEmptyColl('people'));
+  await p.waitForTimeout(1500);
+  ok('an empty snapshot cannot bring anybody back either',
+    await steady(p, '.rtable tbody tr'), n - 1);
+  await p.close();
+}
+
 await b.close();
 console.log(fails.length ? '\nFAILED: ' + fails.join(', ') : '\nThe stored tournament is never overwritten.');
 process.exit(fails.length ? 1 : 0);

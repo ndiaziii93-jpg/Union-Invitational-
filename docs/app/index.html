@@ -1309,6 +1309,12 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
 .mnchip.on{color:#FBFAF7;font-weight:600}
 .mnchip.bad.on{background:var(--flag);border-color:var(--flag)}
 .mnchip.good.on{background:var(--green);border-color:var(--green)}
+/* the per-hole chips carry a line of their own, so "Robbed" and "Got away
+   with it" need no explaining on a tee box */
+.minemarks .mnchip{display:flex;flex-direction:column;gap:2px;min-height:60px}
+.minemarks .mnchip b{font-weight:600}
+.minemarks .mnchip span{font-size:13px;color:var(--turf)}
+.minemarks .mnchip.on span{color:rgba(251,250,247,.82)}
 .minesay{display:block;margin-top:18px;max-width:560px}
 .minesay .field{width:100%;margin-top:6px}
 .minerow{align-items:baseline}
@@ -1453,7 +1459,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20260923-1133';
+const BUILD = '20260923-1218';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -2004,14 +2010,14 @@ const MOODS = [
   { key: 'dontask', label: "Don't ask", tone: 'bad' },
 ];
 
-/* Things a ref cannot possibly know, which is the test each of these had to
-   pass to be here. */
+/* The same test at the scale of a whole day. Each had to be true of a ROUND
+   rather than of a hole — the hole-shaped ones are OWN_MARKS, and a question
+   asked in both places is a question asked twice. */
 const OWNS = [
-  { key: 'club', label: 'Wrong club, all day' },
-  { key: 'layup', label: "Should've laid up" },
+  { key: 'slow', label: 'Never got going' },
+  { key: 'late', label: 'Found it too late' },
   { key: 'putter', label: 'The putter let me down' },
-  { key: 'nerves', label: 'Got the nerves' },
-  { key: 'lucky', label: 'Got away with one' },
+  { key: 'better', label: 'Should have scored better' },
 ];
 const moodOf = k => MOODS.find(m => m.key === k) || null;
 const ownOf = k => OWNS.find(m => m.key === k) || null;
@@ -2020,6 +2026,36 @@ function ownLabels(keys) {
   return (Array.isArray(keys) ? keys : []).map(ownOf).filter(Boolean).map(o => o.label);
 }
 const markDef = k => MARKS.find(m => m.key === k) || null;
+
+/* ---------- the same hole, from the inside ----------
+ *
+ * What the GOLFER marks on a hole, and deliberately not one of the four
+ * above. A ref can settle where the ball went; asking a golfer the same
+ * question only produces a second answer to arbitrate, and the ref's is the
+ * one with a witness. So these four are the things a ref cannot possibly
+ * know, however closely they were watching:
+ *
+ *   two about luck, in both directions — a shot can deserve better than it
+ *   got and it can deserve a great deal worse, and only the man who hit it
+ *   knows which;
+ *
+ *   two about fault — whether the trouble came before the swing or during
+ *   it. A ref sees a ball in a bunker. Nobody but the player knows it was
+ *   the wrong club rather than a bad swing.
+ *
+ * Every one is a judgement about a shot the card has already recorded, so
+ * none of them can contradict anything on it. */
+const OWN_MARKS = [
+  { key: 'robbed', label: 'Robbed', short: 'Robbed', tone: 'bad',
+    hint: 'deserved better than it got' },
+  { key: 'away', label: 'Got away with it', short: 'Got away', tone: 'good',
+    hint: 'deserved a good deal worse' },
+  { key: 'club', label: 'Wrong club', short: 'Wrong club', tone: 'bad',
+    hint: 'beaten before the swing' },
+  { key: 'bottled', label: 'Bottled it', short: 'Bottled', tone: 'bad',
+    hint: 'had it, and did not' },
+];
+const OWN_KEYS = OWN_MARKS.map(m => m.key);
 
 /** The marks a REF put on one golfer's hole. Always an array. */
 function holeMarks(T, rid, pid, h) {
@@ -2038,7 +2074,10 @@ function selfLog(T, rid, pid) {
 function selfMarks(T, rid, pid, h) {
   const n = selfLog(T, rid, pid);
   const got = n && n.marks ? n.marks[h] : null;
-  return Array.isArray(got) ? got.filter(k => MARK_KEYS.includes(k)) : [];
+  /* Filtered against the golfer's OWN list, so a note kept before these
+     questions changed drops the marks no longer asked for rather than
+     showing a word nobody can explain. */
+  return Array.isArray(got) ? got.filter(k => OWN_KEYS.includes(k)) : [];
 }
 
 /** How many of a golfer's played holes carry a ref's mark.
@@ -2074,7 +2113,7 @@ function markTally(T, rid, pid, self) {
 function markLine(T, rid, pid, self) {
   const t = markTally(T, rid, pid, self);
   const bits = [];
-  for (const m of MARKS) {
+  for (const m of (self ? OWN_MARKS : MARKS)) {
     const holes = t[m.key];
     if (!holes || !holes.length) continue;
     bits.push(m.short + ' \u00d7' + holes.length + ' (hole' + (holes.length > 1 ? 's ' : ' ')
@@ -2665,7 +2704,7 @@ function roundToPar(T, roundId, pid) {
   return { tp, thru };
 }
 
-return {nowLocal, dayOf, hhmmToMin, to12, to24, BANDS, strokesFor, bandTotal, fmtToPar, capFor, capped, person, golfers, roundDef, roundCfg, courseByKey, courseOf, scoreKey, card, pairName, phaseOf, phaseLabel, hasScores, countingRounds, playerNet, pairHole, PAIRS_PER_GROUP, groups, practiceBoard, practiceBbb, bandsLocked, pairsBoard, mvpBoard, BBB_SLOTS, bbbMarks, MARKS, MARK_KEYS, MOODS, OWNS, moodLabel, ownLabels, holeMarks, selfLog, selfMarks, markCoverage, markTally, markLine, bbbBoard, roundComplete, brief, roundBrief, recapRound, roundStanding, ribbon, pairRoundBoard, recapTable, swingOfTheDay, sideGames, recapInput, matchPlay, ryderData, holeCells, setupIssues, nextTee, fixtures, nextFixture, TEE_CHOICES, TEE_PRIV, teePrivilege, roundToPar};
+return {nowLocal, dayOf, hhmmToMin, to12, to24, BANDS, strokesFor, bandTotal, fmtToPar, capFor, capped, person, golfers, roundDef, roundCfg, courseByKey, courseOf, scoreKey, card, pairName, phaseOf, phaseLabel, hasScores, countingRounds, playerNet, pairHole, PAIRS_PER_GROUP, groups, practiceBoard, practiceBbb, bandsLocked, pairsBoard, mvpBoard, BBB_SLOTS, bbbMarks, MARKS, MARK_KEYS, MOODS, OWNS, moodLabel, ownLabels, OWN_MARKS, OWN_KEYS, holeMarks, selfLog, selfMarks, markCoverage, markTally, markLine, bbbBoard, roundComplete, brief, roundBrief, recapRound, roundStanding, ribbon, pairRoundBoard, recapTable, swingOfTheDay, sideGames, recapInput, matchPlay, ryderData, holeCells, setupIssues, nextTee, fixtures, nextFixture, TEE_CHOICES, TEE_PRIV, teePrivilege, roundToPar};
 })();
 
 const __m_dbsupa = (function(){
@@ -5470,10 +5509,15 @@ function scrMine(rid) {
       : '<span class="m">Not scored yet</span>'}
   </div>
 
+  ${/* NOT the ref's four. They can settle where the ball went; these are the
+        things nobody watching could know — whether it deserved better, or a
+        great deal worse, and whether the trouble came before the swing or
+        during it. */ ''}
+  <p class="sublede">Only you know these. The ref is already writing down where the ball went.</p>
   <div class="minemarks">
-    ${E.MARKS.map(m => `<button class="mnchip ${m.tone}${on.includes(m.key) ? ' on' : ''}"
+    ${E.OWN_MARKS.map(m => `<button class="mnchip ${m.tone}${on.includes(m.key) ? ' on' : ''}"
       data-act="tglMine" data-a="${m.key}" data-b="${h}"
-      aria-pressed="${on.includes(m.key)}">${esc(m.label)}</button>`).join('')}
+      aria-pressed="${on.includes(m.key)}"><b>${esc(m.label)}</b><span>${esc(m.hint)}</span></button>`).join('')}
   </div>
 
   <label class="minesay">
@@ -5515,7 +5559,7 @@ function scrMine(rid) {
       ${kept.map(k => `<div class="row minerow">
         <span class="pos num">${k.i + 1}</span>
         <span class="who plain">${k.ks.map(key => {
-          const m = E.MARKS.find(x => x.key === key) || {};
+          const m = E.OWN_MARKS.find(x => x.key === key) || {};
           return `<span class="mntag ${m.tone || ''}">${esc(m.short || key)}</span>`;
         }).join(' ')}${k.tx ? ` <span class="minetx">${esc(k.tx)}</span>` : ''}</span>
       </div>`).join('')}

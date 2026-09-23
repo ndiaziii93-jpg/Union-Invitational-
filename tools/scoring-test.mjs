@@ -320,12 +320,22 @@ console.log('\nthe panel on Today');
 
   console.log('\nwhat a golfer said about their own round');
   const n = blankNote('r1', 'b');
-  n.marks = { 4: ['water'] };
-  n.text = { 4: 'Two in the lake off the tee.' };
+  n.marks = { 4: ['robbed'] };
+  n.text = { 4: 'Struck it out of the screws. Plugged in the face of the trap.' };
   T.notes.r1__b = n;
-  ok('a self-kept mark is its own thing', E.selfMarks(T, 'r1', 'b', 4), ['water']);
+  ok('a self-kept mark is its own thing', E.selfMarks(T, 'r1', 'b', 4), ['robbed']);
   ok('and is NOT on the ref\'s card', E.holeMarks(T, 'r1', 'b', 4), []);
   ok('nor does the ref\'s card leak into it', E.selfMarks(T, 'r1', 'a', 6), []);
+
+  /* The two vocabularies are separate on purpose, and the filters enforce it:
+     neither side can record a mark belonging to the other, so the recap can
+     never be handed two answers to the same question. */
+  T.notes.r1__b.marks[5] = ['water', 'putt3'];       // the ref's words
+  ok('a ref\'s word in a golfer\'s note is dropped', E.selfMarks(T, 'r1', 'b', 5), []);
+  T.scores.r1__a.marks[9] = ['robbed', 'bottled'];   // and the golfer's
+  ok('and a golfer\'s word on a ref\'s card likewise', E.holeMarks(T, 'r1', 'a', 9), []);
+  delete T.notes.r1__b.marks[5];
+  delete T.scores.r1__a.marks[9];
 
   console.log('\nthe recap is told which is which, and how far each goes');
   const brief = E.roundBrief(T, 'r1');
@@ -334,7 +344,7 @@ console.log('\nthe panel on Today');
   ok('and a warning that a count is a floor', /FLOOR, never a total/.test(brief), true);
   ok('the self-kept ones are under their own heading',
     /WHAT THE GOLFERS SAID ABOUT THEIR OWN ROUNDS/.test(brief), true);
-  ok('with their own words, quoted', /"Two in the lake off the tee\."/.test(brief), true);
+  ok('with their own words, quoted', /"Struck it out of the screws/.test(brief), true);
   ok('and the two are never run together', (() => {
     const ref = brief.indexOf('MARKS, PUT IN BY THE REF');
     const own = brief.indexOf('WHAT THE GOLFERS SAID');
@@ -347,8 +357,16 @@ console.log('\nthe panel on Today');
     return /MARKS, PUT IN BY|GOLFERS SAID/.test(E.roundBrief(clean, 'r1'));
   })(), false);
 
-  console.log('\nthe four of them');
+  console.log('\nthe four of them, twice over');
   ok('four marks, no more', E.MARKS.length, 4);
+  ok('and four for the golfer too', E.OWN_MARKS.length, 4);
+  /* The whole reason there are two sets. */
+  ok('no word appears in both lists',
+    E.OWN_MARKS.map(m => m.label).filter(l => E.MARKS.some(x => x.label === l)), []);
+  ok('nor does the end of the round repeat the hole',
+    E.OWNS.map(o => o.label).filter(l => E.OWN_MARKS.some(x => x.label === l)), []);
+  ok('every golfer\'s mark says what it means',
+    E.OWN_MARKS.every(m => !!m.hint), true);
   ok('three things going wrong and one going right — a log of only disasters',
     E.MARKS.filter(m => m.tone === 'good').length, 1);
   ok('and every one of them is plain English', E.MARKS.map(m => m.label),
