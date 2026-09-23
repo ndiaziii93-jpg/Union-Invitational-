@@ -2688,8 +2688,8 @@ function scrResort() {
      own — a band of photograph above the heading rather than a heading laid
      over a photograph. The book is a printed thing and behaves like one. */
   return `${IMG.resorthero ? `<figure class="rhero">
-    <img src="${IMG.resorthero}" alt="The hotel lobby: white arches on tall columns, a shallow water channel running through planting on one side, a broad marble staircase on the other">
-    <figcaption>The lobby. The water channel runs through it, and the stairs on the right go up to reception — which is where to ask which season the resort is running.</figcaption>
+    <img src="${IMG.resorthero}" alt="The resort at dusk, seen across the Beşgöz river: the hotel lit up, the riverside restaurants strung along the water, pine forest in the foreground">
+    <figcaption>Titanic Deluxe Golf Belek from across the Beşgöz, at dusk. The lit terraces along the water are the à la carte restaurants.</figcaption>
   </figure>` : ''}
   <h2 class="head">The Titanic</h2>
   <p class="lede">Titanic Deluxe Golf Belek — the other side of the week. Read off the hotel’s own book in September; corrected by whoever gets there first.</p>
