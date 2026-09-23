@@ -48,11 +48,24 @@ const UI = {
   reopened: {},   // course cards this device unlocked; they re-lock on the way out
   setupSeen: false,
   entrySeen: false,
+  entryMode: 'group',   // 'group' — scoring for everybody · 'mine' — my own round
+  me: null,             // which golfer this phone belongs to, for the My Round lane
+  mineHole: 0,
+  mineDraft: null,      // {rid, h, v} — a line being typed, held here so a
+                        // redraw arriving mid-sentence does not take it back
 };
 
 const ROLE_KEY = 'union-invitational:role';
 function saveRole(role) { try { localStorage.setItem(ROLE_KEY, role); } catch (e) { /* storage blocked */ } }
 function loadRole() { try { return localStorage.getItem(ROLE_KEY); } catch (e) { return null; } }
+
+/* The book has no accounts — anyone with the link can open it — so "who am
+   I" is a thing this PHONE knows rather than a thing the tournament knows.
+   It is asked once, in the My Round lane, and remembered here. It is used
+   for nothing else: it grants no permission and changes no score. */
+const ME_KEY = 'union-invitational:me';
+function saveMe(pid) { try { localStorage.setItem(ME_KEY, pid || ''); } catch (e) { /* storage blocked */ } }
+function loadMe() { try { return localStorage.getItem(ME_KEY) || null; } catch (e) { return null; } }
 
 /* Nothing is editable until the shared book has loaded. Before that the page is
    showing factory defaults, and an edit would write those over the real
@@ -1349,6 +1362,130 @@ function guardDraft(proceed) {
   render();
 }
 
+/* ---------------- the My Round lane ----------------
+ *
+ * The ref keeps the card. This is the other thing entirely: a golfer's own
+ * account of their own round, kept by them, on their own phone.
+ *
+ * It exists because the marks above cost the ref something, and the ref is
+ * one person watching four. Spread the same job across the four of them and
+ * it costs each a quarter as much — and people will happily log their own
+ * disasters, which is the best recap material there is and the least likely
+ * thing a ref writes down.
+ *
+ * It is NOT a second scorecard. It writes to its own collection, it never
+ * touches a raw score, and the recap is told which claims came from here so
+ * it can attribute them rather than state them. Two sources, kept apart,
+ * because they are different kinds of claim.
+ */
+/** Put what is in the box into the note. Called on blur, and on the way out
+ *  of a hole, so a line typed and then walked away from is not lost. */
+function commitMine() {
+  const d = UI.mineDraft;
+  UI.mineDraft = null;
+  if (!d || !UI.me || !store) return;
+  /* The round is remembered WITH the line. Reading UI.entryRound here would
+     file a sentence about Thursday under Friday if the draft outlived a tap
+     on another round, which is exactly the sort of thing that outlives a
+     draft. */
+  const v = String(d.v || '').trim().slice(0, 140);
+  const had = E.selfLog(T, d.rid, UI.me);
+  const was = had && had.text ? String(had.text[d.h] || '') : '';
+  if (v === was) return;
+  store.writeNote(d.rid, UI.me, n => {
+    if (v) n.text[d.h] = v; else delete n.text[d.h];
+    n.at[d.h] = Date.now();
+  });
+}
+
+function scrMine(rid) {
+  const r = E.roundDef(rid);
+  const gs = E.golfers(T);
+  const me = UI.me && gs.some(g => g.id === UI.me) ? UI.me : null;
+
+  if (!me) {
+    return `<h3 class="sub">My round</h3>
+    <p class="lede">Keep your own account of the round — the bits a scorecard
+    cannot hold. It feeds the day's recap and nothing else: no board, no
+    points, no effect on anybody's score, including yours.</p>
+    <div class="minepick">
+      <p class="sublede">Who are you? This phone will remember.</p>
+      <div class="chiprow">
+        ${gs.map(g => `<button class="chip" data-act="setMe" data-a="${g.id}">${esc(g.display)}</button>`).join('')}
+      </div>
+    </div>`;
+  }
+
+  const who = E.person(T, me) || {};
+  const course = E.courseOf(T, rid);
+  const h = Math.min(Math.max(UI.mineHole, 0), 17);
+  const hole = course.holes[h];
+  const c = E.card(T, rid, me);
+  const played = c && c.raw[h] != null ? c.raw[h] : null;
+  const note = E.selfLog(T, rid, me);
+  const on = E.selfMarks(T, rid, me, h);
+  /* A redraw lands every few seconds while the store polls. Reading the
+     value back out of the store would put the sentence back as it was
+     before the last few letters, so what is being typed is held in UI until
+     it is committed. Same fault, same fix as the crest's question box. */
+  const text = (UI.mineDraft && UI.mineDraft.rid === rid && UI.mineDraft.h === h)
+    ? UI.mineDraft.v
+    : (note && note.text ? (note.text[h] || '') : '');
+  const kept = [];
+  for (let i = 0; i < 18; i++) {
+    const ks = E.selfMarks(T, rid, me, i);
+    const tx = note && note.text ? String(note.text[i] || '').trim() : '';
+    if (ks.length || tx) kept.push({ i, ks, tx });
+  }
+
+  return `<h3 class="sub">My round — ${esc(who.display || '')}</h3>
+  <p class="lede">${esc(r.full)}. Yours to keep, and it feeds the day's recap.
+  It changes no score and no board — not even yours.
+  <button class="rm" data-act="setMe" data-a="">Not you?</button></p>
+
+  <div class="scroller nos"><div class="hstrip">
+    ${course.holes.map((x, i) => {
+      const some = E.selfMarks(T, rid, me, i).length
+        || (note && note.text && String(note.text[i] || '').trim());
+      return `<button class="hcell${i === h ? ' on' : ''}${some ? ' marked' : ''}"
+        data-act="mineHole" data-a="${i}" aria-label="Hole ${x.n}, par ${x.par}">
+        <span class="n num">${x.n}</span><span class="p num">par ${x.par}</span></button>`;
+    }).join('')}
+  </div></div>
+
+  <div class="holehead">
+    <h3>Hole ${hole.n}</h3>
+    <span class="m num">Par ${hole.par}</span>
+    ${played != null ? `<span class="num">You wrote ${played}</span>`
+      : '<span class="m">Not scored yet</span>'}
+  </div>
+
+  <div class="minemarks">
+    ${E.MARKS.map(m => `<button class="mnchip ${m.tone}${on.includes(m.key) ? ' on' : ''}"
+      data-act="tglMine" data-a="${m.key}" data-b="${h}"
+      aria-pressed="${on.includes(m.key)}">${esc(m.label)}</button>`).join('')}
+  </div>
+
+  <label class="minesay">
+    <span class="sublede">Anything worth saying about hole ${hole.n}?</span>
+    <input class="field" id="mineText" data-act="mineText" data-b="${h}"
+      maxlength="140" placeholder="Chipped in from the bunker."
+      value="${esc(text)}">
+  </label>
+
+  ${kept.length ? `<h3 class="sub">Your round so far</h3>
+    <div class="rows" style="margin-top:8px;border-top:1px solid var(--rule)">
+      ${kept.map(k => `<div class="row minerow">
+        <span class="pos num">${k.i + 1}</span>
+        <span class="who plain">${k.ks.map(key => {
+          const m = E.MARKS.find(x => x.key === key) || {};
+          return `<span class="mntag ${m.tone || ''}">${esc(m.short || key)}</span>`;
+        }).join(' ')}${k.tx ? ` <span class="minetx">${esc(k.tx)}</span>` : ''}</span>
+      </div>`).join('')}
+    </div>`
+  : `<p class="empty">Nothing kept yet. Tap a mark above, or write a line about a hole.</p>`}`;
+}
+
 function scrEntry() {
   const rid = UI.entryRound;
   const r = E.roundDef(rid);
@@ -1395,6 +1532,8 @@ function scrEntry() {
       <button class="btn" data-act="openRound" data-a="${rid}"${nominated ? '' : ' disabled'}>Open round</button></div>`;
   }
 
+  const marksHere = (usingAll ? E.golfers(T) : E.golfers(T).filter(g => slotPlayers.includes(g.id)))
+    .reduce((a, g) => a + E.holeMarks(T, rid, g.id, h).length, 0);
   const saveBar = editable ? `<div class="savebar${dirty ? ' dirty' : ''}">
     <div class="sv">${dirty
       ? `<b>Hole ${hole.n} is not saved</b><span>${Object.keys(UI.draft.strokes).length} entr${Object.keys(UI.draft.strokes).length === 1 ? 'y' : 'ies'} waiting. ${D.PINS_ENABLED ? 'Saving asks for your PIN.' : 'Nothing counts until you save.'}</span>`
@@ -1402,6 +1541,9 @@ function scrEntry() {
         ? `<b>Hole ${hole.n} saved</b><span>Recorded${D.PINS_ENABLED && S.ROLES[saved.role] ? ' by ' + esc(S.ROLES[saved.role].label) : ''}${saved.at ? ' at ' + esc(E.to12(new Date(saved.at + D.TZ_OFFSET_MIN * 60000).toISOString().slice(11, 16))) : ''}.</span>`
         : `<b>Hole ${hole.n}</b><span>Enter every score on this hole, then save it.</span>`}</div>
     <button class="btn${dirty ? '' : ' ghost'}" data-act="saveHole"${dirty ? '' : ' disabled'}>Save hole ${hole.n}</button>
+    ${/* One button, not sixteen controls. See markSheet(). */ ''}
+    <button class="btn ghost markbtn${marksHere ? ' has' : ''}" data-act="openMarks">Mark the hole${
+      marksHere ? ` <span class="ct num">${marksHere}</span>` : ''}</button>
     <button class="btn danger" data-act="lockRound" data-a="${rid}">Lock &amp; conclude</button>
   </div>` : '';
 
@@ -1467,8 +1609,35 @@ function scrEntry() {
     + (sel && !list.some(g => g.id === sel)
       ? `<option value="${sel}" selected>${esc((E.person(T, sel) || {}).display || sel)} — not in this group</option>` : '');
 
+  /* Two lanes, one tab. The ref scores the group; everybody else keeps
+     their own round. Putting the second behind a tenth top-level tab would
+     have broken the three-by-three grid the nav sits in on a phone, and
+     nobody would have found it — whereas everybody opens Score Entry. */
+  const lanes = `<div class="lanes" role="tablist" aria-label="Score Entry">
+    <button class="lane${UI.entryMode === 'mine' ? '' : ' on'}" data-act="entryMode" data-a="group"
+      role="tab" aria-selected="${UI.entryMode !== 'mine'}">Score the group</button>
+    <button class="lane${UI.entryMode === 'mine' ? ' on' : ''}" data-act="entryMode" data-a="mine"
+      role="tab" aria-selected="${UI.entryMode === 'mine'}">My round</button>
+  </div>`;
+
+  if (UI.entryMode === 'mine') {
+    return `<h2 class="head">Score Entry</h2>
+    <p class="lede">Gross strokes in. Raw and adjusted sit side by side, exactly as the group’s own cards read.</p>
+    ${lanes}
+    <div class="rcards">
+      ${D.ROUNDS.map(x => {
+        const d = E.dayOf(x.dayIdx);
+        return `<button class="rcard${x.id === rid ? ' on' : ''}${x.counts ? '' : ' practice'}" data-act="entryRound" data-a="${x.id}">
+          <b>${esc(x.short === 'Practice' ? 'Practice' : 'Round ' + x.short.slice(1))}</b>
+          <span>${esc(d.dow)} ${esc(d.date)}</span></button>`;
+      }).join('')}
+    </div>
+    ${scrMine(rid)}`;
+  }
+
   return `<h2 class="head">Score Entry</h2>
   <p class="lede">Gross strokes in. Raw and adjusted sit side by side, exactly as the group’s own cards read.</p>
+  ${lanes}
 
   <div class="entrytop">
    <div class="entryleft">
@@ -1491,8 +1660,8 @@ function scrEntry() {
     ${/* round, then group, then hole: every choice about where you are
           standing sits together, beside the picture of it */ ''}
     <div class="scroller nos"><div class="hstrip">
-      ${course.holes.map((x, i) => `<button class="hcell${i === h ? ' on' : ''}${holeSavedBy(rid, i, slotPlayers) ? ' saved' : ''}"
-        data-act="entryHole" data-a="${i}" aria-label="Hole ${x.n}, par ${x.par}">
+      ${course.holes.map((x, i) => `<button class="hcell${i === h ? ' on' : ''}${holeSavedBy(rid, i, slotPlayers) ? ' saved' : ''}${holeIsMarked(rid, i, slotPlayers) ? ' marked' : ''}"
+        data-act="entryHole" data-a="${i}" aria-label="Hole ${x.n}, par ${x.par}${holeIsMarked(rid, i, slotPlayers) ? ', marked' : ''}">
         <span class="n num">${x.n}</span><span class="p num">par ${x.par}</span></button>`).join('')}
     </div></div>
    </div>
@@ -2147,6 +2316,67 @@ function setupChip() {
 const RELIEFNAME = { mF: 'the front nine mulligan', mB: 'the back nine mulligan',
                      bb: 'the breakfast ball' };
 
+/* ---------------- the marks ----------------
+ *
+ * The scoring tab has to work one-handed, in the sun, with three people
+ * waiting on the next tee. So none of this lives on the player rows: four
+ * golfers times four marks is sixteen new controls on a screen that already
+ * carries a stepper, two figures, mulligan chips and a Bingo picker each.
+ * That is exactly the "too busy" the tab cannot afford.
+ *
+ * Instead there is ONE button, and it opens a sheet with the group down the
+ * side and the four marks across the top. A hole where nothing happened
+ * costs nothing at all — the button is never pressed. A hole where something
+ * did costs one open, a tap or two, and a close, for the whole group at
+ * once rather than player by player.
+ *
+ * Which is the other half of the design: the marks are EXCEPTIONS. Three
+ * putts and a ball out of bounds happen a handful of times a round, so
+ * logging them is nearly free. Anything needing a mark on every hole whether
+ * or not something happened — fairways hit, greens in regulation — is a
+ * census, and a census is a second job nobody keeps up past the turn. The
+ * book does not ask for one.
+ */
+function markSheet(rid, h, who) {
+  const list = who && who.length ? E.golfers(T).filter(g => who.includes(g.id)) : E.golfers(T);
+  const hole = E.courseOf(T, rid).holes[h];
+  const ed = canEdit() && E.roundCfg(T, rid).state === 'open';
+  return `<div class="scrim" data-act="modalScrim"><div class="modal marksheet"
+    role="dialog" aria-modal="true" aria-label="Mark hole ${hole.n}">
+    <div class="ms-head">
+      <span class="hm-eye">Hole ${hole.n} · par ${hole.par}</span>
+      <h3>What happened?</h3>
+      <p>For the recap only. None of it touches a score, a board or the cup —
+      so a hole nobody marked has never cost anybody a shot.</p>
+    </div>
+    <div class="msgrid" style="--cols:${E.MARKS.length}">
+      <div class="ms-row ms-hdr">
+        <span class="ms-who"></span>
+        ${E.MARKS.map(m => `<span class="ms-col ${m.tone}">${esc(m.short)}</span>`).join('')}
+      </div>
+      ${list.map(g => {
+        const on = E.holeMarks(T, rid, g.id, h);
+        return `<div class="ms-row">
+          <span class="ms-who">${esc(g.display)}</span>
+          ${E.MARKS.map(m => `<button class="mscell ${m.tone}${on.includes(m.key) ? ' on' : ''}"
+            data-act="tglMark" data-a="${g.id}" data-b="${m.key}"${ed ? '' : ' disabled'}
+            aria-pressed="${on.includes(m.key)}"
+            aria-label="${esc(g.display)} — ${esc(m.label)}">${on.includes(m.key) ? '✓' : ''}</button>`).join('')}
+        </div>`;
+      }).join('')}
+    </div>
+    <p class="ms-key">${E.MARKS.map(m => `<span class="${m.tone}">${esc(m.short)}</span> ${esc(m.label.toLowerCase())}`).join(' · ')}</p>
+    <div class="acts"><button class="btn" data-act="modalCancel">Done</button></div>
+  </div></div>`;
+}
+
+/** Does anybody in this group carry a mark on this hole? Drives the dot on
+ *  the hole strip, so a ref can see at a glance what they have logged. */
+function holeIsMarked(rid, h, who) {
+  const list = who && who.length ? E.golfers(T).filter(g => who.includes(g.id)) : E.golfers(T);
+  return list.some(g => E.holeMarks(T, rid, g.id, h).length > 0);
+}
+
 function holeNotice(rid, h) {
   const cfg = E.roundCfg(T, rid) || {};
   const n = h + 1;
@@ -2174,7 +2404,8 @@ function holeModalHtml() {
 }
 
 function modalHtml() {
-  return UI.modal.kind === 'hole' ? holeModalHtml()
+  return UI.modal.kind === 'marks' ? markSheet(UI.modal.rid, UI.modal.hole, UI.modal.who)
+       : UI.modal.kind === 'hole' ? holeModalHtml()
        : UI.modal.kind === 'setup' ? setupModalHtml()
        : UI.modal.kind === 'add' ? addModalHtml()
        : UI.modal.kind === 'confirm' ? confirmModalHtml()
@@ -2236,6 +2467,12 @@ function onClick(e) {
   if (el.tagName === 'SELECT' || el.tagName === 'INPUT') return;
   if (store && store.note) store.note('tap', act + ' a=' + (a || '') + ' b=' + (b || ''));
   const rid = UI.entryRound;
+
+  /* A line half typed and then abandoned — for another tab, another round,
+     another hole — is kept rather than dropped. `change` does this on blur in
+     the ordinary case; this is for the cases where the box is taken away
+     before it ever gets one. */
+  if (UI.mineDraft) commitMine();
 
   switch (act) {
     case 'go':
@@ -2461,6 +2698,58 @@ function onClick(e) {
       draftFor(rid, UI.entryHole).strokes[a] = null;
       break;
     }
+    /* The ref's read of the hole. The sheet stays open while marks go in —
+       the whole point is to mark the group in one visit — so nothing here
+       closes it. */
+    case 'openMarks': {
+      const groups = E.groups(T, rid);
+      const slot = Math.min(UI.entryTee === 'all' ? 0 : +UI.entryTee, Math.max(groups.length - 1, 0));
+      UI.modal = { kind: 'marks', rid, hole: UI.entryHole, who: (groups[slot] || {}).members || [] };
+      render();
+      return;
+    }
+    case 'tglMark': {
+      if (!canEdit()) return;
+      const m = UI.modal;
+      if (!m || m.kind !== 'marks') return;
+      const h = m.hole;
+      store.writeCard(m.rid, a, c => {
+        const was = Array.isArray(c.marks[h]) ? c.marks[h] : [];
+        const next = was.includes(b) ? was.filter(k => k !== b) : was.concat(b);
+        if (next.length) c.marks[h] = next; else delete c.marks[h];
+      });
+      render();
+      return;
+    }
+
+    /* ---- the My Round lane ---- */
+    case 'entryMode':
+      UI.entryMode = a === 'mine' ? 'mine' : 'group';
+      if (UI.entryMode === 'mine' && !UI.me) UI.me = loadMe();
+      render();
+      return;
+    case 'setMe':
+      UI.me = a || null;
+      saveMe(UI.me);
+      render();
+      return;
+    case 'mineHole':
+      UI.mineHole = +a;
+      render();
+      return;
+    case 'tglMine': {
+      if (!UI.me) return;
+      const h = +b;
+      store.writeNote(rid, UI.me, n => {
+        const was = Array.isArray(n.marks[h]) ? n.marks[h] : [];
+        const next = was.includes(a) ? was.filter(k => k !== a) : was.concat(a);
+        if (next.length) n.marks[h] = next; else delete n.marks[h];
+        n.at[h] = Date.now();
+      });
+      render();
+      return;
+    }
+
     case 'saveHole': {
       if (!draftDirty()) return;
       const h = UI.draft.hole;
@@ -2570,6 +2859,10 @@ function onChange(e) {
   if (!el) return;
   const { act, a, b } = el.dataset;
   const rid = UI.entryRound;
+
+  /* A line about a hole, kept when the box loses focus. */
+  if (act === 'mineText') { UI.mineDraft = { rid, h: +b, v: el.value }; commitMine(); render(); return; }
+
   if (store && store.note) store.note('change', act + ' a=' + (a || '') + ' b=' + (b || '') + ' v=' + el.value);
   const editable = canEdit() && E.roundCfg(T, rid).state === 'open';
 
@@ -2782,6 +3075,22 @@ const RECAP_RULES = [
   '- Humour is gentle, and aimed at the golf, never at the golfer.',
   '- Do not name any player negatively more than once in the whole piece.',
   '- Never mention a player\'s handicap band as a criticism. It is a number of strokes, not a verdict.',
+  '',
+  'THE MARKS, AND HOW FAR THEY GO:',
+  '- The card may carry marks a ref made — three-putts, out of bounds, water,',
+  '  shot of the hole. Use them: they are the reason a seven happened, and',
+  '  the reason is the story the numbers cannot tell.',
+  '- But they are made on the holes somebody remembered to mark, never on all',
+  '  of them, and the card says how many. A count is a FLOOR. Write "at least',
+  '  twice" or "of the holes marked"; never "only once", never "never", and',
+  '  never a total or a percentage.',
+  '- If a golfer has no marks at all, that means nobody marked their holes. It',
+  '  does not mean they played them cleanly, and you must not say or imply so.',
+  '- Anything under what the golfers said about their own rounds is THEIRS,',
+  '  not the ref\'s. Attribute it — "by his own account", "as he tells it" —',
+  '  and never state it as established fact.',
+  '- Their own words may be quoted, briefly, and should be where they are good.',
+  '',
   '- Three paragraphs of roughly 60 to 90 words each.',
   '- At least two honours must be winnable by somebody having a bad round.',
   '',
@@ -2925,6 +3234,9 @@ export function boot() {
      mid-sentence often. */
   app.addEventListener('input', e => {
     if (e.target && e.target.id === 'askField') UI.askText = e.target.value;
+    if (e.target && e.target.id === 'mineText') {
+      UI.mineDraft = { rid: UI.entryRound, h: +e.target.dataset.b, v: e.target.value };
+    }
   });
   // the page may be allowed to ask Claude, or may not: find out once, quietly,
   // and let the crest and the recap light up if it can

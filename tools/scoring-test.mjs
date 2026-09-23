@@ -1,7 +1,7 @@
 /* The numbers under the recap. The narrative can be wrong and it is funny;
    these cannot. Pure engine, no browser. Run: node tools/scoring-test.mjs */
 import * as E from '../src/engine.js';
-import { defaultConfig, blankCard, blankBbb } from '../src/store.js';
+import { defaultConfig, blankCard, blankBbb, blankNote } from '../src/store.js';
 import { COURSES } from '../src/data.js';
 
 const fails = [];
@@ -266,6 +266,93 @@ console.log('\nthe panel on Today');
   const s2 = {};
   odd.sessions.forEach(s => s.matches.forEach(m => { s2[m.a + '|' + m.b] = (s2[m.a + '|' + m.b] || 0) + 1; }));
   ok('and still no repeat matchups', Object.values(s2).filter(n => n > 1).length, 0);
+}
+
+/* ---------- the marks ----------
+   Three putts, out of bounds, water and the shot of the hole: the reason a
+   seven happened, which is the one thing a scorecard cannot hold. They feed
+   the recap and NOTHING else, and that is the property worth testing hardest
+   — a mark that moved a leaderboard would turn a bit of colour into a
+   grievance. */
+{
+  console.log('\nthe marks, and how far they reach');
+  const T = fresh();
+  T.notes = {};
+  for (const id of ['a', 'b']) {
+    const c = blankCard();
+    for (let h = 0; h < 18; h++) c.raw[h] = COURSES.olympos.holes[h].par + 1;
+    T.scores['r1__' + id] = c;
+  }
+  const before = {
+    mvp: E.mvpBoard(T, E.nowLocal()).map(r => r.name + r.totalStr),
+    pairs: E.pairsBoard(T, E.nowLocal()).map(r => r.totalStr),
+  };
+
+  T.scores.r1__a.marks = { 2: ['putt3'], 6: ['ob', 'putt3'], 11: ['shot'] };
+
+  ok('a mark is read back off the hole it was made on',
+    E.holeMarks(T, 'r1', 'a', 6).slice().sort(), ['ob', 'putt3']);
+  ok('and nowhere else', E.holeMarks(T, 'r1', 'a', 5), []);
+  ok('a golfer with no marks has none', E.holeMarks(T, 'r1', 'b', 6), []);
+  ok('rubbish in a mark list is ignored rather than shown',
+    (() => { T.scores.r1__b.marks = { 3: ['putt3', 'nonsense', 7] };
+             return E.holeMarks(T, 'r1', 'b', 3); })(), ['putt3']);
+
+  ok('counted, with the holes they fell on',
+    E.markTally(T, 'r1', 'a').putt3, [3, 7]);
+  ok('and said the way a person would say it',
+    E.markLine(T, 'r1', 'a'), '3-putt ×2 (holes 3, 7); OB ×1 (hole 7); Shot ×1 (hole 12)');
+
+  /* The denominator is the whole point. Three marked holes out of eighteen
+     is not "he three-putted twice all day". */
+  ok('the coverage is carried with it', E.markCoverage(T, 'r1', 'a'), { played: 18, marked: 3 });
+  ok('a golfer nobody marked reads as nought marked, not nought happened',
+    E.markCoverage(T, 'r1', 'c'), { played: 0, marked: 0 });
+
+  console.log('\nand none of it counts');
+  ok('the MVP board is untouched',
+    E.mvpBoard(T, E.nowLocal()).map(r => r.name + r.totalStr), before.mvp);
+  ok('the team board is untouched',
+    E.pairsBoard(T, E.nowLocal()).map(r => r.totalStr), before.pairs);
+  ok('and the card itself still reads the same',
+    T.scores.r1__a.raw.slice(0, 3), [COURSES.olympos.holes[0].par + 1,
+      COURSES.olympos.holes[1].par + 1, COURSES.olympos.holes[2].par + 1]);
+
+  console.log('\nwhat a golfer said about their own round');
+  const n = blankNote('r1', 'b');
+  n.marks = { 4: ['water'] };
+  n.text = { 4: 'Two in the lake off the tee.' };
+  T.notes.r1__b = n;
+  ok('a self-kept mark is its own thing', E.selfMarks(T, 'r1', 'b', 4), ['water']);
+  ok('and is NOT on the ref\'s card', E.holeMarks(T, 'r1', 'b', 4), []);
+  ok('nor does the ref\'s card leak into it', E.selfMarks(T, 'r1', 'a', 6), []);
+
+  console.log('\nthe recap is told which is which, and how far each goes');
+  const brief = E.roundBrief(T, 'r1');
+  ok('the ref\'s marks are in the brief', /MARKS, PUT IN BY THE REF/.test(brief), true);
+  ok('with the coverage beside them', /marked on 3 of the 18 holes/.test(brief), true);
+  ok('and a warning that a count is a floor', /FLOOR, never a total/.test(brief), true);
+  ok('the self-kept ones are under their own heading',
+    /WHAT THE GOLFERS SAID ABOUT THEIR OWN ROUNDS/.test(brief), true);
+  ok('with their own words, quoted', /"Two in the lake off the tee\."/.test(brief), true);
+  ok('and the two are never run together', (() => {
+    const ref = brief.indexOf('MARKS, PUT IN BY THE REF');
+    const own = brief.indexOf('WHAT THE GOLFERS SAID');
+    return ref > 0 && own > ref;
+  })(), true);
+  ok('a round nobody marked says nothing about marks at all', (() => {
+    const clean = fresh(); clean.notes = {};
+    const c = blankCard(); for (let h = 0; h < 18; h++) c.raw[h] = 4;
+    clean.scores.r1__a = c;
+    return /MARKS, PUT IN BY|GOLFERS SAID/.test(E.roundBrief(clean, 'r1'));
+  })(), false);
+
+  console.log('\nthe four of them');
+  ok('four marks, no more', E.MARKS.length, 4);
+  ok('three things going wrong and one going right — a log of only disasters',
+    E.MARKS.filter(m => m.tone === 'good').length, 1);
+  ok('and every one of them is plain English', E.MARKS.map(m => m.label),
+    ['Three-putt', 'Out of bounds', 'In the water', 'Shot of the hole']);
 }
 
 console.log(fails.length ? '\nFAILED: ' + fails.join(', ') : '\nThe numbers under the recap hold.');

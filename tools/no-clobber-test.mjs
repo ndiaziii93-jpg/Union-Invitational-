@@ -100,6 +100,28 @@ const settled = async (pg, ms = 20000) => {
   await pg.waitForTimeout(350);        // one redraw after the last document
 };
 
+/* And then wait for the screen to STOP MOVING before reading it.
+ *
+ * The load bar goes when the book has the config and the roster, which is
+ * one beat before the roster has been reconciled against the config's own
+ * stale mirror of it. On an idle machine that beat is nothing; under three
+ * browsers it is half a second, and the count gets read with a ghost still
+ * on it. This is not "wait longer" — it asserts nothing and hides nothing:
+ * if a removed golfer really did come back and stay, the steady count is
+ * the one with them on it and the test still fails. */
+const steady = async (pg, sel, ms = 10000) => {
+  let last = -1, same = 0;
+  const until = Date.now() + ms;
+  while (Date.now() < until) {
+    const n = await pg.locator(sel).count();
+    same = n === last ? same + 1 : 0;
+    last = n;
+    if (same >= 3) return n;
+    await pg.waitForTimeout(200);
+  }
+  return last;
+};
+
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
 
 for (const [label, lie] of [['a healthy store', false], ['a store whose first read lies', true]]) {
@@ -200,7 +222,7 @@ for (const [label, lie] of [['a healthy store', false], ['a store whose first re
   await p.reload(); await settled(p);
   await p.locator('[data-act="modalCancel"]').click().catch(() => {});
   await p.locator('.tab', { hasText: 'Roster' }).click(); await p.waitForTimeout(500);
-  ok('and they stay gone after a reload', await p.locator('.rtable tbody tr').count(), n - 1);
+  ok('and they stay gone after a reload', await steady(p, '.rtable tbody tr'), n - 1);
   await p.close();
 }
 
@@ -222,7 +244,7 @@ for (const [label, lie] of [['a healthy store', false], ['a store whose first re
   await p.goto('file://' + W); await settled(p);
   await p.locator('[data-act="modalCancel"]').click().catch(() => {});
   await p.locator('.tab', { hasText: 'Roster' }).click(); await p.waitForTimeout(600);
-  ok('everyone is back on screen', await p.locator('.rtable tbody tr').count(), 15);
+  ok('everyone is back on screen', await steady(p, '.rtable tbody tr'), 15);
   ok('and the pairings came back too', await p.locator(".paircol:not(.un)").count(), 5);
 
   // remove somebody, then reload: the config mirror still lists them
@@ -238,7 +260,8 @@ for (const [label, lie] of [['a healthy store', false], ['a store whose first re
   await p.reload(); await settled(p);
   await p.locator('[data-act="modalCancel"]').click().catch(() => {});
   await p.locator('.tab', { hasText: 'Roster' }).click(); await p.waitForTimeout(600);
-  ok('and the stale config mirror cannot bring them back', await p.locator('.rtable tbody tr').count(), n - 1);
+  ok('and the stale config mirror cannot bring them back',
+    await steady(p, '.rtable tbody tr'), n - 1);
   await p.close();
 }
 

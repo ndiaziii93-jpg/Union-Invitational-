@@ -1174,3 +1174,83 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
   .rows.mvp .mvpmeta .n.under{color:var(--under)}
   .rows.mvp .mvpmeta .n.over{color:var(--over)}
 }
+
+/* ---- the marks ----
+   Everything here exists so the scoring tab does NOT grow sixteen new
+   controls. The tab gains one button; the rest lives in a sheet that is only
+   opened on a hole where something happened. */
+
+/* the one button, and what it says when the hole already carries marks */
+.markbtn .ct{display:inline-flex;align-items:center;justify-content:center;
+  min-width:20px;height:20px;padding:0 5px;margin-left:6px;border-radius:999px;
+  background:var(--gold);color:#FBFAF7;font-size:13px;font-weight:700;line-height:1}
+.markbtn.has{border-color:var(--gold);color:var(--ink)}
+
+/* a hole that carries a mark says so in the strip, so a ref can see at a
+   glance what they have logged and spot one they meant to */
+.hcell{position:relative}
+.hcell.marked::after{content:"";position:absolute;top:5px;right:5px;width:6px;height:6px;
+  border-radius:50%;background:var(--gold)}
+.hcell.on.marked::after{background:var(--paper)}
+
+.marksheet{max-width:460px}
+.ms-head h3{margin:2px 0 0}
+.ms-head p{margin:6px 0 0}
+.msgrid{margin-top:14px;border-top:2px solid var(--ink)}
+.ms-row{display:grid;grid-template-columns:minmax(0,1fr) repeat(var(--cols),44px);
+  gap:6px;align-items:center;padding:6px 0;border-bottom:1px solid var(--hair)}
+.ms-row.ms-hdr{padding:6px 0 7px;border-bottom:1px solid var(--rule)}
+.ms-who{min-width:0;font-size:16px;font-weight:600;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+/* Not uppercased and not letter-spaced: "3-putt" is six characters and at
+   44px wide the tracking pushed it onto two lines, broken at the hyphen. */
+.ms-col{font-size:12px;text-align:center;color:var(--turf);line-height:1.15}
+.mscell{height:44px;border:1px solid var(--rule);background:var(--page);border-radius:8px;
+  display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;
+  color:transparent;-webkit-tap-highlight-color:transparent;
+  transition:background .15s ease,border-color .15s ease}
+@media (hover:hover) and (pointer:fine){.mscell:not(:disabled):hover{border-color:var(--ink)}}
+.mscell.on{color:#FBFAF7}
+.mscell.bad.on{background:var(--flag);border-color:var(--flag)}
+.mscell.good.on{background:var(--green);border-color:var(--green)}
+.mscell:disabled{opacity:.45}
+/* the legend, because two letters at the top of a column is not a word */
+.ms-key{font-size:13px;color:var(--turf);margin:12px 0 0;line-height:1.6}
+.ms-key .bad{color:var(--flag);font-weight:600}
+.ms-key .good{color:var(--green);font-weight:600}
+
+/* ---- the two lanes ----
+   The ref scores the group; everybody else keeps their own round. */
+.lanes{display:flex;gap:2px;margin-top:16px;border:1px solid var(--rule);
+  border-radius:4px;padding:3px;background:var(--page);max-width:420px}
+.lane{flex:1 1 0;min-height:44px;padding:9px 12px;border-radius:2px;font-size:16px;
+  color:var(--turf);text-align:center;white-space:nowrap}
+.lane.on{background:var(--ink);color:var(--paper);font-weight:700}
+@media (hover:hover) and (pointer:fine){.lane:not(.on):hover{color:var(--ink)}}
+
+/* ---- My Round ---- */
+.minepick{margin-top:18px;border-top:2px solid var(--ink);padding-top:14px}
+.minemarks{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.mnchip{flex:1 1 150px;min-height:52px;padding:12px 14px;border:1px solid var(--rule);
+  background:var(--page);color:var(--ink);border-radius:9px;font-size:16px;text-align:left;
+  -webkit-tap-highlight-color:transparent;transition:background .15s ease,border-color .15s ease}
+@media (hover:hover) and (pointer:fine){.mnchip:not(.on):hover{border-color:var(--ink)}}
+.mnchip.on{color:#FBFAF7;font-weight:600}
+.mnchip.bad.on{background:var(--flag);border-color:var(--flag)}
+.mnchip.good.on{background:var(--green);border-color:var(--green)}
+.minesay{display:block;margin-top:18px;max-width:560px}
+.minesay .field{width:100%;margin-top:6px}
+.minerow{align-items:baseline}
+.minerow .pos{color:var(--turf)}
+.mntag{display:inline-block;padding:2px 9px;border-radius:999px;font-size:13px;
+  font-weight:600;border:1px solid currentColor;margin-right:4px}
+.mntag.bad{color:var(--flag)}
+.mntag.good{color:var(--green)}
+.minetx{font-style:italic;color:var(--turf)}
+
+@media (max-width:560px){
+  .ms-row{grid-template-columns:minmax(0,1fr) repeat(var(--cols),40px);gap:4px}
+  .mscell{height:40px}
+  .ms-who{font-size:15px}
+  .mnchip{flex:1 1 100%}
+}

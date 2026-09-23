@@ -274,6 +274,103 @@ export function bbbMarks(cell) {
   return out;
 }
 
+/* ---------- the marks ----------
+ *
+ * What a scorecard cannot say. A seven on a par four is a seven whether it
+ * came off the tee, out of a lake or off the putter, and the recap has no
+ * way to tell which — so it writes around it, and the round reads flatter
+ * than it played.
+ *
+ * Four marks, and the choice of four is the whole design. Every one of them
+ * is something a ref can judge in a second without knowing a rule: three
+ * putts, out of bounds, in the water, and the shot of the hole. No sandies,
+ * no up-and-downs, no greenies — closest to the pin already carries the par
+ * three honour, and a word somebody has to have explained to them is a word
+ * that does not get tapped.
+ *
+ * Three of them are things going wrong and one is a thing going right, on
+ * purpose: a log that only records disasters turns the recap into a hit
+ * list.
+ *
+ * NONE OF IT COUNTS. Not the team competition, not the MVP, not the cup.
+ * That is what keeps the pressure off — a mark nobody remembered to make
+ * has never cost anyone a shot, so the marking stays honest rather than
+ * defensive. */
+export const MARKS = [
+  { key: 'putt3', label: 'Three-putt', short: '3-putt', tone: 'bad',
+    said: 'three-putted' },
+  { key: 'ob', label: 'Out of bounds', short: 'OB', tone: 'bad',
+    said: 'went out of bounds' },
+  { key: 'water', label: 'In the water', short: 'Water', tone: 'bad',
+    said: 'found the water' },
+  { key: 'shot', label: 'Shot of the hole', short: 'Shot', tone: 'good',
+    said: 'played the shot of the hole' },
+];
+export const MARK_KEYS = MARKS.map(m => m.key);
+const markDef = k => MARKS.find(m => m.key === k) || null;
+
+/** The marks a REF put on one golfer's hole. Always an array. */
+export function holeMarks(T, rid, pid, h) {
+  const c = card(T, rid, pid);
+  const got = c && c.marks ? c.marks[h] : null;
+  return Array.isArray(got) ? got.filter(k => MARK_KEYS.includes(k)) : [];
+}
+
+/** One golfer's self-kept notes for a round: their own marks and their own
+ *  words. A separate document from the card, written by them, never merged
+ *  into it — see the note on the My Round lane in app.js. */
+export function selfLog(T, rid, pid) {
+  return (T.notes || {})[rid + '__' + pid] || null;
+}
+
+export function selfMarks(T, rid, pid, h) {
+  const n = selfLog(T, rid, pid);
+  const got = n && n.marks ? n.marks[h] : null;
+  return Array.isArray(got) ? got.filter(k => MARK_KEYS.includes(k)) : [];
+}
+
+/** How many of a golfer's played holes carry a ref's mark.
+ *
+ * This is the number that keeps the recap honest. Three marked holes out of
+ * eighteen is not "he three-putted once all day"; it is "of the three holes
+ * anybody marked". Without the denominator the book states a fact it has no
+ * right to, and a recap that is confidently wrong once is never trusted
+ * again. */
+export function markCoverage(T, rid, pid) {
+  const c = card(T, rid, pid);
+  if (!c) return { played: 0, marked: 0 };
+  let played = 0, marked = 0;
+  for (let h = 0; h < 18; h++) {
+    if (c.raw[h] == null) continue;
+    played++;
+    if (c.marks && Array.isArray(c.marks[h]) && c.marks[h].length) marked++;
+  }
+  return { played, marked };
+}
+
+/** A round's marks for one golfer, counted, with the holes they fell on. */
+export function markTally(T, rid, pid, self) {
+  const out = {};
+  for (let h = 0; h < 18; h++) {
+    const ks = self ? selfMarks(T, rid, pid, h) : holeMarks(T, rid, pid, h);
+    for (const k of ks) (out[k] = out[k] || []).push(h + 1);
+  }
+  return out;
+}
+
+/** The same, written the way a person would say it. */
+export function markLine(T, rid, pid, self) {
+  const t = markTally(T, rid, pid, self);
+  const bits = [];
+  for (const m of MARKS) {
+    const holes = t[m.key];
+    if (!holes || !holes.length) continue;
+    bits.push(m.short + ' \u00d7' + holes.length + ' (hole' + (holes.length > 1 ? 's ' : ' ')
+      + holes.join(', ') + ')');
+  }
+  return bits.join('; ');
+}
+
 export function bbbBoard(T) {
   const tally = {};
   for (const r of countingRounds(T)) {
@@ -403,6 +500,52 @@ export function roundBrief(T, rid) {
       + 'holes ' + c.raw.map(v => (v == null ? '-' : v)).join(',')
       + ' | gross ' + gross + ', net to par ' + fmtToPar(tp) + ', ' + stb + ' pts, thru ' + thru);
   }
+
+  /* What the numbers cannot say. Two sources, kept apart on purpose: the
+     ref's marks are what somebody standing there wrote down, and the self
+     log is what a golfer said about their own round afterwards. They are
+     different kinds of claim and the recap should not treat them as one.
+
+     The coverage line is the important one. Marks are made on the holes
+     somebody remembered to mark, which is never all of them, so the count
+     is a floor and never a total. */
+  const marked = [];
+  for (const p of golfers(T)) {
+    const c = card(T, rid, p.id);
+    if (!c || c.raw.every(v => v == null)) continue;
+    const line = markLine(T, rid, p.id);
+    const cov = markCoverage(T, rid, p.id);
+    if (line) marked.push('- ' + p.display + ': ' + line
+      + '  [marked on ' + cov.marked + ' of the ' + cov.played + ' holes they played]');
+  }
+  if (marked.length) {
+    L.push('\nMARKS, PUT IN BY THE REF WALKING WITH THE GROUP');
+    L.push('Only some holes get marked. These counts are a FLOOR, never a total:');
+    L.push('say "at least" or "of the holes marked", and never that somebody did');
+    L.push('something no more than n times, or never did it at all.');
+    L.push(...marked);
+  }
+
+  const said = [];
+  for (const p of golfers(T)) {
+    const n = selfLog(T, rid, p.id);
+    if (!n) continue;
+    const line = markLine(T, rid, p.id, true);
+    const words = Object.keys(n.text || {})
+      .map(Number).sort((a, b) => a - b)
+      .filter(h => String(n.text[h] || '').trim())
+      .map(h => 'hole ' + (h + 1) + ': "' + String(n.text[h]).trim() + '"');
+    if (!line && !words.length) continue;
+    said.push('- ' + p.display + (line ? ': ' + line : ':')
+      + (words.length ? ' — in their own words, ' + words.join('; ') : ''));
+  }
+  if (said.length) {
+    L.push('\nWHAT THE GOLFERS SAID ABOUT THEIR OWN ROUNDS');
+    L.push('Self-reported, not the ref\'s card. Good for colour and for a quote;');
+    L.push('attribute it to them rather than stating it as fact.');
+    L.push(...said);
+  }
+
   const b = T.bbb[rid];
   if (b) {
     const tally = {};

@@ -27,7 +27,9 @@
  *      unobserved.
  */
 
-const PREFIXES = ['config', 'people', 'pairs', 'scores', 'bbb', 'recaps', 'photos', 'diag'];
+/* Every collection the book keeps. A path outside this list is not polled,
+   so adding one here is part of adding one at all. */
+const PREFIXES = ['config', 'people', 'pairs', 'scores', 'bbb', 'notes', 'recaps', 'photos', 'diag'];
 const POLL_MS = 6000;         // the net under the live socket
 const RETRY_MS = 4000;        // how often a stranded outbox tries again
 const OUTBOX_KEY = 'ui.outbox.v1';

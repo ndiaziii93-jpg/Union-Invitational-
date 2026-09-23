@@ -1179,6 +1179,86 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
   .rows.mvp .mvpmeta .n.over{color:var(--over)}
 }
 
+/* ---- the marks ----
+   Everything here exists so the scoring tab does NOT grow sixteen new
+   controls. The tab gains one button; the rest lives in a sheet that is only
+   opened on a hole where something happened. */
+
+/* the one button, and what it says when the hole already carries marks */
+.markbtn .ct{display:inline-flex;align-items:center;justify-content:center;
+  min-width:20px;height:20px;padding:0 5px;margin-left:6px;border-radius:999px;
+  background:var(--gold);color:#FBFAF7;font-size:13px;font-weight:700;line-height:1}
+.markbtn.has{border-color:var(--gold);color:var(--ink)}
+
+/* a hole that carries a mark says so in the strip, so a ref can see at a
+   glance what they have logged and spot one they meant to */
+.hcell{position:relative}
+.hcell.marked::after{content:"";position:absolute;top:5px;right:5px;width:6px;height:6px;
+  border-radius:50%;background:var(--gold)}
+.hcell.on.marked::after{background:var(--paper)}
+
+.marksheet{max-width:460px}
+.ms-head h3{margin:2px 0 0}
+.ms-head p{margin:6px 0 0}
+.msgrid{margin-top:14px;border-top:2px solid var(--ink)}
+.ms-row{display:grid;grid-template-columns:minmax(0,1fr) repeat(var(--cols),44px);
+  gap:6px;align-items:center;padding:6px 0;border-bottom:1px solid var(--hair)}
+.ms-row.ms-hdr{padding:6px 0 7px;border-bottom:1px solid var(--rule)}
+.ms-who{min-width:0;font-size:16px;font-weight:600;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+/* Not uppercased and not letter-spaced: "3-putt" is six characters and at
+   44px wide the tracking pushed it onto two lines, broken at the hyphen. */
+.ms-col{font-size:12px;text-align:center;color:var(--turf);line-height:1.15}
+.mscell{height:44px;border:1px solid var(--rule);background:var(--page);border-radius:8px;
+  display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;
+  color:transparent;-webkit-tap-highlight-color:transparent;
+  transition:background .15s ease,border-color .15s ease}
+@media (hover:hover) and (pointer:fine){.mscell:not(:disabled):hover{border-color:var(--ink)}}
+.mscell.on{color:#FBFAF7}
+.mscell.bad.on{background:var(--flag);border-color:var(--flag)}
+.mscell.good.on{background:var(--green);border-color:var(--green)}
+.mscell:disabled{opacity:.45}
+/* the legend, because two letters at the top of a column is not a word */
+.ms-key{font-size:13px;color:var(--turf);margin:12px 0 0;line-height:1.6}
+.ms-key .bad{color:var(--flag);font-weight:600}
+.ms-key .good{color:var(--green);font-weight:600}
+
+/* ---- the two lanes ----
+   The ref scores the group; everybody else keeps their own round. */
+.lanes{display:flex;gap:2px;margin-top:16px;border:1px solid var(--rule);
+  border-radius:4px;padding:3px;background:var(--page);max-width:420px}
+.lane{flex:1 1 0;min-height:44px;padding:9px 12px;border-radius:2px;font-size:16px;
+  color:var(--turf);text-align:center;white-space:nowrap}
+.lane.on{background:var(--ink);color:var(--paper);font-weight:700}
+@media (hover:hover) and (pointer:fine){.lane:not(.on):hover{color:var(--ink)}}
+
+/* ---- My Round ---- */
+.minepick{margin-top:18px;border-top:2px solid var(--ink);padding-top:14px}
+.minemarks{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.mnchip{flex:1 1 150px;min-height:52px;padding:12px 14px;border:1px solid var(--rule);
+  background:var(--page);color:var(--ink);border-radius:9px;font-size:16px;text-align:left;
+  -webkit-tap-highlight-color:transparent;transition:background .15s ease,border-color .15s ease}
+@media (hover:hover) and (pointer:fine){.mnchip:not(.on):hover{border-color:var(--ink)}}
+.mnchip.on{color:#FBFAF7;font-weight:600}
+.mnchip.bad.on{background:var(--flag);border-color:var(--flag)}
+.mnchip.good.on{background:var(--green);border-color:var(--green)}
+.minesay{display:block;margin-top:18px;max-width:560px}
+.minesay .field{width:100%;margin-top:6px}
+.minerow{align-items:baseline}
+.minerow .pos{color:var(--turf)}
+.mntag{display:inline-block;padding:2px 9px;border-radius:999px;font-size:13px;
+  font-weight:600;border:1px solid currentColor;margin-right:4px}
+.mntag.bad{color:var(--flag)}
+.mntag.good{color:var(--green)}
+.minetx{font-style:italic;color:var(--turf)}
+
+@media (max-width:560px){
+  .ms-row{grid-template-columns:minmax(0,1fr) repeat(var(--cols),40px);gap:4px}
+  .mscell{height:40px}
+  .ms-who{font-size:15px}
+  .mnchip{flex:1 1 100%}
+}
+
 </style>
 <div id="app"></div>
 <!-- The crest, and the opening it pays for, ahead of everything else. A few
@@ -1261,7 +1341,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20260921-1335';
+const BUILD = '20260923-0814';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -1754,6 +1834,103 @@ function bbbMarks(cell) {
   return out;
 }
 
+/* ---------- the marks ----------
+ *
+ * What a scorecard cannot say. A seven on a par four is a seven whether it
+ * came off the tee, out of a lake or off the putter, and the recap has no
+ * way to tell which — so it writes around it, and the round reads flatter
+ * than it played.
+ *
+ * Four marks, and the choice of four is the whole design. Every one of them
+ * is something a ref can judge in a second without knowing a rule: three
+ * putts, out of bounds, in the water, and the shot of the hole. No sandies,
+ * no up-and-downs, no greenies — closest to the pin already carries the par
+ * three honour, and a word somebody has to have explained to them is a word
+ * that does not get tapped.
+ *
+ * Three of them are things going wrong and one is a thing going right, on
+ * purpose: a log that only records disasters turns the recap into a hit
+ * list.
+ *
+ * NONE OF IT COUNTS. Not the team competition, not the MVP, not the cup.
+ * That is what keeps the pressure off — a mark nobody remembered to make
+ * has never cost anyone a shot, so the marking stays honest rather than
+ * defensive. */
+const MARKS = [
+  { key: 'putt3', label: 'Three-putt', short: '3-putt', tone: 'bad',
+    said: 'three-putted' },
+  { key: 'ob', label: 'Out of bounds', short: 'OB', tone: 'bad',
+    said: 'went out of bounds' },
+  { key: 'water', label: 'In the water', short: 'Water', tone: 'bad',
+    said: 'found the water' },
+  { key: 'shot', label: 'Shot of the hole', short: 'Shot', tone: 'good',
+    said: 'played the shot of the hole' },
+];
+const MARK_KEYS = MARKS.map(m => m.key);
+const markDef = k => MARKS.find(m => m.key === k) || null;
+
+/** The marks a REF put on one golfer's hole. Always an array. */
+function holeMarks(T, rid, pid, h) {
+  const c = card(T, rid, pid);
+  const got = c && c.marks ? c.marks[h] : null;
+  return Array.isArray(got) ? got.filter(k => MARK_KEYS.includes(k)) : [];
+}
+
+/** One golfer's self-kept notes for a round: their own marks and their own
+ *  words. A separate document from the card, written by them, never merged
+ *  into it — see the note on the My Round lane in app.js. */
+function selfLog(T, rid, pid) {
+  return (T.notes || {})[rid + '__' + pid] || null;
+}
+
+function selfMarks(T, rid, pid, h) {
+  const n = selfLog(T, rid, pid);
+  const got = n && n.marks ? n.marks[h] : null;
+  return Array.isArray(got) ? got.filter(k => MARK_KEYS.includes(k)) : [];
+}
+
+/** How many of a golfer's played holes carry a ref's mark.
+ *
+ * This is the number that keeps the recap honest. Three marked holes out of
+ * eighteen is not "he three-putted once all day"; it is "of the three holes
+ * anybody marked". Without the denominator the book states a fact it has no
+ * right to, and a recap that is confidently wrong once is never trusted
+ * again. */
+function markCoverage(T, rid, pid) {
+  const c = card(T, rid, pid);
+  if (!c) return { played: 0, marked: 0 };
+  let played = 0, marked = 0;
+  for (let h = 0; h < 18; h++) {
+    if (c.raw[h] == null) continue;
+    played++;
+    if (c.marks && Array.isArray(c.marks[h]) && c.marks[h].length) marked++;
+  }
+  return { played, marked };
+}
+
+/** A round's marks for one golfer, counted, with the holes they fell on. */
+function markTally(T, rid, pid, self) {
+  const out = {};
+  for (let h = 0; h < 18; h++) {
+    const ks = self ? selfMarks(T, rid, pid, h) : holeMarks(T, rid, pid, h);
+    for (const k of ks) (out[k] = out[k] || []).push(h + 1);
+  }
+  return out;
+}
+
+/** The same, written the way a person would say it. */
+function markLine(T, rid, pid, self) {
+  const t = markTally(T, rid, pid, self);
+  const bits = [];
+  for (const m of MARKS) {
+    const holes = t[m.key];
+    if (!holes || !holes.length) continue;
+    bits.push(m.short + ' \u00d7' + holes.length + ' (hole' + (holes.length > 1 ? 's ' : ' ')
+      + holes.join(', ') + ')');
+  }
+  return bits.join('; ');
+}
+
 function bbbBoard(T) {
   const tally = {};
   for (const r of countingRounds(T)) {
@@ -1883,6 +2060,52 @@ function roundBrief(T, rid) {
       + 'holes ' + c.raw.map(v => (v == null ? '-' : v)).join(',')
       + ' | gross ' + gross + ', net to par ' + fmtToPar(tp) + ', ' + stb + ' pts, thru ' + thru);
   }
+
+  /* What the numbers cannot say. Two sources, kept apart on purpose: the
+     ref's marks are what somebody standing there wrote down, and the self
+     log is what a golfer said about their own round afterwards. They are
+     different kinds of claim and the recap should not treat them as one.
+
+     The coverage line is the important one. Marks are made on the holes
+     somebody remembered to mark, which is never all of them, so the count
+     is a floor and never a total. */
+  const marked = [];
+  for (const p of golfers(T)) {
+    const c = card(T, rid, p.id);
+    if (!c || c.raw.every(v => v == null)) continue;
+    const line = markLine(T, rid, p.id);
+    const cov = markCoverage(T, rid, p.id);
+    if (line) marked.push('- ' + p.display + ': ' + line
+      + '  [marked on ' + cov.marked + ' of the ' + cov.played + ' holes they played]');
+  }
+  if (marked.length) {
+    L.push('\nMARKS, PUT IN BY THE REF WALKING WITH THE GROUP');
+    L.push('Only some holes get marked. These counts are a FLOOR, never a total:');
+    L.push('say "at least" or "of the holes marked", and never that somebody did');
+    L.push('something no more than n times, or never did it at all.');
+    L.push(...marked);
+  }
+
+  const said = [];
+  for (const p of golfers(T)) {
+    const n = selfLog(T, rid, p.id);
+    if (!n) continue;
+    const line = markLine(T, rid, p.id, true);
+    const words = Object.keys(n.text || {})
+      .map(Number).sort((a, b) => a - b)
+      .filter(h => String(n.text[h] || '').trim())
+      .map(h => 'hole ' + (h + 1) + ': "' + String(n.text[h]).trim() + '"');
+    if (!line && !words.length) continue;
+    said.push('- ' + p.display + (line ? ': ' + line : ':')
+      + (words.length ? ' — in their own words, ' + words.join('; ') : ''));
+  }
+  if (said.length) {
+    L.push('\nWHAT THE GOLFERS SAID ABOUT THEIR OWN ROUNDS');
+    L.push('Self-reported, not the ref\'s card. Good for colour and for a quote;');
+    L.push('attribute it to them rather than stating it as fact.');
+    L.push(...said);
+  }
+
   const b = T.bbb[rid];
   if (b) {
     const tally = {};
@@ -2273,7 +2496,7 @@ function roundToPar(T, roundId, pid) {
   return { tp, thru };
 }
 
-return {nowLocal, dayOf, hhmmToMin, to12, to24, BANDS, strokesFor, bandTotal, fmtToPar, capFor, capped, person, golfers, roundDef, roundCfg, courseByKey, courseOf, scoreKey, card, pairName, phaseOf, phaseLabel, hasScores, countingRounds, playerNet, pairHole, PAIRS_PER_GROUP, groups, practiceBoard, practiceBbb, bandsLocked, pairsBoard, mvpBoard, BBB_SLOTS, bbbMarks, bbbBoard, roundComplete, brief, roundBrief, recapRound, roundStanding, ribbon, pairRoundBoard, recapTable, swingOfTheDay, sideGames, recapInput, matchPlay, ryderData, holeCells, setupIssues, nextTee, fixtures, nextFixture, TEE_CHOICES, TEE_PRIV, teePrivilege, roundToPar};
+return {nowLocal, dayOf, hhmmToMin, to12, to24, BANDS, strokesFor, bandTotal, fmtToPar, capFor, capped, person, golfers, roundDef, roundCfg, courseByKey, courseOf, scoreKey, card, pairName, phaseOf, phaseLabel, hasScores, countingRounds, playerNet, pairHole, PAIRS_PER_GROUP, groups, practiceBoard, practiceBbb, bandsLocked, pairsBoard, mvpBoard, BBB_SLOTS, bbbMarks, MARKS, MARK_KEYS, holeMarks, selfLog, selfMarks, markCoverage, markTally, markLine, bbbBoard, roundComplete, brief, roundBrief, recapRound, roundStanding, ribbon, pairRoundBoard, recapTable, swingOfTheDay, sideGames, recapInput, matchPlay, ryderData, holeCells, setupIssues, nextTee, fixtures, nextFixture, TEE_CHOICES, TEE_PRIV, teePrivilege, roundToPar};
 })();
 
 const __m_dbsupa = (function(){
@@ -2307,7 +2530,9 @@ const __m_dbsupa = (function(){
  *      unobserved.
  */
 
-const PREFIXES = ['config', 'people', 'pairs', 'scores', 'bbb', 'recaps', 'photos', 'diag'];
+/* Every collection the book keeps. A path outside this list is not polled,
+   so adding one here is part of adding one at all. */
+const PREFIXES = ['config', 'people', 'pairs', 'scores', 'bbb', 'notes', 'recaps', 'photos', 'diag'];
 const POLL_MS = 6000;         // the net under the live socket
 const RETRY_MS = 4000;        // how often a stranded outbox tries again
 const OUTBOX_KEY = 'ui.outbox.v1';
@@ -2687,7 +2912,13 @@ const DEFAULT_PINS = { master: '1000', s1: '2000', s2: '3000' };
 
 /** `by` and `at` are keyed by hole index and hold only saved holes, so a hole
  *  with no entry is simply absent — no null to be dropped in transit. */
-function blankCard() { return { raw: Array(18).fill(null), by: {}, at: {}, mF: false, mB: false, bb: false }; }
+/* `marks` is the ref's read of the hole — three-putt, out of bounds, water,
+   shot of the hole — keyed by hole index. It rides along with the card
+   because it is the same person writing it at the same moment, and it feeds
+   the recap only: nothing in it reaches a leaderboard. A card written before
+   marks existed simply has none. */
+function blankCard() { return { raw: Array(18).fill(null), by: {}, at: {}, marks: {}, mF: false, mB: false, bb: false }; }
+function blankNote(rid, pid) { return { rid, pid, marks: {}, text: {}, at: {} }; }
 function blankBbb() { return { holes: Array.from({ length: 18 }, () => ({ bingo: null, bango: null, bongo: null })) }; }
 
 function defaultConfig() {
@@ -2737,7 +2968,7 @@ function defaultConfig() {
  *  created — so it can never leak back in and resurrect somebody. */
 function emptyState() {
   const cfg = defaultConfig();
-  return { config: { ...cfg, people: [], pairs: [] }, scores: {}, bbb: {}, recaps: {}, photos: {} };
+  return { config: { ...cfg, people: [], pairs: [] }, scores: {}, bbb: {}, recaps: {}, photos: {}, notes: {} };
 }
 
 /** Everything written to config/tournament. The roster is ALSO kept here as a
@@ -2787,7 +3018,7 @@ function createStore(onChange) {
   let peopleLoaded = false, pairsLoaded = false, splitDone = false;
   let rosterInDocs = false;     // the roster lives in its own documents
   let peopleSeen = false;       // the people collection has reported at least once
-  const emptySeq = { people: 0, pairs: 0, scores: 0, bbb: 0, recaps: 0, photos: 0 };  // guards a confirmation against a newer snapshot
+  const emptySeq = { people: 0, pairs: 0, scores: 0, bbb: 0, recaps: 0, photos: 0, notes: 0 };  // guards a confirmation against a newer snapshot
   let sawConfig = false;
   let legacy = null;            // a roster still stored as lists inside the config
   let settled = false;          // the first load has resolved; until then, no writes
@@ -2846,7 +3077,7 @@ function createStore(onChange) {
       if (raw) {
         const s = JSON.parse(raw);
         if (s && s.config && s.config.v === 3) { T.config = s.config; T.scores = s.scores || {}; T.bbb = s.bbb || {};
-          T.recaps = s.recaps || {}; T.photos = s.photos || {}; return; }
+          T.recaps = s.recaps || {}; T.photos = s.photos || {}; T.notes = s.notes || {}; return; }
       }
     } catch (e) { /* first run, or storage blocked */ }
     T.config = defaultConfig();   // no database and nothing stored: start from the factory book
@@ -3018,6 +3249,18 @@ function createStore(onChange) {
       },
       () => { status = 'error'; notify(); }
     ));
+    /* What the golfers wrote about their own rounds. Its own collection, so
+       a note can never be mistaken for a score and a bad write here can
+       never touch a card. */
+    unsubs.push(db.collection('notes').onSnapshot(
+      s => {
+        if (!s.docs.length) { confirmEmpty('notes'); notify(); return; }
+        emptySeq.notes++;
+        T.notes = mergeDocs('notes', T.notes, s.docs);
+        notify();
+      },
+      () => { status = 'error'; notify(); }
+    ));
     ready = true; notify();
     if (db.start) db.start();          // the live socket, the poll behind it, the outbox
     confirmRoster();
@@ -3037,6 +3280,7 @@ function createStore(onChange) {
         if (coll === 'recaps') { T.recaps = mergeDocs('recaps', T.recaps, have.docs); notify(); return; }
         if (coll === 'photos') { T.photos = mergeDocs('photos', T.photos, have.docs); notify(); return; }
         if (coll === 'bbb') { T.bbb = mergeDocs('bbb', T.bbb, have.docs); notify(); return; }
+        if (coll === 'notes') { T.notes = mergeDocs('notes', T.notes, have.docs); notify(); return; }
         if (coll === 'people') {
           if (have.docs.length) peopleLoaded = true;
           T.config.people = takeRows('people', have.docs, T.config.people).map(normPerson).sort(byOrder);
@@ -3413,7 +3657,7 @@ function createStore(onChange) {
     const key = roundId + '__' + pid;
     const prev = T.scores[key];
     const c = prev
-      ? { ...blankCard(), ...prev, raw: [...prev.raw], by: { ...(prev.by || {}) }, at: { ...(prev.at || {}) } }
+      ? { ...blankCard(), ...prev, raw: [...prev.raw], by: { ...(prev.by || {}) }, at: { ...(prev.at || {}) }, marks: { ...(prev.marks || {}) } }
       : blankCard();
     mutate(c);
     bump('scores/' + key, c);
@@ -3457,6 +3701,25 @@ function createStore(onChange) {
     return dropDoc('photos', id);
   }
 
+  /** One document per golfer per round: their own marks and their own words.
+   *  Never merged into the card — the card is the ref's, this is theirs. */
+  async function writeNote(rid, pid, mutate) {
+    if (tooEarly()) return false;
+    const key = rid + '__' + pid;
+    const prev = T.notes[key];
+    const n = prev
+      ? { ...blankNote(rid, pid), ...prev, marks: { ...(prev.marks || {}) },
+          text: { ...(prev.text || {}) }, at: { ...(prev.at || {}) } }
+      : blankNote(rid, pid);
+    mutate(n);
+    bump('notes/' + key, n);
+    T.notes[key] = n;
+    notify();
+    if (mode === 'local') { saveLocal(); return true; }
+    try { await db.doc('notes/' + key).set(n); saveState = 'saved'; lastSavedAt = Date.now(); notify(); return true; }
+    catch (e) { status = 'error'; saveState = 'error'; notify(); return false; }
+  }
+
   async function writeBbb(roundId, mutate) {
     if (tooEarly()) return false;
     const b = T.bbb[roundId] ? { holes: T.bbb[roundId].holes.map(h => ({ ...h })) } : blankBbb();
@@ -3472,14 +3735,14 @@ function createStore(onChange) {
   async function resetAll() {
     if (tooEarly()) return;
     const fresh = emptyState();
-    T.config = fresh.config; T.scores = {}; T.bbb = {};
+    T.config = fresh.config; T.scores = {}; T.bbb = {}; T.notes = {};
     for (const k of Object.keys(rev)) delete rev[k];
     bump('config', T.config);
     notify();
     if (mode === 'local') { saveLocal(); return; }
     try {
       await db.doc('config/tournament').set(T.config);
-      for (const coll of ['scores', 'bbb', 'people', 'pairs']) {
+      for (const coll of ['scores', 'bbb', 'notes', 'people', 'pairs']) {
         const got = await db.collection(coll).get();
         for (const d of got.docs) await db.doc(coll + '/' + d.id).delete();
       }
@@ -3488,7 +3751,7 @@ function createStore(onChange) {
     } catch (e) { status = 'error'; notify(); }
   }
 
-  return { T, connect, writeConfig, writeCard, writeBbb, writeRecap, writePhoto, dropPhoto, resetAll, resave, note,
+  return { T, connect, writeConfig, writeCard, writeBbb, writeNote, writeRecap, writePhoto, dropPhoto, resetAll, resave, note,
            writePerson, writeAllPeople, addPerson, removePerson,
            writePair, addPair, removePair, movePlayer, movePairBy,
            get mode() { return mode; }, get status() { return status; }, get ready() { return ready; },
@@ -3502,7 +3765,7 @@ function createStore(onChange) {
            destroy() { unsubs.forEach(u => { try { u(); } catch (e) {} }); } };
 }
 
-return {blankCard, blankBbb, defaultConfig, emptyState, normPerson, normPair, ROLES, roleForPin, createStore};
+return {blankCard, blankNote, blankBbb, defaultConfig, emptyState, normPerson, normPair, ROLES, roleForPin, createStore};
 })();
 
 const __m_app = (function(){
@@ -3561,11 +3824,24 @@ const UI = {
   reopened: {},   // course cards this device unlocked; they re-lock on the way out
   setupSeen: false,
   entrySeen: false,
+  entryMode: 'group',   // 'group' — scoring for everybody · 'mine' — my own round
+  me: null,             // which golfer this phone belongs to, for the My Round lane
+  mineHole: 0,
+  mineDraft: null,      // {rid, h, v} — a line being typed, held here so a
+                        // redraw arriving mid-sentence does not take it back
 };
 
 const ROLE_KEY = 'union-invitational:role';
 function saveRole(role) { try { localStorage.setItem(ROLE_KEY, role); } catch (e) { /* storage blocked */ } }
 function loadRole() { try { return localStorage.getItem(ROLE_KEY); } catch (e) { return null; } }
+
+/* The book has no accounts — anyone with the link can open it — so "who am
+   I" is a thing this PHONE knows rather than a thing the tournament knows.
+   It is asked once, in the My Round lane, and remembered here. It is used
+   for nothing else: it grants no permission and changes no score. */
+const ME_KEY = 'union-invitational:me';
+function saveMe(pid) { try { localStorage.setItem(ME_KEY, pid || ''); } catch (e) { /* storage blocked */ } }
+function loadMe() { try { return localStorage.getItem(ME_KEY) || null; } catch (e) { return null; } }
 
 /* Nothing is editable until the shared book has loaded. Before that the page is
    showing factory defaults, and an edit would write those over the real
@@ -4862,6 +5138,130 @@ function guardDraft(proceed) {
   render();
 }
 
+/* ---------------- the My Round lane ----------------
+ *
+ * The ref keeps the card. This is the other thing entirely: a golfer's own
+ * account of their own round, kept by them, on their own phone.
+ *
+ * It exists because the marks above cost the ref something, and the ref is
+ * one person watching four. Spread the same job across the four of them and
+ * it costs each a quarter as much — and people will happily log their own
+ * disasters, which is the best recap material there is and the least likely
+ * thing a ref writes down.
+ *
+ * It is NOT a second scorecard. It writes to its own collection, it never
+ * touches a raw score, and the recap is told which claims came from here so
+ * it can attribute them rather than state them. Two sources, kept apart,
+ * because they are different kinds of claim.
+ */
+/** Put what is in the box into the note. Called on blur, and on the way out
+ *  of a hole, so a line typed and then walked away from is not lost. */
+function commitMine() {
+  const d = UI.mineDraft;
+  UI.mineDraft = null;
+  if (!d || !UI.me || !store) return;
+  /* The round is remembered WITH the line. Reading UI.entryRound here would
+     file a sentence about Thursday under Friday if the draft outlived a tap
+     on another round, which is exactly the sort of thing that outlives a
+     draft. */
+  const v = String(d.v || '').trim().slice(0, 140);
+  const had = E.selfLog(T, d.rid, UI.me);
+  const was = had && had.text ? String(had.text[d.h] || '') : '';
+  if (v === was) return;
+  store.writeNote(d.rid, UI.me, n => {
+    if (v) n.text[d.h] = v; else delete n.text[d.h];
+    n.at[d.h] = Date.now();
+  });
+}
+
+function scrMine(rid) {
+  const r = E.roundDef(rid);
+  const gs = E.golfers(T);
+  const me = UI.me && gs.some(g => g.id === UI.me) ? UI.me : null;
+
+  if (!me) {
+    return `<h3 class="sub">My round</h3>
+    <p class="lede">Keep your own account of the round — the bits a scorecard
+    cannot hold. It feeds the day's recap and nothing else: no board, no
+    points, no effect on anybody's score, including yours.</p>
+    <div class="minepick">
+      <p class="sublede">Who are you? This phone will remember.</p>
+      <div class="chiprow">
+        ${gs.map(g => `<button class="chip" data-act="setMe" data-a="${g.id}">${esc(g.display)}</button>`).join('')}
+      </div>
+    </div>`;
+  }
+
+  const who = E.person(T, me) || {};
+  const course = E.courseOf(T, rid);
+  const h = Math.min(Math.max(UI.mineHole, 0), 17);
+  const hole = course.holes[h];
+  const c = E.card(T, rid, me);
+  const played = c && c.raw[h] != null ? c.raw[h] : null;
+  const note = E.selfLog(T, rid, me);
+  const on = E.selfMarks(T, rid, me, h);
+  /* A redraw lands every few seconds while the store polls. Reading the
+     value back out of the store would put the sentence back as it was
+     before the last few letters, so what is being typed is held in UI until
+     it is committed. Same fault, same fix as the crest's question box. */
+  const text = (UI.mineDraft && UI.mineDraft.rid === rid && UI.mineDraft.h === h)
+    ? UI.mineDraft.v
+    : (note && note.text ? (note.text[h] || '') : '');
+  const kept = [];
+  for (let i = 0; i < 18; i++) {
+    const ks = E.selfMarks(T, rid, me, i);
+    const tx = note && note.text ? String(note.text[i] || '').trim() : '';
+    if (ks.length || tx) kept.push({ i, ks, tx });
+  }
+
+  return `<h3 class="sub">My round — ${esc(who.display || '')}</h3>
+  <p class="lede">${esc(r.full)}. Yours to keep, and it feeds the day's recap.
+  It changes no score and no board — not even yours.
+  <button class="rm" data-act="setMe" data-a="">Not you?</button></p>
+
+  <div class="scroller nos"><div class="hstrip">
+    ${course.holes.map((x, i) => {
+      const some = E.selfMarks(T, rid, me, i).length
+        || (note && note.text && String(note.text[i] || '').trim());
+      return `<button class="hcell${i === h ? ' on' : ''}${some ? ' marked' : ''}"
+        data-act="mineHole" data-a="${i}" aria-label="Hole ${x.n}, par ${x.par}">
+        <span class="n num">${x.n}</span><span class="p num">par ${x.par}</span></button>`;
+    }).join('')}
+  </div></div>
+
+  <div class="holehead">
+    <h3>Hole ${hole.n}</h3>
+    <span class="m num">Par ${hole.par}</span>
+    ${played != null ? `<span class="num">You wrote ${played}</span>`
+      : '<span class="m">Not scored yet</span>'}
+  </div>
+
+  <div class="minemarks">
+    ${E.MARKS.map(m => `<button class="mnchip ${m.tone}${on.includes(m.key) ? ' on' : ''}"
+      data-act="tglMine" data-a="${m.key}" data-b="${h}"
+      aria-pressed="${on.includes(m.key)}">${esc(m.label)}</button>`).join('')}
+  </div>
+
+  <label class="minesay">
+    <span class="sublede">Anything worth saying about hole ${hole.n}?</span>
+    <input class="field" id="mineText" data-act="mineText" data-b="${h}"
+      maxlength="140" placeholder="Chipped in from the bunker."
+      value="${esc(text)}">
+  </label>
+
+  ${kept.length ? `<h3 class="sub">Your round so far</h3>
+    <div class="rows" style="margin-top:8px;border-top:1px solid var(--rule)">
+      ${kept.map(k => `<div class="row minerow">
+        <span class="pos num">${k.i + 1}</span>
+        <span class="who plain">${k.ks.map(key => {
+          const m = E.MARKS.find(x => x.key === key) || {};
+          return `<span class="mntag ${m.tone || ''}">${esc(m.short || key)}</span>`;
+        }).join(' ')}${k.tx ? ` <span class="minetx">${esc(k.tx)}</span>` : ''}</span>
+      </div>`).join('')}
+    </div>`
+  : `<p class="empty">Nothing kept yet. Tap a mark above, or write a line about a hole.</p>`}`;
+}
+
 function scrEntry() {
   const rid = UI.entryRound;
   const r = E.roundDef(rid);
@@ -4908,6 +5308,8 @@ function scrEntry() {
       <button class="btn" data-act="openRound" data-a="${rid}"${nominated ? '' : ' disabled'}>Open round</button></div>`;
   }
 
+  const marksHere = (usingAll ? E.golfers(T) : E.golfers(T).filter(g => slotPlayers.includes(g.id)))
+    .reduce((a, g) => a + E.holeMarks(T, rid, g.id, h).length, 0);
   const saveBar = editable ? `<div class="savebar${dirty ? ' dirty' : ''}">
     <div class="sv">${dirty
       ? `<b>Hole ${hole.n} is not saved</b><span>${Object.keys(UI.draft.strokes).length} entr${Object.keys(UI.draft.strokes).length === 1 ? 'y' : 'ies'} waiting. ${D.PINS_ENABLED ? 'Saving asks for your PIN.' : 'Nothing counts until you save.'}</span>`
@@ -4915,6 +5317,9 @@ function scrEntry() {
         ? `<b>Hole ${hole.n} saved</b><span>Recorded${D.PINS_ENABLED && S.ROLES[saved.role] ? ' by ' + esc(S.ROLES[saved.role].label) : ''}${saved.at ? ' at ' + esc(E.to12(new Date(saved.at + D.TZ_OFFSET_MIN * 60000).toISOString().slice(11, 16))) : ''}.</span>`
         : `<b>Hole ${hole.n}</b><span>Enter every score on this hole, then save it.</span>`}</div>
     <button class="btn${dirty ? '' : ' ghost'}" data-act="saveHole"${dirty ? '' : ' disabled'}>Save hole ${hole.n}</button>
+    ${/* One button, not sixteen controls. See markSheet(). */ ''}
+    <button class="btn ghost markbtn${marksHere ? ' has' : ''}" data-act="openMarks">Mark the hole${
+      marksHere ? ` <span class="ct num">${marksHere}</span>` : ''}</button>
     <button class="btn danger" data-act="lockRound" data-a="${rid}">Lock &amp; conclude</button>
   </div>` : '';
 
@@ -4980,8 +5385,35 @@ function scrEntry() {
     + (sel && !list.some(g => g.id === sel)
       ? `<option value="${sel}" selected>${esc((E.person(T, sel) || {}).display || sel)} — not in this group</option>` : '');
 
+  /* Two lanes, one tab. The ref scores the group; everybody else keeps
+     their own round. Putting the second behind a tenth top-level tab would
+     have broken the three-by-three grid the nav sits in on a phone, and
+     nobody would have found it — whereas everybody opens Score Entry. */
+  const lanes = `<div class="lanes" role="tablist" aria-label="Score Entry">
+    <button class="lane${UI.entryMode === 'mine' ? '' : ' on'}" data-act="entryMode" data-a="group"
+      role="tab" aria-selected="${UI.entryMode !== 'mine'}">Score the group</button>
+    <button class="lane${UI.entryMode === 'mine' ? ' on' : ''}" data-act="entryMode" data-a="mine"
+      role="tab" aria-selected="${UI.entryMode === 'mine'}">My round</button>
+  </div>`;
+
+  if (UI.entryMode === 'mine') {
+    return `<h2 class="head">Score Entry</h2>
+    <p class="lede">Gross strokes in. Raw and adjusted sit side by side, exactly as the group’s own cards read.</p>
+    ${lanes}
+    <div class="rcards">
+      ${D.ROUNDS.map(x => {
+        const d = E.dayOf(x.dayIdx);
+        return `<button class="rcard${x.id === rid ? ' on' : ''}${x.counts ? '' : ' practice'}" data-act="entryRound" data-a="${x.id}">
+          <b>${esc(x.short === 'Practice' ? 'Practice' : 'Round ' + x.short.slice(1))}</b>
+          <span>${esc(d.dow)} ${esc(d.date)}</span></button>`;
+      }).join('')}
+    </div>
+    ${scrMine(rid)}`;
+  }
+
   return `<h2 class="head">Score Entry</h2>
   <p class="lede">Gross strokes in. Raw and adjusted sit side by side, exactly as the group’s own cards read.</p>
+  ${lanes}
 
   <div class="entrytop">
    <div class="entryleft">
@@ -5004,8 +5436,8 @@ function scrEntry() {
     ${/* round, then group, then hole: every choice about where you are
           standing sits together, beside the picture of it */ ''}
     <div class="scroller nos"><div class="hstrip">
-      ${course.holes.map((x, i) => `<button class="hcell${i === h ? ' on' : ''}${holeSavedBy(rid, i, slotPlayers) ? ' saved' : ''}"
-        data-act="entryHole" data-a="${i}" aria-label="Hole ${x.n}, par ${x.par}">
+      ${course.holes.map((x, i) => `<button class="hcell${i === h ? ' on' : ''}${holeSavedBy(rid, i, slotPlayers) ? ' saved' : ''}${holeIsMarked(rid, i, slotPlayers) ? ' marked' : ''}"
+        data-act="entryHole" data-a="${i}" aria-label="Hole ${x.n}, par ${x.par}${holeIsMarked(rid, i, slotPlayers) ? ', marked' : ''}">
         <span class="n num">${x.n}</span><span class="p num">par ${x.par}</span></button>`).join('')}
     </div></div>
    </div>
@@ -5660,6 +6092,67 @@ function setupChip() {
 const RELIEFNAME = { mF: 'the front nine mulligan', mB: 'the back nine mulligan',
                      bb: 'the breakfast ball' };
 
+/* ---------------- the marks ----------------
+ *
+ * The scoring tab has to work one-handed, in the sun, with three people
+ * waiting on the next tee. So none of this lives on the player rows: four
+ * golfers times four marks is sixteen new controls on a screen that already
+ * carries a stepper, two figures, mulligan chips and a Bingo picker each.
+ * That is exactly the "too busy" the tab cannot afford.
+ *
+ * Instead there is ONE button, and it opens a sheet with the group down the
+ * side and the four marks across the top. A hole where nothing happened
+ * costs nothing at all — the button is never pressed. A hole where something
+ * did costs one open, a tap or two, and a close, for the whole group at
+ * once rather than player by player.
+ *
+ * Which is the other half of the design: the marks are EXCEPTIONS. Three
+ * putts and a ball out of bounds happen a handful of times a round, so
+ * logging them is nearly free. Anything needing a mark on every hole whether
+ * or not something happened — fairways hit, greens in regulation — is a
+ * census, and a census is a second job nobody keeps up past the turn. The
+ * book does not ask for one.
+ */
+function markSheet(rid, h, who) {
+  const list = who && who.length ? E.golfers(T).filter(g => who.includes(g.id)) : E.golfers(T);
+  const hole = E.courseOf(T, rid).holes[h];
+  const ed = canEdit() && E.roundCfg(T, rid).state === 'open';
+  return `<div class="scrim" data-act="modalScrim"><div class="modal marksheet"
+    role="dialog" aria-modal="true" aria-label="Mark hole ${hole.n}">
+    <div class="ms-head">
+      <span class="hm-eye">Hole ${hole.n} · par ${hole.par}</span>
+      <h3>What happened?</h3>
+      <p>For the recap only. None of it touches a score, a board or the cup —
+      so a hole nobody marked has never cost anybody a shot.</p>
+    </div>
+    <div class="msgrid" style="--cols:${E.MARKS.length}">
+      <div class="ms-row ms-hdr">
+        <span class="ms-who"></span>
+        ${E.MARKS.map(m => `<span class="ms-col ${m.tone}">${esc(m.short)}</span>`).join('')}
+      </div>
+      ${list.map(g => {
+        const on = E.holeMarks(T, rid, g.id, h);
+        return `<div class="ms-row">
+          <span class="ms-who">${esc(g.display)}</span>
+          ${E.MARKS.map(m => `<button class="mscell ${m.tone}${on.includes(m.key) ? ' on' : ''}"
+            data-act="tglMark" data-a="${g.id}" data-b="${m.key}"${ed ? '' : ' disabled'}
+            aria-pressed="${on.includes(m.key)}"
+            aria-label="${esc(g.display)} — ${esc(m.label)}">${on.includes(m.key) ? '✓' : ''}</button>`).join('')}
+        </div>`;
+      }).join('')}
+    </div>
+    <p class="ms-key">${E.MARKS.map(m => `<span class="${m.tone}">${esc(m.short)}</span> ${esc(m.label.toLowerCase())}`).join(' · ')}</p>
+    <div class="acts"><button class="btn" data-act="modalCancel">Done</button></div>
+  </div></div>`;
+}
+
+/** Does anybody in this group carry a mark on this hole? Drives the dot on
+ *  the hole strip, so a ref can see at a glance what they have logged. */
+function holeIsMarked(rid, h, who) {
+  const list = who && who.length ? E.golfers(T).filter(g => who.includes(g.id)) : E.golfers(T);
+  return list.some(g => E.holeMarks(T, rid, g.id, h).length > 0);
+}
+
 function holeNotice(rid, h) {
   const cfg = E.roundCfg(T, rid) || {};
   const n = h + 1;
@@ -5687,7 +6180,8 @@ function holeModalHtml() {
 }
 
 function modalHtml() {
-  return UI.modal.kind === 'hole' ? holeModalHtml()
+  return UI.modal.kind === 'marks' ? markSheet(UI.modal.rid, UI.modal.hole, UI.modal.who)
+       : UI.modal.kind === 'hole' ? holeModalHtml()
        : UI.modal.kind === 'setup' ? setupModalHtml()
        : UI.modal.kind === 'add' ? addModalHtml()
        : UI.modal.kind === 'confirm' ? confirmModalHtml()
@@ -5749,6 +6243,12 @@ function onClick(e) {
   if (el.tagName === 'SELECT' || el.tagName === 'INPUT') return;
   if (store && store.note) store.note('tap', act + ' a=' + (a || '') + ' b=' + (b || ''));
   const rid = UI.entryRound;
+
+  /* A line half typed and then abandoned — for another tab, another round,
+     another hole — is kept rather than dropped. `change` does this on blur in
+     the ordinary case; this is for the cases where the box is taken away
+     before it ever gets one. */
+  if (UI.mineDraft) commitMine();
 
   switch (act) {
     case 'go':
@@ -5974,6 +6474,58 @@ function onClick(e) {
       draftFor(rid, UI.entryHole).strokes[a] = null;
       break;
     }
+    /* The ref's read of the hole. The sheet stays open while marks go in —
+       the whole point is to mark the group in one visit — so nothing here
+       closes it. */
+    case 'openMarks': {
+      const groups = E.groups(T, rid);
+      const slot = Math.min(UI.entryTee === 'all' ? 0 : +UI.entryTee, Math.max(groups.length - 1, 0));
+      UI.modal = { kind: 'marks', rid, hole: UI.entryHole, who: (groups[slot] || {}).members || [] };
+      render();
+      return;
+    }
+    case 'tglMark': {
+      if (!canEdit()) return;
+      const m = UI.modal;
+      if (!m || m.kind !== 'marks') return;
+      const h = m.hole;
+      store.writeCard(m.rid, a, c => {
+        const was = Array.isArray(c.marks[h]) ? c.marks[h] : [];
+        const next = was.includes(b) ? was.filter(k => k !== b) : was.concat(b);
+        if (next.length) c.marks[h] = next; else delete c.marks[h];
+      });
+      render();
+      return;
+    }
+
+    /* ---- the My Round lane ---- */
+    case 'entryMode':
+      UI.entryMode = a === 'mine' ? 'mine' : 'group';
+      if (UI.entryMode === 'mine' && !UI.me) UI.me = loadMe();
+      render();
+      return;
+    case 'setMe':
+      UI.me = a || null;
+      saveMe(UI.me);
+      render();
+      return;
+    case 'mineHole':
+      UI.mineHole = +a;
+      render();
+      return;
+    case 'tglMine': {
+      if (!UI.me) return;
+      const h = +b;
+      store.writeNote(rid, UI.me, n => {
+        const was = Array.isArray(n.marks[h]) ? n.marks[h] : [];
+        const next = was.includes(a) ? was.filter(k => k !== a) : was.concat(a);
+        if (next.length) n.marks[h] = next; else delete n.marks[h];
+        n.at[h] = Date.now();
+      });
+      render();
+      return;
+    }
+
     case 'saveHole': {
       if (!draftDirty()) return;
       const h = UI.draft.hole;
@@ -6083,6 +6635,10 @@ function onChange(e) {
   if (!el) return;
   const { act, a, b } = el.dataset;
   const rid = UI.entryRound;
+
+  /* A line about a hole, kept when the box loses focus. */
+  if (act === 'mineText') { UI.mineDraft = { rid, h: +b, v: el.value }; commitMine(); render(); return; }
+
   if (store && store.note) store.note('change', act + ' a=' + (a || '') + ' b=' + (b || '') + ' v=' + el.value);
   const editable = canEdit() && E.roundCfg(T, rid).state === 'open';
 
@@ -6295,6 +6851,22 @@ const RECAP_RULES = [
   '- Humour is gentle, and aimed at the golf, never at the golfer.',
   '- Do not name any player negatively more than once in the whole piece.',
   '- Never mention a player\'s handicap band as a criticism. It is a number of strokes, not a verdict.',
+  '',
+  'THE MARKS, AND HOW FAR THEY GO:',
+  '- The card may carry marks a ref made — three-putts, out of bounds, water,',
+  '  shot of the hole. Use them: they are the reason a seven happened, and',
+  '  the reason is the story the numbers cannot tell.',
+  '- But they are made on the holes somebody remembered to mark, never on all',
+  '  of them, and the card says how many. A count is a FLOOR. Write "at least',
+  '  twice" or "of the holes marked"; never "only once", never "never", and',
+  '  never a total or a percentage.',
+  '- If a golfer has no marks at all, that means nobody marked their holes. It',
+  '  does not mean they played them cleanly, and you must not say or imply so.',
+  '- Anything under what the golfers said about their own rounds is THEIRS,',
+  '  not the ref\'s. Attribute it — "by his own account", "as he tells it" —',
+  '  and never state it as established fact.',
+  '- Their own words may be quoted, briefly, and should be where they are good.',
+  '',
   '- Three paragraphs of roughly 60 to 90 words each.',
   '- At least two honours must be winnable by somebody having a bad round.',
   '',
@@ -6438,6 +7010,9 @@ function boot() {
      mid-sentence often. */
   app.addEventListener('input', e => {
     if (e.target && e.target.id === 'askField') UI.askText = e.target.value;
+    if (e.target && e.target.id === 'mineText') {
+      UI.mineDraft = { rid: UI.entryRound, h: +e.target.dataset.b, v: e.target.value };
+    }
   });
   // the page may be allowed to ask Claude, or may not: find out once, quietly,
   // and let the crest and the recap light up if it can

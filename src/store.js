@@ -18,7 +18,13 @@ const DEFAULT_PINS = { master: '1000', s1: '2000', s2: '3000' };
 
 /** `by` and `at` are keyed by hole index and hold only saved holes, so a hole
  *  with no entry is simply absent — no null to be dropped in transit. */
-export function blankCard() { return { raw: Array(18).fill(null), by: {}, at: {}, mF: false, mB: false, bb: false }; }
+/* `marks` is the ref's read of the hole — three-putt, out of bounds, water,
+   shot of the hole — keyed by hole index. It rides along with the card
+   because it is the same person writing it at the same moment, and it feeds
+   the recap only: nothing in it reaches a leaderboard. A card written before
+   marks existed simply has none. */
+export function blankCard() { return { raw: Array(18).fill(null), by: {}, at: {}, marks: {}, mF: false, mB: false, bb: false }; }
+export function blankNote(rid, pid) { return { rid, pid, marks: {}, text: {}, at: {} }; }
 export function blankBbb() { return { holes: Array.from({ length: 18 }, () => ({ bingo: null, bango: null, bongo: null })) }; }
 
 export function defaultConfig() {
@@ -68,7 +74,7 @@ export function defaultConfig() {
  *  created — so it can never leak back in and resurrect somebody. */
 export function emptyState() {
   const cfg = defaultConfig();
-  return { config: { ...cfg, people: [], pairs: [] }, scores: {}, bbb: {}, recaps: {}, photos: {} };
+  return { config: { ...cfg, people: [], pairs: [] }, scores: {}, bbb: {}, recaps: {}, photos: {}, notes: {} };
 }
 
 /** Everything written to config/tournament. The roster is ALSO kept here as a
@@ -118,7 +124,7 @@ export function createStore(onChange) {
   let peopleLoaded = false, pairsLoaded = false, splitDone = false;
   let rosterInDocs = false;     // the roster lives in its own documents
   let peopleSeen = false;       // the people collection has reported at least once
-  const emptySeq = { people: 0, pairs: 0, scores: 0, bbb: 0, recaps: 0, photos: 0 };  // guards a confirmation against a newer snapshot
+  const emptySeq = { people: 0, pairs: 0, scores: 0, bbb: 0, recaps: 0, photos: 0, notes: 0 };  // guards a confirmation against a newer snapshot
   let sawConfig = false;
   let legacy = null;            // a roster still stored as lists inside the config
   let settled = false;          // the first load has resolved; until then, no writes
@@ -177,7 +183,7 @@ export function createStore(onChange) {
       if (raw) {
         const s = JSON.parse(raw);
         if (s && s.config && s.config.v === 3) { T.config = s.config; T.scores = s.scores || {}; T.bbb = s.bbb || {};
-          T.recaps = s.recaps || {}; T.photos = s.photos || {}; return; }
+          T.recaps = s.recaps || {}; T.photos = s.photos || {}; T.notes = s.notes || {}; return; }
       }
     } catch (e) { /* first run, or storage blocked */ }
     T.config = defaultConfig();   // no database and nothing stored: start from the factory book
@@ -349,6 +355,18 @@ export function createStore(onChange) {
       },
       () => { status = 'error'; notify(); }
     ));
+    /* What the golfers wrote about their own rounds. Its own collection, so
+       a note can never be mistaken for a score and a bad write here can
+       never touch a card. */
+    unsubs.push(db.collection('notes').onSnapshot(
+      s => {
+        if (!s.docs.length) { confirmEmpty('notes'); notify(); return; }
+        emptySeq.notes++;
+        T.notes = mergeDocs('notes', T.notes, s.docs);
+        notify();
+      },
+      () => { status = 'error'; notify(); }
+    ));
     ready = true; notify();
     if (db.start) db.start();          // the live socket, the poll behind it, the outbox
     confirmRoster();
@@ -368,6 +386,7 @@ export function createStore(onChange) {
         if (coll === 'recaps') { T.recaps = mergeDocs('recaps', T.recaps, have.docs); notify(); return; }
         if (coll === 'photos') { T.photos = mergeDocs('photos', T.photos, have.docs); notify(); return; }
         if (coll === 'bbb') { T.bbb = mergeDocs('bbb', T.bbb, have.docs); notify(); return; }
+        if (coll === 'notes') { T.notes = mergeDocs('notes', T.notes, have.docs); notify(); return; }
         if (coll === 'people') {
           if (have.docs.length) peopleLoaded = true;
           T.config.people = takeRows('people', have.docs, T.config.people).map(normPerson).sort(byOrder);
@@ -744,7 +763,7 @@ export function createStore(onChange) {
     const key = roundId + '__' + pid;
     const prev = T.scores[key];
     const c = prev
-      ? { ...blankCard(), ...prev, raw: [...prev.raw], by: { ...(prev.by || {}) }, at: { ...(prev.at || {}) } }
+      ? { ...blankCard(), ...prev, raw: [...prev.raw], by: { ...(prev.by || {}) }, at: { ...(prev.at || {}) }, marks: { ...(prev.marks || {}) } }
       : blankCard();
     mutate(c);
     bump('scores/' + key, c);
@@ -788,6 +807,25 @@ export function createStore(onChange) {
     return dropDoc('photos', id);
   }
 
+  /** One document per golfer per round: their own marks and their own words.
+   *  Never merged into the card — the card is the ref's, this is theirs. */
+  async function writeNote(rid, pid, mutate) {
+    if (tooEarly()) return false;
+    const key = rid + '__' + pid;
+    const prev = T.notes[key];
+    const n = prev
+      ? { ...blankNote(rid, pid), ...prev, marks: { ...(prev.marks || {}) },
+          text: { ...(prev.text || {}) }, at: { ...(prev.at || {}) } }
+      : blankNote(rid, pid);
+    mutate(n);
+    bump('notes/' + key, n);
+    T.notes[key] = n;
+    notify();
+    if (mode === 'local') { saveLocal(); return true; }
+    try { await db.doc('notes/' + key).set(n); saveState = 'saved'; lastSavedAt = Date.now(); notify(); return true; }
+    catch (e) { status = 'error'; saveState = 'error'; notify(); return false; }
+  }
+
   async function writeBbb(roundId, mutate) {
     if (tooEarly()) return false;
     const b = T.bbb[roundId] ? { holes: T.bbb[roundId].holes.map(h => ({ ...h })) } : blankBbb();
@@ -803,14 +841,14 @@ export function createStore(onChange) {
   async function resetAll() {
     if (tooEarly()) return;
     const fresh = emptyState();
-    T.config = fresh.config; T.scores = {}; T.bbb = {};
+    T.config = fresh.config; T.scores = {}; T.bbb = {}; T.notes = {};
     for (const k of Object.keys(rev)) delete rev[k];
     bump('config', T.config);
     notify();
     if (mode === 'local') { saveLocal(); return; }
     try {
       await db.doc('config/tournament').set(T.config);
-      for (const coll of ['scores', 'bbb', 'people', 'pairs']) {
+      for (const coll of ['scores', 'bbb', 'notes', 'people', 'pairs']) {
         const got = await db.collection(coll).get();
         for (const d of got.docs) await db.doc(coll + '/' + d.id).delete();
       }
@@ -819,7 +857,7 @@ export function createStore(onChange) {
     } catch (e) { status = 'error'; notify(); }
   }
 
-  return { T, connect, writeConfig, writeCard, writeBbb, writeRecap, writePhoto, dropPhoto, resetAll, resave, note,
+  return { T, connect, writeConfig, writeCard, writeBbb, writeNote, writeRecap, writePhoto, dropPhoto, resetAll, resave, note,
            writePerson, writeAllPeople, addPerson, removePerson,
            writePair, addPair, removePair, movePlayer, movePairBy,
            get mode() { return mode; }, get status() { return status; }, get ready() { return ready; },
