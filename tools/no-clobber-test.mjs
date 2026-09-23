@@ -45,6 +45,8 @@ const MOCK = ({ stored, lieOnFirstRead, empty, factoryPeople, extraDocs }) => {
     id: path.split('/').pop(), path,
     get: () => { reads++; return new Promise(r => setTimeout(() => r(snapDoc(path)), 120)); },
     set: d => { docs[path] = clone(d); persist(); window.__writes = (window.__writes || 0) + 1;
+      if (path.startsWith('people/')) { (window.__peopleWrites = window.__peopleWrites || [])
+        .push({ path, at: Date.now(), stack: String(new Error('write').stack).split('\n').slice(1, 7).join(' | ') }); }
       setTimeout(() => { (subs.doc[path] || []).forEach(f => f(snap(clone(docs[path]))));
         fireColl(path.split('/')[0]); }, 120);
       return Promise.resolve(); },
@@ -352,6 +354,11 @@ for (const [label, lie] of [['a healthy store', false], ['a store whose first re
   const after = await steady(p, '.rtable tbody tr');
   const docsAfter = await p.evaluate(() =>
     Object.keys(window.__mockDocs).filter(k => k.startsWith('people/')).length);
+  if (after !== n - 1) {
+    const w = await p.evaluate(() => (window.__peopleWrites || []).slice(0, 4));
+    console.log('    [who] people documents written since the reload:', w.length);
+    w.forEach(x => console.log('      ', x.path, '\n         ', x.stack));
+  }
   if (after !== n - 1) console.log('    [why] people docs before reload =', goneBefore,
     ' after =', docsAfter, ' rows =', after, ' (wanted', n - 1, ')');
   ok('the removal reached the store before the reload', goneBefore, n - 1);
