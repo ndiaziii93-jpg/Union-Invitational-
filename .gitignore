@@ -9,3 +9,6 @@ package.json
 .env.*
 *.key
 secrets.json
+
+# a throwaway contact sheet for picking the tab photo
+photo-picks.html
