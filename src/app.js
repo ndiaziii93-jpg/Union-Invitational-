@@ -649,6 +649,16 @@ function recapPanel() {
 
   ${gallery ? gallery1() : `
 
+  ${/* The nameplate. Every sports page in the world opens the same way — a
+        banded masthead, then a dateline, then a kicker, then the headline —
+        and the reason is that it tells you what you are looking at before
+        you have read a word. */ ''}
+  <div class="artplate">
+    ${IMG.crest ? `<img class="ap-crest" src="${IMG.crest}" alt="">` : ''}
+    <span class="ap-name">The Union Invitational</span>
+    <span class="ap-ed">The Day's Register</span>
+  </div>
+
   <div class="metarail">
     <span>${esc(r.short === 'Practice' ? 'Practice day' : 'Round ' + r.short.slice(1) + ' of 3')}</span>
     <span>${esc(course.name)}</span>
@@ -665,12 +675,17 @@ function recapPanel() {
     <div class="recapmain">
       ${editing ? `<textarea class="field recedit head" rows="2" data-act="recapEdit" data-a="headline"
         aria-label="Headline">${esc(body.headline || '')}</textarea>`
-        : `<h2 class="rechead">${body ? esc(body.headline || '') : UI.recap.busy ? 'Writing the report…'
-        : st.complete ? 'No report yet' : esc(r.full)}</h2>`}
+        : `<p class="kicker">${esc(r.short === 'Practice' ? 'Practice day' : 'Round ' + r.short.slice(1) + ' of 3')} <span>·</span> ${esc(day.dow)} ${esc(day.date)}</p>
+        <h2 class="rechead">${body ? esc(body.headline || '') : UI.recap.busy ? 'Writing the report…'
+        : st.complete ? 'No report yet' : esc(r.full)}</h2>
+        ${body ? `<p class="byline"><b>By the Union Register</b>${
+          rec && rec.at ? `<span>${esc(E.to12(new Date(rec.at + D.TZ_OFFSET_MIN * 60000).toISOString().slice(11, 16)))}</span>` : ''}${
+          published ? '' : '<span class="draftflag">Draft</span>'}</p>` : ''}`}
       ${editing ? (body.narrative || []).concat(['']).map((x, i) => `<textarea class="field recedit" rows="4"
           data-act="recapEdit" data-a="para" data-b="${i}"
           aria-label="Paragraph ${i + 1}" placeholder="${i >= (body.narrative || []).length ? 'Add a paragraph…' : ''}">${esc(x)}</textarea>`).join('')
-        : body && body.narrative ? body.narrative.filter(x => x && x.trim()).map(x => `<p class="recpara">${esc(x)}</p>`).join('')
+        : body && body.narrative ? body.narrative.filter(x => x && x.trim())
+            .map((x, i) => `<p class="recpara${i === 0 ? ' lead' : ''}">${esc(x)}</p>`).join('')
         : UI.recap.busy ? `<p class="recpara thinking">${esc(UI.recap.stream || 'Reading the cards…')}</p>`
         : st.complete ? `<p class="recpara">${ed ? 'Generate the report and it will be written from today\'s cards.'
             : 'The scorers have not written it up yet.'}</p>`
@@ -752,7 +767,15 @@ function recapPanel() {
   </div>
 
   ${photoStrip(rid)}
-  ${upNext(rid)}`}
+  ${upNext(rid)}
+
+  ${/* The folio. A page ends with its own name on it. */ ''}
+  <div class="folio">
+    <span class="fl-r"></span>
+    ${IMG.crest ? `<img src="${IMG.crest}" alt="">` : ''}
+    <span class="fl-t">The Union Invitational \u00b7 Belek, T\u00fcrkiye \u00b7 2026</span>
+    <span class="fl-r"></span>
+  </div>`}
     </div>
   </div>`;
 }

@@ -993,9 +993,19 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
    dialog and starts looking like something printed: square corners, a rule
    across the top the width of the sheet, and the faintest grain so the paper
    is not a flat fill. */
-.recapbox{background:var(--paper);border:1px solid var(--rule);border-top:4px double var(--ink);
-  border-radius:0;box-shadow:0 22px 60px var(--shadow);width:min(1120px,96vw);
-  max-height:100%;overflow-y:auto;padding:0 clamp(16px,3.4vw,40px) 30px;
+.recapbox{background:var(--paper);border:1px solid var(--rule);
+  border-radius:0;width:min(1120px,96vw);
+  max-height:100%;overflow-y:auto;padding:0 clamp(16px,3.4vw,40px) 0;
+  /* EDGES. A sheet lifted off a stack, not a panel floating in the middle of
+     a screen: two hairlines offset behind it read as the pages underneath,
+     and the pine rule down the left is the spine. Both are shadows rather
+     than elements, so nothing is added to the page to carry them. */
+  box-shadow:
+    inset 5px 0 0 var(--green),
+    inset 6px 0 0 var(--paper),
+    4px 5px 0 -1px rgba(29,46,33,.09),
+    9px 11px 0 -2px rgba(29,46,33,.06),
+    0 26px 70px var(--shadow);
   background-image:
     repeating-linear-gradient(0deg,rgba(29,46,33,.016) 0 1px,transparent 1px 3px),
     repeating-linear-gradient(90deg,rgba(29,46,33,.012) 0 1px,transparent 1px 4px)}
@@ -1021,12 +1031,16 @@ html.noscroll{overflow:hidden}
 .recapgrid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:34px;margin-top:20px;align-items:start}
 .rechead{font-size:clamp(30px,5.2vw,52px);font-weight:700;line-height:1.02;margin:0 0 4px;
   letter-spacing:-.015em;text-wrap:balance}
-/* the hairline under the headline, as a paper would rule it off */
+/* the hairline under the headline, as a paper would rule it off — unless a
+   byline is doing that job already */
 .recapmain .rechead + .recpara{margin-top:14px;padding-top:14px;border-top:1px solid var(--rule)}
+.recapmain .byline + .recpara{margin-top:13px}
 .recpara{font-size:16.5px;line-height:1.62;margin:0 0 13px;text-align:justify;hyphens:auto}
 
-/* The opening letter, cut into the first three lines. */
-.recapmain .recpara:first-of-type::first-letter{
+/* The opening letter, cut into the first three lines.
+   Keyed to a CLASS, not to :first-of-type: the byline is a <p> too, and the
+   day a byline was added the drop cap silently went to it instead. */
+.recapmain .recpara.lead::first-letter{
   float:left;font-size:3.4em;line-height:.82;font-weight:700;color:var(--green);
   padding:.04em .09em 0 0;margin-right:.02em}
 
@@ -1035,6 +1049,8 @@ html.noscroll{overflow:hidden}
 @media (min-width:900px){
   .recapmain{column-count:2;column-gap:30px;column-rule:1px solid var(--rule)}
   .recapmain .rechead{column-span:all}
+  /* The kicker and the byline belong to the headline, not to a column. */
+  .recapmain .kicker,.recapmain .byline{column-span:all}
   .recapmain .rechead + .recpara{border-top:0;padding-top:0}
   .recpara{max-width:none}
 }
@@ -1047,11 +1063,18 @@ html.noscroll{overflow:hidden}
   /* Wrapped, a rule before each fact reads as a list rather than a dateline,
      and justified type in a column this narrow opens rivers of white between
      the words. Both give way on a phone. */
-  .metarail{gap:0}
-  .metarail span{border-left:0;padding:0}
-  .metarail span + span::before{content:'\00b7';padding:0 7px;color:var(--rule)}
+  /* As a flowing line, not a flex column. Wrapped, one fact a line with a
+     rule in front of each reads as a bulleted list; this reads as a
+     dateline, which is what it is. */
+  .metarail{display:block;line-height:1.9}
+  .metarail span{display:inline;border-left:0;padding:0}
+  /* The separator TRAILS the fact before it rather than leading the one
+     after. Led, it lands at the start of a wrapped line and the dateline
+     goes back to looking like a bulleted list — which is the thing the
+     block display was changed to avoid. */
+  .metarail span:not(:last-child)::after{content:'\00a0\00b7';color:var(--rule);padding-right:7px}
   .recpara{text-align:left;hyphens:none}
-  .recapmain .recpara:first-of-type::first-letter{font-size:3em}
+  .recapmain .recpara.lead::first-letter{font-size:3em}
 }
 /* Editing the words. The fields wear the type they replace, so the page does
    not jump when the commissioner turns editing on. */
@@ -1281,6 +1304,56 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
 .ownsrow .sublede{flex:1 1 100%;margin:0}
 @media (max-width:560px){.mdchip{flex:1 1 calc(50% - 4px)}}
 
+/* ---- the recap, as a sports page ----
+   The newsprint underneath is the right instinct; what it was missing is the
+   furniture every sports page has and every dialog does not. A banded
+   nameplate, a kicker, a byline between rules, and the paper's own name at
+   the foot. Between them they say what you are looking at before you have
+   read a word, which is the whole job of the top of a page. */
+
+/* The nameplate. Pine band, crest, letterspaced caps — a masthead on a
+   broadsheet and a lower-third on a broadcast are the same object. */
+.artplate{display:flex;align-items:center;gap:12px;margin-top:16px;
+  background:var(--ink);color:var(--paper);padding:10px clamp(12px,2vw,18px);
+  border-bottom:3px solid var(--green)}
+.artplate .ap-crest{width:30px;height:auto;flex:0 0 auto;
+  filter:brightness(0) invert(1);opacity:.93}
+.artplate .ap-name{flex:1;min-width:0;font-size:clamp(15px,2.3vw,20px);font-weight:700;
+  letter-spacing:.15em;text-transform:uppercase;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.artplate .ap-ed{font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--rule);white-space:nowrap}
+
+/* The kicker: the line above the headline that says which contest this is.
+   Red, small, letterspaced — the one place the flag colour earns a shout. */
+.kicker{font-size:12px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;
+  color:var(--flag);margin:16px 0 8px}
+.kicker span{color:var(--rule);padding:0 4px}
+
+/* The byline, ruled top and bottom the way a paper rules one. */
+.byline{display:flex;flex-wrap:wrap;gap:0;align-items:baseline;margin:12px 0 0;
+  padding:7px 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule);
+  font-size:11.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--turf)}
+.byline b{color:var(--ink);font-weight:700}
+.byline span{padding-left:12px;margin-left:12px;border-left:1px solid var(--rule)}
+.byline .draftflag{color:var(--flag);font-weight:700}
+
+/* The foot of the page carries its own name, as a folio does. */
+.folio{display:flex;align-items:center;gap:14px;margin-top:34px;padding:18px 0 26px;
+  border-top:3px double var(--ink)}
+.folio img{width:26px;height:auto;opacity:.5}
+.folio .fl-t{font-size:11px;letter-spacing:.17em;text-transform:uppercase;color:var(--turf);
+  white-space:nowrap}
+.folio .fl-r{flex:1 1 auto;height:1px;background:var(--rule)}
+
+@media (max-width:700px){
+  .artplate{gap:9px;padding:9px 11px}
+  .artplate .ap-ed{display:none}
+  .artplate .ap-crest{width:24px}
+  .byline span{padding-left:9px;margin-left:9px}
+  .folio .fl-t{white-space:normal;letter-spacing:.12em}
+}
+
 </style>
 <div id="app"></div>
 <!-- The crest, and the opening it pays for, ahead of everything else. A few
@@ -1392,7 +1465,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20260923-1218';
+const BUILD = '20260923-1228';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -4616,6 +4689,16 @@ function recapPanel() {
 
   ${gallery ? gallery1() : `
 
+  ${/* The nameplate. Every sports page in the world opens the same way — a
+        banded masthead, then a dateline, then a kicker, then the headline —
+        and the reason is that it tells you what you are looking at before
+        you have read a word. */ ''}
+  <div class="artplate">
+    ${IMG.crest ? `<img class="ap-crest" src="${IMG.crest}" alt="">` : ''}
+    <span class="ap-name">The Union Invitational</span>
+    <span class="ap-ed">The Day's Register</span>
+  </div>
+
   <div class="metarail">
     <span>${esc(r.short === 'Practice' ? 'Practice day' : 'Round ' + r.short.slice(1) + ' of 3')}</span>
     <span>${esc(course.name)}</span>
@@ -4632,12 +4715,17 @@ function recapPanel() {
     <div class="recapmain">
       ${editing ? `<textarea class="field recedit head" rows="2" data-act="recapEdit" data-a="headline"
         aria-label="Headline">${esc(body.headline || '')}</textarea>`
-        : `<h2 class="rechead">${body ? esc(body.headline || '') : UI.recap.busy ? 'Writing the report…'
-        : st.complete ? 'No report yet' : esc(r.full)}</h2>`}
+        : `<p class="kicker">${esc(r.short === 'Practice' ? 'Practice day' : 'Round ' + r.short.slice(1) + ' of 3')} <span>·</span> ${esc(day.dow)} ${esc(day.date)}</p>
+        <h2 class="rechead">${body ? esc(body.headline || '') : UI.recap.busy ? 'Writing the report…'
+        : st.complete ? 'No report yet' : esc(r.full)}</h2>
+        ${body ? `<p class="byline"><b>By the Union Register</b>${
+          rec && rec.at ? `<span>${esc(E.to12(new Date(rec.at + D.TZ_OFFSET_MIN * 60000).toISOString().slice(11, 16)))}</span>` : ''}${
+          published ? '' : '<span class="draftflag">Draft</span>'}</p>` : ''}`}
       ${editing ? (body.narrative || []).concat(['']).map((x, i) => `<textarea class="field recedit" rows="4"
           data-act="recapEdit" data-a="para" data-b="${i}"
           aria-label="Paragraph ${i + 1}" placeholder="${i >= (body.narrative || []).length ? 'Add a paragraph…' : ''}">${esc(x)}</textarea>`).join('')
-        : body && body.narrative ? body.narrative.filter(x => x && x.trim()).map(x => `<p class="recpara">${esc(x)}</p>`).join('')
+        : body && body.narrative ? body.narrative.filter(x => x && x.trim())
+            .map((x, i) => `<p class="recpara${i === 0 ? ' lead' : ''}">${esc(x)}</p>`).join('')
         : UI.recap.busy ? `<p class="recpara thinking">${esc(UI.recap.stream || 'Reading the cards…')}</p>`
         : st.complete ? `<p class="recpara">${ed ? 'Generate the report and it will be written from today\'s cards.'
             : 'The scorers have not written it up yet.'}</p>`
@@ -4719,7 +4807,15 @@ function recapPanel() {
   </div>
 
   ${photoStrip(rid)}
-  ${upNext(rid)}`}
+  ${upNext(rid)}
+
+  ${/* The folio. A page ends with its own name on it. */ ''}
+  <div class="folio">
+    <span class="fl-r"></span>
+    ${IMG.crest ? `<img src="${IMG.crest}" alt="">` : ''}
+    <span class="fl-t">The Union Invitational \u00b7 Belek, T\u00fcrkiye \u00b7 2026</span>
+    <span class="fl-r"></span>
+  </div>`}
     </div>
   </div>`;
 }
