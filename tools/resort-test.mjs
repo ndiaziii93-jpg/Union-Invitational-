@@ -82,6 +82,23 @@ const open = async (w, h, schematic) => {
 const pg = await open(1280, 900);
 ok('the book still boots', errs, []);
 
+/* Nine tabs name a job; this one names a place, and is set like a name. The
+   pointer is moved off first — a click leaves it hovering, and hover has a
+   colour of its own, which is how this was first mis-measured. */
+await pg.mouse.move(4, 4);
+const named = await pg.evaluate(() => {
+  const t = document.querySelector('.tab.named');
+  const other = [...document.querySelectorAll('.tab:not(.named)')]
+    .find(e => !e.hasAttribute('aria-current'));
+  const c = getComputedStyle(t), o = getComputedStyle(other);
+  return { on: t.dataset.a, tf: c.textTransform, track: parseFloat(c.letterSpacing),
+           gold: c.color, plain: o.color, sameAsOthers: c.color === o.color };
+});
+ok('the tab set apart is the one that names a place', named.on, 'resort');
+ok('it is set in capitals', named.tf, 'uppercase');
+ok('tracked wide', named.track >= 2, true);
+ok('and in an ink of its own', named.sameAsOthers, false);
+
 const order = await pg.$$eval('.tabs .tab', els => els.map(e => e.dataset.a));
 ok('The Titanic sits between Today and the boards',
   order.slice(0, 3), ['today', 'resort', 'boards']);
@@ -105,6 +122,20 @@ const plate = await pg.evaluate(() => {
            loaded: img.naturalWidth > 600 };
 });
 ok('the guide opens on a plate', !!plate, true);
+
+/* The picture is faded into the paper rather than cut against it. Checked as
+   a mechanism — two gradients, intersected — because a corner pixel would
+   only say it looked right in this engine at this size. */
+await pg.mouse.move(4, 4);
+const edges = await pg.evaluate(() => {
+  const c = getComputedStyle(document.querySelector('.rhero img'));
+  const m = c.maskImage && c.maskImage !== 'none' ? c.maskImage : c.webkitMaskImage;
+  const comp = (c.maskComposite && c.maskComposite !== 'add' ? c.maskComposite : c.webkitMaskComposite) || '';
+  return { grads: (String(m).match(/linear-gradient/g) || []).length, comp: String(comp) };
+});
+ok('the plate is masked on both axes', edges.grads, 2);
+ok('and the two are intersected, not stacked',
+  /intersect|source-in/.test(edges.comp), true);
 ok('the photograph actually loaded', plate && plate.loaded, true);
 ok('it is a band, not a page', plate && plate.h > 150 && plate.h < 320, true);
 ok('it sits above the heading', plate && plate.beforeHeading, 1);

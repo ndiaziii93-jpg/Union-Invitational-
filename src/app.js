@@ -2839,7 +2839,7 @@ function paint() {
         : 'Opening the book… everything is read-only until the saved tournament arrives.'}</div>`}
     <nav class="tabs nos${navTabs().length % 3 === 1 ? ' orphan' : ''}" aria-label="Sections">
       ${navTabs().map(([id, label, short]) =>
-        `<button class="tab" data-act="go" data-a="${id}"${UI.screen === id ? ' aria-current="page"' : ''}
+        `<button class="tab${id === 'resort' ? ' named' : ''}" data-act="go" data-a="${id}"${UI.screen === id ? ' aria-current="page"' : ''}
           aria-label="${esc(label)}"><span class="lg">${esc(label)}</span><span class="sm">${esc(short)}</span></button>`).join('')}
     </nav>
     ${body}
