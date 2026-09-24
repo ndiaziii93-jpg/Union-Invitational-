@@ -20,6 +20,9 @@ const FACTORY_PEOPLE = JSON.parse(readFileSync(S + '/db/config/tournament.json',
 const MOCK = ({ stored, lieOnFirstRead, empty, factoryPeople, extraDocs }) => {
   // the store outlives a reload, as a real database does
   const KEY = '__mockstore';
+  // which load of the page this is, so a write can be placed either side of the reload
+  try { window.__pageNo = (+(sessionStorage.getItem('__pageNo') || 0)) + 1;
+        sessionStorage.setItem('__pageNo', String(window.__pageNo)); } catch (e) { window.__pageNo = 1; }
   let saved = null;
   try { saved = JSON.parse(sessionStorage.getItem(KEY) || 'null'); } catch (e) {}
   const docs = saved || (empty ? {} : { 'config/tournament': stored, ...(extraDocs || {}) });
@@ -45,8 +48,14 @@ const MOCK = ({ stored, lieOnFirstRead, empty, factoryPeople, extraDocs }) => {
     id: path.split('/').pop(), path,
     get: () => { reads++; return new Promise(r => setTimeout(() => r(snapDoc(path)), 120)); },
     set: d => { docs[path] = clone(d); persist(); window.__writes = (window.__writes || 0) + 1;
-      if (path.startsWith('people/')) { (window.__peopleWrites = window.__peopleWrites || [])
-        .push({ path, at: Date.now(), stack: String(new Error('write').stack).split('\n').slice(1, 7).join(' | ') }); }
+      if (path.startsWith('people/')) {
+        try {
+          const L = JSON.parse(sessionStorage.getItem('__pw') || '[]');
+          L.push({ path, page: window.__pageNo, at: Date.now(),
+                   stack: String(new Error('w').stack).split('\n').slice(1, 8).join(' | ') });
+          sessionStorage.setItem('__pw', JSON.stringify(L.slice(-40)));
+        } catch (e) {}
+      }
       setTimeout(() => { (subs.doc[path] || []).forEach(f => f(snap(clone(docs[path]))));
         fireColl(path.split('/')[0]); }, 120);
       return Promise.resolve(); },
@@ -355,9 +364,11 @@ for (const [label, lie] of [['a healthy store', false], ['a store whose first re
   const docsAfter = await p.evaluate(() =>
     Object.keys(window.__mockDocs).filter(k => k.startsWith('people/')).length);
   if (after !== n - 1) {
-    const w = await p.evaluate(() => (window.__peopleWrites || []).slice(0, 4));
-    console.log('    [who] people documents written since the reload:', w.length);
-    w.forEach(x => console.log('      ', x.path, '\n         ', x.stack));
+    const w = await p.evaluate(() => { try { return JSON.parse(sessionStorage.getItem('__pw') || '[]'); }
+                                       catch (e) { return []; } });
+    console.log('    [who]', w.length, 'people documents written in all, by page:',
+      JSON.stringify(w.reduce((a, x) => (a[x.page] = (a[x.page] || 0) + 1, a), {})));
+    w.slice(-4).forEach(x => console.log('       page', x.page, x.path, '\n         ', x.stack));
   }
   if (after !== n - 1) console.log('    [why] people docs before reload =', goneBefore,
     ' after =', docsAfter, ' rows =', after, ' (wanted', n - 1, ')');
