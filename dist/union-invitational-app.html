@@ -1497,6 +1497,22 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
    holds up on a phone that has lost its signal. */
 
 .wx{margin-top:18px;padding:14px 16px;background:var(--page);border:1px solid var(--rule)}
+
+/* The head of the guide is one grid, so the same markup can put the weather
+   beside the title on a wide screen and below the parts of the guide on a
+   phone — where the title has no room to share. */
+.resorttop{display:grid;grid-template-columns:minmax(0,1fr)}
+.rt-words{order:1;min-width:0}
+.btabs{order:2}
+.rt-wx{order:3;min-width:0}
+.rt-wx .wx{margin-top:0}
+@media (min-width:760px){
+  .resorttop{grid-template-columns:minmax(0,1fr) minmax(280px,340px);
+    column-gap:30px;align-items:start}
+  .rt-words{grid-column:1;grid-row:1}
+  .rt-wx{grid-column:2;grid-row:1;align-self:center}
+  .resorttop .btabs{grid-column:1 / -1;grid-row:2}
+}
 .wx-head{display:flex;align-items:center;gap:12px;padding-bottom:12px;
   border-bottom:1px solid var(--hair);margin-bottom:13px}
 .wx-lbl{font-size:11px;letter-spacing:.11em;text-transform:uppercase;
@@ -1517,11 +1533,6 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
 .ub.on{background:var(--ink);color:var(--page);font-weight:700}
 @media (hover:hover) and (pointer:fine){ .ub:not(.on):hover{color:var(--ink)} }
 
-.wx-hours{display:flex;gap:4px;overflow-x:auto;margin-top:14px;padding-top:12px;
-  border-top:1px solid var(--hair)}
-.wx-h{flex:0 0 auto;min-width:56px;display:flex;flex-direction:column;align-items:center;gap:6px}
-.wx-h .hh{font-size:13px;color:var(--turf);white-space:nowrap}
-.wx-h .hd{font-size:18px;font-weight:700}
 .wx .tiny{margin:10px 0 0}
 @media (max-width:820px){
   .wx{padding:13px 14px}
@@ -1877,7 +1888,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20260924-0545';
+const BUILD = '20260924-0845';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -7260,21 +7271,10 @@ function weatherStrip() {
           : f.feels != null ? 'Feels like ' + esc(W.degrees(f.feels, unit)) : ''}</span>
       </div>
     </div>
-    ${f.hours.length ? `<div class="wx-hours nos">${f.hours.map(h => {
-      const hl = W.look(h.code, isDaylight(h.at, f.offset));
-      return `<div class="wx-h"><span class="hh">${esc(W.hourLabel(h.at, f.offset, Date.now()))}</span>
-        ${sky(hl.glyph)}<span class="hd num">${esc(W.degrees(h.c, unit))}</span></div>`;
-    }).join('')}</div>` : ''}
     ${wx.state === 'stale' && seen
       ? `<p class="tiny">Last reached at ${esc(E.to12(String(seen.getUTCHours()).padStart(2, '0') + ':' + String(seen.getUTCMinutes()).padStart(2, '0')))}. Showing what it said then.</p>`
       : ''}
   </div>`;
-}
-
-/** Roughly, is that hour in daylight at the resort? Good enough for a glyph. */
-function isDaylight(ms, offsetSeconds) {
-  const h = new Date(ms + offsetSeconds * 1000).getUTCHours();
-  return h >= 7 && h < 19;
 }
 
 /* ---------------- The Titanic ----------------
@@ -7715,11 +7715,15 @@ function scrResort() {
     <img src="${IMG.resorthero}" alt="The resort at dusk, seen across the Beşgöz river: the hotel lit up, the riverside restaurants strung along the water, pine forest in the foreground">
     <figcaption>Titanic Deluxe Golf Belek from across the Beşgöz, at dusk. The lit terraces along the water are the à la carte restaurants.</figcaption>
   </figure>` : ''}
-  <h2 class="head">The Titanic</h2>
-  <p class="lede">Titanic Deluxe Golf Belek — the other side of the week. Read off the hotel’s own book in September; corrected by whoever gets there first.</p>
-  <div class="btabs nos">${tabs.map(([id, l]) =>
-    `<button class="btab${UI.resortTab === id ? ' on' : ''}" data-act="resortTab" data-a="${id}">${l}</button>`).join('')}</div>
-  ${weatherStrip()}
+  <div class="resorttop">
+    <div class="rt-words">
+      <h2 class="head">The Titanic</h2>
+      <p class="lede">Titanic Deluxe Golf Belek — the other side of the week. Read off the hotel’s own book in September; corrected by whoever gets there first.</p>
+    </div>
+    <div class="rt-wx">${weatherStrip()}</div>
+    <div class="btabs nos">${tabs.map(([id, l]) =>
+      `<button class="btab${UI.resortTab === id ? ' on' : ''}" data-act="resortTab" data-a="${id}">${l}</button>`).join('')}</div>
+  </div>
   ${seasonBand()}
   ${body()}`;
 }

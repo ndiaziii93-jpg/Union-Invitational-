@@ -133,13 +133,18 @@ ok('and it meets the paper as a clean edge', await pg.evaluate(() => {
    the weather and the season switch they were off the bottom of a phone, and
    a tab nobody scrolls to is a tab nobody knows is there. */
 const firstScreen = await pg.evaluate(() => {
-  const strip = document.querySelector('.btabs');
+  const strip = document.querySelector('.btabs').getBoundingClientRect();
+  const title = document.querySelector('.rt-words .head').getBoundingClientRect();
   const wx = document.querySelector('.wx');
-  return { tabs: Math.round(strip.getBoundingClientRect().top),
-           weather: wx ? Math.round(wx.getBoundingClientRect().top) : null };
+  const w = wx ? wx.getBoundingClientRect() : null;
+  return { tabsBottom: Math.round(strip.bottom), view: window.innerHeight,
+           beside: !!w && w.left > title.right - 2 && w.top < title.bottom && w.bottom > title.top };
 });
-ok('the parts of the guide come before the weather',
-  firstScreen.weather != null && firstScreen.tabs < firstScreen.weather, true);
+ok('the parts of the guide are on the first screen',
+  firstScreen.tabsBottom < firstScreen.view, true);
+/* On a screen with room, the reading sits beside the title rather than
+   taking a band of its own. */
+ok('and on a wide screen the weather is beside the title', firstScreen.beside, true);
 ok('the photograph actually loaded', plate && plate.loaded, true);
 ok('it is a band, not a page', plate && plate.h > 150 && plate.h < 320, true);
 ok('it sits above the heading', plate && plate.beforeHeading, 1);

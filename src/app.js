@@ -2238,21 +2238,10 @@ function weatherStrip() {
           : f.feels != null ? 'Feels like ' + esc(W.degrees(f.feels, unit)) : ''}</span>
       </div>
     </div>
-    ${f.hours.length ? `<div class="wx-hours nos">${f.hours.map(h => {
-      const hl = W.look(h.code, isDaylight(h.at, f.offset));
-      return `<div class="wx-h"><span class="hh">${esc(W.hourLabel(h.at, f.offset, Date.now()))}</span>
-        ${sky(hl.glyph)}<span class="hd num">${esc(W.degrees(h.c, unit))}</span></div>`;
-    }).join('')}</div>` : ''}
     ${wx.state === 'stale' && seen
       ? `<p class="tiny">Last reached at ${esc(E.to12(String(seen.getUTCHours()).padStart(2, '0') + ':' + String(seen.getUTCMinutes()).padStart(2, '0')))}. Showing what it said then.</p>`
       : ''}
   </div>`;
-}
-
-/** Roughly, is that hour in daylight at the resort? Good enough for a glyph. */
-function isDaylight(ms, offsetSeconds) {
-  const h = new Date(ms + offsetSeconds * 1000).getUTCHours();
-  return h >= 7 && h < 19;
 }
 
 /* ---------------- The Titanic ----------------
@@ -2693,11 +2682,15 @@ function scrResort() {
     <img src="${IMG.resorthero}" alt="The resort at dusk, seen across the Beşgöz river: the hotel lit up, the riverside restaurants strung along the water, pine forest in the foreground">
     <figcaption>Titanic Deluxe Golf Belek from across the Beşgöz, at dusk. The lit terraces along the water are the à la carte restaurants.</figcaption>
   </figure>` : ''}
-  <h2 class="head">The Titanic</h2>
-  <p class="lede">Titanic Deluxe Golf Belek — the other side of the week. Read off the hotel’s own book in September; corrected by whoever gets there first.</p>
-  <div class="btabs nos">${tabs.map(([id, l]) =>
-    `<button class="btab${UI.resortTab === id ? ' on' : ''}" data-act="resortTab" data-a="${id}">${l}</button>`).join('')}</div>
-  ${weatherStrip()}
+  <div class="resorttop">
+    <div class="rt-words">
+      <h2 class="head">The Titanic</h2>
+      <p class="lede">Titanic Deluxe Golf Belek — the other side of the week. Read off the hotel’s own book in September; corrected by whoever gets there first.</p>
+    </div>
+    <div class="rt-wx">${weatherStrip()}</div>
+    <div class="btabs nos">${tabs.map(([id, l]) =>
+      `<button class="btab${UI.resortTab === id ? ' on' : ''}" data-act="resortTab" data-a="${id}">${l}</button>`).join('')}</div>
+  </div>
   ${seasonBand()}
   ${body()}`;
 }

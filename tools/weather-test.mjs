@@ -114,13 +114,11 @@ const live = () => {
 const pg = await open({ body: live() });
 ok('the strip shows a picture and a temperature',
   [await pg.locator('.wx .sky.big').count(), await pg.locator('.wx-t').innerText()], [1, '24°']);
-ok('and the hours after it', (await pg.locator('.wx-h').count()) > 6, true);
+ok('and nothing else — no hour-by-hour run', await pg.locator('.wx-h').count(), 0);
 
 await pg.click('[data-act="wxUnit"][data-a="F"]');
 await pg.waitForTimeout(250);
 ok('the switch moves the big figure', await pg.locator('.wx-t').innerText(), '76°');
-ok('and every hour with it',
-  (await pg.locator('.wx-h .hd').first().innerText()), '76°');
 ok('and the day’s range', (await pg.locator('.wx-s span').innerText()).includes('82°'), true);
 
 /* The scale is a setting of the handset, so it has to survive a reload. */
