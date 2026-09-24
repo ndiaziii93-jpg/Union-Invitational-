@@ -409,6 +409,101 @@ const shown = await ph0.evaluate(() => {
 ok('and picking a far-off point brings it into view', shown, true);
 await ph0.close();
 
+/* ---- 4b. the plan under a thumb ----
+   A map is a thing people already know how to use, so the gestures have to
+   be the ones they already know: two fingers to zoom, a double tap to go in,
+   and the point under the fingers staying where it was put. */
+{
+  const tctx = await b.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+  const tp = await tctx.newPage();
+  tp.on('pageerror', e => errs.push(String(e).slice(0, 200)));
+  await tp.addInitScript(() => {
+    const fixed = Date.UTC(2026, 9, 28, 10, 0);
+    const D = Date;
+    window.Date = class extends D {
+      constructor(...a) { super(...(a.length ? a : [fixed])); }
+      static now() { return fixed; }
+    };
+  });
+  await tp.goto('file://' + S + '/rt.html');
+  await tp.waitForTimeout(4200);
+  for (let i = 0; i < 6; i++) { const d = tp.locator('[data-act="modalCancel"]');
+    if (await d.count()) { await d.first().click({ force: true }); await tp.waitForTimeout(150); } else break; }
+  await tp.click('[data-act="go"][data-a="resort"]');
+  await tp.click('[data-act="resortTab"][data-a="plan"]');
+  /* The gesture is dispatched at viewport coordinates, so the plan has to be
+     in the viewport. Half of it hanging below the fold was why the first
+     attempt at this recorded no touches at all. */
+  await tp.locator('.planwrap').scrollIntoViewIfNeeded();
+  await tp.waitForTimeout(400);
+
+  const box = await tp.locator('.planwrap').boundingBox();
+  const ax = Math.round(box.x + box.width * 0.25), ay = Math.round(box.y + box.height * 0.34);
+  const zoomOf = () => tp.evaluate(() =>
+    parseFloat(getComputedStyle(document.querySelector('.planwrap')).getPropertyValue('--z')) || 1);
+  const frac = () => tp.evaluate(([mx, my]) => {
+    const w = document.querySelector('.planwrap'), st = document.querySelector('.planstage');
+    const r = w.getBoundingClientRect();
+    return { fx: (w.scrollLeft + (mx - r.left)) / st.offsetWidth,
+             fy: (w.scrollTop + (my - r.top)) / st.offsetHeight };
+  }, [ax, ay]);
+
+  const cdp = await tctx.newCDPSession(tp);
+  const pt = (x, y) => ({ x, y, radiusX: 8, radiusY: 8, force: 1 });
+  const drag = async (from, to, steps) => {
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [pt(ax - from, ay), pt(ax + from, ay)] });
+    for (let k = 1; k <= steps; k++) {
+      const d = from + (to - from) * (k / steps);
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [pt(ax - d, ay), pt(ax + d, ay)] });
+      await tp.waitForTimeout(20);
+    }
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await tp.waitForTimeout(450);
+  };
+
+  ok('the plan starts at the whole thing', await zoomOf(), 1);
+  const a0 = await frac();
+  await drag(30, 70, 10);
+  const z1 = await zoomOf();
+  ok('two fingers spread takes it in', z1 > 1.5, true);
+  const a1 = await frac();
+  /* The whole feel of a map is this: what was under your fingers is still
+     under your fingers. Recomputing it every frame instead of holding it
+     from the start slid this a third of the way down the plan. */
+  ok('and what was under them stays under them, across',
+    Math.abs(a1.fx - a0.fx) < 0.02, true);
+  ok('and down', Math.abs(a1.fy - a0.fy) < 0.02, true);
+
+  await drag(70, 24, 10);
+  ok('bringing them together takes it back out', await zoomOf() < z1, true);
+
+  /* A double tap is the other half of what people expect. */
+  await tp.evaluate(() => { document.querySelector('.planwrap').dispatchEvent(
+    new MouseEvent('dblclick', { bubbles: true, clientX: 120, clientY: 700 })); });
+  await tp.waitForTimeout(400);
+  ok('a double tap goes in a step', await zoomOf() > 1, true);
+
+  /* And the page must still scroll. A plain wheel belongs to the page; only
+     a wheel with ctrl held — which is what a trackpad pinch sends — is ours. */
+  const zBeforeWheel = await zoomOf();
+  await tp.evaluate(() => { const w = document.querySelector('.planwrap');
+    w.dispatchEvent(new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY: 200 })); });
+  await tp.waitForTimeout(300);
+  ok('a plain wheel is left to the page', await zoomOf(), zBeforeWheel);
+  await tp.evaluate(() => { const w = document.querySelector('.planwrap');
+    const r = w.getBoundingClientRect();
+    w.dispatchEvent(new WheelEvent('wheel', { bubbles: true, cancelable: true, ctrlKey: true,
+      deltaY: -240, clientX: r.left + 60, clientY: r.top + 60 })); });
+  await tp.waitForTimeout(400);
+  ok('a trackpad pinch is not', await zoomOf() > zBeforeWheel, true);
+
+  /* The buttons stay: they are how a keyboard gets there. */
+  ok('and the buttons are still there for a keyboard',
+    await tp.locator('[data-act="resortZoom"]').count() >= 2, true);
+  await tp.close();
+  await tctx.close();
+}
+
 /* ---- 5. the drawing the book falls back to, with no artwork ---- */
 /* Every name has to be beside its own dot and on top of nothing else. The
    first version of this drew "Palm Bar & PatisserieSapore". */

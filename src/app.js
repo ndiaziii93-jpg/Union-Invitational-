@@ -2604,7 +2604,9 @@ function resortPlan() {
     <span class="zn num">${z === 1 ? 'Whole plan' : '×' + z.toFixed(1)}</span>
     <button class="zb" data-act="resortZoom" data-a="in"${z >= 3 ? ' disabled' : ''} aria-label="Zoom in">+</button>
     ${z > 1 ? `<button class="zb wide" data-act="resortZoom" data-a="fit">Show the whole plan</button>` : ''}
-    <span class="tiny">${z > 1 ? 'Drag the plan to move about.' : 'Tap a point, or a name in the list, to go in close.'}</span>
+    <span class="tiny">${z > 1
+      ? 'Drag to move about. Pinch, or double tap, to change how close.'
+      : 'Pinch to zoom, or double tap. Or tap a point for what it is.'}</span>
   </div>` : ''}
   <div class="planwrap${art ? ' art nos' : ''}${art && z > 1 ? ' zoomed' : ''}"${art ? ` style="--z:${z}"` : ''}>
     <div class="planstage"${art ? '' : ` style="aspect-ratio:${B.w}/${B.h}"`}>
@@ -2700,6 +2702,115 @@ function scrResort() {
   ${body()}`;
 }
 
+
+/* ---------------- the plan, under a thumb ----------------
+ *
+ * A map is a thing people already know how to use: two fingers to zoom, one
+ * to drag, a double tap to go in. The buttons stay — they are how a keyboard
+ * and a mouse without a trackpad get there, and every map on a phone has
+ * them too — but they are no longer the only way.
+ *
+ * A gesture cannot go through the usual state-and-redraw, which replaces the
+ * whole page: at sixty frames a second that is unusable. So the gesture moves
+ * the drawing directly and only writes the zoom back into the book when the
+ * fingers leave, which is also the moment a redraw is harmless.
+ */
+
+const ZMIN = 1, ZMAX = 3;
+let pinch = null;                  // a gesture in progress, or null
+
+const planBox = t => (t && t.closest ? t.closest('.planwrap.art') : null);
+const spread = t => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+
+/** Where a point in the window falls on the plan, as a pair of fractions. */
+function planFraction(wrap, mx, my) {
+  const stage = wrap.querySelector('.planstage');
+  const w = stage ? stage.offsetWidth : 0, h = stage ? stage.offsetHeight : 0;
+  return { fx: w ? (wrap.scrollLeft + mx) / w : 0, fy: h ? (wrap.scrollTop + my) / h : 0 };
+}
+
+/** Put `z` on the drawing and bring the plan's point `a` under (mx, my).
+ *  `mx`/`my` are measured from the wrapper's top-left corner.
+ *
+ *  `a` is taken once, when the fingers land, and not recomputed as they
+ *  move. Reading it afresh each frame looks equivalent and is not: leaving
+ *  zoom 1 turns the window from one that fits the whole plan into one of
+ *  fixed height, and for a frame or two the plan is shorter than the window
+ *  and cannot be scrolled at all. That clamp becomes the next frame's
+ *  starting point, and the error compounds — which is how a pinch that held
+ *  its place across the page slid a third of the way down it. */
+function applyZoom(wrap, z, mx, my, a) {
+  const stage = wrap.querySelector('.planstage');
+  if (!stage) return z;
+  z = Math.min(ZMAX, Math.max(ZMIN, z));
+  const anchor = a || planFraction(wrap, mx, my);
+  wrap.classList.toggle('zoomed', z > 1);
+  wrap.style.setProperty('--z', String(z));
+  const w1 = stage.offsetWidth, h1 = stage.offsetHeight;   // reading these settles the layout
+  wrap.scrollLeft = anchor.fx * w1 - mx;
+  wrap.scrollTop = anchor.fy * h1 - my;
+  return z;
+}
+
+function onPinchStart(e) {
+  if (!e.touches || e.touches.length !== 2) return;
+  const wrap = planBox(e.target);
+  if (!wrap) return;
+  const r = wrap.getBoundingClientRect();
+  const t = [e.touches[0], e.touches[1]];
+  const z0 = parseFloat(getComputedStyle(wrap).getPropertyValue('--z')) || 1;
+  const mx = (t[0].clientX + t[1].clientX) / 2 - r.left;
+  const my = (t[0].clientY + t[1].clientY) / 2 - r.top;
+  pinch = { wrap, r, z0, z: z0, d0: spread(t) || 1, a: planFraction(wrap, mx, my) };
+}
+
+function onPinchMove(e) {
+  if (!pinch || !e.touches || e.touches.length !== 2) return;
+  e.preventDefault();                       // ours, not the browser's
+  const t = [e.touches[0], e.touches[1]];
+  const mx = (t[0].clientX + t[1].clientX) / 2 - pinch.r.left;
+  const my = (t[0].clientY + t[1].clientY) / 2 - pinch.r.top;
+  pinch.z = applyZoom(pinch.wrap, pinch.z0 * (spread(t) / pinch.d0), mx, my, pinch.a);
+}
+
+function onPinchEnd() {
+  if (!pinch) return;
+  const z = Math.round(pinch.z * 10) / 10;
+  pinch = null;
+  /* Only now does the book find out, because only now is a redraw free. */
+  if (z !== UI.resortZoom) { UI.resortZoom = z; zoomShown = z; render(); }
+}
+
+/** A trackpad pinch arrives as a wheel turned with ctrl held. A plain wheel
+ *  is left alone — the plan sits in a page somebody is trying to scroll. */
+function onMapWheel(e) {
+  if (!e.ctrlKey) return;
+  const wrap = planBox(e.target);
+  if (!wrap) return;
+  e.preventDefault();
+  const r = wrap.getBoundingClientRect();
+  const z0 = parseFloat(getComputedStyle(wrap).getPropertyValue('--z')) || 1;
+  const z = applyZoom(wrap, z0 * Math.exp(-e.deltaY / 180), e.clientX - r.left, e.clientY - r.top);
+  UI.resortZoom = Math.round(z * 10) / 10;
+  zoomShown = UI.resortZoom;
+  clearTimeout(wheelSettle);
+  wheelSettle = setTimeout(render, 200);
+}
+let wheelSettle = null;
+
+/** Double tap goes in a step, and out again from the far end. */
+function onMapDouble(e) {
+  const wrap = planBox(e.target);
+  if (!wrap) return;
+  e.preventDefault();
+  const r = wrap.getBoundingClientRect();
+  const z0 = parseFloat(getComputedStyle(wrap).getPropertyValue('--z')) || 1;
+  const z = applyZoom(wrap, z0 >= ZMAX - 0.01 ? ZMIN : z0 + 1, e.clientX - r.left, e.clientY - r.top);
+  UI.resortZoom = Math.round(z * 10) / 10;
+  zoomShown = UI.resortZoom;
+  render();
+}
+
 /* ---------------- chrome ---------------- */
 
 /** The tabs this reader actually gets. Setup is the master's alone, which
@@ -2746,6 +2857,7 @@ let renderPending = false;
 let pinShown = null;     // the point the site plan was last scrolled to
 let zoomShown = 1;       // and how far in it was when that happened
 function inUse() {
+  if (pinch) return true;              // never redraw under a moving finger
   const el = document.activeElement;
   if (!el || !document.getElementById('app')) return false;
   if (!document.getElementById('app').contains(el)) return false;
@@ -3951,6 +4063,14 @@ export function boot() {
     if (pid) movePlayer(pid, col.dataset.a);
   });
   app.addEventListener('change', onChange);
+  /* The plan is redrawn from scratch on every render, so the gestures are
+     bound once to the page and find it again on each event. */
+  app.addEventListener('touchstart', onPinchStart, { passive: true });
+  app.addEventListener('touchmove', onPinchMove, { passive: false });
+  app.addEventListener('touchend', onPinchEnd);
+  app.addEventListener('touchcancel', onPinchEnd);
+  app.addEventListener('wheel', onMapWheel, { passive: false });
+  app.addEventListener('dblclick', onMapDouble);
   makePicker();
   // dropping onto the strip is the same as picking
   app.addEventListener('dragover', e => { if (e.target.closest('.phstrip.drop')) { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; } });

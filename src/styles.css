@@ -1647,7 +1647,8 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
    It is a panorama nearly four times as wide as it is tall, so on anything
    narrower than a laptop it has to be dragged sideways rather than shrunk to
    a hundred pixels of nothing — which is what the hotel's own map does too. */
-.planwrap.art{max-width:none;background:var(--paper);overflow:auto;-webkit-overflow-scrolling:touch}
+.planwrap.art{max-width:none;background:var(--paper);overflow:auto;
+  -webkit-overflow-scrolling:touch;touch-action:pan-x pan-y}
 /* `--z` is how far in we are. At one the whole plan is on the page and the
    wrapper takes whatever height the picture needs. Past that the wrapper
    becomes a window of fixed height and the plan is dragged about inside it,
@@ -1656,6 +1657,7 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
 .planwrap.art.zoomed{height:clamp(320px,56vh,560px);border-color:var(--ink);cursor:grab}
 
 .zoomrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:14px}
+.zoomrow .tiny{margin-left:4px}
 .zb{min-width:44px;min-height:40px;padding:0 12px;font-size:19px;line-height:1;
   color:var(--turf);background:var(--page);border:1px solid var(--rule)}
 .zb.wide{font-size:15px}
