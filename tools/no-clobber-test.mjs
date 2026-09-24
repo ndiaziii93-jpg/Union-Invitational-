@@ -245,7 +245,15 @@ for (const [label, lie] of [['a healthy store', false], ['a store whose first re
   await p.reload(); await settled(p);
   await p.locator('[data-act="modalCancel"]').click().catch(() => {});
   await p.locator('.tab', { hasText: 'Roster' }).click(); await p.waitForTimeout(500);
-  ok('and they stay gone after a reload', await steady(p, '.rtable tbody tr'), n - 1);
+  const rows1 = await steady(p, '.rtable tbody tr');
+  const w1 = await p.evaluate(() => { try { return JSON.parse(sessionStorage.getItem('__pw') || '[]'); }
+    catch (e) { return []; } });
+  if (rows1 !== n - 1) {
+    console.log('    [who]', w1.length, 'people writes in all, by page load:',
+      JSON.stringify(w1.reduce((a, x) => (a[x.page] = (a[x.page] || 0) + 1, a), {})));
+    w1.slice(-3).forEach(x => console.log('       page', x.page, x.path, '\n         ', x.stack));
+  }
+  ok('and they stay gone after a reload', rows1, n - 1);
   await p.close();
 }
 
@@ -283,8 +291,15 @@ for (const [label, lie] of [['a healthy store', false], ['a store whose first re
   await p.reload(); await settled(p);
   await p.locator('[data-act="modalCancel"]').click().catch(() => {});
   await p.locator('.tab', { hasText: 'Roster' }).click(); await p.waitForTimeout(600);
-  ok('and the stale config mirror cannot bring them back',
-    await steady(p, '.rtable tbody tr'), n - 1);
+  const rows2 = await steady(p, '.rtable tbody tr');
+  const w2 = await p.evaluate(() => { try { return JSON.parse(sessionStorage.getItem('__pw') || '[]'); }
+    catch (e) { return []; } });
+  if (rows2 !== n - 1) {
+    console.log('    [who]', w2.length, 'people writes in all, by page load:',
+      JSON.stringify(w2.reduce((a, x) => (a[x.page] = (a[x.page] || 0) + 1, a), {})));
+    w2.slice(-3).forEach(x => console.log('       page', x.page, x.path, '\n         ', x.stack));
+  }
+  ok('and the stale config mirror cannot bring them back', rows2, n - 1);
   await p.close();
 }
 
