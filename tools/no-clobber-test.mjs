@@ -367,8 +367,17 @@ for (const [label, lie] of [['a healthy store', false], ['a store whose first re
   /* Whether the delete actually reached the store BEFORE the reload is the
      difference between this test finding a resurrection and this test
      finding its own impatience. Record it either way. */
-  const goneBefore = await p.evaluate(() =>
-    Object.keys(window.__mockDocs).filter(k => k.startsWith('people/')).length);
+  const before = await p.evaluate(() => {
+    const live = Object.keys(window.__mockDocs).filter(k => k.startsWith('people/')).length;
+    let kept = null;
+    try { kept = Object.keys(JSON.parse(sessionStorage.getItem('__mockstore') || '{}'))
+      .filter(k => k.startsWith('people/')).length; } catch (e) {}
+    return { live, kept };
+  });
+  const goneBefore = before.live;
+  if (before.live !== before.kept) console.log(
+    '    [drift] the mock has', before.live, 'people but a reload would restore', before.kept);
+  ok('what a reload would restore matches what the store holds', before.kept, before.live);
   await p.reload(); await settled(p);
   await p.locator('[data-act="modalCancel"]').click().catch(() => {});
   await p.locator('.tab', { hasText: 'Roster' }).click(); await p.waitForTimeout(600);
