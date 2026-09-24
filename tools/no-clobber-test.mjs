@@ -249,6 +249,9 @@ for (const [label, lie] of [['a healthy store', false], ['a store whose first re
   const w1 = await p.evaluate(() => { try { return JSON.parse(sessionStorage.getItem('__pw') || '[]'); }
     catch (e) { return []; } });
   if (rows1 !== n - 1) {
+    const docs = await p.evaluate(() =>
+      Object.keys(window.__mockDocs).filter(k => k.startsWith('people/')).length);
+    console.log('    [state] rows on screen', rows1, ' people documents in the store', docs);
     console.log('    [who]', w1.length, 'people writes in all, by page load:',
       JSON.stringify(w1.reduce((a, x) => (a[x.page] = (a[x.page] || 0) + 1, a), {})));
     w1.slice(-3).forEach(x => console.log('       page', x.page, x.path, '\n         ', x.stack));
@@ -295,6 +298,9 @@ for (const [label, lie] of [['a healthy store', false], ['a store whose first re
   const w2 = await p.evaluate(() => { try { return JSON.parse(sessionStorage.getItem('__pw') || '[]'); }
     catch (e) { return []; } });
   if (rows2 !== n - 1) {
+    const docs = await p.evaluate(() =>
+      Object.keys(window.__mockDocs).filter(k => k.startsWith('people/')).length);
+    console.log('    [state] rows on screen', rows2, ' people documents in the store', docs);
     console.log('    [who]', w2.length, 'people writes in all, by page load:',
       JSON.stringify(w2.reduce((a, x) => (a[x.page] = (a[x.page] || 0) + 1, a), {})));
     w2.slice(-3).forEach(x => console.log('       page', x.page, x.path, '\n         ', x.stack));
