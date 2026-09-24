@@ -25,8 +25,20 @@ const MOCK = ({ stored, lieOnFirstRead, empty, factoryPeople, extraDocs }) => {
         sessionStorage.setItem('__pageNo', String(window.__pageNo)); } catch (e) { window.__pageNo = 1; }
   let saved = null;
   try { saved = JSON.parse(sessionStorage.getItem(KEY) || 'null'); } catch (e) {}
+  try {
+    const L = JSON.parse(sessionStorage.getItem('__loads') || '[]');
+    L.push({ page: window.__pageNo, restored: saved ? Object.keys(saved).filter(k => k.startsWith('people/')).length : null,
+             bytes: (sessionStorage.getItem(KEY) || '').length });
+    sessionStorage.setItem('__loads', JSON.stringify(L));
+  } catch (e) {}
   const docs = saved || (empty ? {} : { 'config/tournament': stored, ...(extraDocs || {}) });
-  const persist = () => { try { sessionStorage.setItem(KEY, JSON.stringify(docs)); } catch (e) {} };
+  const persist = () => {
+    try { sessionStorage.setItem(KEY, JSON.stringify(docs)); }
+    catch (e) {
+      try { sessionStorage.setItem('__persistFail',
+        String(+(sessionStorage.getItem('__persistFail') || 0) + 1) + ':' + (e && e.name)); } catch (e2) {}
+    }
+  };
   persist();
   window.__factoryPeople = factoryPeople;
   const subs = { doc: {}, coll: {} };
@@ -366,6 +378,14 @@ for (const [label, lie] of [['a healthy store', false], ['a store whose first re
   if (after !== n - 1) {
     const w = await p.evaluate(() => { try { return JSON.parse(sessionStorage.getItem('__pw') || '[]'); }
                                        catch (e) { return []; } });
+    const st = await p.evaluate(() => { try { return {
+      loads: JSON.parse(sessionStorage.getItem('__loads') || '[]'),
+      fails: sessionStorage.getItem('__persistFail'),
+      liveNow: JSON.parse(sessionStorage.getItem('__mockstore') || '{}'),
+    }; } catch (e) { return { err: String(e) }; } });
+    console.log('    [store] page loads:', JSON.stringify(st.loads),
+      ' persist failures:', st.fails || 'none',
+      ' people in session storage now:', Object.keys(st.liveNow || {}).filter(k => k.startsWith('people/')).length);
     console.log('    [who]', w.length, 'people documents written in all, by page:',
       JSON.stringify(w.reduce((a, x) => (a[x.page] = (a[x.page] || 0) + 1, a), {})));
     w.slice(-4).forEach(x => console.log('       page', x.page, x.path, '\n         ', x.stack));
