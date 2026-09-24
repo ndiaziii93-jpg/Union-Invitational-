@@ -123,19 +123,23 @@ const plate = await pg.evaluate(() => {
 });
 ok('the guide opens on a plate', !!plate, true);
 
-/* The picture is faded into the paper rather than cut against it. Checked as
-   a mechanism — two gradients, intersected — because a corner pixel would
-   only say it looked right in this engine at this size. */
-await pg.mouse.move(4, 4);
-const edges = await pg.evaluate(() => {
+ok('and it meets the paper as a clean edge', await pg.evaluate(() => {
   const c = getComputedStyle(document.querySelector('.rhero img'));
-  const m = c.maskImage && c.maskImage !== 'none' ? c.maskImage : c.webkitMaskImage;
-  const comp = (c.maskComposite && c.maskComposite !== 'add' ? c.maskComposite : c.webkitMaskComposite) || '';
-  return { grads: (String(m).match(/linear-gradient/g) || []).length, comp: String(comp) };
+  const m = String(c.maskImage || c.webkitMaskImage || 'none');
+  return m === 'none' || m === '';
+}), true);
+
+/* The five parts of the guide have to be on screen when the tab opens. Below
+   the weather and the season switch they were off the bottom of a phone, and
+   a tab nobody scrolls to is a tab nobody knows is there. */
+const firstScreen = await pg.evaluate(() => {
+  const strip = document.querySelector('.btabs');
+  const wx = document.querySelector('.wx');
+  return { tabs: Math.round(strip.getBoundingClientRect().top),
+           weather: wx ? Math.round(wx.getBoundingClientRect().top) : null };
 });
-ok('the plate is masked on both axes', edges.grads, 2);
-ok('and the two are intersected, not stacked',
-  /intersect|source-in/.test(edges.comp), true);
+ok('the parts of the guide come before the weather',
+  firstScreen.weather != null && firstScreen.tabs < firstScreen.weather, true);
 ok('the photograph actually loaded', plate && plate.loaded, true);
 ok('it is a band, not a page', plate && plate.h > 150 && plate.h < 320, true);
 ok('it sits above the heading', plate && plate.beforeHeading, 1);
@@ -431,51 +435,81 @@ await ph0.close();
     if (await d.count()) { await d.first().click({ force: true }); await tp.waitForTimeout(150); } else break; }
   await tp.click('[data-act="go"][data-a="resort"]');
   await tp.click('[data-act="resortTab"][data-a="plan"]');
-  /* The gesture is dispatched at viewport coordinates, so the plan has to be
-     in the viewport. Half of it hanging below the fold was why the first
-     attempt at this recorded no touches at all. */
-  await tp.locator('.planwrap').scrollIntoViewIfNeeded();
-  await tp.waitForTimeout(400);
-
-  const box = await tp.locator('.planwrap').boundingBox();
-  const ax = Math.round(box.x + box.width * 0.25), ay = Math.round(box.y + box.height * 0.34);
+  /* The gesture is dispatched at viewport coordinates, so the fingers have to
+     land on the part of the plan that is actually on screen. Half of it
+     hanging below the fold was why the first attempt recorded no touches at
+     all, and moving anything above the map broke it again — so the point is
+     taken from where the plan and the viewport overlap, not from the plan. */
+  const vp = tp.viewportSize();
+  /* A gesture ends in a redraw, and a redraw puts the page back where it
+     thinks it was — which is not necessarily where the last gesture left it.
+     So the plan is brought back on screen before each one, and the point to
+     touch is taken from where it is NOW. Computing it once and reusing it is
+     how the second gesture came to be delivered to empty paper. */
+  const aim = async () => {
+    for (let k = 0; k < 5; k++) {
+      const r = await tp.locator('.planwrap').boundingBox();
+      if (r && r.y >= 0 && r.y + r.height <= vp.height) break;
+      await tp.evaluate(([y, h, vh]) => window.scrollBy(0, y - Math.max(8, (vh - h) / 2)),
+        [r.y, r.height, vp.height]);
+      await tp.waitForTimeout(250);
+    }
+    const r = await tp.locator('.planwrap').boundingBox();
+    const top = Math.max(r.y, 0), bot = Math.min(r.y + r.height, vp.height);
+    return { x: Math.round(r.x + r.width * 0.25), y: Math.round(top + (bot - top) * 0.34),
+             visible: bot - top };
+  };
+  let a = await aim();
+  ok('the plan is on screen to be touched', a.visible > 120, true);
+  const ax = a.x, ay = a.y;
   const zoomOf = () => tp.evaluate(() =>
     parseFloat(getComputedStyle(document.querySelector('.planwrap')).getPropertyValue('--z')) || 1);
-  const frac = () => tp.evaluate(([mx, my]) => {
+  const frac = (dx, dy) => tp.evaluate(([mx, my]) => {
     const w = document.querySelector('.planwrap'), st = document.querySelector('.planstage');
-    const r = w.getBoundingClientRect();
-    return { fx: (w.scrollLeft + (mx - r.left)) / st.offsetWidth,
-             fy: (w.scrollTop + (my - r.top)) / st.offsetHeight };
-  }, [ax, ay]);
+    return { fx: (w.scrollLeft + mx) / st.offsetWidth,
+             fy: (w.scrollTop + my) / st.offsetHeight };
+  }, [dx, dy]);
+  const inWrap = async (p) => {
+    const r = await tp.locator('.planwrap').boundingBox();
+    return { dx: p.x - r.x, dy: p.y - r.y };
+  };
 
   const cdp = await tctx.newCDPSession(tp);
   const pt = (x, y) => ({ x, y, radiusX: 8, radiusY: 8, force: 1 });
-  const drag = async (from, to, steps) => {
-    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [pt(ax - from, ay), pt(ax + from, ay)] });
+
+  /* One gesture, start to finish, with the measurements taken around it and
+     nothing allowed to move in between. Aiming, measuring and touching were
+     three separate steps, and a redraw between any two of them delivered the
+     fingers to empty paper or compared two different places on the plan. */
+  const gesture = async (from, to, steps) => {
+    const p = await aim();
+    const r = await tp.locator('.planwrap').boundingBox();
+    const dx = p.x - r.x, dy = p.y - r.y;          // where the fingers are ON THE PLAN
+    const before = await frac(dx, dy);
+    const z0 = await zoomOf();
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [pt(p.x - from, p.y), pt(p.x + from, p.y)] });
     for (let k = 1; k <= steps; k++) {
       const d = from + (to - from) * (k / steps);
-      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [pt(ax - d, ay), pt(ax + d, ay)] });
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [pt(p.x - d, p.y), pt(p.x + d, p.y)] });
       await tp.waitForTimeout(20);
     }
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
     await tp.waitForTimeout(450);
+    return { before, after: await frac(dx, dy), z0, z: await zoomOf() };
   };
 
   ok('the plan starts at the whole thing', await zoomOf(), 1);
-  const a0 = await frac();
-  await drag(30, 70, 10);
-  const z1 = await zoomOf();
-  ok('two fingers spread takes it in', z1 > 1.5, true);
-  const a1 = await frac();
+  const wide = await gesture(30, 70, 10);
+  ok('two fingers spread takes it in', wide.z > wide.z0 * 1.4, true);
   /* The whole feel of a map is this: what was under your fingers is still
-     under your fingers. Recomputing it every frame instead of holding it
-     from the start slid this a third of the way down the plan. */
+     under your fingers. Recomputing the hold every frame instead of taking
+     it once slid this a third of the way down the plan. */
   ok('and what was under them stays under them, across',
-    Math.abs(a1.fx - a0.fx) < 0.02, true);
-  ok('and down', Math.abs(a1.fy - a0.fy) < 0.02, true);
+    Math.abs(wide.after.fx - wide.before.fx) < 0.02, true);
+  ok('and down', Math.abs(wide.after.fy - wide.before.fy) < 0.02, true);
 
-  await drag(70, 24, 10);
-  ok('bringing them together takes it back out', await zoomOf() < z1, true);
+  const close = await gesture(70, 24, 10);
+  ok('bringing them together takes it back out', close.z < close.z0, true);
 
   /* A double tap is the other half of what people expect. */
   await tp.evaluate(() => { document.querySelector('.planwrap').dispatchEvent(

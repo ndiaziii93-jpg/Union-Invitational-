@@ -2695,10 +2695,10 @@ function scrResort() {
   </figure>` : ''}
   <h2 class="head">The Titanic</h2>
   <p class="lede">Titanic Deluxe Golf Belek — the other side of the week. Read off the hotel’s own book in September; corrected by whoever gets there first.</p>
-  ${weatherStrip()}
-  ${seasonBand()}
   <div class="btabs nos">${tabs.map(([id, l]) =>
     `<button class="btab${UI.resortTab === id ? ' on' : ''}" data-act="resortTab" data-a="${id}">${l}</button>`).join('')}</div>
+  ${weatherStrip()}
+  ${seasonBand()}
   ${body()}`;
 }
 

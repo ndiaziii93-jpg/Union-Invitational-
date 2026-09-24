@@ -1480,18 +1480,7 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
    rather than a heading dropped on top of a photograph. */
 
 .rhero{margin:18px 0 22px}
-/* The paper is one flat colour, so the picture is faded to TRANSPARENT with
-   a mask rather than covered with a gradient of the background. No seam, and
-   it survives the paper ever changing. Two gradients intersected give a
-   feather on all four edges. A browser without masks simply gets the
-   rectangle, which is what it had before. */
-.rhero img{display:block;width:100%;height:230px;object-fit:cover;object-position:center 34%;
-  -webkit-mask-image:linear-gradient(to right,transparent,#000 9%,#000 91%,transparent),
-    linear-gradient(to bottom,transparent,#000 12%,#000 84%,transparent);
-  -webkit-mask-composite:source-in;
-  mask-image:linear-gradient(to right,transparent,#000 9%,#000 91%,transparent),
-    linear-gradient(to bottom,transparent,#000 12%,#000 84%,transparent);
-  mask-composite:intersect}
+.rhero img{display:block;width:100%;height:230px;object-fit:cover;object-position:center 34%}
 .rhero figcaption{margin-top:7px;font-size:13px;color:var(--turf);max-width:74ch;line-height:1.5}
 @media (max-width:820px){
   .rhero{margin:14px 0 18px}
@@ -1888,7 +1877,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20260924-0532';
+const BUILD = '20260924-0545';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -7728,10 +7717,10 @@ function scrResort() {
   </figure>` : ''}
   <h2 class="head">The Titanic</h2>
   <p class="lede">Titanic Deluxe Golf Belek — the other side of the week. Read off the hotel’s own book in September; corrected by whoever gets there first.</p>
-  ${weatherStrip()}
-  ${seasonBand()}
   <div class="btabs nos">${tabs.map(([id, l]) =>
     `<button class="btab${UI.resortTab === id ? ' on' : ''}" data-act="resortTab" data-a="${id}">${l}</button>`).join('')}</div>
+  ${weatherStrip()}
+  ${seasonBand()}
   ${body()}`;
 }
 
