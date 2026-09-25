@@ -2945,6 +2945,10 @@ function paint() {
   if (inUse()) { renderPending = true; return; }
   renderPending = false;
   wheelDone = null;       // this rebuild destroys it; the next one starts clean
+  /* A turn written by somebody else's phone arrives as an ordinary change to
+     the book, and the book redraws whenever it hears one — so this is where
+     the window reaches the people who did not score the hole. */
+  turnWatch();
   const app = document.getElementById('app');
   const focused = captureFocus();
   /* Every redraw replaces the whole tree, which puts the scroll back to the
@@ -3323,6 +3327,115 @@ function finishModalHtml() {
   </div></div>`;
 }
 
+/* ---------------- the turn ----------------
+ *
+ * Nine holes in is the only moment in a round when everybody is still out
+ * there and something is already decided. A group walks off the 9th and can
+ * find out, standing on the green, that they are three better than the group
+ * in front at the same point.
+ *
+ * The ref's phone does not raise this window. It WRITES the turn to the
+ * shared book, and every device on the course puts the window up when it
+ * arrives — the ref reads it out, and a wife by the pool sees the same
+ * thing. Which device happened to score the hole is not the point.
+ *
+ * Seen-ness is per device and kept on the device: two people must both get
+ * it, and neither should get it twice. */
+
+const TURN_KEY = 'union-invitational:turnseen';
+const TURN_FRESH = 3 * 60 * 60 * 1000;   // older than this is history, not news
+let turnSeen = null;
+
+function seenTurns() {
+  if (turnSeen) return turnSeen;
+  try { turnSeen = JSON.parse(localStorage.getItem(TURN_KEY) || '{}') || {}; }
+  catch (e) { turnSeen = {}; }
+  return turnSeen;
+}
+function markTurnSeen(key) {
+  const seen = seenTurns();
+  seen[key] = 1;
+  try { localStorage.setItem(TURN_KEY, JSON.stringify(seen)); }
+  catch (e) { /* storage blocked: it may show once more, which is no harm */ }
+}
+
+/** Put the turn in the shared book. Called by whoever saved the ninth. */
+function noteTurn(rid, gid) {
+  const g = E.finishGroups(T, rid).find(x => x.id === gid);
+  if (!g || !E.groupAtTurn(T, rid, g)) return;   // not all four are in yet
+  if (E.turnAt(T, rid, gid)) return;             // already written: a correction, not a turn
+  store.writeConfig(c => {
+    const cf = c.rounds[rid];
+    if (!cf) return;
+    if (!cf.turn || typeof cf.turn !== 'object') cf.turn = {};
+    if (cf.turn[gid]) return;
+    cf.turn[gid] = { at: Date.now() };
+  });
+}
+
+/** Raise the window for any turn this device has not seen yet. Run on every
+ *  redraw, which is also every time the store hears anything. */
+function turnWatch() {
+  if (UI.modal || !loaded()) return;
+  for (const r of D.ROUNDS) {
+    const cfg = E.roundCfg(T, r.id);
+    if (!cfg || !cfg.turn) continue;
+    for (const gid of Object.keys(cfg.turn)) {
+      const rec = cfg.turn[gid];
+      const at = rec && rec.at;
+      if (!at) continue;
+      const key = r.id + ':' + gid + ':' + at;
+      if (seenTurns()[key]) continue;
+      markTurnSeen(key);
+      /* A book opened the next morning must not replay yesterday's turns. */
+      if (Date.now() - at > TURN_FRESH) continue;
+      UI.modal = { kind: 'turn', rid: r.id, gid };
+      return;
+    }
+  }
+}
+
+function turnModalHtml() {
+  const m = UI.modal;
+  const s = E.turnSnapshot(T, m.rid, m.gid, now);
+  const par = n => `<span class="${cls(n)}">${esc(E.fmtToPar(n))}</span>`;
+  return `<div class="scrim" data-act="modalScrim"><div class="modal turnmodal"
+    role="dialog" aria-modal="true" aria-label="${esc(s.label)} has made the turn">
+    <span class="tn-eye">${esc([s.label, s.course, s.round].join(' \u00B7 '))}</span>
+    <h3 class="tn-q">${esc(s.label)} ${s.label === 'The field' ? 'has' : 'has'} made the turn</h3>
+    ${s.pace
+      ? `<p class="tn-pace ${s.pace.ahead ? 'good' : 'bad'}">${s.pace.delta === 0
+          ? 'Level with ' + esc(s.pace.against) + ' at the same point.'
+          : (s.pace.ahead ? Math.abs(s.pace.delta) + ' better than ' : Math.abs(s.pace.delta) + ' behind ')
+            + esc(s.pace.against) + ' at the same point.'}</p>`
+      : `<p class="tn-pace first">First group through the turn. Everyone else is chasing this.</p>`}
+
+    <div class="tn-cards">
+      ${s.cup ? `<div class="tn-card"><span class="l">The cup</span>
+        <span class="v num">${s.cup.uk} &ndash; ${s.cup.usa}</span><span class="s">UK &middot; USA</span></div>` : ''}
+      ${s.leader ? `<div class="tn-card"><span class="l">Leading golfer</span>
+        <span class="v">${esc(s.leader.name)}</span><span class="s num">${esc(s.leader.tp)} thru ${esc(s.leader.thru)}</span></div>` : ''}
+      ${s.pair ? `<div class="tn-card"><span class="l">Leading pair</span>
+        <span class="v">${esc(s.pair.name)}</span><span class="s num">${esc(s.pair.tp)}</span></div>` : ''}
+      ${s.bbb ? `<div class="tn-card"><span class="l">Bingo Bango Bongo</span>
+        <span class="v">${esc(s.bbb.name)}</span><span class="s num">${s.bbb.pts} point${s.bbb.pts === 1 ? '' : 's'}</span></div>` : ''}
+    </div>
+
+    ${s.groups.length > 1 ? `<h4 class="tn-h">At the turn</h4>
+      <div class="tn-rows">${s.groups.map(g => `<div class="tn-row${g.id === s.gid ? ' me' : ''}">
+        <span class="w">${esc(g.label)}${g.turned ? '' : ' <em>still out</em>'}</span>
+        <span class="n num">${par(g.tp)}</span></div>`).join('')}</div>` : ''}
+
+    ${s.field.length ? `<h4 class="tn-h">Every card, through ${E.TURN_HOLES}</h4>
+      <div class="tn-rows tn-field">${s.field.map(x => `<div class="tn-row${x.mine ? ' me' : ''}">
+        <span class="p num">${x.pos}</span>
+        <span class="w">${esc(x.name)}<small>${esc(x.group)}</small></span>
+        <span class="n num">${par(x.tp)}<small>thru ${x.thru}</small></span></div>`).join('')}</div>` : ''}
+
+    <div class="acts"><button class="btn" data-act="modalCancel">Back to it</button></div>
+  </div></div>`;
+}
+
 /* ---------------- the three that get forgotten ----------------
  *
  * Bingo Bango Bongo is three points a hole and the only thing on the card
@@ -3385,7 +3498,8 @@ function bbbModalHtml() {
 }
 
 function modalHtml() {
-  return UI.modal.kind === 'finish' ? finishModalHtml()
+  return UI.modal.kind === 'turn' ? turnModalHtml()
+       : UI.modal.kind === 'finish' ? finishModalHtml()
        : UI.modal.kind === 'bbbmiss' ? bbbModalHtml()
        : UI.modal.kind === 'venue' ? venueModalHtml()
        : UI.modal.kind === 'marks' ? markSheet(UI.modal.rid, UI.modal.hole, UI.modal.who)
@@ -3759,7 +3873,7 @@ function onClick(e) {
           /* Every group goes back out with it. Reopening the round and
              leaving the groups finished would hand back a card that still
              refused every score. */
-          setRound(a, { state: 'open', lockedBy: null, lockedAt: null, done: {} }); });
+          setRound(a, { state: 'open', lockedBy: null, lockedAt: null, done: {}, turn: {} }); });
       return;
 
     case 'bump': {
@@ -3872,6 +3986,9 @@ function onClick(e) {
              that was the round. The crest is raised by every save of the
              18th, so a window waved away comes back if a score on it is
              corrected, and never on any other hole. */
+          /* The ninth. Written to the shared book, not raised here: every
+             device puts the window up when it arrives, this one included. */
+          if (h === E.TURN_HOLES - 1) noteTurn(rid, gid);
           const next = h < 17 ? { what: 'hole', rid, h: h + 1 } : { what: 'finish', rid };
           /* Three points a hole that nobody can reconstruct afterwards. If
              any of them is blank, that goes FIRST and the rest queues behind

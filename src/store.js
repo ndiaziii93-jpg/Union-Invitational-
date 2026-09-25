@@ -52,6 +52,8 @@ export function defaultConfig() {
       lockedBy: null, lockedAt: null, openedBy: null,
       // which groups have walked off 18, keyed by group id
       done: {},
+      // and which have made the turn, so the snapshot reaches every device
+      turn: {},
     };
   }
   const courses = {};

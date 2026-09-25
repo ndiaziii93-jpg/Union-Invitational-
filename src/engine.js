@@ -158,6 +158,7 @@ export function groups(T, rid) {
       id: 'g' + n,
       label: 'Group ' + (n + 1),
       pairs: inGroup.map(p => pairName(T, p)),
+      pairIds: inGroup.map(p => p.id),
       members: inGroup.flatMap(p => (p.members || []).filter(id => person(T, id))),
       time: (tees[n] || {}).time || null,
     });
@@ -187,7 +188,8 @@ export function groups(T, rid) {
 export function finishGroups(T, rid) {
   const real = groups(T, rid).filter(g => (g.members || []).length);
   if (real.length) return real;
-  return [{ id: 'all', label: 'The field', pairs: [], members: golfers(T).map(p => p.id), time: null }];
+  return [{ id: 'all', label: 'The field', pairs: [], pairIds: [],
+    members: golfers(T).map(p => p.id), time: null }];
 }
 
 /** How much of a group is in through 18 — `{ in, of }`. A card is in when
@@ -210,6 +212,123 @@ export function groupDone(T, rid, gid) {
 /** The groups still out on the course. Empty means the round is over. */
 export function groupsOut(T, rid) {
   return finishGroups(T, rid).filter(g => !groupDone(T, rid, g.id));
+}
+
+/* ---------- the turn ----------
+ *
+ * Nine holes in is the only moment in a round when everybody is still out
+ * there and something is already decided. A group walks off the 9th, looks
+ * at a phone, and finds out that they are three better than the group in
+ * front at the same point — and the back nine is a different afternoon.
+ *
+ * It is written to the shared book rather than raised on the ref's phone, so
+ * it reaches every device on the course at once. A ref can read it out; a
+ * wife by the pool gets the same window.
+ */
+
+export const TURN_HOLES = 9;
+
+/** One golfer's net to par through the first `upto` holes. */
+export function toParThru(T, rid, pid, upto) {
+  const holes = courseOf(T, rid).holes;
+  let tp = 0, thru = 0;
+  for (let h = 0; h < upto && h < 18; h++) {
+    const n = playerNet(T, rid, pid, h);
+    if (n != null) { tp += n - holes[h].par; thru = h + 1; }
+  }
+  return { tp, thru };
+}
+
+/** A pair's better ball, to par, through the first `upto` holes. */
+function pairThru(T, rid, pair, upto) {
+  const holes = courseOf(T, rid).holes;
+  let tp = 0, thru = 0;
+  for (let h = 0; h < upto && h < 18; h++) {
+    const s = pairHole(T, rid, pair, h);
+    if (s != null) { tp += s - holes[h].par; thru = h + 1; }
+  }
+  return { tp, thru };
+}
+
+/** Whether every golfer in a group has the ninth SAVED. */
+export function groupAtTurn(T, rid, g) {
+  const ids = (g && g.members || []).filter(id => person(T, id));
+  if (!ids.length) return false;
+  return ids.every(id => { const c = card(T, rid, id); return c && c.by && c.by[TURN_HOLES - 1]; });
+}
+
+/** When a group made the turn, as the shared book has it — or null. */
+export function turnAt(T, rid, gid) {
+  const cf = roundCfg(T, rid);
+  const t = cf && cf.turn;
+  return t && typeof t === 'object' && t[gid] ? t[gid] : null;
+}
+
+/** Every group's better-ball standing at the turn, and who has got there. */
+export function turnGroups(T, rid) {
+  return finishGroups(T, rid).map(g => {
+    const prs = (g.pairIds || []).map(id => (T.config.pairs || []).find(x => x.id === id)).filter(Boolean);
+    let tp = 0, thru = 0, any = false;
+    for (const pr of prs) {
+      const r = pairThru(T, rid, pr, TURN_HOLES);
+      if (r.thru > 0) { tp += r.tp; thru = Math.max(thru, r.thru); any = true; }
+    }
+    if (!prs.length) {                       // no pairings: the field as one
+      for (const id of g.members) {
+        const r = toParThru(T, rid, id, TURN_HOLES);
+        if (r.thru > 0) { tp += r.tp; thru = Math.max(thru, r.thru); any = true; }
+      }
+    }
+    return { id: g.id, label: g.label, tp, thru, started: any,
+      turned: !!turnAt(T, rid, g.id) || groupAtTurn(T, rid, g) };
+  });
+}
+
+/** The whole snapshot the window puts up, for one group's turn.
+ *  Everything in it is already on a board somewhere — this is the board
+ *  brought to the 9th green rather than a second set of figures. */
+export function turnSnapshot(T, rid, gid, now) {
+  const gs = turnGroups(T, rid);
+  const mine = gs.find(g => g.id === gid) || null;
+  const r = roundDef(rid);
+  const cup = ryderData(T, now);
+  const pairs = pairsBoard(T, now);
+  const mvp = mvpBoard(T, now);
+  const bbb = bbbBoard(T);
+
+  /* Where the group sits against the others that have already turned. The
+     comparison is only honest between groups at the same point, which is
+     the whole reason this fires at the ninth and not at the tenth. */
+  const others = gs.filter(g => g.id !== gid && g.turned && g.started);
+  const best = others.length ? Math.min(...others.map(g => g.tp)) : null;
+  const pace = (mine && mine.started && best != null)
+    ? { delta: mine.tp - best, ahead: mine.tp <= best,
+        against: others.find(g => g.tp === best).label }
+    : null;
+
+  /* The field at the turn, so everybody can find their own name. */
+  const where = {};
+  for (const g of finishGroups(T, rid)) for (const id of g.members) where[id] = g.label;
+  const field = golfers(T).map(p => {
+    const t = toParThru(T, rid, p.id, TURN_HOLES);
+    return { id: p.id, name: p.display, group: where[p.id] || '—',
+      tp: t.tp, thru: t.thru, mine: (mine && where[p.id] === mine.label) || false };
+  }).filter(x => x.thru > 0);
+  field.sort((a, b) => a.tp - b.tp || b.thru - a.thru);
+
+  return {
+    rid, gid,
+    label: (mine && mine.label) || 'A group',
+    round: r.short === 'Practice' ? 'the practice round' : 'Round ' + r.short.slice(1),
+    course: courseOf(T, rid).name,
+    cup: (cup.ukTotal || cup.usaTotal) ? { uk: cup.ukTotal, usa: cup.usaTotal } : null,
+    pair: pairs.length ? { name: pairs[0].name, tp: pairs[0].totalStr } : null,
+    leader: mvp.length ? { name: mvp[0].name, tp: mvp[0].totalStr, thru: mvp[0].thruStr } : null,
+    bbb: bbb.length ? { name: bbb[0].name, pts: bbb[0].pts } : null,
+    groups: gs.filter(g => g.started),
+    field: field.map((x, i) => ({ ...x, pos: i + 1 })),
+    pace,
+  };
 }
 
 /* The practice day is its own thing: it feeds nothing, and every board that

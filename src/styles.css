@@ -456,6 +456,42 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 .modal .err{color:var(--flag);font-size:14px;min-height:19px;margin:0}
 .modal .acts{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
 
+/* ---- the turn ----
+   A scoreboard, not a dialogue box: wider than the rest, and the field list
+   scrolls inside it rather than pushing the buttons off a phone. */
+.turnmodal{max-width:460px;border-top-color:var(--green);gap:0;padding:22px 22px 18px}
+.turnmodal .tn-eye{font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--turf);font-weight:700;display:block}
+.turnmodal .tn-q{font-size:24px;margin:6px 0 0;color:var(--ink)}
+.tn-pace{margin:6px 0 0;font-size:15px;font-weight:600}
+.tn-pace.good{color:var(--green)}
+.tn-pace.bad{color:var(--flag)}
+.tn-pace.first{color:var(--gold)}
+
+.tn-cards{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+.tn-card{border:1px solid var(--rule);background:var(--paper);border-radius:3px;
+  padding:9px 11px;min-width:0}
+.tn-card .l{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--turf)}
+.tn-card .v{display:block;font-size:18px;font-weight:700;line-height:1.2;margin-top:3px;
+  overflow-wrap:anywhere}
+.tn-card .s{display:block;font-size:13px;color:var(--turf);margin-top:1px}
+
+.tn-h{font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--turf);
+  font-weight:700;margin:18px 0 0;border-top:1px solid var(--rule);padding-top:10px}
+.tn-rows{margin-top:4px}
+.tn-row{display:flex;align-items:baseline;gap:10px;padding:7px 8px;border-bottom:1px solid var(--hair)}
+.tn-row:last-child{border-bottom:none}
+.tn-row .p{width:20px;color:var(--turf);font-size:13px;flex:0 0 auto}
+.tn-row .w{flex:1 1 auto;min-width:0;font-size:16px;font-weight:600;overflow-wrap:anywhere}
+.tn-row .w small{display:block;font-size:12px;font-weight:400;color:var(--turf)}
+.tn-row .w em{font-style:normal;font-size:12px;font-weight:400;color:var(--turf)}
+.tn-row .n{flex:0 0 auto;text-align:right;font-size:17px;font-weight:700}
+.tn-row .n small{display:block;font-size:11px;font-weight:400;color:var(--turf)}
+/* your own group, found without reading a name */
+.tn-row.me{background:var(--sunk);box-shadow:inset 3px 0 0 var(--green);border-radius:2px}
+.tn-field{max-height:34vh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.turnmodal .acts{justify-content:center;margin-top:16px}
+
 /* ---- the three that get forgotten ----
    Gold-topped rather than red: nothing has gone wrong, the hole is saved,
    and a red rule over a saved hole reads as a refusal. */
