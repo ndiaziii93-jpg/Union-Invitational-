@@ -543,14 +543,17 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
   display:grid;place-items:center}
 .fm-crest img{position:relative;z-index:2;width:100%;height:auto;display:block;
   animation:finishLift 2600ms ease-in-out infinite}
+/* The swing is the intensity. Both curves travel further in the same 2.6s,
+   so the breath is deeper AND moves quicker without the tempo changing —
+   a faster cycle at the old amplitude would have read as a flicker. */
 .fm-crest .halo{position:absolute;inset:-26%;border-radius:50%;z-index:1;
   background:radial-gradient(circle,rgba(140,107,47,.56) 0%,rgba(140,107,47,.26) 42%,transparent 74%);
   animation:finishBreath 2600ms ease-in-out infinite}
 /* The trough is what the eye reads as "how gold is it" — it is where the
    wash sits for most of the cycle. Lifted with the peak so the glow stays
    present all the way round rather than only at the top of the breath. */
-@keyframes finishBreath{0%,100%{transform:scale(.92);opacity:.7}50%{transform:scale(1.06);opacity:1}}
-@keyframes finishLift{0%,100%{transform:scale(1)}50%{transform:scale(1.035)}}
+@keyframes finishBreath{0%,100%{transform:scale(.82);opacity:.66}50%{transform:scale(1.18);opacity:1}}
+@keyframes finishLift{0%,100%{transform:scale(.975)}50%{transform:scale(1.065)}}
 .finishmodal .fm-q{font-size:29px;margin:6px 0 0;letter-spacing:.01em;color:var(--ink)}
 .finishmodal .fm-sub{margin:7px 0 0;font-size:14.5px}
 .finishmodal .fm-last{margin:9px 0 0;font-size:14px;color:var(--gold);font-weight:600}
@@ -1994,7 +1997,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20260925-0911';
+const BUILD = '20260925-0917';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
