@@ -102,7 +102,14 @@ for (let g = 0; g < groups; g++) {
   if (g + 1 < groups) { await p.locator('.hcell').nth(0).click(); await p.waitForTimeout(220); }
 }
 await tab('Today');
-ok('complete but unwritten invites a tap', await line(), 'Round complete — tap to read the day.');
+/* It used to read "Round complete — tap to read the day": finished,
+   unwritten, waiting for somebody to ask. The last card of the day starts
+   the report itself now, so by the time Today is back on screen it is
+   already written and the line says so. The unwritten state has not gone —
+   a device with no writer, or one that was out of signal at the last putt,
+   still lands on it — it is simply no longer what the ref sees. */
+ok('the last card in leaves a report already written',
+  /is complete — read the report\.$/.test(await line()), true);
 
 console.log('\nthe recap window');
 ok('the finished panel pulses for attention', await p.locator('.recapbtn.ready').evaluate(
