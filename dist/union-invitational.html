@@ -480,6 +480,17 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
   overflow-wrap:anywhere}
 .tn-card .s{display:block;font-size:13px;color:var(--turf);margin-top:1px}
 
+/* a card with nothing beside it takes the row rather than leaving a hole */
+.tn-card.tn-wide{grid-column:1 / -1}
+
+/* The cup, in the form it takes on its own tab: two flags and the score.
+   Tighter here — it is a line in a window, not the head of a page. */
+.turnmodal .cupbar{grid-template-columns:1fr auto 1fr;gap:12px;margin-top:16px;
+  padding:12px 0;border-top:2px solid var(--ink);border-bottom:1px solid var(--rule)}
+.turnmodal .cupbar .pts{font-size:34px}
+.turnmodal .cupbar .vs{font-size:16px}
+.tn-cupnote{margin:8px 0 0;font-size:13px;color:var(--turf);text-align:center}
+
 .tn-h{font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--turf);
   font-weight:700;margin:18px 0 0;border-top:1px solid var(--rule);padding-top:10px}
 .tn-rows{margin-top:4px}
@@ -1944,7 +1955,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20260925-1046';
+const BUILD = '20260925-1138';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -8723,20 +8734,31 @@ function turnModalHtml() {
             + esc(s.pace.against) + ' at the same point.'}</p>`
       : `<p class="tn-pace first">First group through the turn. Everyone else is chasing this.</p>`}
 
+    ${/* Team first, then the individual, then the side game — the order the
+          week is actually decided in. The cup is not a card: it is match
+          play, it belongs to the squads rather than to a pairing, and it is
+          drawn below in the form it takes everywhere else in the book. */ ''}
     <div class="tn-cards">
-      ${s.squads ? `<div class="tn-card"><span class="l">Squads, per card</span>
-        <span class="v num">${esc(E.fmtAvgToPar(s.squads.uk.avg))} &ndash; ${esc(E.fmtAvgToPar(s.squads.usa.avg))}</span>
-        <span class="s">UK ${s.squads.uk.n} &middot; USA ${s.squads.usa.n} cards in</span></div>` : ''}
-      ${s.cup ? `<div class="tn-card"><span class="l">The cup</span>
-        <span class="v num">${half(s.cup.uk)} &ndash; ${half(s.cup.usa)}</span>
-        <span class="s">UK &middot; USA${s.cup.out ? ' &middot; ' + s.cup.out + ' still out' : ''}</span></div>` : ''}
-      ${s.leader ? `<div class="tn-card"><span class="l">Leading golfer</span>
-        <span class="v">${esc(s.leader.name)}</span><span class="s num">${esc(s.leader.tp)} thru ${esc(s.leader.thru)}</span></div>` : ''}
       ${s.pair ? `<div class="tn-card"><span class="l">Leading pair</span>
         <span class="v">${esc(s.pair.name)}</span><span class="s num">${esc(s.pair.tp)}</span></div>` : ''}
-      ${s.bbb ? `<div class="tn-card"><span class="l">Bingo Bango Bongo</span>
+      ${s.leader ? `<div class="tn-card"><span class="l">Leading golfer</span>
+        <span class="v">${esc(s.leader.name)}</span><span class="s num">${esc(s.leader.tp)} thru ${esc(s.leader.thru)}</span></div>` : ''}
+      ${s.bbb ? `<div class="tn-card tn-wide"><span class="l">Bingo Bango Bongo</span>
         <span class="v">${esc(s.bbb.name)}</span><span class="s num">${s.bbb.pts} point${s.bbb.pts === 1 ? '' : 's'}</span></div>` : ''}
     </div>
+
+    ${s.cup || s.squads ? `<div class="cupbar tn-cup">
+      <div class="side">${ukFlag(38)}<span class="pts num" style="color:var(--green)">${half((s.cup || {}).uk || 0)}</span></div>
+      <div class="vs">v</div>
+      <div class="side r"><span class="pts num" style="color:var(--usa)">${half((s.cup || {}).usa || 0)}</span>${usFlag(38)}</div>
+    </div>
+    ${/* Match play says almost nothing at the ninth — a match counts only the
+          holes BOTH players have finished, and half the field is still on the
+          front nine — so the strokes are put underneath, which is the reading
+          that always works. */ ''}
+    <p class="tn-cupnote">${s.cup && s.cup.out ? s.cup.out + ' match' + (s.cup.out === 1 ? '' : 'es') + ' still out. ' : ''}${
+      s.squads ? 'By strokes, per card: UK ' + esc(E.fmtAvgToPar(s.squads.uk.avg))
+        + ', USA ' + esc(E.fmtAvgToPar(s.squads.usa.avg)) + '.' : ''}</p>` : ''}
 
     ${s.groups.length > 1 ? `<h4 class="tn-h">At the turn</h4>
       <div class="tn-rows">${s.groups.map(g => `<div class="tn-row${g.id === s.gid ? ' me' : ''}">

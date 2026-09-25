@@ -183,19 +183,24 @@ ok('it says who made the turn', /made the turn/i.test(txt), true);
 ok('it is the first group through', /first group/i.test(await A.locator('.tn-pace').innerText()), true);
 const cardLabels = (await A.locator('.tn-card .l').allInnerTexts()).map(t => t.trim().toLowerCase());
 console.log('          (the cards are: ' + cardLabels.join(' / ') + ')');
-ok('there is a leading golfer on it', cardLabels.includes('leading golfer'), true);
-/* Which team is leading. Match play cannot answer that at the ninth — a
-   match only counts holes BOTH players have finished, and Group 1 turns
-   while its opponents are on the 4th — so the squads are compared by
-   strokes, which is always available and is what the question means here. */
-ok('the squads are on it', cardLabels.some(t => /squads/.test(t)), true);
-const sqCard = A.locator('.tn-card').filter({ hasText: 'Squads' });
-console.log('          (the squads card reads: ' + (await sqCard.innerText()).replace(/\n/g, ' / ') + ')');
-ok('with both squads counted', /UK \d+ .* USA \d+ cards in/s.test(await sqCard.innerText()), true);
-/* Summed, the bigger squad wins for being bigger — at Group 1's turn one UK
-   card and two USA cards had USA "leading" 21 under to 10 under. Per card. */
-ok('and compared per card, not summed',
-  /per card/i.test(await sqCard.innerText()), true);
+/* The order the week is decided in: the pairing, then the golfer, then the
+   side game. */
+ok('team first, then the golfer, then the side game', cardLabels,
+  ['leading pair', 'leading golfer', 'bingo bango bongo']);
+
+/* The cup is not a card. It is match play, it belongs to the squads rather
+   than to a pairing, and it is drawn the way it is drawn everywhere else in
+   the book: two flags and the score. */
+ok('the cup is a band of its own', await A.locator('.tn-cup').count(), 1);
+ok('with both flags on it', await A.locator('.tn-cup svg').count(), 2);
+/* Match play says almost nothing at the ninth — a match counts only the
+   holes BOTH players have finished — so the strokes go underneath, which is
+   the reading that always works. */
+const note = await A.locator('.tn-cupnote').innerText();
+console.log('          (under the cup: ' + note.trim() + ')');
+ok('and the strokes underneath it', /per card/i.test(note), true);
+ok('which are per card, not summed', /UK [+\u2212E]/.test(note) && /USA [+\u2212E]/.test(note), true);
+
 ok('every card in the field is listed', await A.locator('.tn-field .tn-row').count() > 0, true);
 ok('with the group that turned marked out', await A.locator('.tn-field .tn-row.me').count() > 0, true);
 ok('and it fits the phone', await A.evaluate(() => {

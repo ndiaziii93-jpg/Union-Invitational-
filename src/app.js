@@ -3413,20 +3413,31 @@ function turnModalHtml() {
             + esc(s.pace.against) + ' at the same point.'}</p>`
       : `<p class="tn-pace first">First group through the turn. Everyone else is chasing this.</p>`}
 
+    ${/* Team first, then the individual, then the side game — the order the
+          week is actually decided in. The cup is not a card: it is match
+          play, it belongs to the squads rather than to a pairing, and it is
+          drawn below in the form it takes everywhere else in the book. */ ''}
     <div class="tn-cards">
-      ${s.squads ? `<div class="tn-card"><span class="l">Squads, per card</span>
-        <span class="v num">${esc(E.fmtAvgToPar(s.squads.uk.avg))} &ndash; ${esc(E.fmtAvgToPar(s.squads.usa.avg))}</span>
-        <span class="s">UK ${s.squads.uk.n} &middot; USA ${s.squads.usa.n} cards in</span></div>` : ''}
-      ${s.cup ? `<div class="tn-card"><span class="l">The cup</span>
-        <span class="v num">${half(s.cup.uk)} &ndash; ${half(s.cup.usa)}</span>
-        <span class="s">UK &middot; USA${s.cup.out ? ' &middot; ' + s.cup.out + ' still out' : ''}</span></div>` : ''}
-      ${s.leader ? `<div class="tn-card"><span class="l">Leading golfer</span>
-        <span class="v">${esc(s.leader.name)}</span><span class="s num">${esc(s.leader.tp)} thru ${esc(s.leader.thru)}</span></div>` : ''}
       ${s.pair ? `<div class="tn-card"><span class="l">Leading pair</span>
         <span class="v">${esc(s.pair.name)}</span><span class="s num">${esc(s.pair.tp)}</span></div>` : ''}
-      ${s.bbb ? `<div class="tn-card"><span class="l">Bingo Bango Bongo</span>
+      ${s.leader ? `<div class="tn-card"><span class="l">Leading golfer</span>
+        <span class="v">${esc(s.leader.name)}</span><span class="s num">${esc(s.leader.tp)} thru ${esc(s.leader.thru)}</span></div>` : ''}
+      ${s.bbb ? `<div class="tn-card tn-wide"><span class="l">Bingo Bango Bongo</span>
         <span class="v">${esc(s.bbb.name)}</span><span class="s num">${s.bbb.pts} point${s.bbb.pts === 1 ? '' : 's'}</span></div>` : ''}
     </div>
+
+    ${s.cup || s.squads ? `<div class="cupbar tn-cup">
+      <div class="side">${ukFlag(38)}<span class="pts num" style="color:var(--green)">${half((s.cup || {}).uk || 0)}</span></div>
+      <div class="vs">v</div>
+      <div class="side r"><span class="pts num" style="color:var(--usa)">${half((s.cup || {}).usa || 0)}</span>${usFlag(38)}</div>
+    </div>
+    ${/* Match play says almost nothing at the ninth — a match counts only the
+          holes BOTH players have finished, and half the field is still on the
+          front nine — so the strokes are put underneath, which is the reading
+          that always works. */ ''}
+    <p class="tn-cupnote">${s.cup && s.cup.out ? s.cup.out + ' match' + (s.cup.out === 1 ? '' : 'es') + ' still out. ' : ''}${
+      s.squads ? 'By strokes, per card: UK ' + esc(E.fmtAvgToPar(s.squads.uk.avg))
+        + ', USA ' + esc(E.fmtAvgToPar(s.squads.usa.avg)) + '.' : ''}</p>` : ''}
 
     ${s.groups.length > 1 ? `<h4 class="tn-h">At the turn</h4>
       <div class="tn-rows">${s.groups.map(g => `<div class="tn-row${g.id === s.gid ? ' me' : ''}">

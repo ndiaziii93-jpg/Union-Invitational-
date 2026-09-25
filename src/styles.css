@@ -476,6 +476,17 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
   overflow-wrap:anywhere}
 .tn-card .s{display:block;font-size:13px;color:var(--turf);margin-top:1px}
 
+/* a card with nothing beside it takes the row rather than leaving a hole */
+.tn-card.tn-wide{grid-column:1 / -1}
+
+/* The cup, in the form it takes on its own tab: two flags and the score.
+   Tighter here — it is a line in a window, not the head of a page. */
+.turnmodal .cupbar{grid-template-columns:1fr auto 1fr;gap:12px;margin-top:16px;
+  padding:12px 0;border-top:2px solid var(--ink);border-bottom:1px solid var(--rule)}
+.turnmodal .cupbar .pts{font-size:34px}
+.turnmodal .cupbar .vs{font-size:16px}
+.tn-cupnote{margin:8px 0 0;font-size:13px;color:var(--turf);text-align:center}
+
 .tn-h{font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--turf);
   font-weight:700;margin:18px 0 0;border-top:1px solid var(--rule);padding-top:10px}
 .tn-rows{margin-top:4px}
