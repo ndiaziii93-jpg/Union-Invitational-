@@ -4007,6 +4007,17 @@ function onClick(e) {
           /* The ninth. Written to the shared book, not raised here: every
              device puts the window up when it arrives, this one included. */
           if (h === E.TURN_HOLES - 1) noteTurn(rid, gid);
+          /* The last card of the day is in. Start writing the day's report
+             now rather than when somebody opens the panel: it takes the best
+             part of a minute, and a commissioner who opens it wants to be
+             READING a draft, not watching one arrive.
+             Only the phone that saved the last hole starts it, which is also
+             the only phone that can know it was the last one. Two devices
+             both starting would pay for two reports. Everything else is
+             already guarded — writeRecap refuses when a report exists, when
+             the round is not complete, or when one is already running — and
+             opening the panel still writes it if this never got the chance. */
+          if (h === 17) setTimeout(() => writeRecap(rid, false), 0);
           const next = h < 17 ? { what: 'hole', rid, h: h + 1 } : { what: 'finish', rid };
           /* Three points a hole that nobody can reconstruct afterwards. If
              any of them is blank, that goes FIRST and the rest queues behind
