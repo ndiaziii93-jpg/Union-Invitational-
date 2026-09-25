@@ -191,7 +191,12 @@ ok('there is a leading golfer on it', cardLabels.includes('leading golfer'), tru
 ok('the squads are on it', cardLabels.some(t => /squads/.test(t)), true);
 const sqCard = A.locator('.tn-card').filter({ hasText: 'Squads' });
 console.log('          (the squads card reads: ' + (await sqCard.innerText()).replace(/\n/g, ' / ') + ')');
-ok('with both squads counted', /UK \(\d+\).*USA \(\d+\)/s.test(await sqCard.innerText()), true);
+ok('with both squads counted', /UK \(\d+ card/s.test(await sqCard.innerText())
+  && /USA \(\d+ card/s.test(await sqCard.innerText()), true);
+/* Summed, the bigger squad wins for being bigger — at Group 1's turn one UK
+   card and two USA cards had USA "leading" 21 under to 10 under. Per card. */
+ok('and compared per card, not summed',
+  /per card/i.test(await sqCard.innerText()), true);
 ok('every card in the field is listed', await A.locator('.tn-field .tn-row').count() > 0, true);
 ok('with the group that turned marked out', await A.locator('.tn-field .tn-row.me').count() > 0, true);
 ok('and it fits the phone', await A.evaluate(() => {

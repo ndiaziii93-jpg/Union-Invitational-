@@ -57,6 +57,11 @@ export function bandTotal(band) {
 }
 
 export function fmtToPar(n) { return n === 0 ? 'E' : n > 0 ? '+' + n : '−' + Math.abs(n); }
+/** The same, for an average, which does not come out whole. */
+export function fmtAvgToPar(n) {
+  const v = Math.round(n * 10) / 10;
+  return v === 0 ? 'E' : v > 0 ? '+' + v : '\u2212' + Math.abs(v);
+}
 export function capFor(par, capOver) { return par + capOver; }
 export function capped(raw, par, capOver) { return raw == null ? null : Math.min(raw, par + capOver); }
 
@@ -339,7 +344,14 @@ export function turnSnapshot(T, rid, gid, now) {
     if (!t.thru) continue;
     side.tp += t.tp; side.n++;
   }
-  const squads = (squad.UK.n && squad.USA.n) ? { uk: squad.UK, usa: squad.USA } : null;
+  /* PER CARD, not summed. Summed, the bigger squad wins for being bigger:
+     at Group 1's turn one UK golfer and two USA golfers had played, and USA
+     "led" 21 under to 10 under purely by having an extra card in. The squads
+     are rarely the same size and at the turn only part of each is round, so
+     the only honest reading is the average card. */
+  const per = x => ({ ...x, avg: x.n ? x.tp / x.n : 0 });
+  const squads = (squad.UK.n && squad.USA.n)
+    ? { uk: per(squad.UK), usa: per(squad.USA) } : null;
 
   /* The field at the turn, so everybody can find their own name. */
   const where = {};
