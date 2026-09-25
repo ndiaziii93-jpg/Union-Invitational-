@@ -149,6 +149,11 @@ const playHole = async (p, i) => {
   await p.locator('.hcell').nth(i).click(); await p.waitForTimeout(420); await shut(p);
   const plus = p.locator('.step.plus'); const c = await plus.count();
   for (let k = 0; k < c; k++) { await plus.nth(k).click(); await p.waitForTimeout(60); }
+  /* A name against Bingo, so the side game has a leader to put on the
+     window — and so the notice about the three does not stand in the way of
+     every single save. */
+  const bg = p.locator('[data-act="setBbb"][data-a="bingo"]');
+  if (await bg.count()) { await bg.selectOption({ index: 1 + (i % 3) }); await p.waitForTimeout(200); }
   await p.locator('[data-act="saveHole"]').click(); await p.waitForTimeout(700);
 };
 
