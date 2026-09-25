@@ -321,6 +321,26 @@ export function turnSnapshot(T, rid, gid, now) {
         against: others.find(g => g.tp === best).label }
     : null;
 
+  /* The squads, by strokes, at the turn.
+   *
+   * The cup is match play, and match play cannot say anything at the ninth:
+   * a match only counts holes BOTH players have finished, and Group 1 turns
+   * while its opponents in Group 3 are on the 4th — so most matches read as
+   * not started and the cup sits at nil-nil. True, and useless.
+   *
+   * At the turn the like-for-like reading is strokes: every UK card against
+   * every USA card, over the holes they have actually played. That is always
+   * available and it is what "which team is leading" means at the ninth. */
+  const squad = { UK: { tp: 0, n: 0 }, USA: { tp: 0, n: 0 } };
+  for (const p of golfers(T)) {
+    const side = squad[p.location];
+    if (!side) continue;
+    const t = toParThru(T, rid, p.id, TURN_HOLES);
+    if (!t.thru) continue;
+    side.tp += t.tp; side.n++;
+  }
+  const squads = (squad.UK.n && squad.USA.n) ? { uk: squad.UK, usa: squad.USA } : null;
+
   /* The field at the turn, so everybody can find their own name. */
   const where = {};
   for (const g of finishGroups(T, rid)) for (const id of g.members) where[id] = g.label;
@@ -337,6 +357,7 @@ export function turnSnapshot(T, rid, gid, now) {
     round: r.short === 'Practice' ? 'the practice round' : 'Round ' + r.short.slice(1),
     course: courseOf(T, rid).name,
     cup: cupNow(cup),
+    squads,
     pair: pairs.length ? { name: pairs[0].name, tp: pairs[0].totalStr } : null,
     leader: mvp.length ? { name: mvp[0].name, tp: mvp[0].totalStr, thru: mvp[0].thruStr } : null,
     bbb: bbb.length ? { name: bbb[0].name, pts: bbb[0].pts } : null,

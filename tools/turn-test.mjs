@@ -117,6 +117,13 @@ for (let i = 0; i < rows; i++) {
   const n = await bs.count(); if (!n) continue;
   await bs.nth(i % n).click(); await A.waitForTimeout(90);
 }
+/* Squads, so "which team is leading" has two teams to compare. */
+const sq = A.locator('[data-act="cycleSquad"]');
+const nsq = await sq.count();
+for (let i = 0; i < nsq; i++) {
+  const taps = (i % 2) ? 2 : 1;            // alternate UK and USA down the list
+  for (let k = 0; k < taps; k++) { await sq.nth(i).click(); await A.waitForTimeout(80); }
+}
 await A.waitForTimeout(600); await shut(A);
 
 await tab(A, 'Score Entry');
@@ -177,13 +184,14 @@ ok('it is the first group through', /first group/i.test(await A.locator('.tn-pac
 const cardLabels = (await A.locator('.tn-card .l').allInnerTexts()).map(t => t.trim().toLowerCase());
 console.log('          (the cards are: ' + cardLabels.join(' / ') + ')');
 ok('there is a leading golfer on it', cardLabels.includes('leading golfer'), true);
-/* At the turn not one match has finished, so a cup counting only settled
-   matches reads 0-0 all afternoon. It counts whoever is UP in the matches
-   still on the course, which is what a live cup board does. */
-ok('and the cup', cardLabels.includes('the cup'), true);
-const cupCard = A.locator('.tn-card').filter({ hasText: 'The cup' });
-console.log('          (the cup reads: ' + (await cupCard.innerText()).replace(/\n/g, ' / ') + ')');
-ok('which counts the matches still out', /still out/.test(await cupCard.innerText()), true);
+/* Which team is leading. Match play cannot answer that at the ninth — a
+   match only counts holes BOTH players have finished, and Group 1 turns
+   while its opponents are on the 4th — so the squads are compared by
+   strokes, which is always available and is what the question means here. */
+ok('the squads are on it', cardLabels.some(t => /squads/.test(t)), true);
+const sqCard = A.locator('.tn-card').filter({ hasText: 'Squads' });
+console.log('          (the squads card reads: ' + (await sqCard.innerText()).replace(/\n/g, ' / ') + ')');
+ok('with both squads counted', /UK \(\d+\).*USA \(\d+\)/s.test(await sqCard.innerText()), true);
 ok('every card in the field is listed', await A.locator('.tn-field .tn-row').count() > 0, true);
 ok('with the group that turned marked out', await A.locator('.tn-field .tn-row.me').count() > 0, true);
 ok('and it fits the phone', await A.evaluate(() => {
