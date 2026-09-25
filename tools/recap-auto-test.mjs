@@ -94,22 +94,22 @@ const playHole = async i => {
 const asks = () => p.evaluate(() => window.__asks);
 
 console.log('\na round with a group still out is not a day');
-await p.locator('.gchip').first().click(); await p.waitForTimeout(500); await shut();
-for (let i = 0; i < 17; i++) await playHole(i);
-await shut();
-ok('seventeen holes in, nothing has been written', await asks(), 0);
-await playHole(17);
-await shut(); await p.waitForTimeout(900);
-/* Group 1 is round. Group 2 is on the 4th. Half a card is not a day. */
-ok('and the first group finishing does not start it either', await asks(), 0);
+/* EVERY group, not two. The field is five pairs, which is three groups, and
+   a report written while the third is on the 4th would be a report about
+   two thirds of a day. */
+for (let g = 0; g < groups; g++) {
+  await p.locator('.gchip').nth(g).click(); await p.waitForTimeout(500); await shut();
+  for (let i = 0; i < 17; i++) await playHole(i);
+  await shut();
+  ok('group ' + (g + 1) + ' has a hole to play and nothing is written', await asks(), 0);
+  await playHole(17);
+  await shut(); await p.waitForTimeout(g === groups - 1 ? 2400 : 900);
+  if (g < groups - 1) {
+    ok('group ' + (g + 1) + ' is round, the rest are not, still nothing', await asks(), 0);
+  }
+}
 
 console.log('\nthe last card of the day starts it, unasked');
-await p.locator('.gchip').nth(1).click(); await p.waitForTimeout(600); await shut();
-for (let i = 0; i < 17; i++) await playHole(i);
-await shut();
-ok('still nothing with one hole to play', await asks(), 0);
-await playHole(17);
-await shut(); await p.waitForTimeout(2200);
 ok('the last card in starts the report', await asks(), 1);
 
 console.log('\nand it is there to read, not to wait for');
