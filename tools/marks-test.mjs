@@ -92,7 +92,13 @@ await p.locator('.hcell').first().click(); await p.waitForTimeout(450); await sh
 {
   const bar = p.locator('.savebar').first();
   const labels = await bar.locator('button').allInnerTexts();
-  ok('the bar offers three things', labels.length, 3);
+  /* Two, on hole 1. It was three until a round started finishing group by
+     group: Lock and conclude sat on the bar from the first tee shot, a red
+     button ending the round seventeen holes early. It is now a Finish round
+     button that appears only once somebody in the group is in through 18. */
+  ok('the bar offers two things on hole 1', labels.length, 2);
+  ok('and nothing on it can end the round yet',
+    await bar.locator('[data-act="askFinish"],[data-act="lockRound"]').count(), 0);
   ok('and none of them but Save talks about the score',
     labels.filter(t => /save|score|shot|shoot|card/i.test(t)), ['Save hole 1']);
   /* Before anything is entered there is nothing to save, so nothing on the

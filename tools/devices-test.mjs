@@ -134,26 +134,60 @@ for (const [name, viewport, touch, dpr] of DEVICES) {
       const par = await p.locator('.hcell.on .p').innerText();      // "par 4"
       const want = String(parseInt(par.replace(/\D/g, ''), 10) - 1);
       if (one !== want) bad.push('minus from empty gave "' + one + '", wanted ' + want);
+      /* And put it in. A nav tab pressed over a half-entered hole asks
+         whether to stay, and dismiss() answers "stay" — which would leave
+         every screen read after this one reading Score Entry. */
+      await p.locator('[data-act="saveHole"]').click(); await p.waitForTimeout(1300); await dismiss();
     }
 
-    // 3c. a round can be concluded
-    if (await p.locator('[data-act="lockRound"]').count()) {
-      await p.locator('[data-act="lockRound"]').first().click(); await p.waitForTimeout(1500);
-      // a draft on the hole is offered first; take the save
-      if (await p.locator('.modal').count()) {
-        await p.locator('[data-act="confirmAlt"]').click().catch(() => {});
-        await p.waitForTimeout(800);
-        if (await p.locator('[data-act="lockRound"]').count()) {
-          await p.locator('[data-act="lockRound"]').first().click(); await p.waitForTimeout(1500);
+    // 3c. the 18th goes in and the crest asks whether that was the round
+    if (await p.locator('.hcell').count()) {
+      /* No red Lock and conclude on the bar any more: a round finishes group
+         by group, so nothing on hole 6 can end it. */
+      if (await p.locator('.savebar [data-act="lockRound"]').count()) bad.push('the bar still ends the round early');
+      await p.locator('.hcell').nth(17).click(); await p.waitForTimeout(500); await dismiss();
+      const plus = p.locator('.step.plus'); const np = await plus.count();
+      for (let i = 0; i < np; i++) { await plus.nth(i).click(); await p.waitForTimeout(90); }
+      if (np) { await p.locator('[data-act="saveHole"]').click(); await p.waitForTimeout(1400); }
+
+      if (!await p.locator('.finishmodal').count()) bad.push('the 18th went in and nothing asked');
+      else {
+        /* It is a window with a 150px crest in it, and the smallest phone
+           here is 375 across. It has to fit, and the two buttons have to be
+           hittable with a thumb on the 18th green. */
+        const fit = await p.evaluate(() => {
+          const m = document.querySelector('.finishmodal').getBoundingClientRect();
+          const c = document.querySelector('.fm-crest');
+          const btns = [...document.querySelectorAll('.finishmodal .acts button')];
+          return { off: m.left < -0.5 || m.right > window.innerWidth + 0.5,
+            tall: m.height > window.innerHeight,
+            crest: c ? Math.round(c.getBoundingClientRect().width) : 0,
+            small: btns.filter(b => b.getBoundingClientRect().height < 44).length,
+            n: btns.length };
+        });
+        if (fit.off) bad.push('the finish window runs off the side');
+        if (fit.tall) bad.push('the finish window is taller than the screen');
+        if (fit.crest < 60) bad.push('the crest came out ' + fit.crest + 'px');
+        if (fit.n !== 2) bad.push('the finish window offers ' + fit.n + ' buttons');
+        if (fit.small) bad.push(fit.small + ' finish button(s) under 44px');
+        if (await p.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)) {
+          bad.push('the finish window pushes the page sideways');
         }
+        await p.locator('.finishmodal [data-act="finishGroup"]').click(); await p.waitForTimeout(1200); await dismiss();
+        if (!await p.locator('.savebar.done').count()) bad.push('finishing left no finished bar');
       }
-      await dismiss();
+    }
+
+    // 3c2. and the whole round can still be concluded from Settings
+    await tab('Setup');
+    if (await p.locator('[data-act="lockRound"]').count()) {
+      await p.locator('[data-act="lockRound"]').first().click(); await p.waitForTimeout(1400); await dismiss();
       const st = await p.evaluate(() => {
         const r = window.__docs['config/tournament'].rounds;
         return Object.values(r).map(x => x.state).join('/');
       });
       if (!st.includes('locked')) bad.push('lock & conclude did nothing (' + st + ')');
-    }
+    } else bad.push('no way to conclude a round from Settings');
 
     // 3d. the practice day stands alone: its scores show there and nowhere else
     await tab('Leaderboards');
