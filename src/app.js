@@ -1636,7 +1636,8 @@ function scrEntry() {
         : `<b>Hole ${hole.n}</b><span>Enter every score on this hole, then save it.</span>`}</div>
     <button class="btn${dirty ? '' : ' ghost'}" data-act="saveHole"${dirty ? '' : ' disabled'}>Save hole ${hole.n}</button>
     ${/* One button, not sixteen controls. See markSheet(). */ ''}
-    <button class="btn ghost markbtn${marksHere ? ' has' : ''}" data-act="openMarks">Mark the hole${
+    <button class="btn ghost markbtn${marksHere ? ' has' : ''}" data-act="openMarks"
+      aria-label="What happened on hole ${hole.n} — three putts, out of bounds, and the rest">What happened?${
       marksHere ? ` <span class="ct num">${marksHere}</span>` : ''}</button>
     <button class="btn danger" data-act="lockRound" data-a="${rid}">Lock &amp; conclude</button>
   </div>` : '';
@@ -3135,7 +3136,7 @@ function markSheet(rid, h, who) {
   const hole = E.courseOf(T, rid).holes[h];
   const ed = canEdit() && E.roundCfg(T, rid).state === 'open';
   return `<div class="scrim" data-act="modalScrim"><div class="modal marksheet"
-    role="dialog" aria-modal="true" aria-label="Mark hole ${hole.n}">
+    role="dialog" aria-modal="true" aria-label="What happened on hole ${hole.n}">
     <div class="ms-head">
       <span class="hm-eye">Hole ${hole.n} · par ${hole.par}</span>
       <h3>What happened?</h3>

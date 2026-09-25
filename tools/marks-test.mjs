@@ -85,8 +85,33 @@ const board = async () => { await tab('Boards');
 const was = await board();
 await p.locator('.hcell').first().click(); await p.waitForTimeout(450); await shut();
 
+/* Which button writes the hole down has to be obvious before it is pressed.
+   "Mark the hole" read as exactly that, beside a Save button that is greyed
+   out until a score is entered — so the only live button on the bar was the
+   one that does NOT record anything. */
+{
+  const bar = p.locator('.savebar').first();
+  const labels = await bar.locator('button').allInnerTexts();
+  ok('the bar offers three things', labels.length, 3);
+  ok('and none of them but Save talks about the score',
+    labels.filter(t => /save|score|shot|shoot|card/i.test(t)), ['Save hole 1']);
+  /* Before anything is entered there is nothing to save, so nothing on the
+     bar may look like the thing to press. */
+  const weight = await p.evaluate(() => {
+    const el = document.querySelector('.markbtn'), cs = getComputedStyle(el);
+    const save = getComputedStyle(document.querySelector('[data-act="saveHole"]'));
+    return { marks: cs.color, quiet: +cs.fontWeight <= 400, savePrimary: save.backgroundColor };
+  });
+  ok('the marks button speaks quietly until it has something to say', weight.quiet, true);
+}
+
 await p.locator('[data-act="openMarks"]').click(); await p.waitForTimeout(600);
 ok('the sheet opens', await p.locator('.marksheet').count(), 1);
+/* And the sheet confirms the tap: the button and the heading say the same
+   thing, so pressing it lands somewhere recognisable. */
+ok('the sheet is headed what the button promised',
+  (await p.locator('.marksheet .ms-head h3').innerText()).trim(),
+  (await p.locator('[data-act="openMarks"]').innerText()).trim());
 const cols = await p.locator('.ms-hdr .ms-col').allInnerTexts();
 ok('four marks across the top', cols, ['3-putt', 'OB', 'Water', 'Shot']);
 ok('and a column heading fits on one line', await p.evaluate(

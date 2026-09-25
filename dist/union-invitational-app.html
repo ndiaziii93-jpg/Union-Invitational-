@@ -1234,7 +1234,9 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
 .markbtn .ct{display:inline-flex;align-items:center;justify-content:center;
   min-width:20px;height:20px;padding:0 5px;margin-left:6px;border-radius:999px;
   background:var(--gold);color:#FBFAF7;font-size:13px;font-weight:700;line-height:1}
-.markbtn.has{border-color:var(--gold);color:var(--ink)}
+.markbtn{color:var(--turf);border-color:var(--hair);font-weight:400}
+@media (hover:hover) and (pointer:fine){ .markbtn:hover{color:var(--ink);border-color:var(--rule)} }
+.markbtn.has{border-color:var(--gold);color:var(--ink);font-weight:600}
 
 /* a hole that carries a mark says so in the strip, so a ref can see at a
    glance what they have logged and spot one they meant to */
@@ -1888,7 +1890,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20260924-0845';
+const BUILD = '20260925-0658';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -6669,7 +6671,8 @@ function scrEntry() {
         : `<b>Hole ${hole.n}</b><span>Enter every score on this hole, then save it.</span>`}</div>
     <button class="btn${dirty ? '' : ' ghost'}" data-act="saveHole"${dirty ? '' : ' disabled'}>Save hole ${hole.n}</button>
     ${/* One button, not sixteen controls. See markSheet(). */ ''}
-    <button class="btn ghost markbtn${marksHere ? ' has' : ''}" data-act="openMarks">Mark the hole${
+    <button class="btn ghost markbtn${marksHere ? ' has' : ''}" data-act="openMarks"
+      aria-label="What happened on hole ${hole.n} — three putts, out of bounds, and the rest">What happened?${
       marksHere ? ` <span class="ct num">${marksHere}</span>` : ''}</button>
     <button class="btn danger" data-act="lockRound" data-a="${rid}">Lock &amp; conclude</button>
   </div>` : '';
@@ -8168,7 +8171,7 @@ function markSheet(rid, h, who) {
   const hole = E.courseOf(T, rid).holes[h];
   const ed = canEdit() && E.roundCfg(T, rid).state === 'open';
   return `<div class="scrim" data-act="modalScrim"><div class="modal marksheet"
-    role="dialog" aria-modal="true" aria-label="Mark hole ${hole.n}">
+    role="dialog" aria-modal="true" aria-label="What happened on hole ${hole.n}">
     <div class="ms-head">
       <span class="hm-eye">Hole ${hole.n} · par ${hole.par}</span>
       <h3>What happened?</h3>

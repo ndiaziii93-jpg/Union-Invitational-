@@ -1230,7 +1230,9 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
 .markbtn .ct{display:inline-flex;align-items:center;justify-content:center;
   min-width:20px;height:20px;padding:0 5px;margin-left:6px;border-radius:999px;
   background:var(--gold);color:#FBFAF7;font-size:13px;font-weight:700;line-height:1}
-.markbtn.has{border-color:var(--gold);color:var(--ink)}
+.markbtn{color:var(--turf);border-color:var(--hair);font-weight:400}
+@media (hover:hover) and (pointer:fine){ .markbtn:hover{color:var(--ink);border-color:var(--rule)} }
+.markbtn.has{border-color:var(--gold);color:var(--ink);font-weight:600}
 
 /* a hole that carries a mark says so in the strip, so a ref can see at a
    glance what they have logged and spot one they meant to */
