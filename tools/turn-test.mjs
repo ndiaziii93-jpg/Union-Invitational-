@@ -77,9 +77,14 @@ const MOCK = () => {
 };
 
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
-const ctx = await b.newContext({ viewport: { width: 420, height: 900 } });
+/* A CONTEXT EACH, not two tabs. Seen-ness is kept in localStorage — two
+   people must both get the window, and neither should get it twice — and two
+   pages in one context share that storage, so the second phone would read
+   the first phone's "already seen" and stay silent. Two phones do not share
+   a localStorage; two tabs do. */
 const pages = [];
 for (let i = 0; i < 2; i++) {
+  const ctx = await b.newContext({ viewport: { width: 420, height: 900 } });
   const p = await ctx.newPage();
   p.on('pageerror', e => { console.log('  PAGE ERROR (device ' + (i + 1) + '):', String(e).split('\n')[0]); fails.push('pageerror'); });
   await p.exposeFunction('srvGet', srvGet);
@@ -162,8 +167,8 @@ ok('the window is up on the phone that scored it', await A.locator('.turnmodal')
 console.log('\nand it reaches the phone that scored nothing');
 await B.waitForTimeout(1200);
 ok('device B has it too', await B.locator('.turnmodal').count(), 1);
-ok('device B was not even on the scoring screen',
-  await B.locator('.turnmodal').count() === 1 && await B.locator('[data-act="saveHole"]').count(), 0);
+ok('having scored nothing and never left the boards',
+  await B.locator('[data-act="saveHole"]').count(), 0);
 
 console.log('\nwhat it actually says');
 const txt = await A.locator('.turnmodal').innerText();
@@ -172,7 +177,13 @@ ok('it is the first group through', /first group/i.test(await A.locator('.tn-pac
 const cardLabels = (await A.locator('.tn-card .l').allInnerTexts()).map(t => t.trim().toLowerCase());
 console.log('          (the cards are: ' + cardLabels.join(' / ') + ')');
 ok('there is a leading golfer on it', cardLabels.includes('leading golfer'), true);
+/* At the turn not one match has finished, so a cup counting only settled
+   matches reads 0-0 all afternoon. It counts whoever is UP in the matches
+   still on the course, which is what a live cup board does. */
 ok('and the cup', cardLabels.includes('the cup'), true);
+const cupCard = A.locator('.tn-card').filter({ hasText: 'The cup' });
+console.log('          (the cup reads: ' + (await cupCard.innerText()).replace(/\n/g, ' / ') + ')');
+ok('which counts the matches still out', /still out/.test(await cupCard.innerText()), true);
 ok('every card in the field is listed', await A.locator('.tn-field .tn-row').count() > 0, true);
 ok('with the group that turned marked out', await A.locator('.tn-field .tn-row.me').count() > 0, true);
 ok('and it fits the phone', await A.evaluate(() => {

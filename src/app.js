@@ -3342,6 +3342,9 @@ function finishModalHtml() {
  * Seen-ness is per device and kept on the device: two people must both get
  * it, and neither should get it twice. */
 
+/** A cup score, which comes in halves. */
+const half = n => (Number.isInteger(n) ? String(n) : Math.floor(n) + '\u00BD');
+
 const TURN_KEY = 'union-invitational:turnseen';
 const TURN_FRESH = 3 * 60 * 60 * 1000;   // older than this is history, not news
 let turnSeen = null;
@@ -3412,7 +3415,8 @@ function turnModalHtml() {
 
     <div class="tn-cards">
       ${s.cup ? `<div class="tn-card"><span class="l">The cup</span>
-        <span class="v num">${s.cup.uk} &ndash; ${s.cup.usa}</span><span class="s">UK &middot; USA</span></div>` : ''}
+        <span class="v num">${half(s.cup.uk)} &ndash; ${half(s.cup.usa)}</span>
+        <span class="s">UK &middot; USA${s.cup.out ? ' &middot; ' + s.cup.out + ' still out' : ''}</span></div>` : ''}
       ${s.leader ? `<div class="tn-card"><span class="l">Leading golfer</span>
         <span class="v">${esc(s.leader.name)}</span><span class="s num">${esc(s.leader.tp)} thru ${esc(s.leader.thru)}</span></div>` : ''}
       ${s.pair ? `<div class="tn-card"><span class="l">Leading pair</span>

@@ -284,6 +284,21 @@ export function turnGroups(T, rid) {
   });
 }
 
+/** The cup AS IT STANDS, which at the turn is the only reading worth having:
+ *  settled matches, plus whoever is up in the ones still on the course. A
+ *  board showing 0–0 all afternoon because nothing has finished is not a
+ *  score, it is a technicality. */
+function cupNow(cup) {
+  let uk = cup.ukTotal, usa = cup.usaTotal, out = 0;
+  for (const s of cup.sessions) for (const m of s.matches) {
+    if (m.done || !m.thru) continue;
+    out++;
+    if (m.up > 0) uk += 1; else if (m.up < 0) usa += 1; else { uk += 0.5; usa += 0.5; }
+  }
+  if (!uk && !usa && !out) return null;
+  return { uk, usa, out };
+}
+
 /** The whole snapshot the window puts up, for one group's turn.
  *  Everything in it is already on a board somewhere — this is the board
  *  brought to the 9th green rather than a second set of figures. */
@@ -321,7 +336,7 @@ export function turnSnapshot(T, rid, gid, now) {
     label: (mine && mine.label) || 'A group',
     round: r.short === 'Practice' ? 'the practice round' : 'Round ' + r.short.slice(1),
     course: courseOf(T, rid).name,
-    cup: (cup.ukTotal || cup.usaTotal) ? { uk: cup.ukTotal, usa: cup.usaTotal } : null,
+    cup: cupNow(cup),
     pair: pairs.length ? { name: pairs[0].name, tp: pairs[0].totalStr } : null,
     leader: mvp.length ? { name: mvp[0].name, tp: mvp[0].totalStr, thru: mvp[0].thruStr } : null,
     bbb: bbb.length ? { name: bbb[0].name, pts: bbb[0].pts } : null,
