@@ -165,6 +165,53 @@ export function groups(T, rid) {
   return out;
 }
 
+/* ---------- finishing, group by group ----------
+ *
+ * A round used to end once, for everybody, when somebody pressed Lock and
+ * conclude. That is not how a round ends. Group 1 walks off 18 an hour and
+ * a half before Group 3 does, and for that hour and a half their card sat
+ * open with nothing left to put in it — one stray tap from a score nobody
+ * could explain.
+ *
+ * So each group finishes its own round. Their card closes, the last group
+ * to finish closes the round behind it, and nothing on the boards moves:
+ * the boards have been reading these cards live all afternoon. Finishing
+ * is about the card, not the scoring.
+ *
+ * It is reversible on purpose. The button is pressed on the 18th green by
+ * somebody holding a phone in one hand and a putter in the other. */
+
+/** The groups that finish a round. Pairings give real fourballs; with none
+ *  set yet the whole field is on one card, so it finishes as one — three
+ *  empty tee slots are not three groups. */
+export function finishGroups(T, rid) {
+  const real = groups(T, rid).filter(g => (g.members || []).length);
+  if (real.length) return real;
+  return [{ id: 'all', label: 'The field', pairs: [], members: golfers(T).map(p => p.id), time: null }];
+}
+
+/** How much of a group is in through 18 — `{ in, of }`. A card is in when
+ *  the 18th was SAVED for that golfer; a number typed and not saved is not
+ *  a round anyone has finished. */
+export function groupThru18(T, rid, g) {
+  const ids = (g && g.members || []).filter(id => person(T, id));
+  let n = 0;
+  for (const id of ids) { const c = card(T, rid, id); if (c && c.by && c.by[17]) n++; }
+  return { in: n, of: ids.length };
+}
+
+/** When this group finished, and who closed it — or null while it is open. */
+export function groupDone(T, rid, gid) {
+  const cf = roundCfg(T, rid);
+  const d = cf && cf.done;
+  return d && typeof d === 'object' && d[gid] ? d[gid] : null;
+}
+
+/** The groups still out on the course. Empty means the round is over. */
+export function groupsOut(T, rid) {
+  return finishGroups(T, rid).filter(g => !groupDone(T, rid, g.id));
+}
+
 /* The practice day is its own thing: it feeds nothing, and every board that
    counts walks countingRounds(), which leaves it out. This is the one place
    it is added up, so Tuesday can have a winner of its own. */

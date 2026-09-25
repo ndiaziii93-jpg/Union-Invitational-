@@ -1319,6 +1319,36 @@ function curGroupId(rid) {
   return (gs[i] || {}).id || 'g0';
 }
 
+/** Whether the group being scored has finished, and so takes no more writes.
+ *  Every control is hidden once it has, but a stale page can still be tapped,
+ *  so the write is refused as well as the button removed. */
+function cardClosed(rid) {
+  const g = finishGroupNow(rid);
+  return !!(g && E.groupDone(T, rid, g.id));
+}
+
+/** The same question about one golfer, which is the one that actually
+ *  protects the card. Asking it of the screen alone was not enough: the
+ *  screen can be on Group 2 while a stale control in the page still carries
+ *  a Group 1 name, and Group 1 has gone to the bar. A finished card is
+ *  finished no matter which group is being looked at. */
+function closedFor(rid, pid) {
+  const g = E.finishGroups(T, rid).find(x => (x.members || []).includes(pid));
+  return !!(g && E.groupDone(T, rid, g.id));
+}
+
+/** The group the entry screen is standing on, as the thing that finishes a
+ *  round. With no pairings made there are no real groups, so the whole field
+ *  is one card and finishes once — three empty tee slots are not three
+ *  groups to walk off. */
+function finishGroupNow(rid) {
+  const gs = E.groups(T, rid);
+  const i = Math.min(UI.entryTee === 'all' ? 0 : +UI.entryTee || 0, Math.max(gs.length - 1, 0));
+  const here = gs[i] || {};
+  const id = (here.members || []).length ? here.id : 'all';
+  return E.finishGroups(T, rid).find(x => x.id === id) || null;
+}
+
 function draftFor(rid, h) {
   if (!UI.draft || UI.draft.rid !== rid || UI.draft.hole !== h) {
     UI.draft = { rid, hole: h, strokes: {}, bbb: {}, gid: curGroupId(rid) };
@@ -1369,6 +1399,7 @@ function commitDraft(role) {
   if (!d) return;
   const h = d.hole;
   for (const [pid, v] of Object.entries(d.strokes)) {
+    if (closedFor(d.rid, pid)) continue;   // that group has finished; the card is shut
     store.writeCard(d.rid, pid, c => {
       c.raw[h] = v;
       if (v == null) { delete c.by[h]; delete c.at[h]; }
@@ -1590,7 +1621,7 @@ function scrEntry() {
   const course = E.courseOf(T, rid);
   const hole = course.holes[h];
   const cap = E.capFor(hole.par, T.config.capOver);
-  const editable = open && canEdit();
+  const barOn = open && canEdit();
   const dirty = draftDirty() && UI.draft.rid === rid && UI.draft.hole === h;
   const ed = canEdit();
 
@@ -1606,6 +1637,13 @@ function scrEntry() {
   const saved = holeSavedBy(rid, h, slotPlayers);
   const usingAll = slotPlayers.length === 0;
   const list = usingAll ? E.golfers(T) : E.golfers(T).filter(g => slotPlayers.includes(g.id));
+
+  /* A group that has walked off 18 and finished. Its card is read-only from
+     then on — the round is still open for whoever is behind them. */
+  const fg = finishGroupNow(rid);
+  const fin = fg ? E.groupDone(T, rid, fg.id) : null;
+  const thru = fg ? E.groupThru18(T, rid, fg) : { in: 0, of: 0 };
+  const editable = barOn && !fin;
 
   let gate = '';
   if (!canEdit()) {
@@ -1628,6 +1666,16 @@ function scrEntry() {
 
   const marksHere = (usingAll ? E.golfers(T) : E.golfers(T).filter(g => slotPlayers.includes(g.id)))
     .reduce((a, g) => a + E.holeMarks(T, rid, g.id, h).length, 0);
+  /* The bar stays up after a group finishes — it is the one place that says
+     so, and the only way back if somebody pressed it a hole early. */
+  const finBar = barOn && fin ? `<div class="savebar done">
+    <div class="sv"><b>${esc(fg.label)} has finished</b><span>Closed${
+      D.PINS_ENABLED && S.ROLES[fin.by] ? ' by ' + esc(S.ROLES[fin.by].label) : ''}${
+      fin.at ? ' at ' + esc(E.to12(new Date(fin.at + D.TZ_OFFSET_MIN * 60000).toISOString().slice(11, 16))) : ''
+      }. The card is read-only until it is reopened.</span></div>
+    <button class="btn ghost" data-act="reopenGroup">Reopen this group</button>
+  </div>` : '';
+
   const saveBar = editable ? `<div class="savebar${dirty ? ' dirty' : ''}">
     <div class="sv">${dirty
       ? `<b>Hole ${hole.n} is not saved</b><span>${Object.keys(UI.draft.strokes).length} entr${Object.keys(UI.draft.strokes).length === 1 ? 'y' : 'ies'} waiting. ${D.PINS_ENABLED ? 'Saving asks for your PIN.' : 'Nothing counts until you save.'}</span>`
@@ -1639,8 +1687,9 @@ function scrEntry() {
     <button class="btn ghost markbtn${marksHere ? ' has' : ''}" data-act="openMarks"
       aria-label="What happened on hole ${hole.n} — three putts, out of bounds, and the rest">What happened?${
       marksHere ? ` <span class="ct num">${marksHere}</span>` : ''}</button>
-    <button class="btn danger" data-act="lockRound" data-a="${rid}">Lock &amp; conclude</button>
-  </div>` : '';
+    ${/* A round ends group by group, not all at once. See E.finishGroups(). */ ''}
+    ${thru.in ? `<button class="btn finishbtn" data-act="askFinish">Finish round</button>` : ''}
+  </div>` : finBar;
 
   /* Spent is spent. The chip goes green, says Used, and takes no further
      taps from anybody — which is the whole point, since it was a second tap
@@ -2122,7 +2171,10 @@ function scrSetup() {
   <h3 class="sub">Rounds</h3>
   <div class="panel">${D.ROUNDS.map(r => {
     const c = E.roundCfg(T, r.id); const d = E.dayOf(r.dayIdx);
-    return `<div class="kv"><span class="k">${esc(r.short)} — ${esc(d.dow)} ${esc(d.date)}<small>${esc(E.courseOf(T, r.id).name)} · ${esc(c.state)}</small></span>
+    const out = c.state === 'open' ? E.groupsOut(T, r.id).length : 0;
+    const all = c.state === 'open' ? E.finishGroups(T, r.id).length : 0;
+    return `<div class="kv"><span class="k">${esc(r.short)} — ${esc(d.dow)} ${esc(d.date)}<small>${esc(E.courseOf(T, r.id).name)} · ${esc(c.state)}${
+      all ? ' · ' + (all - out) + ' of ' + all + ' group' + (all === 1 ? '' : 's') + ' finished' : ''}</small></span>
       <span class="chiprow">${c.state === 'locked'
         ? `<button class="chip" data-act="unlockRound" data-a="${r.id}">Reopen</button>`
         : c.state === 'open'
@@ -3197,8 +3249,68 @@ function holeModalHtml() {
   </div></div>`;
 }
 
+/* ---------------- finishing a round ----------------
+ *
+ * The crest, glowing, and one question. It is the only window in the book
+ * that celebrates anything, and it earns it: a group has just walked off
+ * the 18th green.
+ *
+ * It is raised by SAVING the 18th hole, never by arriving at it — a ref
+ * scrolling back to check a number should not be asked whether the round
+ * is over. Dismissing it does not nag: the bar keeps a plain Finish round
+ * button, and the window returns only if an 18th-hole score is saved
+ * again. */
+
+const COUNTWORD = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight'];
+const countWord = n => COUNTWORD[n] || String(n);
+
+/** The window, ready to show — or null when there is nothing to finish. */
+function finishAsk(rid) {
+  const g = finishGroupNow(rid);
+  if (!g || E.groupDone(T, rid, g.id)) return null;
+  const t = E.groupThru18(T, rid, g);
+  if (!t.in) return null;
+  const r = E.roundDef(rid);
+  const round = r.short === 'Practice' ? 'the practice round' : 'Round ' + r.short.slice(1);
+  const all = t.in >= t.of;
+  const cards = t.of === 1 ? 'card' : 'cards';
+  const last = E.groupsOut(T, rid).length <= 1;
+  return { kind: 'finish', rid, gid: g.id, label: g.label, last,
+    eyebrow: [g.label, E.courseOf(T, rid).name, round].join(' \u00B7 '),
+    note: (all
+      ? 'All ' + countWord(t.of) + ' ' + cards + ' are in through 18.'
+      : countWord(t.in).replace(/^./, c => c.toUpperCase()) + ' of the ' + countWord(t.of)
+        + ' ' + cards + (t.in === 1 ? ' is' : ' are') + ' in through 18.')
+      + ' Finishing closes this group\u2019s card \u2014 nothing more goes in unless it is reopened.',
+    lastNote: 'Every other group has finished, so this concludes ' + round + ' as well.' };
+}
+
+/** Raise it after an 18th hole is saved. */
+function finishNotice(rid) {
+  if (UI.modal) return;                      // never over a PIN box
+  const ask = finishAsk(rid);
+  if (ask) { UI.modal = ask; }
+}
+
+function finishModalHtml() {
+  const m = UI.modal;
+  return `<div class="scrim" data-act="modalScrim"><div class="modal finishmodal"
+    role="alertdialog" aria-modal="true" aria-label="Finish ${esc(m.label)}\u2019s round">
+    <span class="fm-eye">${esc(m.eyebrow)}</span>
+    <div class="fm-crest">${IMG.crest
+      ? `<span class="halo"></span><img src="${IMG.crest}" alt="">` : ''}</div>
+    <h3 class="fm-q">Finish Round?</h3>
+    <p class="fm-sub">${esc(m.note)}</p>
+    ${m.last ? `<p class="fm-last">${esc(m.lastNote)}</p>` : ''}
+    <div class="acts">
+      <button class="btn" data-act="finishGroup">Finish round</button>
+      <button class="btn ghost" data-act="modalCancel">Not yet</button></div>
+  </div></div>`;
+}
+
 function modalHtml() {
-  return UI.modal.kind === 'venue' ? venueModalHtml()
+  return UI.modal.kind === 'finish' ? finishModalHtml()
+       : UI.modal.kind === 'venue' ? venueModalHtml()
        : UI.modal.kind === 'marks' ? markSheet(UI.modal.rid, UI.modal.hole, UI.modal.who)
        : UI.modal.kind === 'hole' ? holeModalHtml()
        : UI.modal.kind === 'setup' ? setupModalHtml()
@@ -3490,6 +3602,56 @@ function onClick(e) {
         });
       return;
     }
+    case 'askFinish': {
+      const ask = finishAsk(rid);
+      if (!ask) return;
+      UI.modal = ask;
+      render();
+      return;
+    }
+    case 'finishGroup': {
+      const m = UI.modal;
+      if (!m || m.kind !== 'finish') return;
+      const { rid: frid, gid, label, last } = m;
+      UI.modal = null;
+      askPin('Finish ' + label + '\u2019s round',
+        'Enter your PIN to close the card. Nothing more goes in for this group unless it is reopened.',
+        'Finish round', role => {
+          store.writeConfig(c => {
+            const cf = c.rounds[frid];
+            if (!cf) return;
+            if (!cf.done || typeof cf.done !== 'object') cf.done = {};
+            cf.done[gid] = { at: Date.now(), by: role };
+            /* The last group off the course closes the round behind it.
+               Recomputed from what was just written, not from `last` — the
+               window may have been on screen while another group finished. */
+            if (!E.groupsOut({ ...T, config: c }, frid).length) {
+              cf.state = 'locked'; cf.lockedBy = role; cf.lockedAt = Date.now();
+            }
+          });
+          UI.toast = last ? label + ' is in — that is the round.' : label + ' has finished.';
+        });
+      return;
+    }
+    case 'reopenGroup': {
+      const g = finishGroupNow(rid);
+      if (!g || !E.groupDone(T, rid, g.id)) return;
+      const wasLocked = E.roundCfg(T, rid).state === 'locked';
+      askPin('Reopen ' + g.label + '\u2019s card',
+        wasLocked
+          ? 'The round was concluded when this group finished, so the master PIN reopens it.'
+          : 'Enter your PIN. The card takes scores again until the group finishes a second time.',
+        'Reopen', role => {
+          if (wasLocked && role !== 'master') { UI.toast = 'Only the master PIN reopens a concluded round.'; return; }
+          store.writeConfig(c => {
+            const cf = c.rounds[rid];
+            if (!cf || !cf.done) return;
+            delete cf.done[g.id];
+            if (cf.state === 'locked') { cf.state = 'open'; cf.lockedBy = null; cf.lockedAt = null; }
+          });
+        });
+      return;
+    }
     case 'lockRound':
       if (draftDirty()) { guardDraft(() => {}); return; }
       askPin('Lock and conclude ' + E.roundDef(a).short, 'Re-enter your PIN to close the card. Nothing more can be entered unless the master reviewer reopens it.', 'Lock round',
@@ -3497,11 +3659,16 @@ function onClick(e) {
       return;
     case 'unlockRound':
       askPin('Reopen ' + E.roundDef(a).short, 'The master PIN is required to reopen a concluded round.', 'Reopen',
-        role => { if (role !== 'master') { UI.toast = 'Only the master PIN reopens a round.'; return; } setRound(a, { state: 'open', lockedBy: null, lockedAt: null }); });
+        role => { if (role !== 'master') { UI.toast = 'Only the master PIN reopens a round.'; return; }
+          /* Every group goes back out with it. Reopening the round and
+             leaving the groups finished would hand back a card that still
+             refused every score. */
+          setRound(a, { state: 'open', lockedBy: null, lockedAt: null, done: {} }); });
       return;
 
     case 'bump': {
       if (!canEdit() || E.roundCfg(T, rid).state !== 'open') return;
+      if (cardClosed(rid) || closedFor(rid, a)) return;   // that card has finished; it is read-only
       const h = UI.entryHole;
       const hole = E.courseOf(T, rid).holes[h];
       const cap = E.capFor(hole.par, T.config.capOver);
@@ -3517,6 +3684,7 @@ function onClick(e) {
     }
     case 'clearHole': {
       if (!canEdit() || E.roundCfg(T, rid).state !== 'open') return;
+      if (cardClosed(rid) || closedFor(rid, a)) return;
       draftFor(rid, UI.entryHole).strokes[a] = null;
       break;
     }
@@ -3590,7 +3758,7 @@ function onClick(e) {
     }
 
     case 'saveHole': {
-      if (!draftDirty()) return;
+      if (!draftDirty() || cardClosed(rid)) return;
       const h = UI.draft.hole;
       askPin('Save hole ' + (h + 1), 'Enter your PIN to record these scores. Only saved holes reach the leaderboards.',
         'Save hole', role => {
@@ -3600,12 +3768,17 @@ function onClick(e) {
              looking. Being thrown back to the masthead after every hole is
              eighteen scrolls a round, for nothing. */
           if (h < 17) { UI.entryHole = h + 1; holeNotice(rid, h + 1); }
+          /* The 18th is in. Ask whether that was the round — every time it
+             is saved, so a dismissed window comes back if a score on it is
+             corrected, and never on any other hole. */
+          else finishNotice(rid);
           render();
         });
       return;
     }
     case 'tgl': {
       if (!canEdit() || E.roundCfg(T, rid).state !== 'open') return;
+      if (cardClosed(rid) || closedFor(rid, a)) return;
       /* A mulligan is spent, not toggled. It was written as `!c[b]`, so a
          second tap handed it straight back and the chip went from "Used" to
          "1 left" — a mulligan a hole, all the way up the front nine. One
@@ -3737,7 +3910,7 @@ function onChange(e) {
     });
     render();
   } else if (act === 'setBbb') {
-    if (!editable) return;
+    if (!editable || cardClosed(rid)) return;   // the group has finished; so have its points
     draftFor(rid, UI.entryHole).bbb[a] = el.value || null;
     render();
   } else if (act === 'setRoundField') {

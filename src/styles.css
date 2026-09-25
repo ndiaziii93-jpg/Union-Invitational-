@@ -456,6 +456,40 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 .modal .err{color:var(--flag);font-size:14px;min-height:19px;margin:0}
 .modal .acts{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
 
+/* ---- the finish window ----
+   The crest, glowing, and one question. Ported straight from the rendition
+   that was approved: a gold wash behind the crest breathing on a 2.6s cycle,
+   the crest lifting 3.5% with it. It is the only window in the book that
+   celebrates anything.
+
+   prefers-reduced-motion stops all of it: the halo simply sits there. A
+   pulsing window is exactly the thing that setting exists to turn off. */
+.finishmodal{border-top-color:var(--gold);text-align:center;justify-items:center;gap:0;
+  padding:30px 26px 22px;max-width:380px}
+.finishmodal .fm-eye{font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--turf);font-weight:700}
+.fm-crest{position:relative;width:150px;max-width:54vw;aspect-ratio:1;margin:16px auto 6px;
+  display:grid;place-items:center}
+.fm-crest img{position:relative;z-index:2;width:100%;height:auto;display:block;
+  animation:finishLift 2600ms ease-in-out infinite}
+.fm-crest .halo{position:absolute;inset:-26%;border-radius:50%;z-index:1;
+  background:radial-gradient(circle,rgba(140,107,47,.38) 0%,rgba(140,107,47,.14) 42%,transparent 68%);
+  animation:finishBreath 2600ms ease-in-out infinite}
+@keyframes finishBreath{0%,100%{transform:scale(.92);opacity:.55}50%{transform:scale(1.06);opacity:1}}
+@keyframes finishLift{0%,100%{transform:scale(1)}50%{transform:scale(1.035)}}
+.finishmodal .fm-q{font-size:29px;margin:6px 0 0;letter-spacing:.01em;color:var(--ink)}
+.finishmodal .fm-sub{margin:7px 0 0;font-size:14.5px}
+.finishmodal .fm-last{margin:9px 0 0;font-size:14px;color:var(--gold);font-weight:600}
+.finishmodal .acts{justify-content:center;margin-top:20px;width:100%}
+@media (prefers-reduced-motion:reduce){
+  .fm-crest img{animation:none}
+  .fm-crest .halo{animation:none;opacity:.8;transform:none}
+}
+
+/* The bar's own way in, and the bar after a group has walked off. */
+.finishbtn{background:var(--gold);border-color:var(--gold);color:var(--paper);font-weight:600}
+.savebar.done{border-left:3px solid var(--gold);background:var(--sunk)}
+
 /* ---- status foot ---- */
 .statusbar{margin-top:52px;border-top:1px solid var(--rule);padding:14px 0 0;display:flex;gap:16px;
   align-items:center;font-size:14px;color:var(--turf);flex-wrap:wrap}
