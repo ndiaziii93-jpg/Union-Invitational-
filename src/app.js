@@ -396,14 +396,15 @@ function boardBbb() {
 function boardPrizes() {
   const nm = pid => (E.person(T, pid) || {}).display || '—';
   return `<h2 class="head">Longest Drive &amp; Closest to the Pin</h2>
-  <p class="lede">One nominated hole each, per counting round. Nominate before play; record the mark as it stands.</p>
+  <p class="lede">One nominated hole each, per counting round. Nominate before play; record the mark as it
+  stands. Closest to the pin carries no distance — the flag in the green is the mark.</p>
   ${E.countingRounds(T).map(r => {
     const c = E.roundCfg(T, r.id); const d = E.dayOf(r.dayIdx);
     return `<h3 class="sub">${esc(r.short)} — ${esc(d.dow)} ${esc(d.date)} · ${esc(E.courseOf(T, r.id).name)}</h3>
     <div class="rows" style="margin-top:8px;max-width:620px">
       <div class="row"><span class="who">Closest to the pin<small>${c.ctpHole ? 'Hole ' + c.ctpHole : 'No hole nominated'}</small></span>
         <span class="n" style="min-width:120px;font-size:17px">${c.ctpWinner ? esc(nm(c.ctpWinner)) : '—'}</span>
-        <span class="n num" style="min-width:74px;color:var(--turf)">${esc(c.ctpDist || '')}</span></div>
+        <span class="n num" style="min-width:74px"></span></div>
       <div class="row"><span class="who">Longest drive<small>${c.ldHole ? 'Hole ' + c.ldHole : 'No hole nominated'}</small></span>
         <span class="n" style="min-width:120px;font-size:17px">${c.ldWinner ? esc(nm(c.ldWinner)) : '—'}</span>
         <span class="n num" style="min-width:74px;color:var(--turf)">${esc(c.ldDist || '')}</span></div>
@@ -460,7 +461,7 @@ function boardPractice() {
   <div class="rows" style="margin-top:8px;max-width:620px">
     <div class="row"><span class="who">Closest to the pin<small>${cfg.ctpHole ? 'Hole ' + cfg.ctpHole : 'No hole nominated'}</small></span>
       <span class="n" style="min-width:120px;font-size:17px">${cfg.ctpWinner ? esc(nm(cfg.ctpWinner)) : '—'}</span>
-      <span class="n num" style="min-width:74px;color:var(--turf)">${esc(cfg.ctpDist || '')}</span></div>
+      <span class="n num" style="min-width:74px"></span></div>
     <div class="row"><span class="who">Longest drive<small>${cfg.ldHole ? 'Hole ' + cfg.ldHole : 'No hole nominated'}</small></span>
       <span class="n" style="min-width:120px;font-size:17px">${cfg.ldWinner ? esc(nm(cfg.ldWinner)) : '—'}</span>
       <span class="n num" style="min-width:74px;color:var(--turf)">${esc(cfg.ldDist || '')}</span></div>
@@ -1856,11 +1857,16 @@ function scrEntry() {
               <option value="">Not chosen yet</option>
               ${course.holes.filter(x => x.par === 3).map(x => `<option value="${x.n}"${cfg.ctpHole === x.n ? ' selected' : ''}>Hole ${x.n}</option>`).join('')}
             </select></label>
-          <label>Closest — current mark
+          <label>Closest — who is in there now
             <select class="field" data-act="setRoundField" data-a="ctpWinner"${ed ? '' : ' disabled'}>${people(cfg.ctpWinner)}</select></label>
-          <label>Distance
-            <input class="field" type="text" value="${esc(cfg.ctpDist || '')}" placeholder="e.g. 2.4 m"
-              data-act="setRoundField" data-a="ctpDist"${ed ? '' : ' disabled'}></label>
+          ${/* No distance to type. A closest-to-the-pin flag goes in the
+                ground where the best ball finished, and the next player to
+                beat it moves the flag and puts their own name here — so the
+                measurement happens on the green, not in a text box, and
+                there is no number for the book and the flag to disagree
+                about. Longest drive keeps its distance: nothing is marking
+                the fairway. */ ''}
+          <p class="sublede" style="margin-top:-4px">The flag on the green is the mark. Beat it, move it, and put your name here.</p>
           <label>Longest Drive hole
             <select class="field${cfg.ldHole ? '' : ' unset'}" data-act="setRoundField" data-a="ldHole"${ed && !locked ? '' : ' disabled'}>
               <option value="">Not chosen yet</option>

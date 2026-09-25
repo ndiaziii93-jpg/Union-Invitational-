@@ -1930,7 +1930,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20260925-0917';
+const BUILD = '20260925-0929';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -3310,7 +3310,7 @@ function brief(T, now) {
     const c = roundCfg(T, r.id);
     const nm = id => (person(T, id) || {}).display || null;
     if (c.ctpWinner || c.ldWinner) {
-      L.push('- ' + r.short + ': closest ' + (nm(c.ctpWinner) || 'nobody') + ' ' + (c.ctpDist || '')
+      L.push('- ' + r.short + ': closest ' + (nm(c.ctpWinner) || 'nobody')
         + '; longest ' + (nm(c.ldWinner) || 'nobody') + ' ' + (c.ldDist || ''));
     }
   }
@@ -3404,7 +3404,9 @@ function roundBrief(T, rid) {
   }
   const c = roundCfg(T, rid);
   const nm = id => (person(T, id) || {}).display || null;
-  if (c.ctpWinner) L.push('Closest to the pin: ' + nm(c.ctpWinner) + ' ' + (c.ctpDist || ''));
+  /* No distance: the flag in the green is the mark, so there is nothing to
+     write down but the name. */
+  if (c.ctpWinner) L.push('Closest to the pin: ' + nm(c.ctpWinner));
   if (c.ldWinner) L.push('Longest drive: ' + nm(c.ldWinner) + ' ' + (c.ldDist || ''));
   return L.join('\n');
 }
@@ -3526,7 +3528,7 @@ function sideGames(T, rid) {
     c.raw.forEach((v, i) => { if (v != null && v > holes[i].par + T.config.capOver) capped2++; });
   }
   return {
-    ctp: cfg.ctpWinner ? { who: nm(cfg.ctpWinner), note: cfg.ctpDist || '', hole: cfg.ctpHole } : null,
+    ctp: cfg.ctpWinner ? { who: nm(cfg.ctpWinner), note: '', hole: cfg.ctpHole } : null,
     ld: cfg.ldWinner ? { who: nm(cfg.ldWinner), note: cfg.ldDist || '', hole: cfg.ldHole } : null,
     bbb: top ? { who: nm(top[0]), note: top[1] + ' points' } : null,
     mvp: mvp ? { who: mvp.name, note: mvp.totalStr + ' net' } : null,
@@ -4230,7 +4232,8 @@ function defaultConfig() {
         { time: null, players: [] },
       ],
       ctpHole: null, ldHole: null,
-      ctpWinner: null, ctpDist: '', ldWinner: null, ldDist: '',
+      // closest to the pin keeps no distance — a flag in the green is the mark
+      ctpWinner: null, ldWinner: null, ldDist: '',
       lockedBy: null, lockedAt: null, openedBy: null,
       // which groups have walked off 18, keyed by group id
       done: {},
@@ -5520,14 +5523,15 @@ function boardBbb() {
 function boardPrizes() {
   const nm = pid => (E.person(T, pid) || {}).display || '—';
   return `<h2 class="head">Longest Drive &amp; Closest to the Pin</h2>
-  <p class="lede">One nominated hole each, per counting round. Nominate before play; record the mark as it stands.</p>
+  <p class="lede">One nominated hole each, per counting round. Nominate before play; record the mark as it
+  stands. Closest to the pin carries no distance — the flag in the green is the mark.</p>
   ${E.countingRounds(T).map(r => {
     const c = E.roundCfg(T, r.id); const d = E.dayOf(r.dayIdx);
     return `<h3 class="sub">${esc(r.short)} — ${esc(d.dow)} ${esc(d.date)} · ${esc(E.courseOf(T, r.id).name)}</h3>
     <div class="rows" style="margin-top:8px;max-width:620px">
       <div class="row"><span class="who">Closest to the pin<small>${c.ctpHole ? 'Hole ' + c.ctpHole : 'No hole nominated'}</small></span>
         <span class="n" style="min-width:120px;font-size:17px">${c.ctpWinner ? esc(nm(c.ctpWinner)) : '—'}</span>
-        <span class="n num" style="min-width:74px;color:var(--turf)">${esc(c.ctpDist || '')}</span></div>
+        <span class="n num" style="min-width:74px"></span></div>
       <div class="row"><span class="who">Longest drive<small>${c.ldHole ? 'Hole ' + c.ldHole : 'No hole nominated'}</small></span>
         <span class="n" style="min-width:120px;font-size:17px">${c.ldWinner ? esc(nm(c.ldWinner)) : '—'}</span>
         <span class="n num" style="min-width:74px;color:var(--turf)">${esc(c.ldDist || '')}</span></div>
@@ -5584,7 +5588,7 @@ function boardPractice() {
   <div class="rows" style="margin-top:8px;max-width:620px">
     <div class="row"><span class="who">Closest to the pin<small>${cfg.ctpHole ? 'Hole ' + cfg.ctpHole : 'No hole nominated'}</small></span>
       <span class="n" style="min-width:120px;font-size:17px">${cfg.ctpWinner ? esc(nm(cfg.ctpWinner)) : '—'}</span>
-      <span class="n num" style="min-width:74px;color:var(--turf)">${esc(cfg.ctpDist || '')}</span></div>
+      <span class="n num" style="min-width:74px"></span></div>
     <div class="row"><span class="who">Longest drive<small>${cfg.ldHole ? 'Hole ' + cfg.ldHole : 'No hole nominated'}</small></span>
       <span class="n" style="min-width:120px;font-size:17px">${cfg.ldWinner ? esc(nm(cfg.ldWinner)) : '—'}</span>
       <span class="n num" style="min-width:74px;color:var(--turf)">${esc(cfg.ldDist || '')}</span></div>
@@ -6980,11 +6984,16 @@ function scrEntry() {
               <option value="">Not chosen yet</option>
               ${course.holes.filter(x => x.par === 3).map(x => `<option value="${x.n}"${cfg.ctpHole === x.n ? ' selected' : ''}>Hole ${x.n}</option>`).join('')}
             </select></label>
-          <label>Closest — current mark
+          <label>Closest — who is in there now
             <select class="field" data-act="setRoundField" data-a="ctpWinner"${ed ? '' : ' disabled'}>${people(cfg.ctpWinner)}</select></label>
-          <label>Distance
-            <input class="field" type="text" value="${esc(cfg.ctpDist || '')}" placeholder="e.g. 2.4 m"
-              data-act="setRoundField" data-a="ctpDist"${ed ? '' : ' disabled'}></label>
+          ${/* No distance to type. A closest-to-the-pin flag goes in the
+                ground where the best ball finished, and the next player to
+                beat it moves the flag and puts their own name here — so the
+                measurement happens on the green, not in a text box, and
+                there is no number for the book and the flag to disagree
+                about. Longest drive keeps its distance: nothing is marking
+                the fairway. */ ''}
+          <p class="sublede" style="margin-top:-4px">The flag on the green is the mark. Beat it, move it, and put your name here.</p>
           <label>Longest Drive hole
             <select class="field${cfg.ldHole ? '' : ' unset'}" data-act="setRoundField" data-a="ldHole"${ed && !locked ? '' : ' disabled'}>
               <option value="">Not chosen yet</option>

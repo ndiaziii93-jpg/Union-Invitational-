@@ -47,7 +47,8 @@ export function defaultConfig() {
         { time: null, players: [] },
       ],
       ctpHole: null, ldHole: null,
-      ctpWinner: null, ctpDist: '', ldWinner: null, ldDist: '',
+      // closest to the pin keeps no distance — a flag in the green is the mark
+      ctpWinner: null, ldWinner: null, ldDist: '',
       lockedBy: null, lockedAt: null, openedBy: null,
       // which groups have walked off 18, keyed by group id
       done: {},

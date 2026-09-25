@@ -44,6 +44,20 @@ await p.locator('[data-act="openRound"]').first().click(); await p.waitForTimeou
 ok('the card is open', await p.locator('[data-act="saveHole"]').count(), 1);
 ok('and a scorer can still move a hole', await pick('ctpHole').isDisabled(), false);
 
+/* Closest to the pin is settled on the green, by a flag in the ground that
+   the next man to beat it picks up and moves. A distance box would be a
+   second, slower record of the same thing, free to disagree with the flag —
+   so there isn't one. Longest drive keeps its distance: nothing out on the
+   fairway is marking that. */
+ok('there is nowhere to type a closest-to-the-pin distance',
+  await p.locator('[data-act="setRoundField"][data-a="ctpDist"]').count(), 0);
+ok('and the screen says what the mark is instead',
+  /flag/i.test(await p.locator('[data-reveal="pins"]').innerText()), true);
+ok('longest drive still takes one',
+  await p.locator('[data-act="setRoundField"][data-a="ldDist"]').count(), 1);
+ok('and the only distance box on the screen is that one',
+  (await p.locator('.side-g label').allInnerTexts()).filter(t => /distance/i.test(t)).length, 1);
+
 console.log('\nBingo Bango Bongo stays inside the group');
 const g1 = await names();
 const inGroup1 = await p.locator('.prow .pwho .nm').allInnerTexts();

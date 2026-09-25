@@ -598,7 +598,7 @@ export function brief(T, now) {
     const c = roundCfg(T, r.id);
     const nm = id => (person(T, id) || {}).display || null;
     if (c.ctpWinner || c.ldWinner) {
-      L.push('- ' + r.short + ': closest ' + (nm(c.ctpWinner) || 'nobody') + ' ' + (c.ctpDist || '')
+      L.push('- ' + r.short + ': closest ' + (nm(c.ctpWinner) || 'nobody')
         + '; longest ' + (nm(c.ldWinner) || 'nobody') + ' ' + (c.ldDist || ''));
     }
   }
@@ -692,7 +692,9 @@ export function roundBrief(T, rid) {
   }
   const c = roundCfg(T, rid);
   const nm = id => (person(T, id) || {}).display || null;
-  if (c.ctpWinner) L.push('Closest to the pin: ' + nm(c.ctpWinner) + ' ' + (c.ctpDist || ''));
+  /* No distance: the flag in the green is the mark, so there is nothing to
+     write down but the name. */
+  if (c.ctpWinner) L.push('Closest to the pin: ' + nm(c.ctpWinner));
   if (c.ldWinner) L.push('Longest drive: ' + nm(c.ldWinner) + ' ' + (c.ldDist || ''));
   return L.join('\n');
 }
@@ -814,7 +816,7 @@ export function sideGames(T, rid) {
     c.raw.forEach((v, i) => { if (v != null && v > holes[i].par + T.config.capOver) capped2++; });
   }
   return {
-    ctp: cfg.ctpWinner ? { who: nm(cfg.ctpWinner), note: cfg.ctpDist || '', hole: cfg.ctpHole } : null,
+    ctp: cfg.ctpWinner ? { who: nm(cfg.ctpWinner), note: '', hole: cfg.ctpHole } : null,
     ld: cfg.ldWinner ? { who: nm(cfg.ldWinner), note: cfg.ldDist || '', hole: cfg.ldHole } : null,
     bbb: top ? { who: nm(top[0]), note: top[1] + ' points' } : null,
     mvp: mvp ? { who: mvp.name, note: mvp.totalStr + ' net' } : null,
