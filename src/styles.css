@@ -456,6 +456,13 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 .modal .err{color:var(--flag);font-size:14px;min-height:19px;margin:0}
 .modal .acts{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
 
+/* ---- the three that get forgotten ----
+   Gold-topped rather than red: nothing has gone wrong, the hole is saved,
+   and a red rule over a saved hole reads as a refusal. */
+.bbbmodal{border-top-color:var(--gold)}
+.bbbmodal .hm-eye{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--turf)}
+.bbbmodal h3{color:var(--green)}
+
 /* ---- the finish window ----
    The crest, glowing, and one question. Ported straight from the rendition
    that was approved: a gold wash behind the crest breathing on a 2.6s cycle,

@@ -1835,7 +1835,7 @@ function scrEntry() {
   <div class="entrygrid">
     <div>${rows || `<p class="empty">No golfers in this group.</p>`}</div>
     <div>
-      <div class="side-b">
+      <div class="side-b" data-reveal="bbb">
         <h3>Bingo Bango Bongo — hole ${hole.n}</h3>
         <p class="sublede">First on, closest once all on, first in.</p>
         <div class="fieldset">
@@ -2908,11 +2908,19 @@ function restoreFocus(f) {
 let renderPending = false;
 let pinShown = null;     // the point the site plan was last scrolled to
 let zoomShown = 1;       // and how far in it was when that happened
+/* A select that has just fired `change`. Its wheel is SHUT — that is what
+   the event means — so it is no longer in use, and holding the redraw back
+   for it is the bug this guard was written to avoid, in reverse: pick a name
+   for Bingo and the save bar never notices, so Save hole stays greyed out
+   and the first tap on it does nothing at all. Found when the Bingo Bango
+   Bongo notice started sending scorers back to those three boxes. */
+let wheelDone = null;
 function inUse() {
   if (pinch) return true;              // never redraw under a moving finger
   const el = document.activeElement;
   if (!el || !document.getElementById('app')) return false;
   if (!document.getElementById('app').contains(el)) return false;
+  if (el === wheelDone) return false;  // finished choosing: safe to rebuild
   return el.tagName === 'SELECT';
 }
 function flushRender() {
@@ -2936,6 +2944,7 @@ function render() {
 function paint() {
   if (inUse()) { renderPending = true; return; }
   renderPending = false;
+  wheelDone = null;       // this rebuild destroys it; the next one starts clean
   const app = document.getElementById('app');
   const focused = captureFocus();
   /* Every redraw replaces the whole tree, which puts the scroll back to the
@@ -3314,8 +3323,70 @@ function finishModalHtml() {
   </div></div>`;
 }
 
+/* ---------------- the three that get forgotten ----------------
+ *
+ * Bingo Bango Bongo is three points a hole and the only thing on the card
+ * that cannot be reconstructed afterwards. A stroke lives on the scorecard
+ * in somebody's pocket; who was first on the green at the 7th is gone the
+ * moment the group walks to the 8th tee, and every ref has found that out
+ * the same way — by being asked at dinner.
+ *
+ * So saving a hole with any of the three unmarked says so, there and then,
+ * while the group is still standing on the green. It is raised by the SAVE,
+ * which is the moment the hole is being left; walking back through the holes
+ * to check a number never asks. */
+
+const BBBNAME = { bingo: 'Bingo', bango: 'Bango', bongo: 'Bongo' };
+
+/** Which of the three this group has not put a name to on this hole. */
+function bbbMissing(rid, h, gid) {
+  return E.BBB_SLOTS.filter(k => !bbbOf(rid, h, k, gid));
+}
+
+/** Raise it after a hole is saved, if anything is still blank.
+ *
+ *  `next` is whatever the save would have put up on its own — the word about
+ *  a nominated hole, or the crest on the 18th. This window goes in front of
+ *  it and hands over when it closes, because both are worth saying and only
+ *  one of them is about to be forgotten. */
+function bbbNotice(rid, h, gid, next) {
+  if (UI.modal) return false;
+  const missing = bbbMissing(rid, h, gid);
+  if (!missing.length) return false;
+  UI.modal = { kind: 'bbbmiss', rid, hole: h, gid, missing, next: next || null };
+  return true;
+}
+
+/** Put up whatever a save had queued: the crest, or the nominated hole. */
+function raiseNext(n) {
+  if (!n) return;
+  if (n.what === 'finish') finishNotice(n.rid); else holeNotice(n.rid, n.h);
+}
+
+function bbbModalHtml() {
+  const m = UI.modal;
+  const names = m.missing.map(k => BBBNAME[k]);
+  const all = names.length === E.BBB_SLOTS.length;
+  const list = names.length > 1
+    ? names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1]
+    : names[0];
+  return `<div class="scrim" data-act="modalScrim"><div class="modal bbbmodal"
+    role="alertdialog" aria-modal="true" aria-label="Bingo Bango Bongo not marked on hole ${m.hole + 1}">
+    <span class="hm-eye">Hole ${m.hole + 1}</span>
+    <h3>${all ? 'No Bingo Bango Bongo on this hole' : esc(list) + ' not marked'}</h3>
+    <p>${all
+      ? 'The hole is saved, but none of the three has a name against it.'
+      : 'The hole is saved. ' + esc(list) + (names.length > 1 ? ' have' : ' has') + ' nobody against ' + (names.length > 1 ? 'them' : 'it') + '.'}
+      Nobody will remember who it was by the next green.</p>
+    <div class="acts">
+      <button class="btn ghost" data-act="modalCancel">Nothing to mark</button>
+      <button class="btn" data-act="bbbGo">Mark them now</button></div>
+  </div></div>`;
+}
+
 function modalHtml() {
   return UI.modal.kind === 'finish' ? finishModalHtml()
+       : UI.modal.kind === 'bbbmiss' ? bbbModalHtml()
        : UI.modal.kind === 'venue' ? venueModalHtml()
        : UI.modal.kind === 'marks' ? markSheet(UI.modal.rid, UI.modal.hole, UI.modal.who)
        : UI.modal.kind === 'hole' ? holeModalHtml()
@@ -3330,6 +3401,16 @@ function modalHtml() {
 function askPin(title, note, ok, onOk) {
   if (!D.PINS_ENABLED) { onOk('master'); render(); return; }
   UI.modal = { kind: 'pin', title, note, ok, onOk }; UI.modalErr = ''; render();
+}
+
+/** Shut whatever is up — and raise anything that was queued behind it.
+ *  The Bingo Bango Bongo alert on the 18th stands in front of the crest, and
+ *  the crest must not be lost to whichever way out the scorer happened to
+ *  take: the button, the scrim, or anything added later. */
+function closeModal() {
+  const m = UI.modal;
+  UI.modal = null; UI.modalErr = '';
+  if (m && m.kind === 'bbbmiss') raiseNext(m.next);
 }
 
 function submitPin() {
@@ -3608,6 +3689,15 @@ function onClick(e) {
         });
       return;
     }
+    case 'bbbGo': {
+      const m = UI.modal;
+      if (!m || m.kind !== 'bbbmiss') return;
+      UI.modal = null;
+      UI.entryHole = m.hole;          // back to the hole they just left
+      UI.reveal = 'bbb';              // and to the three boxes on it
+      render();
+      return;
+    }
     case 'askFinish': {
       const ask = finishAsk(rid);
       if (!ask) return;
@@ -3766,6 +3856,9 @@ function onClick(e) {
     case 'saveHole': {
       if (!draftDirty() || cardClosed(rid)) return;
       const h = UI.draft.hole;
+      /* whose three points these are — taken before the draft is cleared,
+         because committing it throws the group away with it */
+      const gid = (UI.draft && UI.draft.gid) || curGroupId(rid);
       askPin('Save hole ' + (h + 1), 'Enter your PIN to record these scores. Only saved holes reach the leaderboards.',
         'Save hole', role => {
           commitDraft(role);
@@ -3773,11 +3866,18 @@ function onClick(e) {
           /* Walk on to the next hole, but stay exactly where the scorer is
              looking. Being thrown back to the masthead after every hole is
              eighteen scrolls a round, for nothing. */
-          if (h < 17) { UI.entryHole = h + 1; holeNotice(rid, h + 1); }
-          /* The 18th is in. Ask whether that was the round — every time it
-             is saved, so a dismissed window comes back if a score on it is
+          if (h < 17) UI.entryHole = h + 1;
+          /* What the save has to say for itself: the word about a nominated
+             hole on the way in, or — on the 18th — the crest asking whether
+             that was the round. The crest is raised by every save of the
+             18th, so a window waved away comes back if a score on it is
              corrected, and never on any other hole. */
-          else finishNotice(rid);
+          const next = h < 17 ? { what: 'hole', rid, h: h + 1 } : { what: 'finish', rid };
+          /* Three points a hole that nobody can reconstruct afterwards. If
+             any of them is blank, that goes FIRST and the rest queues behind
+             it: by the time the word about the next hole has been read, the
+             group is walking and the 7th green is gone. */
+          if (!bbbNotice(rid, h, gid, next)) raiseNext(next);
           render();
         });
       return;
@@ -3865,14 +3965,17 @@ function onClick(e) {
       return;
 
     case 'modalOk': submitPin(); return;
-    case 'modalCancel': UI.modal = null; UI.modalErr = ''; break;
-    case 'modalScrim': if (e.target.classList.contains('scrim')) { UI.modal = null; UI.modalErr = ''; break; } return;
+    case 'modalCancel': closeModal(); break;
+    case 'modalScrim': if (e.target.classList.contains('scrim')) { closeModal(); break; } return;
     default: return;
   }
   render();
 }
 
 function onChange(e) {
+  /* The wheel is shut by the time this fires, so the redraw need not wait
+     for it. See inUse(). */
+  if (e.target && e.target.tagName === 'SELECT') wheelDone = e.target;
   const el = e.target.closest('[data-act]');
   if (!el) return;
   const { act, a, b } = el.dataset;
