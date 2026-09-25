@@ -3416,7 +3416,7 @@ function turnModalHtml() {
     <div class="tn-cards">
       ${s.squads ? `<div class="tn-card"><span class="l">Squads, per card</span>
         <span class="v num">${esc(E.fmtAvgToPar(s.squads.uk.avg))} &ndash; ${esc(E.fmtAvgToPar(s.squads.usa.avg))}</span>
-        <span class="s">UK (${s.squads.uk.n} card${s.squads.uk.n === 1 ? '' : 's'}) &middot; USA (${s.squads.usa.n} card${s.squads.usa.n === 1 ? '' : 's'}) thru ${E.TURN_HOLES}</span></div>` : ''}
+        <span class="s">UK ${s.squads.uk.n} &middot; USA ${s.squads.usa.n} cards in</span></div>` : ''}
       ${s.cup ? `<div class="tn-card"><span class="l">The cup</span>
         <span class="v num">${half(s.cup.uk)} &ndash; ${half(s.cup.usa)}</span>
         <span class="s">UK &middot; USA${s.cup.out ? ' &middot; ' + s.cup.out + ' still out' : ''}</span></div>` : ''}

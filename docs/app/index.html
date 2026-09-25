@@ -527,6 +527,42 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 .modal .err{color:var(--flag);font-size:14px;min-height:19px;margin:0}
 .modal .acts{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
 
+/* ---- the turn ----
+   A scoreboard, not a dialogue box: wider than the rest, and the field list
+   scrolls inside it rather than pushing the buttons off a phone. */
+.turnmodal{max-width:460px;border-top-color:var(--green);gap:0;padding:22px 22px 18px}
+.turnmodal .tn-eye{font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--turf);font-weight:700;display:block}
+.turnmodal .tn-q{font-size:24px;margin:6px 0 0;color:var(--ink)}
+.tn-pace{margin:6px 0 0;font-size:15px;font-weight:600}
+.tn-pace.good{color:var(--green)}
+.tn-pace.bad{color:var(--flag)}
+.tn-pace.first{color:var(--gold)}
+
+.tn-cards{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+.tn-card{border:1px solid var(--rule);background:var(--paper);border-radius:3px;
+  padding:9px 11px;min-width:0}
+.tn-card .l{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--turf)}
+.tn-card .v{display:block;font-size:18px;font-weight:700;line-height:1.2;margin-top:3px;
+  overflow-wrap:anywhere}
+.tn-card .s{display:block;font-size:13px;color:var(--turf);margin-top:1px}
+
+.tn-h{font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--turf);
+  font-weight:700;margin:18px 0 0;border-top:1px solid var(--rule);padding-top:10px}
+.tn-rows{margin-top:4px}
+.tn-row{display:flex;align-items:baseline;gap:10px;padding:7px 8px;border-bottom:1px solid var(--hair)}
+.tn-row:last-child{border-bottom:none}
+.tn-row .p{width:20px;color:var(--turf);font-size:13px;flex:0 0 auto}
+.tn-row .w{flex:1 1 auto;min-width:0;font-size:16px;font-weight:600;overflow-wrap:anywhere}
+.tn-row .w small{display:block;font-size:12px;font-weight:400;color:var(--turf)}
+.tn-row .w em{font-style:normal;font-size:12px;font-weight:400;color:var(--turf)}
+.tn-row .n{flex:0 0 auto;text-align:right;font-size:17px;font-weight:700}
+.tn-row .n small{display:block;font-size:11px;font-weight:400;color:var(--turf)}
+/* your own group, found without reading a name */
+.tn-row.me{background:var(--sunk);box-shadow:inset 3px 0 0 var(--green);border-radius:2px}
+.tn-field{max-height:34vh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.turnmodal .acts{justify-content:center;margin-top:16px}
+
 /* ---- the three that get forgotten ----
    Gold-topped rather than red: nothing has gone wrong, the hole is saved,
    and a red rule over a saved hole reads as a refusal. */
@@ -2004,7 +2040,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20260925-1029';
+const BUILD = '20260925-1046';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -2843,6 +2879,11 @@ function bandTotal(band) {
 }
 
 function fmtToPar(n) { return n === 0 ? 'E' : n > 0 ? '+' + n : '−' + Math.abs(n); }
+/** The same, for an average, which does not come out whole. */
+function fmtAvgToPar(n) {
+  const v = Math.round(n * 10) / 10;
+  return v === 0 ? 'E' : v > 0 ? '+' + v : '\u2212' + Math.abs(v);
+}
 function capFor(par, capOver) { return par + capOver; }
 function capped(raw, par, capOver) { return raw == null ? null : Math.min(raw, par + capOver); }
 
@@ -2944,6 +2985,7 @@ function groups(T, rid) {
       id: 'g' + n,
       label: 'Group ' + (n + 1),
       pairs: inGroup.map(p => pairName(T, p)),
+      pairIds: inGroup.map(p => p.id),
       members: inGroup.flatMap(p => (p.members || []).filter(id => person(T, id))),
       time: (tees[n] || {}).time || null,
     });
@@ -2973,7 +3015,8 @@ function groups(T, rid) {
 function finishGroups(T, rid) {
   const real = groups(T, rid).filter(g => (g.members || []).length);
   if (real.length) return real;
-  return [{ id: 'all', label: 'The field', pairs: [], members: golfers(T).map(p => p.id), time: null }];
+  return [{ id: 'all', label: 'The field', pairs: [], pairIds: [],
+    members: golfers(T).map(p => p.id), time: null }];
 }
 
 /** How much of a group is in through 18 — `{ in, of }`. A card is in when
@@ -2996,6 +3039,166 @@ function groupDone(T, rid, gid) {
 /** The groups still out on the course. Empty means the round is over. */
 function groupsOut(T, rid) {
   return finishGroups(T, rid).filter(g => !groupDone(T, rid, g.id));
+}
+
+/* ---------- the turn ----------
+ *
+ * Nine holes in is the only moment in a round when everybody is still out
+ * there and something is already decided. A group walks off the 9th, looks
+ * at a phone, and finds out that they are three better than the group in
+ * front at the same point — and the back nine is a different afternoon.
+ *
+ * It is written to the shared book rather than raised on the ref's phone, so
+ * it reaches every device on the course at once. A ref can read it out; a
+ * wife by the pool gets the same window.
+ */
+
+const TURN_HOLES = 9;
+
+/** One golfer's net to par through the first `upto` holes. */
+function toParThru(T, rid, pid, upto) {
+  const holes = courseOf(T, rid).holes;
+  let tp = 0, thru = 0;
+  for (let h = 0; h < upto && h < 18; h++) {
+    const n = playerNet(T, rid, pid, h);
+    if (n != null) { tp += n - holes[h].par; thru = h + 1; }
+  }
+  return { tp, thru };
+}
+
+/** A pair's better ball, to par, through the first `upto` holes. */
+function pairThru(T, rid, pair, upto) {
+  const holes = courseOf(T, rid).holes;
+  let tp = 0, thru = 0;
+  for (let h = 0; h < upto && h < 18; h++) {
+    const s = pairHole(T, rid, pair, h);
+    if (s != null) { tp += s - holes[h].par; thru = h + 1; }
+  }
+  return { tp, thru };
+}
+
+/** Whether every golfer in a group has the ninth SAVED. */
+function groupAtTurn(T, rid, g) {
+  const ids = (g && g.members || []).filter(id => person(T, id));
+  if (!ids.length) return false;
+  return ids.every(id => { const c = card(T, rid, id); return c && c.by && c.by[TURN_HOLES - 1]; });
+}
+
+/** When a group made the turn, as the shared book has it — or null. */
+function turnAt(T, rid, gid) {
+  const cf = roundCfg(T, rid);
+  const t = cf && cf.turn;
+  return t && typeof t === 'object' && t[gid] ? t[gid] : null;
+}
+
+/** Every group's better-ball standing at the turn, and who has got there. */
+function turnGroups(T, rid) {
+  return finishGroups(T, rid).map(g => {
+    const prs = (g.pairIds || []).map(id => (T.config.pairs || []).find(x => x.id === id)).filter(Boolean);
+    let tp = 0, thru = 0, any = false;
+    for (const pr of prs) {
+      const r = pairThru(T, rid, pr, TURN_HOLES);
+      if (r.thru > 0) { tp += r.tp; thru = Math.max(thru, r.thru); any = true; }
+    }
+    if (!prs.length) {                       // no pairings: the field as one
+      for (const id of g.members) {
+        const r = toParThru(T, rid, id, TURN_HOLES);
+        if (r.thru > 0) { tp += r.tp; thru = Math.max(thru, r.thru); any = true; }
+      }
+    }
+    return { id: g.id, label: g.label, tp, thru, started: any,
+      turned: !!turnAt(T, rid, g.id) || groupAtTurn(T, rid, g) };
+  });
+}
+
+/** The cup AS IT STANDS, which at the turn is the only reading worth having:
+ *  settled matches, plus whoever is up in the ones still on the course. A
+ *  board showing 0–0 all afternoon because nothing has finished is not a
+ *  score, it is a technicality. */
+function cupNow(cup) {
+  let uk = cup.ukTotal, usa = cup.usaTotal, out = 0;
+  for (const s of cup.sessions) for (const m of s.matches) {
+    if (m.done || !m.thru) continue;
+    out++;
+    if (m.up > 0) uk += 1; else if (m.up < 0) usa += 1; else { uk += 0.5; usa += 0.5; }
+  }
+  if (!uk && !usa && !out) return null;
+  return { uk, usa, out };
+}
+
+/** The whole snapshot the window puts up, for one group's turn.
+ *  Everything in it is already on a board somewhere — this is the board
+ *  brought to the 9th green rather than a second set of figures. */
+function turnSnapshot(T, rid, gid, now) {
+  const gs = turnGroups(T, rid);
+  const mine = gs.find(g => g.id === gid) || null;
+  const r = roundDef(rid);
+  const cup = ryderData(T, now);
+  const pairs = pairsBoard(T, now);
+  const mvp = mvpBoard(T, now);
+  const bbb = bbbBoard(T);
+
+  /* Where the group sits against the others that have already turned. The
+     comparison is only honest between groups at the same point, which is
+     the whole reason this fires at the ninth and not at the tenth. */
+  const others = gs.filter(g => g.id !== gid && g.turned && g.started);
+  const best = others.length ? Math.min(...others.map(g => g.tp)) : null;
+  const pace = (mine && mine.started && best != null)
+    ? { delta: mine.tp - best, ahead: mine.tp <= best,
+        against: others.find(g => g.tp === best).label }
+    : null;
+
+  /* The squads, by strokes, at the turn.
+   *
+   * The cup is match play, and match play cannot say anything at the ninth:
+   * a match only counts holes BOTH players have finished, and Group 1 turns
+   * while its opponents in Group 3 are on the 4th — so most matches read as
+   * not started and the cup sits at nil-nil. True, and useless.
+   *
+   * At the turn the like-for-like reading is strokes: every UK card against
+   * every USA card, over the holes they have actually played. That is always
+   * available and it is what "which team is leading" means at the ninth. */
+  const squad = { UK: { tp: 0, n: 0 }, USA: { tp: 0, n: 0 } };
+  for (const p of golfers(T)) {
+    const side = squad[p.location];
+    if (!side) continue;
+    const t = toParThru(T, rid, p.id, TURN_HOLES);
+    if (!t.thru) continue;
+    side.tp += t.tp; side.n++;
+  }
+  /* PER CARD, not summed. Summed, the bigger squad wins for being bigger:
+     at Group 1's turn one UK golfer and two USA golfers had played, and USA
+     "led" 21 under to 10 under purely by having an extra card in. The squads
+     are rarely the same size and at the turn only part of each is round, so
+     the only honest reading is the average card. */
+  const per = x => ({ ...x, avg: x.n ? x.tp / x.n : 0 });
+  const squads = (squad.UK.n && squad.USA.n)
+    ? { uk: per(squad.UK), usa: per(squad.USA) } : null;
+
+  /* The field at the turn, so everybody can find their own name. */
+  const where = {};
+  for (const g of finishGroups(T, rid)) for (const id of g.members) where[id] = g.label;
+  const field = golfers(T).map(p => {
+    const t = toParThru(T, rid, p.id, TURN_HOLES);
+    return { id: p.id, name: p.display, group: where[p.id] || '—',
+      tp: t.tp, thru: t.thru, mine: (mine && where[p.id] === mine.label) || false };
+  }).filter(x => x.thru > 0);
+  field.sort((a, b) => a.tp - b.tp || b.thru - a.thru);
+
+  return {
+    rid, gid,
+    label: (mine && mine.label) || 'A group',
+    round: r.short === 'Practice' ? 'the practice round' : 'Round ' + r.short.slice(1),
+    course: courseOf(T, rid).name,
+    cup: cupNow(cup),
+    squads,
+    pair: pairs.length ? { name: pairs[0].name, tp: pairs[0].totalStr } : null,
+    leader: mvp.length ? { name: mvp[0].name, tp: mvp[0].totalStr, thru: mvp[0].thruStr } : null,
+    bbb: bbb.length ? { name: bbb[0].name, pts: bbb[0].pts } : null,
+    groups: gs.filter(g => g.started),
+    field: field.map((x, i) => ({ ...x, pos: i + 1 })),
+    pace,
+  };
 }
 
 /* The practice day is its own thing: it feeds nothing, and every board that
@@ -3861,7 +4064,7 @@ function roundToPar(T, roundId, pid) {
   return { tp, thru };
 }
 
-return {nowLocal, dayOf, hhmmToMin, to12, to24, BANDS, strokesFor, bandTotal, fmtToPar, capFor, capped, person, golfers, roundDef, roundCfg, courseByKey, courseOf, scoreKey, card, pairName, phaseOf, phaseLabel, hasScores, countingRounds, playerNet, pairHole, PAIRS_PER_GROUP, groups, finishGroups, groupThru18, groupDone, groupsOut, practiceBoard, practiceBbb, bandsLocked, pairsBoard, mvpBoard, BBB_SLOTS, bbbMarks, MARKS, MARK_KEYS, MOODS, OWNS, moodLabel, ownLabels, OWN_MARKS, OWN_KEYS, holeMarks, selfLog, selfMarks, markCoverage, markTally, markLine, bbbBoard, roundComplete, brief, roundBrief, recapRound, roundStanding, ribbon, pairRoundBoard, recapTable, swingOfTheDay, sideGames, recapInput, matchPlay, ryderData, holeCells, setupIssues, nextTee, fixtures, nextFixture, TEE_CHOICES, TEE_PRIV, teePrivilege, roundToPar};
+return {nowLocal, dayOf, hhmmToMin, to12, to24, BANDS, strokesFor, bandTotal, fmtToPar, fmtAvgToPar, capFor, capped, person, golfers, roundDef, roundCfg, courseByKey, courseOf, scoreKey, card, pairName, phaseOf, phaseLabel, hasScores, countingRounds, playerNet, pairHole, PAIRS_PER_GROUP, groups, finishGroups, groupThru18, groupDone, groupsOut, TURN_HOLES, toParThru, groupAtTurn, turnAt, turnGroups, turnSnapshot, practiceBoard, practiceBbb, bandsLocked, pairsBoard, mvpBoard, BBB_SLOTS, bbbMarks, MARKS, MARK_KEYS, MOODS, OWNS, moodLabel, ownLabels, OWN_MARKS, OWN_KEYS, holeMarks, selfLog, selfMarks, markCoverage, markTally, markLine, bbbBoard, roundComplete, brief, roundBrief, recapRound, roundStanding, ribbon, pairRoundBoard, recapTable, swingOfTheDay, sideGames, recapInput, matchPlay, ryderData, holeCells, setupIssues, nextTee, fixtures, nextFixture, TEE_CHOICES, TEE_PRIV, teePrivilege, roundToPar};
 })();
 
 const __m_dbsupa = (function(){
@@ -4311,6 +4514,8 @@ function defaultConfig() {
       lockedBy: null, lockedAt: null, openedBy: null,
       // which groups have walked off 18, keyed by group id
       done: {},
+      // and which have made the turn, so the snapshot reaches every device
+      turn: {},
     };
   }
   const courses = {};
@@ -8146,6 +8351,10 @@ function paint() {
   if (inUse()) { renderPending = true; return; }
   renderPending = false;
   wheelDone = null;       // this rebuild destroys it; the next one starts clean
+  /* A turn written by somebody else's phone arrives as an ordinary change to
+     the book, and the book redraws whenever it hears one — so this is where
+     the window reaches the people who did not score the hole. */
+  turnWatch();
   const app = document.getElementById('app');
   const focused = captureFocus();
   /* Every redraw replaces the whole tree, which puts the scroll back to the
@@ -8524,6 +8733,122 @@ function finishModalHtml() {
   </div></div>`;
 }
 
+/* ---------------- the turn ----------------
+ *
+ * Nine holes in is the only moment in a round when everybody is still out
+ * there and something is already decided. A group walks off the 9th and can
+ * find out, standing on the green, that they are three better than the group
+ * in front at the same point.
+ *
+ * The ref's phone does not raise this window. It WRITES the turn to the
+ * shared book, and every device on the course puts the window up when it
+ * arrives — the ref reads it out, and a wife by the pool sees the same
+ * thing. Which device happened to score the hole is not the point.
+ *
+ * Seen-ness is per device and kept on the device: two people must both get
+ * it, and neither should get it twice. */
+
+/** A cup score, which comes in halves. */
+const half = n => (Number.isInteger(n) ? String(n) : Math.floor(n) + '\u00BD');
+
+const TURN_KEY = 'union-invitational:turnseen';
+const TURN_FRESH = 3 * 60 * 60 * 1000;   // older than this is history, not news
+let turnSeen = null;
+
+function seenTurns() {
+  if (turnSeen) return turnSeen;
+  try { turnSeen = JSON.parse(localStorage.getItem(TURN_KEY) || '{}') || {}; }
+  catch (e) { turnSeen = {}; }
+  return turnSeen;
+}
+function markTurnSeen(key) {
+  const seen = seenTurns();
+  seen[key] = 1;
+  try { localStorage.setItem(TURN_KEY, JSON.stringify(seen)); }
+  catch (e) { /* storage blocked: it may show once more, which is no harm */ }
+}
+
+/** Put the turn in the shared book. Called by whoever saved the ninth. */
+function noteTurn(rid, gid) {
+  const g = E.finishGroups(T, rid).find(x => x.id === gid);
+  if (!g || !E.groupAtTurn(T, rid, g)) return;   // not all four are in yet
+  if (E.turnAt(T, rid, gid)) return;             // already written: a correction, not a turn
+  store.writeConfig(c => {
+    const cf = c.rounds[rid];
+    if (!cf) return;
+    if (!cf.turn || typeof cf.turn !== 'object') cf.turn = {};
+    if (cf.turn[gid]) return;
+    cf.turn[gid] = { at: Date.now() };
+  });
+}
+
+/** Raise the window for any turn this device has not seen yet. Run on every
+ *  redraw, which is also every time the store hears anything. */
+function turnWatch() {
+  if (UI.modal || !loaded()) return;
+  for (const r of D.ROUNDS) {
+    const cfg = E.roundCfg(T, r.id);
+    if (!cfg || !cfg.turn) continue;
+    for (const gid of Object.keys(cfg.turn)) {
+      const rec = cfg.turn[gid];
+      const at = rec && rec.at;
+      if (!at) continue;
+      const key = r.id + ':' + gid + ':' + at;
+      if (seenTurns()[key]) continue;
+      markTurnSeen(key);
+      /* A book opened the next morning must not replay yesterday's turns. */
+      if (Date.now() - at > TURN_FRESH) continue;
+      UI.modal = { kind: 'turn', rid: r.id, gid };
+      return;
+    }
+  }
+}
+
+function turnModalHtml() {
+  const m = UI.modal;
+  const s = E.turnSnapshot(T, m.rid, m.gid, now);
+  const par = n => `<span class="${cls(n)}">${esc(E.fmtToPar(n))}</span>`;
+  return `<div class="scrim" data-act="modalScrim"><div class="modal turnmodal"
+    role="dialog" aria-modal="true" aria-label="${esc(s.label)} has made the turn">
+    <span class="tn-eye">${esc([s.label, s.course, s.round].join(' \u00B7 '))}</span>
+    <h3 class="tn-q">${esc(s.label)} ${s.label === 'The field' ? 'has' : 'has'} made the turn</h3>
+    ${s.pace
+      ? `<p class="tn-pace ${s.pace.ahead ? 'good' : 'bad'}">${s.pace.delta === 0
+          ? 'Level with ' + esc(s.pace.against) + ' at the same point.'
+          : (s.pace.ahead ? Math.abs(s.pace.delta) + ' better than ' : Math.abs(s.pace.delta) + ' behind ')
+            + esc(s.pace.against) + ' at the same point.'}</p>`
+      : `<p class="tn-pace first">First group through the turn. Everyone else is chasing this.</p>`}
+
+    <div class="tn-cards">
+      ${s.squads ? `<div class="tn-card"><span class="l">Squads, per card</span>
+        <span class="v num">${esc(E.fmtAvgToPar(s.squads.uk.avg))} &ndash; ${esc(E.fmtAvgToPar(s.squads.usa.avg))}</span>
+        <span class="s">UK ${s.squads.uk.n} &middot; USA ${s.squads.usa.n} cards in</span></div>` : ''}
+      ${s.cup ? `<div class="tn-card"><span class="l">The cup</span>
+        <span class="v num">${half(s.cup.uk)} &ndash; ${half(s.cup.usa)}</span>
+        <span class="s">UK &middot; USA${s.cup.out ? ' &middot; ' + s.cup.out + ' still out' : ''}</span></div>` : ''}
+      ${s.leader ? `<div class="tn-card"><span class="l">Leading golfer</span>
+        <span class="v">${esc(s.leader.name)}</span><span class="s num">${esc(s.leader.tp)} thru ${esc(s.leader.thru)}</span></div>` : ''}
+      ${s.pair ? `<div class="tn-card"><span class="l">Leading pair</span>
+        <span class="v">${esc(s.pair.name)}</span><span class="s num">${esc(s.pair.tp)}</span></div>` : ''}
+      ${s.bbb ? `<div class="tn-card"><span class="l">Bingo Bango Bongo</span>
+        <span class="v">${esc(s.bbb.name)}</span><span class="s num">${s.bbb.pts} point${s.bbb.pts === 1 ? '' : 's'}</span></div>` : ''}
+    </div>
+
+    ${s.groups.length > 1 ? `<h4 class="tn-h">At the turn</h4>
+      <div class="tn-rows">${s.groups.map(g => `<div class="tn-row${g.id === s.gid ? ' me' : ''}">
+        <span class="w">${esc(g.label)}${g.turned ? '' : ' <em>still out</em>'}</span>
+        <span class="n num">${par(g.tp)}</span></div>`).join('')}</div>` : ''}
+
+    ${s.field.length ? `<h4 class="tn-h">Every card, through ${E.TURN_HOLES}</h4>
+      <div class="tn-rows tn-field">${s.field.map(x => `<div class="tn-row${x.mine ? ' me' : ''}">
+        <span class="p num">${x.pos}</span>
+        <span class="w">${esc(x.name)}<small>${esc(x.group)}</small></span>
+        <span class="n num">${par(x.tp)}<small>thru ${x.thru}</small></span></div>`).join('')}</div>` : ''}
+
+    <div class="acts"><button class="btn" data-act="modalCancel">Back to it</button></div>
+  </div></div>`;
+}
+
 /* ---------------- the three that get forgotten ----------------
  *
  * Bingo Bango Bongo is three points a hole and the only thing on the card
@@ -8586,7 +8911,8 @@ function bbbModalHtml() {
 }
 
 function modalHtml() {
-  return UI.modal.kind === 'finish' ? finishModalHtml()
+  return UI.modal.kind === 'turn' ? turnModalHtml()
+       : UI.modal.kind === 'finish' ? finishModalHtml()
        : UI.modal.kind === 'bbbmiss' ? bbbModalHtml()
        : UI.modal.kind === 'venue' ? venueModalHtml()
        : UI.modal.kind === 'marks' ? markSheet(UI.modal.rid, UI.modal.hole, UI.modal.who)
@@ -8960,7 +9286,7 @@ function onClick(e) {
           /* Every group goes back out with it. Reopening the round and
              leaving the groups finished would hand back a card that still
              refused every score. */
-          setRound(a, { state: 'open', lockedBy: null, lockedAt: null, done: {} }); });
+          setRound(a, { state: 'open', lockedBy: null, lockedAt: null, done: {}, turn: {} }); });
       return;
 
     case 'bump': {
@@ -9073,6 +9399,9 @@ function onClick(e) {
              that was the round. The crest is raised by every save of the
              18th, so a window waved away comes back if a score on it is
              corrected, and never on any other hole. */
+          /* The ninth. Written to the shared book, not raised here: every
+             device puts the window up when it arrives, this one included. */
+          if (h === E.TURN_HOLES - 1) noteTurn(rid, gid);
           const next = h < 17 ? { what: 'hole', rid, h: h + 1 } : { what: 'finish', rid };
           /* Three points a hole that nobody can reconstruct afterwards. If
              any of them is blank, that goes FIRST and the rest queues behind
