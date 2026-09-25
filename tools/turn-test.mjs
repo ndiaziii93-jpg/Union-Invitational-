@@ -153,7 +153,13 @@ const playHole = async (p, i) => {
      window — and so the notice about the three does not stand in the way of
      every single save. */
   const bg = p.locator('[data-act="setBbb"][data-a="bingo"]');
-  if (await bg.count()) { await bg.selectOption({ index: 1 + (i % 3) }); await p.waitForTimeout(200); }
+  if (await bg.count()) {
+    /* The list holds "Nobody yet" and THIS GROUP's golfers, and a group is
+       not always a fourball — a pair holding a non-golfer contributes fewer.
+       Pick within what is actually there. */
+    const opts = await bg.locator('option').count();
+    if (opts > 1) { await bg.selectOption({ index: 1 + (i % (opts - 1)) }); await p.waitForTimeout(200); }
+  }
   await p.locator('[data-act="saveHole"]').click(); await p.waitForTimeout(700);
 };
 
