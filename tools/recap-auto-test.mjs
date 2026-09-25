@@ -113,16 +113,15 @@ console.log('\nthe last card of the day starts it, unasked');
 ok('the last card in starts the report', await asks(), 1);
 
 console.log('\nand it is there to read, not to wait for');
-await tab('Leaderboards');
-if (await p.locator('[data-act="recapOpen"]').count()) {
-  await p.locator('[data-act="recapOpen"]').first().click(); await p.waitForTimeout(1200);
-} else {
-  await p.evaluate(() => { const el = document.querySelector('[data-act="recapOpen"]'); if (el) el.click(); });
-  await p.waitForTimeout(1200);
-}
+/* The button is on Today, not on the boards. */
+await tab('Today');
+ok('the button says the day is ready to read',
+  /read the report|read the day/i.test(await p.locator('.recapbtn').innerText()), true);
+await p.locator('[data-act="recapOpen"]').first().click(); await p.waitForTimeout(1400);
 const headline = await p.locator('.rechead').count() ? (await p.locator('.rechead').innerText()).trim() : '';
 console.log('          (the headline reads: ' + headline + ')');
 ok('opening it finds a report already written', /wind got up/i.test(headline), true);
+ok('it is not still being written', await p.locator('[data-act="recapStop"]').count(), 0);
 ok('and does not pay for a second one', await asks(), 1);
 
 await b.close();
