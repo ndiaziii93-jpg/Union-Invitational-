@@ -149,6 +149,13 @@ for (const [name, viewport, touch, dpr] of DEVICES) {
       const plus = p.locator('.step.plus'); const np = await plus.count();
       for (let i = 0; i < np; i++) { await plus.nth(i).click(); await p.waitForTimeout(90); }
       if (np) { await p.locator('[data-act="saveHole"]').click(); await p.waitForTimeout(1400); }
+      /* Saving now asks about the three Bingo Bango Bongo names first, and
+         the crest queues behind them. Wave exactly that one past — the
+         general dismiss() would take the crest with it. */
+      if (await p.locator('.bbbmodal').count()) {
+        await p.locator('.bbbmodal [data-act="modalCancel"]').click({ force: true }).catch(() => {});
+        await p.waitForTimeout(800);
+      }
 
       if (!await p.locator('.finishmodal').count()) bad.push('the 18th went in and nothing asked');
       else {

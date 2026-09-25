@@ -116,6 +116,9 @@ ok('which says what it does', (await p.locator('[data-act="askFinish"]').innerTe
    it back — otherwise the correction is the last anybody hears of it. */
 await p.locator('.step.plus').first().click(); await p.waitForTimeout(150);
 await p.locator('[data-act="saveHole"]').click(); await p.waitForTimeout(800);
+/* The three names come first on every save now; shut() waves them past and
+   stops at the crest behind them. */
+await shut();
 ok('editing the 18th and saving again asks once more', await p.locator('.finishmodal').count(), 1);
 
 console.log('\none group finishes, one card closes');
