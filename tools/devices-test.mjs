@@ -179,7 +179,9 @@ for (const [name, viewport, touch, dpr] of DEVICES) {
     }
 
     // 3c2. and the whole round can still be concluded from Settings
-    await tab('Setup');
+    /* By id, not by words: "Setup" is also inside "Course Setup". */
+    await dismiss(); await p.locator('.tab[data-a="setup"]').click();
+    await p.waitForTimeout(600); await dismiss();
     if (await p.locator('[data-act="lockRound"]').count()) {
       await p.locator('[data-act="lockRound"]').first().click(); await p.waitForTimeout(1400); await dismiss();
       const st = await p.evaluate(() => {
