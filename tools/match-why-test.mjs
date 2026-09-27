@@ -85,6 +85,9 @@ if (await p.locator('[data-act="openRound"]').count()) {
 
 const groups = await p.locator('.gchip').count();
 for (let g = 0; g < groups; g++) {
+  /* The last save of the previous group leaves the notice about the three
+     up, and a scrim swallows the tap on the group chip. */
+  await shut();
   await p.locator('.gchip').nth(g).click(); await p.waitForTimeout(450); await shut();
   for (let h = 0; h < 6; h++) {
     await shut();
