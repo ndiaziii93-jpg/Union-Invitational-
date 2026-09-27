@@ -1076,8 +1076,10 @@ function matchRow(m, rid) {
      bold — and counted in the session line above. */
   const mark = s2 => {
     const who = s2 === 'UK' ? 'United Kingdom' : 'United States';
+    const got = won(s2) || halved;
     return `<span class="mp${won(s2) ? ' got' : ''}${halved ? ' half' : ''}"
-      aria-label="${esc(who)}">${squadFlag(s2, 22)}</span>`;
+      aria-label="${esc(who)}${got ? (halved ? ' — half a point' : ' — took the point') : ''}"
+      >${squadFlag(s2, 22)}${halved ? '<span class="pt">\u00bd</span>' : ''}</span>`;
   };
   /* THE WHOLE ROW OPENS THE MATCH, not a pill inside it.
      A pill big enough for a thumb is a pill too big for the row; a pill the

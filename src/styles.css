@@ -339,10 +339,12 @@ h3.sub{font-size:19px;font-weight:600;margin:26px 0 0}
 /* The flag is identity, so it is always there and always legible. The
    squad that took the point is said by the pill's colour and the bold name;
    the flag only steps back a little for the side that did not. */
-.mp{display:flex;align-items:center;justify-content:center;min-height:14px}
+.mp{display:flex;flex-direction:column;align-items:center;gap:1px;min-height:14px}
 .mp svg{display:block;border:1px solid rgba(29,46,33,.22);border-radius:1px;opacity:.5}
 .mp.got svg{opacity:1;box-shadow:0 0 0 1px var(--gold)}
-.mp.half svg{opacity:.8}
+/* A half is a real point in the cup and the row has to say so. */
+.mp.half svg{opacity:.85}
+.mp .pt{font-size:11px;font-weight:700;color:var(--gold);line-height:1;font-variant-numeric:tabular-nums}
 .match .mn{color:var(--turf)}
 .match .mn.win{color:var(--ink)}
 
@@ -1208,8 +1210,12 @@ html.noscroll{overflow:hidden}
 /* The crest behind the page is a large fixed layer. Under a full-screen
    window it cannot be seen and can still cost a repaint on every frame of a
    scroll, which is exactly the wrong thing to be paying for while something
-   is moving over the top of it. */
-html.noscroll .watermark{display:none}
+   is moving over the top of it.
+   NEVER THE OPENING, THOUGH. While `.opening` is on, that layer is not the
+   background — it IS the page, the only thing on screen, and hiding it
+   would take the opening away from anybody who happened to have a window up
+   when the book loaded. */
+html.noscroll .watermark:not(.opening){display:none}
 .recapbar{display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;
   background:var(--page);border:1px solid var(--rule);border-radius:3px;padding:11px 14px;margin-top:16px;
   font-size:15px;color:var(--turf)}
