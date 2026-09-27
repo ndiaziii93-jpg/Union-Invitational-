@@ -100,18 +100,37 @@ for (let g = 0; g < groups; g++) {
 }
 await shut();
 
-console.log('\nthe pill is the way in');
+console.log('\na fixture reads across, and the row is the way in');
 await tab('Ryder');
-const pills = p.locator('.match .st.why');
-ok('every match with a hole in it can be asked about', await pills.count() > 0, true);
-ok('the pill is a button, not a label',
-  await pills.first().evaluate(el => el.tagName), 'BUTTON');
-ok('and says what it opens', /hole by hole/i.test(
-  await pills.first().getAttribute('aria-label') || ''), true);
+const rows2 = p.locator('.match.why');
+ok('every match with a hole in it can be asked about', await rows2.count() > 0, true);
+/* THE ROW is the button, not the pill inside it. A pill big enough for a
+   thumb is a pill too big for the row. */
+ok('the row is the button', await rows2.first().evaluate(el => el.tagName), 'BUTTON');
+ok('and it names both golfers', /against/i.test(
+  await rows2.first().getAttribute('aria-label') || ''), true);
+ok('with a thumb-sized height',
+  await rows2.first().evaluate(el => el.getBoundingClientRect().height >= 44), true);
+
+/* BOTH NAMES ON ONE LINE. They were stacked on a phone — one golfer above
+   the other with the result between — which is three loose lines and a
+   hand's width of dead paper where a fixture should be. */
+const online = await p.locator('.match').first().evaluate(el => {
+  const ns = el.querySelectorAll('.mn');
+  if (ns.length !== 2) return false;
+  const [a, b] = [...ns].map(n => n.getBoundingClientRect());
+  return Math.abs((a.top + a.height / 2) - (b.top + b.height / 2)) < 4;
+});
+ok('both golfers sit on the same line', online, true);
+/* And a flag against each of them: the squads are the premise of the cup,
+   so they cannot be the thing that is hidden. Showing one only against the
+   winner left the loser of every match with an empty gutter. */
+ok('each golfer carries their own flag',
+  await p.locator('.match').first().locator('.mp svg').count(), 2);
 
 const rowText = (await p.locator('.match').first().innerText()).replace(/\n/g, ' ');
 console.log('          (the row reads: ' + rowText.trim() + ')');
-await pills.first().click(); await p.waitForTimeout(700);
+await rows2.first().click(); await p.waitForTimeout(700);
 ok('it opens the working', await p.locator('.mwmodal').count(), 1);
 
 console.log('\nand the working agrees with the row');

@@ -1067,26 +1067,35 @@ function sampleError(e) {
 function matchRow(m, rid) {
   const won = s2 => m.done && m.side === s2;
   const halved = m.done && !m.side;
+  /* A FLAG IS WHOSE SIDE YOU ARE ON, not whether you won.
+     It used to appear only against whoever took the point, which left the
+     loser of every match with an empty gutter and no way of telling which
+     of the two names was the British one. The squads are the whole premise
+     of the cup; they cannot be the thing that is hidden. The point is said
+     by the pill, which carries the winner's colour, and by their name in
+     bold — and counted in the session line above. */
   const mark = s2 => {
-    if (!won(s2) && !halved) return '<span class="mp"></span>';
     const who = s2 === 'UK' ? 'United Kingdom' : 'United States';
-    return `<span class="mp got${halved ? ' half' : ''}"
-      aria-label="${esc(who)} ${halved ? 'halved — half a point' : 'won the point'}"
-      title="${esc(who)} ${halved ? 'halved — half a point' : 'won the point'}"
-      >${squadFlag(s2, 22)}${halved ? '<span class="pt">\u00bd</span>' : ''}</span>`;
+    return `<span class="mp${won(s2) ? ' got' : ''}${halved ? ' half' : ''}"
+      aria-label="${esc(who)}">${squadFlag(s2, 22)}</span>`;
   };
-  return `<div class="match${m.done ? ' done' : ''}">
-    ${mark('UK')}
+  /* THE WHOLE ROW OPENS THE MATCH, not a pill inside it.
+     A pill big enough for a thumb is a pill too big for the row; a pill the
+     right size for the row is a thirty-pixel target. The row is the fixture
+     and "see this match" is the only thing it does, so the row is the
+     button — which also puts the target somewhere a finger is not already
+     covering a name. */
+  const inner = `${mark('UK')}
     <span class="mn${won('UK') ? ' win' : ''}">${esc(m.a)}</span>
-    ${/* The pill is the only thing on the row that states a result, so it is
-          the thing a finger goes to when somebody wants to know WHY. */ ''}
-    <button class="st ${m.side === 'UK' ? 'uk' : m.side === 'USA' ? 'usa' : ''}${m.thru ? ' why' : ''}"
-      ${m.thru ? `data-act="matchWhy" data-a="${rid}" data-b="${m.aId}" data-c="${m.bId}"
-      aria-label="How ${esc(m.a)} against ${esc(m.b)} stands, hole by hole"` : ' disabled'}
-      >${esc(m.status)}${m.thru && !m.done ? ' \u00b7 thru ' + m.thru : ''}</button>
+    <span class="st ${m.side === 'UK' ? 'uk' : m.side === 'USA' ? 'usa' : ''}"
+      >${esc(m.status)}${m.thru && !m.done ? `<small>thru ${m.thru}</small>` : ''}</span>
     <span class="mn r${won('USA') ? ' win' : ''}">${esc(m.b)}</span>
-    ${mark('USA')}
-  </div>`;
+    ${mark('USA')}`;
+  if (!m.thru) return `<div class="match">${inner}</div>`;
+  return `<button class="match why${m.done ? ' done' : ''}"
+    data-act="matchWhy" data-a="${rid}" data-b="${m.aId}" data-c="${m.bId}"
+    aria-label="${esc(m.a)} against ${esc(m.b)}, ${esc(m.status)} — open the holes"
+    >${inner}</button>`;
 }
 
 function scrRyder() {
@@ -1122,7 +1131,12 @@ function scrRyder() {
 
   ${R.sessions.map(s => `
     <h3 class="sub">${esc(s.label)} — ${esc(s.format)}</h3>
-    <div style="font-family:var(--mono);font-size:13px;color:var(--turf);margin-top:2px">UK ${s.uk} · USA ${s.usa}</div>
+    <div class="sessline">${ukFlag(16)}<b class="num">${half(s.uk)}</b>
+      <span class="sl-v">&ndash;</span>
+      <b class="num">${half(s.usa)}</b>${usFlag(16)}
+      <span class="sl-n">${s.matches.filter(x => !x.done && x.thru).length
+        ? s.matches.filter(x => !x.done && x.thru).length + ' still out'
+        : s.matches.every(x => x.done) && s.matches.length ? 'session complete' : 'not started'}</span></div>
     ${s.matches.length ? `<div class="rows" style="margin-top:8px;border-top:1px solid var(--rule)">
       ${s.matches.map(m => matchRow(m, s.id)).join('')}
     </div>` : `<p class="empty">No matches yet — put golfers in both squads and the draw builds itself.</p>`}
