@@ -204,13 +204,14 @@ ok('team first, then the golfer, then the side game', cardLabels,
    the book: two flags and the score. */
 ok('the cup is a band of its own', await A.locator('.tn-cup').count(), 1);
 ok('with both flags on it', await A.locator('.tn-cup svg').count(), 2);
-/* Match play says almost nothing at the ninth — a match counts only the
-   holes BOTH players have finished — so the strokes go underneath, which is
-   the reading that always works. */
-const note = await A.locator('.tn-cupnote').innerText();
+/* The cup is points and nothing else. A stroke count under the flags read
+   like part of the cup and settles no match — what DOES matter there is how
+   many points are still to play for. */
+const note = await A.locator('.tn-cupnote').count() ? await A.locator('.tn-cupnote').innerText() : '';
 console.log('          (under the cup: ' + note.trim() + ')');
-ok('and the strokes underneath it', /per card/i.test(note), true);
-ok('which are per card, not summed', /UK [+\u2212E]/.test(note) && /USA [+\u2212E]/.test(note), true);
+ok('it says how many points are still to play for', /match(es)? still out/.test(note), true);
+ok('and nothing about strokes, which settle no match',
+  /per card|stroke/i.test(note), false);
 
 ok('every card in the field is listed', await A.locator('.tn-field .tn-row').count() > 0, true);
 ok('with the group that turned marked out', await A.locator('.tn-field .tn-row.me').count() > 0, true);

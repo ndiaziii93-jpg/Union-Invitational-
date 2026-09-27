@@ -3426,18 +3426,17 @@ function turnModalHtml() {
         <span class="v">${esc(s.bbb.name)}</span><span class="s num">${s.bbb.pts} point${s.bbb.pts === 1 ? '' : 's'}</span></div>` : ''}
     </div>
 
-    ${s.cup || s.squads ? `<div class="cupbar tn-cup">
-      <div class="side">${ukFlag(38)}<span class="pts num" style="color:var(--green)">${half((s.cup || {}).uk || 0)}</span></div>
+    ${s.cup ? `<div class="cupbar tn-cup">
+      <div class="side">${ukFlag(38)}<span class="pts num" style="color:var(--green)">${half(s.cup.uk)}</span></div>
       <div class="vs">v</div>
-      <div class="side r"><span class="pts num" style="color:var(--usa)">${half((s.cup || {}).usa || 0)}</span>${usFlag(38)}</div>
+      <div class="side r"><span class="pts num" style="color:var(--usa)">${half(s.cup.usa)}</span>${usFlag(38)}</div>
     </div>
-    ${/* Match play says almost nothing at the ninth — a match counts only the
-          holes BOTH players have finished, and half the field is still on the
-          front nine — so the strokes are put underneath, which is the reading
-          that always works. */ ''}
-    <p class="tn-cupnote">${s.cup && s.cup.out ? s.cup.out + ' match' + (s.cup.out === 1 ? '' : 'es') + ' still out. ' : ''}${
-      s.squads ? 'By strokes, per card: UK ' + esc(E.fmtAvgToPar(s.squads.uk.avg))
-        + ', USA ' + esc(E.fmtAvgToPar(s.squads.usa.avg)) + '.' : ''}</p>` : ''}
+    ${/* The cup is points and nothing else. A stroke count under the flags
+          read like part of the cup and feeds none of it — the two squads'
+          scoring average settles no match and wins no point. How many
+          matches are still out DOES matter: it is how many points are left
+          to play for. */ ''}
+    ${s.cup.out ? `<p class="tn-cupnote">${s.cup.out} match${s.cup.out === 1 ? '' : 'es'} still out.</p>` : ''}` : ''}
 
     ${s.groups.length > 1 ? `<h4 class="tn-h">At the turn</h4>
       <div class="tn-rows">${s.groups.map(g => `<div class="tn-row${g.id === s.gid ? ' me' : ''}">
