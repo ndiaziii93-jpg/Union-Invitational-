@@ -1026,6 +1026,51 @@ export function matchPlay(sideA, sideB) {
   return { up, thru, status, done: result != null || thru === 18, side: up > 0 ? 'UK' : up < 0 ? 'USA' : null };
 }
 
+/** A cup match, hole by hole — what each side actually did, and who took it.
+ *
+ *  matchPlay() answers "who is up"; this answers "why", which is the only
+ *  question anybody asks about a match they were not in. Same arithmetic,
+ *  the working shown: gross, the cap, the strokes the band gives on that
+ *  hole's index, the net, and the running state after it. */
+export function matchDetail(T, rid, aId, bId) {
+  const holes = courseOf(T, rid).holes;
+  const A = person(T, aId), B = person(T, bId);
+  const ca = card(T, rid, aId), cb = card(T, rid, bId);
+  const cap = T.config.capOver;
+  const rows = [];
+  let up = 0, thru = 0, result = null, closedAt = null;
+  let wonA = 0, wonB = 0, halved = 0;
+  for (let h = 0; h < 18; h++) {
+    const na = playerNet(T, rid, aId, h), nb = playerNet(T, rid, bId, h);
+    if (na == null || nb == null) break;
+    thru = h + 1;
+    const took = na < nb ? 'a' : nb < na ? 'b' : null;
+    if (took === 'a') { up++; wonA++; } else if (took === 'b') { up--; wonB++; } else halved++;
+    const gA = ca ? ca.raw[h] : null, gB = cb ? cb.raw[h] : null;
+    rows.push({
+      n: holes[h].n, par: holes[h].par, si: holes[h].si,
+      aGross: gA, bGross: gB,
+      aCapped: capped(gA, holes[h].par, cap) !== gA,
+      bCapped: capped(gB, holes[h].par, cap) !== gB,
+      aStrokes: strokesFor(A && A.band, holes[h].si),
+      bStrokes: strokesFor(B && B.band, holes[h].si),
+      aNet: na, bNet: nb, took, up,
+    });
+    const left = 18 - thru;
+    if (Math.abs(up) > left) { result = Math.abs(up) + '&' + left; closedAt = holes[h].n; break; }
+  }
+  const done = result != null || thru === 18;
+  return {
+    a: { id: aId, name: (A || {}).display || '?', band: (A || {}).band || null, squad: 'UK' },
+    b: { id: bId, name: (B || {}).display || '?', band: (B || {}).band || null, squad: 'USA' },
+    rows, up, thru, result, closedAt, wonA, wonB, halved, done,
+    side: up > 0 ? 'UK' : up < 0 ? 'USA' : null,
+    /* What the match is worth, as it stands. A match still out is worth
+       nothing yet — that is the point of saying how many are still out. */
+    points: !done ? null : up === 0 ? { uk: 0.5, usa: 0.5 } : up > 0 ? { uk: 1, usa: 0 } : { uk: 0, usa: 1 },
+  };
+}
+
 export function ryderData(T, now) {
   const gs = golfers(T);
   const sessions = [];

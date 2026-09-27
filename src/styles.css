@@ -456,6 +456,57 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 .modal .err{color:var(--flag);font-size:14px;min-height:19px;margin:0}
 .modal .acts{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
 
+/* ---- why a match stands where it does ----
+   The pill on a cup row is the only thing that states a result, so it is
+   what a finger goes to. It has to look pressable without becoming another
+   button in a row that is already busy: the border firms up, and it keeps
+   the squad colour it already had. */
+.match .st.why{cursor:pointer;border-style:dashed}
+@media (hover:hover) and (pointer:fine){
+  .match .st.why:hover{border-style:solid;background:var(--sunk);color:var(--ink)}
+  .match .st.why.uk:hover{color:var(--uk)}
+  .match .st.why.usa:hover{color:var(--usa)}
+}
+.match .st:disabled{opacity:.55;cursor:default}
+
+.mwmodal{max-width:520px;gap:0;padding:22px 20px 18px;border-top-color:var(--ink)}
+.mwmodal .mw-eye{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--turf);
+  font-weight:700;display:block}
+.mwmodal .mw-q{font-size:22px;margin:6px 0 0;line-height:1.2}
+.mwmodal .mw-q span{color:var(--turf);font-weight:400;font-size:17px;padding:0 4px}
+.mw-v{margin:8px 0 0;font-size:16px;font-weight:600;color:var(--ink)}
+.mw-w{margin:3px 0 0;font-size:14px;color:var(--turf)}
+.mw-w b{color:var(--gold)}
+
+.mw-tally{display:flex;gap:8px;margin-top:14px;text-align:center}
+.mw-tally span{flex:1 1 0;min-width:0;border:1px solid var(--rule);background:var(--paper);
+  border-radius:3px;padding:7px 4px;font-size:12px;color:var(--turf);overflow-wrap:anywhere}
+.mw-tally b{display:block;font-size:21px;color:var(--ink)}
+
+.mw-head,.mw-row{display:grid;grid-template-columns:58px 1fr 1fr 64px;gap:6px;align-items:center}
+.mw-head{margin-top:16px;padding:0 4px 6px;border-bottom:2px solid var(--ink);
+  font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--turf);font-weight:700}
+.mw-head .s,.mw-head .r{text-align:center}
+.mw-head small{display:block;font-weight:400;letter-spacing:0;text-transform:none}
+.mw-rows{max-height:40vh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.mw-row{padding:7px 4px;border-bottom:1px solid var(--hair)}
+.mw-row:last-child{border-bottom:none}
+.mw-row .h b{font-size:16px}
+.mw-row .h small{display:block;font-size:10px;color:var(--turf)}
+.mw-s{text-align:center;border-radius:3px;padding:2px 0}
+.mw-s b{font-size:18px;color:var(--turf);font-weight:400}
+.mw-s small{display:block;font-size:10px;color:var(--turf)}
+/* the ball that took the hole */
+.mw-s.win{background:var(--sunk)}
+.mw-s.win b{color:var(--ink);font-weight:700}
+.mw-row .r{text-align:right;font-size:14px;font-weight:700;color:var(--turf)}
+.mw-row .r small{display:block;font-size:10px;font-weight:400}
+.mw-row .r.uk{color:var(--uk)}
+.mw-row .r.usa{color:var(--usa)}
+.mw-row.halved .r{font-weight:400}
+.mw-note{margin:12px 0 0;font-size:12.5px;color:var(--turf);line-height:1.5}
+.mwmodal .acts{justify-content:center;margin-top:16px}
+
 /* ---- the turn ----
    A scoreboard, not a dialogue box: wider than the rest, and the field list
    scrolls inside it rather than pushing the buttons off a phone. */

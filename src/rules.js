@@ -60,11 +60,15 @@ export const RULES = [
     body: [
       'Every golfer belongs to a squad — UK or USA — set on the Ryder Cup screen. The matches are scored off the identical cards that feed everything else. No extra golf, no separate card.',
       'Every session is head-to-head net singles: one UK golfer against one USA golfer, hole by hole, match play. Thursday and Friday run alongside the Better Ball rounds; Sunday runs alongside the championship final. You play your own ball in the cup whatever the day’s team format is.',
-      'The draw is redrawn each session, so you do not meet the same opponent twice. If the squads are uneven, the bigger squad rotates: whoever sits out on Thursday is in on Friday, and everyone plays at least twice.',
-      'Match play notation: “2 up” means two holes ahead with holes left. “3&2” means the match closed three up with two to play. “All square” is level.',
+      'A hole is won like this. Take the gross. Cap it at triple bogey first — a blow-up hole counts as par plus three and no worse. Then take off the strokes your band gives on that hole’s stroke index. Lower net takes the hole; equal nets halve it. Tap the result on any match to see that working, hole by hole.',
+      'The match closes the moment the lead is bigger than the holes left — that is what “3&2” means, three up with two to play. Otherwise it runs to the 18th. Win the match and your squad takes a point; all square after eighteen and it is half each. A match still on the course is worth nothing yet, which is why the boards say how many are still out.',
+      'With four a side that is four matches a session and twelve points across the week, so six and a half wins the cup. The draw is redrawn each session, so you do not meet the same opponent twice. If the squads are uneven, the bigger squad rotates: whoever sits out on Thursday is in on Friday, and everyone plays at least twice.',
+      'STROKES ARE NOT THE CUP. The cup is points and only points. Two squads’ scoring averages settle no match and win no point — a man can go round in 84 and still take his match, and a man can play beautifully and lose it one down. Strokes decide the Team Competition and the MVP; holes decide this.',
+      'Your pairing has no bearing on it either. The draw is built from squads, never from pairs — which means a mixed pair can be drawn against each other, playing better ball together and singles against each other on the same eighteen holes. Shooting your own lowest score still serves both.',
+      'Match play notation: “2 up” means two holes ahead with holes left. “All square” is level. “Dormie” is up by exactly the number left.',
       'Tie: if the cup finishes level, it is shared — and argued about at Mandatory Team Beers.',
     ],
-    example: 'Thursday singles: on hole 9 Duncan’s net 4 beats Ray’s net 5 — Duncan goes 1 up. He closes it 3&2 on the 16th: one point to his squad.' },
+    example: 'Thursday singles, hole 9 at Olympos — par 4, stroke index 5. Duncan W plays off band 25 and receives two strokes there; Ray V plays off band 20 and receives one. Duncan takes 6 gross, net 4. Ray takes 5 gross, net 4. The hole is halved, and the five gross beat the six for nothing. Duncan closes the match 3&2 on the 16th: one point to the United Kingdom.' },
 ];
 
 export const RELIEF = {

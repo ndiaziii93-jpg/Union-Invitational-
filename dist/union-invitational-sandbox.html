@@ -460,6 +460,57 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 .modal .err{color:var(--flag);font-size:14px;min-height:19px;margin:0}
 .modal .acts{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
 
+/* ---- why a match stands where it does ----
+   The pill on a cup row is the only thing that states a result, so it is
+   what a finger goes to. It has to look pressable without becoming another
+   button in a row that is already busy: the border firms up, and it keeps
+   the squad colour it already had. */
+.match .st.why{cursor:pointer;border-style:dashed}
+@media (hover:hover) and (pointer:fine){
+  .match .st.why:hover{border-style:solid;background:var(--sunk);color:var(--ink)}
+  .match .st.why.uk:hover{color:var(--uk)}
+  .match .st.why.usa:hover{color:var(--usa)}
+}
+.match .st:disabled{opacity:.55;cursor:default}
+
+.mwmodal{max-width:520px;gap:0;padding:22px 20px 18px;border-top-color:var(--ink)}
+.mwmodal .mw-eye{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--turf);
+  font-weight:700;display:block}
+.mwmodal .mw-q{font-size:22px;margin:6px 0 0;line-height:1.2}
+.mwmodal .mw-q span{color:var(--turf);font-weight:400;font-size:17px;padding:0 4px}
+.mw-v{margin:8px 0 0;font-size:16px;font-weight:600;color:var(--ink)}
+.mw-w{margin:3px 0 0;font-size:14px;color:var(--turf)}
+.mw-w b{color:var(--gold)}
+
+.mw-tally{display:flex;gap:8px;margin-top:14px;text-align:center}
+.mw-tally span{flex:1 1 0;min-width:0;border:1px solid var(--rule);background:var(--paper);
+  border-radius:3px;padding:7px 4px;font-size:12px;color:var(--turf);overflow-wrap:anywhere}
+.mw-tally b{display:block;font-size:21px;color:var(--ink)}
+
+.mw-head,.mw-row{display:grid;grid-template-columns:58px 1fr 1fr 64px;gap:6px;align-items:center}
+.mw-head{margin-top:16px;padding:0 4px 6px;border-bottom:2px solid var(--ink);
+  font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--turf);font-weight:700}
+.mw-head .s,.mw-head .r{text-align:center}
+.mw-head small{display:block;font-weight:400;letter-spacing:0;text-transform:none}
+.mw-rows{max-height:40vh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.mw-row{padding:7px 4px;border-bottom:1px solid var(--hair)}
+.mw-row:last-child{border-bottom:none}
+.mw-row .h b{font-size:16px}
+.mw-row .h small{display:block;font-size:10px;color:var(--turf)}
+.mw-s{text-align:center;border-radius:3px;padding:2px 0}
+.mw-s b{font-size:18px;color:var(--turf);font-weight:400}
+.mw-s small{display:block;font-size:10px;color:var(--turf)}
+/* the ball that took the hole */
+.mw-s.win{background:var(--sunk)}
+.mw-s.win b{color:var(--ink);font-weight:700}
+.mw-row .r{text-align:right;font-size:14px;font-weight:700;color:var(--turf)}
+.mw-row .r small{display:block;font-size:10px;font-weight:400}
+.mw-row .r.uk{color:var(--uk)}
+.mw-row .r.usa{color:var(--usa)}
+.mw-row.halved .r{font-weight:400}
+.mw-note{margin:12px 0 0;font-size:12.5px;color:var(--turf);line-height:1.5}
+.mwmodal .acts{justify-content:center;margin-top:16px}
+
 /* ---- the turn ----
    A scoreboard, not a dialogue box: wider than the rest, and the field list
    scrolls inside it rather than pushing the buttons off a phone. */
@@ -1955,7 +2006,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20260927-0715';
+const BUILD = '20260927-1800';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -2144,11 +2195,15 @@ const RULES = [
     body: [
       'Every golfer belongs to a squad — UK or USA — set on the Ryder Cup screen. The matches are scored off the identical cards that feed everything else. No extra golf, no separate card.',
       'Every session is head-to-head net singles: one UK golfer against one USA golfer, hole by hole, match play. Thursday and Friday run alongside the Better Ball rounds; Sunday runs alongside the championship final. You play your own ball in the cup whatever the day’s team format is.',
-      'The draw is redrawn each session, so you do not meet the same opponent twice. If the squads are uneven, the bigger squad rotates: whoever sits out on Thursday is in on Friday, and everyone plays at least twice.',
-      'Match play notation: “2 up” means two holes ahead with holes left. “3&2” means the match closed three up with two to play. “All square” is level.',
+      'A hole is won like this. Take the gross. Cap it at triple bogey first — a blow-up hole counts as par plus three and no worse. Then take off the strokes your band gives on that hole’s stroke index. Lower net takes the hole; equal nets halve it. Tap the result on any match to see that working, hole by hole.',
+      'The match closes the moment the lead is bigger than the holes left — that is what “3&2” means, three up with two to play. Otherwise it runs to the 18th. Win the match and your squad takes a point; all square after eighteen and it is half each. A match still on the course is worth nothing yet, which is why the boards say how many are still out.',
+      'With four a side that is four matches a session and twelve points across the week, so six and a half wins the cup. The draw is redrawn each session, so you do not meet the same opponent twice. If the squads are uneven, the bigger squad rotates: whoever sits out on Thursday is in on Friday, and everyone plays at least twice.',
+      'STROKES ARE NOT THE CUP. The cup is points and only points. Two squads’ scoring averages settle no match and win no point — a man can go round in 84 and still take his match, and a man can play beautifully and lose it one down. Strokes decide the Team Competition and the MVP; holes decide this.',
+      'Your pairing has no bearing on it either. The draw is built from squads, never from pairs — which means a mixed pair can be drawn against each other, playing better ball together and singles against each other on the same eighteen holes. Shooting your own lowest score still serves both.',
+      'Match play notation: “2 up” means two holes ahead with holes left. “All square” is level. “Dormie” is up by exactly the number left.',
       'Tie: if the cup finishes level, it is shared — and argued about at Mandatory Team Beers.',
     ],
-    example: 'Thursday singles: on hole 9 Duncan’s net 4 beats Ray’s net 5 — Duncan goes 1 up. He closes it 3&2 on the 16th: one point to his squad.' },
+    example: 'Thursday singles, hole 9 at Olympos — par 4, stroke index 5. Duncan W plays off band 25 and receives two strokes there; Ray V plays off band 20 and receives one. Duncan takes 6 gross, net 4. Ray takes 5 gross, net 4. The hole is halved, and the five gross beat the six for nothing. Duncan closes the match 3&2 on the 16th: one point to the United Kingdom.' },
 ];
 
 const RELIEF = {
@@ -3763,6 +3818,51 @@ function matchPlay(sideA, sideB) {
   return { up, thru, status, done: result != null || thru === 18, side: up > 0 ? 'UK' : up < 0 ? 'USA' : null };
 }
 
+/** A cup match, hole by hole — what each side actually did, and who took it.
+ *
+ *  matchPlay() answers "who is up"; this answers "why", which is the only
+ *  question anybody asks about a match they were not in. Same arithmetic,
+ *  the working shown: gross, the cap, the strokes the band gives on that
+ *  hole's index, the net, and the running state after it. */
+function matchDetail(T, rid, aId, bId) {
+  const holes = courseOf(T, rid).holes;
+  const A = person(T, aId), B = person(T, bId);
+  const ca = card(T, rid, aId), cb = card(T, rid, bId);
+  const cap = T.config.capOver;
+  const rows = [];
+  let up = 0, thru = 0, result = null, closedAt = null;
+  let wonA = 0, wonB = 0, halved = 0;
+  for (let h = 0; h < 18; h++) {
+    const na = playerNet(T, rid, aId, h), nb = playerNet(T, rid, bId, h);
+    if (na == null || nb == null) break;
+    thru = h + 1;
+    const took = na < nb ? 'a' : nb < na ? 'b' : null;
+    if (took === 'a') { up++; wonA++; } else if (took === 'b') { up--; wonB++; } else halved++;
+    const gA = ca ? ca.raw[h] : null, gB = cb ? cb.raw[h] : null;
+    rows.push({
+      n: holes[h].n, par: holes[h].par, si: holes[h].si,
+      aGross: gA, bGross: gB,
+      aCapped: capped(gA, holes[h].par, cap) !== gA,
+      bCapped: capped(gB, holes[h].par, cap) !== gB,
+      aStrokes: strokesFor(A && A.band, holes[h].si),
+      bStrokes: strokesFor(B && B.band, holes[h].si),
+      aNet: na, bNet: nb, took, up,
+    });
+    const left = 18 - thru;
+    if (Math.abs(up) > left) { result = Math.abs(up) + '&' + left; closedAt = holes[h].n; break; }
+  }
+  const done = result != null || thru === 18;
+  return {
+    a: { id: aId, name: (A || {}).display || '?', band: (A || {}).band || null, squad: 'UK' },
+    b: { id: bId, name: (B || {}).display || '?', band: (B || {}).band || null, squad: 'USA' },
+    rows, up, thru, result, closedAt, wonA, wonB, halved, done,
+    side: up > 0 ? 'UK' : up < 0 ? 'USA' : null,
+    /* What the match is worth, as it stands. A match still out is worth
+       nothing yet — that is the point of saying how many are still out. */
+    points: !done ? null : up === 0 ? { uk: 0.5, usa: 0.5 } : up > 0 ? { uk: 1, usa: 0 } : { uk: 0, usa: 1 },
+  };
+}
+
 function ryderData(T, now) {
   const gs = golfers(T);
   const sessions = [];
@@ -3946,7 +4046,7 @@ function roundToPar(T, roundId, pid) {
   return { tp, thru };
 }
 
-return {nowLocal, dayOf, hhmmToMin, to12, to24, BANDS, strokesFor, bandTotal, fmtToPar, capFor, capped, person, golfers, roundDef, roundCfg, courseByKey, courseOf, scoreKey, card, pairName, phaseOf, phaseLabel, hasScores, countingRounds, playerNet, pairHole, PAIRS_PER_GROUP, groups, finishGroups, groupThru18, groupDone, groupsOut, TURN_HOLES, toParThru, groupAtTurn, turnAt, turnGroups, turnSnapshot, practiceBoard, practiceBbb, bandsLocked, pairsBoard, mvpBoard, BBB_SLOTS, bbbMarks, MARKS, MARK_KEYS, MOODS, OWNS, moodLabel, ownLabels, OWN_MARKS, OWN_KEYS, holeMarks, selfLog, selfMarks, markCoverage, markTally, markLine, bbbBoard, roundComplete, brief, roundBrief, recapRound, roundStanding, ribbon, pairRoundBoard, recapTable, swingOfTheDay, sideGames, recapInput, matchPlay, ryderData, holeCells, setupIssues, nextTee, fixtures, nextFixture, TEE_CHOICES, TEE_PRIV, teePrivilege, roundToPar};
+return {nowLocal, dayOf, hhmmToMin, to12, to24, BANDS, strokesFor, bandTotal, fmtToPar, capFor, capped, person, golfers, roundDef, roundCfg, courseByKey, courseOf, scoreKey, card, pairName, phaseOf, phaseLabel, hasScores, countingRounds, playerNet, pairHole, PAIRS_PER_GROUP, groups, finishGroups, groupThru18, groupDone, groupsOut, TURN_HOLES, toParThru, groupAtTurn, turnAt, turnGroups, turnSnapshot, practiceBoard, practiceBbb, bandsLocked, pairsBoard, mvpBoard, BBB_SLOTS, bbbMarks, MARKS, MARK_KEYS, MOODS, OWNS, moodLabel, ownLabels, OWN_MARKS, OWN_KEYS, holeMarks, selfLog, selfMarks, markCoverage, markTally, markLine, bbbBoard, roundComplete, brief, roundBrief, recapRound, roundStanding, ribbon, pairRoundBoard, recapTable, swingOfTheDay, sideGames, recapInput, matchPlay, matchDetail, ryderData, holeCells, setupIssues, nextTee, fixtures, nextFixture, TEE_CHOICES, TEE_PRIV, teePrivilege, roundToPar};
 })();
 
 const __m_dbsupa = (function(){
@@ -6352,7 +6452,7 @@ function sampleError(e) {
  *
  * Nothing is flagged until the match is done. While it is still out there
  * the pill says who is up, and a flag would read as a result. */
-function matchRow(m) {
+function matchRow(m, rid) {
   const won = s2 => m.done && m.side === s2;
   const halved = m.done && !m.side;
   const mark = s2 => {
@@ -6366,7 +6466,12 @@ function matchRow(m) {
   return `<div class="match${m.done ? ' done' : ''}">
     ${mark('UK')}
     <span class="mn${won('UK') ? ' win' : ''}">${esc(m.a)}</span>
-    <span class="st ${m.side === 'UK' ? 'uk' : m.side === 'USA' ? 'usa' : ''}">${esc(m.status)}${m.thru && !m.done ? ' \u00b7 thru ' + m.thru : ''}</span>
+    ${/* The pill is the only thing on the row that states a result, so it is
+          the thing a finger goes to when somebody wants to know WHY. */ ''}
+    <button class="st ${m.side === 'UK' ? 'uk' : m.side === 'USA' ? 'usa' : ''}${m.thru ? ' why' : ''}"
+      ${m.thru ? `data-act="matchWhy" data-a="${rid}" data-b="${m.aId}" data-c="${m.bId}"
+      aria-label="How ${esc(m.a)} against ${esc(m.b)} stands, hole by hole"` : ' disabled'}
+      >${esc(m.status)}${m.thru && !m.done ? ' \u00b7 thru ' + m.thru : ''}</button>
     <span class="mn r${won('USA') ? ' win' : ''}">${esc(m.b)}</span>
     ${mark('USA')}
   </div>`;
@@ -6407,7 +6512,7 @@ function scrRyder() {
     <h3 class="sub">${esc(s.label)} — ${esc(s.format)}</h3>
     <div style="font-family:var(--mono);font-size:13px;color:var(--turf);margin-top:2px">UK ${s.uk} · USA ${s.usa}</div>
     ${s.matches.length ? `<div class="rows" style="margin-top:8px;border-top:1px solid var(--rule)">
-      ${s.matches.map(m => matchRow(m)).join('')}
+      ${s.matches.map(m => matchRow(m, s.id)).join('')}
     </div>` : `<p class="empty">No matches yet — put golfers in both squads and the draw builds itself.</p>`}
     ${s.sitting && s.sitting.length ? `<p class="rnote" style="margin-top:6px">Sitting this session: ${esc(s.sitting.join(', '))}.</p>` : ''}
   `).join('')}`;
@@ -7328,6 +7433,21 @@ function scrRoster() {
 function scrRules() {
   return `<h2 class="head">Games &amp; Rules</h2>
   <p class="lede">Six competitions, one scorecard. Everything is net off your playing band.</p>
+
+  ${/* The one thing nobody works out on their own: the competitions count
+        the SAME eighteen numbers in different currencies, which is why two
+        boards can tell different stories about the same afternoon. Said
+        once, at the top, rather than six times inside. */ ''}
+  <div class="notice" style="border-left-color:var(--gold)">
+    <b>They all count the same numbers — in different currencies</b>
+    <div style="font-size:15px;color:var(--turf)">You write down one gross score a hole. The
+      Team Competition and the MVP add up <b>strokes</b>. Bingo Bango Bongo counts <b>points</b>,
+      three a hole. The Ryder Cup counts <b>holes won</b>, and pays a point a match. So a
+      blow-up hole can cost you a mile in the MVP and exactly one hole in the cup — and two
+      boards disagreeing about who had the better day is them working, not them broken.
+      Nothing here is entered twice and no competition changes another.</div>
+  </div>
+
   <div style="margin-top:16px">
   ${RULES.map(r => `<details class="rule-item" id="rule-${r.id}">
     <summary><span class="nm">${esc(r.name)}</span><span class="tg2">${esc(r.tag)}</span><span class="mk">+</span></summary>
@@ -8802,8 +8922,85 @@ function bbbModalHtml() {
   </div></div>`;
 }
 
+/* ---------------- why a match stands where it does ----------------
+ *
+ * The pill on a cup row says "3&2" or "2 up", which is the answer to a
+ * question nobody asked. What everyone asks, at dinner, is HOW — and the
+ * how is arithmetic nobody can do in their head: gross, capped at triple
+ * bogey, less the strokes your band gives on that hole's index, and the
+ * lower net takes the hole.
+ *
+ * So the pill opens the working. Same numbers the cup is already scored
+ * from; nothing here is computed a second way. */
+
+function matchWhyHtml() {
+  const m = UI.modal;
+  const d = E.matchDetail(T, m.rid, m.aId, m.bId);
+  const r = E.roundDef(m.rid);
+  const round = r.short === 'Practice' ? 'the practice round' : 'Round ' + r.short.slice(1);
+  const won = d.side === 'UK' ? d.a : d.side === 'USA' ? d.b : null;
+
+  const verdict = !d.thru ? 'Not started.'
+    : d.result ? esc(won.name) + ' won ' + d.result + ', closed on the ' + ord(d.closedAt) + '.'
+    : d.done ? (d.up === 0 ? 'Halved after eighteen.' : esc(won.name) + ' won ' + Math.abs(d.up) + ' up.')
+    : d.up === 0 ? 'All square through ' + d.thru + '.'
+    : esc(won.name) + ' is ' + Math.abs(d.up) + ' up with ' + (18 - d.thru) + ' to play.';
+
+  const worth = !d.points
+    ? '<b>Nothing banked yet.</b> A match pays out only when it is over.'
+    : d.points.uk === 0.5
+      ? '<b>Half a point each.</b>'
+      : '<b>One point to ' + (d.points.uk ? 'the United Kingdom' : 'the United States') + '.</b>';
+
+  const side = (n, str, capd, win) => `<span class="mw-s${win ? ' win' : ''}">
+    <b class="num">${n == null ? '·' : n}</b>
+    <small class="num">${n == null ? '' : (capd ? 'capped, ' : '') + (str ? 'less ' + str : 'no shot')}</small></span>`;
+
+  return `<div class="scrim" data-act="modalScrim"><div class="modal mwmodal"
+    role="dialog" aria-modal="true" aria-label="How ${esc(d.a.name)} against ${esc(d.b.name)} stands">
+    <span class="mw-eye">${esc([round, E.courseOf(T, m.rid).name, 'Singles'].join(' \u00B7 '))}</span>
+    <h3 class="mw-q">${esc(d.a.name)} <span>v</span> ${esc(d.b.name)}</h3>
+    <p class="mw-v">${verdict}</p>
+    <p class="mw-w">${worth}</p>
+
+    <div class="mw-tally">
+      <span><b class="num">${d.wonA}</b>${esc(d.a.name)}</span>
+      <span><b class="num">${d.halved}</b>halved</span>
+      <span><b class="num">${d.wonB}</b>${esc(d.b.name)}</span>
+    </div>
+
+    ${d.rows.length ? `<div class="mw-head">
+      <span class="h">Hole</span>
+      <span class="s">${esc(d.a.name)}<small>band ${d.a.band || '—'}</small></span>
+      <span class="s">${esc(d.b.name)}<small>band ${d.b.band || '—'}</small></span>
+      <span class="r">Match</span></div>
+    <div class="mw-rows">${d.rows.map(x => `<div class="mw-row${x.took ? '' : ' halved'}">
+      <span class="h"><b class="num">${x.n}</b><small class="num">par ${x.par} · SI ${x.si}</small></span>
+      ${side(x.aGross, x.aStrokes, x.aCapped, x.took === 'a')}
+      ${side(x.bGross, x.bStrokes, x.bCapped, x.took === 'b')}
+      <span class="r ${x.up > 0 ? 'uk' : x.up < 0 ? 'usa' : ''}">${
+        x.up === 0 ? 'level' : Math.abs(x.up) + ' up'}<small>${
+        x.up === 0 ? '' : x.up > 0 ? 'UK' : 'USA'}</small></span>
+    </div>`).join('')}</div>
+    <p class="mw-note">The number under each name is the gross. The line beneath it is what the
+      book took off: a hole is capped at par plus ${T.config.capOver} first, then the strokes that
+      band gives on this hole&rsquo;s stroke index. The lower net takes the hole.</p>`
+    : '<p class="mw-note">Nothing scored on this match yet.</p>'}
+
+    <div class="acts"><button class="btn" data-act="modalCancel">Close</button></div>
+  </div></div>`;
+}
+
+/** 16 → 16th. For "closed on the 16th", which is how anybody says it. */
+function ord(n) {
+  const t = n % 100;
+  if (t >= 11 && t <= 13) return n + 'th';
+  return n + ({ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th');
+}
+
 function modalHtml() {
-  return UI.modal.kind === 'turn' ? turnModalHtml()
+  return UI.modal.kind === 'matchwhy' ? matchWhyHtml()
+       : UI.modal.kind === 'turn' ? turnModalHtml()
        : UI.modal.kind === 'finish' ? finishModalHtml()
        : UI.modal.kind === 'bbbmiss' ? bbbModalHtml()
        : UI.modal.kind === 'venue' ? venueModalHtml()
@@ -8876,7 +9073,7 @@ const setRound = (rid, patch) => store.writeConfig(c => { Object.assign(c.rounds
 function onClick(e) {
   const el = e.target.closest('[data-act]');
   if (!el) return;
-  const { act, a, b } = el.dataset;
+  const { act, a, b, c } = el.dataset;
   if (el.tagName === 'SELECT' || el.tagName === 'INPUT') return;
   if (store && store.note) store.note('tap', act + ' a=' + (a || '') + ' b=' + (b || ''));
   const rid = UI.entryRound;
@@ -9117,6 +9314,10 @@ function onClick(e) {
       render();
       return;
     }
+    case 'matchWhy':
+      UI.modal = { kind: 'matchwhy', rid: a, aId: b, bId: c };
+      render();
+      return;
     case 'askFinish': {
       const ask = finishAsk(rid);
       if (!ask) return;

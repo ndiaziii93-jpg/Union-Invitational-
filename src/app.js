@@ -1064,7 +1064,7 @@ function sampleError(e) {
  *
  * Nothing is flagged until the match is done. While it is still out there
  * the pill says who is up, and a flag would read as a result. */
-function matchRow(m) {
+function matchRow(m, rid) {
   const won = s2 => m.done && m.side === s2;
   const halved = m.done && !m.side;
   const mark = s2 => {
@@ -1078,7 +1078,12 @@ function matchRow(m) {
   return `<div class="match${m.done ? ' done' : ''}">
     ${mark('UK')}
     <span class="mn${won('UK') ? ' win' : ''}">${esc(m.a)}</span>
-    <span class="st ${m.side === 'UK' ? 'uk' : m.side === 'USA' ? 'usa' : ''}">${esc(m.status)}${m.thru && !m.done ? ' \u00b7 thru ' + m.thru : ''}</span>
+    ${/* The pill is the only thing on the row that states a result, so it is
+          the thing a finger goes to when somebody wants to know WHY. */ ''}
+    <button class="st ${m.side === 'UK' ? 'uk' : m.side === 'USA' ? 'usa' : ''}${m.thru ? ' why' : ''}"
+      ${m.thru ? `data-act="matchWhy" data-a="${rid}" data-b="${m.aId}" data-c="${m.bId}"
+      aria-label="How ${esc(m.a)} against ${esc(m.b)} stands, hole by hole"` : ' disabled'}
+      >${esc(m.status)}${m.thru && !m.done ? ' \u00b7 thru ' + m.thru : ''}</button>
     <span class="mn r${won('USA') ? ' win' : ''}">${esc(m.b)}</span>
     ${mark('USA')}
   </div>`;
@@ -1119,7 +1124,7 @@ function scrRyder() {
     <h3 class="sub">${esc(s.label)} — ${esc(s.format)}</h3>
     <div style="font-family:var(--mono);font-size:13px;color:var(--turf);margin-top:2px">UK ${s.uk} · USA ${s.usa}</div>
     ${s.matches.length ? `<div class="rows" style="margin-top:8px;border-top:1px solid var(--rule)">
-      ${s.matches.map(m => matchRow(m)).join('')}
+      ${s.matches.map(m => matchRow(m, s.id)).join('')}
     </div>` : `<p class="empty">No matches yet — put golfers in both squads and the draw builds itself.</p>`}
     ${s.sitting && s.sitting.length ? `<p class="rnote" style="margin-top:6px">Sitting this session: ${esc(s.sitting.join(', '))}.</p>` : ''}
   `).join('')}`;
@@ -2040,6 +2045,21 @@ function scrRoster() {
 function scrRules() {
   return `<h2 class="head">Games &amp; Rules</h2>
   <p class="lede">Six competitions, one scorecard. Everything is net off your playing band.</p>
+
+  ${/* The one thing nobody works out on their own: the competitions count
+        the SAME eighteen numbers in different currencies, which is why two
+        boards can tell different stories about the same afternoon. Said
+        once, at the top, rather than six times inside. */ ''}
+  <div class="notice" style="border-left-color:var(--gold)">
+    <b>They all count the same numbers — in different currencies</b>
+    <div style="font-size:15px;color:var(--turf)">You write down one gross score a hole. The
+      Team Competition and the MVP add up <b>strokes</b>. Bingo Bango Bongo counts <b>points</b>,
+      three a hole. The Ryder Cup counts <b>holes won</b>, and pays a point a match. So a
+      blow-up hole can cost you a mile in the MVP and exactly one hole in the cup — and two
+      boards disagreeing about who had the better day is them working, not them broken.
+      Nothing here is entered twice and no competition changes another.</div>
+  </div>
+
   <div style="margin-top:16px">
   ${RULES.map(r => `<details class="rule-item" id="rule-${r.id}">
     <summary><span class="nm">${esc(r.name)}</span><span class="tg2">${esc(r.tag)}</span><span class="mk">+</span></summary>
@@ -3514,8 +3534,85 @@ function bbbModalHtml() {
   </div></div>`;
 }
 
+/* ---------------- why a match stands where it does ----------------
+ *
+ * The pill on a cup row says "3&2" or "2 up", which is the answer to a
+ * question nobody asked. What everyone asks, at dinner, is HOW — and the
+ * how is arithmetic nobody can do in their head: gross, capped at triple
+ * bogey, less the strokes your band gives on that hole's index, and the
+ * lower net takes the hole.
+ *
+ * So the pill opens the working. Same numbers the cup is already scored
+ * from; nothing here is computed a second way. */
+
+function matchWhyHtml() {
+  const m = UI.modal;
+  const d = E.matchDetail(T, m.rid, m.aId, m.bId);
+  const r = E.roundDef(m.rid);
+  const round = r.short === 'Practice' ? 'the practice round' : 'Round ' + r.short.slice(1);
+  const won = d.side === 'UK' ? d.a : d.side === 'USA' ? d.b : null;
+
+  const verdict = !d.thru ? 'Not started.'
+    : d.result ? esc(won.name) + ' won ' + d.result + ', closed on the ' + ord(d.closedAt) + '.'
+    : d.done ? (d.up === 0 ? 'Halved after eighteen.' : esc(won.name) + ' won ' + Math.abs(d.up) + ' up.')
+    : d.up === 0 ? 'All square through ' + d.thru + '.'
+    : esc(won.name) + ' is ' + Math.abs(d.up) + ' up with ' + (18 - d.thru) + ' to play.';
+
+  const worth = !d.points
+    ? '<b>Nothing banked yet.</b> A match pays out only when it is over.'
+    : d.points.uk === 0.5
+      ? '<b>Half a point each.</b>'
+      : '<b>One point to ' + (d.points.uk ? 'the United Kingdom' : 'the United States') + '.</b>';
+
+  const side = (n, str, capd, win) => `<span class="mw-s${win ? ' win' : ''}">
+    <b class="num">${n == null ? '·' : n}</b>
+    <small class="num">${n == null ? '' : (capd ? 'capped, ' : '') + (str ? 'less ' + str : 'no shot')}</small></span>`;
+
+  return `<div class="scrim" data-act="modalScrim"><div class="modal mwmodal"
+    role="dialog" aria-modal="true" aria-label="How ${esc(d.a.name)} against ${esc(d.b.name)} stands">
+    <span class="mw-eye">${esc([round, E.courseOf(T, m.rid).name, 'Singles'].join(' \u00B7 '))}</span>
+    <h3 class="mw-q">${esc(d.a.name)} <span>v</span> ${esc(d.b.name)}</h3>
+    <p class="mw-v">${verdict}</p>
+    <p class="mw-w">${worth}</p>
+
+    <div class="mw-tally">
+      <span><b class="num">${d.wonA}</b>${esc(d.a.name)}</span>
+      <span><b class="num">${d.halved}</b>halved</span>
+      <span><b class="num">${d.wonB}</b>${esc(d.b.name)}</span>
+    </div>
+
+    ${d.rows.length ? `<div class="mw-head">
+      <span class="h">Hole</span>
+      <span class="s">${esc(d.a.name)}<small>band ${d.a.band || '—'}</small></span>
+      <span class="s">${esc(d.b.name)}<small>band ${d.b.band || '—'}</small></span>
+      <span class="r">Match</span></div>
+    <div class="mw-rows">${d.rows.map(x => `<div class="mw-row${x.took ? '' : ' halved'}">
+      <span class="h"><b class="num">${x.n}</b><small class="num">par ${x.par} · SI ${x.si}</small></span>
+      ${side(x.aGross, x.aStrokes, x.aCapped, x.took === 'a')}
+      ${side(x.bGross, x.bStrokes, x.bCapped, x.took === 'b')}
+      <span class="r ${x.up > 0 ? 'uk' : x.up < 0 ? 'usa' : ''}">${
+        x.up === 0 ? 'level' : Math.abs(x.up) + ' up'}<small>${
+        x.up === 0 ? '' : x.up > 0 ? 'UK' : 'USA'}</small></span>
+    </div>`).join('')}</div>
+    <p class="mw-note">The number under each name is the gross. The line beneath it is what the
+      book took off: a hole is capped at par plus ${T.config.capOver} first, then the strokes that
+      band gives on this hole&rsquo;s stroke index. The lower net takes the hole.</p>`
+    : '<p class="mw-note">Nothing scored on this match yet.</p>'}
+
+    <div class="acts"><button class="btn" data-act="modalCancel">Close</button></div>
+  </div></div>`;
+}
+
+/** 16 → 16th. For "closed on the 16th", which is how anybody says it. */
+function ord(n) {
+  const t = n % 100;
+  if (t >= 11 && t <= 13) return n + 'th';
+  return n + ({ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th');
+}
+
 function modalHtml() {
-  return UI.modal.kind === 'turn' ? turnModalHtml()
+  return UI.modal.kind === 'matchwhy' ? matchWhyHtml()
+       : UI.modal.kind === 'turn' ? turnModalHtml()
        : UI.modal.kind === 'finish' ? finishModalHtml()
        : UI.modal.kind === 'bbbmiss' ? bbbModalHtml()
        : UI.modal.kind === 'venue' ? venueModalHtml()
@@ -3588,7 +3685,7 @@ const setRound = (rid, patch) => store.writeConfig(c => { Object.assign(c.rounds
 function onClick(e) {
   const el = e.target.closest('[data-act]');
   if (!el) return;
-  const { act, a, b } = el.dataset;
+  const { act, a, b, c } = el.dataset;
   if (el.tagName === 'SELECT' || el.tagName === 'INPUT') return;
   if (store && store.note) store.note('tap', act + ' a=' + (a || '') + ' b=' + (b || ''));
   const rid = UI.entryRound;
@@ -3829,6 +3926,10 @@ function onClick(e) {
       render();
       return;
     }
+    case 'matchWhy':
+      UI.modal = { kind: 'matchwhy', rid: a, aId: b, bId: c };
+      render();
+      return;
     case 'askFinish': {
       const ask = finishAsk(rid);
       if (!ask) return;
