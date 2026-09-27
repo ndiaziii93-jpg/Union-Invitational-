@@ -162,9 +162,30 @@ ok('and it fits the phone', await p.evaluate(() => {
 ok('no sideways scroll', await p.evaluate(
   () => document.documentElement.scrollWidth > window.innerWidth + 1), false);
 
+/* SCROLLING IT MUST NOT BE CHOPPY, which on a phone is a question about how
+   many things can move at once. The window used to carry a scrolling panel
+   inside it while the page behind stayed scrollable too — so a drag could
+   belong to the panel, to the window, or to the page, and the handover
+   between them is the stutter. One surface. */
+const surfaces = await p.evaluate(() => ({
+  locked: document.documentElement.classList.contains('noscroll'),
+  nested: [...document.querySelectorAll('.scrim *')].filter(el => {
+    const cs = getComputedStyle(el);
+    return /auto|scroll/.test(cs.overflowY) && el.scrollHeight > el.clientHeight + 1;
+  }).length,
+  watermark: getComputedStyle(document.querySelector('.watermark')).display,
+}));
+ok('the page behind is held still', surfaces.locked, true);
+ok('and nothing inside the window scrolls on its own', surfaces.nested, 0);
+/* A large fixed layer nobody can see should not be repainting under a
+   window that is moving. */
+ok('the crest behind it stops painting', surfaces.watermark, 'none');
+
 await p.locator('.mwmodal [data-act="modalCancel"]').click(); await p.waitForTimeout(400);
 ok('it closes', await p.locator('.mwmodal').count(), 0);
 ok('and leaves the cup behind it', await p.locator('.match').count() > 0, true);
+ok('the page can move again',
+  await p.evaluate(() => document.documentElement.classList.contains('noscroll')), false);
 
 await b.close();
 console.log(fails.length ? '\n' + fails.length + ' FAILED: ' + fails.join(', ') : '\nall good');

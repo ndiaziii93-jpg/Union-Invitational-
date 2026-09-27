@@ -3066,7 +3066,13 @@ function paint() {
   ${recapPanel()}`;
 
   // the page behind a window does not scroll with it
-  document.documentElement.classList.toggle('noscroll', !!UI.recapOpen);
+  /* THE PAGE BEHIND A WINDOW MUST NOT MOVE.
+     It was locked for the recap and for nothing else, so every other window
+     sat over a page that was still scrollable — and a drag inside the window
+     that ran out of room handed itself to the page underneath. On iOS that
+     is the rubber-band fight that reads as choppy scrolling. One surface
+     moves at a time. */
+  document.documentElement.classList.toggle('noscroll', !!UI.recapOpen || !!UI.modal);
 
   const box2 = document.getElementById('recapBox');
   if (box2 && boxAt) box2.scrollTop = boxAt;

@@ -479,10 +479,19 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 .kv .k small{display:block;color:var(--turf);font-size:13px}
 
 /* ---- modal ---- */
-.scrim{position:fixed;inset:0;background:rgba(20,26,21,.55);z-index:60;display:flex;align-items:center;
-  justify-content:center;padding:18px}
+/* ONE SCROLLING SURFACE, and it is this one.
+   A tall window used to carry its own scrolling panel inside it, which on a
+   phone means a drag can belong to the panel, to the window, or to the page
+   behind — and the handover between them is what reads as choppy. The scrim
+   scrolls; nothing inside it does.
+   align-items:flex-start with margin:auto on the child is the pattern that
+   keeps a short window centred while letting a tall one scroll from its top
+   rather than being clipped there. */
+.scrim{position:fixed;inset:0;background:rgba(20,26,21,.55);z-index:60;display:flex;
+  align-items:flex-start;justify-content:center;padding:18px;
+  overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 .modal{background:var(--page);border:1px solid var(--rule);border-top:3px solid var(--flag);max-width:400px;width:100%;
-  padding:22px 24px;box-shadow:0 20px 54px var(--shadow);border-radius:3px;display:grid;gap:13px}
+  margin:auto;padding:22px 24px;box-shadow:0 20px 54px var(--shadow);border-radius:3px;display:grid;gap:13px}
 .modal h3{margin:0;font-size:21px;font-weight:700}
 .modal p{margin:0;font-size:15px;color:var(--turf)}
 .pinin{font-size:28px;font-variant-numeric:tabular-nums;letter-spacing:.32em;text-align:center;padding:12px;
@@ -511,10 +520,9 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
   line-height:1.25;overflow-wrap:anywhere}
 .mw-head .s,.mw-head .r{text-align:center}
 .mw-head small{display:block;font-weight:400;letter-spacing:0;text-transform:none}
-/* A scroll region has to look like one, or the row it cuts in half reads as
-   a broken layout. A rule top and bottom says: this is a panel, it moves. */
-.mw-rows{max-height:40vh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;
-  border-bottom:1px solid var(--rule)}
+/* No longer a scroll region of its own — the whole window scrolls. A rule
+   at its foot still closes the list off from the note under it. */
+.mw-rows{border-bottom:1px solid var(--rule)}
 .mw-row{padding:7px 4px;border-bottom:1px solid var(--hair)}
 .mw-row:last-child{border-bottom:none}
 .mw-row .h b{font-size:16px}
@@ -577,7 +585,7 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 .tn-row .n small{display:block;font-size:11px;font-weight:400;color:var(--turf)}
 /* your own group, found without reading a name */
 .tn-row.me{background:var(--sunk);box-shadow:inset 3px 0 0 var(--green);border-radius:2px}
-.tn-field{max-height:34vh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.tn-field{border-bottom:1px solid var(--rule)}
 .turnmodal .acts{justify-content:center;margin-top:16px}
 
 /* ---- the three that get forgotten ----
@@ -1201,6 +1209,11 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
 .recaptop .rt-s{flex:1;font-size:14px;color:var(--turf);min-width:0;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 html.noscroll{overflow:hidden}
+/* The crest behind the page is a large fixed layer. Under a full-screen
+   window it cannot be seen and can still cost a repaint on every frame of a
+   scroll, which is exactly the wrong thing to be paying for while something
+   is moving over the top of it. */
+html.noscroll .watermark{display:none}
 .recapbar{display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;
   background:var(--page);border:1px solid var(--rule);border-radius:3px;padding:11px 14px;margin-top:16px;
   font-size:15px;color:var(--turf)}
@@ -2057,7 +2070,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20260927-1843';
+const BUILD = '20260927-1847';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -8505,7 +8518,13 @@ function paint() {
   ${recapPanel()}`;
 
   // the page behind a window does not scroll with it
-  document.documentElement.classList.toggle('noscroll', !!UI.recapOpen);
+  /* THE PAGE BEHIND A WINDOW MUST NOT MOVE.
+     It was locked for the recap and for nothing else, so every other window
+     sat over a page that was still scrollable — and a drag inside the window
+     that ran out of room handed itself to the page underneath. On iOS that
+     is the rubber-band fight that reads as choppy scrolling. One surface
+     moves at a time. */
+  document.documentElement.classList.toggle('noscroll', !!UI.recapOpen || !!UI.modal);
 
   const box2 = document.getElementById('recapBox');
   if (box2 && boxAt) box2.scrollTop = boxAt;
