@@ -114,11 +114,16 @@ const won = await A.p.evaluate(() => {
     boldIsWinner: (() => { const ns = [...m.querySelectorAll('.mn')];
       return ns.filter(n => n.classList.contains('win')).length === 1
         && ns[left ? 0 : 1].classList.contains('win'); })(),
-    empty: gs[left ? 1 : 0].innerHTML.trim() === '',
+    bothFlagged: gs.every(g => !!g.querySelector('svg')),
   };
 });
-ok('one side of a finished match is flagged', won && won.onlyOneSide, true);
-ok('and the other side is left plain', won && won.empty, true);
+/* A FLAG IS WHOSE SIDE YOU ARE ON, so both ends carry one. It used to be
+   shown only against whoever took the point, which left the loser of every
+   match with an empty gutter — and on a day one squad wins the lot, not a
+   single flag of the other side anywhere on the screen. The POINT is marked
+   separately, on the winner's flag. */
+ok('the squad that took the point is marked', won && won.onlyOneSide, true);
+ok('and both golfers still carry their own flag', won && won.bothFlagged, true);
 ok('the flag names its squad out loud', (won && won.flag) === 'United Kingdom'
   || (won && won.flag) === 'United States', true);
 ok('the United Kingdom flies on the left, the United States on the right',
@@ -144,11 +149,14 @@ ok('no match row spills past the page', await A.p.evaluate(() => {
     return r.left >= -1 && r.right <= w + 1;
   });
 }), true);
-ok('the two golfers are on lines of their own', await A.p.evaluate(() => {
+/* A FIXTURE READS ACROSS. This used to require the opposite — each golfer
+   on a line of his own — which turned a match into three loose lines with a
+   hand's width of dead paper down the middle of a phone. */
+ok('the two golfers are on the same line', await A.p.evaluate(() => {
   const m = document.querySelector('.match');
   const ns = [...m.querySelectorAll('.mn')].map(e => e.getBoundingClientRect());
   if (ns.length !== 2) return 'no names found';
-  return ns[1].top >= ns[0].bottom - 1;   // the second name starts below the first
+  return Math.abs((ns[0].top + ns[0].height / 2) - (ns[1].top + ns[1].height / 2)) < 4;
 }), true);
 
 /* ---------------------------------------------------------------- */
@@ -244,7 +252,7 @@ const halved = await H.p.evaluate(() => {
     .find(x => /halved/i.test(x.querySelector('.st').textContent));
   if (!m) return null;
   const gs = [...m.querySelectorAll('.mp')];
-  return { both: gs.every(g => g.classList.contains('got') && g.classList.contains('half')),
+  return { both: gs.every(g => g.classList.contains('half') && !!g.querySelector('svg')),
     marks: gs.map(g => (g.querySelector('.pt') || {}).textContent || ''),
     flags: gs.map(g => { const s = g.querySelector('svg'); return s ? s.getAttribute('aria-label') : null; }),
     bold: [...m.querySelectorAll('.mn.win')].length };
