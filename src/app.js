@@ -3564,9 +3564,14 @@ function matchWhyHtml() {
       ? '<b>Half a point each.</b>'
       : '<b>One point to ' + (d.points.uk ? 'the United Kingdom' : 'the United States') + '.</b>';
 
-  const side = (n, str, capd, win) => `<span class="mw-s${win ? ' win' : ''}">
-    <b class="num">${n == null ? '·' : n}</b>
-    <small class="num">${n == null ? '' : (capd ? 'capped, ' : '') + (str ? 'less ' + str : 'no shot')}</small></span>`;
+  /* THE NET IS THE BIG NUMBER. It was the gross, with "less 1" underneath —
+     which left the reader to do the subtraction that the window exists to
+     do for them, and hid the only figure that decides the hole. Gross and
+     the shots go underneath now, as the working. */
+  const side = (gross, net, str, capd, win) => `<span class="mw-s${win ? ' win' : ''}">
+    <b class="num">${net == null ? '\u00b7' : net}</b>
+    <small class="num">${gross == null ? '' : (capd ? gross + ' capped' : String(gross))
+      + (str ? ' less ' + str : ', no shot')}</small></span>`;
 
   return `<div class="scrim" data-act="modalScrim"><div class="modal mwmodal"
     role="dialog" aria-modal="true" aria-label="How ${esc(d.a.name)} against ${esc(d.b.name)} stands">
@@ -3588,15 +3593,15 @@ function matchWhyHtml() {
       <span class="r">Match</span></div>
     <div class="mw-rows">${d.rows.map(x => `<div class="mw-row${x.took ? '' : ' halved'}">
       <span class="h"><b class="num">${x.n}</b><small class="num">par ${x.par} · SI ${x.si}</small></span>
-      ${side(x.aGross, x.aStrokes, x.aCapped, x.took === 'a')}
-      ${side(x.bGross, x.bStrokes, x.bCapped, x.took === 'b')}
+      ${side(x.aGross, x.aNet, x.aStrokes, x.aCapped, x.took === 'a')}
+      ${side(x.bGross, x.bNet, x.bStrokes, x.bCapped, x.took === 'b')}
       <span class="r ${x.up > 0 ? 'uk' : x.up < 0 ? 'usa' : ''}">${
         x.up === 0 ? 'level' : Math.abs(x.up) + ' up'}<small>${
         x.up === 0 ? '' : x.up > 0 ? 'UK' : 'USA'}</small></span>
     </div>`).join('')}</div>
-    <p class="mw-note">The number under each name is the gross. The line beneath it is what the
-      book took off: a hole is capped at par plus ${T.config.capOver} first, then the strokes that
-      band gives on this hole&rsquo;s stroke index. The lower net takes the hole.</p>`
+    <p class="mw-note">The big number is the net, and the lower net takes the hole. Under it is
+      the working: the gross, capped at par plus ${T.config.capOver} if it went past that, less the
+      strokes that band gives on this hole&rsquo;s stroke index.</p>`
     : '<p class="mw-note">Nothing scored on this match yet.</p>'}
 
     <div class="acts"><button class="btn" data-act="modalCancel">Close</button></div>

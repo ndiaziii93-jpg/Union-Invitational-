@@ -485,16 +485,20 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 
 .mw-head,.mw-row{display:grid;grid-template-columns:58px 1fr 1fr 64px;gap:6px;align-items:center}
 .mw-head{margin-top:16px;padding:0 4px 6px;border-bottom:2px solid var(--ink);
-  font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--turf);font-weight:700}
+  font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--turf);font-weight:700;
+  line-height:1.25;overflow-wrap:anywhere}
 .mw-head .s,.mw-head .r{text-align:center}
 .mw-head small{display:block;font-weight:400;letter-spacing:0;text-transform:none}
-.mw-rows{max-height:40vh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+/* A scroll region has to look like one, or the row it cuts in half reads as
+   a broken layout. A rule top and bottom says: this is a panel, it moves. */
+.mw-rows{max-height:40vh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;
+  border-bottom:1px solid var(--rule)}
 .mw-row{padding:7px 4px;border-bottom:1px solid var(--hair)}
 .mw-row:last-child{border-bottom:none}
 .mw-row .h b{font-size:16px}
 .mw-row .h small{display:block;font-size:10px;color:var(--turf)}
 .mw-s{text-align:center;border-radius:3px;padding:2px 0}
-.mw-s b{font-size:18px;color:var(--turf);font-weight:400}
+.mw-s b{font-size:19px;color:var(--turf);font-weight:400;line-height:1.1}
 .mw-s small{display:block;font-size:10px;color:var(--turf)}
 /* the ball that took the hole */
 .mw-s.win{background:var(--sunk)}
