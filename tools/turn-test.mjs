@@ -136,6 +136,13 @@ for (let i = 0; i < nsq; i++) {
   for (let k = 0; k < taps; k++) { await sq.nth(i).click(); await A.waitForTimeout(80); }
 }
 await A.waitForTimeout(600); await shut(A);
+/* Read them back rather than assuming the taps landed. Everything about the
+   cup downstream is meaningless without two squads, and a test that goes on
+   regardless reports three cup failures for one setup that did not take. */
+const squads = await A.locator('.sqrow .sqlabel').allInnerTexts();
+const nUK = squads.filter(t => /UK/.test(t)).length;
+const nUS = squads.filter(t => /USA/.test(t)).length;
+ok('both squads have golfers in them', nUK > 0 && nUS > 0, true);
 
 await tab(A, 'Score Entry');
 await A.locator('.rcard:not(.practice)').first().click(); await A.waitForTimeout(600); await shut(A);
@@ -175,6 +182,20 @@ const playHole = async (p, i) => {
 };
 
 console.log('\nthe first eight holes are not the turn');
+const groups = await A.locator('.gchip').count();
+ok('there is more than one group out', groups > 1, true);
+
+/* EVERY GROUP TEES OFF FIRST. A cup match counts only the holes BOTH
+   players have finished, and the draw puts opponents in different groups —
+   so with one group round and the rest on the tee, almost every match reads
+   as not started and the cup has nothing to show. Groups go off back to
+   back in life; two holes apiece is what that looks like. */
+for (let g = 1; g < groups; g++) {
+  await A.locator('.gchip').nth(g).click(); await A.waitForTimeout(500); await shut(A);
+  for (let i = 0; i < 2; i++) await playHole(A, i);
+}
+await A.locator('.gchip').first().click(); await A.waitForTimeout(500); await shut(A);
+
 for (let i = 0; i < 8; i++) await playHole(A, i);
 await shut(A);
 ok('nothing written to the book yet',
