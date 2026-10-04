@@ -152,6 +152,42 @@ const steady = async (pg, sel, ms = 10000) => {
   return last;
 };
 
+/* A RELOAD THAT CANNOT LOSE THE DATABASE.
+ *
+ * The mock keeps its store in sessionStorage so it outlives a reload, the
+ * way a real database outlives a refresh. Under the full suite that storage
+ * has come back EMPTY after p.reload() — page number reset to 1, zero bytes
+ * restored — and the fresh page then re-seeded itself from the fixture, roster
+ * and all. The app had written nothing: its people-write log was empty. The
+ * store simply went missing, and three assertions then accused the app of
+ * resurrecting a golfer it had correctly deleted.
+ *
+ * So the reload goes through here. The store is carried out to Node first,
+ * and if the page comes back up without it, it is put back and the reload is
+ * taken again. A loss that survives that is reported as what it is — the
+ * harness dropping the database — and never as the app rewriting a roster.
+ */
+const reloaded = async (p) => {
+  const lastLoad = () => p.evaluate(() => {
+    try { const L = JSON.parse(sessionStorage.getItem('__loads') || '[]');
+          return L.length ? L[L.length - 1] : null; } catch (e) { return null; }
+  });
+  const kept = await p.evaluate(() => { try { return sessionStorage.getItem('__mockstore'); }
+    catch (e) { return null; } });
+  await p.reload(); await settled(p);
+  let L = await lastLoad();
+  if (L && L.restored !== null) return true;
+  console.log('    [harness] the reload came up with no store (' + JSON.stringify(L)
+    + '). Putting it back and going again.');
+  if (!kept) { ok('the mock database survived the reload', false, true); return false; }
+  await p.evaluate(json => { try { sessionStorage.setItem('__mockstore', json); } catch (e) {} }, kept);
+  await p.reload(); await settled(p);
+  L = await lastLoad();
+  if (L && L.restored !== null) return true;
+  ok('the mock database survived the reload', JSON.stringify(L), 'restored');
+  return false;
+};
+
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
 
 for (const [label, lie] of [['a healthy store', false], ['a store whose first read lies', true]]) {
@@ -249,7 +285,7 @@ for (const [label, lie] of [['a healthy store', false], ['a store whose first re
   ).catch(() => {});
   ok('removing deletes that person\'s document',
     await p.evaluate(() => Object.keys(window.__mockDocs).filter(k => k.startsWith('people/')).length), n - 1);
-  await p.reload(); await settled(p);
+  await reloaded(p);
   await p.locator('[data-act="modalCancel"]').click().catch(() => {});
   await p.locator('.tab', { hasText: 'Roster' }).click(); await p.waitForTimeout(500);
   const rows1 = await steady(p, '.rtable tbody tr');
@@ -298,7 +334,7 @@ for (const [label, lie] of [['a healthy store', false], ['a store whose first re
   ).catch(() => {});
   ok('their document is gone',
     await p.evaluate(() => Object.keys(window.__mockDocs).filter(k => k.startsWith('people/')).length), n - 1);
-  await p.reload(); await settled(p);
+  await reloaded(p);
   await p.locator('[data-act="modalCancel"]').click().catch(() => {});
   await p.locator('.tab', { hasText: 'Roster' }).click(); await p.waitForTimeout(600);
   const rows2 = await steady(p, '.rtable tbody tr');
@@ -406,7 +442,7 @@ for (const [label, lie] of [['a healthy store', false], ['a store whose first re
   if (before.live !== before.kept) console.log(
     '    [drift] the mock has', before.live, 'people but a reload would restore', before.kept);
   ok('what a reload would restore matches what the store holds', before.kept, before.live);
-  await p.reload(); await settled(p);
+  await reloaded(p);
   await p.locator('[data-act="modalCancel"]').click().catch(() => {});
   await p.locator('.tab', { hasText: 'Roster' }).click(); await p.waitForTimeout(600);
   const after = await steady(p, '.rtable tbody tr');
