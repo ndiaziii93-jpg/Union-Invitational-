@@ -3,7 +3,7 @@
  "name": "Dan A",
  "display": "Dan A",
  "role": "golfer",
- "location": null,
+ "location": "USA",
  "group": "5-day",
- "band": null
+ "band": 20
 }

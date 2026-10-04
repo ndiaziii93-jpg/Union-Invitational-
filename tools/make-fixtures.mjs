@@ -30,6 +30,11 @@ const write = (rel, body) => {
 
 const base = () => JSON.parse(JSON.stringify(defaultConfig()));
 
+/* A started tournament: everybody banded, squads even. */
+const BAND = { g1: 20, g2: 25, g3: 20, g4: 25, g5: 20, g6: 20, g7: 25, g8: 20, g9: 25, g10: 20, g11: 20 };
+const SQUAD = { g1: 'UK', g2: 'USA', g3: 'USA', g4: 'UK', g5: 'USA', g6: 'USA',
+                g7: 'UK', g8: 'USA', g9: 'UK', g10: 'UK', g11: 'UK' };
+
 /* db — the factory tournament, roster mirrored into the config as the
    earliest builds wrote it. */
 const factory = base();
@@ -59,17 +64,18 @@ write('db4/config/tournament.json', stripped);
    The roster is still mirrored, which is the shape that has caused the most
    trouble, so it is the one kept around to be tested against. */
 const live = base();
-const BAND = { g1: 20, g2: 25, g3: 20, g4: 25, g5: 20, g6: 20, g7: 25, g8: 20, g9: 25, g10: 20, g11: 20 };
-const SQUAD = { g1: 'UK', g2: 'USA', g3: 'USA', g4: 'UK', g5: 'USA', g6: 'USA',
-                g7: 'UK', g8: 'USA', g9: 'UK', g10: 'UK', g11: 'UK' };
 live.people = live.people.map(p => ({ ...p,
   band: BAND[p.id] ?? p.band, location: SQUAD[p.id] ?? p.location }));
 live.pairs = live.pairs.map((p, i) => ({ ...p, order: i, rev: 8 }));
 live.rev = 41;
 write('db7/config/tournament.json', live);
 
-/* restore — the roster as documents, which is where it really lives. */
-for (const p of factory.people) write('restore/people/' + p.id + '.json', p);
+/* restore — the roster as documents, which is where it really lives.
+   Taken from a tournament that has STARTED: bands set, squads picked. An
+   unbanded roster puts the setup gate over the scoring screen, and a scrim
+   over a screen is a test that cannot tap anything. */
+for (const p of factory.people) write('restore/people/' + p.id + '.json',
+  { ...p, band: BAND[p.id] ?? p.band, location: SQUAD[p.id] ?? p.location });
 for (const p of factory.pairs) write('restore/pairs/' + p.id + '.json', { ...p, order: factory.pairs.indexOf(p) });
 
 console.log('fixtures written to tools/fixtures/');
