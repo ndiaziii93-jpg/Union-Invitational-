@@ -121,7 +121,14 @@ for (let i = 0; i < rows; i++) {
   const n = await bs.count(); if (!n) continue;
   await bs.nth(i % n).click(); await A.waitForTimeout(90);
 }
-/* Squads, so "which team is leading" has two teams to compare. */
+/* Squads, so "which team is leading" has two teams to compare.
+   CLEARED FIRST. The flag cycles unassigned → USA → UK → unassigned, so a
+   fixed number of taps only lands where you meant it to if everyone starts
+   unassigned. The fixture is now a tournament under way, with squads
+   already picked, and the same taps walked half the field off the board. */
+if (await A.locator('[data-act="clearSquads"]').count()) {
+  await A.locator('[data-act="clearSquads"]').click(); await A.waitForTimeout(700);
+}
 const sq = A.locator('[data-act="cycleSquad"]');
 const nsq = await sq.count();
 for (let i = 0; i < nsq; i++) {

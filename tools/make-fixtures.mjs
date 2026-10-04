@@ -51,14 +51,16 @@ edited.pairs = edited.pairs.map(p => ({ ...p, members: p.members.filter(m => !DR
 edited.rev = 5;
 write('db2/config/tournament.json', edited);
 
-/* db4 — the shape the book writes today: the roster lives in its own
-   documents and the config carries no copy of it. */
-const stripped = base();
-stripped.people = [];
-stripped.pairs = [];
-stripped.rosterInDocs = true;
-stripped.rev = 20;
-write('db4/config/tournament.json', stripped);
+/* db4 — mid-migration, and the most interesting shape there is: the roster
+   has been moved into its own documents, the flag says so, and the old copy
+   is still sitting in the config for builds that have not caught up.
+   Both tests that read this take it further themselves — no-clobber-test
+   deletes the copy to get the stripped shape, ready-test deletes the flag to
+   get the legacy one — so the fixture keeps everything and lets them. */
+const migrating = base();
+migrating.rosterInDocs = true;
+migrating.rev = 20;
+write('db4/config/tournament.json', migrating);
 
 /* db7 — a tournament under way: bands set, squads picked, pairs in order.
    The roster is still mirrored, which is the shape that has caused the most
@@ -84,5 +86,5 @@ console.log('  people documents: ' + factory.people.length
 console.log('  pair documents:   ' + factory.pairs.length);
 console.log('  db  rev ' + factory.rev + '  people in config: ' + factory.people.length);
 console.log('  db2 rev ' + edited.rev + '  people in config: ' + edited.people.length + ' (four dropped)');
-console.log('  db4 rev ' + stripped.rev + '  roster in documents, config carries none');
+console.log('  db4 rev ' + migrating.rev + '  roster in documents AND still mirrored');
 console.log('  db7 rev ' + live.rev + '  bands and squads set');

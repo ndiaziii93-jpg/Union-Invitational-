@@ -9,6 +9,9 @@ const S = '/tmp/claude-0/-home-user-Union-Invitational-/8bcdc9be-12b5-528d-a069-
    scratchpad is wiped when the container restarts, and a fixture a test
    cannot find is not a fixture. Rebuild them with tools/make-fixtures.mjs. */
 const FIX = new URL('./fixtures/', import.meta.url).pathname.replace(/\/$/, '');
+/* How many people the fixture actually holds. It was written down as 15,
+   which was true of one snapshot of one database and of nothing else. */
+const DOCS = readdirSync(FIX + '/restore/people').length;
 const W = S + '/preview.html';
 writeFileSync(W, '<!doctype html><html><head><meta charset="utf-8">'
   + '<meta name="viewport" content="width=device-width, initial-scale=1">'
@@ -282,7 +285,7 @@ for (const [label, lie] of [['a healthy store', false], ['a store whose first re
   await p.goto('file://' + W); await settled(p);
   await p.locator('[data-act="modalCancel"]').click().catch(() => {});
   await p.locator('.tab', { hasText: 'Roster' }).click(); await p.waitForTimeout(600);
-  ok('everyone is back on screen', await steady(p, '.rtable tbody tr'), 15);
+  ok('everyone is back on screen', await steady(p, '.rtable tbody tr'), DOCS);
   ok('and the pairings came back too', await p.locator(".paircol:not(.un)").count(), 5);
 
   // remove somebody, then reload: the config mirror still lists them
@@ -329,14 +332,14 @@ for (const [label, lie] of [['a healthy store', false], ['a store whose first re
   await p.goto('file://' + W); await settled(p);
   await p.locator('[data-act="modalCancel"]').click().catch(() => {});
   await p.locator('.tab', { hasText: 'Roster' }).click(); await p.waitForTimeout(600);
-  ok('the roster loads', await p.locator('.rtable tbody tr').count(), 15);
+  ok('the roster loads', await p.locator('.rtable tbody tr').count(), DOCS);
 
   await p.evaluate(() => { window.__fireEmptyColl('people'); window.__fireEmptyColl('pairs'); });
   await p.waitForTimeout(900);
-  ok('the lie does not empty the roster', await p.locator('.rtable tbody tr').count(), 15);
+  ok('the lie does not empty the roster', await p.locator('.rtable tbody tr').count(), DOCS);
   ok('nor the pairings', await p.locator('.paircol:not(.un)').count(), 5);
   ok('and the documents were never touched',
-    await p.evaluate(() => Object.keys(window.__mockDocs).filter(k => k.startsWith('people/')).length), 15);
+    await p.evaluate(() => Object.keys(window.__mockDocs).filter(k => k.startsWith('people/')).length), DOCS);
 
   // a real emptying still empties it
   await p.evaluate(() => { Object.keys(window.__mockDocs).filter(k => k.startsWith('people/'))
@@ -377,7 +380,7 @@ for (const [label, lie] of [['a healthy store', false], ['a store whose first re
   await p.locator('[data-act="modalCancel"]').click().catch(() => {});
   await p.locator('.tab', { hasText: 'Roster' }).click(); await p.waitForTimeout(600);
   const n = await steady(p, '.rtable tbody tr');
-  ok('the roster is the documents, and only the documents', n, 15);
+  ok('the roster is the documents, and only the documents', n, DOCS);
   ok('and the config is not carrying a second copy of it', await p.evaluate(
     () => { const c = window.__mockDocs['config/tournament'];
             return !!(c.people || c.pairs); }), false);
