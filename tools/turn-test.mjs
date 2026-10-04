@@ -121,27 +121,31 @@ for (let i = 0; i < rows; i++) {
   const n = await bs.count(); if (!n) continue;
   await bs.nth(i % n).click(); await A.waitForTimeout(90);
 }
-/* Squads, so "which team is leading" has two teams to compare.
-   CLEARED FIRST. The flag cycles unassigned → USA → UK → unassigned, so a
-   fixed number of taps only lands where you meant it to if everyone starts
-   unassigned. The fixture is now a tournament under way, with squads
-   already picked, and the same taps walked half the field off the board. */
+/* Squads, on the screen built for them.
+   This was being done on the Roster tab, which carries a flag per golfer but
+   no way to clear them — the clear button and the squad rows both live on
+   the Ryder tab. So the clear silently did nothing, and the taps cycled the
+   fixture's existing squads onwards (unassigned → USA → UK → unassigned),
+   walking golfers off the board one at a time. */
+await tab(A, 'Ryder');
 if (await A.locator('[data-act="clearSquads"]').count()) {
-  await A.locator('[data-act="clearSquads"]').click(); await A.waitForTimeout(700);
+  await A.locator('[data-act="clearSquads"]').click(); await A.waitForTimeout(800);
 }
-const sq = A.locator('[data-act="cycleSquad"]');
+const sq = A.locator('.sqrow [data-act="cycleSquad"]');
 const nsq = await sq.count();
 for (let i = 0; i < nsq; i++) {
-  const taps = (i % 2) ? 2 : 1;            // alternate UK and USA down the list
-  for (let k = 0; k < taps; k++) { await sq.nth(i).click(); await A.waitForTimeout(80); }
+  const taps = (i % 2) ? 2 : 1;            // alternate USA and UK down the list
+  for (let k = 0; k < taps; k++) { await sq.nth(i).click(); await A.waitForTimeout(90); }
 }
-await A.waitForTimeout(600); await shut(A);
+await A.waitForTimeout(700); await shut(A);
 /* Read them back rather than assuming the taps landed. Everything about the
    cup downstream is meaningless without two squads, and a test that goes on
    regardless reports three cup failures for one setup that did not take. */
 const squads = await A.locator('.sqrow .sqlabel').allInnerTexts();
 const nUK = squads.filter(t => /UK/.test(t)).length;
 const nUS = squads.filter(t => /USA/.test(t)).length;
+console.log('          (squads: UK ' + nUK + ', USA ' + nUS + ', unassigned '
+  + (squads.length - nUK - nUS) + ')');
 ok('both squads have golfers in them', nUK > 0 && nUS > 0, true);
 
 await tab(A, 'Score Entry');
