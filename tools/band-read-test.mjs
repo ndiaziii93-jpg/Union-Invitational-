@@ -85,7 +85,15 @@ ok('nearest band rounds to the real four',
   const r = readFor(T, 'g1');
   ok('three disasters do not move it past the cap', r.projected, clean + 3 * (T.config.capOver - 1));
   ok('and the capped holes are counted and shown', r.hitCap, 3);
-  ok('the band still holds', r.verdict, 'right');
+  /* UNCAPPED those three holes read +8 apiece, which is +41 for the round
+     and a band of 30 — two clear of where the man belongs, off three holes
+     the tournament would have charged him three shots each for. Capped, the
+     same card reads +26 and says 25. The cap does not make the disasters
+     free; it stops them being counted at a price nobody will ever pay. */
+  const raw = clean + 3 * (8 - 1);
+  ok('uncapped, the same card would have said band 30', E.nearestBand(raw), 30);
+  ok('capped, it says 25', r.suggested, 25);
+  ok('which is one band of correction, not two', r.verdict, 'light');
 }
 
 /* A SHORT CARD IS PROJECTED. Nine holes at six over is not a band of six. */
