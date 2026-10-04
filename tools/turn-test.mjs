@@ -188,6 +188,7 @@ const playHole = async (p, i) => {
 console.log('\nthe first eight holes are not the turn');
 const groups = await A.locator('.gchip').count();
 ok('there is more than one group out', groups > 1, true);
+console.log('          (' + groups + ' groups out)');
 
 /* EVERY GROUP TEES OFF FIRST. A cup match counts only the holes BOTH
    players have finished, and the draw puts opponents in different groups —
@@ -199,10 +200,20 @@ ok('there is more than one group out', groups > 1, true);
    long enough for Playwright to call it stable — it waits for calm that is
    not coming. The tap itself has never been in doubt. */
 const pickGroup = async (g) => {
-  const chip = A.locator('.gchip').nth(g);
-  await chip.scrollIntoViewIfNeeded().catch(() => {});
-  await chip.click({ force: true });
-  await A.waitForTimeout(600); await shut(A);
+  for (let try_ = 0; try_ < 3; try_++) {
+    const chip = A.locator('.gchip').nth(g);
+    await chip.scrollIntoViewIfNeeded().catch(() => {});
+    await chip.click({ force: true });
+    await A.waitForTimeout(500);
+    /* A half-entered hole is not thrown away silently: the switch raises
+       "Hole n is not saved" and its Cancel means STAY. Take the discard. */
+    const alt = A.locator('[data-act="confirmAlt"]');
+    if (await alt.count()) { await alt.first().click({ force: true }); await A.waitForTimeout(500); }
+    await shut(A);
+    const on = await A.locator('.gchip.on').first().getAttribute('data-a').catch(() => null);
+    if (String(on) === String(g)) return;
+  }
+  ok('the group chip takes a tap (' + g + ')', await A.locator('.gchip.on').first().innerText(), 'group ' + g);
 };
 for (let g = 1; g < groups; g++) {
   await pickGroup(g);
@@ -261,10 +272,25 @@ ok('and nothing about strokes, which settle no match',
 
 ok('every card in the field is listed', await A.locator('.tn-field .tn-row').count() > 0, true);
 ok('with the group that turned marked out', await A.locator('.tn-field .tn-row.me').count() > 0, true);
-ok('and it fits the phone', await A.evaluate(() => {
+/* IT FITS ACROSS, AND IT IS ALLOWED TO BE LONG. The window carries four
+   bands and then every card in the field, so on a phone it runs past the
+   bottom — and that is the shape that fixed the choppy sliding: the scrim
+   is the one surface that scrolls, and the page behind it is pinned. */
+const fit = await A.evaluate(() => {
   const m = document.querySelector('.turnmodal').getBoundingClientRect();
-  return m.left >= -0.5 && m.right <= window.innerWidth + 0.5 && m.height <= window.innerHeight;
-}), true);
+  const s = document.querySelector('.scrim');
+  return { left: m.left, right: m.right, w: window.innerWidth, h: Math.round(m.height),
+    vh: window.innerHeight,
+    scrolls: s.scrollHeight > s.clientHeight + 1,
+    pinned: document.documentElement.classList.contains('noscroll')
+      && getComputedStyle(document.documentElement).overflow === 'hidden' };
+});
+console.log('          (' + Math.round(fit.right - fit.left) + 'px across in ' + fit.w
+  + ', ' + fit.h + 'px down in ' + fit.vh + ')');
+ok('it fits the phone across', fit.left >= -0.5 && fit.right <= fit.w + 0.5, true);
+ok('and where it runs past the bottom, the scrim is what scrolls',
+  fit.h <= fit.vh || fit.scrolls, true);
+ok('with the page behind it pinned', fit.pinned, true);
 
 console.log('\nonce seen, it is not shown again');
 await A.locator('.turnmodal [data-act="modalCancel"]').click(); await A.waitForTimeout(800);
@@ -281,16 +307,15 @@ if (chips > 1) {
   await pickGroup(1);
   for (let i = 0; i < 9; i++) await playHole(A, i);
   await shut(A); await A.waitForTimeout(800);
-console.log('   DEBUG turn=' + JSON.stringify(Object.keys((store['config/tournament'].rounds[rid]||{}).turn||{}))
-  + ' modals=' + JSON.stringify(await A.locator('.scrim .modal').evaluateAll(e=>e.map(x=>x.className)))
-  + ' hole=' + await A.locator('.holehead h3').innerText()
-  + ' group=' + await A.locator('.gchip.on').innerText());
+  ok('and the book now holds a turn for each of them',
+    Object.keys((store['config/tournament'].rounds[rid] || {}).turn || {}).length, 2);
   ok('the second group gets a window too', await A.locator('.turnmodal').count(), 1);
   const pace = await A.locator('.tn-pace').innerText();
   console.log('          (the pace line reads: ' + pace.trim() + ')');
   ok('and it is measured against the group in front',
     /at the same point/i.test(pace), true);
-  ok('both groups are on the board', await A.locator('.tn-rows').first().locator('.tn-row').count(), 2);
+  ok('every group out is on the board',
+    await A.locator('.tn-rows').first().locator('.tn-row').count(), groups);
 } else { ok('there is a second group to check', chips > 1, true); }
 
 await b.close();
