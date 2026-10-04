@@ -281,6 +281,10 @@ if (chips > 1) {
   await pickGroup(1);
   for (let i = 0; i < 9; i++) await playHole(A, i);
   await shut(A); await A.waitForTimeout(800);
+console.log('   DEBUG turn=' + JSON.stringify(Object.keys((store['config/tournament'].rounds[rid]||{}).turn||{}))
+  + ' modals=' + JSON.stringify(await A.locator('.scrim .modal').evaluateAll(e=>e.map(x=>x.className)))
+  + ' hole=' + await A.locator('.holehead h3').innerText()
+  + ' group=' + await A.locator('.gchip.on').innerText());
   ok('the second group gets a window too', await A.locator('.turnmodal').count(), 1);
   const pace = await A.locator('.tn-pace').innerText();
   console.log('          (the pace line reads: ' + pace.trim() + ')');
