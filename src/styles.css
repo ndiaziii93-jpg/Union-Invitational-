@@ -539,6 +539,43 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 .mw-note{margin:12px 0 0;font-size:12.5px;color:var(--turf);line-height:1.5}
 .mwmodal .acts{justify-content:center;margin-top:16px}
 
+/* ---- the band read ----
+   A verdict a man can take in without reading: what he chose, an arrow, what
+   the card says. The sentence under it is the working, for whoever wants to
+   argue. */
+.bandread{margin-top:10px;border-top:2px solid var(--ink)}
+.br-row{display:grid;grid-template-columns:minmax(0,1fr) 48px 20px 48px auto;gap:8px;
+  align-items:center;padding:11px 2px 3px}
+.br-who{font-size:17px;font-weight:600;min-width:0;overflow-wrap:anywhere}
+.br-who small{display:block;font-size:12.5px;font-weight:400;color:var(--turf)}
+.br-now,.br-next{text-align:center}
+.br-now b,.br-next b{display:block;font-size:20px;line-height:1.1}
+.br-now small,.br-next small{display:block;font-size:10px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--turf)}
+.br-now b{color:var(--turf)}
+.br-arrow{text-align:center;color:var(--turf);font-size:16px}
+.br-tag{font-size:11px;letter-spacing:.07em;text-transform:uppercase;font-weight:700;
+  white-space:nowrap;padding:3px 8px;border-radius:999px;border:1px solid currentColor}
+.br-line{margin:0 2px 11px;padding-bottom:11px;border-bottom:1px solid var(--hair);
+  font-size:14px;color:var(--turf);line-height:1.5}
+.br-line b{color:var(--ink)}
+
+/* holding is the quiet state; a move is the one worth seeing */
+.br-right .br-tag{color:var(--green)}
+.br-light .br-tag{color:var(--flag)}
+.br-light .br-next b{color:var(--flag)}
+.br-heavy .br-tag{color:var(--gold)}
+.br-heavy .br-next b{color:var(--gold)}
+.br-unset .br-tag{color:var(--gold)}
+.br-thin .br-tag{color:var(--turf)}
+
+@media (max-width:560px){
+  .br-row{grid-template-columns:minmax(0,1fr) 40px 16px 40px;gap:6px}
+  .br-who{grid-column:1 / -1}
+  .br-tag{justify-self:end}
+  .br-row .br-tag{grid-column:4 / -1}
+}
+
 /* ---- the turn ----
    A scoreboard, not a dialogue box: wider than the rest, and the field list
    scrolls inside it rather than pushing the buttons off a phone. */

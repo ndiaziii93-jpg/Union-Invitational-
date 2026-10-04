@@ -610,6 +610,43 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 .mw-note{margin:12px 0 0;font-size:12.5px;color:var(--turf);line-height:1.5}
 .mwmodal .acts{justify-content:center;margin-top:16px}
 
+/* ---- the band read ----
+   A verdict a man can take in without reading: what he chose, an arrow, what
+   the card says. The sentence under it is the working, for whoever wants to
+   argue. */
+.bandread{margin-top:10px;border-top:2px solid var(--ink)}
+.br-row{display:grid;grid-template-columns:minmax(0,1fr) 48px 20px 48px auto;gap:8px;
+  align-items:center;padding:11px 2px 3px}
+.br-who{font-size:17px;font-weight:600;min-width:0;overflow-wrap:anywhere}
+.br-who small{display:block;font-size:12.5px;font-weight:400;color:var(--turf)}
+.br-now,.br-next{text-align:center}
+.br-now b,.br-next b{display:block;font-size:20px;line-height:1.1}
+.br-now small,.br-next small{display:block;font-size:10px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--turf)}
+.br-now b{color:var(--turf)}
+.br-arrow{text-align:center;color:var(--turf);font-size:16px}
+.br-tag{font-size:11px;letter-spacing:.07em;text-transform:uppercase;font-weight:700;
+  white-space:nowrap;padding:3px 8px;border-radius:999px;border:1px solid currentColor}
+.br-line{margin:0 2px 11px;padding-bottom:11px;border-bottom:1px solid var(--hair);
+  font-size:14px;color:var(--turf);line-height:1.5}
+.br-line b{color:var(--ink)}
+
+/* holding is the quiet state; a move is the one worth seeing */
+.br-right .br-tag{color:var(--green)}
+.br-light .br-tag{color:var(--flag)}
+.br-light .br-next b{color:var(--flag)}
+.br-heavy .br-tag{color:var(--gold)}
+.br-heavy .br-next b{color:var(--gold)}
+.br-unset .br-tag{color:var(--gold)}
+.br-thin .br-tag{color:var(--turf)}
+
+@media (max-width:560px){
+  .br-row{grid-template-columns:minmax(0,1fr) 40px 16px 40px;gap:6px}
+  .br-who{grid-column:1 / -1}
+  .br-tag{justify-self:end}
+  .br-row .br-tag{grid-column:4 / -1}
+}
+
 /* ---- the turn ----
    A scoreboard, not a dialogue box: wider than the rest, and the field list
    scrolls inside it rather than pushing the buttons off a phone. */
@@ -2143,7 +2180,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20260927-1918';
+const BUILD = '20261004-0820';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -2272,7 +2309,8 @@ const __m_rules = (function(){
 
 /* Competition rules. Band 15 receives 15 strokes (stroke index 1–15),
    band 20 receives 20 (one a hole, two on SI 1–2), band 25 receives 25
-   (one a hole, two on SI 1–7). The band IS the total strokes received. */
+   (one a hole, two on SI 1–7), band 30 receives 30 (one a hole, two on
+   SI 1–12). The band IS the total strokes received. */
 
 const RULES = [
   { id: 'pairs', name: 'Team Competition', tag: 'The main event. Fixed pairs, better ball, net.',
@@ -2355,7 +2393,15 @@ const RELIEF = {
     ['Band 15', 'One stroke on stroke index 1–15. Fifteen strokes in all.'],
     ['Band 20', 'One stroke on every hole, a second on stroke index 1–2. Twenty strokes in all.'],
     ['Band 25', 'One stroke on every hole, a second on stroke index 1–7. Twenty-five strokes in all.'],
+    ['Band 30', 'One stroke on every hole, a second on stroke index 1–12. Thirty strokes in all.'],
   ],
+  /* Tuesday is the audition. Said here because a band is the one thing a
+     golfer picks for himself and the one thing that decides every figure he
+     is measured by all week. */
+  bandNote: 'Pick your own band for Tuesday. The practice round is scored gross and feeds nothing, so it '
+    + 'costs you nothing to be wrong — and the Practice Day board reads every card back and says whether the '
+    + 'band you chose is the one you should take into Thursday. A scorer settles them before Round 1, and '
+    + 'after that they are fixed for the week.',
   stableford: [['Double bogey or worse','0'],['Bogey','1'],['Par','2'],['Birdie','3'],['Eagle','4'],['Albatross','5']],
 };
 
@@ -3302,6 +3348,69 @@ function practiceBoard(T) {
   return rows.map((r, i) => ({ ...r, pos: i + 1 }));
 }
 
+/* ---------- what Tuesday says about a band ----------
+ *
+ * A band IS the strokes you receive, so the arithmetic is not subtle: net is
+ * gross minus band, and a band is right when net lands near level par. Which
+ * makes the read a single number — how many over par a golfer actually went
+ * round in — held against the band they chose for themselves.
+ *
+ * Two corrections, both of which matter.
+ *
+ * The score is CAPPED first, at triple bogey, exactly as every counting
+ * round will cap it. Tuesday's raw total can carry a nine on it; Thursday's
+ * cannot. Reading the raw number would send a man up two bands for one bad
+ * hole that the tournament was never going to charge him for.
+ *
+ * And a card short of eighteen is projected, not totalled, because nine
+ * holes at six over is not a band of six.
+ *
+ * It is a READ, not a ruling. One round is thin evidence, the cap hides how
+ * bad a hole truly was, and a scorer sets the band in the end. */
+
+/** The nearest band to a number of strokes over par. */
+function nearestBand(over) {
+  return BANDS.reduce((a, b) => (Math.abs(b - over) < Math.abs(a - over) ? b : a));
+}
+
+/** Every golfer's round, read as a band. `verdict` is one of:
+ *  'none'  — nothing to read yet
+ *  'thin'  — too few holes to say anything
+ *  'right' — the band they chose is the one the card suggests
+ *  'light' — they need more strokes than they took
+ *  'heavy' — they took more strokes than they needed
+ *  'unset' — played, but no band chosen to compare against */
+function bandRead(T, rid = 'practice') {
+  const holes = courseOf(T, rid).holes;
+  const cap = T.config.capOver;
+  return golfers(T).map(p => {
+    const c = card(T, rid, p.id);
+    let over = 0, played = 0, hitCap = 0;
+    for (let h = 0; h < 18; h++) {
+      const raw = c ? c.raw[h] : null;
+      if (raw == null) continue;
+      played++;
+      const v = capped(raw, holes[h].par, cap);
+      if (v !== raw) hitCap++;
+      over += v - holes[h].par;
+    }
+    const row = { id: p.id, name: p.display, band: p.band, played, over, hitCap,
+      projected: null, suggested: null, gap: null, verdict: 'none' };
+    if (!played) return row;
+    /* Nine holes at six over is not a band of six. */
+    row.projected = Math.round((over / played) * 18);
+    row.suggested = nearestBand(row.projected);
+    if (played < 9) { row.verdict = 'thin'; return row; }
+    if (p.band == null) { row.verdict = 'unset'; return row; }
+    row.gap = row.projected - p.band;
+    /* The bands are five apart, so half of one is the line between "about
+       right" and "in the wrong one". */
+    row.verdict = Math.abs(row.gap) <= 2.5 ? 'right' : row.gap > 0 ? 'light' : 'heavy';
+    return row;
+  }).filter(r => r.verdict !== 'none')
+    .sort((a, b) => (b.projected || 0) - (a.projected || 0));
+}
+
 function practiceBbb(T) {
   const tally = {};
   const b = T.bbb.practice;
@@ -4183,7 +4292,7 @@ function roundToPar(T, roundId, pid) {
   return { tp, thru };
 }
 
-return {nowLocal, dayOf, hhmmToMin, to12, to24, BANDS, strokesFor, bandTotal, fmtToPar, capFor, capped, person, golfers, roundDef, roundCfg, courseByKey, courseOf, scoreKey, card, pairName, phaseOf, phaseLabel, hasScores, countingRounds, playerNet, pairHole, PAIRS_PER_GROUP, groups, finishGroups, groupThru18, groupDone, groupsOut, TURN_HOLES, toParThru, groupAtTurn, turnAt, turnGroups, turnSnapshot, practiceBoard, practiceBbb, bandsLocked, pairsBoard, mvpBoard, BBB_SLOTS, bbbMarks, MARKS, MARK_KEYS, MOODS, OWNS, moodLabel, ownLabels, OWN_MARKS, OWN_KEYS, holeMarks, selfLog, selfMarks, markCoverage, markTally, markLine, bbbBoard, roundComplete, brief, roundBrief, recapRound, roundStanding, ribbon, pairRoundBoard, recapTable, swingOfTheDay, sideGames, recapInput, matchPlay, matchDetail, ryderData, holeCells, setupIssues, nextTee, fixtures, nextFixture, TEE_CHOICES, TEE_PRIV, teePrivilege, roundToPar};
+return {nowLocal, dayOf, hhmmToMin, to12, to24, BANDS, strokesFor, bandTotal, fmtToPar, capFor, capped, person, golfers, roundDef, roundCfg, courseByKey, courseOf, scoreKey, card, pairName, phaseOf, phaseLabel, hasScores, countingRounds, playerNet, pairHole, PAIRS_PER_GROUP, groups, finishGroups, groupThru18, groupDone, groupsOut, TURN_HOLES, toParThru, groupAtTurn, turnAt, turnGroups, turnSnapshot, practiceBoard, nearestBand, bandRead, practiceBbb, bandsLocked, pairsBoard, mvpBoard, BBB_SLOTS, bbbMarks, MARKS, MARK_KEYS, MOODS, OWNS, moodLabel, ownLabels, OWN_MARKS, OWN_KEYS, holeMarks, selfLog, selfMarks, markCoverage, markTally, markLine, bbbBoard, roundComplete, brief, roundBrief, recapRound, roundStanding, ribbon, pairRoundBoard, recapTable, swingOfTheDay, sideGames, recapInput, matchPlay, matchDetail, ryderData, holeCells, setupIssues, nextTee, fixtures, nextFixture, TEE_CHOICES, TEE_PRIV, teePrivilege, roundToPar};
 })();
 
 const __m_dbsupa = (function(){
@@ -5941,6 +6050,69 @@ function boardPrizes() {
 /* Tuesday, on its own. It counts for nothing and that is the point: a whole
    day of the week's games with none of the consequences, and a winner by
    the end of it. Nothing here touches the competition boards. */
+/* ---------------- what Tuesday says about a band ----------------
+ *
+ * The whole reason the practice round is played. Everybody picks a band for
+ * themselves on Tuesday, goes round, and this reads the card back: how many
+ * over par they actually went in — capped as every counting round will cap
+ * it — against the band they chose.
+ *
+ * Deliberately a READ and not a ruling. It is one round, the cap hides how
+ * bad a hole truly was, and the band is a scorer's to set. What it does is
+ * take the argument off opinion and put it on the card. */
+
+const BANDWORD = {
+  right: ['holding', 'The band they picked is the band the card says.'],
+  light: ['needs more', 'Going round in more than their band gives them.'],
+  heavy: ['needs fewer', 'Took more shots than the round asked for.'],
+  unset: ['no band yet', 'Played, but has not picked one.'],
+  thin:  ['too few holes', 'Not enough of a card to read.'],
+};
+
+function bandReadBlock() {
+  const read = E.bandRead(T, 'practice');
+  if (!read.length) return '';
+  const settled = E.bandsLocked(T);
+  const moves = read.filter(x => x.verdict === 'light' || x.verdict === 'heavy').length;
+
+  const line = x => {
+    if (x.verdict === 'thin') return x.played + ' hole' + (x.played === 1 ? '' : 's') + ' in — too early to say.';
+    const over = 'Round in <b>' + (x.projected >= 0 ? '+' : '') + x.projected + '</b> over par'
+      + (x.played < 18 ? ', projected from ' + x.played : '')
+      + (x.hitCap ? ' · capped on ' + x.hitCap + ' hole' + (x.hitCap === 1 ? '' : 's') : '');
+    if (x.verdict === 'unset') return over + '. Tuesday says <b>band ' + x.suggested + '</b>.';
+    if (x.verdict === 'right') return over + ', on a band of ' + x.band + '. That is the band.';
+    const n = Math.abs(x.gap);
+    return over + ', on a band of ' + x.band + ' — ' + n + ' shot' + (n === 1 ? '' : 's')
+      + (x.gap > 0 ? ' more than they are given. <b>Band ' + x.suggested + '</b> brings them to level.'
+                   : ' fewer than they are given. <b>Band ' + x.suggested + '</b> is nearer.');
+  };
+
+  return `<h3 class="sub">The band read</h3>
+  <p class="lede" style="margin-bottom:0">A band IS the strokes you receive, so a band is right when your net
+  lands near level par. This holds how far over par each card actually went — capped at triple bogey, exactly as
+  Thursday will cap it, and projected to eighteen if the round was short — against the band that golfer chose.
+  <b>It is a read, not a ruling.</b> One round is thin evidence and the band is a scorer&rsquo;s to set.</p>
+
+  <div class="bandread">
+    ${read.map(x => `<div class="br-row br-${x.verdict}">
+      <span class="br-who">${esc(x.name)}<small>${esc(BANDWORD[x.verdict][1])}</small></span>
+      <span class="br-now"><b class="num">${x.band == null ? '—' : x.band}</b><small>chose</small></span>
+      <span class="br-arrow">${x.verdict === 'light' || x.verdict === 'heavy' ? '&rarr;' : ''}</span>
+      <span class="br-next">${x.verdict === 'light' || x.verdict === 'heavy' || x.verdict === 'unset'
+        ? `<b class="num">${x.suggested}</b><small>says</small>` : ''}</span>
+      <span class="br-tag">${esc(BANDWORD[x.verdict][0])}</span>
+    </div>
+    <p class="br-line">${line(x)}</p>`).join('')}
+  </div>
+
+  <p class="lede" style="margin-top:12px">${settled
+    ? 'The bands are settled. Only a scorer can move one now, on the Roster screen.'
+    : moves
+      ? moves + ' golfer' + (moves === 1 ? '' : 's') + ' came in some way off the band they chose. Move them on the '
+        + 'Roster screen before Round 1 — after the practice round is concluded the bands settle for the week.'
+      : 'Nobody is far off the band they chose. Conclude the practice round to settle them for the week.'}</p>
+
 function boardPractice() {
   const rid = 'practice';
   const cfg = E.roundCfg(T, rid);
@@ -5975,6 +6147,8 @@ function boardPractice() {
       <span class="num ${x.tp < 0 ? 'under' : x.tp > 0 ? 'over' : 'level'}" style="min-width:56px;text-align:right">${esc(E.fmtToPar(x.tp))}</span>
       <span class="num" style="min-width:74px;text-align:right;font-size:23px;font-weight:700">${x.stb == null ? '—' : x.stb}</span></div>`).join('')}
   </div>`}
+
+  ${bandReadBlock()}
 
   <h3 class="sub">Bingo Bango Bongo — practice</h3>
   ${bbb.length ? `<div class="rows" style="margin-top:8px;max-width:520px">

@@ -373,6 +373,69 @@ export function practiceBoard(T) {
   return rows.map((r, i) => ({ ...r, pos: i + 1 }));
 }
 
+/* ---------- what Tuesday says about a band ----------
+ *
+ * A band IS the strokes you receive, so the arithmetic is not subtle: net is
+ * gross minus band, and a band is right when net lands near level par. Which
+ * makes the read a single number — how many over par a golfer actually went
+ * round in — held against the band they chose for themselves.
+ *
+ * Two corrections, both of which matter.
+ *
+ * The score is CAPPED first, at triple bogey, exactly as every counting
+ * round will cap it. Tuesday's raw total can carry a nine on it; Thursday's
+ * cannot. Reading the raw number would send a man up two bands for one bad
+ * hole that the tournament was never going to charge him for.
+ *
+ * And a card short of eighteen is projected, not totalled, because nine
+ * holes at six over is not a band of six.
+ *
+ * It is a READ, not a ruling. One round is thin evidence, the cap hides how
+ * bad a hole truly was, and a scorer sets the band in the end. */
+
+/** The nearest band to a number of strokes over par. */
+export function nearestBand(over) {
+  return BANDS.reduce((a, b) => (Math.abs(b - over) < Math.abs(a - over) ? b : a));
+}
+
+/** Every golfer's round, read as a band. `verdict` is one of:
+ *  'none'  — nothing to read yet
+ *  'thin'  — too few holes to say anything
+ *  'right' — the band they chose is the one the card suggests
+ *  'light' — they need more strokes than they took
+ *  'heavy' — they took more strokes than they needed
+ *  'unset' — played, but no band chosen to compare against */
+export function bandRead(T, rid = 'practice') {
+  const holes = courseOf(T, rid).holes;
+  const cap = T.config.capOver;
+  return golfers(T).map(p => {
+    const c = card(T, rid, p.id);
+    let over = 0, played = 0, hitCap = 0;
+    for (let h = 0; h < 18; h++) {
+      const raw = c ? c.raw[h] : null;
+      if (raw == null) continue;
+      played++;
+      const v = capped(raw, holes[h].par, cap);
+      if (v !== raw) hitCap++;
+      over += v - holes[h].par;
+    }
+    const row = { id: p.id, name: p.display, band: p.band, played, over, hitCap,
+      projected: null, suggested: null, gap: null, verdict: 'none' };
+    if (!played) return row;
+    /* Nine holes at six over is not a band of six. */
+    row.projected = Math.round((over / played) * 18);
+    row.suggested = nearestBand(row.projected);
+    if (played < 9) { row.verdict = 'thin'; return row; }
+    if (p.band == null) { row.verdict = 'unset'; return row; }
+    row.gap = row.projected - p.band;
+    /* The bands are five apart, so half of one is the line between "about
+       right" and "in the wrong one". */
+    row.verdict = Math.abs(row.gap) <= 2.5 ? 'right' : row.gap > 0 ? 'light' : 'heavy';
+    return row;
+  }).filter(r => r.verdict !== 'none')
+    .sort((a, b) => (b.projected || 0) - (a.projected || 0));
+}
+
 export function practiceBbb(T) {
   const tally = {};
   const b = T.bbb.practice;

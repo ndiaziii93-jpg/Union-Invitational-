@@ -416,6 +416,70 @@ function boardPrizes() {
 /* Tuesday, on its own. It counts for nothing and that is the point: a whole
    day of the week's games with none of the consequences, and a winner by
    the end of it. Nothing here touches the competition boards. */
+/* ---------------- what Tuesday says about a band ----------------
+ *
+ * The whole reason the practice round is played. Everybody picks a band for
+ * themselves on Tuesday, goes round, and this reads the card back: how many
+ * over par they actually went in — capped as every counting round will cap
+ * it — against the band they chose.
+ *
+ * Deliberately a READ and not a ruling. It is one round, the cap hides how
+ * bad a hole truly was, and the band is a scorer's to set. What it does is
+ * take the argument off opinion and put it on the card. */
+
+const BANDWORD = {
+  right: ['holding', 'The band they picked is the band the card says.'],
+  light: ['needs more', 'Going round in more than their band gives them.'],
+  heavy: ['needs fewer', 'Took more shots than the round asked for.'],
+  unset: ['no band yet', 'Played, but has not picked one.'],
+  thin:  ['too few holes', 'Not enough of a card to read.'],
+};
+
+function bandReadBlock() {
+  const read = E.bandRead(T, 'practice');
+  if (!read.length) return '';
+  const settled = E.bandsLocked(T);
+  const moves = read.filter(x => x.verdict === 'light' || x.verdict === 'heavy').length;
+
+  const line = x => {
+    if (x.verdict === 'thin') return x.played + ' hole' + (x.played === 1 ? '' : 's') + ' in — too early to say.';
+    const over = 'Round in <b>' + (x.projected >= 0 ? '+' : '') + x.projected + '</b> over par'
+      + (x.played < 18 ? ', projected from ' + x.played : '')
+      + (x.hitCap ? ' · capped on ' + x.hitCap + ' hole' + (x.hitCap === 1 ? '' : 's') : '');
+    if (x.verdict === 'unset') return over + '. Tuesday says <b>band ' + x.suggested + '</b>.';
+    if (x.verdict === 'right') return over + ', on a band of ' + x.band + '. That is the band.';
+    const n = Math.abs(x.gap);
+    return over + ', on a band of ' + x.band + ' — ' + n + ' shot' + (n === 1 ? '' : 's')
+      + (x.gap > 0 ? ' more than they are given. <b>Band ' + x.suggested + '</b> brings them to level.'
+                   : ' fewer than they are given. <b>Band ' + x.suggested + '</b> is nearer.');
+  };
+
+  return `<h3 class="sub">The band read</h3>
+  <p class="lede" style="margin-bottom:0">A band IS the strokes you receive, so a band is right when your net
+  lands near level par. This holds how far over par each card actually went — capped at triple bogey, exactly as
+  Thursday will cap it, and projected to eighteen if the round was short — against the band that golfer chose.
+  <b>It is a read, not a ruling.</b> One round is thin evidence and the band is a scorer&rsquo;s to set.</p>
+
+  <div class="bandread">
+    ${read.map(x => `<div class="br-row br-${x.verdict}">
+      <span class="br-who">${esc(x.name)}<small>${esc(BANDWORD[x.verdict][1])}</small></span>
+      <span class="br-now"><b class="num">${x.band == null ? '—' : x.band}</b><small>chose</small></span>
+      <span class="br-arrow">${x.verdict === 'light' || x.verdict === 'heavy' ? '&rarr;' : ''}</span>
+      <span class="br-next">${x.verdict === 'light' || x.verdict === 'heavy' || x.verdict === 'unset'
+        ? `<b class="num">${x.suggested}</b><small>says</small>` : ''}</span>
+      <span class="br-tag">${esc(BANDWORD[x.verdict][0])}</span>
+    </div>
+    <p class="br-line">${line(x)}</p>`).join('')}
+  </div>
+
+  <p class="lede" style="margin-top:12px">${settled
+    ? 'The bands are settled. Only a scorer can move one now, on the Roster screen.'
+    : moves
+      ? moves + ' golfer' + (moves === 1 ? '' : 's') + ' came in some way off the band they chose. Move them on the '
+        + 'Roster screen before Round 1 — after the practice round is concluded the bands settle for the week.'
+      : 'Nobody is far off the band they chose. Conclude the practice round to settle them for the week.'}</p>`;
+}
+
 function boardPractice() {
   const rid = 'practice';
   const cfg = E.roundCfg(T, rid);
@@ -450,6 +514,8 @@ function boardPractice() {
       <span class="num ${x.tp < 0 ? 'under' : x.tp > 0 ? 'over' : 'level'}" style="min-width:56px;text-align:right">${esc(E.fmtToPar(x.tp))}</span>
       <span class="num" style="min-width:74px;text-align:right;font-size:23px;font-weight:700">${x.stb == null ? '—' : x.stb}</span></div>`).join('')}
   </div>`}
+
+  ${bandReadBlock()}
 
   <h3 class="sub">Bingo Bango Bongo — practice</h3>
   ${bbb.length ? `<div class="rows" style="margin-top:8px;max-width:520px">

@@ -1,6 +1,7 @@
 /* Competition rules. Band 15 receives 15 strokes (stroke index 1–15),
    band 20 receives 20 (one a hole, two on SI 1–2), band 25 receives 25
-   (one a hole, two on SI 1–7). The band IS the total strokes received. */
+   (one a hole, two on SI 1–7), band 30 receives 30 (one a hole, two on
+   SI 1–12). The band IS the total strokes received. */
 
 export const RULES = [
   { id: 'pairs', name: 'Team Competition', tag: 'The main event. Fixed pairs, better ball, net.',
@@ -83,6 +84,14 @@ export const RELIEF = {
     ['Band 15', 'One stroke on stroke index 1–15. Fifteen strokes in all.'],
     ['Band 20', 'One stroke on every hole, a second on stroke index 1–2. Twenty strokes in all.'],
     ['Band 25', 'One stroke on every hole, a second on stroke index 1–7. Twenty-five strokes in all.'],
+    ['Band 30', 'One stroke on every hole, a second on stroke index 1–12. Thirty strokes in all.'],
   ],
+  /* Tuesday is the audition. Said here because a band is the one thing a
+     golfer picks for himself and the one thing that decides every figure he
+     is measured by all week. */
+  bandNote: 'Pick your own band for Tuesday. The practice round is scored gross and feeds nothing, so it '
+    + 'costs you nothing to be wrong — and the Practice Day board reads every card back and says whether the '
+    + 'band you chose is the one you should take into Thursday. A scorer settles them before Round 1, and '
+    + 'after that they are fixed for the week.',
   stableford: [['Double bogey or worse','0'],['Bogey','1'],['Par','2'],['Birdie','3'],['Eagle','4'],['Albatross','5']],
 };
