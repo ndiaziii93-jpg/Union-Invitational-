@@ -573,11 +573,17 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 .br-unset .br-tag{color:var(--gold)}
 .br-thin .br-tag{color:var(--turf)}
 
+/* On a phone the name takes a line of its own and the verdict sits under it:
+   what he chose, an arrow, what the card says, and the word for it hard
+   right. Every cell is placed by hand — left to flow, the numbers landed in
+   the wide column meant for the name and the tag landed on top of them. */
 @media (max-width:560px){
-  .br-row{grid-template-columns:minmax(0,1fr) 40px 16px 40px;gap:6px}
+  .br-row{grid-template-columns:46px 18px 46px minmax(0,1fr);gap:6px;padding-bottom:5px}
   .br-who{grid-column:1 / -1}
-  .br-tag{justify-self:end}
-  .br-row .br-tag{grid-column:4 / -1}
+  .br-now{grid-column:1}
+  .br-arrow{grid-column:2}
+  .br-next{grid-column:3}
+  .br-tag{grid-column:4;justify-self:end}
 }
 
 /* ---- the turn ----
@@ -2113,7 +2119,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261004-0822';
+const BUILD = '20261004-0826';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
