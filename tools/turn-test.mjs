@@ -194,11 +194,21 @@ ok('there is more than one group out', groups > 1, true);
    so with one group round and the rest on the tee, almost every match reads
    as not started and the cup has nothing to show. Groups go off back to
    back in life; two holes apiece is what that looks like. */
+/* Forced, and scrolled to first. Two pages are live on one store here, so
+   B's subscription redraws A underneath the pointer and a chip never settles
+   long enough for Playwright to call it stable — it waits for calm that is
+   not coming. The tap itself has never been in doubt. */
+const pickGroup = async (g) => {
+  const chip = A.locator('.gchip').nth(g);
+  await chip.scrollIntoViewIfNeeded().catch(() => {});
+  await chip.click({ force: true });
+  await A.waitForTimeout(600); await shut(A);
+};
 for (let g = 1; g < groups; g++) {
-  await A.locator('.gchip').nth(g).click(); await A.waitForTimeout(500); await shut(A);
+  await pickGroup(g);
   for (let i = 0; i < 2; i++) await playHole(A, i);
 }
-await A.locator('.gchip').first().click(); await A.waitForTimeout(500); await shut(A);
+await pickGroup(0);
 
 for (let i = 0; i < 8; i++) await playHole(A, i);
 await shut(A);
@@ -268,7 +278,7 @@ await B.locator('.turnmodal [data-act="modalCancel"]').click().catch(() => {});
 await B.waitForTimeout(400);
 const chips = await A.locator('.gchip').count();
 if (chips > 1) {
-  await A.locator('.gchip').nth(1).click(); await A.waitForTimeout(600); await shut(A);
+  await pickGroup(1);
   for (let i = 0; i < 9; i++) await playHole(A, i);
   await shut(A); await A.waitForTimeout(800);
   ok('the second group gets a window too', await A.locator('.turnmodal').count(), 1);
