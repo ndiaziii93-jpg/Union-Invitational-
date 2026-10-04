@@ -5,6 +5,10 @@ import { chromium } from 'playwright';
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 
 const S = '/tmp/claude-0/-home-user-Union-Invitational-/8bcdc9be-12b5-528d-a069-2403e068b315/scratchpad';
+/* The database snapshots live in the repo, not the scratchpad: the
+   scratchpad is wiped when the container restarts, and a fixture a test
+   cannot find is not a fixture. Rebuild them with tools/make-fixtures.mjs. */
+const FIX = new URL('./fixtures/', import.meta.url).pathname.replace(/\/$/, '');
 const W = S + '/preview.html';
 writeFileSync(W, '<!doctype html><html><head><meta charset="utf-8">'
   + '<meta name="viewport" content="width=device-width, initial-scale=1">'
@@ -12,9 +16,9 @@ writeFileSync(W, '<!doctype html><html><head><meta charset="utf-8">'
   + readFileSync('/home/user/Union-Invitational-/dist/union-invitational.html', 'utf8') + '</body></html>');
 
 /* A tournament somebody has already edited: four golfers removed. */
-const STORED = JSON.parse(readFileSync(S + '/db2/config/tournament.json', 'utf8'));
+const STORED = JSON.parse(readFileSync(FIX + '/db2/config/tournament.json', 'utf8'));
 /* what an old build would write back: the full original roster */
-const FACTORY_PEOPLE = JSON.parse(readFileSync(S + '/db/config/tournament.json', 'utf8')).people
+const FACTORY_PEOPLE = JSON.parse(readFileSync(FIX + '/db/config/tournament.json', 'utf8')).people
   .concat([{ id: 'g4', name: 'Manuel P', display: 'Manuel P', role: 'golfer', location: null, band: null, group: '7-day' }]);
 
 const MOCK = ({ stored, lieOnFirstRead, empty, factoryPeople, extraDocs }) => {
@@ -265,13 +269,13 @@ for (const [label, lie] of [['a healthy store', false], ['a store whose first re
 // and was never marked. The documents must win, and a removal must stick.
 {
   console.log('\nthe repaired live tournament: documents beside an unmarked config');
-  const LIVE = JSON.parse(readFileSync(S + '/db4/config/tournament.json', 'utf8'));
+  const LIVE = JSON.parse(readFileSync(FIX + '/db4/config/tournament.json', 'utf8'));
   delete LIVE.rosterInDocs;                       // the flag we could not set
   const extra = {};
-  for (const f of readdirSync(S + '/restore/people'))
-    extra['people/' + f.replace('.json', '')] = JSON.parse(readFileSync(S + '/restore/people/' + f, 'utf8'));
-  for (const f of readdirSync(S + '/restore/pairs'))
-    extra['pairs/' + f.replace('.json', '')] = JSON.parse(readFileSync(S + '/restore/pairs/' + f, 'utf8'));
+  for (const f of readdirSync(FIX + '/restore/people'))
+    extra['people/' + f.replace('.json', '')] = JSON.parse(readFileSync(FIX + '/restore/people/' + f, 'utf8'));
+  for (const f of readdirSync(FIX + '/restore/pairs'))
+    extra['pairs/' + f.replace('.json', '')] = JSON.parse(readFileSync(FIX + '/restore/pairs/' + f, 'utf8'));
 
   const p = await (await b.newContext({ viewport: { width: 1300, height: 900 } })).newPage();
   await p.addInitScript(MOCK, { stored: LIVE, lieOnFirstRead: false, empty: false, extraDocs: extra });
@@ -312,13 +316,13 @@ for (const [label, lie] of [['a healthy store', false], ['a store whose first re
 // a snapshot that wrongly reports the collection empty must not blank the book
 {
   console.log('\na snapshot that wrongly says the roster is empty');
-  const LIVE = JSON.parse(readFileSync(S + '/db4/config/tournament.json', 'utf8'));
+  const LIVE = JSON.parse(readFileSync(FIX + '/db4/config/tournament.json', 'utf8'));
   delete LIVE.rosterInDocs;
   const extra = {};
-  for (const f of readdirSync(S + '/restore/people'))
-    extra['people/' + f.replace('.json', '')] = JSON.parse(readFileSync(S + '/restore/people/' + f, 'utf8'));
-  for (const f of readdirSync(S + '/restore/pairs'))
-    extra['pairs/' + f.replace('.json', '')] = JSON.parse(readFileSync(S + '/restore/pairs/' + f, 'utf8'));
+  for (const f of readdirSync(FIX + '/restore/people'))
+    extra['people/' + f.replace('.json', '')] = JSON.parse(readFileSync(FIX + '/restore/people/' + f, 'utf8'));
+  for (const f of readdirSync(FIX + '/restore/pairs'))
+    extra['pairs/' + f.replace('.json', '')] = JSON.parse(readFileSync(FIX + '/restore/pairs/' + f, 'utf8'));
 
   const p = await (await b.newContext({ viewport: { width: 1300, height: 900 } })).newPage();
   await p.addInitScript(MOCK, { stored: LIVE, lieOnFirstRead: false, empty: false, extraDocs: extra });
@@ -358,11 +362,11 @@ for (const [label, lie] of [['a healthy store', false], ['a store whose first re
 {
   console.log('\na config with no roster copy in it — the live shape');
   const extra = {};
-  for (const f of readdirSync(S + '/restore/people'))
-    extra['people/' + f.replace('.json', '')] = JSON.parse(readFileSync(S + '/restore/people/' + f, 'utf8'));
-  for (const f of readdirSync(S + '/restore/pairs'))
-    extra['pairs/' + f.replace('.json', '')] = JSON.parse(readFileSync(S + '/restore/pairs/' + f, 'utf8'));
-  const stripped = JSON.parse(readFileSync(S + '/db4/config/tournament.json', 'utf8'));
+  for (const f of readdirSync(FIX + '/restore/people'))
+    extra['people/' + f.replace('.json', '')] = JSON.parse(readFileSync(FIX + '/restore/people/' + f, 'utf8'));
+  for (const f of readdirSync(FIX + '/restore/pairs'))
+    extra['pairs/' + f.replace('.json', '')] = JSON.parse(readFileSync(FIX + '/restore/pairs/' + f, 'utf8'));
+  const stripped = JSON.parse(readFileSync(FIX + '/db4/config/tournament.json', 'utf8'));
   stripped.rosterInDocs = true;      // what the SQL sets
   delete stripped.people;            // and what the SQL takes away
   delete stripped.pairs;

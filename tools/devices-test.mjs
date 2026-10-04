@@ -7,15 +7,19 @@
 import { chromium } from 'playwright';
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 const S = '/tmp/claude-0/-home-user-Union-Invitational-/8bcdc9be-12b5-528d-a069-2403e068b315/scratchpad';
+/* The database snapshots live in the repo, not the scratchpad: the
+   scratchpad is wiped when the container restarts, and a fixture a test
+   cannot find is not a fixture. Rebuild them with tools/make-fixtures.mjs. */
+const FIX = new URL('./fixtures/', import.meta.url).pathname.replace(/\/$/, '');
 writeFileSync(S + '/dev.html', '<!doctype html><html><head><meta charset="utf-8">'
   + '<meta name="viewport" content="width=device-width, initial-scale=1">'
   + '<style>:root{color-scheme:light}body{margin:0}img{max-width:100%}</style></head><body>'
   + readFileSync('dist/union-invitational.html', 'utf8') + '</body></html>');
 
-const LIVE = JSON.parse(readFileSync(S + '/db7/config/tournament.json', 'utf8'));
+const LIVE = JSON.parse(readFileSync(FIX + '/db7/config/tournament.json', 'utf8'));
 const seed = { 'config/tournament': LIVE };
-for (const f of readdirSync(S + '/restore/people')) seed['people/' + f.replace('.json', '')] = JSON.parse(readFileSync(S + '/restore/people/' + f, 'utf8'));
-for (const f of readdirSync(S + '/restore/pairs')) seed['pairs/' + f.replace('.json', '')] = JSON.parse(readFileSync(S + '/restore/pairs/' + f, 'utf8'));
+for (const f of readdirSync(FIX + '/restore/people')) seed['people/' + f.replace('.json', '')] = JSON.parse(readFileSync(FIX + '/restore/people/' + f, 'utf8'));
+for (const f of readdirSync(FIX + '/restore/pairs')) seed['pairs/' + f.replace('.json', '')] = JSON.parse(readFileSync(FIX + '/restore/pairs/' + f, 'utf8'));
 
 const MOCK = (seed) => {
   const docs = JSON.parse(JSON.stringify(seed));
