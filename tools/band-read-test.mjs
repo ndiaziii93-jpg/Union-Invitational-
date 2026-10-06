@@ -183,16 +183,48 @@ await shut();
 await tab('Boards');
 await p.locator('.btab', { hasText: 'Practice Day' }).click(); await p.waitForTimeout(800); await shut();
 
-ok('the read is on the Practice Day board', await p.locator('.br-row').count() > 0, true);
-ok('and it says it is a read, not a ruling',
-  /read, not a ruling/i.test(await p.locator('.bandread').locator('xpath=preceding-sibling::p[1]').innerText()), true);
-ok('every row carries a verdict', await p.locator('.br-tag').count(), await p.locator('.br-row').count());
-ok('and the working under it', await p.locator('.br-line').count(), await p.locator('.br-row').count());
+/* THE READ IS BEHIND A BUTTON NOW, set as the day's recap is set. It is not
+   reference material — it is the one thing on Practice Day somebody has to
+   act on — so it gets a face on the board and opens into a window. */
+ok('the board carries a button, not the read itself', await p.locator('.br-row').count(), 0);
+const face = p.locator('.recapbtn', { hasText: 'The Band Read' });
+ok('and the button is there', await face.count(), 1);
+console.log('          (it reads: ' + (await face.locator('.rb-s').innerText()).trim() + ')');
+/* It is lit when there is something to do about it, dark when there is not —
+   the same glow the recap uses, because it is the same promise. */
+const lit = await face.evaluate(el => el.classList.contains('ready'));
+const says = await face.locator('.rb-s').innerText();
+ok('lit exactly when somebody needs moving',
+  lit, /wrong band|no band yet|to move/i.test(says));
+
+/* The card above the button is seven columns on a 390px phone, and the name
+   was being squeezed to nothing and spilling sideways over the band next to
+   it. A name must stay inside its own box, whatever else is in the row. */
+ok('the day\'s card keeps the name inside its own column', await p.evaluate(() => {
+  const row = document.querySelector('.pboard .row');
+  if (!row) return 'no card on the board';
+  const who = row.querySelector('.p-who');
+  const spill = who.scrollWidth > who.clientWidth + 1;
+  const cells = Array.from(row.children).map(c => c.getBoundingClientRect());
+  const onTop = cells.some((c, i) => i && c.left < cells[i - 1].right - 0.5);
+  return spill || onTop;
+}), false);
+
+console.log('\nand it opens into a window');
+await face.click(); await p.waitForTimeout(600);
+ok('the window is up', await p.locator('.brmodal').count(), 1);
+ok('the read is inside it', await p.locator('.brmodal .br-row').count() > 0, true);
+ok('and it still says it is a read, not a ruling',
+  /read, not a ruling/i.test(await p.locator('.brmodal .br-lede').innerText()), true);
+ok('every row carries a verdict',
+  await p.locator('.brmodal .br-tag').count(), await p.locator('.brmodal .br-row').count());
+ok('and the working under it',
+  await p.locator('.brmodal .br-line').count(), await p.locator('.brmodal .br-row').count());
 
 /* The verdict and the suggested band were landing on top of each other on a
    phone, because the tag was forced into the column the number uses. */
 const overlap = await p.evaluate(() => {
-  const r = document.querySelector('.br-row');
+  const r = document.querySelector('.brmodal .br-row');
   const next = r.querySelector('.br-next'), tag = r.querySelector('.br-tag');
   if (!next || !tag) return 'missing';
   const a = next.getBoundingClientRect(), c = tag.getBoundingClientRect();
@@ -200,8 +232,78 @@ const overlap = await p.evaluate(() => {
   return !(a.right <= c.left + 0.5 || c.right <= a.left + 0.5);
 });
 ok('the suggested band and the verdict do not overlap', overlap, false);
+ok('it fits the phone across', await p.evaluate(() => {
+  const m = document.querySelector('.brmodal').getBoundingClientRect();
+  return m.left >= -0.5 && m.right <= window.innerWidth + 0.5;
+}), true);
 ok('nothing runs off the side', await p.evaluate(
   () => document.documentElement.scrollWidth > window.innerWidth + 1), false);
+
+/* ---- THE VERDICT IS THE CONTROL ----
+   Tapping it moves the golfer to the band his card asks for. Nowhere to go,
+   nothing to find, and the window you were reading stays open. */
+console.log('\ntaking the recommendation');
+const act = p.locator('.brmodal .br-tag.act');
+ok('a verdict that recommends a move can be tapped', await act.count() > 0, true);
+if (await act.count()) {
+  const row = p.locator('.brmodal .br-row').filter({ has: p.locator('.br-tag.act') }).first();
+  const who = (await row.locator('.br-who').innerText()).split('\n')[0].trim();
+  const wasBand = (await row.locator('.br-now b').innerText()).trim();
+  const wants = (await row.locator('.br-next b').innerText()).trim();
+  console.log('          (' + who + ' chose ' + wasBand + ', the card says ' + wants + ')');
+  ok('and it is recommending a different band', wasBand === wants, false);
+
+  const idx = await p.locator('.brmodal .br-row').evaluateAll((rows) =>
+    rows.findIndex(r => r.querySelector('.br-tag.act')));
+  /* Where we are standing, so the tap can be shown not to move us. */
+  const whereBefore = await p.locator('.btab.on').innerText();
+  await row.locator('.br-tag.act').click(); await p.waitForTimeout(700);
+
+  const after = p.locator('.brmodal .br-row').nth(idx);
+  ok('the window stayed open', await p.locator('.brmodal').count(), 1);
+  ok('and it did not take us to another tab to do it',
+    await p.locator('.btab.on').innerText(), whereBefore);
+  ok('the golfer is on the band his card asked for',
+    (await after.locator('.br-now b').innerText()).trim(), wants);
+  ok('and the row now reads as holding',
+    await after.evaluate(el => el.className.includes('br-right')), true);
+  ok('the working says what just happened',
+    /Moved to band /.test(await p.locator('.brmodal .br-line').nth(idx).innerText()), true);
+
+  /* A tap that does the thing on the spot needs a way back from a wrong tap. */
+  console.log('\nand a wrong tap has a way back');
+  ok('an undo is offered', await p.locator('.brmodal .br-undo').count() > 0, true);
+  await p.locator('.brmodal .br-line').nth(idx).locator('.br-undo').click();
+  await p.waitForTimeout(700);
+  ok('undo puts the band back',
+    (await p.locator('.brmodal .br-row').nth(idx).locator('.br-now b').innerText()).trim(), wasBand);
+  ok('and the verdict can be taken again',
+    await p.locator('.brmodal .br-row').nth(idx).locator('.br-tag.act').count(), 1);
+  await p.locator('.brmodal .br-row').nth(idx).locator('.br-tag.act').click();
+  await p.waitForTimeout(700);
+
+  /* IT EDITED THE ROSTER, not the window. That is the whole point: the tap
+     does the thing, rather than showing you where to go and do it. */
+  console.log('\nand the tap edited the roster, not the window');
+  await p.locator('.brmodal [data-act="modalCancel"]').click(); await p.waitForTimeout(500);
+  await tab('Roster');
+  /* The roster's names live in input fields, not in the row's text, so the
+     row is found by what is typed in one — not by hasText, which reads the
+     labels on the buttons and nothing else. */
+  const onBand = await p.locator('.rtable tbody tr').evaluateAll((rows, name) => {
+    const row = rows.find(r => Array.from(r.querySelectorAll('input'))
+      .some(i => i.value.trim() === name));
+    if (!row) return 'no row for ' + name;
+    const on = row.querySelector('[data-act="setBand"].on');
+    return on ? on.getAttribute('data-b') : null;
+  }, who);
+  ok('the roster itself carries the new band', onBand, wants);
+
+  await tab('Boards');
+  await p.locator('.btab', { hasText: 'Practice Day' }).click(); await p.waitForTimeout(700); await shut();
+  await p.locator('.recapbtn', { hasText: 'The Band Read' }).click(); await p.waitForTimeout(600);
+  ok('and a fresh open carries no stale undo', await p.locator('.brmodal .br-undo').count(), 0);
+}
 
 await b.close();
 console.log(fails.length ? '\n' + fails.length + ' FAILED: ' + fails.join(', ') : '\nall good');

@@ -569,6 +569,63 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 .br-unset .br-tag{color:var(--gold)}
 .br-thin .br-tag{color:var(--turf)}
 
+/* ---- the day's card ----
+
+   Seven columns, which on a phone is three too many for the name to survive:
+   the fixed cells wanted 370px of a 360px row, so the name was squeezed to
+   nothing and spilled sideways over the band sitting next to it. The columns
+   give way instead, and the name wraps inside its own box. */
+.pboard .p-pos{width:24px}
+.pboard .p-who{flex:1 1 auto;min-width:0}
+.pboard .p-band,.pboard .p-thru,.pboard .p-gross,.pboard .p-par,.pboard .p-pts{text-align:right}
+.pboard .p-band{min-width:46px;color:var(--turf)}
+.pboard .p-thru{min-width:46px}
+.pboard .p-gross{min-width:52px}
+.pboard .p-par{min-width:56px}
+.pboard .p-pts{min-width:74px;font-size:23px;font-weight:700}
+.pboard .rowhead .p-pts{font-size:14px;font-weight:400}
+@media (max-width:560px){
+  .pboard .row,.pboard .rowhead{gap:7px}
+  .pboard .p-pos{width:16px;font-size:13px}
+  .pboard .row .p-who{font-size:15.5px;overflow-wrap:anywhere}
+  .pboard .rowhead span{font-size:11.5px}
+  .pboard .p-band,.pboard .p-thru{min-width:28px;font-size:15px}
+  .pboard .p-gross{min-width:34px;font-size:15px}
+  .pboard .p-par{min-width:38px;font-size:15px}
+  .pboard .p-pts{min-width:34px;font-size:19px}
+}
+
+/* ---- the read as a window, and the verdict as the control ----
+
+   The read is behind a button on the board, set exactly as the day's recap
+   is set, and opens here. The verdict pill is the control: tap it and that
+   golfer moves to the band his card asks for. Nothing navigates, nothing
+   closes, and the row re-reads under your thumb. */
+.brmodal{max-width:620px;gap:0;padding:22px 20px 18px;border-top-color:var(--gold)}
+.brmodal .br-eye{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--turf);
+  display:block}
+.brmodal .br-q{font-size:22px;margin:6px 0 10px;line-height:1.2}
+.brmodal .br-lede{font-size:14.5px;line-height:1.55;color:var(--turf);margin:0}
+.brmodal .br-lede b{color:var(--ink)}
+.brmodal .br-how{font-size:14px;line-height:1.5;color:var(--ink);margin:10px 0 0;
+  padding:9px 11px;background:var(--paper);border-left:3px solid var(--gold)}
+.brmodal .br-foot{font-size:14px;line-height:1.55;color:var(--turf);margin:14px 0 0}
+.brmodal .acts{justify-content:center;margin-top:16px}
+
+/* A pill you can press is a pill that has to be worth pressing at: the
+   reading size was eleven px of uppercase, which is a label, not a target. */
+.br-tag.act{cursor:pointer;background:var(--paper);padding:7px 11px;min-height:32px;
+  transition:background .15s ease,color .15s ease,border-color .15s ease}
+.br-tag.act::after{content:'\00A0\203A';font-weight:700}
+.br-heavy .br-tag.act:hover,.br-unset .br-tag.act:hover{background:var(--gold);color:var(--paper);border-color:var(--gold)}
+.br-light .br-tag.act:hover{background:var(--flag);color:var(--paper);border-color:var(--flag)}
+.br-tag.act:focus-visible{outline:2px solid var(--flag);outline-offset:3px}
+/* Undo sits in the working line, in the sentence that says what happened. */
+.br-moved{display:block;margin-bottom:3px;color:var(--ink)}
+.br-undo{font:inherit;font-size:13.5px;color:var(--flag);text-decoration:underline;
+  background:none;border:0;padding:0;cursor:pointer}
+.br-undo:hover{color:var(--ink)}
+
 /* On a phone the name takes a line of its own and the verdict sits under it:
    what he chose, an arrow, what the card says, and the word for it hard
    right. Every cell is placed by hand — left to flow, the numbers landed in

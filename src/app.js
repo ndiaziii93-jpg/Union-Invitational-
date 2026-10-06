@@ -42,6 +42,7 @@ const UI = {
   courseTab: 'aspendos',
   courseHole: 0,
   modal: null,       // {title, note, onOk(pin) -> string|null err}
+  bandMoved: {},     // id -> the band they were on before the read moved them
   modalErr: '',
   revealPins: false,
   toast: '',
@@ -435,49 +436,110 @@ const BANDWORD = {
   thin:  ['too few holes', 'Not enough of a card to read.'],
 };
 
-function bandReadBlock() {
+/* The read sits behind a button, the way the day's recap does, because it is
+   not reference — it is the one thing on Practice Day somebody has to ACT on.
+   So the action is in here too: tapping a verdict moves that golfer to the
+   band his card asks for, on the spot. No trip to the Roster screen, no
+   hunting for the right crest, no leaving the page you were reading. */
+
+/** What the read amounts to in one line, for the face of the button. */
+function bandReadState() {
   const read = E.bandRead(T, 'practice');
-  if (!read.length) return '';
-  const settled = E.bandsLocked(T);
   const moves = read.filter(x => x.verdict === 'light' || x.verdict === 'heavy').length;
+  const unset = read.filter(x => x.verdict === 'unset').length;
+  const thin = read.length > 0 && read.every(x => x.verdict === 'thin');
+  const line = moves && unset
+      ? moves + ' to move, ' + unset + ' with no band yet.'
+    : moves
+      ? moves + ' golfer' + (moves === 1 ? ' is' : 's are') + ' in the wrong band.'
+    : unset
+      ? unset + (unset === 1 ? ' golfer has' : ' golfers have') + ' no band yet.'
+    : thin
+      ? 'Too early to read — nine holes needed.'
+      : 'Everybody is in the band their card asks for.';
+  return { read, moves, unset, line, lit: !!(moves || unset), empty: !read.length };
+}
+
+function bandReadButton() {
+  const s = bandReadState();
+  if (s.empty) return '';
+  return `<div class="recapwrap">
+    <button class="recapbtn${s.lit ? ' ready' : ''}" data-act="bandOpen">
+      <span class="rb-w">
+        <span class="rb-t">The Band Read</span>
+        <span class="rb-s">${esc(s.line)}</span>
+      </span>
+      ${IMG.crest ? `<img class="rb-c" src="${IMG.crest}" alt="">` : ''}
+    </button>
+  </div>`;
+}
+
+function bandModalHtml() {
+  const s = bandReadState();
+  const settled = E.bandsLocked(T);
+  const mine = canEdit();
+  /* A move is offered where there is one to make and the viewer is allowed to
+     make it. Everybody else reads the same page without a live control on it. */
+  const takeable = x => mine && (x.verdict === 'light' || x.verdict === 'heavy' || x.verdict === 'unset');
+  const moved = x => Object.prototype.hasOwnProperty.call(UI.bandMoved, x.id);
 
   const line = x => {
-    if (x.verdict === 'thin') return x.played + ' hole' + (x.played === 1 ? '' : 's') + ' in — too early to say.';
+    const was = moved(x)
+      ? `<span class="br-moved"><b>Moved to band ${x.band}</b> from `
+        + `${UI.bandMoved[x.id] == null ? 'no band' : UI.bandMoved[x.id]}. `
+        + `<button class="br-undo" data-act="bandUndo" data-a="${x.id}">Undo</button></span>`
+      : '';
+    if (x.verdict === 'thin') return was + x.played + ' hole' + (x.played === 1 ? '' : 's') + ' in — too early to say.';
     const over = 'Round in <b>' + (x.projected >= 0 ? '+' : '') + x.projected + '</b> over par'
       + (x.played < 18 ? ', projected from ' + x.played : '')
       + (x.hitCap ? ' · capped on ' + x.hitCap + ' hole' + (x.hitCap === 1 ? '' : 's') : '');
-    if (x.verdict === 'unset') return over + '. Tuesday says <b>band ' + x.suggested + '</b>.';
-    if (x.verdict === 'right') return over + ', on a band of ' + x.band + '. That is the band.';
+    if (x.verdict === 'unset') return was + over + '. Tuesday says <b>band ' + x.suggested + '</b>.';
+    if (x.verdict === 'right') return was + over + ', on a band of ' + x.band + '. That is the band.';
     const n = Math.abs(x.gap);
-    return over + ', on a band of ' + x.band + ' — ' + n + ' shot' + (n === 1 ? '' : 's')
+    return was + over + ', on a band of ' + x.band + ' — ' + n + ' shot' + (n === 1 ? '' : 's')
       + (x.gap > 0 ? ' more than they are given. <b>Band ' + x.suggested + '</b> brings them to level.'
                    : ' fewer than they are given. <b>Band ' + x.suggested + '</b> is nearer.');
   };
 
-  return `<h3 class="sub">The band read</h3>
-  <p class="lede" style="margin-bottom:0">A band IS the strokes you receive, so a band is right when your net
-  lands near level par. This holds how far over par each card actually went — capped at triple bogey, exactly as
-  Thursday will cap it, and projected to eighteen if the round was short — against the band that golfer chose.
-  <b>It is a read, not a ruling.</b> One round is thin evidence and the band is a scorer&rsquo;s to set.</p>
+  return `<div class="scrim" data-act="modalScrim"><div class="modal brmodal"
+    role="dialog" aria-modal="true" aria-label="The band read">
+    <span class="br-eye">Practice Day · the audition</span>
+    <h3 class="br-q">The band read</h3>
+    <p class="br-lede">A band IS the strokes you receive, so a band is right when your net lands near level par.
+    This holds how far over par each card actually went — capped at triple bogey, exactly as Thursday will cap it,
+    and projected to eighteen if the round was short — against the band that golfer chose.
+    <b>It is a read, not a ruling.</b> One round is thin evidence and the band is a scorer&rsquo;s to set.</p>
+    ${mine && (s.moves || s.unset)
+      ? `<p class="br-how">Tap a verdict to move that golfer to the band his card asks for. It is done here —
+         you do not have to go anywhere.</p>` : ''}
 
-  <div class="bandread">
-    ${read.map(x => `<div class="br-row br-${x.verdict}">
-      <span class="br-who">${esc(x.name)}<small>${esc(BANDWORD[x.verdict][1])}</small></span>
-      <span class="br-now"><b class="num">${x.band == null ? '—' : x.band}</b><small>chose</small></span>
-      <span class="br-arrow">${x.verdict === 'light' || x.verdict === 'heavy' ? '&rarr;' : ''}</span>
-      <span class="br-next">${x.verdict === 'light' || x.verdict === 'heavy' || x.verdict === 'unset'
-        ? `<b class="num">${x.suggested}</b><small>says</small>` : ''}</span>
-      <span class="br-tag">${esc(BANDWORD[x.verdict][0])}</span>
+    <div class="bandread">
+      ${s.read.map(x => `<div class="br-row br-${x.verdict}">
+        <span class="br-who">${esc(x.name)}<small>${esc(BANDWORD[x.verdict][1])}</small></span>
+        <span class="br-now"><b class="num">${x.band == null ? '—' : x.band}</b><small>chose</small></span>
+        <span class="br-arrow">${x.verdict === 'light' || x.verdict === 'heavy' ? '&rarr;' : ''}</span>
+        <span class="br-next">${x.verdict === 'light' || x.verdict === 'heavy' || x.verdict === 'unset'
+          ? `<b class="num">${x.suggested}</b><small>says</small>` : ''}</span>
+        ${takeable(x)
+          ? `<button class="br-tag act" data-act="bandTake" data-a="${x.id}" data-b="${x.suggested}"
+              aria-label="Move ${esc(x.name)} to band ${x.suggested}"
+              title="Move ${esc(x.name)} to band ${x.suggested}">${esc(BANDWORD[x.verdict][0])}</button>`
+          : `<span class="br-tag">${esc(BANDWORD[x.verdict][0])}</span>`}
+      </div>
+      <p class="br-line">${line(x)}</p>`).join('')}
     </div>
-    <p class="br-line">${line(x)}</p>`).join('')}
-  </div>
 
-  <p class="lede" style="margin-top:12px">${settled
-    ? 'The bands are settled. Only a scorer can move one now, on the Roster screen.'
-    : moves
-      ? moves + ' golfer' + (moves === 1 ? '' : 's') + ' came in some way off the band they chose. Move them on the '
-        + 'Roster screen before Round 1 — after the practice round is concluded the bands settle for the week.'
-      : 'Nobody is far off the band they chose. Conclude the practice round to settle them for the week.'}</p>`;
+    <p class="br-foot">${settled
+      ? 'The bands are settled for the week. A scorer can still move one — here, or on the Roster screen.'
+      : !mine
+        ? 'Bands are a scorer&rsquo;s to set. This is the read they will be working from.'
+        : s.moves
+          ? s.moves + ' golfer' + (s.moves === 1 ? '' : 's') + ' came in some way off the band they chose. '
+            + 'Move them before Round 1 — once the practice round is concluded the bands settle for the week.'
+          : 'Nobody is far off the band they chose. Conclude the practice round to settle them for the week.'}</p>
+
+    <div class="acts"><button class="btn" data-act="modalCancel">Close</button></div>
+  </div></div>`;
 }
 
 function boardPractice() {
@@ -499,23 +561,23 @@ function boardPractice() {
   <h3 class="sub">The day's card</h3>
   <p class="lede" style="margin-bottom:0">Scored gross, so a golfer with no band yet still has a card. Points appear
   once a band is set — which is what the day is for.</p>
-  <div class="rows" style="margin-top:8px">
-    <div class="rowhead"><span style="width:24px">#</span><span style="flex:1">Golfer</span>
-      <span style="min-width:46px;text-align:right">Band</span>
-      <span style="min-width:46px;text-align:right">Thru</span>
-      <span style="min-width:52px;text-align:right">Gross</span>
-      <span style="min-width:56px;text-align:right">To par</span>
-      <span style="min-width:74px;text-align:right">Points</span></div>
-    ${rows.map(x => `<div class="row"><span class="pos" style="width:24px">${x.pos}</span>
-      <span class="who" style="flex:1">${esc(x.name)}</span>
-      <span class="num" style="min-width:46px;text-align:right;color:var(--turf)">${x.band == null ? '—' : x.band}</span>
-      <span class="num" style="min-width:46px;text-align:right">${x.thru}</span>
-      <span class="num" style="min-width:52px;text-align:right">${x.gross}</span>
-      <span class="num ${x.tp < 0 ? 'under' : x.tp > 0 ? 'over' : 'level'}" style="min-width:56px;text-align:right">${esc(E.fmtToPar(x.tp))}</span>
-      <span class="num" style="min-width:74px;text-align:right;font-size:23px;font-weight:700">${x.stb == null ? '—' : x.stb}</span></div>`).join('')}
+  <div class="rows pboard" style="margin-top:8px">
+    <div class="rowhead"><span class="p-pos">#</span><span class="p-who">Golfer</span>
+      <span class="p-band">Band</span>
+      <span class="p-thru">Thru</span>
+      <span class="p-gross">Gross</span>
+      <span class="p-par">To par</span>
+      <span class="p-pts">Points</span></div>
+    ${rows.map(x => `<div class="row"><span class="pos p-pos">${x.pos}</span>
+      <span class="who p-who">${esc(x.name)}</span>
+      <span class="num p-band">${x.band == null ? '—' : x.band}</span>
+      <span class="num p-thru">${x.thru}</span>
+      <span class="num p-gross">${x.gross}</span>
+      <span class="num p-par ${x.tp < 0 ? 'under' : x.tp > 0 ? 'over' : 'level'}">${esc(E.fmtToPar(x.tp))}</span>
+      <span class="num p-pts">${x.stb == null ? '—' : x.stb}</span></div>`).join('')}
   </div>`}
 
-  ${bandReadBlock()}
+  ${bandReadButton()}
 
   <h3 class="sub">Bingo Bango Bongo — practice</h3>
   ${bbb.length ? `<div class="rows" style="margin-top:8px;max-width:520px">
@@ -3705,6 +3767,7 @@ function ord(n) {
 
 function modalHtml() {
   return UI.modal.kind === 'matchwhy' ? matchWhyHtml()
+       : UI.modal.kind === 'bandread' ? bandModalHtml()
        : UI.modal.kind === 'turn' ? turnModalHtml()
        : UI.modal.kind === 'finish' ? finishModalHtml()
        : UI.modal.kind === 'bbbmiss' ? bbbModalHtml()
@@ -4262,6 +4325,30 @@ function onClick(e) {
       if (!canEdit()) return;
       store.writeAllPeople(p => { p.location = null; });
       return;
+
+    /* The read, and the move it recommends, in the one place. The move is
+       written straight to the roster: no confirm, because the row re-reads
+       in front of you and carries an Undo if the tap was wrong. */
+    case 'bandOpen':
+      UI.bandMoved = {};
+      UI.modal = { kind: 'bandread' };
+      break;
+    case 'bandTake': {
+      if (!canEdit()) return;
+      const who = E.person(T, a);
+      if (!who || !b) return;
+      UI.bandMoved[a] = who.band == null ? null : who.band;
+      store.writePerson(a, q => { q.band = +b; });
+      break;
+    }
+    case 'bandUndo': {
+      if (!canEdit()) return;
+      if (!Object.prototype.hasOwnProperty.call(UI.bandMoved, a)) return;
+      const back = UI.bandMoved[a];
+      delete UI.bandMoved[a];
+      store.writePerson(a, q => { q.band = back; });
+      break;
+    }
 
     case 'setBand':
       if (!canEdit()) return;
