@@ -3082,6 +3082,7 @@ let zoomShown = 1;       // and how far in it was when that happened
 let wheelDone = null;
 function inUse() {
   if (pinch) return true;              // never redraw under a moving finger
+  if (tapping) return true;            // nor between a press and its release
   const el = document.activeElement;
   if (!el || !document.getElementById('app')) return false;
   if (!document.getElementById('app').contains(el)) return false;
@@ -3100,8 +3101,50 @@ function flushRender() {
   renderPending = false;
   render();
 }
+
+/* A TAP IS NOT AN INSTANT, AND THAT IS THE WHOLE OF THIS BUG.
+ *
+ * The screen is rebuilt wholesale on every render. A finger holds the glass
+ * for a tenth of a second or more, and a render landing in that gap replaces
+ * the button being pressed — so the release lands on an element that was not
+ * there when the press began, and the browser never dispatches the click at
+ * all. The tap does nothing. Save does not save.
+ *
+ * The store polls, so on the real tournament book a redraw is always about to
+ * arrive, which is why this never showed up on a page that was sitting still.
+ * A press now holds the redraw and lets it go the moment the tap is over. */
+let tapping = false;
+let tapGuard = null;
+function tapDone() {
+  if (!tapping) return;
+  tapping = false;
+  clearTimeout(tapGuard);
+  // after the click this release is about to fire, never before it
+  setTimeout(flushRender, 0);
+}
+document.addEventListener('pointerdown', () => {
+  tapping = true;
+  clearTimeout(tapGuard);
+  /* A press that never reports an end — a finger that leaves the glass off
+     the edge of the window — must not freeze the page for good. */
+  tapGuard = setTimeout(tapDone, 1500);
+}, true);
+document.addEventListener('pointerup', tapDone, true);
+document.addEventListener('pointercancel', tapDone, true);
+
 document.addEventListener('blur', () => setTimeout(flushRender, 0), true);
-document.addEventListener('change', () => setTimeout(flushRender, 0), true);
+/* A SELECT's change ends the gesture, because a native dropdown eats the
+   release that opened it: without this the press would hold the redraw until
+   the guard timer let go — a second and a half of a screen that has not
+   noticed the name just picked for Bingo.
+   A TEXT FIELD'S change must NOT end it. That one fires as the field blurs,
+   which is the moment a finger lands on a button — releasing the guard there
+   rebuilds the screen under the press and eats the very tap it was added to
+   protect. The suite caught it doing exactly that to the kind buttons. */
+document.addEventListener('change', e => {
+  if (e.target && e.target.tagName === 'SELECT') tapDone();
+  setTimeout(flushRender, 0);
+}, true);
 
 function render() {
   try { paint(); }
@@ -4881,6 +4924,11 @@ export function boot() {
      mid-sentence often. */
   app.addEventListener('input', e => {
     if (e.target && e.target.id === 'askField') UI.askText = e.target.value;
+    /* The event being written lives in UI.modal, not in the DOM: a redraw can
+       land between the name and the Save, and what is typed must outlive it. */
+    if (e.target && e.target.id === 'evTitle' && UI.modal && UI.modal.kind === 'event') {
+      UI.modal.ev.title = e.target.value;
+    }
     if (e.target && e.target.id === 'mineText') {
       UI.mineDraft = { rid: UI.entryRound, h: +e.target.dataset.b, v: e.target.value };
     }
