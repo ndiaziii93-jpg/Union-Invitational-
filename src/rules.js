@@ -55,7 +55,7 @@ export const RULES = [
     ],
     example: 'Thursday, nominated hole 16. DP finds the fairway at 260 m; Devin O goes past him but into the rough. DP keeps the marker.' },
 
-  { id: 'ryder', name: 'Ryder Cup — UK v USA', tag: 'Squad match play laid over the same scorecards. No extra golf.',
+  { id: 'ryder', name: 'Ryder Cup — UK vs USA', tag: 'Squad match play laid over the same scorecards. No extra golf.',
     when: 'Singles all three sessions — Thursday, Friday and Sunday.',
     won: 'Most match points across the three sessions. One point per match, half each if all square.',
     body: [

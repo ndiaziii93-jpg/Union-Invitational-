@@ -2220,7 +2220,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261006-1107';
+const BUILD = '20261006-1226';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -2404,7 +2404,7 @@ const RULES = [
     ],
     example: 'Thursday, nominated hole 16. DP finds the fairway at 260 m; Devin O goes past him but into the rough. DP keeps the marker.' },
 
-  { id: 'ryder', name: 'Ryder Cup — UK v USA', tag: 'Squad match play laid over the same scorecards. No extra golf.',
+  { id: 'ryder', name: 'Ryder Cup — UK vs USA', tag: 'Squad match play laid over the same scorecards. No extra golf.',
     when: 'Singles all three sessions — Thursday, Friday and Sunday.',
     won: 'Most match points across the three sessions. One point per match, half each if all square.',
     body: [
@@ -6912,12 +6912,12 @@ function matchRow(m, rid) {
 function scrRyder() {
   const R = E.ryderData(T, now);
   const gs = E.golfers(T);
-  return `<h2 class="head">Ryder Cup — UK v USA</h2>
+  return `<h2 class="head">Ryder Cup — UK vs USA</h2>
   <p class="lede">Squad match play laid over the same scorecards. Head-to-head singles all three sessions, so everybody plays every time. <a href="#rules" data-act="goRule" data-a="ryder">Full rules</a></p>
 
   <div class="cupbar">
     <div class="side">${ukFlag(44)}<span class="pts num" style="color:var(--green)">${R.ukTotal}</span><span class="eyebrow">United Kingdom</span></div>
-    <div class="vs">v</div>
+    <div class="vs">vs</div>
     <div class="side r"><span class="eyebrow">United States</span><span class="pts num" style="color:var(--usa)">${R.usaTotal}</span>${usFlag(44)}</div>
   </div>
 
@@ -8770,6 +8770,38 @@ function inUse() {
   if (el.tagName === 'INPUT' && /^(text|search|tel|number|url|email)$/.test(el.type)) return true;
   return el.tagName === 'SELECT';
 }
+/* Every surface in the book that scrolls on its own. The page itself and the
+   recap box are handled separately; these are the rest, and leaving any of
+   them out means a redraw throws the reader back to the start of it. */
+const SCROLLERS = '.btabs, .tabs, .scroller, .daystrip, .planwrap, .askbox';
+/** What each one is, so it can be found again after the rebuild. An index is
+ *  not enough: a window opening adds a scroller near the front of the list
+ *  and every position after it then names something else. */
+function scrollSig(el) {
+  return (el.id ? '#' + el.id : el.className.trim().replace(/\s+/g, '.'));
+}
+function scrollMarks() {
+  const seen = {}, out = {};
+  document.querySelectorAll(SCROLLERS).forEach(el => {
+    const k = scrollSig(el); seen[k] = (seen[k] || 0) + 1;
+    if (el.scrollLeft || el.scrollTop) out[k + '/' + seen[k]] = [el.scrollLeft, el.scrollTop];
+  });
+  return out;
+}
+function applyScrollMarks(marks) {
+  const seen = {};
+  document.querySelectorAll(SCROLLERS).forEach(el => {
+    const k = scrollSig(el); seen[k] = (seen[k] || 0) + 1;
+    const at = marks[k + '/' + seen[k]];
+    if (at) { el.scrollLeft = at[0]; el.scrollTop = at[1]; }
+  });
+}
+/** Which window is up, so its scroll is kept for it and not handed to the
+ *  next one that opens. */
+function windowKind() {
+  return UI.recapOpen ? 'recap' : UI.askOpen ? 'ask' : UI.modal ? 'modal:' + UI.modal.kind : null;
+}
+
 function flushRender() {
   if (!renderPending) return;
   renderPending = false;
@@ -8847,11 +8879,17 @@ function paint() {
   const wasAt = window.scrollY;
   const box = document.getElementById('recapBox');
   const boxAt = box ? box.scrollTop : 0;
-  /* A strip that scrolls sideways is rebuilt at its left edge, so tapping a
-     sub-tab at the far right took you to the right page and then snapped the
-     row back to Team Comp. The same screen rebuilds to the same shape, so
-     each strip is put back where it was. */
-  const strips = [...document.querySelectorAll('.btabs, .scroller, .planwrap')].map(el => [el.scrollLeft, el.scrollTop]);
+  const scrim = document.querySelector('.scrim');
+  const scrimAt = scrim ? scrim.scrollTop : 0;
+  const scrimWas = windowKind();
+  /* ANYTHING THAT SCROLLS IS REBUILT AT ITS TOP LEFT, and the reader is
+     thrown back to where they started. A sub-tab strip snapped back to Team
+     Comp; a window that had been scrolled down to read the working jumped to
+     its headline the moment the book heard anything. Every surface that
+     scrolls is put back where it was — keyed by what it is rather than by
+     the order it happens to appear in, because a window opening changes that
+     order and an index is then quietly the wrong element. */
+  const strips = scrollMarks();
   /* A rule opened to be read was closing itself after fifteen seconds. The
      book redraws on a timer, and a redraw replaces the whole tree — taking
      the <details> open with it. Which ones were open is remembered by id. */
@@ -8935,8 +8973,14 @@ function paint() {
 
   opened.forEach(id => { const el = document.getElementById(id); if (el) el.open = true; });
 
-  const strips2 = [...document.querySelectorAll('.btabs, .scroller, .planwrap')];
-  strips2.forEach((el, i) => { if (strips[i]) { el.scrollLeft = strips[i][0]; el.scrollTop = strips[i][1]; } });
+  applyScrollMarks(strips);
+  /* The scrim is the one surface a window scrolls on — that is what stopped
+     the sliding being choppy — so a redraw landing while somebody reads a
+     match, hole by hole, put them back at the top of it. Kept only while the
+     SAME window is up: a different one opens at its beginning, as it should. */
+  const scrimNow = windowKind();
+  const scrim2 = document.querySelector('.scrim');
+  if (scrim2 && scrimAt && scrimWas === scrimNow) scrim2.scrollTop = scrimAt;
   /* The site plan is a panorama four times as wide as it is tall, so on a
      phone most of it is off the side. Picking a point out of the list has to
      bring it into view — otherwise the map appears not to have answered.
@@ -9323,7 +9367,7 @@ function turnModalHtml() {
 
     ${s.cup ? `<div class="cupbar tn-cup">
       <div class="side">${ukFlag(38)}<span class="pts num" style="color:var(--green)">${half(s.cup.uk)}</span></div>
-      <div class="vs">v</div>
+      <div class="vs">vs</div>
       <div class="side r"><span class="pts num" style="color:var(--usa)">${half(s.cup.usa)}</span>${usFlag(38)}</div>
     </div>
     ${/* The cup is points and nothing else. A stroke count under the flags
@@ -9502,7 +9546,7 @@ function matchWhyHtml() {
   return `<div class="scrim" data-act="modalScrim"><div class="modal mwmodal"
     role="dialog" aria-modal="true" aria-label="How ${esc(d.a.name)} against ${esc(d.b.name)} stands">
     <span class="mw-eye">${esc([round, E.courseOf(T, m.rid).name, 'Singles'].join(' \u00B7 '))}</span>
-    <h3 class="mw-q">${esc(d.a.name)} <span>v</span> ${esc(d.b.name)}</h3>
+    <h3 class="mw-q">${esc(d.a.name)} <span>vs</span> ${esc(d.b.name)}</h3>
     <p class="mw-v">${verdict}</p>
     <p class="mw-w">${worth}</p>
 

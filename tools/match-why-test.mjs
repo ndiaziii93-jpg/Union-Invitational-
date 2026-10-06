@@ -102,6 +102,11 @@ await shut();
 
 console.log('\na fixture reads across, and the row is the way in');
 await tab('Ryder');
+/* IT IS SPELLED VS. A bare "v" is a law report, not a fixture. */
+ok('the cup bar says vs', (await p.locator('.cupbar .vs').first().innerText()).trim(), 'vs');
+ok('and the heading does too', /UK vs USA/.test(await p.locator('h2.head').innerText()), true);
+ok('with no bare v left on it', / v /.test(await p.locator('h2.head').innerText()), false);
+
 const rows2 = p.locator('.match.why');
 ok('every match with a hole in it can be asked about', await rows2.count() > 0, true);
 /* THE ROW is the button, not the pill inside it. A pill big enough for a
@@ -145,6 +150,8 @@ ok('every hole played is shown', wonA + halved + wonB, holes);
 const lead = Math.abs(wonA - wonB);
 ok('the holes won account for the lead', new RegExp(lead === 0 ? 'all square|halved' : String(lead)).test(verdict), true);
 
+ok('the window heading says vs as well',
+  / vs /.test(await p.locator('.mw-q').innerText()), true);
 ok('each hole shows what came off the gross',
   /less \d|no shot/i.test(await p.locator('.mw-row').first().innerText()), true);
 ok('the hole that was taken is marked', await p.locator('.mw-s.win').count() > 0, true);
@@ -180,6 +187,40 @@ ok('and nothing inside the window scrolls on its own', surfaces.nested, 0);
 /* A large fixed layer nobody can see should not be repainting under a
    window that is moving. */
 ok('the crest behind it stops painting', surfaces.watermark, 'none');
+
+/* AND IT MUST STAY WHERE YOU SCROLLED IT. The window is read by scrolling
+   down through the holes, and the book redraws whenever it hears anything —
+   every redraw replacing the whole tree. The scrim is the surface that
+   moves, and nothing was putting it back, so a reader was thrown to the
+   headline mid-sentence: it scrolls, then jumps back up. */
+console.log('\nand it stays where it was scrolled to');
+/* A match of ten holes fits an 844px phone, and a window with nothing to
+   scroll cannot show this either way. A short screen is what a long match
+   looks like: eighteen holes of working on any phone there is. */
+await p.setViewportSize({ width: 390, height: 420 });
+await p.waitForTimeout(500);
+await p.evaluate(() => { window.__beat = setInterval(() => window.__forceRender && window.__forceRender(), 200); });
+const scrolled = await p.evaluate(() => {
+  const s = document.querySelector('.scrim');
+  s.scrollTop = Math.min(220, s.scrollHeight - s.clientHeight);
+  return s.scrollTop;
+});
+ok('there is room to scroll it', scrolled > 0, true);
+await p.waitForTimeout(1200);          // six redraws land while it is held there
+ok('six redraws later it has not jumped',
+  await p.evaluate(() => Math.round(document.querySelector('.scrim').scrollTop)), Math.round(scrolled));
+ok('and the window is still the one that was open', await p.locator('.mwmodal').count(), 1);
+await p.evaluate(() => clearInterval(window.__beat));
+await p.setViewportSize({ width: 390, height: 844 });
+await p.waitForTimeout(400);
+
+/* Nobody's place is handed to the next window: a different one opens at its
+   own beginning. */
+await p.locator('.mwmodal [data-act="modalCancel"]').click(); await p.waitForTimeout(400);
+ok('it closes', await p.locator('.mwmodal').count(), 0);
+await p.locator('.match.why').first().click(); await p.waitForTimeout(600);
+ok('the next window opens at the top',
+  await p.evaluate(() => document.querySelector('.scrim').scrollTop), 0);
 
 await p.locator('.mwmodal [data-act="modalCancel"]').click(); await p.waitForTimeout(400);
 ok('it closes', await p.locator('.mwmodal').count(), 0);
