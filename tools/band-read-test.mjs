@@ -187,8 +187,15 @@ await p.locator('.btab', { hasText: 'Practice Day' }).click(); await p.waitForTi
    reference material — it is the one thing on Practice Day somebody has to
    act on — so it gets a face on the board and opens into a window. */
 ok('the board carries a button, not the read itself', await p.locator('.br-row').count(), 0);
-const face = p.locator('.recapbtn', { hasText: 'The Band Read' });
-ok('and the button is there', await face.count(), 1);
+/* The button has two homes in the markup and one of them is always hidden:
+   beside the heading where a tablet has room, under the card where a phone
+   has not. Exactly one of them is ever on screen. */
+ok('the button is in the page twice, for the two widths',
+  await p.locator('.recapbtn', { hasText: 'The Band Read' }).count(), 2);
+const face = p.locator('.recapbtn:visible', { hasText: 'The Band Read' });
+ok('and exactly one of them is showing', await face.count(), 1);
+ok('on a phone it is the one under the card',
+  await face.evaluate(el => !!el.closest('.brlow')), true);
 console.log('          (it reads: ' + (await face.locator('.rb-s').innerText()).trim() + ')');
 /* Both this and the day's recap are the same panel, and on a phone they run
    the full width of the screen: a 3px corner against the bezel reads as a
@@ -306,9 +313,36 @@ if (await act.count()) {
 
   await tab('Boards');
   await p.locator('.btab', { hasText: 'Practice Day' }).click(); await p.waitForTimeout(700); await shut();
-  await p.locator('.recapbtn', { hasText: 'The Band Read' }).click(); await p.waitForTimeout(600);
+  await p.locator('.recapbtn:visible', { hasText: 'The Band Read' }).click(); await p.waitForTimeout(600);
   ok('and a fresh open carries no stale undo', await p.locator('.brmodal .br-undo').count(), 0);
 }
+
+/* ---- AND ON A TABLET IT RIDES BESIDE THE HEADING ----
+   The same board at iPad width: the blank paper to the right of "Practice
+   Day" is where the button belongs, not three screens down the page. */
+console.log('\nthe same board on an iPad');
+await p.setViewportSize({ width: 1024, height: 768 });
+await p.waitForTimeout(700);
+await p.evaluate(() => window.__forceRender && window.__forceRender());
+await p.waitForTimeout(500);
+const wide = p.locator('.recapbtn:visible', { hasText: 'The Band Read' });
+ok('still exactly one button on screen', await wide.count(), 1);
+ok('and now it is the one beside the heading',
+  await wide.evaluate(el => !!el.closest('.brtop')), true);
+const placed = await p.evaluate(() => {
+  const btn = document.querySelector('.brtop .recapbtn');
+  const head = document.querySelector('.prachead .head');
+  if (!btn || !head) return 'missing';
+  const b = btn.getBoundingClientRect(), h = head.getBoundingClientRect();
+  return {
+    toTheRight: b.left > h.right,
+    sameBand: b.top < h.bottom && b.bottom > h.top,
+    rightEdge: Math.round(window.innerWidth - b.right),
+  };
+});
+console.log('          (' + JSON.stringify(placed) + ')');
+ok('it sits to the right of the heading', placed.toTheRight, true);
+ok('on the same line as it', placed.sameBand, true);
 
 await b.close();
 console.log(fails.length ? '\n' + fails.length + ' FAILED: ' + fails.join(', ') : '\nall good');

@@ -552,7 +552,14 @@ function boardPractice() {
   const nm = pid => (E.person(T, pid) || {}).display || '—';
   const played = rows.length;
 
-  return `<h2 class="head">Practice Day</h2>
+  /* The read rides at the top of the board, beside the heading, where a
+     tablet leaves a column of empty paper. A phone has no such column, so
+     the same button stays where it was down there: under the day's card,
+     the full width of the screen. One of the two shows, never both. */
+  return `<div class="titlerow prachead">
+    <h2 class="head">Practice Day</h2>
+    <span class="brtop">${bandReadButton()}</span>
+  </div>
   <p class="lede">${esc(d.dow)} ${esc(d.date)} — ${esc(E.courseOf(T, rid).name)}. Get Loose Foursomes, and a taste of
   everything to come: the points, the Bingo Bango Bongo, the longest drive and the closest to the pin.
   <b>None of it counts.</b> Nothing on this page feeds the Team Competition, the MVP or the Ryder Cup.</p>
@@ -577,7 +584,7 @@ function boardPractice() {
       <span class="num p-pts">${x.stb == null ? '—' : x.stb}</span></div>`).join('')}
   </div>`}
 
-  ${bandReadButton()}
+  <span class="brlow">${bandReadButton()}</span>
 
   <h3 class="sub">Bingo Bango Bongo — practice</h3>
   ${bbb.length ? `<div class="rows" style="margin-top:8px;max-width:520px">

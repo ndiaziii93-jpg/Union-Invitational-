@@ -576,6 +576,18 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 .br-unset .br-tag{color:var(--gold)}
 .br-thin .br-tag{color:var(--turf)}
 
+/* The band read's button has two homes and one of them is always empty.
+   Beside the heading there is a column of blank paper on a tablet; on a
+   phone there is none, so down the page it goes, under the day's card. */
+.prachead{justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+.brtop{display:none}
+.brtop .recapwrap{margin-top:0}
+.brlow{display:block}
+@media (min-width:700px){
+  .brtop{display:block;flex:0 1 380px;min-width:280px}
+  .brlow{display:none}
+}
+
 /* ---- an event, in a window ----
    Written the way a calendar app writes one: a field, a time, a kind, Save. */
 .evmodal{max-width:420px;gap:0;border-top-color:var(--gold)}
