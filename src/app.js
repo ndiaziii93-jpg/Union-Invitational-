@@ -1303,6 +1303,15 @@ function isRestDay(n) {
 }
 function roundOnDay(n) { return D.ROUNDS.find(r => r.dayIdx === n) || null; }
 
+/* The two ceremonies are the formal bookends of the week — the dinner that
+   opens it and the one that hands out the cup — so they wear the crest on the
+   calendar. A mark, not a second thing to read: it carries no alt text and no
+   tap target of its own, the way the crest on the recap panel does not. */
+function crestMark(e) {
+  return e.kind === 'ceremony' && IMG.crest
+    ? `<img class="dcrest" src="${IMG.crest}" alt="">` : '';
+}
+
 function scrCalendar() {
   const locked = !!T.config.calLocked;
   const ed = canEdit() && !locked;
@@ -1346,11 +1355,11 @@ function scrCalendar() {
           ? `<button class="de tap" data-act="evOpen" data-a="${e.id}"
               aria-label="Edit ${esc(e.title)} at ${esc(E.to12(e.time))}">
               <span class="t num">${esc(E.to12(e.time))}</span>
-              <span class="ti ${esc(e.kind)}">${esc(e.title)}</span>
+              <span class="ti ${esc(e.kind)}">${esc(e.title)}</span>${crestMark(e)}
               <span class="dpen" aria-hidden="true">&rsaquo;</span></button>`
           : `<span class="de">
               <span class="t num">${esc(E.to12(e.time))}</span>
-              <span class="ti ${esc(e.kind)}">${esc(e.title)}</span></span>`)).join('')}</span>` : ''}
+              <span class="ti ${esc(e.kind)}">${esc(e.title)}</span>${crestMark(e)}</span>`)).join('')}</span>` : ''}
 
         ${ed ? `<button class="dashb daddb" data-act="evNew" data-a="${d.n}">Add event</button>` : ''}
       </div>`;
@@ -3151,8 +3160,7 @@ function tapDone() {
   if (!tapping) return;
   tapping = false;
   clearTimeout(tapGuard);
-  // after the click this release is about to fire, never before it
-  setTimeout(flushRender, 0);
+  flushRender();
 }
 document.addEventListener('pointerdown', () => {
   tapping = true;
@@ -3161,7 +3169,25 @@ document.addEventListener('pointerdown', () => {
      the edge of the window — must not freeze the page for good. */
   tapGuard = setTimeout(tapDone, 1500);
 }, true);
-document.addEventListener('pointerup', tapDone, true);
+/* THE RELEASE IS NOT THE END OF THE TAP. The click follows it, sometimes in
+   a task of its own — and letting the redraw go on the release was the hole
+   left in the first version of this guard: the screen was rebuilt in that
+   gap and the click landed on an element that no longer existed. So the
+   release only starts a short fuse, and the click itself puts it out. */
+document.addEventListener('pointerup', () => {
+  clearTimeout(tapGuard);
+  tapGuard = setTimeout(tapDone, 120);     // no click coming: a drag, a scroll
+}, true);
+/* By the time a click is being DELIVERED the hazard is behind us: the browser
+   has already chosen its target. So the guard comes off here, in the capture
+   phase, before the handler runs — otherwise the handler's own redraw, the
+   one answering the tap, is held back a tick and the screen lags every
+   press. Anything the handler did not redraw is flushed after it. */
+document.addEventListener('click', () => {
+  tapping = false;
+  clearTimeout(tapGuard);
+  setTimeout(flushRender, 0);
+}, true);
 document.addEventListener('pointercancel', tapDone, true);
 
 document.addEventListener('blur', () => setTimeout(flushRender, 0), true);

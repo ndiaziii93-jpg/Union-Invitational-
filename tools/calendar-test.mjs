@@ -57,6 +57,26 @@ await p.waitForSelector('#app.arrived', { timeout: 20000 }).catch(() => {});
 await p.waitForTimeout(700); await shut();
 await p.locator('.tab', { hasText: 'Calendar' }).click(); await p.waitForTimeout(700); await shut();
 
+/* The two ceremonies are the formal bookends of the week, and they wear the
+   crest on the calendar. Nothing else does — a mark everything carries is
+   not a mark. */
+console.log('\nthe ceremonies wear the crest');
+ok('two crests on the week, and only two', await p.locator('.daycard .dcrest').count(), 2);
+ok('one on the opening',
+  await p.locator('.de', { hasText: 'Opening Ceremony' }).locator('.dcrest').count(), 1);
+ok('one on the closing',
+  await p.locator('.de', { hasText: 'Closing Ceremony' }).locator('.dcrest').count(), 1);
+ok('and none on the beers',
+  await p.locator('.de', { hasText: 'Mandatory Team Beers' }).first().locator('.dcrest').count(), 0);
+ok('it is decoration, so it carries no alt text',
+  await p.locator('.dcrest').first().getAttribute('alt'), '');
+ok('and it does not push the name off the line', await p.evaluate(() => {
+  const line = [...document.querySelectorAll('.de')].find(el => el.querySelector('.dcrest'));
+  const t = line.querySelector('.ti').getBoundingClientRect();
+  const c = line.querySelector('.dcrest').getBoundingClientRect();
+  return c.left >= t.right - 0.5 && c.top < t.bottom && c.bottom > t.top;
+}), true);
+
 /* THE DRUMBEAT. This is the live store polling, and nothing else about this
    test matters without it: every one of these is a full rebuild of the page. */
 console.log('\nwith a redraw landing every fifth of a second');
@@ -135,11 +155,15 @@ ok('and off the day on screen', await p.locator('.daycard').nth(3).locator('.de'
    still going: */
 console.log('\nand the same hazard anywhere else');
 /* The strip carries the short labels at this width: Boards, not Leaderboards. */
-await tap(p.locator('.tab', { hasText: 'Boards' })); await p.waitForTimeout(700);
-ok('a held tap on a tab still changes the screen',
-  await p.locator('.btabs').count() > 0, true);
-await tap(p.locator('.tab', { hasText: 'Calendar' })); await p.waitForTimeout(700);
-ok('and back again', await p.locator('.daycard').count(), 8);
+await tap(p.locator('.tab', { hasText: 'Boards' }));
+/* Wait for the screen rather than counting the instant after the finger
+   lifts: the question is whether the tap landed at all, not how quickly the
+   redraw that follows it got there. */
+const landed = await p.waitForSelector('.btabs', { timeout: 6000 }).then(() => true).catch(() => false);
+ok('a held tap on a tab still changes the screen', landed, true);
+await tap(p.locator('.tab', { hasText: 'Calendar' }));
+const back = await p.waitForSelector('.daycard', { timeout: 6000 }).then(() => true).catch(() => false);
+ok('and back again', back && await p.locator('.daycard').count(), 8);
 
 await p.evaluate(() => clearInterval(window.__beat));
 await b.close();

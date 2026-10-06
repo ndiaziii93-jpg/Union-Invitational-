@@ -408,6 +408,10 @@ h3.sub{font-size:19px;font-weight:600;margin:26px 0 0}
 .daycard .de .t{width:74px;flex:0 0 auto;font-weight:600;font-variant-numeric:tabular-nums}
 .daycard .de .ti{color:var(--green);font-weight:600}
 .daycard .de .ti.ceremony{color:var(--gold)}
+/* The crest beside a ceremony. Small enough to be a mark on the line rather
+   than a thing in its own right, and it never takes space from the name. */
+.daycard .dcrest{width:18px;height:auto;flex:0 0 auto;margin-left:7px;opacity:.75;
+  align-self:center}
 .daycard .de .ti.travel{color:var(--green);font-weight:400}
 
 .daystrip{display:flex;gap:2px;margin-top:18px;overflow-x:auto}
