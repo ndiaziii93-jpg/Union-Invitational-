@@ -207,7 +207,7 @@ ok('entry: nothing on the leaderboard yet', await p.evaluate(() => Object.keys(w
 
 // --- leaving an unsaved hole prompts
 await p.locator('.hcell').nth(3).click(); await p.waitForTimeout(300);
-ok('entry: moving hole prompts', await p.locator('.modal h3').innerText(), 'Hole 1 is not saved');
+ok('entry: moving hole prompts', await p.locator('.modal .mb-t').innerText(), 'Hole 1 is not saved');
 await p.locator('[data-act="modalCancel"]').click(); await p.waitForTimeout(300);
 ok('entry: Stay keeps the draft', await p.locator('.fig.raw .v').first().innerText(), '4');
 

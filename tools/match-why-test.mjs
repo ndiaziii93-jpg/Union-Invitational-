@@ -151,7 +151,7 @@ const lead = Math.abs(wonA - wonB);
 ok('the holes won account for the lead', new RegExp(lead === 0 ? 'all square|halved' : String(lead)).test(verdict), true);
 
 ok('the window heading says vs as well',
-  / vs /.test(await p.locator('.mw-q').innerText()), true);
+  / vs /.test(await p.locator('.mb-t').innerText()), true);
 ok('each hole shows what came off the gross',
   /less \d|no shot/i.test(await p.locator('.mw-row').first().innerText()), true);
 ok('the hole that was taken is marked', await p.locator('.mw-s.win').count() > 0, true);

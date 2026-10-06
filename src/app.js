@@ -301,7 +301,7 @@ function boardPairs() {
   for (const p of T.config.pairs) for (let i = 0; i < 18; i++) if (E.pairHole(T, rid, p, i) != null) thru = Math.max(thru, i + 1);
 
   return `
-  <div class="titlerow"><h2 class="head">Team Competition</h2><a href="#rules" data-act="goRule" data-a="pairs">Full rules</a></div>
+  <div class="titlerow"><h2 class="head">Team Competition</h2><button class="rulelink" data-act="goRule" data-a="pairs">Full rules</button></div>
   <p class="lede">Better of the two net scores on every hole, cumulative across the three counting rounds. The book opens at the hole; the standing is the consequence.</p>
   ${roundBand(rid, 'boardRound')}
 
@@ -360,7 +360,7 @@ function boardPairs() {
 
 function boardMvp() {
   const rows = E.mvpBoard(T, now);
-  return `<div class="titlerow"><h2 class="head">Tournament MVP</h2><a href="#rules" data-act="goRule" data-a="mvp">Full rules</a></div>
+  return `<div class="titlerow"><h2 class="head">Tournament MVP</h2><button class="rulelink" data-act="goRule" data-a="mvp">Full rules</button></div>
   <p class="lede">Your own ball, your own number, every stroke counted. Runs off the same card as the team competition.</p>
   ${/* Seven columns is a table, and a table does not fit a phone: the names
         ran straight over the band and the total hung off the right edge. The
@@ -385,7 +385,7 @@ function boardMvp() {
 
 function boardBbb() {
   const rows = E.bbbBoard(T);
-  return `<div class="titlerow"><h2 class="head">Bingo Bango Bongo</h2><a href="#rules" data-act="goRule" data-a="bbb">Full rules</a></div>
+  return `<div class="titlerow"><h2 class="head">Bingo Bango Bongo</h2><button class="rulelink" data-act="goRule" data-a="bbb">Full rules</button></div>
   <p class="lede">Three points a hole — first on, closest once all are on, first in. 54 a round, 162 across the week.</p>
   ${rows.length ? `<div class="rows" style="margin-top:18px;max-width:560px">
     <div class="rowhead"><span style="width:24px">Pos</span><span style="flex:1">Player</span><span style="min-width:74px;text-align:right">Points</span></div>
@@ -503,8 +503,7 @@ function bandModalHtml() {
 
   return `<div class="scrim" data-act="modalScrim"><div class="modal brmodal"
     role="dialog" aria-modal="true" aria-label="The band read">
-    <span class="br-eye">Practice Day · the audition</span>
-    <h3 class="br-q">The band read</h3>
+    ${modalBanner('The band read', 'Practice Day · the audition')}
     <p class="br-lede">A band IS the strokes you receive, so a band is right when your net lands near level par.
     This holds how far over par each card actually went — capped at triple bogey, exactly as Thursday will cap it,
     and projected to eighteen if the round was short — against the band that golfer chose.
@@ -704,10 +703,8 @@ function recapButton() {
 function askPanel() {
   if (!UI.askOpen) return '';
   return `<div class="scrim" data-act="askClose"><div class="askbox" role="dialog" aria-modal="true" aria-label="Ask the Union">
-    <div class="askhead">
-      <b>Ask the Union</b>
-      <button class="rm" data-act="askClose">Close</button>
-    </div>
+    ${modalBanner('Ask the Union', 'Anything in the book')}
+    <div class="askhead"><button class="rm" data-act="askClose">Close</button></div>
     <p class="asknote">Anything about this tournament — scores, bands, pairings, who is up. It answers from the
     book only, so if it has not been recorded, it will say so.</p>
     <div class="askrow">
@@ -1239,7 +1236,7 @@ function scrRyder() {
   const R = E.ryderData(T, now);
   const gs = E.golfers(T);
   return `<h2 class="head">Ryder Cup — UK vs USA</h2>
-  <p class="lede">Squad match play laid over the same scorecards. Head-to-head singles all three sessions, so everybody plays every time. <a href="#rules" data-act="goRule" data-a="ryder">Full rules</a></p>
+  <p class="lede">Squad match play laid over the same scorecards. Head-to-head singles all three sessions, so everybody plays every time. <button class="rulelink" data-act="goRule" data-a="ryder">Full rules</button></p>
 
   <div class="cupbar">
     <div class="side">${ukFlag(44)}<span class="pts num" style="color:var(--green)">${R.ukTotal}</span><span class="eyebrow">United Kingdom</span></div>
@@ -2667,8 +2664,7 @@ function venueModalHtml() {
   const shut = season && !R.slots(v, season);
   return `<div class="scrim" data-act="modalScrim"><div class="modal venuemodal"
     role="dialog" aria-modal="true" aria-label="${esc(v.name)}">
-    <span class="hm-eye${v.cost === 'cover' ? ' cover' : ''}">${esc(eyebrow)}</span>
-    <h3>${esc(v.name)}${v.cuisine ? `<span class="vc">${esc(v.cuisine)}</span>` : ''}</h3>
+    ${modalBanner(v.name, [eyebrow, v.cuisine].filter(Boolean).join(' · '))}
     ${v.cost === 'cover'
       ? `<p class="vb warn">Reservation required, and the hotel’s site says a cover charge applies.</p>` : ''}
     ${v.blurb ? `<p>${esc(v.blurb)}</p>` : ''}
@@ -3401,11 +3397,11 @@ function setupModalHtml() {
   const issues = E.setupIssues(T).filter(i => !scope.only || scope.only.includes(i.id));
   if (!issues.length) {
     return `<div class="scrim" data-act="modalScrim"><div class="modal" role="dialog" aria-modal="true" aria-label="Setup complete">
-      <h3>Nothing outstanding</h3><p>${esc(scope.clear)}</p>
+      ${modalBanner('Nothing outstanding', 'Setup')}<p>${esc(scope.clear)}</p>
       <div class="acts"><button class="btn" data-act="modalCancel">Close</button></div></div></div>`;
   }
   return `<div class="scrim" data-act="modalScrim"><div class="modal wide" role="alertdialog" aria-modal="true" aria-label="Setup incomplete">
-    <h3>${esc(scope.title)}</h3>
+    ${modalBanner(scope.title, 'Setup')}
     <p>${esc(scope.note(issues.length))}</p>
     <div class="setup-list">
       ${issues.map(i => `<div class="setup-item">
@@ -3420,7 +3416,7 @@ function setupModalHtml() {
 function pinModalHtml() {
   const m = UI.modal;
   return `<div class="scrim" data-act="modalScrim"><div class="modal" role="dialog" aria-modal="true" aria-label="${esc(m.title)}">
-    <h3>${esc(m.title)}</h3>
+    ${modalBanner(m.title, 'The Union Invitational')}
     ${m.note ? `<p>${esc(m.note)}</p>` : ''}
     <input class="pinin" id="pinField" type="password" inputmode="numeric" autocomplete="off" maxlength="8" placeholder="••••" aria-label="PIN">
     <p class="err">${esc(UI.modalErr)}</p>
@@ -3433,7 +3429,7 @@ function addModalHtml() {
   const m = UI.modal;
   const what = { golfer: 'golfer', official: 'official', spectator: 'guest' }[m.role] || 'person';
   return `<div class="scrim" data-act="modalScrim"><div class="modal" role="dialog" aria-modal="true" aria-label="Add a ${esc(what)}">
-    <h3>Add a ${esc(what)}</h3>
+    ${modalBanner('Add a ' + what, 'Roster')}
     <p>${m.role === 'golfer' ? 'Give them a playing band on the roster once they are in.' : 'They appear on the roster and can take Bingo Bango Bongo points if they play.'}</p>
     <input class="field" id="addName" type="text" placeholder="Full name" maxlength="40" aria-label="Name" style="width:100%;font-size:18px">
     <p class="err">${esc(UI.modalErr)}</p>
@@ -3445,7 +3441,7 @@ function addModalHtml() {
 function confirmModalHtml() {
   const m = UI.modal;
   return `<div class="scrim" data-act="modalScrim"><div class="modal" role="alertdialog" aria-modal="true" aria-label="${esc(m.title)}">
-    <h3>${esc(m.title)}</h3>
+    ${modalBanner(m.title, m.eyebrow || 'The Union Invitational')}
     <p>${esc(m.note)}</p>
     <div class="acts">
       ${m.alt ? `<button class="btn ghost" data-act="confirmAlt">${esc(m.alt)}</button>` : ''}
@@ -3499,9 +3495,8 @@ function markSheet(rid, h, who) {
   const ed = canEdit() && E.roundCfg(T, rid).state === 'open';
   return `<div class="scrim" data-act="modalScrim"><div class="modal marksheet"
     role="dialog" aria-modal="true" aria-label="What happened on hole ${hole.n}">
+    ${modalBanner('What happened?', 'Hole ' + hole.n + ' · par ' + hole.par)}
     <div class="ms-head">
-      <span class="hm-eye">Hole ${hole.n} · par ${hole.par}</span>
-      <h3>What happened?</h3>
       <p>For the recap only. None of it touches a score, a board or the cup —
       so a hole nobody marked has never cost anybody a shot.</p>
     </div>
@@ -3550,8 +3545,7 @@ function holeModalHtml() {
   const m = UI.modal;
   return `<div class="scrim" data-act="modalScrim"><div class="modal holemodal"
     role="alertdialog" aria-modal="true" aria-label="Hole ${m.hole}">
-    <span class="hm-eye">Hole ${m.hole}</span>
-    <h3>${esc(m.on.join(' and '))}</h3>
+    ${modalBanner(m.on.join(' and '), 'Hole ' + m.hole)}
     <p>${m.on.length > 1
       ? 'Both are played on this hole. Mark the winners in Pin &amp; drive once everybody has hit.'
       : 'This is the nominated hole. Mark the winner in Pin &amp; drive once everybody has hit.'}</p>
@@ -3606,7 +3600,7 @@ function finishModalHtml() {
   const m = UI.modal;
   return `<div class="scrim" data-act="modalScrim"><div class="modal finishmodal"
     role="alertdialog" aria-modal="true" aria-label="Finish ${esc(m.label)}\u2019s round">
-    <span class="fm-eye">${esc(m.eyebrow)}</span>
+    ${modalBanner('Finish Round?', m.eyebrow, { crest: false })}
     <div class="fm-crest">${IMG.crest
       ? `<span class="halo"></span><img src="${IMG.crest}" alt="">` : ''}</div>
     <h3 class="fm-q">Finish Round?</h3>
@@ -3695,8 +3689,7 @@ function turnModalHtml() {
   const par = n => `<span class="${cls(n)}">${esc(E.fmtToPar(n))}</span>`;
   return `<div class="scrim" data-act="modalScrim"><div class="modal turnmodal"
     role="dialog" aria-modal="true" aria-label="${esc(s.label)} has made the turn">
-    <span class="tn-eye">${esc([s.label, s.course, s.round].join(' \u00B7 '))}</span>
-    <h3 class="tn-q">${esc(s.label)} ${s.label === 'The field' ? 'has' : 'has'} made the turn</h3>
+    ${modalBanner(s.label + ' has made the turn', [s.course, s.round].join(' \u00B7 '))}
     ${s.pace
       ? `<p class="tn-pace ${s.pace.ahead ? 'good' : 'bad'}">${s.pace.delta === 0
           ? 'Level with ' + esc(s.pace.against) + ' at the same point.'
@@ -3813,8 +3806,8 @@ function eventModalHtml() {
   const day = D.DAYS.find(d => d.n === ev.dayIdx);
   return `<div class="scrim" data-act="modalScrim"><div class="modal evmodal"
     role="dialog" aria-modal="true" aria-label="${m.isNew ? 'Add an event' : 'Edit an event'}">
-    <span class="ev-eye">${esc(day ? day.dow + ' ' + day.date : 'The week')}</span>
-    <h3>${m.isNew ? 'Add an event' : 'Edit this event'}</h3>
+    ${modalBanner(m.isNew ? 'Add an event' : 'Edit this event',
+        day ? day.dow + ' ' + day.date : 'The week')}
 
     <label class="ev-l" for="evTitle">What is it</label>
     <input class="field" id="evTitle" type="text" maxlength="60" value="${esc(ev.title)}"
@@ -3835,6 +3828,52 @@ function eventModalHtml() {
   </div></div>`;
 }
 
+/* ---------------- the top of every window ----------------
+ *
+ * The book opens the same way every time: a pine band, the crest struck
+ * white on it, the name of the thing and a line saying what it is about.
+ * Before this, every window had invented its own head — an eyebrow here, a
+ * bare heading there, four different sizes of the same idea — and a reader
+ * had to work out what they were looking at from the contents each time.
+ *
+ * The day's recap keeps its own printed head; it is a newspaper, not a
+ * window, and it was the thing worth copying rather than the thing to change.
+ */
+function modalBanner(title, sub, opt = {}) {
+  return `<div class="mbanner">
+    <span class="mb-w">
+      <span class="mb-t">${esc(title)}</span>
+      ${sub ? `<span class="mb-s">${esc(sub)}</span>` : ''}
+    </span>
+    ${opt.crest === false || !IMG.crest ? '' : `<img class="mb-c" src="${IMG.crest}" alt="">`}
+  </div>`;
+}
+
+/* ---------------- a rule, where you were standing ----------------
+ *
+ * Full rules used to be a journey: it took you off the board you were
+ * reading, opened the rules page at the right entry, and left you to find
+ * your way back to where you had been. The rule is a footnote to the board,
+ * so it opens over it and closes again.
+ */
+function ruleModalHtml() {
+  const r = RULES.find(x => x.id === UI.modal.id);
+  if (!r) return '';
+  return `<div class="scrim" data-act="modalScrim"><div class="modal rulemodal"
+    role="dialog" aria-modal="true" aria-label="${esc(r.name)} — full rules">
+    ${modalBanner(r.name, r.tag)}
+    <div class="ru-meta">
+      <div><b>When</b>${esc(r.when)}</div>
+      <div><b>How it is won</b>${esc(r.won)}</div>
+    </div>
+    ${r.body.map(x => `<p class="ru-p">${esc(x)}</p>`).join('')}
+    <p class="ru-eg"><b>Worked example</b>${esc(r.example)}</p>
+    <div class="acts">
+      <button class="btn ghost" data-act="goRulePage" data-a="${esc(r.id)}">All the rules</button>
+      <button class="btn" data-act="modalCancel">Close</button></div>
+  </div></div>`;
+}
+
 function bbbModalHtml() {
   const m = UI.modal;
   const names = m.missing.map(k => BBBNAME[k]);
@@ -3844,8 +3883,8 @@ function bbbModalHtml() {
     : names[0];
   return `<div class="scrim" data-act="modalScrim"><div class="modal bbbmodal"
     role="alertdialog" aria-modal="true" aria-label="Bingo Bango Bongo not marked on hole ${m.hole + 1}">
-    <span class="hm-eye">Hole ${m.hole + 1}</span>
-    <h3>${all ? 'No Bingo Bango Bongo on this hole' : esc(list) + ' not marked'}</h3>
+    ${modalBanner(all ? 'No Bingo Bango Bongo on this hole' : list + ' not marked',
+        'Hole ' + (m.hole + 1))}
     <p>${all
       ? 'The hole is saved, but none of the three has a name against it.'
       : 'The hole is saved. ' + esc(list) + (names.length > 1 ? ' have' : ' has') + ' nobody against ' + (names.length > 1 ? 'them' : 'it') + '.'}
@@ -3897,8 +3936,8 @@ function matchWhyHtml() {
 
   return `<div class="scrim" data-act="modalScrim"><div class="modal mwmodal"
     role="dialog" aria-modal="true" aria-label="How ${esc(d.a.name)} against ${esc(d.b.name)} stands">
-    <span class="mw-eye">${esc([round, E.courseOf(T, m.rid).name, 'Singles'].join(' \u00B7 '))}</span>
-    <h3 class="mw-q">${esc(d.a.name)} <span>vs</span> ${esc(d.b.name)}</h3>
+    ${modalBanner(d.a.name + ' vs ' + d.b.name,
+        [round, E.courseOf(T, m.rid).name, 'Singles'].join(' \u00B7 '))}
     <p class="mw-v">${verdict}</p>
     <p class="mw-w">${worth}</p>
 
@@ -3939,6 +3978,7 @@ function ord(n) {
 
 function modalHtml() {
   return UI.modal.kind === 'matchwhy' ? matchWhyHtml()
+       : UI.modal.kind === 'rule' ? ruleModalHtml()
        : UI.modal.kind === 'bandread' ? bandModalHtml()
        : UI.modal.kind === 'event' ? eventModalHtml()
        : UI.modal.kind === 'turn' ? turnModalHtml()
@@ -4126,7 +4166,11 @@ function onClick(e) {
       UI.recapOpen = false;
       render();
       return;
-    case 'goRule': UI.screen = 'rules'; render();
+    /* The rule opens over the board it belongs to. Whoever wants the whole
+       book can still have it, from inside the window. */
+    case 'goRule': UI.modal = { kind: 'rule', id: a }; break;
+    case 'goRulePage':
+      UI.modal = null; UI.screen = 'rules'; window.scrollTo(0, 0); render();
       { const d = document.getElementById('rule-' + a); if (d) { d.open = true; d.scrollIntoView({ block: 'center' }); } }
       return;
     case 'boardTab': UI.boardTab = a; break;

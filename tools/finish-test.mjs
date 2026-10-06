@@ -92,7 +92,7 @@ ok('arriving at the 18th does not ask either', await p.locator('.finishmodal').c
 await scoreAndSave();
 ok('saving the 18th raises it', await p.locator('.finishmodal').count(), 1);
 ok('it asks the question', (await p.locator('.finishmodal .fm-q').innerText()).trim(), 'Finish Round?');
-const eyebrow = (await p.locator('.finishmodal .fm-eye').innerText()).trim();
+const eyebrow = (await p.locator('.finishmodal .mb-s').innerText()).trim();
 console.log('          (the eyebrow reads: ' + eyebrow + ')');
 ok('over the right group', /^GROUP 1\b/i.test(eyebrow), true);
 ok('with the crest in it', await p.locator('.finishmodal .fm-crest img').count(), 1);

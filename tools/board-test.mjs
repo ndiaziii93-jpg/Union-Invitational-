@@ -160,6 +160,60 @@ ok('the two golfers are on the same line', await A.p.evaluate(() => {
 }), true);
 
 /* ---------------------------------------------------------------- */
+/* FULL RULES IS A FOOTNOTE TO THE BOARD, NOT A JOURNEY. It used to take the
+   reader off to the rules page and leave them to find their way back to the
+   board and the row they had been looking at. */
+console.log('\nthe full rules, without leaving the board');
+await A.tab('Boards');
+await A.p.locator('.btab', { hasText: 'Team Comp' }).click(); await A.p.waitForTimeout(700); await A.shut();
+const wasOn = await A.p.locator('.btab.on').innerText();
+ok('the board offers them', await A.p.locator('.rulelink').count() > 0, true);
+await A.p.locator('.rulelink').first().click(); await A.p.waitForTimeout(600);
+ok('they open in a window', await A.p.locator('.rulemodal').count(), 1);
+ok('named for the competition they belong to',
+  (await A.p.locator('.rulemodal .mb-t').innerText()).trim(), 'Team Competition');
+ok('carrying the whole rule', await A.p.locator('.rulemodal .ru-p').count() > 0, true);
+ok('and the worked example', await A.p.locator('.rulemodal .ru-eg').count(), 1);
+ok('the board behind it never moved', await A.p.locator('.btab.on').innerText(), wasOn);
+await A.p.locator('.rulemodal [data-act="modalCancel"]').click(); await A.p.waitForTimeout(500);
+ok('and closing puts nobody anywhere new', await A.p.locator('.btab.on').innerText(), wasOn);
+/* Whoever wants the whole book can still have it, from inside the window. */
+await A.p.locator('.rulelink').first().click(); await A.p.waitForTimeout(600);
+await A.p.locator('[data-act="goRulePage"]').click(); await A.p.waitForTimeout(700);
+ok('all the rules is still one tap away', await A.p.locator('.rule-item').count() > 0, true);
+ok('and the window got out of the way', await A.p.locator('.rulemodal').count(), 0);
+
+/* EVERY WINDOW OPENS THE SAME WAY: a pine band, the crest struck white on
+   it, a name and a line saying what it is about. */
+console.log('\nand every window wears the same band');
+await A.tab('Boards');
+await A.p.locator('.btab', { hasText: 'Team Comp' }).click(); await A.p.waitForTimeout(700); await A.shut();
+await A.p.locator('.rulelink').first().click(); await A.p.waitForTimeout(600);
+const band = await A.p.evaluate(() => {
+  const b = document.querySelector('.scrim .mbanner');
+  if (!b) return 'no banner';
+  const cs = getComputedStyle(b);
+  const crest = b.querySelector('.mb-c');
+  const box = b.getBoundingClientRect();
+  const win = b.closest('.modal').getBoundingClientRect();
+  return {
+    pine: cs.backgroundColor,
+    hasTitle: !!b.querySelector('.mb-t'),
+    crestIsWhite: !!crest && /invert\(1\)/.test(getComputedStyle(crest).filter),
+    /* It has to reach both edges of the window, or it is a box inside a box. */
+    flush: Math.abs(box.left - win.left) <= 1.5 && Math.abs(box.right - win.right) <= 1.5,
+    atTop: Math.abs(box.top - win.top) <= 4,
+  };
+});
+console.log('          (' + JSON.stringify(band) + ')');
+ok('it is pine', band.pine, 'rgb(62, 92, 67)');
+ok('it names the window', band.hasTitle, true);
+ok('the crest on it is struck white', band.crestIsWhite, true);
+ok('and it runs the full width of the window', band.flush, true);
+ok('at the very top of it', band.atTop, true);
+await A.p.locator('.rulemodal [data-act="modalCancel"]').click(); await A.p.waitForTimeout(400);
+
+/* ---------------------------------------------------------------- */
 console.log('\nthe MVP board, on a 390px screen');
 await A.tab('Boards');
 await A.p.locator('.btab', { hasText: 'MVP' }).click(); await A.p.waitForTimeout(700); await A.shut();

@@ -78,7 +78,7 @@ console.log('\nthe nominated holes announce themselves');
 const ctp = parseInt(await pick('ctpHole').inputValue(), 10);
 await p.locator('.hcell').nth(ctp - 1).click(); await p.waitForTimeout(700);
 ok('arriving at the nominated hole says so', await p.locator('.holemodal').count(), 1);
-ok('and names which game it is', (await p.locator('.holemodal h3').innerText())
+ok('and names which game it is', (await p.locator('.holemodal .mb-t').innerText())
   .includes('Closest to the pin'), true);
 await p.locator('.holemodal [data-act="modalCancel"]').click(); await p.waitForTimeout(400);
 await p.locator('.hcell').nth(0).click(); await p.waitForTimeout(400); await shut();
@@ -355,7 +355,7 @@ console.log('\nthe crest is asked by name');
 ok('the button says whose book it is', await p.locator('[data-act="askOpen"]')
   .first().getAttribute('aria-label'), 'Ask the Union a question');
 await p.locator('[data-act="askOpen"]').first().click(); await p.waitForTimeout(600);
-ok('and so does the window it opens', await p.locator('.askbox b').first().innerText(), 'Ask the Union');
+ok('and so does the window it opens', await p.locator('.askbox .mb-t').first().innerText(), 'Ask the Union');
 ok('"the book" is nowhere on it', (await p.locator('.askbox').innerText()).includes('Ask the book'), false);
 await p.locator('.askbox [data-act="askClose"]').click(); await p.waitForTimeout(400); await shut();
 

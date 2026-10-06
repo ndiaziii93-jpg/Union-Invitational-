@@ -80,16 +80,29 @@ await score();
 ok('and entering strokes alone does not raise it', await p.locator('.bbbmodal').count(), 0);
 await save();
 ok('saving does', await p.locator('.bbbmodal').count(), 1);
-ok('it names the hole', (await p.locator('.bbbmodal .hm-eye').innerText()).trim(), 'HOLE 1');   // the strip is uppercased by the stylesheet
+ok('it names the hole', (await p.locator('.bbbmodal .mb-s').innerText()).trim(), 'HOLE 1');   // the strip is uppercased by the stylesheet
 ok('and says none of the three is marked',
-  /no bingo bango bongo/i.test(await p.locator('.bbbmodal h3').innerText()), true);
+  /no bingo bango bongo/i.test(await p.locator('.bbbmodal .mb-t').innerText()), true);
 ok('it offers a way to go and do it', await p.locator('[data-act="bbbGo"]').count(), 1);
 ok('and a way to say there is nothing to mark',
   (await p.locator('.bbbmodal [data-act="modalCancel"]').innerText()).trim(), 'Nothing to mark');
 /* It is a notice about a hole that SAVED. A red rule is the book's way of
-   saying something is wrong or unsaved, and nothing here is either. */
-ok('it does not read as a failure', await p.locator('.bbbmodal').evaluate(
-  el => getComputedStyle(el).borderTopColor), 'rgb(140, 107, 47)');
+   saying something is wrong or unsaved, and nothing here is either. The
+   colour itself is no longer this window's to choose — every window now wears
+   the same pine band — so what is asked for is the thing that mattered: it
+   must not be drawn in the colour the book keeps for failure. */
+ok('it does not read as a failure', await p.locator('.bbbmodal').evaluate(el => {
+  /* Ask the stylesheet what its failure colour is rather than writing a
+     triplet down here and letting it rot. */
+  const probe = document.createElement('span');
+  probe.style.color = 'var(--flag)';
+  document.body.appendChild(probe);
+  const flag = getComputedStyle(probe).color;
+  probe.remove();
+  return getComputedStyle(el).borderTopColor === flag;
+}), false);
+ok('and it wears the same band as every other window',
+  await p.locator('.bbbmodal .mbanner').count(), 1);
 
 console.log('\nMark them now goes back to the hole, at the boxes');
 ok('the save had walked on to hole 2', await p.locator('.holehead h3').innerText(), 'Hole 2');
@@ -118,7 +131,7 @@ await score();
 await setBbb('bingo', 1);
 await save();
 ok('it still asks', await p.locator('.bbbmodal').count(), 1);
-const heading = await p.locator('.bbbmodal h3').innerText();
+const heading = await p.locator('.bbbmodal .mb-t').innerText();
 console.log('          (it reads: ' + heading + ')');
 ok('it does not mention the one that is marked', /bingo/i.test(heading), false);
 ok('it names Bango', /bango/i.test(heading), true);

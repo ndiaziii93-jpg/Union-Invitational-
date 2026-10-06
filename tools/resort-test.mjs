@@ -179,7 +179,7 @@ await pg.waitForTimeout(250);
 await pg.locator('.plink', { hasText: 'Main Restaurant' }).first().click();
 await pg.waitForTimeout(250);
 ok('a row in the full list opens the same window',
-  await pg.locator('.venuemodal h3').innerText(), 'Main Restaurant');
+  await pg.locator('.venuemodal .mb-t').innerText(), 'Main Restaurant');
 ok('and offers to show it on the plan',
   await pg.locator('[data-act="resortShowOnMap"]').count(), 1);
 ok('and does not send you to Google instead',

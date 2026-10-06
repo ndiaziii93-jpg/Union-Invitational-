@@ -116,7 +116,7 @@ ok('the sheet opens', await p.locator('.marksheet').count(), 1);
 /* And the sheet confirms the tap: the button and the heading say the same
    thing, so pressing it lands somewhere recognisable. */
 ok('the sheet is headed what the button promised',
-  (await p.locator('.marksheet .ms-head h3').innerText()).trim(),
+  (await p.locator('.marksheet .mb-t').innerText()).trim(),
   (await p.locator('[data-act="openMarks"]').innerText()).trim());
 const cols = await p.locator('.ms-hdr .ms-col').allInnerTexts();
 ok('four marks across the top', cols, ['3-putt', 'OB', 'Water', 'Shot']);
