@@ -190,6 +190,11 @@ ok('the board carries a button, not the read itself', await p.locator('.br-row')
 const face = p.locator('.recapbtn', { hasText: 'The Band Read' });
 ok('and the button is there', await face.count(), 1);
 console.log('          (it reads: ' + (await face.locator('.rb-s').innerText()).trim() + ')');
+/* Both this and the day's recap are the same panel, and on a phone they run
+   the full width of the screen: a 3px corner against the bezel reads as a
+   slab rather than a card. */
+ok('and on a phone it has soft corners', await face.evaluate(
+  el => parseFloat(getComputedStyle(el).borderTopLeftRadius) >= 12), true);
 /* It is lit when there is something to do about it, dark when there is not —
    the same glow the recap uses, because it is the same promise. */
 const lit = await face.evaluate(el => el.classList.contains('ready'));

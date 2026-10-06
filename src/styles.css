@@ -398,6 +398,13 @@ h3.sub{font-size:19px;font-weight:600;margin:26px 0 0}
   font-size:16px;font-style:italic;color:var(--gold)}
 .daycard .dlist{display:grid;gap:5px;padding-top:10px}
 .daycard .de{display:flex;gap:10px;align-items:baseline;font-size:15px}
+/* An event is read first and edited second, so the line stays a line: the
+   whole of it is the tap target, with a chevron to say so. */
+.daycard .de.tap{width:100%;text-align:left;background:none;border:0;padding:5px 6px 5px 0;
+  border-radius:8px;cursor:pointer;align-items:center}
+.daycard .de.tap:hover{background:var(--sunk)}
+.daycard .de.tap .dpen{margin-left:auto;color:var(--turf);font-weight:700;padding-left:8px}
+.daycard .de.tap:focus-visible{outline:2px solid var(--flag);outline-offset:2px}
 .daycard .de .t{width:74px;flex:0 0 auto;font-weight:600;font-variant-numeric:tabular-nums}
 .daycard .de .ti{color:var(--green);font-weight:600}
 .daycard .de .ti.ceremony{color:var(--gold)}
@@ -568,6 +575,26 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 .br-heavy .br-next b{color:var(--gold)}
 .br-unset .br-tag{color:var(--gold)}
 .br-thin .br-tag{color:var(--turf)}
+
+/* ---- an event, in a window ----
+   Written the way a calendar app writes one: a field, a time, a kind, Save. */
+.evmodal{max-width:420px;gap:0;border-top-color:var(--gold)}
+.evmodal .ev-eye{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--turf);display:block}
+.evmodal h3{margin:6px 0 14px}
+.evmodal .ev-l{display:block;font-size:11px;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--turf);font-weight:700;margin:14px 0 6px}
+.evmodal .ev-l:first-of-type{margin-top:0}
+.evmodal .field{width:100%;font-size:17px}
+.evmodal .timepick{display:flex;gap:6px;align-items:center}
+.evmodal .timepick .field{width:auto;flex:1 1 auto}
+.evmodal .timepick .ampm{flex:0 0 auto}
+.evkinds{display:flex;gap:8px}
+.evk{flex:1 1 0;padding:10px 6px;border:1px solid var(--rule);background:var(--paper);
+  color:var(--turf);border-radius:3px;font-size:14px;font-weight:600;cursor:pointer}
+.evk:hover{border-color:var(--ink);color:var(--ink)}
+.evk.on{background:var(--green);border-color:var(--green);color:var(--paper)}
+.evmodal .err{margin-top:12px}
+.evmodal .acts{margin-top:4px}
 
 /* ---- the day's card ----
 
@@ -1755,7 +1782,12 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
    the panels it encloses reading as the green underneath, exactly as on the
    nameplate. */
 .recapbtn.ready .rb-c{filter:invert(1);opacity:.9}
-@media (max-width:560px){.recapbtn .rb-c{width:38px}}
+/* On a phone these two panels run the full width of the screen, and a 3px
+   corner against the bezel reads as a slab. Round them properly there. */
+@media (max-width:560px){
+  .recapbtn .rb-c{width:38px}
+  .recapwrap .recapbtn{border-radius:16px;padding:15px 18px}
+}
 
 /* ---------------- The Titanic ----------------
 

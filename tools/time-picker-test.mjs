@@ -71,15 +71,18 @@ for (const [label, vp, mob] of [['phone 390', { width: 390, height: 844 }, true]
   await set(p.locator('.teetimes .timepick').nth(1), '', '', '');
   ok('clearing all three empties the slot', (await teeTimes())[1], null);
 
-  /* Calendar fixtures pick the same way. There is no day view any more —
-     the week itself is the editing surface, so the picker sits in the day
-     card rather than behind a second click. */
+  /* Calendar events pick the same way, in the window that writes them. The
+     week is a week again: you tap an event to open it, not to type into it. */
   await tab('Calendar');
   ok('the week is the only view', await p.locator('[data-act="calView"]').count(), 0);
   ok('and every day of it is there', await p.locator('.daycard').count(), 8);
-  const fx = p.locator('.de.edit').filter({ has: p.locator('.timepick') }).first();
-  ok('a fixture is picked too', await fx.locator('.timepick select').count(), 3);
-  await set(fx.locator('.timepick'), '6', '15', 'PM');
+  await p.locator('.de.tap').first().click(); await p.waitForTimeout(600);
+  const fx = p.locator('.evmodal .timepick');
+  ok('the event window picks a time the same way', await fx.locator('select').count(), 3);
+  await set(fx, '6', '15', 'PM');
+  /* Nothing is written until Save — that is the point of the window. */
+  ok('and holds it until Save', await firstFixture(), '14:00');
+  await p.locator('.evmodal [data-act="evSave"]').click(); await p.waitForTimeout(700);
   ok('6:15 PM is kept as 18:15', await firstFixture(), '18:15');
 
   // --- the wider control must not push anything off the screen ---

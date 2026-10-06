@@ -206,19 +206,30 @@ console.log('\nthe calendar is one week, and it can be settled');
 await tab('Calendar');
 ok('the day view is gone', await p.locator('[data-act="calView"]').count(), 0);
 ok('the whole week is on the page', await p.locator('.daycard').count(), 8);
-ok('and every day can take a fixture', await p.locator('[data-act="addEvent"]').count(), 8);
+ok('and every day has an Add event button', await p.locator('[data-act="evNew"]').count(), 8);
+/* An event is written in a window now, not typed into the day. Nothing
+   reaches the week until Save, so a half-filled one leaves nothing behind. */
 const before = await p.locator('.de').count();
-await p.locator('[data-act="addEvent"]').first().click(); await p.waitForTimeout(700); await shut();
-ok('adding one adds one', await p.locator('.de').count(), before + 1);
+await p.locator('[data-act="evNew"]').first().click(); await p.waitForTimeout(600);
+ok('the window opens', await p.locator('.evmodal').count(), 1);
+await p.locator('[data-act="modalCancel"]').click(); await p.waitForTimeout(500);
+ok('and cancelling writes nothing to the day', await p.locator('.de').count(), before);
+await p.locator('[data-act="evNew"]').first().click(); await p.waitForTimeout(600);
+await p.locator('#evTitle').fill('Boat trip');
+await p.locator('[data-act="evSave"]').click(); await p.waitForTimeout(700); await shut();
+ok('saving closes the window', await p.locator('.evmodal').count(), 0);
+ok('and puts it on the day', await p.locator('.de').count(), before + 1);
+ok('under the name it was given',
+  await p.locator('.de', { hasText: 'Boat trip' }).count() > 0, true);
 
 /* The week gets settled once and then stops moving — a stray tap on one
    phone should not shift dinner on everyone else's. */
 await p.locator('[data-act="calLock"]').click(); await p.waitForTimeout(700); await shut();
-ok('locked, nothing can be added', await p.locator('[data-act="addEvent"]').count(), 0);
-ok('and no fixture is editable', await p.locator('.de.edit').count(), 0);
+ok('locked, nothing can be added', await p.locator('[data-act="evNew"]').count(), 0);
+ok('and no event opens for editing', await p.locator('.de.tap').count(), 0);
 ok('the days are all still there to read', await p.locator('.daycard').count(), 8);
 await p.locator('[data-act="calUnlock"]').click(); await p.waitForTimeout(700); await shut();
-ok('the master can open it again', await p.locator('[data-act="addEvent"]').count(), 8);
+ok('the master can open it again', await p.locator('[data-act="evNew"]').count(), 8);
 
 /* pan-x on every horizontal scroller stopped the page moving under a thumb
    resting on the roster table, which reads as the scrolling sticking at the

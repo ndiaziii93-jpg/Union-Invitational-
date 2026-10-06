@@ -1299,15 +1299,14 @@ function roundOnDay(n) { return D.ROUNDS.find(r => r.dayIdx === n) || null; }
 function scrCalendar() {
   const locked = !!T.config.calLocked;
   const ed = canEdit() && !locked;
-  const kinds = [['social', 'Social'], ['ceremony', 'Ceremony'], ['travel', 'Travel']];
 
   return `<div class="titlerow">
     <h2 class="head">Calendar</h2>
   </div>
   <p class="lede">The whole week at once. ${locked
     ? 'The calendar is locked — the week is settled.'
-    : ed ? 'Add a fixture to any day, change a time, or take one off.'
-    : 'Ask a scorer to change a fixture.'}</p>
+    : ed ? 'Tap Add event at the foot of any day, or tap an event to change it.'
+    : 'Ask a scorer to change the week.'}</p>
 
   ${canAdmin() ? `<div class="gate${locked ? '' : ' want'}">
     <div class="msg"><b>${locked ? 'The calendar is locked' : 'The calendar is open for editing'}</b>
@@ -1337,21 +1336,16 @@ function scrCalendar() {
         ${rest && !social.length ? `<span class="drest">Rest day — no golf, bar open.</span>` : ''}
 
         ${social.length ? `<span class="dlist">${social.map(e => (ed
-          ? `<span class="de edit">
-              ${timePick(e.time, { kind: 'event', a: e.id, ed: true, clearable: false,
-                                   label: 'Time of ' + e.title })}
-              <input class="fxtitle live" type="text" value="${esc(e.title)}" maxlength="60"
-                aria-label="Title of fixture" data-act="setEventField" data-a="${e.id}" data-b="title">
-              <select class="field small" data-act="setEventField" data-a="${e.id}" data-b="kind"
-                aria-label="Kind of fixture">${kinds.map(([k, l]) =>
-                  `<option value="${k}"${e.kind === k ? ' selected' : ''}>${l}</option>`).join('')}</select>
-              <button class="rm" data-act="removeEvent" data-a="${e.id}">Remove</button>
-            </span>`
+          ? `<button class="de tap" data-act="evOpen" data-a="${e.id}"
+              aria-label="Edit ${esc(e.title)} at ${esc(E.to12(e.time))}">
+              <span class="t num">${esc(E.to12(e.time))}</span>
+              <span class="ti ${esc(e.kind)}">${esc(e.title)}</span>
+              <span class="dpen" aria-hidden="true">&rsaquo;</span></button>`
           : `<span class="de">
               <span class="t num">${esc(E.to12(e.time))}</span>
               <span class="ti ${esc(e.kind)}">${esc(e.title)}</span></span>`)).join('')}</span>` : ''}
 
-        ${ed ? `<button class="dashb daddb" data-act="addEvent" data-a="${d.n}">Add a fixture</button>` : ''}
+        ${ed ? `<button class="dashb daddb" data-act="evNew" data-a="${d.n}">Add event</button>` : ''}
       </div>`;
     }).join('')}
   </div>
@@ -3085,6 +3079,13 @@ function inUse() {
   if (!el || !document.getElementById('app')) return false;
   if (!document.getElementById('app').contains(el)) return false;
   if (el === wheelDone) return false;  // finished choosing: safe to rebuild
+  /* A TEXT FIELD BEING TYPED IN IS IN USE TOO. Every render replaces the whole
+     screen, so a snapshot landing mid-word took the field, the caret and the
+     half-typed word with it. Blur and change both flush the held redraw, so
+     nothing is lost by waiting — the page catches up the moment the finger
+     leaves the field. A textarea is left out on purpose: the Ask panel streams
+     its answer into the page while the question is still focused. */
+  if (el.tagName === 'INPUT' && /^(text|search|tel|number|url|email)$/.test(el.type)) return true;
   return el.tagName === 'SELECT';
 }
 function flushRender() {
@@ -3663,6 +3664,57 @@ function raiseNext(n) {
   if (n.what === 'finish') finishNotice(n.rid); else holeNotice(n.rid, n.h);
 }
 
+/* ---------------- an event, in a window ----------------
+ *
+ * The week used to be its own editing surface: every fixture on every day
+ * carried a time picker, a title field, a kind menu and a Remove, all of them
+ * live. Eight days of that is not a calendar — it is a bank of forms you
+ * cannot read the week through, and on a phone the title field was too narrow
+ * to show the name of the thing you were editing.
+ *
+ * So the week reads as a week, and an event is written in a window: fill it
+ * in, tap Save, and it closes onto the day. The same window edits one that is
+ * already there, which is where Remove lives now.
+ */
+const EVKINDS = [['social', 'Social'], ['ceremony', 'Ceremony'], ['travel', 'Travel']];
+
+/** The title is typed into the DOM, and the window re-renders whenever a wheel
+ *  or a kind is tapped. Carry what is in the field across that redraw, or the
+ *  name a man typed before he picked the time is gone. */
+function keepEvTitle() {
+  if (!UI.modal || UI.modal.kind !== 'event') return;
+  const f = document.getElementById('evTitle');
+  if (f) UI.modal.ev.title = f.value;
+}
+
+function eventModalHtml() {
+  const m = UI.modal;
+  const ev = m.ev;
+  const day = D.DAYS.find(d => d.n === ev.dayIdx);
+  return `<div class="scrim" data-act="modalScrim"><div class="modal evmodal"
+    role="dialog" aria-modal="true" aria-label="${m.isNew ? 'Add an event' : 'Edit an event'}">
+    <span class="ev-eye">${esc(day ? day.dow + ' ' + day.date : 'The week')}</span>
+    <h3>${m.isNew ? 'Add an event' : 'Edit this event'}</h3>
+
+    <label class="ev-l" for="evTitle">What is it</label>
+    <input class="field" id="evTitle" type="text" maxlength="60" value="${esc(ev.title)}"
+      placeholder="Dinner at the Italian" aria-label="What the event is">
+
+    <label class="ev-l">What time</label>
+    ${timePick(ev.time, { kind: 'draft', a: 'ev', ed: true, clearable: false, label: 'Time of the event' })}
+
+    <label class="ev-l">What kind</label>
+    <div class="evkinds">${EVKINDS.map(([k, l]) => `<button class="evk${ev.kind === k ? ' on' : ''}"
+      data-act="evKind" data-a="${k}" aria-pressed="${ev.kind === k}">${l}</button>`).join('')}</div>
+
+    <p class="err">${esc(UI.modalErr)}</p>
+    <div class="acts">
+      ${m.isNew ? '' : `<button class="btn danger" data-act="evRemove" data-a="${esc(ev.id)}">Remove</button>`}
+      <button class="btn ghost" data-act="modalCancel">Cancel</button>
+      <button class="btn" data-act="evSave">Save</button></div>
+  </div></div>`;
+}
+
 function bbbModalHtml() {
   const m = UI.modal;
   const names = m.missing.map(k => BBBNAME[k]);
@@ -3768,6 +3820,7 @@ function ord(n) {
 function modalHtml() {
   return UI.modal.kind === 'matchwhy' ? matchWhyHtml()
        : UI.modal.kind === 'bandread' ? bandModalHtml()
+       : UI.modal.kind === 'event' ? eventModalHtml()
        : UI.modal.kind === 'turn' ? turnModalHtml()
        : UI.modal.kind === 'finish' ? finishModalHtml()
        : UI.modal.kind === 'bbbmiss' ? bbbModalHtml()
@@ -3995,14 +4048,52 @@ function onClick(e) {
          everyone else's. Only the master reviewer can put it back. */
       store.writeConfig(c => { c.calLocked = act === 'calLock'; });
       return;
-    case 'addEvent':
+    /* Nothing is written until Save. The window holds the whole event until
+       then, so a half-filled one leaves no "New fixture" sitting on the day. */
+    case 'evNew':
+      if (!canEdit() || T.config.calLocked) return;
+      delete UI.timePick['draft:ev:'];
+      UI.modal = { kind: 'event', isNew: true,
+                   ev: { id: null, dayIdx: +a, time: '19:00', title: '', kind: 'social' } };
+      UI.modalErr = '';
+      break;
+    case 'evOpen': {
+      if (!canEdit() || T.config.calLocked) return;
+      const ev = (T.config.schedule || []).find(x => x.id === a);
+      if (!ev) return;
+      delete UI.timePick['draft:ev:'];
+      UI.modal = { kind: 'event', isNew: false, ev: { ...ev } };
+      UI.modalErr = '';
+      break;
+    }
+    case 'evKind':
+      if (!UI.modal || UI.modal.kind !== 'event') return;
+      keepEvTitle();
+      UI.modal.ev.kind = a;
+      break;
+    case 'evSave': {
       if (!canEdit()) return;
-      store.writeConfig(c => { c.schedule.push({ id: 'e' + Date.now().toString(36), dayIdx: +a, time: '18:00', title: 'New fixture', kind: 'social' }); });
-      return;
-    case 'removeEvent':
+      keepEvTitle();
+      const ev = UI.modal.ev;
+      const title = (ev.title || '').trim().replace(/\s+/g, ' ').slice(0, 60);
+      if (!title) { UI.modalErr = 'Give it a name first — "Dinner", "Boat trip", anything.'; render(); return; }
+      if (!ev.time) { UI.modalErr = 'Set a time for it.'; render(); return; }
+      const id = ev.id || 'e' + Date.now().toString(36);
+      const row = { id, dayIdx: +ev.dayIdx, time: ev.time, title, kind: ev.kind };
+      store.writeConfig(c => {
+        const at = (c.schedule || []).findIndex(x => x.id === id);
+        if (at < 0) c.schedule.push(row); else c.schedule[at] = row;
+      });
+      delete UI.timePick['draft:ev:'];
+      closeModal();
+      break;
+    }
+    case 'evRemove':
       if (!canEdit()) return;
-      store.writeConfig(c => { c.schedule = c.schedule.filter(e => e.id !== a); });
-      return;
+      store.writeConfig(c => { c.schedule = (c.schedule || []).filter(e => e.id !== a); });
+      delete UI.timePick['draft:ev:'];
+      closeModal();
+      break;
     case 'addPair': {
       if (!canEdit()) return;
       // A new pair lands at the end of a long page — off the bottom on a
@@ -4463,16 +4554,6 @@ function onChange(e) {
       return;
     }
     write();
-  } else if (act === 'setEventField') {
-    if (!canEdit()) return;
-    const v = el.value.trim();
-    store.writeConfig(c => {
-      const e = c.schedule.find(x => x.id === a);
-      if (!e) return;
-      if (b === 'title') { if (v) e.title = v.slice(0, 60); }
-      else e.kind = v;
-    });
-    render();
   } else if (act === 'setTime') {
     if (!canEdit()) return;
     const box = el.closest('.timepick');
@@ -4500,10 +4581,12 @@ function onChange(e) {
       store.note('tee set', ta + '[' + tb + '] was ' + round.tees[+tb].time + ' -> ' + t);
       round.tees[+tb].time = t;
     });
-    else if (tkind === 'event' && t) store.writeConfig(c => {
-      const ev = c.schedule.find(x => x.id === ta);
-      if (ev) ev.time = t;
-    });
+    else if (tkind === 'draft') {
+      /* An event being written has no row in the book to write to. The wheels
+         set the window's own copy, and Save is what reaches the schedule. */
+      if (UI.modal && UI.modal.kind === 'event') { keepEvTitle(); UI.modal.ev.time = t; }
+      render();
+    }
   } else if (act === 'setPin') {
     if (!canAdmin()) return;
     const v = el.value.replace(/\D/g, '').slice(0, 8);
