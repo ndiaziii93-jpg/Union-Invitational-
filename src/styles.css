@@ -614,6 +614,28 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
   .brlow{display:none}
 }
 
+/* ---- the all inclusive package ----
+   The one thing on the resort tab that is a promise rather than a reading of
+   a website, so it is set as a plate: banded head, the four lines of it, and
+   the one open question kept visibly apart from the four. */
+.pkg{margin-top:16px;border:1px solid var(--rule);border-radius:3px;overflow:hidden;
+  background:var(--paper)}
+.pkghead{background:var(--green);color:var(--paper);padding:11px 16px;
+  display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.pkghead h3{margin:0;font-size:17px;font-weight:700}
+.pkgsrc{font-size:11px;letter-spacing:.1em;text-transform:uppercase;opacity:.78}
+.pkglist{display:grid}
+.pkgrow{display:grid;grid-template-columns:minmax(0,210px) minmax(0,1fr);gap:4px 18px;
+  padding:11px 16px;border-bottom:1px solid var(--hair)}
+.pkgt{font-size:15px;font-weight:700}
+.pkgd{font-size:14.5px;line-height:1.5;color:var(--turf)}
+.pkgcav{margin:0;padding:11px 16px;font-size:13.5px;line-height:1.5;color:var(--turf);
+  background:var(--page);border-left:3px solid var(--gold)}
+@media (max-width:560px){
+  .pkgrow{grid-template-columns:1fr;padding:10px 14px}
+  .pkgcav{padding:10px 14px}
+}
+
 /* ---- a rule, over the board it belongs to ---- */
 .rulemodal{--mpad-x:22px;max-width:580px;gap:0;padding:22px 22px 18px}
 .ru-meta{display:grid;gap:8px;margin-top:14px;padding-bottom:12px;border-bottom:1px solid var(--hair)}

@@ -10,6 +10,7 @@
    got. The status bar tells the reader which one is in use. */
 
 import { GOLFERS, OFFICIALS, SPECTATORS, PAIRS, ROUNDS, SCHEDULE, COURSES, BUILD } from './data.js';
+import { plusMins, TEE_GAP_MIN } from './engine.js';
 import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
 import { createSupabaseDb } from './dbsupa.js';
 
@@ -41,9 +42,11 @@ export function defaultConfig() {
   for (const r of ROUNDS) {
     rounds[r.id] = {
       state: 'closed',
+      /* Two groups go out eight minutes apart, so the book ships with both
+         times rather than one and a blank anybody has to fill in. */
       tees: [
         { time: r.firstTee, players: [] },
-        { time: null, players: [] },
+        { time: plusMins(r.firstTee, TEE_GAP_MIN), players: [] },
         { time: null, players: [] },
       ],
       ctpHole: null, ldHole: null,

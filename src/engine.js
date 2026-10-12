@@ -27,6 +27,16 @@ export function to12(t) {
   let h = +m[1]; const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12;
   return h + ':' + m[2] + ' ' + ap;
 }
+/* THE GAP BETWEEN GROUPS. The course sends groups out eight to ten minutes
+   apart; the book uses eight, so the second group's time is never something
+   anybody has to work out or type. Set the first tee and the second follows. */
+export const TEE_GAP_MIN = 8;
+export function plusMins(t, n) {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(String(t || '').trim());
+  if (!m) return null;
+  const at = (((+m[1] * 60 + +m[2] + n) % 1440) + 1440) % 1440;
+  return String(Math.floor(at / 60)).padStart(2, '0') + ':' + String(at % 60).padStart(2, '0');
+}
 export function to24(str) {
   const m = /^(\d{1,2}):(\d{2})\s*([AaPp][Mm])?$/.exec(String(str || '').trim());
   if (!m) return null;
@@ -142,13 +152,34 @@ function toParPair(T, roundId, pair) {
    in so the screen still has something to show. */
 export const PAIRS_PER_GROUP = 2;
 
+/** When a group actually goes out.
+ *
+ *  A book written before the gap was settled carries a first tee time and
+ *  nothing after it, so rather than showing the group behind as having no
+ *  time at all, the later ones are read off the first: eight minutes a
+ *  group, which is what the course sends them out on. A time that HAS been
+ *  set is always its own — this only fills a blank. */
+export function teeTime(cfg, i) {
+  const tees = (cfg && cfg.tees) || [];
+  const own = (tees[i] || {}).time;
+  if (own) return own;
+  const first = (tees[0] || {}).time;
+  return i > 0 && first ? plusMins(first, TEE_GAP_MIN * i) : null;
+}
+/** Every group's time for a round, in order. Built from the GROUPS that are
+ *  going out rather than from the tee slots, because the book ships with a
+ *  spare slot and filling that one in would invent a third group. */
+export function teeTimes(T, rid) {
+  return groups(T, rid).map(g => g.time).filter(Boolean);
+}
+
 export function groups(T, rid) {
   const cfg = roundCfg(T, rid);
   const tees = cfg.tees || [];
   const pairs = (T.config.pairs || []).slice().sort((a, b) => (a.order || 0) - (b.order || 0));
   if (!pairs.length) {
     return tees.map((t, i) => ({ id: 't' + i, label: 'Group ' + (i + 1),
-      pairs: [], members: t.players || [], time: t.time || null }));
+      pairs: [], members: t.players || [], time: teeTime(cfg, i) }));
   }
   const out = [];
   for (let i = 0; i < pairs.length; i += PAIRS_PER_GROUP) {
@@ -160,7 +191,7 @@ export function groups(T, rid) {
       pairs: inGroup.map(p => pairName(T, p)),
       pairIds: inGroup.map(p => p.id),
       members: inGroup.flatMap(p => (p.members || []).filter(id => person(T, id))),
-      time: (tees[n] || {}).time || null,
+      time: teeTime(cfg, n),
     });
   }
   return out;
@@ -759,7 +790,7 @@ export function brief(T, now) {
   L.push('\nTEE TIMES');
   for (const r of ROUNDS) {
     const c = roundCfg(T, r.id);
-    const times = (c.tees || []).map(t => t.time).filter(Boolean).map(to12);
+    const times = teeTimes(T, r.id).map(to12);
     L.push('- ' + r.short + ' (' + dayOf(r.dayIdx).dow + ' ' + dayOf(r.dayIdx).date + '): '
       + (times.length ? times.join(', ') : 'no tee time set yet'));
   }
@@ -1232,13 +1263,13 @@ export function nextTee(T, now) {
   let best = null;
   for (const r of ROUNDS) {
     const d = dayOf(r.dayIdx);
-    const cfg = roundCfg(T, r.id);
-    for (const tee of cfg.tees) {
-      if (!tee.time) continue;
-      const mins = hhmmToMin(tee.time);
+    for (const g of groups(T, r.id)) {
+      const at = g.time;
+      if (!at) continue;
+      const mins = hhmmToMin(at);
       if (d.iso > now.iso || (d.iso === now.iso && mins >= now.minutes)) {
-        const key = d.iso + ' ' + tee.time;
-        if (!best || key < best.key) best = { key, round: r, day: d, time: tee.time };
+        const key = d.iso + ' ' + at;
+        if (!best || key < best.key) best = { key, round: r, day: d, time: at };
       }
     }
   }

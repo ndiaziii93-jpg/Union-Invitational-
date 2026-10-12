@@ -618,6 +618,28 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
   .brlow{display:none}
 }
 
+/* ---- the all inclusive package ----
+   The one thing on the resort tab that is a promise rather than a reading of
+   a website, so it is set as a plate: banded head, the four lines of it, and
+   the one open question kept visibly apart from the four. */
+.pkg{margin-top:16px;border:1px solid var(--rule);border-radius:3px;overflow:hidden;
+  background:var(--paper)}
+.pkghead{background:var(--green);color:var(--paper);padding:11px 16px;
+  display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.pkghead h3{margin:0;font-size:17px;font-weight:700}
+.pkgsrc{font-size:11px;letter-spacing:.1em;text-transform:uppercase;opacity:.78}
+.pkglist{display:grid}
+.pkgrow{display:grid;grid-template-columns:minmax(0,210px) minmax(0,1fr);gap:4px 18px;
+  padding:11px 16px;border-bottom:1px solid var(--hair)}
+.pkgt{font-size:15px;font-weight:700}
+.pkgd{font-size:14.5px;line-height:1.5;color:var(--turf)}
+.pkgcav{margin:0;padding:11px 16px;font-size:13.5px;line-height:1.5;color:var(--turf);
+  background:var(--page);border-left:3px solid var(--gold)}
+@media (max-width:560px){
+  .pkgrow{grid-template-columns:1fr;padding:10px 14px}
+  .pkgcav{padding:10px 14px}
+}
+
 /* ---- a rule, over the board it belongs to ---- */
 .rulemodal{--mpad-x:22px;max-width:580px;gap:0;padding:22px 22px 18px}
 .ru-meta{display:grid;gap:8px;margin-top:14px;padding-bottom:12px;border-bottom:1px solid var(--hair)}
@@ -2268,7 +2290,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261006-2207';
+const BUILD = '20261012-1348';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -2510,10 +2532,11 @@ const __m_resort = (function(){
  *     reception. Our week, 26 October to 2 November, sits right on the seam.
  *
  *  2. The à la carte restaurants are marked on the hotel's site as "paid
- *     à la carte, reservations required, cover charge applies". The golf
- *     booking company told us something different. Until that is settled
- *     with the hotel, both readings are shown and neither is presented as
- *     the answer.
+ *     à la carte, reservations required, cover charge applies", and the
+ *     golf booking company told us something different. SETTLED, October
+ *     2026: the hotel's own package says one à la carte dinner per
+ *     seven-night stay is included, at Pascarella, and the rest are
+ *     charged. See PACKAGE below — it is the only promise on this tab.
  *
  * Hours are HH:MM in resort local time. `null` means closed for that season.
  */
@@ -2528,6 +2551,35 @@ const RESORT = {
   email: 'deluxegolf.belek@titanic-hotels.com',
   lat: 36.86854,
   lng: 30.97629,
+};
+
+/* ---------------- the all inclusive package ----------------
+ *
+ * Sent by the hotel in October 2026. This is the one piece of paper on the
+ * tab that is a PROMISE rather than a reading of a website, which is why it
+ * is quoted close to word for word and kept apart from everything else.
+ *
+ * It also settles the question the rest of this file was built to hedge:
+ * the à la carte restaurants are charged, with one exception — a single
+ * dinner at Pascarella per seven-night stay, booked in advance.
+ */
+const PACKAGE = {
+  title: 'All Inclusive — what is actually included',
+  source: 'From the hotel, October 2026.',
+  items: [
+    { t: 'Breakfast, lunch and dinner',
+      d: 'Buffet-style in the Main Restaurant.' },
+    { t: 'One à la carte dinner',
+      d: 'Per seven-night stay, at Pascarella. Reservation required and subject to availability — so book it early in the week rather than late.' },
+    { t: 'Snacks between meals',
+      d: 'At selected times, for a minimum of five hours a day.' },
+    { t: 'Drinks, around the clock',
+      d: 'Selected international and local wines, beers, spirits and cocktails, hot drinks and soft drinks — 24 hours a day.' },
+  ],
+  /* The five-day group arrives on the Wednesday. "Per seven-night stay" is
+     the hotel's wording, not ours, and it is worth asking rather than
+     assuming either way. */
+  caveat: 'The included à la carte dinner is written as “per 7-night stay”. Whether the five-day group gets one is a question for reception, not for this page.',
 };
 
 /* ---------------- eating and drinking ----------------
@@ -2583,7 +2635,9 @@ const VENUES = [
 
   /* --- cover charge, per the hotel --- */
   { id: 'pascarella', name: 'Pascarella', kind: 'alacarte', cost: 'cover', cuisine: 'Italian',
+    tag: 'one dinner included',
     blurb: 'Trattoria by the river, with a wine list worth the walk. In winter it serves a fish menu on some nights and the Italian menu on the rest.',
+    note: 'The one à la carte dinner the all inclusive package covers is here — one per seven-night stay, reservation required and subject to availability. Book it early in the week.',
     s: [{ from: '19:00', to: '21:30' }], w: [{ from: '19:00', to: '21:30' }] },
 
   { id: 'nori', name: 'Nori', kind: 'alacarte', cost: 'cover', cuisine: 'Asian',
@@ -2862,7 +2916,9 @@ const PRACTICAL = [
   { q: 'Which season are we in?',
     a: 'Our week sits on the join. The hotel runs two timetables and does not publish the changeover date, so whoever asks at reception first should set the switch at the top of this tab — it re-times everything below.' },
   { q: 'Do the à la carte restaurants cost extra?',
-    a: 'The hotel’s website says yes — cover charge, reservation required — on every one of them. The golf booking company indicated otherwise. Nobody should assume until it has been asked at reception, and whoever asks should write the answer into the note below.' },
+    a: 'Yes, with one exception. The hotel has since confirmed the package: one à la carte dinner per seven-night stay is included, at Pascarella, reservation required and subject to availability. Everything else à la carte is charged, as the hotel’s website always said.' },
+  { q: 'What does All Inclusive actually cover?',
+    a: 'Buffet breakfast, lunch and dinner in the Main Restaurant; one à la carte dinner at Pascarella per seven-night stay; snacks between meals for at least five hours a day; and selected wines, beers, spirits, cocktails, hot drinks and soft drinks, 24 hours a day.' },
   { q: 'Booking a table',
     a: 'Every à la carte needs a reservation. Bistro never does, and it runs to three in the morning, which makes it the fallback after a long day.' },
   { q: 'With a baby',
@@ -2946,7 +3002,7 @@ function seasonToll() {
   return { total: VENUES.length, shut, open: VENUES.length - shut };
 }
 
-return {SEASONS, RESORT, VENUES, SPA, POOLS, DOING, PLAN, PLAN_BOX, PLAN_KEYS, planAt, findUrl, hotelUrl, PRACTICAL, toMin, fmt, slots, isAllDay, inSlot, untilOpen, whatsOn, seasonToll};
+return {SEASONS, RESORT, PACKAGE, VENUES, SPA, POOLS, DOING, PLAN, PLAN_BOX, PLAN_KEYS, planAt, findUrl, hotelUrl, PRACTICAL, toMin, fmt, slots, isAllDay, inSlot, untilOpen, whatsOn, seasonToll};
 })();
 
 const __m_weather = (function(){
@@ -3090,6 +3146,16 @@ function to12(t) {
   let h = +m[1]; const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12;
   return h + ':' + m[2] + ' ' + ap;
 }
+/* THE GAP BETWEEN GROUPS. The course sends groups out eight to ten minutes
+   apart; the book uses eight, so the second group's time is never something
+   anybody has to work out or type. Set the first tee and the second follows. */
+const TEE_GAP_MIN = 8;
+function plusMins(t, n) {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(String(t || '').trim());
+  if (!m) return null;
+  const at = (((+m[1] * 60 + +m[2] + n) % 1440) + 1440) % 1440;
+  return String(Math.floor(at / 60)).padStart(2, '0') + ':' + String(at % 60).padStart(2, '0');
+}
 function to24(str) {
   const m = /^(\d{1,2}):(\d{2})\s*([AaPp][Mm])?$/.exec(String(str || '').trim());
   if (!m) return null;
@@ -3205,13 +3271,34 @@ function toParPair(T, roundId, pair) {
    in so the screen still has something to show. */
 const PAIRS_PER_GROUP = 2;
 
+/** When a group actually goes out.
+ *
+ *  A book written before the gap was settled carries a first tee time and
+ *  nothing after it, so rather than showing the group behind as having no
+ *  time at all, the later ones are read off the first: eight minutes a
+ *  group, which is what the course sends them out on. A time that HAS been
+ *  set is always its own — this only fills a blank. */
+function teeTime(cfg, i) {
+  const tees = (cfg && cfg.tees) || [];
+  const own = (tees[i] || {}).time;
+  if (own) return own;
+  const first = (tees[0] || {}).time;
+  return i > 0 && first ? plusMins(first, TEE_GAP_MIN * i) : null;
+}
+/** Every group's time for a round, in order. Built from the GROUPS that are
+ *  going out rather than from the tee slots, because the book ships with a
+ *  spare slot and filling that one in would invent a third group. */
+function teeTimes(T, rid) {
+  return groups(T, rid).map(g => g.time).filter(Boolean);
+}
+
 function groups(T, rid) {
   const cfg = roundCfg(T, rid);
   const tees = cfg.tees || [];
   const pairs = (T.config.pairs || []).slice().sort((a, b) => (a.order || 0) - (b.order || 0));
   if (!pairs.length) {
     return tees.map((t, i) => ({ id: 't' + i, label: 'Group ' + (i + 1),
-      pairs: [], members: t.players || [], time: t.time || null }));
+      pairs: [], members: t.players || [], time: teeTime(cfg, i) }));
   }
   const out = [];
   for (let i = 0; i < pairs.length; i += PAIRS_PER_GROUP) {
@@ -3223,7 +3310,7 @@ function groups(T, rid) {
       pairs: inGroup.map(p => pairName(T, p)),
       pairIds: inGroup.map(p => p.id),
       members: inGroup.flatMap(p => (p.members || []).filter(id => person(T, id))),
-      time: (tees[n] || {}).time || null,
+      time: teeTime(cfg, n),
     });
   }
   return out;
@@ -3822,7 +3909,7 @@ function brief(T, now) {
   L.push('\nTEE TIMES');
   for (const r of ROUNDS) {
     const c = roundCfg(T, r.id);
-    const times = (c.tees || []).map(t => t.time).filter(Boolean).map(to12);
+    const times = teeTimes(T, r.id).map(to12);
     L.push('- ' + r.short + ' (' + dayOf(r.dayIdx).dow + ' ' + dayOf(r.dayIdx).date + '): '
       + (times.length ? times.join(', ') : 'no tee time set yet'));
   }
@@ -4295,13 +4382,13 @@ function nextTee(T, now) {
   let best = null;
   for (const r of ROUNDS) {
     const d = dayOf(r.dayIdx);
-    const cfg = roundCfg(T, r.id);
-    for (const tee of cfg.tees) {
-      if (!tee.time) continue;
-      const mins = hhmmToMin(tee.time);
+    for (const g of groups(T, r.id)) {
+      const at = g.time;
+      if (!at) continue;
+      const mins = hhmmToMin(at);
       if (d.iso > now.iso || (d.iso === now.iso && mins >= now.minutes)) {
-        const key = d.iso + ' ' + tee.time;
-        if (!best || key < best.key) best = { key, round: r, day: d, time: tee.time };
+        const key = d.iso + ' ' + at;
+        if (!best || key < best.key) best = { key, round: r, day: d, time: at };
       }
     }
   }
@@ -4380,7 +4467,7 @@ function roundToPar(T, roundId, pid) {
   return { tp, thru };
 }
 
-return {nowLocal, dayOf, hhmmToMin, to12, to24, BANDS, strokesFor, bandTotal, fmtToPar, capFor, capped, person, golfers, roundDef, roundCfg, courseByKey, courseOf, scoreKey, card, pairName, phaseOf, phaseLabel, hasScores, countingRounds, playerNet, pairHole, PAIRS_PER_GROUP, groups, finishGroups, groupThru18, groupDone, groupsOut, TURN_HOLES, toParThru, groupAtTurn, turnAt, turnGroups, turnSnapshot, practiceBoard, nearestBand, bandRead, practiceBbb, bandsLocked, pairsBoard, mvpBoard, BBB_SLOTS, bbbMarks, MARKS, MARK_KEYS, MOODS, OWNS, moodLabel, ownLabels, OWN_MARKS, OWN_KEYS, holeMarks, selfLog, selfMarks, markCoverage, markTally, markLine, bbbBoard, roundComplete, brief, roundBrief, recapRound, roundStanding, ribbon, pairRoundBoard, recapTable, swingOfTheDay, sideGames, recapInput, matchPlay, matchDetail, ryderData, holeCells, setupIssues, nextTee, fixtures, nextFixture, TEE_CHOICES, TEE_PRIV, teePrivilege, roundToPar};
+return {nowLocal, dayOf, hhmmToMin, to12, TEE_GAP_MIN, plusMins, to24, BANDS, strokesFor, bandTotal, fmtToPar, capFor, capped, person, golfers, roundDef, roundCfg, courseByKey, courseOf, scoreKey, card, pairName, phaseOf, phaseLabel, hasScores, countingRounds, playerNet, pairHole, PAIRS_PER_GROUP, teeTime, teeTimes, groups, finishGroups, groupThru18, groupDone, groupsOut, TURN_HOLES, toParThru, groupAtTurn, turnAt, turnGroups, turnSnapshot, practiceBoard, nearestBand, bandRead, practiceBbb, bandsLocked, pairsBoard, mvpBoard, BBB_SLOTS, bbbMarks, MARKS, MARK_KEYS, MOODS, OWNS, moodLabel, ownLabels, OWN_MARKS, OWN_KEYS, holeMarks, selfLog, selfMarks, markCoverage, markTally, markLine, bbbBoard, roundComplete, brief, roundBrief, recapRound, roundStanding, ribbon, pairRoundBoard, recapTable, swingOfTheDay, sideGames, recapInput, matchPlay, matchDetail, ryderData, holeCells, setupIssues, nextTee, fixtures, nextFixture, TEE_CHOICES, TEE_PRIV, teePrivilege, roundToPar};
 })();
 
 const __m_dbsupa = (function(){
@@ -4775,6 +4862,7 @@ return {createSupabaseDb, createSupabaseFiles};
 
 const __m_store = (function(){
 const { GOLFERS, OFFICIALS, SPECTATORS, PAIRS, ROUNDS, SCHEDULE, COURSES, BUILD } = __m_data;
+const { plusMins, TEE_GAP_MIN } = __m_engine;
 const { SUPABASE_URL, SUPABASE_KEY } = __m_config;
 const { createSupabaseDb } = __m_dbsupa;
 /* Shared state, so the two scorers, the master reviewer and every spectator
@@ -4787,6 +4875,7 @@ const { createSupabaseDb } = __m_dbsupa;
    everything below this line, including every hard-won rule about not
    overwriting a real tournament, is written once and does not know which it
    got. The status bar tells the reader which one is in use. */
+
 
 
 
@@ -4819,9 +4908,11 @@ function defaultConfig() {
   for (const r of ROUNDS) {
     rounds[r.id] = {
       state: 'closed',
+      /* Two groups go out eight minutes apart, so the book ships with both
+         times rather than one and a blank anybody has to fill in. */
       tees: [
         { time: r.firstTee, players: [] },
-        { time: null, players: [] },
+        { time: plusMins(r.firstTee, TEE_GAP_MIN), players: [] },
         { time: null, players: [] },
       ],
       ctpHole: null, ldHole: null,
@@ -7228,6 +7319,24 @@ function finishGroupNow(rid) {
   return E.finishGroups(T, rid).find(x => x.id === id) || null;
 }
 
+/* MOVING THE FIRST GROUP MOVES THE SECOND WITH IT.
+ *
+ * The course sends groups out eight to ten minutes apart. The book uses
+ * eight, and it is not a number anybody should have to hold in their head at
+ * seven in the morning: set the first tee and the second is already right.
+ * It matters most for the tee-time privilege, where the leaders pick the
+ * next round's time — without this the group behind kept the old slot and
+ * the gap was whatever the arithmetic happened to leave.
+ *
+ * Setting the SECOND time by hand still does exactly what it says; only the
+ * first carries the other with it. */
+function setFirstTee(round, t) {
+  if (!round || !round.tees || !round.tees.length) return;
+  round.tees[0].time = t;
+  const next = t ? E.plusMins(t, E.TEE_GAP_MIN) : null;
+  if (round.tees.length > 1) round.tees[1].time = next;
+}
+
 function draftFor(rid, h) {
   if (!UI.draft || UI.draft.rid !== rid || UI.draft.hole !== h) {
     UI.draft = { rid, hole: h, strokes: {}, bbb: {}, gid: curGroupId(rid) };
@@ -8365,9 +8474,24 @@ function resortEat() {
   const cov = R.VENUES.filter(v => v.cost === 'cover' && v.kind === 'alacarte');
   const bar = R.VENUES.filter(v => ['bar', 'cafe'].includes(v.kind));
 
+  /* THE PACKAGE COMES FIRST. Everything under it is a reading of the
+     hotel's website; this is the hotel's own word on what the week buys,
+     so it is set apart and quoted rather than paraphrased into the lists. */
+  const pkg = `<section class="pkg">
+    <header class="pkghead">
+      <h3>${esc(R.PACKAGE.title)}</h3>
+      <span class="pkgsrc">${esc(R.PACKAGE.source)}</span>
+    </header>
+    <div class="pkglist">${R.PACKAGE.items.map(i => `<div class="pkgrow">
+      <span class="pkgt">${esc(i.t)}</span>
+      <span class="pkgd">${esc(i.d)}</span></div>`).join('')}</div>
+    <p class="pkgcav">${esc(R.PACKAGE.caveat)}</p>
+  </section>`;
+
   return `<p class="lede">Thirty-two places to eat and drink. What is included, what is not, and when each of them is actually open.</p>
+  ${pkg}
   ${group('inc', 'Included', 'Walk in, sit down, no bill. Nothing here needs booking.', inc)}
-  ${group('cover', 'Charged extra', 'The hotel’s own site marks every one of these <b>“paid à la carte, reservations required, cover charge applies”</b>. The golf company told us otherwise. Nobody should assume until it has been asked at reception — and whoever asks should write the answer in at the bottom of this page.', cov)}
+  ${group('cover', 'Charged extra', 'Charged, every one of them — with the single exception of <b>one dinner at Pascarella per seven-night stay</b>, which the package covers. All of them need a reservation.', cov)}
   ${group('bar', 'Bars & cafés', 'All included.', bar)}
   ${resortNote('eat', 'Bookings and verdicts', 'Who booked what, what it cost, and whether it was worth it.')}`;
 }
@@ -10465,7 +10589,7 @@ function onChange(e) {
       // there can be more pairings than the three slots the book shipped with
       while (round.tees.length <= +tb) round.tees.push({ time: null, players: [] });
       store.note('tee set', ta + '[' + tb + '] was ' + round.tees[+tb].time + ' -> ' + t);
-      round.tees[+tb].time = t;
+      if (+tb === 0) setFirstTee(round, t); else round.tees[+tb].time = t;
     });
     else if (tkind === 'draft') {
       /* An event being written has no row in the book to write to. The wheels
@@ -10492,7 +10616,7 @@ function onChange(e) {
     const by = board.length ? board[0].name : null;
     store.writeConfig(c => {
       c.teePicks[a] = { done: true, time: el.value, byPair: by };
-      c.rounds[a].tees[0].time = el.value;
+      setFirstTee(c.rounds[a], el.value);
     });
   } else if (act === 'renamePair') {
     if (!canEdit()) return;

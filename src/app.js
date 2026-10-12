@@ -1506,6 +1506,24 @@ function finishGroupNow(rid) {
   return E.finishGroups(T, rid).find(x => x.id === id) || null;
 }
 
+/* MOVING THE FIRST GROUP MOVES THE SECOND WITH IT.
+ *
+ * The course sends groups out eight to ten minutes apart. The book uses
+ * eight, and it is not a number anybody should have to hold in their head at
+ * seven in the morning: set the first tee and the second is already right.
+ * It matters most for the tee-time privilege, where the leaders pick the
+ * next round's time — without this the group behind kept the old slot and
+ * the gap was whatever the arithmetic happened to leave.
+ *
+ * Setting the SECOND time by hand still does exactly what it says; only the
+ * first carries the other with it. */
+function setFirstTee(round, t) {
+  if (!round || !round.tees || !round.tees.length) return;
+  round.tees[0].time = t;
+  const next = t ? E.plusMins(t, E.TEE_GAP_MIN) : null;
+  if (round.tees.length > 1) round.tees[1].time = next;
+}
+
 function draftFor(rid, h) {
   if (!UI.draft || UI.draft.rid !== rid || UI.draft.hole !== h) {
     UI.draft = { rid, hole: h, strokes: {}, bbb: {}, gid: curGroupId(rid) };
@@ -2643,9 +2661,24 @@ function resortEat() {
   const cov = R.VENUES.filter(v => v.cost === 'cover' && v.kind === 'alacarte');
   const bar = R.VENUES.filter(v => ['bar', 'cafe'].includes(v.kind));
 
+  /* THE PACKAGE COMES FIRST. Everything under it is a reading of the
+     hotel's website; this is the hotel's own word on what the week buys,
+     so it is set apart and quoted rather than paraphrased into the lists. */
+  const pkg = `<section class="pkg">
+    <header class="pkghead">
+      <h3>${esc(R.PACKAGE.title)}</h3>
+      <span class="pkgsrc">${esc(R.PACKAGE.source)}</span>
+    </header>
+    <div class="pkglist">${R.PACKAGE.items.map(i => `<div class="pkgrow">
+      <span class="pkgt">${esc(i.t)}</span>
+      <span class="pkgd">${esc(i.d)}</span></div>`).join('')}</div>
+    <p class="pkgcav">${esc(R.PACKAGE.caveat)}</p>
+  </section>`;
+
   return `<p class="lede">Thirty-two places to eat and drink. What is included, what is not, and when each of them is actually open.</p>
+  ${pkg}
   ${group('inc', 'Included', 'Walk in, sit down, no bill. Nothing here needs booking.', inc)}
-  ${group('cover', 'Charged extra', 'The hotel’s own site marks every one of these <b>“paid à la carte, reservations required, cover charge applies”</b>. The golf company told us otherwise. Nobody should assume until it has been asked at reception — and whoever asks should write the answer in at the bottom of this page.', cov)}
+  ${group('cover', 'Charged extra', 'Charged, every one of them — with the single exception of <b>one dinner at Pascarella per seven-night stay</b>, which the package covers. All of them need a reservation.', cov)}
   ${group('bar', 'Bars & cafés', 'All included.', bar)}
   ${resortNote('eat', 'Bookings and verdicts', 'Who booked what, what it cost, and whether it was worth it.')}`;
 }
@@ -4743,7 +4776,7 @@ function onChange(e) {
       // there can be more pairings than the three slots the book shipped with
       while (round.tees.length <= +tb) round.tees.push({ time: null, players: [] });
       store.note('tee set', ta + '[' + tb + '] was ' + round.tees[+tb].time + ' -> ' + t);
-      round.tees[+tb].time = t;
+      if (+tb === 0) setFirstTee(round, t); else round.tees[+tb].time = t;
     });
     else if (tkind === 'draft') {
       /* An event being written has no row in the book to write to. The wheels
@@ -4770,7 +4803,7 @@ function onChange(e) {
     const by = board.length ? board[0].name : null;
     store.writeConfig(c => {
       c.teePicks[a] = { done: true, time: el.value, byPair: by };
-      c.rounds[a].tees[0].time = el.value;
+      setFirstTee(c.rounds[a], el.value);
     });
   } else if (act === 'renamePair') {
     if (!canEdit()) return;

@@ -57,19 +57,49 @@ for (const [label, vp, mob] of [['phone 390', { width: 390, height: 844 }, true]
   await set(p.locator('.teetimes .timepick').first(), '12', '30', 'AM');
   ok('12:30 AM is after midnight', (await teeTimes())[0], '00:30');
 
-  // --- half a time must not be written ---
+  /* --- THE SECOND GROUP FOLLOWS THE FIRST ---
+     The course sends groups out eight to ten minutes apart. Eight is not a
+     number anybody should have to hold in their head at seven in the
+     morning, so setting the first tee sets the second. */
   const second = p.locator('.teetimes .timepick').nth(1);
-  ok('the second group starts unset', (await teeTimes())[1], null);
-  await set(second, '9', null, null);
-  ok('an hour alone writes nothing', (await teeTimes())[1], null);
-  await set(p.locator('.teetimes .timepick').nth(1), null, '20', null);
-  ok('an hour and a minute still write nothing', (await teeTimes())[1], null);
-  await set(p.locator('.teetimes .timepick').nth(1), null, null, 'AM');
-  ok('the third wheel completes it', (await teeTimes())[1], '09:20');
+  ok('the second group is already eight minutes behind the first',
+    (await teeTimes())[1], '00:38');
 
-  // --- and it can be cleared again ---
+  /* A picker that HAS a time behaves like one: move a wheel and you get a
+     time, because the other two wheels are already set. */
+  await set(second, '9', null, null);
+  ok('moving one wheel on a set time moves the time', (await teeTimes())[1], '09:38');
+
+  /* Setting the SECOND by hand is exactly what it says — the first does not
+     move with it. Only the first carries the other. */
+  ok('and the first stayed where it was', (await teeTimes())[0], '00:30');
+  await set(p.locator('.teetimes .timepick').first(), '7', '40', 'AM');
+  ok('moving the first takes the second with it', (await teeTimes())[0], '07:40');
+  ok('eight minutes behind, wherever it was', (await teeTimes())[1], '07:48');
+
+  /* --- HALF A TIME MUST NOT BE WRITTEN ---
+     A rule about a picker with nothing in it, which since the second group
+     now always shows a time means the FIRST one, emptied. */
+  await set(p.locator('.teetimes .timepick').first(), '', '', '');
+  ok('the first can be emptied', (await teeTimes())[0], null);
+  ok('and the second empties with it', (await teeTimes())[1], null);
+  await set(p.locator('.teetimes .timepick').first(), '9', null, null);
+  ok('an hour alone writes nothing', (await teeTimes())[0], null);
+  await set(p.locator('.teetimes .timepick').first(), null, '20', null);
+  ok('an hour and a minute still write nothing', (await teeTimes())[0], null);
+  await set(p.locator('.teetimes .timepick').first(), null, null, 'AM');
+  ok('the third wheel completes it', (await teeTimes())[0], '09:20');
+  ok('and the second comes back with it', (await teeTimes())[1], '09:28');
+
+  // --- and the second can be cleared on its own ---
   await set(p.locator('.teetimes .timepick').nth(1), '', '', '');
   ok('clearing all three empties the slot', (await teeTimes())[1], null);
+  /* Cleared in the book, but the group still has a time on screen: a blank
+     second slot is read as eight minutes behind the first rather than shown
+     as a group with no tee time at all. That is what carries the rounds
+     written before the gap was settled. */
+  ok('and the group still shows one',
+    await p.locator('.teetimes .timepick').nth(1).locator('select').first().inputValue(), '9');
 
   /* Calendar events pick the same way, in the window that writes them. The
      week is a week again: you tap an event to open it, not to type into it. */

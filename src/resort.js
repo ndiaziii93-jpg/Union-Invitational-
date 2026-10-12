@@ -10,10 +10,11 @@
  *     reception. Our week, 26 October to 2 November, sits right on the seam.
  *
  *  2. The à la carte restaurants are marked on the hotel's site as "paid
- *     à la carte, reservations required, cover charge applies". The golf
- *     booking company told us something different. Until that is settled
- *     with the hotel, both readings are shown and neither is presented as
- *     the answer.
+ *     à la carte, reservations required, cover charge applies", and the
+ *     golf booking company told us something different. SETTLED, October
+ *     2026: the hotel's own package says one à la carte dinner per
+ *     seven-night stay is included, at Pascarella, and the rest are
+ *     charged. See PACKAGE below — it is the only promise on this tab.
  *
  * Hours are HH:MM in resort local time. `null` means closed for that season.
  */
@@ -28,6 +29,35 @@ export const RESORT = {
   email: 'deluxegolf.belek@titanic-hotels.com',
   lat: 36.86854,
   lng: 30.97629,
+};
+
+/* ---------------- the all inclusive package ----------------
+ *
+ * Sent by the hotel in October 2026. This is the one piece of paper on the
+ * tab that is a PROMISE rather than a reading of a website, which is why it
+ * is quoted close to word for word and kept apart from everything else.
+ *
+ * It also settles the question the rest of this file was built to hedge:
+ * the à la carte restaurants are charged, with one exception — a single
+ * dinner at Pascarella per seven-night stay, booked in advance.
+ */
+export const PACKAGE = {
+  title: 'All Inclusive — what is actually included',
+  source: 'From the hotel, October 2026.',
+  items: [
+    { t: 'Breakfast, lunch and dinner',
+      d: 'Buffet-style in the Main Restaurant.' },
+    { t: 'One à la carte dinner',
+      d: 'Per seven-night stay, at Pascarella. Reservation required and subject to availability — so book it early in the week rather than late.' },
+    { t: 'Snacks between meals',
+      d: 'At selected times, for a minimum of five hours a day.' },
+    { t: 'Drinks, around the clock',
+      d: 'Selected international and local wines, beers, spirits and cocktails, hot drinks and soft drinks — 24 hours a day.' },
+  ],
+  /* The five-day group arrives on the Wednesday. "Per seven-night stay" is
+     the hotel's wording, not ours, and it is worth asking rather than
+     assuming either way. */
+  caveat: 'The included à la carte dinner is written as “per 7-night stay”. Whether the five-day group gets one is a question for reception, not for this page.',
 };
 
 /* ---------------- eating and drinking ----------------
@@ -83,7 +113,9 @@ export const VENUES = [
 
   /* --- cover charge, per the hotel --- */
   { id: 'pascarella', name: 'Pascarella', kind: 'alacarte', cost: 'cover', cuisine: 'Italian',
+    tag: 'one dinner included',
     blurb: 'Trattoria by the river, with a wine list worth the walk. In winter it serves a fish menu on some nights and the Italian menu on the rest.',
+    note: 'The one à la carte dinner the all inclusive package covers is here — one per seven-night stay, reservation required and subject to availability. Book it early in the week.',
     s: [{ from: '19:00', to: '21:30' }], w: [{ from: '19:00', to: '21:30' }] },
 
   { id: 'nori', name: 'Nori', kind: 'alacarte', cost: 'cover', cuisine: 'Asian',
@@ -362,7 +394,9 @@ export const PRACTICAL = [
   { q: 'Which season are we in?',
     a: 'Our week sits on the join. The hotel runs two timetables and does not publish the changeover date, so whoever asks at reception first should set the switch at the top of this tab — it re-times everything below.' },
   { q: 'Do the à la carte restaurants cost extra?',
-    a: 'The hotel’s website says yes — cover charge, reservation required — on every one of them. The golf booking company indicated otherwise. Nobody should assume until it has been asked at reception, and whoever asks should write the answer into the note below.' },
+    a: 'Yes, with one exception. The hotel has since confirmed the package: one à la carte dinner per seven-night stay is included, at Pascarella, reservation required and subject to availability. Everything else à la carte is charged, as the hotel’s website always said.' },
+  { q: 'What does All Inclusive actually cover?',
+    a: 'Buffet breakfast, lunch and dinner in the Main Restaurant; one à la carte dinner at Pascarella per seven-night stay; snacks between meals for at least five hours a day; and selected wines, beers, spirits, cocktails, hot drinks and soft drinks, 24 hours a day.' },
   { q: 'Booking a table',
     a: 'Every à la carte needs a reservation. Bistro never does, and it runs to three in the morning, which makes it the fallback after a long day.' },
   { q: 'With a baby',

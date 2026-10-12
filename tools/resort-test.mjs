@@ -455,11 +455,17 @@ await ph0.close();
     for (let k = 0; k < 5; k++) {
       const r = await tp.locator('.planwrap').boundingBox();
       if (r && r.y >= 0 && r.y + r.height <= vp.height) break;
+      /* A redraw landing mid-gesture can leave the plan with no box at all
+         for a moment. There is nothing to scroll to then — wait for the next
+         paint rather than reading y off nothing, which is how this crashed
+         under the load of a full suite run. */
+      if (!r) { await tp.waitForTimeout(250); continue; }
       await tp.evaluate(([y, h, vh]) => window.scrollBy(0, y - Math.max(8, (vh - h) / 2)),
         [r.y, r.height, vp.height]);
       await tp.waitForTimeout(250);
     }
     const r = await tp.locator('.planwrap').boundingBox();
+    if (!r) { ok('the plan has a box to aim at', false, true); return { x: 0, y: 0, visible: 0 }; }
     const top = Math.max(r.y, 0), bot = Math.min(r.y + r.height, vp.height);
     return { x: Math.round(r.x + r.width * 0.25), y: Math.round(top + (bot - top) * 0.34),
              visible: bot - top };
