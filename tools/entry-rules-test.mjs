@@ -284,8 +284,8 @@ ok('the number is real text, not a drawing', await p.locator('.bandcrest .bn').f
 console.log('\nthe shape of the book');
 /* THE SHAPE OF THE BOOK. Four tabs for the four things you do during the
    tournament, in the order you meet them; everything set up once sits behind
-   Manage, deepest-first — Setup, then the roster, the week, the courses and
-   the rules. */
+   Manage, deepest-first — Setup, then the roster, the tee times, the courses
+   and the rules. The Calendar tab shows the week; it never edits it. */
 ok('five tabs, and these five', await p.evaluate(
   () => [...document.querySelectorAll('.tab')].map(x => x.dataset.a)),
   ['today', 'entry', 'boards', 'calendar', 'resort']);
@@ -294,7 +294,7 @@ ok('the cup is not one of them — it is a board',
 await p.locator('[data-act="manageOpen"]').click(); await p.waitForTimeout(500);
 ok('and the rest are behind Manage', await p.evaluate(
   () => [...document.querySelectorAll('.mg-row')].map(x => x.dataset.a)),
-  ['setup', 'roster', 'courses', 'rules']);
+  ['setup', 'roster', 'tees', 'courses', 'rules']);
 ok('Rules comes after Course Setup', await p.evaluate(() => {
   const t = [...document.querySelectorAll('.mg-row')].map(x => x.dataset.a);
   return t.indexOf('rules') > t.indexOf('courses');

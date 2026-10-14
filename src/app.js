@@ -1279,13 +1279,14 @@ function scrRyder() {
 }
 
 /** Everything happening on a trip day: the round, then the social calendar.
- *  The round is fixed here — its time is set with the tee slots below. */
+ *  The round is fixed here — the week cannot add or move one, and its times
+ *  are set behind Manage. */
 function dayEntries(n) {
   const out = [];
   for (const r of D.ROUNDS) {
     if (r.dayIdx !== n) continue;
     const tee = E.roundCfg(T, r.id).tees[0];
-    out.push({ id: 'round:' + r.id, fixed: true, time: tee && tee.time, title: r.full,
+    out.push({ id: 'round:' + r.id, rid: r.id, fixed: true, time: tee && tee.time, title: r.full,
                sub: E.courseOf(T, r.id).name, kind: 'golf' });
   }
   for (const e of T.config.schedule) {
@@ -1316,7 +1317,7 @@ function scrCalendar() {
   return `<div class="titlerow">
     <h2 class="head">Calendar</h2>
   </div>
-  <p class="lede">The whole week at once. ${locked
+  <p class="lede">The whole week at once. Tap a round for its tee times and course. ${locked
     ? 'The calendar is locked — the week is settled.'
     : ed ? 'Tap Add event at the foot of any day, or tap an event to change it.'
     : 'Ask a scorer to change the week.'}</p>
@@ -1342,10 +1343,12 @@ function scrCalendar() {
           <span class="dl">${esc(d.dow)} ${esc(d.date)}</span>
           ${d.iso === now.iso ? `<span class="tt">Today</span>` : ''}
         </span>
-        ${golf ? `<span class="dgolf">
+        ${golf ? `<button class="dgolf tap" data-act="roundOpen" data-a="${esc(golf.rid)}"
+          aria-label="${esc(golf.title)} — tee times and course">
           <span class="t num">${esc(golf.time ? E.to12(golf.time) : 'Tee time to set')}</span>
           <span class="ti">${esc(golf.title)}</span>
-          <span class="sub">${esc(golf.sub)}</span></span>` : ''}
+          <span class="sub">${esc(golf.sub)}</span>
+          <span class="dpen" aria-hidden="true">&rsaquo;</span></button>` : ''}
         ${rest && !social.length ? `<span class="drest">Rest day — no golf, bar open.</span>` : ''}
 
         ${social.length ? `<span class="dlist">${social.map(e => (ed
@@ -1363,18 +1366,30 @@ function scrCalendar() {
     }).join('')}
   </div>
 
+  `;
+}
+
+/* ---------------- tee times, where they are set ----------------
+ *
+ * These used to sit under the week on the Calendar tab, which put the one
+ * control that moves everybody's morning on the screen people open to read
+ * what is on tonight. The week is now something to read; the times are set
+ * behind Manage with the rest of what is settled once.
+ */
+function scrTees() {
+  return `<h2 class="head">Tee times</h2>
+  <p class="lede">What time each group goes out, and who is in it. The second group follows the first by
+  eight minutes — set the first and the rest come with it.</p>
   ${teeBlocks()}`;
 }
 
-/* The tee times belong to the rounds, not to the squares of the week, so
-   they sit under it rather than inside a day. Four rounds, all on one page,
-   which is how they are actually set: the night before, in one go. */
+/* Four rounds, all on one page, which is how they are actually set: the night
+   before, in one go. */
 function teeBlocks() {
   const ed = canEdit();
   const rounds = D.ROUNDS.filter(r => roundOnDay(E.dayOf(r.dayIdx).n));
   const list = rounds.length ? rounds : D.ROUNDS;
-  return `<h3 class="sub" style="margin-top:34px">Tee times</h3>
-  <p class="lede">A group is two pairs, taken in the order they sit on Roster &amp; Pairings — so Group 1 is
+  return `<p class="lede">A group is two pairs, taken in the order they sit on Roster &amp; Pairings — so Group 1 is
   the first two pairs off. Change the pairings and the groups follow.</p>
   ${list.map(r => `<div class="teeblock">
     <h4 class="teehead">${esc(r.full)} — ${esc(E.dayOf(r.dayIdx).dow)}, ${esc(E.courseOf(T, r.id).name)}</h4>
@@ -3094,6 +3109,7 @@ const NAV = [
 const MANAGE = [
   ['setup',    'Setup',             'PINs, locks and what is still outstanding'],
   ['roster',   'Roster & Pairings', 'Bands, squads and who plays with whom'],
+  ['tees',     'Tee times',         'What time each group goes out'],
   ['courses',  'Course Setup',      'Pars, stroke index and yardages'],
   ['rules',    'Games & Rules',     'All six competitions, in full'],
 ];
@@ -3125,6 +3141,39 @@ function tabBar() {
       ${navIcon(id)}<span class="lb" aria-hidden="true"><span class="lg">${esc(label)}</span>${esc(short)}</span>
     </button>`).join('')}
   </nav>`;
+}
+
+/* A round, as the week shows it: when each group goes out, on what, and who
+   is in it. Nothing here can be changed — the times are set behind Manage,
+   and this is the page everybody reads. */
+function roundModalHtml() {
+  const rid = UI.modal.rid;
+  const r = E.roundDef(rid);
+  if (!r) return '';
+  const d = E.dayOf(r.dayIdx);
+  const course = E.courseOf(T, rid);
+  const gs = E.groups(T, rid);
+  const cfg = E.roundCfg(T, rid);
+  return `<div class="scrim" data-act="modalScrim"><div class="modal rdmodal"
+    role="dialog" aria-modal="true" aria-label="${esc(r.full)}">
+    ${modalBanner(r.full, d.dow + ' ' + d.date + ' \u00B7 ' + course.name)}
+    <p class="rd-fmt">${esc(r.format)}${r.counts ? '' : ' \u00B7 nothing counts'}${
+      r.noMulligans ? ' \u00B7 no mulligans' : ''}</p>
+    <div class="rd-tees">
+      ${gs.length ? gs.map(g => `<div class="rd-row">
+        <span class="rd-g">${esc(g.label)}</span>
+        <span class="rd-t num">${g.time ? esc(E.to12(g.time)) : '—'}</span>
+        <span class="rd-who">${g.pairs.length ? esc(g.pairs.join('  \u00B7  '))
+          : 'Nobody paired yet'}</span>
+      </div>`).join('')
+      : `<p class="rd-none">No groups yet — the pairings decide them.</p>`}
+    </div>
+    <p class="rd-note">${cfg.state === 'locked'
+      ? 'This round is concluded.'
+      : canEdit() ? 'Tee times are set under Manage \u2192 Tee times.'
+      : 'A scorer sets the tee times.'}</p>
+    <div class="acts"><button class="btn" data-act="modalCancel">Close</button></div>
+  </div></div>`;
 }
 
 /** Everything that is set up once, behind one door, with the count on it. */
@@ -3345,6 +3394,7 @@ function paint() {
   const opened = [...document.querySelectorAll('details[id][open]')].map(el => el.id);
   const body = { today: scrToday, resort: scrResort, boards: scrBoards, ryder: scrRyder,
                  calendar: scrCalendar, entry: scrEntry, roster: scrRoster, rules: scrRules,
+                 tees: scrTees,
                  courses: scrCourses, setup: scrSetup }[UI.screen]();
   /* The forecast is only ever wanted on one screen, so it is only ever asked
      for there — and `loadWeather` itself refuses to go more often than the
@@ -4081,6 +4131,7 @@ function ord(n) {
 function modalHtml() {
   return UI.modal.kind === 'matchwhy' ? matchWhyHtml()
        : UI.modal.kind === 'manage' ? manageModalHtml()
+       : UI.modal.kind === 'round' ? roundModalHtml()
        : UI.modal.kind === 'rule' ? ruleModalHtml()
        : UI.modal.kind === 'bandread' ? bandModalHtml()
        : UI.modal.kind === 'event' ? eventModalHtml()
@@ -4173,6 +4224,9 @@ function onClick(e) {
   switch (act) {
     case 'manageOpen':
       UI.modal = { kind: 'manage' };
+      break;
+    case 'roundOpen':
+      UI.modal = { kind: 'round', rid: a };
       break;
     case 'go':
       /* A tab tapped from inside Manage closes it on the way through: the

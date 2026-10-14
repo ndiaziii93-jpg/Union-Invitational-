@@ -100,6 +100,49 @@ ok('and it does not push the name off the line', await p.evaluate(() => {
   return c.left >= t.right - 0.5 && c.top < t.bottom && c.bottom > t.top;
 }), true);
 
+/* THE WEEK IS SOMETHING TO READ. The tee times used to sit under it, which
+   put the one control that moves everybody's morning on the page everybody
+   opens. They live behind Manage now. The round on a day opens instead, and
+   what opens cannot be changed — it tells you when you go out, on what, and
+   with whom. */
+console.log('\nthe week tells you about the round, it does not set it');
+ok('no tee picker anywhere on the week', await p.locator('.teetimes, .teeblock, .timepick').count(), 0);
+ok('and every round on the week opens', await p.locator('.daycard [data-act="roundOpen"]').count(), 4);
+await tap(p.locator('.daycard [data-act="roundOpen"]').nth(1));
+await p.waitForTimeout(600);
+ok('the round window opens', await p.locator('.rdmodal').count(), 1);
+ok('under the name of the round',
+  (await p.locator('.rdmodal .mb-t').innerText()).includes('Round 1'), true);
+ok('with the day and the course on it',
+  (await p.locator('.rdmodal .mb-s').innerText()).toLowerCase().includes('olympos'), true);
+ok('it is branded like every other window', await p.locator('.rdmodal .mb-c').count(), 1);
+ok('it shows every group going out', await p.locator('.rdmodal .rd-row').count(), 3);
+ok('with a time on each', await p.evaluate(
+  () => [...document.querySelectorAll('.rdmodal .rd-t')].every(el => /\d/.test(el.textContent))), true);
+ok('eight minutes apart, as they are booked', await p.evaluate(() => {
+  const t = [...document.querySelectorAll('.rdmodal .rd-t')].map(el => el.textContent.trim());
+  const m = s => { const x = /(\d{1,2}):(\d{2})\s*(AM|PM)/i.exec(s); if (!x) return null;
+    return ((+x[1] % 12) + (/pm/i.test(x[3]) ? 12 : 0)) * 60 + +x[2]; };
+  const v = t.map(m);
+  return v.every(x => x != null) && v[1] - v[0] === 8 && v[2] - v[1] === 8;
+}), true);
+ok('and nothing in it can be touched',
+  await p.locator('.rdmodal select, .rdmodal input, .rdmodal .timepick').count(), 0);
+ok('it says where the times are set instead',
+  /Manage|scorer|concluded/.test(await p.locator('.rdmodal .rd-note').innerText()), true);
+await tap(p.locator('.rdmodal [data-act="modalCancel"]'));
+await p.waitForTimeout(500);
+ok('and it closes', await p.locator('.rdmodal').count(), 0);
+
+/* Where they went. */
+console.log('\nand the times are set behind Manage');
+await goTab(p, 'Tee times'); await p.waitForTimeout(700);
+ok('Tee times is a screen of its own now',
+  (await p.locator('.head').first().innerText()).trim(), 'Tee times');
+ok('with a picker for every group of every round', await p.locator('.teeblock .timepick').count(), 12);
+await goTab(p, 'Calendar'); await p.waitForTimeout(700); await shut();
+ok('and back on the week there are still none', await p.locator('.timepick').count(), 0);
+
 /* THE DRUMBEAT. This is the live store polling, and nothing else about this
    test matters without it: every one of these is a full rebuild of the page. */
 console.log('\nwith a redraw landing every fifth of a second');

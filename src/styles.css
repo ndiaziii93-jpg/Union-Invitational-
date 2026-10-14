@@ -683,6 +683,30 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
   .pkgcav{padding:10px 14px}
 }
 
+/* ---- a round, as the week shows it ----
+   Read-only on purpose: the times are set behind Manage, and this is the
+   page everybody opens. */
+.rdmodal{--mpad-x:20px;max-width:460px;gap:0;padding:22px 20px 18px}
+.rd-fmt{margin:13px 0 0;font-size:14px;color:var(--turf);font-style:italic}
+.rd-tees{display:grid;margin-top:12px;border-top:1px solid var(--hair)}
+.rd-row{display:grid;grid-template-columns:auto auto minmax(0,1fr);gap:4px 12px;
+  align-items:baseline;padding:11px 2px;border-bottom:1px solid var(--hair)}
+.rd-g{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--turf);font-weight:700}
+.rd-t{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums}
+.rd-who{grid-column:1 / -1;font-size:14px;color:var(--turf);line-height:1.45}
+.rd-none{margin:12px 0 0;font-size:14.5px;color:var(--turf)}
+.rd-note{margin:14px 0 0;font-size:13px;color:var(--turf)}
+
+/* The round on a day card opens that window, so it reads as a thing you can
+   press — the same chevron the events carry. */
+.daycard .dgolf.tap{display:block;width:100%;text-align:left;background:none;border:0;
+  border-bottom:1px solid var(--rule);padding:12px 6px 12px 0;cursor:pointer;position:relative;
+  border-radius:8px 8px 0 0}
+@media (hover:hover) and (pointer:fine){ .daycard .dgolf.tap:hover{background:var(--sunk)} }
+.daycard .dgolf.tap:focus-visible{outline:2px solid var(--flag);outline-offset:-2px}
+.daycard .dgolf.tap .dpen{position:absolute;right:6px;top:50%;transform:translateY(-50%);
+  color:var(--turf);font-weight:700;font-size:19px}
+
 /* ---- a rule, over the board it belongs to ---- */
 .rulemodal{--mpad-x:22px;max-width:580px;gap:0;padding:22px 22px 18px}
 .ru-meta{display:grid;gap:8px;margin-top:14px;padding-bottom:12px;border-bottom:1px solid var(--hair)}
