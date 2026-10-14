@@ -4,6 +4,29 @@
 import { chromium } from 'playwright';
 import { readFileSync, writeFileSync } from 'node:fs';
 
+/* ---- getting about the book ----
+   Four tabs now — Today, Scores, Boards, Resort — and the five screens that
+   are set up once live behind Manage. So a name is looked for on the bar
+   first, then behind that door, and last of all among the boards, which is
+   where the Ryder Cup went. The same three places a person would look. */
+const goTab = async (pg, t) => {
+  const direct = pg.locator('.tab:visible, .navbtn:visible', { hasText: t });
+  if (await direct.count()) { await direct.first().click(); return; }
+  const door = pg.locator('[data-act="manageOpen"]');
+  if (await door.count()) {
+    await door.first().click();
+    await pg.waitForTimeout(400);
+    const row = pg.locator('.mg-row', { hasText: t });
+    if (await row.count()) { await row.first().click(); return; }
+    await pg.locator('.mgmodal [data-act="modalCancel"]').click().catch(() => {});
+    await pg.waitForTimeout(300);
+  }
+  await pg.locator('.tab:visible, .navbtn:visible', { hasText: 'Boards' }).first().click();
+  await pg.waitForTimeout(500);
+  await pg.locator('.btab', { hasText: t }).first().click();
+};
+
+
 const S = '/tmp/claude-0/-home-user-Union-Invitational-/8bcdc9be-12b5-528d-a069-2403e068b315/scratchpad';
 const SRC = readFileSync('/home/user/Union-Invitational-/dist/union-invitational.html', 'utf8');
 const HEAD = '<!doctype html><html><head><meta charset="utf-8">'
@@ -37,7 +60,7 @@ const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' })
   const p = await (await b.newContext({ viewport: { width: 1400, height: 1100 } })).newPage();
   await p.goto(preview('lock-off', false)); await p.waitForTimeout(1400);
   await p.locator('[data-act="modalCancel"]').click().catch(() => {});
-  await p.locator('.tab', { hasText: 'Course Setup' }).click(); await p.waitForTimeout(400);
+  await goTab(p, 'Course Setup'); await p.waitForTimeout(400);
 
   ok('verified card shows no par selects', await p.locator('.cardsel').count(), 0);
   ok('verified card shows no yardage fields', await p.locator('.cardin').count(), 0);
@@ -59,8 +82,8 @@ const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' })
   // leaving the screen closes a card left open
   await p.locator('[data-act="verifyCourse"]').click(); await p.waitForTimeout(500);
   ok('reopened again', await p.locator('.cardsel').count(), 18);
-  await p.locator('.tab', { hasText: 'Today' }).click(); await p.waitForTimeout(600);
-  await p.locator('.tab', { hasText: 'Course Setup' }).click(); await p.waitForTimeout(500);
+  await goTab(p, 'Today'); await p.waitForTimeout(600);
+  await goTab(p, 'Course Setup'); await p.waitForTimeout(500);
   ok('leaving the screen re-locked it', await p.locator('.cardsel').count(), 0);
 
   // switching card closes the one left open
@@ -78,13 +101,13 @@ const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' })
   await p.goto(preview('lock-on', true)); await p.waitForTimeout(1400);
   await p.locator('[data-act="modalCancel"]').click().catch(() => {});
 
-  await p.locator('.tab', { hasText: 'Course Setup' }).click(); await p.waitForTimeout(400);
+  await goTab(p, 'Course Setup'); await p.waitForTimeout(400);
   ok('a signed-out viewer gets no verify control', await p.locator('[data-act="verifyCourse"]').count(), 0);
 
   await p.locator('[data-act="signIn"]').first().click(); await p.waitForTimeout(250);
   await p.locator('#pinField').fill('2000');                      // scorer 1
   await p.locator('[data-act="modalOk"]').click(); await p.waitForTimeout(400);
-  await p.locator('.tab', { hasText: 'Course Setup' }).click(); await p.waitForTimeout(400);
+  await goTab(p, 'Course Setup'); await p.waitForTimeout(400);
   ok('a signed-in scorer sees the verify control', await p.locator('[data-act="verifyCourse"]').count(), 1);
   ok('the card is still locked', await p.locator('.cardsel').count(), 0);
 
@@ -110,8 +133,8 @@ const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' })
   await p.locator('#pinField').fill('2000');
   await p.locator('[data-act="modalOk"]').click(); await p.waitForTimeout(500);
   ok('one PIN reopened it', await p.locator('.cardsel').count(), 18);
-  await p.locator('.tab', { hasText: 'Today' }).click(); await p.waitForTimeout(600);
-  await p.locator('.tab', { hasText: 'Course Setup' }).click(); await p.waitForTimeout(500);
+  await goTab(p, 'Today'); await p.waitForTimeout(600);
+  await goTab(p, 'Course Setup'); await p.waitForTimeout(500);
   ok('walking away re-locked it, no second PIN', await p.locator('.cardsel').count(), 0);
   await p.close();
 }

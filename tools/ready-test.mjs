@@ -4,6 +4,29 @@
    Run: node tools/ready-test.mjs */
 import { chromium } from 'playwright';
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
+
+/* ---- getting about the book ----
+   Four tabs now — Today, Scores, Boards, Resort — and the five screens that
+   are set up once live behind Manage. So a name is looked for on the bar
+   first, then behind that door, and last of all among the boards, which is
+   where the Ryder Cup went. The same three places a person would look. */
+const goTab = async (pg, t) => {
+  const direct = pg.locator('.tab:visible, .navbtn:visible', { hasText: t });
+  if (await direct.count()) { await direct.first().click(); return; }
+  const door = pg.locator('[data-act="manageOpen"]');
+  if (await door.count()) {
+    await door.first().click();
+    await pg.waitForTimeout(400);
+    const row = pg.locator('.mg-row', { hasText: t });
+    if (await row.count()) { await row.first().click(); return; }
+    await pg.locator('.mgmodal [data-act="modalCancel"]').click().catch(() => {});
+    await pg.waitForTimeout(300);
+  }
+  await pg.locator('.tab:visible, .navbtn:visible', { hasText: 'Boards' }).first().click();
+  await pg.waitForTimeout(500);
+  await pg.locator('.btab', { hasText: t }).first().click();
+};
+
 const S = '/tmp/claude-0/-home-user-Union-Invitational-/8bcdc9be-12b5-528d-a069-2403e068b315/scratchpad';
 /* The database snapshots live in the repo, not the scratchpad: the
    scratchpad is wiped when the container restarts, and a fixture a test
@@ -85,7 +108,7 @@ for (const breakage of ['reject', 'silent']) {
   await p.addInitScript(MOCK, { seed, breakage });
   const dismiss = async () => { for (let i = 0; i < 5; i++) { if (!await p.locator('.scrim').count()) return;
     await p.locator('.scrim [data-act="modalCancel"]').click({ force: true }).catch(() => {}); await p.waitForTimeout(250); } };
-  const tab = async t => { await dismiss(); await p.locator('.tab', { hasText: t }).click(); await p.waitForTimeout(700); await dismiss(); };
+  const tab = async t => { await dismiss(); await goTab(p, t); await p.waitForTimeout(700); await dismiss(); };
   await p.goto('file://' + S + '/ready.html');
   await p.waitForTimeout(8000);                 // past the watchdog
   await dismiss();

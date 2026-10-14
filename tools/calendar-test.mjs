@@ -14,6 +14,29 @@
  */
 import { chromium } from 'playwright';
 import { readFileSync, writeFileSync } from 'node:fs';
+
+/* ---- getting about the book ----
+   Four tabs now — Today, Scores, Boards, Resort — and the five screens that
+   are set up once live behind Manage. So a name is looked for on the bar
+   first, then behind that door, and last of all among the boards, which is
+   where the Ryder Cup went. The same three places a person would look. */
+const goTab = async (pg, t) => {
+  const direct = pg.locator('.tab:visible, .navbtn:visible', { hasText: t });
+  if (await direct.count()) { await direct.first().click(); return; }
+  const door = pg.locator('[data-act="manageOpen"]');
+  if (await door.count()) {
+    await door.first().click();
+    await pg.waitForTimeout(400);
+    const row = pg.locator('.mg-row', { hasText: t });
+    if (await row.count()) { await row.first().click(); return; }
+    await pg.locator('.mgmodal [data-act="modalCancel"]').click().catch(() => {});
+    await pg.waitForTimeout(300);
+  }
+  await pg.locator('.tab:visible, .navbtn:visible', { hasText: 'Boards' }).first().click();
+  await pg.waitForTimeout(500);
+  await pg.locator('.btab', { hasText: t }).first().click();
+};
+
 const S = '/tmp/claude-0/-home-user-Union-Invitational-/8bcdc9be-12b5-528d-a069-2403e068b315/scratchpad';
 
 const fails = [];
@@ -55,7 +78,7 @@ const schedule = () => p.evaluate(() => { try {
 await p.goto('file://' + S + '/cale.html');
 await p.waitForSelector('#app.arrived', { timeout: 20000 }).catch(() => {});
 await p.waitForTimeout(700); await shut();
-await p.locator('.tab', { hasText: 'Calendar' }).click(); await p.waitForTimeout(700); await shut();
+await goTab(p, 'Calendar'); await p.waitForTimeout(700); await shut();
 
 /* The two ceremonies are the formal bookends of the week, and they wear the
    crest on the calendar. Nothing else does — a mark everything carries is
@@ -155,15 +178,20 @@ ok('and off the day on screen', await p.locator('.daycard').nth(3).locator('.de'
    still going: */
 console.log('\nand the same hazard anywhere else');
 /* The strip carries the short labels at this width: Boards, not Leaderboards. */
-await tap(p.locator('.tab', { hasText: 'Boards' }));
+await tap(p.locator('.tab:visible, .navbtn:visible', { hasText: 'Boards' }));
 /* Wait for the screen rather than counting the instant after the finger
    lifts: the question is whether the tap landed at all, not how quickly the
    redraw that follows it got there. */
 const landed = await p.waitForSelector('.btabs', { timeout: 6000 }).then(() => true).catch(() => false);
 ok('a held tap on a tab still changes the screen', landed, true);
-await tap(p.locator('.tab', { hasText: 'Calendar' }));
+/* And back to the week, which is behind Manage now — so that is two held
+   taps in a row, the door and then the row inside it. */
+await tap(p.locator('[data-act="manageOpen"]'));
+await p.waitForSelector('.mgmodal', { timeout: 6000 }).catch(() => {});
+await tap(p.locator('.mg-row', { hasText: 'Calendar' }));
 const back = await p.waitForSelector('.daycard', { timeout: 6000 }).then(() => true).catch(() => false);
 ok('and back again', back && await p.locator('.daycard').count(), 8);
+ok('and the door shut behind us', await p.locator('.mgmodal').count(), 0);
 
 await p.evaluate(() => clearInterval(window.__beat));
 await b.close();

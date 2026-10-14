@@ -4,6 +4,29 @@
 import { chromium } from 'playwright';
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 
+/* ---- getting about the book ----
+   Four tabs now — Today, Scores, Boards, Resort — and the five screens that
+   are set up once live behind Manage. So a name is looked for on the bar
+   first, then behind that door, and last of all among the boards, which is
+   where the Ryder Cup went. The same three places a person would look. */
+const goTab = async (pg, t) => {
+  const direct = pg.locator('.tab:visible, .navbtn:visible', { hasText: t });
+  if (await direct.count()) { await direct.first().click(); return; }
+  const door = pg.locator('[data-act="manageOpen"]');
+  if (await door.count()) {
+    await door.first().click();
+    await pg.waitForTimeout(400);
+    const row = pg.locator('.mg-row', { hasText: t });
+    if (await row.count()) { await row.first().click(); return; }
+    await pg.locator('.mgmodal [data-act="modalCancel"]').click().catch(() => {});
+    await pg.waitForTimeout(300);
+  }
+  await pg.locator('.tab:visible, .navbtn:visible', { hasText: 'Boards' }).first().click();
+  await pg.waitForTimeout(500);
+  await pg.locator('.btab', { hasText: t }).first().click();
+};
+
+
 const S = '/tmp/claude-0/-home-user-Union-Invitational-/8bcdc9be-12b5-528d-a069-2403e068b315/scratchpad';
 /* The database snapshots live in the repo, not the scratchpad: the
    scratchpad is wiped when the container restarts, and a fixture a test
@@ -197,7 +220,7 @@ for (const [label, lie] of [['a healthy store', false], ['a store whose first re
   await p.goto('file://' + W); await settled(p);
   await p.locator('[data-act="modalCancel"]').click().catch(() => {});
   ok('the stored roster is still intact', await countGolfers(p), 7);
-  await p.locator('.tab', { hasText: 'Roster' }).click(); await p.waitForTimeout(500);
+  await goTab(p, 'Roster'); await p.waitForTimeout(500);
   ok('and it is what the page shows', await p.locator('.rtable tbody tr').count(), STORED.people.length);
   await p.close();
 }
@@ -237,7 +260,7 @@ for (const [label, lie] of [['a healthy store', false], ['a store whose first re
   await p.addInitScript(MOCK, { stored: STORED, lieOnFirstRead: false, empty: false, factoryPeople: FACTORY_PEOPLE });
   await p.goto('file://' + W); await settled(p);
   await p.locator('[data-act="modalCancel"]').click().catch(() => {});
-  await p.locator('.tab', { hasText: 'Roster' }).click(); await p.waitForTimeout(600);
+  await goTab(p, 'Roster'); await p.waitForTimeout(600);
   ok('everybody is on screen', await p.locator('.rtable tbody tr').count(), STORED.people.length);
   ok('and now has their own document',
     await p.evaluate(() => Object.keys(window.__mockDocs).filter(k => k.startsWith('people/')).length), STORED.people.length);
@@ -270,7 +293,7 @@ for (const [label, lie] of [['a healthy store', false], ['a store whose first re
   await p.evaluate(() => { const d = window.__mockDocs['config/tournament'];
     (window.__fireConfig || (() => {}))(d); });
   await p.waitForTimeout(800);
-  await p.locator('.tab', { hasText: 'Roster' }).click(); await p.waitForTimeout(500);
+  await goTab(p, 'Roster'); await p.waitForTimeout(500);
   ok('the roster is unaffected', await p.locator('.rtable tbody tr').count(), STORED.people.length);
 
   // and a removal is a deletion, not a list edit
@@ -287,7 +310,7 @@ for (const [label, lie] of [['a healthy store', false], ['a store whose first re
     await p.evaluate(() => Object.keys(window.__mockDocs).filter(k => k.startsWith('people/')).length), n - 1);
   await reloaded(p);
   await p.locator('[data-act="modalCancel"]').click().catch(() => {});
-  await p.locator('.tab', { hasText: 'Roster' }).click(); await p.waitForTimeout(500);
+  await goTab(p, 'Roster'); await p.waitForTimeout(500);
   const rows1 = await steady(p, '.rtable tbody tr');
   const w1 = await p.evaluate(() => { try { return JSON.parse(sessionStorage.getItem('__pw') || '[]'); }
     catch (e) { return []; } });
@@ -320,7 +343,7 @@ for (const [label, lie] of [['a healthy store', false], ['a store whose first re
   await p.addInitScript(MOCK, { stored: LIVE, lieOnFirstRead: false, empty: false, extraDocs: extra });
   await p.goto('file://' + W); await settled(p);
   await p.locator('[data-act="modalCancel"]').click().catch(() => {});
-  await p.locator('.tab', { hasText: 'Roster' }).click(); await p.waitForTimeout(600);
+  await goTab(p, 'Roster'); await p.waitForTimeout(600);
   ok('everyone is back on screen', await steady(p, '.rtable tbody tr'), DOCS);
   ok('and the pairings came back too', await p.locator(".paircol:not(.un)").count(), 5);
 
@@ -336,7 +359,7 @@ for (const [label, lie] of [['a healthy store', false], ['a store whose first re
     await p.evaluate(() => Object.keys(window.__mockDocs).filter(k => k.startsWith('people/')).length), n - 1);
   await reloaded(p);
   await p.locator('[data-act="modalCancel"]').click().catch(() => {});
-  await p.locator('.tab', { hasText: 'Roster' }).click(); await p.waitForTimeout(600);
+  await goTab(p, 'Roster'); await p.waitForTimeout(600);
   const rows2 = await steady(p, '.rtable tbody tr');
   const w2 = await p.evaluate(() => { try { return JSON.parse(sessionStorage.getItem('__pw') || '[]'); }
     catch (e) { return []; } });
@@ -367,7 +390,7 @@ for (const [label, lie] of [['a healthy store', false], ['a store whose first re
   await p.addInitScript(MOCK, { stored: LIVE, lieOnFirstRead: false, empty: false, extraDocs: extra });
   await p.goto('file://' + W); await settled(p);
   await p.locator('[data-act="modalCancel"]').click().catch(() => {});
-  await p.locator('.tab', { hasText: 'Roster' }).click(); await p.waitForTimeout(600);
+  await goTab(p, 'Roster'); await p.waitForTimeout(600);
   ok('the roster loads', await p.locator('.rtable tbody tr').count(), DOCS);
 
   await p.evaluate(() => { window.__fireEmptyColl('people'); window.__fireEmptyColl('pairs'); });
@@ -414,7 +437,7 @@ for (const [label, lie] of [['a healthy store', false], ['a store whose first re
   await p.addInitScript(MOCK, { stored: stripped, lieOnFirstRead: false, empty: false, extraDocs: extra });
   await p.goto('file://' + W); await settled(p);
   await p.locator('[data-act="modalCancel"]').click().catch(() => {});
-  await p.locator('.tab', { hasText: 'Roster' }).click(); await p.waitForTimeout(600);
+  await goTab(p, 'Roster'); await p.waitForTimeout(600);
   const n = await steady(p, '.rtable tbody tr');
   ok('the roster is the documents, and only the documents', n, DOCS);
   ok('and the config is not carrying a second copy of it', await p.evaluate(
@@ -444,7 +467,7 @@ for (const [label, lie] of [['a healthy store', false], ['a store whose first re
   ok('what a reload would restore matches what the store holds', before.kept, before.live);
   await reloaded(p);
   await p.locator('[data-act="modalCancel"]').click().catch(() => {});
-  await p.locator('.tab', { hasText: 'Roster' }).click(); await p.waitForTimeout(600);
+  await goTab(p, 'Roster'); await p.waitForTimeout(600);
   const after = await steady(p, '.rtable tbody tr');
   const docsAfter = await p.evaluate(() =>
     Object.keys(window.__mockDocs).filter(k => k.startsWith('people/')).length);

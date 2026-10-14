@@ -3068,16 +3068,82 @@ function onMapDouble(e) {
 
 /* ---------------- chrome ---------------- */
 
-/** The tabs this reader actually gets. Setup is the master's alone, which
- *  is why the count has to be asked for rather than assumed. */
-const navTabs = () => NAV.filter(([id]) => id !== 'setup' || canAdmin());
-
+/* ---------------- where everything lives ----------------
+ *
+ * Ten tabs in a strip that scrolled sideways meant you could see four of them
+ * and had no way of knowing the other six were there. The Ryder Cup was in it
+ * twice — once as a tab, once as a board — which is a structure telling you
+ * it has run out of room.
+ *
+ * Sorted by how often a thing is touched rather than by what kind of thing it
+ * is: four screens are used all week and get a place of their own; five are
+ * set up once, before anybody tees off, and live behind Manage.
+ *
+ * The same four everywhere. Only the bar moves: under the thumb on a phone,
+ * along the top on a tablet or a laptop, where there is no thumb to reach
+ * with and the eye goes to the top anyway.
+ */
 const NAV = [
-  ['today', 'Today', 'Today'], ['resort', 'The Titanic', 'Titanic'],
-  ['boards', 'Leaderboards', 'Boards'], ['ryder', 'Ryder Cup', 'Ryder'],
-  ['calendar', 'Calendar', 'Calendar'], ['entry', 'Score Entry', 'Scores'], ['roster', 'Roster & Pairings', 'Roster'],
-  ['courses', 'Course Setup', 'Courses'], ['rules', 'Games & Rules', 'Rules'], ['setup', 'Setup', 'Setup'],
+  ['today',  'Today',        'Today'],
+  ['entry',  'Score Entry',  'Scores'],
+  ['boards', 'Leaderboards', 'Boards'],
+  ['resort', 'The Titanic',  'Resort'],
 ];
+/** Set once, then read all week. Setup is the master's alone. */
+const MANAGE = [
+  ['setup',    'Setup',             'PINs, locks and what is still outstanding'],
+  ['roster',   'Roster & Pairings', 'Bands, squads and who plays with whom'],
+  ['calendar', 'Calendar',          'The whole week, and the tee times'],
+  ['courses',  'Course Setup',      'Pars, stroke index and yardages'],
+  ['rules',    'Games & Rules',     'All six competitions, in full'],
+];
+const navTabs = () => NAV;
+/* Setup is the master's SCREEN, but the count on the door is everybody's
+   business, so a reader who cannot change it is still shown what is
+   outstanding — the review window rather than the controls. */
+const manageRows = () => MANAGE;
+const manageAct = id => (id === 'setup' && !canAdmin()) ? 'setupOpen' : 'go';
+
+/* One drawing per destination, in the book's own line weight. */
+const NAVICON = {
+  today:  '<path d="M4 10.5 12 4l8 6.5"/><path d="M6 10v9.5h12V10"/><path d="M10 19.5v-5h4v5"/>',
+  entry:  '<path d="M7 3.5h10a1.5 1.5 0 0 1 1.5 1.5v15l-6.5-3-6.5 3V5A1.5 1.5 0 0 1 7 3.5Z"/><path d="M9 8.5h6M9 12h6"/>',
+  boards: '<path d="M5 20V12M12 20V5M19 20v-6"/><path d="M3 20h18"/>',
+  resort: '<path d="M3 20h18"/><path d="M5 20v-8l7-4.5 7 4.5v8"/><path d="M10 20v-4h4v4"/><path d="M12 7.5V4.5"/>',
+};
+const navIcon = id => `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+  stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${NAVICON[id] || ''}</svg>`;
+
+/** The bar along the bottom of a phone, and the one along the top of
+ *  everything else. Both are rendered; the stylesheet shows one. */
+function tabBar() {
+  return `<nav class="tabbar" aria-label="Sections">
+    ${NAV.map(([id, label, short]) => `<button class="navbtn" data-act="go" data-a="${id}"
+      aria-label="${esc(label)}"${UI.screen === id ? ' aria-current="page"' : ''}>
+      ${navIcon(id)}<span class="lb" aria-hidden="true"><span class="lg">${esc(label)}</span>${esc(short)}</span>
+    </button>`).join('')}
+  </nav>`;
+}
+
+/** Everything that is set up once, behind one door, with the count on it. */
+function manageModalHtml() {
+  const here = UI.screen;
+  return `<div class="scrim" data-act="modalScrim"><div class="modal mgmodal"
+    role="dialog" aria-modal="true" aria-label="Manage">
+    ${modalBanner('Manage', 'Set once, then read all week')}
+    <div class="mglist">
+      ${manageRows().map(([id, label, note]) => {
+        const n = id === 'setup' ? E.setupIssues(T).length : 0;
+        return `<button class="mg-row${here === id ? ' on' : ''}" data-act="${manageAct(id)}" data-a="${id === 'setup' && !canAdmin() ? 'all' : id}">
+          <span class="mg-w"><span class="mg-t">${esc(label)}</span>
+            <span class="mg-n">${esc(note)}</span></span>
+          ${n ? `<span class="mg-ct">${n}</span>` : ''}
+          <span class="mg-go" aria-hidden="true">&rsaquo;</span></button>`;
+      }).join('')}
+    </div>
+    <div class="acts"><button class="btn ghost" data-act="modalCancel">Close</button></div>
+  </div></div>`;
+}
 
 /** A re-render replaces the whole tree, which would blow away half-typed text
  *  and the caret. Remember the focused control by its action, and put it back. */
@@ -3310,7 +3376,7 @@ function paint() {
         <div class="lbl">Next Tee Time</div>
         <div class="val num">${nt ? esc(nt.day.dow) + ' ' + esc(E.to12(nt.time)) + ' — ' + esc(nt.round.short === 'Practice' ? 'Practice' : 'Round ' + nt.round.short.slice(1)) : '—'}</div>
         <div class="mast-actions">
-          ${setupChip()}
+          ${manageChip()}
           ${D.PINS_ENABLED
             ? `<button class="chip" data-act="signIn">${esc(role.label)}${UI.role === 'viewer' ? ' — enter PIN' : ' — sign out'}</button>`
             : `<span class="chip">Unlocked — no PIN</span>`}
@@ -3322,7 +3388,7 @@ function paint() {
       ${meta.status === 'error'
         ? 'Cannot read the shared book. Nothing can be edited until it loads, so nothing gets overwritten. Check your connection and reload.'
         : 'Opening the book… everything is read-only until the saved tournament arrives.'}</div>`}
-    <nav class="tabs nos${navTabs().length % 3 === 1 ? ' orphan' : ''}" aria-label="Sections">
+    <nav class="tabs nos" aria-label="Sections">
       ${navTabs().map(([id, label, short]) =>
         `<button class="tab${id === 'resort' ? ' named' : ''}" data-act="go" data-a="${id}"${UI.screen === id ? ' aria-current="page"' : ''}
           aria-label="${esc(label)}"><span class="lg">${esc(label)}</span><span class="sm">${esc(short)}</span></button>`).join('')}
@@ -3335,6 +3401,7 @@ function paint() {
       <span class="build" title="Which copy of the book this device is running">build ${esc(D.BUILD)}</span>
     </div>
   </div>
+  ${tabBar()}
   ${UI.modal ? modalHtml() : ''}
   ${askPanel()}
   ${recapPanel()}`;
@@ -3485,14 +3552,14 @@ function confirmModalHtml() {
 
 /** Setup state, in the same corner on every screen. Red while anything is
  *  outstanding; quiet once the book is ready. Opens the full setup dialog. */
-function setupChip() {
+/* ONE DOOR FOR EVERYTHING SET ONCE, and the outstanding count belongs on it.
+   This was two controls — a Setup chip and nothing else — and it is now the
+   way in to the roster, the week, the courses and the rules as well. */
+function manageChip() {
   const n = E.setupIssues(T).length;
-  return n
-    ? `<button class="setup-chip open" data-act="setupOpen" data-a="all"
-        aria-label="Setup incomplete, ${n} thing${n > 1 ? 's' : ''} to settle. Review them.">
-        <span class="mk">!</span>Setup incomplete<span class="ct">${n}</span></button>`
-    : `<button class="setup-chip done" data-act="setupOpen" data-a="all" aria-label="Setup complete. Review.">
-        <span class="mk">✓</span>Setup complete</button>`;
+  return `<button class="setup-chip manage${n ? ' open' : ' done'}" data-act="manageOpen"
+      aria-label="Manage the book${n ? ', ' + n + ' thing' + (n > 1 ? 's' : '') + ' still to settle' : ''}">
+      <span class="mk">${n ? '!' : '✓'}</span>Manage${n ? `<span class="ct">${n}</span>` : ''}</button>`;
 }
 
 /* Closest to the pin and longest drive are nominated before anyone tees off,
@@ -4011,6 +4078,7 @@ function ord(n) {
 
 function modalHtml() {
   return UI.modal.kind === 'matchwhy' ? matchWhyHtml()
+       : UI.modal.kind === 'manage' ? manageModalHtml()
        : UI.modal.kind === 'rule' ? ruleModalHtml()
        : UI.modal.kind === 'bandread' ? bandModalHtml()
        : UI.modal.kind === 'event' ? eventModalHtml()
@@ -4101,7 +4169,16 @@ function onClick(e) {
   if (UI.resortNote) commitResortNote();
 
   switch (act) {
+    case 'manageOpen':
+      UI.modal = { kind: 'manage' };
+      break;
     case 'go':
+      /* A tab tapped from inside Manage closes it on the way through: the
+         door is how you got there, not somewhere to come back to. */
+      if (UI.modal && UI.modal.kind === 'manage') { UI.modal = null; UI.modalErr = ''; }
+      /* The cup used to be a tab of its own as well as a board. It is one
+         place now, and anything still asking for the old one lands there. */
+      if (a === 'ryder') { UI.screen = 'boards'; UI.boardTab = 'ryder'; window.scrollTo(0, 0); break; }
       if (a === 'entry') {     // going to the hole, not away from it
         if (UI.screen === 'courses') relockCards();
         UI.screen = a; UI.modal = null; window.scrollTo(0, 0);
@@ -4336,7 +4413,7 @@ function onClick(e) {
       return;
     }
     case 'revealPins': UI.revealPins = !UI.revealPins; break;
-    case 'setupOpen': UI.modal = { kind: 'setup', scope: a || 'all' }; break;
+    case 'setupOpen': UI.modal = { kind: 'setup', scope: a || 'all' }; UI.modalErr = ''; break;
     case 'setupGo': UI.modal = null; UI.screen = a; window.scrollTo(0, 0); break;
 
     case 'signIn':

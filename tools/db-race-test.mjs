@@ -5,6 +5,29 @@
    Both of these silently reverted the user's edits. Run: node tools/db-race-test.mjs */
 import { chromium } from 'playwright';
 
+/* ---- getting about the book ----
+   Four tabs now — Today, Scores, Boards, Resort — and the five screens that
+   are set up once live behind Manage. So a name is looked for on the bar
+   first, then behind that door, and last of all among the boards, which is
+   where the Ryder Cup went. The same three places a person would look. */
+const goTab = async (pg, t) => {
+  const direct = pg.locator('.tab:visible, .navbtn:visible', { hasText: t });
+  if (await direct.count()) { await direct.first().click(); return; }
+  const door = pg.locator('[data-act="manageOpen"]');
+  if (await door.count()) {
+    await door.first().click();
+    await pg.waitForTimeout(400);
+    const row = pg.locator('.mg-row', { hasText: t });
+    if (await row.count()) { await row.first().click(); return; }
+    await pg.locator('.mgmodal [data-act="modalCancel"]').click().catch(() => {});
+    await pg.waitForTimeout(300);
+  }
+  await pg.locator('.tab:visible, .navbtn:visible', { hasText: 'Boards' }).first().click();
+  await pg.waitForTimeout(500);
+  await pg.locator('.btab', { hasText: t }).first().click();
+};
+
+
 const PAGE = 'file:///home/user/Union-Invitational-/dist/union-invitational.html';
 
 const MOCK = () => {
@@ -90,7 +113,7 @@ const ok = (name, got, want) => { const good = got === want;
   if (!good) fails.push(name); };
 
 // --- squad flag survives the echo and the null strip
-await p.locator('.tab', { hasText: 'Ryder Cup' }).first().click();
+await goTab(p, 'Ryder Cup');
 await p.waitForTimeout(300);
 /* Arriving at the closest-to-the-pin or longest-drive hole puts a notice up,
    once. It is a scrim, so it intercepts the next tap even though everything
@@ -127,7 +150,7 @@ await p.waitForTimeout(1600);
 ok('flag: 2 rapid taps land on UK', await p.locator('.sqrow').nth(1).locator('.sqlabel').innerText(), 'UK');
 
 // --- roster: the pairings board and the roster table
-await p.locator('.tab', { hasText: 'Roster' }).click(); await p.waitForTimeout(400);
+await goTab(p, 'Roster'); await p.waitForTimeout(400);
 await p.locator('[data-act="modalCancel"]').click().catch(() => {});
 const golfers = () => p.locator('.rtable tbody tr').count();
 await p.locator('.rtable').waitFor();
@@ -194,7 +217,7 @@ ok('the band that failed is stored now', await p.evaluate(() =>
   (window.__mockDocs['people/g1'] || {}).band), 20);
 
 // --- a stroke is a draft until the hole is saved
-await p.locator('.tab', { hasText: 'Score Entry' }).click(); await p.waitForTimeout(500);
+await goTab(p, 'Score Entry'); await p.waitForTimeout(500);
 await p.locator('[data-act="modalCancel"]').click().catch(() => {});
 ok('chip present on Score Entry', (await p.locator('.masthead .setup-chip').count()) === 1, true);
 await nominate(p);

@@ -3,6 +3,29 @@
    the group being scored.  Run: node tools/entry-rules-test.mjs */
 import { chromium } from 'playwright';
 import { readFileSync, writeFileSync } from 'node:fs';
+
+/* ---- getting about the book ----
+   Four tabs now — Today, Scores, Boards, Resort — and the five screens that
+   are set up once live behind Manage. So a name is looked for on the bar
+   first, then behind that door, and last of all among the boards, which is
+   where the Ryder Cup went. The same three places a person would look. */
+const goTab = async (pg, t) => {
+  const direct = pg.locator('.tab:visible, .navbtn:visible', { hasText: t });
+  if (await direct.count()) { await direct.first().click(); return; }
+  const door = pg.locator('[data-act="manageOpen"]');
+  if (await door.count()) {
+    await door.first().click();
+    await pg.waitForTimeout(400);
+    const row = pg.locator('.mg-row', { hasText: t });
+    if (await row.count()) { await row.first().click(); return; }
+    await pg.locator('.mgmodal [data-act="modalCancel"]').click().catch(() => {});
+    await pg.waitForTimeout(300);
+  }
+  await pg.locator('.tab:visible, .navbtn:visible', { hasText: 'Boards' }).first().click();
+  await pg.waitForTimeout(500);
+  await pg.locator('.btab', { hasText: t }).first().click();
+};
+
 const S = '/tmp/claude-0/-home-user-Union-Invitational-/8bcdc9be-12b5-528d-a069-2403e068b315/scratchpad';
 writeFileSync(S + '/entry-rules.html', '<!doctype html><html><head><meta charset="utf-8">'
   + '<meta name="viewport" content="width=device-width, initial-scale=1">'
@@ -19,7 +42,7 @@ const p = await (await b.newContext({ viewport: { width: 1280, height: 1000 } })
 p.on('pageerror', e => { console.log('  PAGE ERROR:', String(e).split('\n')[0]); fails.push('pageerror'); });
 const shut = async () => { for (let i = 0; i < 4; i++) { const m = p.locator('.scrim [data-act="modalCancel"]');
   if (!await m.count()) return; await m.first().click({ force: true }).catch(() => {}); await p.waitForTimeout(220); } };
-const tab = async t => { await shut(); await p.locator('.tab', { hasText: t }).click(); await p.waitForTimeout(550); await shut(); };
+const tab = async t => { await shut(); await goTab(p, t); await p.waitForTimeout(550); await shut(); };
 const pick = f => p.locator('[data-act="setRoundField"][data-a="' + f + '"]').first();
 const names = async () => (await p.locator('[data-act="setBbb"][data-a="bingo"] option')
   .allInnerTexts()).filter(x => x !== 'Nobody yet');
@@ -259,10 +282,24 @@ ok('it was faint before', parseFloat(faint) < 1, true);
 ok('the number is real text, not a drawing', await p.locator('.bandcrest .bn').first().innerText(), '15');
 
 console.log('\nthe shape of the book');
+/* THE SHAPE OF THE BOOK. Four tabs for the four things you do during the
+   tournament, in the order you meet them; everything set up once sits behind
+   Manage, deepest-first — Setup, then the roster, the week, the courses and
+   the rules. */
+ok('four tabs, and these four', await p.evaluate(
+  () => [...document.querySelectorAll('.tab')].map(x => x.dataset.a)),
+  ['today', 'entry', 'boards', 'resort']);
+ok('the cup is not one of them — it is a board',
+  await p.locator('.tab[data-a="ryder"]').count(), 0);
+await p.locator('[data-act="manageOpen"]').click(); await p.waitForTimeout(500);
+ok('and the rest are behind Manage', await p.evaluate(
+  () => [...document.querySelectorAll('.mg-row')].map(x => x.dataset.a)),
+  ['setup', 'roster', 'calendar', 'courses', 'rules']);
 ok('Rules comes after Course Setup', await p.evaluate(() => {
-  const t = [...document.querySelectorAll('.tab')].map(x => x.dataset.a);
+  const t = [...document.querySelectorAll('.mg-row')].map(x => x.dataset.a);
   return t.indexOf('rules') > t.indexOf('courses');
 }), true);
+await p.locator('.mgmodal [data-act="modalCancel"]').click(); await p.waitForTimeout(400);
 ok('a finished round glows all over, not at the edges', await p.evaluate(() => {
   const r = [...document.styleSheets].flatMap(sh => { try { return [...sh.cssRules]; } catch (e) { return []; } })
     .filter(x => x.name === 'recappulse');

@@ -172,7 +172,7 @@ a{color:var(--green);text-underline-offset:3px}
 .rule-heavy{border-top:2px solid var(--ink);border-bottom:1px solid var(--rule);height:3px}
 
 /* ---- index tabs ---- */
-.tabs{display:flex;gap:6px;overflow-x:auto;align-items:flex-end;border-bottom:2px solid var(--ink);padding:10px 2px 0}
+.tabs{display:flex;gap:6px;align-items:flex-end;border-bottom:2px solid var(--ink);padding:10px 2px 0}
 .tab{padding:11px 21px;font-size:17px;color:var(--turf);background:var(--page);border:1px solid var(--rule);
   border-bottom:none;white-space:nowrap;min-height:44px;border-radius:9px 9px 0 0}
 @media (hover:hover) and (pointer:fine) { .tab:hover{color:var(--ink);background:var(--sunk)} }
@@ -685,6 +685,49 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
   .brlow{display:none}
 }
 
+/* ---------------- the bar ----------------
+
+   Four destinations, the same four on every device. Only the bar moves:
+   under the thumb on a phone, along the top on a tablet or a laptop, where
+   there is no thumb to reach with and the eye goes to the top anyway. Both
+   are in the page and this decides which one is seen — one of them is always
+   display:none, so a tap can never land on the hidden one. */
+.tabbar{display:none}
+
+
+/* NOT .tbtn — that name was already taken by the pill buttons further down
+   this file, and theirs won, which is why the bar came out as four outlined
+   boxes instead of four marks on one surface. */
+.navbtn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  padding:5px 2px;border:0;background:none;border-radius:10px;color:var(--turf);
+  min-height:52px;font-family:inherit}
+.navbtn .ic{width:23px;height:23px;flex:0 0 auto}
+.navbtn .lb{font-size:11px;letter-spacing:.01em;line-height:1}
+.navbtn .lg{display:none}          /* the long name, for anything that reads the page */
+.navbtn[aria-current="page"]{color:var(--green)}
+.navbtn[aria-current="page"] .lb{font-weight:700}
+.navbtn[aria-current="page"] .ic{stroke-width:2.1}
+.navbtn:focus-visible{outline:2px solid var(--flag);outline-offset:-2px}
+@media (hover:hover) and (pointer:fine){ .navbtn:hover{color:var(--ink);background:var(--sunk)} }
+
+/* ---- Manage: one door for everything set once ---- */
+.setup-chip.manage.done{color:var(--ink)}
+.mgmodal{--mpad-x:20px;max-width:460px;gap:0;padding:22px 20px 18px}
+.mglist{display:grid;margin-top:14px;border-top:1px solid var(--hair)}
+.mg-row{display:flex;align-items:center;gap:12px;width:100%;text-align:left;
+  padding:13px 4px;border:0;border-bottom:1px solid var(--hair);background:none;
+  font-family:inherit;cursor:pointer;color:var(--ink)}
+.mg-row:focus-visible{outline:2px solid var(--flag);outline-offset:-2px}
+@media (hover:hover) and (pointer:fine){ .mg-row:hover{background:var(--paper)} }
+.mg-row.on .mg-t{color:var(--green)}
+.mg-w{flex:1 1 auto;min-width:0}
+.mg-t{display:block;font-size:17px;font-weight:600;line-height:1.25}
+.mg-n{display:block;font-size:13px;color:var(--turf);margin-top:2px;line-height:1.4}
+.mg-ct{flex:0 0 auto;background:var(--flag);color:#FBFAF7;font-size:13px;font-weight:700;
+  min-width:24px;height:24px;border-radius:999px;display:grid;place-items:center;padding:0 7px;
+  font-variant-numeric:tabular-nums}
+.mg-go{flex:0 0 auto;color:var(--turf);font-size:19px;font-weight:700}
+
 /* ---- the all inclusive package ----
    The one thing on the resort tab that is a promise rather than a reading of
    a website, so it is set as a plate: banded head, the four lines of it, and
@@ -1095,10 +1138,10 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
 
 @media (max-width:820px){
   /* the nav wraps instead of scrolling, using the short labels */
-  /* The tabs are laid in even columns rather than a wrapping row. A row that
-     wraps gives its last line whatever is left over, which is how Setup came
-     to sit alone across the whole bottom. */
-  .tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;
+  /* Four tabs share the width evenly. Below 700px there is no strip at all —
+     the bar is along the bottom — so this is the tablet-and-narrow-laptop
+     shape only. */
+  .tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;
     overflow-x:visible;touch-action:auto}
   .tab{padding:9px 10px;font-size:16px;min-height:44px;text-align:center}
   .tab .lg{display:none}
@@ -1140,13 +1183,6 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
   .cside{max-width:none;align-self:auto}
   .btabs{gap:20px}
   .btab{font-size:17px}
-  /* Three across. Without Setup — which is what everyone but the master
-     sees — that is nine tabs in a clean three-by-three. The master has ten,
-     and rather than leave one stranded in a column of its own, the last one
-     takes the whole width. `orphan` is set by the nav itself, which is the
-     only thing that knows how many tabs it drew. */
-  .tabs{grid-template-columns:repeat(3,1fr)}
-  .tabs.orphan .tab:last-child{grid-column:1 / -1}
   .legend{text-align:left}
 }
 
@@ -1161,7 +1197,7 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
   .strip,.cstrip{grid-template-columns:repeat(9,minmax(0,1fr));max-width:none}
   .cside{max-width:none}
   .chip,.mchip,.pchip,.gchip,.tg{min-height:44px;padding:10px 14px;font-size:15px}
-  .cardin,.cardsel,.nameedit,.cellin,.pname,.tbtn,.ibtn{min-height:44px}
+  .cardin,.cardsel,.nameedit,.cellin,.pname,.tbtn,.ibtn,.navbtn{min-height:44px}
   .cellin{font-size:16px;width:150px}
   .clearh,.rm,.setup-item .btn{min-height:44px}
   .rule-item summary{padding:18px 0}
@@ -2246,6 +2282,28 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
   .vgrid{grid-template-columns:1fr}
 }
 
+/* ---------------- which bar is seen ----------------
+
+   Last word in the stylesheet on purpose. The phone rules further up this
+   file were written for a strip of ten tabs and still set it to a grid at
+   820px; at equal specificity the later rule wins, so this has to come after
+   everything else or the strip reappears under the bar. */
+@media (max-width:699px){
+  .tabs{display:none}
+  .tabbar{
+    display:grid;grid-template-columns:repeat(4,1fr);
+    position:fixed;left:0;right:0;bottom:0;z-index:40;
+    background:var(--page);border-top:1px solid var(--rule);
+    box-shadow:0 -6px 20px rgba(29,46,33,.07);
+    padding:7px max(6px,env(safe-area-inset-left,0px)) calc(7px + env(safe-area-inset-bottom,0px))
+            max(6px,env(safe-area-inset-right,0px));
+  }
+  /* The page has to end above the bar, not behind it. */
+  .wrap{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+  /* A window is over everything, the bar included. */
+  .scrim{z-index:60}
+}
+
 </style>
 <div id="app"></div>
 <!-- The crest, and the opening it pays for, ahead of everything else. A few
@@ -2357,7 +2415,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261012-1348';
+const BUILD = '20261014-0751';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -8948,16 +9006,82 @@ function onMapDouble(e) {
 
 /* ---------------- chrome ---------------- */
 
-/** The tabs this reader actually gets. Setup is the master's alone, which
- *  is why the count has to be asked for rather than assumed. */
-const navTabs = () => NAV.filter(([id]) => id !== 'setup' || canAdmin());
-
+/* ---------------- where everything lives ----------------
+ *
+ * Ten tabs in a strip that scrolled sideways meant you could see four of them
+ * and had no way of knowing the other six were there. The Ryder Cup was in it
+ * twice — once as a tab, once as a board — which is a structure telling you
+ * it has run out of room.
+ *
+ * Sorted by how often a thing is touched rather than by what kind of thing it
+ * is: four screens are used all week and get a place of their own; five are
+ * set up once, before anybody tees off, and live behind Manage.
+ *
+ * The same four everywhere. Only the bar moves: under the thumb on a phone,
+ * along the top on a tablet or a laptop, where there is no thumb to reach
+ * with and the eye goes to the top anyway.
+ */
 const NAV = [
-  ['today', 'Today', 'Today'], ['resort', 'The Titanic', 'Titanic'],
-  ['boards', 'Leaderboards', 'Boards'], ['ryder', 'Ryder Cup', 'Ryder'],
-  ['calendar', 'Calendar', 'Calendar'], ['entry', 'Score Entry', 'Scores'], ['roster', 'Roster & Pairings', 'Roster'],
-  ['courses', 'Course Setup', 'Courses'], ['rules', 'Games & Rules', 'Rules'], ['setup', 'Setup', 'Setup'],
+  ['today',  'Today',        'Today'],
+  ['entry',  'Score Entry',  'Scores'],
+  ['boards', 'Leaderboards', 'Boards'],
+  ['resort', 'The Titanic',  'Resort'],
 ];
+/** Set once, then read all week. Setup is the master's alone. */
+const MANAGE = [
+  ['setup',    'Setup',             'PINs, locks and what is still outstanding'],
+  ['roster',   'Roster & Pairings', 'Bands, squads and who plays with whom'],
+  ['calendar', 'Calendar',          'The whole week, and the tee times'],
+  ['courses',  'Course Setup',      'Pars, stroke index and yardages'],
+  ['rules',    'Games & Rules',     'All six competitions, in full'],
+];
+const navTabs = () => NAV;
+/* Setup is the master's SCREEN, but the count on the door is everybody's
+   business, so a reader who cannot change it is still shown what is
+   outstanding — the review window rather than the controls. */
+const manageRows = () => MANAGE;
+const manageAct = id => (id === 'setup' && !canAdmin()) ? 'setupOpen' : 'go';
+
+/* One drawing per destination, in the book's own line weight. */
+const NAVICON = {
+  today:  '<path d="M4 10.5 12 4l8 6.5"/><path d="M6 10v9.5h12V10"/><path d="M10 19.5v-5h4v5"/>',
+  entry:  '<path d="M7 3.5h10a1.5 1.5 0 0 1 1.5 1.5v15l-6.5-3-6.5 3V5A1.5 1.5 0 0 1 7 3.5Z"/><path d="M9 8.5h6M9 12h6"/>',
+  boards: '<path d="M5 20V12M12 20V5M19 20v-6"/><path d="M3 20h18"/>',
+  resort: '<path d="M3 20h18"/><path d="M5 20v-8l7-4.5 7 4.5v8"/><path d="M10 20v-4h4v4"/><path d="M12 7.5V4.5"/>',
+};
+const navIcon = id => `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+  stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${NAVICON[id] || ''}</svg>`;
+
+/** The bar along the bottom of a phone, and the one along the top of
+ *  everything else. Both are rendered; the stylesheet shows one. */
+function tabBar() {
+  return `<nav class="tabbar" aria-label="Sections">
+    ${NAV.map(([id, label, short]) => `<button class="navbtn" data-act="go" data-a="${id}"
+      aria-label="${esc(label)}"${UI.screen === id ? ' aria-current="page"' : ''}>
+      ${navIcon(id)}<span class="lb" aria-hidden="true"><span class="lg">${esc(label)}</span>${esc(short)}</span>
+    </button>`).join('')}
+  </nav>`;
+}
+
+/** Everything that is set up once, behind one door, with the count on it. */
+function manageModalHtml() {
+  const here = UI.screen;
+  return `<div class="scrim" data-act="modalScrim"><div class="modal mgmodal"
+    role="dialog" aria-modal="true" aria-label="Manage">
+    ${modalBanner('Manage', 'Set once, then read all week')}
+    <div class="mglist">
+      ${manageRows().map(([id, label, note]) => {
+        const n = id === 'setup' ? E.setupIssues(T).length : 0;
+        return `<button class="mg-row${here === id ? ' on' : ''}" data-act="${manageAct(id)}" data-a="${id === 'setup' && !canAdmin() ? 'all' : id}">
+          <span class="mg-w"><span class="mg-t">${esc(label)}</span>
+            <span class="mg-n">${esc(note)}</span></span>
+          ${n ? `<span class="mg-ct">${n}</span>` : ''}
+          <span class="mg-go" aria-hidden="true">&rsaquo;</span></button>`;
+      }).join('')}
+    </div>
+    <div class="acts"><button class="btn ghost" data-act="modalCancel">Close</button></div>
+  </div></div>`;
+}
 
 /** A re-render replaces the whole tree, which would blow away half-typed text
  *  and the caret. Remember the focused control by its action, and put it back. */
@@ -9190,7 +9314,7 @@ function paint() {
         <div class="lbl">Next Tee Time</div>
         <div class="val num">${nt ? esc(nt.day.dow) + ' ' + esc(E.to12(nt.time)) + ' — ' + esc(nt.round.short === 'Practice' ? 'Practice' : 'Round ' + nt.round.short.slice(1)) : '—'}</div>
         <div class="mast-actions">
-          ${setupChip()}
+          ${manageChip()}
           ${D.PINS_ENABLED
             ? `<button class="chip" data-act="signIn">${esc(role.label)}${UI.role === 'viewer' ? ' — enter PIN' : ' — sign out'}</button>`
             : `<span class="chip">Unlocked — no PIN</span>`}
@@ -9202,7 +9326,7 @@ function paint() {
       ${meta.status === 'error'
         ? 'Cannot read the shared book. Nothing can be edited until it loads, so nothing gets overwritten. Check your connection and reload.'
         : 'Opening the book… everything is read-only until the saved tournament arrives.'}</div>`}
-    <nav class="tabs nos${navTabs().length % 3 === 1 ? ' orphan' : ''}" aria-label="Sections">
+    <nav class="tabs nos" aria-label="Sections">
       ${navTabs().map(([id, label, short]) =>
         `<button class="tab${id === 'resort' ? ' named' : ''}" data-act="go" data-a="${id}"${UI.screen === id ? ' aria-current="page"' : ''}
           aria-label="${esc(label)}"><span class="lg">${esc(label)}</span><span class="sm">${esc(short)}</span></button>`).join('')}
@@ -9215,6 +9339,7 @@ function paint() {
       <span class="build" title="Which copy of the book this device is running">build ${esc(D.BUILD)}</span>
     </div>
   </div>
+  ${tabBar()}
   ${UI.modal ? modalHtml() : ''}
   ${askPanel()}
   ${recapPanel()}`;
@@ -9365,14 +9490,14 @@ function confirmModalHtml() {
 
 /** Setup state, in the same corner on every screen. Red while anything is
  *  outstanding; quiet once the book is ready. Opens the full setup dialog. */
-function setupChip() {
+/* ONE DOOR FOR EVERYTHING SET ONCE, and the outstanding count belongs on it.
+   This was two controls — a Setup chip and nothing else — and it is now the
+   way in to the roster, the week, the courses and the rules as well. */
+function manageChip() {
   const n = E.setupIssues(T).length;
-  return n
-    ? `<button class="setup-chip open" data-act="setupOpen" data-a="all"
-        aria-label="Setup incomplete, ${n} thing${n > 1 ? 's' : ''} to settle. Review them.">
-        <span class="mk">!</span>Setup incomplete<span class="ct">${n}</span></button>`
-    : `<button class="setup-chip done" data-act="setupOpen" data-a="all" aria-label="Setup complete. Review.">
-        <span class="mk">✓</span>Setup complete</button>`;
+  return `<button class="setup-chip manage${n ? ' open' : ' done'}" data-act="manageOpen"
+      aria-label="Manage the book${n ? ', ' + n + ' thing' + (n > 1 ? 's' : '') + ' still to settle' : ''}">
+      <span class="mk">${n ? '!' : '✓'}</span>Manage${n ? `<span class="ct">${n}</span>` : ''}</button>`;
 }
 
 /* Closest to the pin and longest drive are nominated before anyone tees off,
@@ -9891,6 +10016,7 @@ function ord(n) {
 
 function modalHtml() {
   return UI.modal.kind === 'matchwhy' ? matchWhyHtml()
+       : UI.modal.kind === 'manage' ? manageModalHtml()
        : UI.modal.kind === 'rule' ? ruleModalHtml()
        : UI.modal.kind === 'bandread' ? bandModalHtml()
        : UI.modal.kind === 'event' ? eventModalHtml()
@@ -9981,7 +10107,16 @@ function onClick(e) {
   if (UI.resortNote) commitResortNote();
 
   switch (act) {
+    case 'manageOpen':
+      UI.modal = { kind: 'manage' };
+      break;
     case 'go':
+      /* A tab tapped from inside Manage closes it on the way through: the
+         door is how you got there, not somewhere to come back to. */
+      if (UI.modal && UI.modal.kind === 'manage') { UI.modal = null; UI.modalErr = ''; }
+      /* The cup used to be a tab of its own as well as a board. It is one
+         place now, and anything still asking for the old one lands there. */
+      if (a === 'ryder') { UI.screen = 'boards'; UI.boardTab = 'ryder'; window.scrollTo(0, 0); break; }
       if (a === 'entry') {     // going to the hole, not away from it
         if (UI.screen === 'courses') relockCards();
         UI.screen = a; UI.modal = null; window.scrollTo(0, 0);
@@ -10216,7 +10351,7 @@ function onClick(e) {
       return;
     }
     case 'revealPins': UI.revealPins = !UI.revealPins; break;
-    case 'setupOpen': UI.modal = { kind: 'setup', scope: a || 'all' }; break;
+    case 'setupOpen': UI.modal = { kind: 'setup', scope: a || 'all' }; UI.modalErr = ''; break;
     case 'setupGo': UI.modal = null; UI.screen = a; window.scrollTo(0, 0); break;
 
     case 'signIn':

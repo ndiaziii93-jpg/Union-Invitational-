@@ -96,7 +96,7 @@ const open = async (stub) => {
   await pg.waitForTimeout(4200);
   for (let i = 0; i < 6; i++) { const d = pg.locator('[data-act="modalCancel"]');
     if (await d.count()) { await d.first().click({ force: true }); await pg.waitForTimeout(150); } else break; }
-  await pg.click('[data-act="go"][data-a="resort"]');
+  await pg.click('[data-act="go"][data-a="resort"]:visible');
   await pg.waitForTimeout(900);
   return pg;
 };
@@ -126,7 +126,7 @@ await pg.reload();
 await pg.waitForTimeout(4400);
 for (let i = 0; i < 6; i++) { const d = pg.locator('[data-act="modalCancel"]');
   if (await d.count()) { await d.first().click({ force: true }); await pg.waitForTimeout(150); } else break; }
-await pg.click('[data-act="go"][data-a="resort"]');
+await pg.click('[data-act="go"][data-a="resort"]:visible');
 await pg.waitForTimeout(900);
 ok('and the phone remembers which scale it reads in',
   await pg.locator('[data-act="wxUnit"][data-a="F"]').getAttribute('aria-pressed'), 'true');
@@ -138,7 +138,7 @@ await pg.reload();
 await pg.waitForTimeout(4400);
 for (let i = 0; i < 6; i++) { const d = pg.locator('[data-act="modalCancel"]');
   if (await d.count()) { await d.first().click({ force: true }); await pg.waitForTimeout(150); } else break; }
-await pg.click('[data-act="go"][data-a="resort"]');
+await pg.click('[data-act="go"][data-a="resort"]:visible');
 await pg.waitForTimeout(1200);
 ok('with no signal the last reading is still there', await pg.locator('.wx-t').count(), 1);
 ok('and the strip says when it was reached',
@@ -156,7 +156,7 @@ for (const [name, stub] of [['a dead network', { dead: true }],
   await p2.waitForTimeout(4400);
   for (let i = 0; i < 6; i++) { const d = p2.locator('[data-act="modalCancel"]');
     if (await d.count()) { await d.first().click({ force: true }); await p2.waitForTimeout(150); } else break; }
-  await p2.click('[data-act="go"][data-a="resort"]');
+  await p2.click('[data-act="go"][data-a="resort"]:visible');
   await p2.waitForTimeout(1200);
   const txt = await p2.locator('.wx').innerText();
   ok('on ' + name + ' it shows no temperature', await p2.locator('.wx-t').count(), 0);

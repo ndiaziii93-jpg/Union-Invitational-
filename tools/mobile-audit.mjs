@@ -3,6 +3,29 @@
 import { chromium } from 'playwright';
 import { readFileSync, writeFileSync } from 'node:fs';
 
+/* ---- getting about the book ----
+   Four tabs now — Today, Scores, Boards, Resort — and the five screens that
+   are set up once live behind Manage. So a name is looked for on the bar
+   first, then behind that door, and last of all among the boards, which is
+   where the Ryder Cup went. The same three places a person would look. */
+const goTab = async (pg, t) => {
+  const direct = pg.locator('.tab:visible, .navbtn:visible', { hasText: t });
+  if (await direct.count()) { await direct.first().click(); return; }
+  const door = pg.locator('[data-act="manageOpen"]');
+  if (await door.count()) {
+    await door.first().click();
+    await pg.waitForTimeout(400);
+    const row = pg.locator('.mg-row', { hasText: t });
+    if (await row.count()) { await row.first().click(); return; }
+    await pg.locator('.mgmodal [data-act="modalCancel"]').click().catch(() => {});
+    await pg.waitForTimeout(300);
+  }
+  await pg.locator('.tab:visible, .navbtn:visible', { hasText: 'Boards' }).first().click();
+  await pg.waitForTimeout(500);
+  await pg.locator('.btab', { hasText: t }).first().click();
+};
+
+
 /* The artifact host wraps the file in a head carrying charset, viewport and a
    small reset. Without that wrapper a local file lays out at 980px and scales,
    so a phone test measures the wrong thing entirely. Mirror the host here. */
@@ -52,7 +75,7 @@ for (const [name, w, h] of SIZES) {
   await p.goto(PAGE); await p.waitForTimeout(1400);
   await p.locator('[data-act="modalCancel"]').click().catch(() => {});
   for (const scr of SCREENS) {
-    await p.locator('.tab', { hasText: scr }).first().click().catch(() => {});
+    await goTab(p, scr).catch(() => {});
     await p.waitForTimeout(300);
     await p.locator('[data-act="modalCancel"]').click().catch(() => {});
     await p.waitForTimeout(150);

@@ -2,6 +2,29 @@
    store in 24-hour form. Run: node tools/time-picker-test.mjs */
 import { chromium } from 'playwright';
 import { readFileSync, writeFileSync } from 'node:fs';
+
+/* ---- getting about the book ----
+   Four tabs now — Today, Scores, Boards, Resort — and the five screens that
+   are set up once live behind Manage. So a name is looked for on the bar
+   first, then behind that door, and last of all among the boards, which is
+   where the Ryder Cup went. The same three places a person would look. */
+const goTab = async (pg, t) => {
+  const direct = pg.locator('.tab:visible, .navbtn:visible', { hasText: t });
+  if (await direct.count()) { await direct.first().click(); return; }
+  const door = pg.locator('[data-act="manageOpen"]');
+  if (await door.count()) {
+    await door.first().click();
+    await pg.waitForTimeout(400);
+    const row = pg.locator('.mg-row', { hasText: t });
+    if (await row.count()) { await row.first().click(); return; }
+    await pg.locator('.mgmodal [data-act="modalCancel"]').click().catch(() => {});
+    await pg.waitForTimeout(300);
+  }
+  await pg.locator('.tab:visible, .navbtn:visible', { hasText: 'Boards' }).first().click();
+  await pg.waitForTimeout(500);
+  await pg.locator('.btab', { hasText: t }).first().click();
+};
+
 const S = '/tmp/claude-0/-home-user-Union-Invitational-/8bcdc9be-12b5-528d-a069-2403e068b315/scratchpad';
 const W = S + '/tp.html';
 writeFileSync(W, '<!doctype html><html><head><meta charset="utf-8">'
@@ -21,7 +44,7 @@ for (const [label, vp, mob] of [['phone 390', { width: 390, height: 844 }, true]
   p.on('pageerror', e => { console.log('  PAGE ERROR:', String(e)); fails.push('pageerror'); });
   const clear = async () => { for (let i = 0; i < 4; i++) { if (!await p.locator('.scrim').count()) return;
     await p.locator('.scrim [data-act="modalCancel"]').click({ force: true }).catch(() => {}); await p.waitForTimeout(200); } };
-  const tab = async t => { await clear(); await p.locator('.tab', { hasText: t }).click(); await p.waitForTimeout(450); await clear(); };
+  const tab = async t => { await clear(); await goTab(p, t); await p.waitForTimeout(450); await clear(); };
   // the store is the truth: the wheels are 12-hour, what is kept is 24-hour
   const teeTimes = () => p.evaluate(() => { try {
     return JSON.parse(localStorage.getItem('union-invitational:v3')).config.rounds.r1.tees.map(t => t.time);

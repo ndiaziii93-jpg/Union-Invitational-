@@ -7,6 +7,29 @@ import { createServer } from 'node:http';
 import { readFileSync, existsSync, statSync } from 'node:fs';
 import { extname, join, normalize } from 'node:path';
 
+/* ---- getting about the book ----
+   Four tabs now — Today, Scores, Boards, Resort — and the five screens that
+   are set up once live behind Manage. So a name is looked for on the bar
+   first, then behind that door, and last of all among the boards, which is
+   where the Ryder Cup went. The same three places a person would look. */
+const goTab = async (pg, t) => {
+  const direct = pg.locator('.tab:visible, .navbtn:visible', { hasText: t });
+  if (await direct.count()) { await direct.first().click(); return; }
+  const door = pg.locator('[data-act="manageOpen"]');
+  if (await door.count()) {
+    await door.first().click();
+    await pg.waitForTimeout(400);
+    const row = pg.locator('.mg-row', { hasText: t });
+    if (await row.count()) { await row.first().click(); return; }
+    await pg.locator('.mgmodal [data-act="modalCancel"]').click().catch(() => {});
+    await pg.waitForTimeout(300);
+  }
+  await pg.locator('.tab:visible, .navbtn:visible', { hasText: 'Boards' }).first().click();
+  await pg.waitForTimeout(500);
+  await pg.locator('.btab', { hasText: t }).first().click();
+};
+
+
 const DIR = 'docs/app';
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.png': 'image/png',
   '.webmanifest': 'application/manifest+json', '.json': 'application/json',
@@ -119,9 +142,11 @@ await p.reload({ waitUntil: 'commit' }).catch(() => {});
 await settled();
 ok('the server really was unreachable', served, before);
 ok('the book opened anyway', await p.locator('.masthead h1').innerText(), 'The Union Invitational');
-ok('with its tabs', await p.locator('.tab').count() > 6, true);
+/* Four tabs on the bar, and the rest behind Manage. */
+ok('with its four tabs', await p.locator('.tab').count(), 4);
+ok('and the door to everything set once', await p.locator('[data-act="manageOpen"]').count(), 1);
 await shut();
-await p.locator('.tab', { hasText: 'Score Entry' }).click(); await p.waitForTimeout(600); await shut();
+await goTab(p, 'Score Entry'); await p.waitForTimeout(600); await shut();
 ok('and score entry still works with no signal', await p.locator('.rcards').count(), 1);
 /* getComputedStyle only reports the stack the CSS asked for — it says
    "Source Serif" even when the face never arrived and Georgia is on screen.

@@ -100,10 +100,11 @@ ok('tracked wide', named.track >= 2, true);
 ok('and in an ink of its own', named.sameAsOthers, false);
 
 const order = await pg.$$eval('.tabs .tab', els => els.map(e => e.dataset.a));
-ok('The Titanic sits between Today and the boards',
-  order.slice(0, 3), ['today', 'resort', 'boards']);
+/* Four tabs, in the order of the week: where you are, what you are writing
+   down, what it adds up to, and the hotel you go back to. */
+ok('The Titanic is the fourth of the four', order, ['today', 'entry', 'boards', 'resort']);
 
-await pg.click('[data-act="go"][data-a="resort"]');
+await pg.click('[data-act="go"][data-a="resort"]:visible');
 ok('and opens on what is serving now',
   await pg.locator('.btab.on').innerText(), 'Right now');
 
@@ -229,7 +230,7 @@ await pg.waitForTimeout(200);
   await wee.waitForTimeout(4200);
   for (let i = 0; i < 6; i++) { const d = wee.locator('[data-act="modalCancel"]');
     if (await d.count()) { await d.first().click({ force: true }); await wee.waitForTimeout(150); } else break; }
-  await wee.click('[data-act="go"][data-a="resort"]');
+  await wee.click('[data-act="go"][data-a="resort"]:visible');
   await wee.click('[data-act="resortSeason"][data-a="summer"]');
   await wee.waitForTimeout(400);
   const names = await wee.locator('.vcard .vn').allInnerTexts();
@@ -400,7 +401,7 @@ ok('and marks the row it came from', await pg.locator('.vrow.picked').count(), 1
 await pg.close();
 
 const ph0 = await open(390, 844);
-await ph0.click('[data-act="go"][data-a="resort"]');
+await ph0.click('[data-act="go"][data-a="resort"]:visible');
 await ph0.click('[data-act="resortTab"][data-a="plan"]');
 await ph0.waitForTimeout(400);
 const off = await ph0.evaluate(() => {
@@ -438,7 +439,7 @@ await ph0.close();
   await tp.waitForTimeout(4200);
   for (let i = 0; i < 6; i++) { const d = tp.locator('[data-act="modalCancel"]');
     if (await d.count()) { await d.first().click({ force: true }); await tp.waitForTimeout(150); } else break; }
-  await tp.click('[data-act="go"][data-a="resort"]');
+  await tp.click('[data-act="go"][data-a="resort"]:visible');
   await tp.click('[data-act="resortTab"][data-a="plan"]');
   /* The gesture is dispatched at viewport coordinates, so the fingers have to
      land on the part of the plan that is actually on screen. Half of it
@@ -553,7 +554,7 @@ await ph0.close();
 /* Every name has to be beside its own dot and on top of nothing else. The
    first version of this drew "Palm Bar & PatisserieSapore". */
 const sc = await open(1280, 900, true);
-await sc.click('[data-act="go"][data-a="resort"]');
+await sc.click('[data-act="go"][data-a="resort"]:visible');
 await sc.click('[data-act="resortTab"][data-a="plan"]');
 ok('with no artwork the book draws its own', await sc.locator('.planimg').count(), 0);
 
@@ -592,24 +593,44 @@ await sc.close();
 
 /* The same, on a phone, where the type is proportionally far larger. */
 const ph = await open(390, 844, true);
-await ph.click('[data-act="go"][data-a="resort"]');
+await ph.click('[data-act="go"][data-a="resort"]:visible');
 await ph.click('[data-act="resortTab"][data-a="plan"]');
 const small = await overlaps(ph);
 ok('on a phone too, nothing clashes', small.clashes, 0);
 ok('and nothing is cut off', small.off, 0);
 ok('and it is still worth looking at', small.labels > 8, true);
 
-/* The tenth tab must not leave one stranded in a column of its own. */
-const rows = await ph.evaluate(() => {
-  const t = [...document.querySelectorAll('.tabs .tab')];
-  const wide = document.querySelector('.tabs').getBoundingClientRect().width;
-  const last = t[t.length - 1].getBoundingClientRect();
-  const tops = new Set(t.map(e => Math.round(e.getBoundingClientRect().top)));
-  return { n: t.length, rows: tops.size, lastFull: last.width > wide * 0.9 };
+/* ON A PHONE THE STRIP IS GONE and the bar is along the bottom, under the
+   thumb. Four marks on one surface, all on one line, and the page has to end
+   above it rather than behind it. */
+const bar = await ph.evaluate(() => {
+  const nav = document.querySelector('.tabbar');
+  const btns = [...nav.querySelectorAll('.navbtn')];
+  const tops = new Set(btns.map(e => Math.round(e.getBoundingClientRect().top)));
+  const r = nav.getBoundingClientRect();
+  return {
+    stripHidden: getComputedStyle(document.querySelector('.tabs')).display === 'none',
+    n: btns.length,
+    rows: tops.size,
+    atBottom: Math.abs(window.innerHeight - r.bottom) <= 1,
+    fullWidth: Math.abs(r.width - window.innerWidth) <= 1,
+    /* The last of the page's CONTENT clears the bar. Not the wrapper, whose
+       box now includes the padding put there to make that room — measuring
+       that only ever proves the padding exists. */
+    clears: (function () {
+      const last = document.querySelector('.statusbar');
+      if (!last) return false;
+      window.scrollTo(0, document.documentElement.scrollHeight);
+      return last.getBoundingClientRect().bottom <= nav.getBoundingClientRect().top + 1;
+    }()),
+  };
 });
-ok('ten tabs on a phone', rows.n, 10);
-ok('in four rows', rows.rows, 4);
-ok('with the last one taking the whole width rather than a third', rows.lastFull, true);
+ok('the strip at the top is gone on a phone', bar.stripHidden, true);
+ok('four tabs along the bottom', bar.n, 4);
+ok('all on one line', bar.rows, 1);
+ok('sitting on the bottom edge', bar.atBottom, true);
+ok('the full width of the screen', bar.fullWidth, true);
+ok('and the page ends above it, not behind it', bar.clears, true);
 await ph.close();
 
 await b.close();
