@@ -87,6 +87,10 @@
   --rule:#C4B896;  --hair:#DCD1B4;
   --flag:#9E3B2E;  --gold:#8C6B2F;
   --under:#B4892B; --over:#9E3B2E; --level:#1D2E21;
+  /* The gold on a cream page goes muddy on the ink, so the bar has its own:
+     light enough to read at eleven pixels against the dark. And a sage for
+     the tabs that are not live, which must be legible without competing. */
+  --gold-up:#C9A253; --sage-up:#9FB3A3;
   --uk:#1D3E8F;    --usa:#9E3B2E;
   /* a hole still to score sits heavier than the paper; a hole already in
      recedes towards it. The point is to find the gaps at a glance. */
@@ -2304,6 +2308,60 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
   .scrim{z-index:60}
 }
 
+/* ---------------- the scoreboard ----------------
+
+   The bar goes dark and the live tab lights up, the way a scoreboard marks
+   the hole being played. The book itself stays cream: the bar is the frame
+   around it, not a second surface competing with it.
+
+   One rule throughout — the gold line always faces the page. Along the
+   bottom of a phone that means on top of the bar; along the top of a tablet
+   or a laptop it means underneath the strip. The live tab carries the same
+   gold on the same edge, so the mark and the rule read as one thing. */
+.tabs{
+  background:var(--ink);
+  border-bottom:3px solid var(--gold-up);
+  padding:0;gap:0;align-items:stretch;
+}
+.tab{
+  background:none;border:0;border-radius:0;color:var(--sage-up);
+  padding:12px 18px;position:relative;
+}
+.tab[aria-current="page"]{background:none;border:0;color:var(--page);font-weight:700}
+/* the live tab's own mark, on the edge that faces the page */
+.tab[aria-current="page"]::after{
+  content:"";position:absolute;left:14%;right:14%;bottom:0;height:3px;
+  background:var(--gold-up);border-radius:3px 3px 0 0;
+}
+@media (hover:hover) and (pointer:fine){
+  .tab:hover{color:var(--page);background:rgba(255,255,255,.06)}
+  .tab[aria-current="page"]:hover{background:rgba(255,255,255,.06)}
+}
+.tab:focus-visible{outline:2px solid var(--gold-up);outline-offset:-3px}
+/* The one tab that names a place keeps its capitals, in the gold that works
+   on the ink rather than the one that works on paper. */
+.tab.named{color:var(--gold-up)}
+.tab.named[aria-current="page"]{color:var(--page)}
+@media (hover:hover) and (pointer:fine){ .tab.named:hover{color:var(--page)} }
+
+@media (max-width:699px){
+  .tabbar{
+    background:var(--ink);
+    border-top:3px solid var(--gold-up);
+    box-shadow:0 -8px 24px rgba(29,46,33,.22);
+  }
+}
+.navbtn{color:var(--sage-up);border-radius:0;position:relative}
+.navbtn[aria-current="page"]{color:var(--page)}
+.navbtn[aria-current="page"]::before{
+  content:"";position:absolute;left:14%;right:14%;top:0;height:3px;
+  background:var(--gold-up);border-radius:0 0 3px 3px;
+}
+@media (hover:hover) and (pointer:fine){
+  .navbtn:hover{color:var(--page);background:rgba(255,255,255,.06)}
+}
+.navbtn:focus-visible{outline:2px solid var(--gold-up);outline-offset:-3px}
+
 </style>
 <div id="app"></div>
 <!-- The crest, and the opening it pays for, ahead of everything else. A few
@@ -2415,7 +2473,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261014-0934';
+const BUILD = '20261014-0947';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
