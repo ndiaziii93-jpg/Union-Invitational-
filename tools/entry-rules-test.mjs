@@ -286,15 +286,15 @@ console.log('\nthe shape of the book');
    tournament, in the order you meet them; everything set up once sits behind
    Manage, deepest-first — Setup, then the roster, the week, the courses and
    the rules. */
-ok('four tabs, and these four', await p.evaluate(
+ok('five tabs, and these five', await p.evaluate(
   () => [...document.querySelectorAll('.tab')].map(x => x.dataset.a)),
-  ['today', 'entry', 'boards', 'resort']);
+  ['today', 'entry', 'boards', 'calendar', 'resort']);
 ok('the cup is not one of them — it is a board',
   await p.locator('.tab[data-a="ryder"]').count(), 0);
 await p.locator('[data-act="manageOpen"]').click(); await p.waitForTimeout(500);
 ok('and the rest are behind Manage', await p.evaluate(
   () => [...document.querySelectorAll('.mg-row')].map(x => x.dataset.a)),
-  ['setup', 'roster', 'calendar', 'courses', 'rules']);
+  ['setup', 'roster', 'courses', 'rules']);
 ok('Rules comes after Course Setup', await p.evaluate(() => {
   const t = [...document.querySelectorAll('.mg-row')].map(x => x.dataset.a);
   return t.indexOf('rules') > t.indexOf('courses');

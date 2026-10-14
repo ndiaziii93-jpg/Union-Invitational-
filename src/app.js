@@ -3084,16 +3084,16 @@ function onMapDouble(e) {
  * with and the eye goes to the top anyway.
  */
 const NAV = [
-  ['today',  'Today',        'Today'],
-  ['entry',  'Score Entry',  'Scores'],
-  ['boards', 'Leaderboards', 'Boards'],
-  ['resort', 'The Titanic',  'Resort'],
+  ['today',    'Today',        'Today'],
+  ['entry',    'Score Entry',  'Scores'],
+  ['boards',   'Leaderboards', 'Boards'],
+  ['calendar', 'Calendar',     'Calendar'],
+  ['resort',   'The Titanic',  'Resort'],
 ];
 /** Set once, then read all week. Setup is the master's alone. */
 const MANAGE = [
   ['setup',    'Setup',             'PINs, locks and what is still outstanding'],
   ['roster',   'Roster & Pairings', 'Bands, squads and who plays with whom'],
-  ['calendar', 'Calendar',          'The whole week, and the tee times'],
   ['courses',  'Course Setup',      'Pars, stroke index and yardages'],
   ['rules',    'Games & Rules',     'All six competitions, in full'],
 ];
@@ -3110,6 +3110,8 @@ const NAVICON = {
   entry:  '<path d="M7 3.5h10a1.5 1.5 0 0 1 1.5 1.5v15l-6.5-3-6.5 3V5A1.5 1.5 0 0 1 7 3.5Z"/><path d="M9 8.5h6M9 12h6"/>',
   boards: '<path d="M5 20V12M12 20V5M19 20v-6"/><path d="M3 20h18"/>',
   resort: '<path d="M3 20h18"/><path d="M5 20v-8l7-4.5 7 4.5v8"/><path d="M10 20v-4h4v4"/><path d="M12 7.5V4.5"/>',
+  calendar: '<rect x="3.5" y="5" width="17" height="15.5" rx="1.6"/><path d="M3.5 9.5h17"/>'
+    + '<path d="M8 3.5v3M16 3.5v3"/><path d="M7.5 13h3M13.5 13h3M7.5 16.8h3"/>',
 };
 const navIcon = id => `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"
   stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${NAVICON[id] || ''}</svg>`;

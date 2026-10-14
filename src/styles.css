@@ -1070,7 +1070,7 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
   /* Four tabs share the width evenly. Below 700px there is no strip at all —
      the bar is along the bottom — so this is the tablet-and-narrow-laptop
      shape only. */
-  .tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;
+  .tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;
     overflow-x:visible;touch-action:auto}
   .tab{padding:9px 10px;font-size:16px;min-height:44px;text-align:center}
   .tab .lg{display:none}
@@ -2220,7 +2220,7 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
 @media (max-width:699px){
   .tabs{display:none}
   .tabbar{
-    display:grid;grid-template-columns:repeat(4,1fr);
+    display:grid;grid-template-columns:repeat(5,1fr);
     position:fixed;left:0;right:0;bottom:0;z-index:40;
     background:var(--page);border-top:1px solid var(--rule);
     box-shadow:0 -6px 20px rgba(29,46,33,.07);

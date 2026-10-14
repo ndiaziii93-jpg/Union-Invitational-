@@ -143,7 +143,7 @@ await settled();
 ok('the server really was unreachable', served, before);
 ok('the book opened anyway', await p.locator('.masthead h1').innerText(), 'The Union Invitational');
 /* Four tabs on the bar, and the rest behind Manage. */
-ok('with its four tabs', await p.locator('.tab').count(), 4);
+ok('with its five tabs', await p.locator('.tab').count(), 5);
 ok('and the door to everything set once', await p.locator('[data-act="manageOpen"]').count(), 1);
 await shut();
 await goTab(p, 'Score Entry'); await p.waitForTimeout(600); await shut();

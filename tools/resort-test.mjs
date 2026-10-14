@@ -102,7 +102,8 @@ ok('and in an ink of its own', named.sameAsOthers, false);
 const order = await pg.$$eval('.tabs .tab', els => els.map(e => e.dataset.a));
 /* Four tabs, in the order of the week: where you are, what you are writing
    down, what it adds up to, and the hotel you go back to. */
-ok('The Titanic is the fourth of the four', order, ['today', 'entry', 'boards', 'resort']);
+ok('The Titanic is the last of the five', order,
+  ['today', 'entry', 'boards', 'calendar', 'resort']);
 
 await pg.click('[data-act="go"][data-a="resort"]:visible');
 ok('and opens on what is serving now',
@@ -626,7 +627,7 @@ const bar = await ph.evaluate(() => {
   };
 });
 ok('the strip at the top is gone on a phone', bar.stripHidden, true);
-ok('four tabs along the bottom', bar.n, 4);
+ok('five tabs along the bottom', bar.n, 5);
 ok('all on one line', bar.rows, 1);
 ok('sitting on the bottom edge', bar.atBottom, true);
 ok('the full width of the screen', bar.fullWidth, true);

@@ -184,14 +184,10 @@ await tap(p.locator('.tab:visible, .navbtn:visible', { hasText: 'Boards' }));
    redraw that follows it got there. */
 const landed = await p.waitForSelector('.btabs', { timeout: 6000 }).then(() => true).catch(() => false);
 ok('a held tap on a tab still changes the screen', landed, true);
-/* And back to the week, which is behind Manage now — so that is two held
-   taps in a row, the door and then the row inside it. */
-await tap(p.locator('[data-act="manageOpen"]'));
-await p.waitForSelector('.mgmodal', { timeout: 6000 }).catch(() => {});
-await tap(p.locator('.mg-row', { hasText: 'Calendar' }));
+/* And back to the week, which has a tab of its own. */
+await tap(p.locator('.tab:visible, .navbtn:visible', { hasText: 'Calendar' }));
 const back = await p.waitForSelector('.daycard', { timeout: 6000 }).then(() => true).catch(() => false);
 ok('and back again', back && await p.locator('.daycard').count(), 8);
-ok('and the door shut behind us', await p.locator('.mgmodal').count(), 0);
 
 await p.evaluate(() => clearInterval(window.__beat));
 await b.close();

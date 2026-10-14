@@ -1074,7 +1074,7 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
   /* Four tabs share the width evenly. Below 700px there is no strip at all —
      the bar is along the bottom — so this is the tablet-and-narrow-laptop
      shape only. */
-  .tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;
+  .tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;
     overflow-x:visible;touch-action:auto}
   .tab{padding:9px 10px;font-size:16px;min-height:44px;text-align:center}
   .tab .lg{display:none}
@@ -2224,7 +2224,7 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
 @media (max-width:699px){
   .tabs{display:none}
   .tabbar{
-    display:grid;grid-template-columns:repeat(4,1fr);
+    display:grid;grid-template-columns:repeat(5,1fr);
     position:fixed;left:0;right:0;bottom:0;z-index:40;
     background:var(--page);border-top:1px solid var(--rule);
     box-shadow:0 -6px 20px rgba(29,46,33,.07);
@@ -2319,7 +2319,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261014-0751';
+const BUILD = '20261014-0934';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -8926,16 +8926,16 @@ function onMapDouble(e) {
  * with and the eye goes to the top anyway.
  */
 const NAV = [
-  ['today',  'Today',        'Today'],
-  ['entry',  'Score Entry',  'Scores'],
-  ['boards', 'Leaderboards', 'Boards'],
-  ['resort', 'The Titanic',  'Resort'],
+  ['today',    'Today',        'Today'],
+  ['entry',    'Score Entry',  'Scores'],
+  ['boards',   'Leaderboards', 'Boards'],
+  ['calendar', 'Calendar',     'Calendar'],
+  ['resort',   'The Titanic',  'Resort'],
 ];
 /** Set once, then read all week. Setup is the master's alone. */
 const MANAGE = [
   ['setup',    'Setup',             'PINs, locks and what is still outstanding'],
   ['roster',   'Roster & Pairings', 'Bands, squads and who plays with whom'],
-  ['calendar', 'Calendar',          'The whole week, and the tee times'],
   ['courses',  'Course Setup',      'Pars, stroke index and yardages'],
   ['rules',    'Games & Rules',     'All six competitions, in full'],
 ];
@@ -8952,6 +8952,8 @@ const NAVICON = {
   entry:  '<path d="M7 3.5h10a1.5 1.5 0 0 1 1.5 1.5v15l-6.5-3-6.5 3V5A1.5 1.5 0 0 1 7 3.5Z"/><path d="M9 8.5h6M9 12h6"/>',
   boards: '<path d="M5 20V12M12 20V5M19 20v-6"/><path d="M3 20h18"/>',
   resort: '<path d="M3 20h18"/><path d="M5 20v-8l7-4.5 7 4.5v8"/><path d="M10 20v-4h4v4"/><path d="M12 7.5V4.5"/>',
+  calendar: '<rect x="3.5" y="5" width="17" height="15.5" rx="1.6"/><path d="M3.5 9.5h17"/>'
+    + '<path d="M8 3.5v3M16 3.5v3"/><path d="M7.5 13h3M13.5 13h3M7.5 16.8h3"/>',
 };
 const navIcon = id => `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"
   stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${NAVICON[id] || ''}</svg>`;
