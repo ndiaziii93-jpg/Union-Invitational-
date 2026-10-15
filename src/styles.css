@@ -658,6 +658,45 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 /* ---- Manage: one door for everything set once ---- */
 .setup-chip.manage.done{color:var(--ink)}
 
+/* ---- the dateline ----
+   Three facts in tracked capitals: where we are in the week, what is being
+   played, and when you are off. The same register the day's recap sets its
+   metarail in — brought forward, not invented. Phone only: a tablet and a
+   laptop have room for the nameplate as it has always been. */
+.dateline{display:none}
+.dateline span{white-space:nowrap}
+.dateline span+span::before{content:"\00B7";padding:0 7px;color:var(--rule);font-weight:400}
+.dateline .hot{color:var(--green)}
+
+/* ---- the strip that stays ----
+   Laid over the page, never in it: it appears and goes without a single
+   pixel of the book moving. Pine, because it is the same furniture as the
+   bar at the foot, and the shield is struck white on it so the crest is
+   never more than a glance away wherever you have got to. */
+.topstrip{position:fixed;top:0;left:0;right:0;z-index:45;
+  display:none;align-items:center;gap:9px;
+  padding:7px max(14px,env(safe-area-inset-left,0px)) 7px max(14px,env(safe-area-inset-right,0px));
+  padding-top:calc(7px + env(safe-area-inset-top,0px));
+  background:var(--ink);color:var(--page);border-bottom:3px solid var(--gold-up);
+  box-shadow:0 6px 18px rgba(29,46,33,.22);
+  transform:translateY(-100%);transition:transform .2s cubic-bezier(.22,.61,.36,1)}
+.ts-c{width:26px;height:auto;flex:0 0 auto;filter:invert(1);opacity:.94}
+.ts-n{font-size:14.5px;font-weight:700;letter-spacing:.01em;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;min-width:0}
+.ts-t{margin-left:auto;font-size:13px;color:var(--sage-up);white-space:nowrap;flex:0 0 auto}
+.dial.ts-d{width:32px;height:32px;flex:0 0 auto;margin-left:9px}
+.dial.ts-d .dial-g{width:30px;height:30px}
+.dial.ts-d.free{color:var(--gold-up)}
+.dial.ts-d.shut{color:var(--sage-up)}
+.dial.ts-d.in{color:var(--page)}
+.dial.ts-d .dial-ct{box-shadow:0 0 0 2px var(--ink);min-width:18px;height:18px;line-height:18px;
+  font-size:11px;top:-3px;right:-4px}
+/* The same fade as the bar at the foot, the other way up: the page
+   dissolves into the strip rather than being cut off by it. */
+.topstrip::after{content:"";position:absolute;left:0;right:0;top:100%;height:22px;
+  pointer-events:none;background:linear-gradient(to bottom,var(--paper),rgba(227,219,203,0))}
+@media (prefers-reduced-motion:reduce){ .topstrip{transition:none} }
+
 /* ---- the dial ----
    One mark where the two full-width buttons used to band the page. The ring
    is the lock, the sunburst is the crest's own compass, and the count in the
@@ -1179,7 +1218,16 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
      rather than beside the name it belongs to. */
   .dial{order:3;margin-left:auto;align-self:flex-start;width:42px;height:42px}
   .dial-g{width:40px;height:40px}
-  .mast-right{order:4;flex:1 1 100%;align-items:stretch;text-align:left}
+  /* THE VENUE LINE AND THE TEE-TIME CAPTION BOTH GO. One says where you are
+     — which you know, and which The Titanic tab says in full — on three
+     lines of a 390-point screen. The other is a caption over a value that
+     reads perfectly well on its own. The dateline says what is left of both
+     in one line, and says the part that changes. */
+  .masthead .sub{display:none}
+  .mast-right{display:none}
+  .dateline{display:flex;flex-wrap:wrap;align-items:center;
+    padding:0 0 9px;font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;
+    color:var(--turf);font-weight:700}
   .weekgrid{grid-template-columns:1fr;gap:14px}
   .daycard{min-height:0}
   .daystrip{flex-wrap:wrap}
@@ -2326,7 +2374,14 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
         than one that is scrolling past. A short fade of the paper, just
         above the ink, makes it dissolve instead. */
   .wrap{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
-  html{scroll-padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+  /* Both rails declared once, in the one place a browser reads when it has
+     to put something on screen for you: the bar at the foot, and the strip
+     that takes over from the nameplate at the head. */
+  html{scroll-padding-bottom:calc(84px + env(safe-area-inset-bottom,0px));
+       scroll-padding-top:calc(52px + env(safe-area-inset-top,0px))}
+  /* The strip is only ever here, and only once the plate has gone. */
+  .topstrip{display:flex}
+  html.up .topstrip{transform:none}
   .tabbar::before{content:"";position:absolute;left:0;right:0;bottom:100%;height:28px;
     pointer-events:none;background:linear-gradient(to top,var(--paper),rgba(227,219,203,0));
     opacity:1;transition:opacity .18s ease}

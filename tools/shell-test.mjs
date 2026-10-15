@@ -53,16 +53,16 @@ ok('and nothing in the masthead says "Unlocked" any more',
   (await p.locator('.masthead').innerText()).includes('Unlocked'), false);
 ok('there is one dial', await p.locator('.masthead .dial').count(), 1);
 ok('it is a real target, not a glyph', await p.evaluate(() => {
-  const r = document.querySelector('.dial').getBoundingClientRect();
+  const r = document.querySelector('.masthead .dial').getBoundingClientRect();
   return r.width >= 40 && r.height >= 40;
 }), true);
 ok('it sits at the right-hand end of the top line', await p.evaluate(() => {
-  const d = document.querySelector('.dial').getBoundingClientRect();
+  const d = document.querySelector('.masthead .dial').getBoundingClientRect();
   const h = document.querySelector('.masthead h1').getBoundingClientRect();
   return d.left > h.right && Math.abs(innerWidth - d.right) < 24;
 }), true);
 ok('on the SAME line as the name, not a line of its own', await p.evaluate(() => {
-  const d = document.querySelector('.dial').getBoundingClientRect();
+  const d = document.querySelector('.masthead .dial').getBoundingClientRect();
   const h = document.querySelector('.masthead h1').getBoundingClientRect();
   return d.top < h.bottom && d.bottom > h.top;
 }), true);
@@ -71,11 +71,11 @@ ok('on the SAME line as the name, not a line of its own', await p.evaluate(() =>
    whether anybody is being asked for a PIN. */
 const issues = await p.evaluate(() => (window.__issues || []).length);
 ok('the badge carries the count of what is still to settle',
-  (await p.locator('.dial-ct').innerText()).trim(), String(issues || 2));
+  (await p.locator('.masthead .dial-ct').innerText()).trim(), String(issues || 2));
 ok('the ring is open while no PIN is set', await p.evaluate(
-  () => getComputedStyle(document.querySelector('.dial-r')).strokeDasharray !== 'none'), true);
+  () => getComputedStyle(document.querySelector('.masthead .dial-r')).strokeDasharray !== 'none'), true);
 ok('and it says the whole of it to a screen reader', await p.evaluate(() => {
-  const l = document.querySelector('.dial').getAttribute('aria-label') || '';
+  const l = document.querySelector('.masthead .dial').getAttribute('aria-label') || '';
   return /manage/i.test(l) && /unlocked|locked|signed/i.test(l);
 }), true);
 
@@ -84,10 +84,70 @@ ok('and it says the whole of it to a screen reader', await p.evaluate(() => {
 const chrome = await p.evaluate(
   () => Math.round(document.querySelector('.rule-heavy').getBoundingClientRect().bottom));
 console.log('          (furniture above the page: ' + chrome + 'px of 844)');
-ok('the furniture above the page is a fraction of what it was', chrome < 200, true);
+ok('the furniture above the page is a fraction of what it was', chrome < 130, true);
+
+/* ---------------- the dateline ---------------- */
+console.log('\nthe nameplate says what moves, and nothing else');
+ok('the venue and the dates are off the phone',
+  await p.locator('.masthead .sub:visible').count(), 0);
+ok('and so is the caption over the tee time',
+  await p.locator('.mast-right:visible').count(), 0);
+const rail = (await p.locator('.dateline').innerText()).replace(/\s+/g, ' ').trim();
+console.log('          (the dateline reads: ' + rail + ')');
+ok('a dateline stands in their place', await p.locator('.dateline:visible').count(), 1);
+const bits = await p.locator('.dateline span').count();
+ok('carrying where we are in the week, what is on, and when you are off',
+  bits >= 2 && bits <= 3, true);
+ok('it is set in capitals, as the recap sets its own rail', await p.evaluate(
+  () => getComputedStyle(document.querySelector('.dateline')).textTransform), 'uppercase');
+ok('and the tee time, where there is one left, is the part it picks out',
+  await p.evaluate(() => {
+    const hot = document.querySelector('.dateline .hot');
+    return !hot || /\d:\d\d/.test(hot.textContent);
+  }), true);
+ok('and it is one line, not three', await p.evaluate(() => {
+  const r = document.querySelector('.dateline').getBoundingClientRect();
+  return r.height < 30;
+}), true);
+
+/* ---------------- the strip that stays ---------------- */
+console.log('\nand the shield never goes further than a scroll away');
+ok('at the top of a page there is no strip on the glass', await p.evaluate(
+  () => Math.round(document.querySelector('.topstrip').getBoundingClientRect().bottom) <= 0), true);
+await bar('Boards');
+await p.evaluate(() => window.scrollTo(0, 420)); await p.waitForTimeout(600);
+ok('scroll past the nameplate and it comes down', await p.evaluate(
+  () => Math.round(document.querySelector('.topstrip').getBoundingClientRect().top)), 0);
+ok('with the shield on it', await p.locator('.topstrip .ts-c').count(), 1);
+ok('struck white, because the strip is pine', await p.evaluate(
+  () => getComputedStyle(document.querySelector('.ts-c')).filter.includes('invert')), true);
+ok('the name of the book', (await p.locator('.ts-n').innerText()).includes('Union Invitational'), true);
+ok('when you are off', await p.locator('.topstrip .ts-t').count(), 1);
+ok('and the dial, badge and all', await p.locator('.topstrip .dial .dial-ct').count(), 1);
+ok('it is laid over the page, so nothing reflowed to make room', await p.evaluate(
+  () => getComputedStyle(document.querySelector('.topstrip')).position), 'fixed');
+ok('anything scrolled into view is told to clear it', await p.evaluate(() => {
+  const pad = parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop);
+  return pad >= document.querySelector('.topstrip').getBoundingClientRect().height - 4;
+}), true);
+/* Two dials on the page, one reachable: the strip is a repeat of what the
+   nameplate above already says. */
+ok('the strip is not read out twice',
+  await p.locator('.topstrip[aria-hidden="true"]').count(), 1);
+ok('nor tabbed into', await p.locator('.topstrip .dial').getAttribute('tabindex'), '-1');
+ok('but it is still a button under a thumb', await p.evaluate(() => {
+  const r = document.querySelector('.topstrip .dial').getBoundingClientRect();
+  return r.width >= 30 && r.height >= 30;
+}), true);
+await p.locator('.topstrip .dial').click(); await p.waitForTimeout(600);
+ok('and it opens the same door', await p.locator('.mgmodal').count(), 1);
+await p.locator('.mgmodal [data-act="modalCancel"]').click(); await p.waitForTimeout(400);
+await p.evaluate(() => window.scrollTo(0, 0)); await p.waitForTimeout(600);
+ok('back at the top the nameplate itself is there, so the strip goes',
+  await p.evaluate(() => Math.round(document.querySelector('.topstrip').getBoundingClientRect().bottom) <= 0), true);
 
 console.log('\nand the words it used to carry are in the window it opens');
-await p.locator('.dial').click(); await p.waitForTimeout(600);
+await p.locator('.masthead .dial').click(); await p.waitForTimeout(600);
 ok('the dial opens Manage', await p.locator('.mgmodal').count(), 1);
 ok('which says whether the book is locked',
   (await p.locator('.mg-role .mg-rt').innerText()).trim(), 'Unlocked — no PIN');
@@ -203,14 +263,15 @@ for (const [label, w, h] of [['tablet 834', 834, 1000], ['laptop 1300', 1300, 90
   for (let i = 0; i < 5; i++) { const m = q.locator('.scrim [data-act="modalCancel"]');
     if (!await m.count()) break; await m.first().click({ force: true }).catch(() => {}); await q.waitForTimeout(200); }
   ok('the dial is here too', await q.locator('.masthead .dial').count(), 1);
+  ok('and only one of it', await q.locator('.dial:visible').count(), 1);
   ok('at the far right of the nameplate, past the tee time', await q.evaluate(() => {
-    const d = document.querySelector('.dial').getBoundingClientRect();
+    const d = document.querySelector('.masthead .dial').getBoundingClientRect();
     const t = document.querySelector('.mast-right').getBoundingClientRect();
     const wrap = document.querySelector('.wrap').getBoundingClientRect();
     return d.left > t.right - 1 && wrap.right - d.right < 40;
   }), true);
   ok('on one line with the name', await q.evaluate(() => {
-    const d = document.querySelector('.dial').getBoundingClientRect();
+    const d = document.querySelector('.masthead .dial').getBoundingClientRect();
     const hh = document.querySelector('.masthead h1').getBoundingClientRect();
     return d.top < hh.bottom && d.bottom > hh.top;
   }), true);
@@ -219,6 +280,18 @@ for (const [label, w, h] of [['tablet 834', 834, 1000], ['laptop 1300', 1300, 90
   /* No fixed bar at the foot, so no gutter is held back for one. */
   ok('and no gutter is held for a bar that is not there', await q.evaluate(
     () => parseFloat(getComputedStyle(document.querySelector('.wrap')).paddingBottom) < 60), true);
+  /* The phone's two economies are the phone's. There is room up here. */
+  ok('the nameplate keeps the venue and the dates',
+    await q.locator('.masthead .sub:visible').count(), 1);
+  ok('and the next tee time, with its caption',
+    await q.locator('.mast-right:visible').count(), 1);
+  ok('so there is no dateline', await q.locator('.dateline:visible').count(), 0);
+  ok('and nothing pinned to the top', await q.evaluate(
+    () => getComputedStyle(document.querySelector('.topstrip')).display), 'none');
+  ok('nor a gutter held for one', await q.evaluate(() => {
+    const v = getComputedStyle(document.documentElement).scrollPaddingTop;
+    return v === 'auto' || parseFloat(v) === 0;
+  }), true);
   await q.close();
 }
 

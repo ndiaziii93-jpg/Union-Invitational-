@@ -3330,8 +3330,26 @@ function markDocEnd() {
   const left = d.scrollHeight - window.innerHeight - window.scrollY;
   d.classList.toggle('docend', left <= 2);
 }
-addEventListener('scroll', markDocEnd, { passive: true });
-addEventListener('resize', markDocEnd, { passive: true });
+
+/* ---- the nameplate, and the strip that takes over from it ----
+   The strip comes up once the plate has gone off the top, and goes again
+   when it comes back. The depth it switches at is the plate's own height,
+   measured on each redraw rather than guessed, because the dateline under
+   the name is one line on some days and two on others. A few pixels of
+   hysteresis so a page resting exactly on the line does not flicker. */
+let plateH = 0;
+function measurePlate() {
+  const r = document.querySelector('.rule-heavy');
+  plateH = r ? Math.round(r.getBoundingClientRect().bottom + window.scrollY) : 0;
+}
+function markTop() {
+  const d = document.documentElement;
+  const up = d.classList.contains('up');
+  if (plateH) d.classList.toggle('up', window.scrollY > plateH - (up ? 14 : 2));
+}
+function onScroll() { markDocEnd(); markTop(); }
+addEventListener('scroll', onScroll, { passive: true });
+addEventListener('resize', () => { measurePlate(); onScroll(); }, { passive: true });
 
 function goTo(id) {
   if (id === UI.screen) { SCROLL_AT[id] = 0; UI.landAt = 0; }
@@ -3522,6 +3540,7 @@ function paint() {
       </div>
       ${manageDial(role)}
     </header>
+    ${datelineRail()}
     <div class="rule-heavy"></div>
     ${loaded() ? '' : `<div class="loadbar${meta.status === 'error' ? ' bad' : ''}">
       ${meta.status === 'error'
@@ -3541,6 +3560,7 @@ function paint() {
     </div>
   </div>
   ${tabBar()}
+  ${stickyTop(role)}
   ${UI.modal ? modalHtml() : ''}
   ${askPanel()}
   ${recapPanel()}`;
@@ -3574,11 +3594,15 @@ function paint() {
        finished growing, and a reading taken off the glass would then be
        wrong by however much it was clamped. */
     if (el) {
-      const at = Math.max(0, el.getBoundingClientRect().top + window.scrollY);
+      /* Clear of whatever is pinned at the top — the stylesheet already
+         states that, once, for everything that scrolls something into view. */
+      const pad = parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop) || 0;
+      const at = Math.max(0, el.getBoundingClientRect().top + window.scrollY - pad);
       if (want != null && want > at) scrollSettled(at);
     }
   }
-  markDocEnd();
+  measurePlate();
+  onScroll();
 
   opened.forEach(id => { const el = document.getElementById(id); if (el) el.open = true; });
 
@@ -3716,6 +3740,80 @@ function confirmModalHtml() {
 /* ONE DOOR FOR EVERYTHING SET ONCE, and the outstanding count belongs on it.
    This was two controls — a Setup chip and nothing else — and it is now the
    way in to the roster, the week, the courses and the rules as well. */
+/* ---------------- the dateline ----------------
+ *
+ * The nameplate used to carry the venue and the dates — a line a man reads
+ * once, on three lines of a 390-point screen, every screen, all week — and
+ * a "Next Tee Time" caption over a value that says what it is without being
+ * told. Both are gone from the phone. What replaces them is a dateline: the
+ * three facts that actually move, set in the tracked capitals the day's
+ * recap already uses, on one line.
+ *
+ * Where you are in the week, what is being played, and when you are off.
+ */
+function dateline() {
+  const i = D.DAYS.findIndex(d => d.iso === now.iso);
+  const n = i + 1;
+  const out = [];
+
+  if (n) out.push('Day ' + n + ' of ' + D.DAYS.length);
+  else {
+    const to = Math.round((Date.parse(D.DAYS[0].iso) - Date.parse(now.iso)) / 86400000);
+    out.push(to > 0 ? to + ' day' + (to === 1 ? '' : 's') + ' to go' : 'After the week');
+  }
+
+  const nt = E.nextTee(T, now);
+  const today = n ? D.ROUNDS.find(r => r.dayIdx === n) : null;
+  const named = r => r.short === 'Practice' ? 'Practice' : 'Round ' + r.short.slice(1);
+  if (today) out.push(named(today));
+  else if (n) {
+    /* No golf today, so the rail says what the day IS. In the order the week
+       actually reads: the two ceremonies are the point of the days they fall
+       on, an arrival or a departure is a travel day, and what is left is a
+       rest day. */
+    const on = T.config.schedule.filter(e => e.dayIdx === n);
+    out.push(on.some(e => e.kind === 'ceremony') ? 'Ceremony'
+           : on.some(e => e.kind === 'travel') ? 'Travel day'
+           : 'Rest day');
+  }
+  else if (nt) out.push(named(nt.round));
+
+  /* The one fact a man checks twice, so it is the one the rail picks out. */
+  if (nt) out.push({ t: (nt.day.iso === now.iso ? 'Off ' : nt.day.dow.slice(0, 3) + ' ') + E.to12(nt.time), hot: true });
+  return out.map(b => typeof b === 'string' ? { t: b, hot: false } : b);
+}
+
+/** The dateline as the nameplate carries it — phone only, by the stylesheet. */
+function datelineRail() {
+  return `<div class="dateline">${dateline().map(b =>
+    `<span${b.hot ? ' class="hot"' : ''}>${esc(b.t)}</span>`).join('')}</div>`;
+}
+
+/* ---------------- the strip that stays ----------------
+ *
+ * The nameplate is at the head of the page, so once you are reading a board
+ * the crest is gone and there is nothing up there at all — only the bar at
+ * the foot. The plate collapses instead: scroll past it and it comes back as
+ * a band of pine across the top carrying the shield, the name, when you are
+ * off and the dial, and the page runs under it.
+ *
+ * It is laid OVER the page rather than put in it, so nothing reflows when it
+ * appears and nothing jumps when it goes; `scroll-padding-top` is what keeps
+ * anything scrolled into view clear of it, the same way the bar at the foot
+ * is handled.
+ */
+function stickyTop(role) {
+  const n = E.setupIssues(T).length;
+  const nt = E.nextTee(T, now);
+  const when = nt ? (nt.day.iso === now.iso ? '' : nt.day.dow.slice(0, 3) + ' ') + E.to12(nt.time) : '';
+  return `<div class="topstrip" aria-hidden="true">
+    ${IMG.crest ? `<img class="ts-c" src="${IMG.crest}" alt="">` : ''}
+    <span class="ts-n">Union Invitational</span>
+    ${when ? `<span class="ts-t num">${esc(when)}</span>` : ''}
+    ${dialMark(role, n, 'ts-d')}
+  </div>`;
+}
+
 /* ---------------- the dial ----------------
  *
  * Two full-width buttons used to sit under the masthead — Manage, and a
@@ -3731,13 +3829,21 @@ function confirmModalHtml() {
  * the band.
  */
 function manageDial(role) {
-  const n = E.setupIssues(T).length;
+  return dialMark(role, E.setupIssues(T).length, '');
+}
+
+/* The same mark twice: once on the nameplate, once on the strip that stays
+   when the nameplate has scrolled away. Only one of the two is ever on the
+   glass, so only one is ever in the tab order — the strip's copy is lifted
+   out of it and out of the accessibility tree with the band it sits in,
+   which already says all of this in the nameplate above. */
+function dialMark(role, n, extra) {
   const state = !D.PINS_ENABLED ? 'free' : UI.role === 'viewer' ? 'shut' : 'in';
   const says = !D.PINS_ENABLED ? 'unlocked, no PIN set'
              : UI.role === 'viewer' ? 'locked, a PIN is needed to score'
-             : (role.label || 'signed in').toLowerCase() + ', signed in';
-  return `<button class="dial ${state}" data-act="manageOpen"
-    aria-label="Manage the book — ${esc(says)}${n ? ', ' + n + ' still to settle' : ''}">
+             : ((role && role.label) || 'signed in').toLowerCase() + ', signed in';
+  return `<button class="dial ${state}${extra ? ' ' + extra : ''}" data-act="manageOpen"
+    ${extra ? 'tabindex="-1" ' : ''}aria-label="Manage the book — ${esc(says)}${n ? ', ' + n + ' still to settle' : ''}">
     <svg class="dial-g" viewBox="0 0 48 48" fill="none" stroke="currentColor" aria-hidden="true">
       <circle class="dial-r" cx="24" cy="24" r="20" stroke-width="1.4"/>
       <circle cx="24" cy="24" r="2.6" fill="currentColor" stroke="none"/>

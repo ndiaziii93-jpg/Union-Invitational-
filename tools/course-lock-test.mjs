@@ -106,7 +106,7 @@ const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' })
 
   /* Signing in is behind the dial now, with everything else that is settled
      rather than played: the masthead carries one mark, not a row of chips. */
-  await p.locator('.dial').click(); await p.waitForTimeout(400);
+  await p.locator('.masthead .dial').click(); await p.waitForTimeout(400);
   ok('and the window says the book is locked',
     (await p.locator('.mg-role .mg-rt').innerText()).trim(), 'Viewer');
   await p.locator('.mg-role [data-act="signIn"]').click(); await p.waitForTimeout(300);

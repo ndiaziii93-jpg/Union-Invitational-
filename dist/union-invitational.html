@@ -662,6 +662,45 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 /* ---- Manage: one door for everything set once ---- */
 .setup-chip.manage.done{color:var(--ink)}
 
+/* ---- the dateline ----
+   Three facts in tracked capitals: where we are in the week, what is being
+   played, and when you are off. The same register the day's recap sets its
+   metarail in — brought forward, not invented. Phone only: a tablet and a
+   laptop have room for the nameplate as it has always been. */
+.dateline{display:none}
+.dateline span{white-space:nowrap}
+.dateline span+span::before{content:"\00B7";padding:0 7px;color:var(--rule);font-weight:400}
+.dateline .hot{color:var(--green)}
+
+/* ---- the strip that stays ----
+   Laid over the page, never in it: it appears and goes without a single
+   pixel of the book moving. Pine, because it is the same furniture as the
+   bar at the foot, and the shield is struck white on it so the crest is
+   never more than a glance away wherever you have got to. */
+.topstrip{position:fixed;top:0;left:0;right:0;z-index:45;
+  display:none;align-items:center;gap:9px;
+  padding:7px max(14px,env(safe-area-inset-left,0px)) 7px max(14px,env(safe-area-inset-right,0px));
+  padding-top:calc(7px + env(safe-area-inset-top,0px));
+  background:var(--ink);color:var(--page);border-bottom:3px solid var(--gold-up);
+  box-shadow:0 6px 18px rgba(29,46,33,.22);
+  transform:translateY(-100%);transition:transform .2s cubic-bezier(.22,.61,.36,1)}
+.ts-c{width:26px;height:auto;flex:0 0 auto;filter:invert(1);opacity:.94}
+.ts-n{font-size:14.5px;font-weight:700;letter-spacing:.01em;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;min-width:0}
+.ts-t{margin-left:auto;font-size:13px;color:var(--sage-up);white-space:nowrap;flex:0 0 auto}
+.dial.ts-d{width:32px;height:32px;flex:0 0 auto;margin-left:9px}
+.dial.ts-d .dial-g{width:30px;height:30px}
+.dial.ts-d.free{color:var(--gold-up)}
+.dial.ts-d.shut{color:var(--sage-up)}
+.dial.ts-d.in{color:var(--page)}
+.dial.ts-d .dial-ct{box-shadow:0 0 0 2px var(--ink);min-width:18px;height:18px;line-height:18px;
+  font-size:11px;top:-3px;right:-4px}
+/* The same fade as the bar at the foot, the other way up: the page
+   dissolves into the strip rather than being cut off by it. */
+.topstrip::after{content:"";position:absolute;left:0;right:0;top:100%;height:22px;
+  pointer-events:none;background:linear-gradient(to bottom,var(--paper),rgba(227,219,203,0))}
+@media (prefers-reduced-motion:reduce){ .topstrip{transition:none} }
+
 /* ---- the dial ----
    One mark where the two full-width buttons used to band the page. The ring
    is the lock, the sunburst is the crest's own compass, and the count in the
@@ -1183,7 +1222,16 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
      rather than beside the name it belongs to. */
   .dial{order:3;margin-left:auto;align-self:flex-start;width:42px;height:42px}
   .dial-g{width:40px;height:40px}
-  .mast-right{order:4;flex:1 1 100%;align-items:stretch;text-align:left}
+  /* THE VENUE LINE AND THE TEE-TIME CAPTION BOTH GO. One says where you are
+     — which you know, and which The Titanic tab says in full — on three
+     lines of a 390-point screen. The other is a caption over a value that
+     reads perfectly well on its own. The dateline says what is left of both
+     in one line, and says the part that changes. */
+  .masthead .sub{display:none}
+  .mast-right{display:none}
+  .dateline{display:flex;flex-wrap:wrap;align-items:center;
+    padding:0 0 9px;font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;
+    color:var(--turf);font-weight:700}
   .weekgrid{grid-template-columns:1fr;gap:14px}
   .daycard{min-height:0}
   .daystrip{flex-wrap:wrap}
@@ -2330,7 +2378,14 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
         than one that is scrolling past. A short fade of the paper, just
         above the ink, makes it dissolve instead. */
   .wrap{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
-  html{scroll-padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+  /* Both rails declared once, in the one place a browser reads when it has
+     to put something on screen for you: the bar at the foot, and the strip
+     that takes over from the nameplate at the head. */
+  html{scroll-padding-bottom:calc(84px + env(safe-area-inset-bottom,0px));
+       scroll-padding-top:calc(52px + env(safe-area-inset-top,0px))}
+  /* The strip is only ever here, and only once the plate has gone. */
+  .topstrip{display:flex}
+  html.up .topstrip{transform:none}
   .tabbar::before{content:"";position:absolute;left:0;right:0;bottom:100%;height:28px;
     pointer-events:none;background:linear-gradient(to top,var(--paper),rgba(227,219,203,0));
     opacity:1;transition:opacity .18s ease}
@@ -2478,7 +2533,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261015-0623';
+const BUILD = '20261015-0721';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -9331,8 +9386,26 @@ function markDocEnd() {
   const left = d.scrollHeight - window.innerHeight - window.scrollY;
   d.classList.toggle('docend', left <= 2);
 }
-addEventListener('scroll', markDocEnd, { passive: true });
-addEventListener('resize', markDocEnd, { passive: true });
+
+/* ---- the nameplate, and the strip that takes over from it ----
+   The strip comes up once the plate has gone off the top, and goes again
+   when it comes back. The depth it switches at is the plate's own height,
+   measured on each redraw rather than guessed, because the dateline under
+   the name is one line on some days and two on others. A few pixels of
+   hysteresis so a page resting exactly on the line does not flicker. */
+let plateH = 0;
+function measurePlate() {
+  const r = document.querySelector('.rule-heavy');
+  plateH = r ? Math.round(r.getBoundingClientRect().bottom + window.scrollY) : 0;
+}
+function markTop() {
+  const d = document.documentElement;
+  const up = d.classList.contains('up');
+  if (plateH) d.classList.toggle('up', window.scrollY > plateH - (up ? 14 : 2));
+}
+function onScroll() { markDocEnd(); markTop(); }
+addEventListener('scroll', onScroll, { passive: true });
+addEventListener('resize', () => { measurePlate(); onScroll(); }, { passive: true });
 
 function goTo(id) {
   if (id === UI.screen) { SCROLL_AT[id] = 0; UI.landAt = 0; }
@@ -9523,6 +9596,7 @@ function paint() {
       </div>
       ${manageDial(role)}
     </header>
+    ${datelineRail()}
     <div class="rule-heavy"></div>
     ${loaded() ? '' : `<div class="loadbar${meta.status === 'error' ? ' bad' : ''}">
       ${meta.status === 'error'
@@ -9542,6 +9616,7 @@ function paint() {
     </div>
   </div>
   ${tabBar()}
+  ${stickyTop(role)}
   ${UI.modal ? modalHtml() : ''}
   ${askPanel()}
   ${recapPanel()}`;
@@ -9575,11 +9650,15 @@ function paint() {
        finished growing, and a reading taken off the glass would then be
        wrong by however much it was clamped. */
     if (el) {
-      const at = Math.max(0, el.getBoundingClientRect().top + window.scrollY);
+      /* Clear of whatever is pinned at the top — the stylesheet already
+         states that, once, for everything that scrolls something into view. */
+      const pad = parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop) || 0;
+      const at = Math.max(0, el.getBoundingClientRect().top + window.scrollY - pad);
       if (want != null && want > at) scrollSettled(at);
     }
   }
-  markDocEnd();
+  measurePlate();
+  onScroll();
 
   opened.forEach(id => { const el = document.getElementById(id); if (el) el.open = true; });
 
@@ -9717,6 +9796,80 @@ function confirmModalHtml() {
 /* ONE DOOR FOR EVERYTHING SET ONCE, and the outstanding count belongs on it.
    This was two controls — a Setup chip and nothing else — and it is now the
    way in to the roster, the week, the courses and the rules as well. */
+/* ---------------- the dateline ----------------
+ *
+ * The nameplate used to carry the venue and the dates — a line a man reads
+ * once, on three lines of a 390-point screen, every screen, all week — and
+ * a "Next Tee Time" caption over a value that says what it is without being
+ * told. Both are gone from the phone. What replaces them is a dateline: the
+ * three facts that actually move, set in the tracked capitals the day's
+ * recap already uses, on one line.
+ *
+ * Where you are in the week, what is being played, and when you are off.
+ */
+function dateline() {
+  const i = D.DAYS.findIndex(d => d.iso === now.iso);
+  const n = i + 1;
+  const out = [];
+
+  if (n) out.push('Day ' + n + ' of ' + D.DAYS.length);
+  else {
+    const to = Math.round((Date.parse(D.DAYS[0].iso) - Date.parse(now.iso)) / 86400000);
+    out.push(to > 0 ? to + ' day' + (to === 1 ? '' : 's') + ' to go' : 'After the week');
+  }
+
+  const nt = E.nextTee(T, now);
+  const today = n ? D.ROUNDS.find(r => r.dayIdx === n) : null;
+  const named = r => r.short === 'Practice' ? 'Practice' : 'Round ' + r.short.slice(1);
+  if (today) out.push(named(today));
+  else if (n) {
+    /* No golf today, so the rail says what the day IS. In the order the week
+       actually reads: the two ceremonies are the point of the days they fall
+       on, an arrival or a departure is a travel day, and what is left is a
+       rest day. */
+    const on = T.config.schedule.filter(e => e.dayIdx === n);
+    out.push(on.some(e => e.kind === 'ceremony') ? 'Ceremony'
+           : on.some(e => e.kind === 'travel') ? 'Travel day'
+           : 'Rest day');
+  }
+  else if (nt) out.push(named(nt.round));
+
+  /* The one fact a man checks twice, so it is the one the rail picks out. */
+  if (nt) out.push({ t: (nt.day.iso === now.iso ? 'Off ' : nt.day.dow.slice(0, 3) + ' ') + E.to12(nt.time), hot: true });
+  return out.map(b => typeof b === 'string' ? { t: b, hot: false } : b);
+}
+
+/** The dateline as the nameplate carries it — phone only, by the stylesheet. */
+function datelineRail() {
+  return `<div class="dateline">${dateline().map(b =>
+    `<span${b.hot ? ' class="hot"' : ''}>${esc(b.t)}</span>`).join('')}</div>`;
+}
+
+/* ---------------- the strip that stays ----------------
+ *
+ * The nameplate is at the head of the page, so once you are reading a board
+ * the crest is gone and there is nothing up there at all — only the bar at
+ * the foot. The plate collapses instead: scroll past it and it comes back as
+ * a band of pine across the top carrying the shield, the name, when you are
+ * off and the dial, and the page runs under it.
+ *
+ * It is laid OVER the page rather than put in it, so nothing reflows when it
+ * appears and nothing jumps when it goes; `scroll-padding-top` is what keeps
+ * anything scrolled into view clear of it, the same way the bar at the foot
+ * is handled.
+ */
+function stickyTop(role) {
+  const n = E.setupIssues(T).length;
+  const nt = E.nextTee(T, now);
+  const when = nt ? (nt.day.iso === now.iso ? '' : nt.day.dow.slice(0, 3) + ' ') + E.to12(nt.time) : '';
+  return `<div class="topstrip" aria-hidden="true">
+    ${IMG.crest ? `<img class="ts-c" src="${IMG.crest}" alt="">` : ''}
+    <span class="ts-n">Union Invitational</span>
+    ${when ? `<span class="ts-t num">${esc(when)}</span>` : ''}
+    ${dialMark(role, n, 'ts-d')}
+  </div>`;
+}
+
 /* ---------------- the dial ----------------
  *
  * Two full-width buttons used to sit under the masthead — Manage, and a
@@ -9732,13 +9885,21 @@ function confirmModalHtml() {
  * the band.
  */
 function manageDial(role) {
-  const n = E.setupIssues(T).length;
+  return dialMark(role, E.setupIssues(T).length, '');
+}
+
+/* The same mark twice: once on the nameplate, once on the strip that stays
+   when the nameplate has scrolled away. Only one of the two is ever on the
+   glass, so only one is ever in the tab order — the strip's copy is lifted
+   out of it and out of the accessibility tree with the band it sits in,
+   which already says all of this in the nameplate above. */
+function dialMark(role, n, extra) {
   const state = !D.PINS_ENABLED ? 'free' : UI.role === 'viewer' ? 'shut' : 'in';
   const says = !D.PINS_ENABLED ? 'unlocked, no PIN set'
              : UI.role === 'viewer' ? 'locked, a PIN is needed to score'
-             : (role.label || 'signed in').toLowerCase() + ', signed in';
-  return `<button class="dial ${state}" data-act="manageOpen"
-    aria-label="Manage the book — ${esc(says)}${n ? ', ' + n + ' still to settle' : ''}">
+             : ((role && role.label) || 'signed in').toLowerCase() + ', signed in';
+  return `<button class="dial ${state}${extra ? ' ' + extra : ''}" data-act="manageOpen"
+    ${extra ? 'tabindex="-1" ' : ''}aria-label="Manage the book — ${esc(says)}${n ? ', ' + n + ' still to settle' : ''}">
     <svg class="dial-g" viewBox="0 0 48 48" fill="none" stroke="currentColor" aria-hidden="true">
       <circle class="dial-r" cx="24" cy="24" r="20" stroke-width="1.4"/>
       <circle cx="24" cy="24" r="2.6" fill="currentColor" stroke="none"/>

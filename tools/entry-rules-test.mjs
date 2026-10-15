@@ -291,7 +291,7 @@ ok('five tabs, and these five', await p.evaluate(
   ['today', 'entry', 'boards', 'calendar', 'resort']);
 ok('the cup is not one of them — it is a board',
   await p.locator('.tab[data-a="ryder"]').count(), 0);
-await p.locator('[data-act="manageOpen"]').click(); await p.waitForTimeout(500);
+await p.locator('.masthead [data-act="manageOpen"]').click(); await p.waitForTimeout(500);
 ok('and the rest are behind Manage', await p.evaluate(
   () => [...document.querySelectorAll('.mg-row')].map(x => x.dataset.a)),
   ['setup', 'roster', 'tees', 'courses', 'rules']);

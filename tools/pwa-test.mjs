@@ -144,7 +144,9 @@ ok('the server really was unreachable', served, before);
 ok('the book opened anyway', await p.locator('.masthead h1').innerText(), 'The Union Invitational');
 /* Four tabs on the bar, and the rest behind Manage. */
 ok('with its five tabs', await p.locator('.tab').count(), 5);
-ok('and the door to everything set once', await p.locator('[data-act="manageOpen"]').count(), 1);
+/* Two in the tree — the nameplate's and the one on the strip that takes over
+   when the nameplate has scrolled away — and never two on the glass. */
+ok('and the door to everything set once', await p.locator('.masthead [data-act="manageOpen"]').count(), 1);
 await shut();
 await goTab(p, 'Score Entry'); await p.waitForTimeout(600); await shut();
 ok('and score entry still works with no signal', await p.locator('.rcards').count(), 1);
