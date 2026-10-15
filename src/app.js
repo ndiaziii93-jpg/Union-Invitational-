@@ -3192,8 +3192,30 @@ function manageModalHtml() {
           <span class="mg-go" aria-hidden="true">&rsaquo;</span></button>`;
       }).join('')}
     </div>
+    ${/* The two things that used to stand in the masthead all week: who the
+          book thinks you are, and whether it is asking anybody for a PIN.
+          They belong here, with the way to change them. */ ''}
+    <div class="mg-role">
+      <span class="mg-rw"><span class="mg-rt">${esc(roleLine())}</span>
+        <span class="mg-rn">${esc(roleNote())}</span></span>
+      ${D.PINS_ENABLED
+        ? `<button class="btn ghost mg-rb" data-act="signIn">${UI.role === 'viewer' ? 'Enter PIN' : 'Sign out'}</button>`
+        : ''}
+    </div>
     <div class="acts"><button class="btn ghost" data-act="modalCancel">Close</button></div>
   </div></div>`;
+}
+
+/** What the book calls you, and whether it is asking anybody for a PIN. */
+function roleLine() {
+  if (!D.PINS_ENABLED) return 'Unlocked — no PIN';
+  return UI.role === 'viewer' ? 'Viewer' : (S.ROLES[UI.role] || {}).label || 'Signed in';
+}
+function roleNote() {
+  if (!D.PINS_ENABLED) return 'Anybody holding a phone can score. Set the PINs on Setup to close it.';
+  return UI.role === 'viewer'
+    ? 'Read everything, change nothing. Enter a scorer PIN to put cards in.'
+    : 'You can enter and sign off scores.';
 }
 
 /** A re-render replaces the whole tree, which would blow away half-typed text
@@ -3254,6 +3276,69 @@ function inUse() {
 /* Every surface in the book that scrolls on its own. The page itself and the
    recap box are handled separately; these are the rest, and leaving any of
    them out means a redraw throws the reader back to the start of it. */
+/* ---------------- landing on a screen ----------------
+ *
+ * A tab used to drop you at the top of wherever you went, every time, which
+ * is the one behaviour no phone has had for fifteen years. Leave the boards
+ * half way down to check a tee time and you came back to the headline and
+ * had to find your place again.
+ *
+ * Each tab keeps its own place. Tapping the tab you are ALREADY on is the
+ * exception, and it means what it has always meant: take me back to the top.
+ * The scroll itself is put on after the new screen is in the page — set it
+ * before and the browser clamps it against the old screen's height. */
+const SCROLL_AT = Object.create(null);
+let paintedScreen = null;
+
+/* ---- the foot of the book ----
+   The bar is told whether there is still page under it. While there is, the
+   paper fades into the ink and the bar carries its lift; at the very bottom
+   there is nothing left to pass under, so both go and the bar sits flat on
+   the end of the book. Without this the last line of every screen looks cut
+   off by the bar rather than finished above it. */
+/* A TREE THAT HAS JUST BEEN WRITTEN IS NOT MEASURED YET. The photographs
+   and the serif the book is set in land frames later, so a page asked for a
+   position deeper than its half-built height is quietly given whatever it
+   can reach instead — and the reader, who was half way down a board, is put
+   back at the top of it. That is most of what reads as the book jumping.
+ *
+ * So the ask is repeated as the page grows, for up to six hundred
+ * milliseconds, and it stands down the moment any of three things is true:
+ * it arrived, a newer ask replaced it, or a finger moved the page itself. A
+ * reader always outranks a restore. */
+let settleId = 0;
+function scrollSettled(y) {
+  const id = ++settleId;
+  window.scrollTo(0, y);
+  if (Math.abs(window.scrollY - y) <= 1) return;
+  let lastSet = window.scrollY;            // what the half-built page allowed
+  const until = (performance && performance.now ? performance.now() : Date.now()) + 600;
+  const again = () => {
+    if (id !== settleId) return;                        // a newer ask won
+    if (Math.abs(window.scrollY - lastSet) > 1) return; // somebody scrolled: leave them be
+    if (Math.abs(window.scrollY - y) <= 1) return;      // arrived
+    window.scrollTo(0, y);
+    lastSet = window.scrollY;
+    if ((performance && performance.now ? performance.now() : Date.now()) < until)
+      requestAnimationFrame(again);
+  };
+  requestAnimationFrame(again);
+}
+
+function markDocEnd() {
+  const d = document.documentElement;
+  const left = d.scrollHeight - window.innerHeight - window.scrollY;
+  d.classList.toggle('docend', left <= 2);
+}
+addEventListener('scroll', markDocEnd, { passive: true });
+addEventListener('resize', markDocEnd, { passive: true });
+
+function goTo(id) {
+  if (id === UI.screen) { SCROLL_AT[id] = 0; UI.landAt = 0; }
+  else { SCROLL_AT[UI.screen] = window.scrollY; UI.landAt = SCROLL_AT[id] || 0; }
+  UI.screen = id;
+}
+
 const SCROLLERS = '.btabs, .tabs, .scroller, .daystrip, .planwrap, .askbox';
 /** What each one is, so it can be found again after the rebuild. An index is
  *  not enough: a window opening adds a scroller near the front of the list
@@ -3396,6 +3481,13 @@ function paint() {
                  calendar: scrCalendar, entry: scrEntry, roster: scrRoster, rules: scrRules,
                  tees: scrTees,
                  courses: scrCourses, setup: scrSetup }[UI.screen]();
+  /* AN ARRIVAL IS NOT A REDRAW. The book redraws itself every few seconds
+     off the shared store, and a page that faded in on each of those would
+     flicker all week. The screen rises and resolves only when it is actually
+     a different screen — the rest of the time it is replaced in place, as
+     it always was. */
+  const turning = paintedScreen !== UI.screen;
+  paintedScreen = UI.screen;
   /* The forecast is only ever wanted on one screen, so it is only ever asked
      for there — and `loadWeather` itself refuses to go more often than the
      quarter hour the reading changes on. */
@@ -3427,13 +3519,8 @@ function paint() {
       <div class="mast-right">
         <div class="lbl">Next Tee Time</div>
         <div class="val num">${nt ? esc(nt.day.dow) + ' ' + esc(E.to12(nt.time)) + ' — ' + esc(nt.round.short === 'Practice' ? 'Practice' : 'Round ' + nt.round.short.slice(1)) : '—'}</div>
-        <div class="mast-actions">
-          ${manageChip()}
-          ${D.PINS_ENABLED
-            ? `<button class="chip" data-act="signIn">${esc(role.label)}${UI.role === 'viewer' ? ' — enter PIN' : ' — sign out'}</button>`
-            : `<span class="chip">Unlocked — no PIN</span>`}
-        </div>
       </div>
+      ${manageDial(role)}
     </header>
     <div class="rule-heavy"></div>
     ${loaded() ? '' : `<div class="loadbar${meta.status === 'error' ? ' bad' : ''}">
@@ -3445,7 +3532,7 @@ function paint() {
         `<button class="tab${id === 'resort' ? ' named' : ''}" data-act="go" data-a="${id}"${UI.screen === id ? ' aria-current="page"' : ''}
           aria-label="${esc(label)}"><span class="lg">${esc(label)}</span><span class="sm">${esc(short)}</span></button>`).join('')}
     </nav>
-    ${body}
+    <main class="page"${turning ? ' data-turn="1"' : ''}>${body}</main>
     <div class="statusbar">
       <span class="dot ${dot}"></span><span>${esc(statusText)}</span>
       <span>${D.PINS_ENABLED ? esc(role.label) : 'Unlocked — anyone can score'}</span>
@@ -3469,7 +3556,29 @@ function paint() {
 
   const box2 = document.getElementById('recapBox');
   if (box2 && boxAt) box2.scrollTop = boxAt;
-  if (wasAt && !UI.recapOpen) window.scrollTo(0, wasAt);
+  /* A tab tapped says where to land and that wins; anything else is a redraw
+     of the screen already on, which must not move at all. */
+  /* ---- WHERE THE READER ENDS UP ----
+     Three things have a say, in this order: a tab tapped, which says exactly
+     where to land; a redraw of the screen already on, which must not move at
+     all; and a sub-tab, which may only pull somebody UP to the strip, never
+     push them down the page. */
+  let want = UI.landAt != null ? UI.landAt : (UI.recapOpen ? null : wasAt);
+  UI.landAt = null;
+  if (want != null) scrollSettled(want);
+  if (UI.liftTo) {
+    const el = document.querySelector(UI.liftTo);
+    UI.liftTo = null;
+    /* Measured as an offset from the top of the page, not from the top of
+       the glass: the line above may have been clamped by a page that is not
+       finished growing, and a reading taken off the glass would then be
+       wrong by however much it was clamped. */
+    if (el) {
+      const at = Math.max(0, el.getBoundingClientRect().top + window.scrollY);
+      if (want != null && want > at) scrollSettled(at);
+    }
+  }
+  markDocEnd();
 
   opened.forEach(id => { const el = document.getElementById(id); if (el) el.open = true; });
 
@@ -3607,11 +3716,38 @@ function confirmModalHtml() {
 /* ONE DOOR FOR EVERYTHING SET ONCE, and the outstanding count belongs on it.
    This was two controls — a Setup chip and nothing else — and it is now the
    way in to the roster, the week, the courses and the rules as well. */
-function manageChip() {
+/* ---------------- the dial ----------------
+ *
+ * Two full-width buttons used to sit under the masthead — Manage, and a
+ * standing label saying whether the book was locked. Between them they took
+ * a band the width of the page to say something a reader only wants on the
+ * two occasions he wants it, and on a phone that band is a tenth of the
+ * screen, every screen, all week.
+ *
+ * It is one mark instead, set where a crest's compass would be: the ring is
+ * the lock, the count in the corner is what is still to settle, and pressing
+ * it opens the door. Nothing is lost — the words are all still said, in the
+ * window it opens and in the label a screen reader is given. What goes is
+ * the band.
+ */
+function manageDial(role) {
   const n = E.setupIssues(T).length;
-  return `<button class="setup-chip manage${n ? ' open' : ' done'}" data-act="manageOpen"
-      aria-label="Manage the book${n ? ', ' + n + ' thing' + (n > 1 ? 's' : '') + ' still to settle' : ''}">
-      <span class="mk">${n ? '!' : '✓'}</span>Manage${n ? `<span class="ct">${n}</span>` : ''}</button>`;
+  const state = !D.PINS_ENABLED ? 'free' : UI.role === 'viewer' ? 'shut' : 'in';
+  const says = !D.PINS_ENABLED ? 'unlocked, no PIN set'
+             : UI.role === 'viewer' ? 'locked, a PIN is needed to score'
+             : (role.label || 'signed in').toLowerCase() + ', signed in';
+  return `<button class="dial ${state}" data-act="manageOpen"
+    aria-label="Manage the book — ${esc(says)}${n ? ', ' + n + ' still to settle' : ''}">
+    <svg class="dial-g" viewBox="0 0 48 48" fill="none" stroke="currentColor" aria-hidden="true">
+      <circle class="dial-r" cx="24" cy="24" r="20" stroke-width="1.4"/>
+      <circle cx="24" cy="24" r="2.6" fill="currentColor" stroke="none"/>
+      <g stroke-width="1.6" stroke-linecap="round">
+        <path d="M24 12.4v3.6M24 32v3.6M12.4 24h3.6M32 24h3.6"/>
+        <path d="M16.2 16.2l2.5 2.5M29.3 29.3l2.5 2.5M31.8 16.2l-2.5 2.5M18.7 29.3l-2.5 2.5"/>
+      </g>
+    </svg>
+    ${n ? `<span class="dial-ct" aria-hidden="true">${n}</span>` : ''}
+  </button>`;
 }
 
 /* Closest to the pin and longest drive are nominated before anyone tees off,
@@ -4234,10 +4370,10 @@ function onClick(e) {
       if (UI.modal && UI.modal.kind === 'manage') { UI.modal = null; UI.modalErr = ''; }
       /* The cup used to be a tab of its own as well as a board. It is one
          place now, and anything still asking for the old one lands there. */
-      if (a === 'ryder') { UI.screen = 'boards'; UI.boardTab = 'ryder'; window.scrollTo(0, 0); break; }
+      if (a === 'ryder') { goTo('boards'); UI.boardTab = 'ryder'; break; }
       if (a === 'entry') {     // going to the hole, not away from it
         if (UI.screen === 'courses') relockCards();
-        UI.screen = a; UI.modal = null; window.scrollTo(0, 0);
+        goTo(a); UI.modal = null;
         if (!UI.entrySeen) {
           UI.entrySeen = true;
           if (E.setupIssues(T).some(i => SETUP_SCOPES.entry.only.includes(i.id))) UI.modal = { kind: 'setup', scope: 'entry' };
@@ -4247,7 +4383,7 @@ function onClick(e) {
       }
       guardDraft(() => {
         if (UI.screen === 'courses' && a !== 'courses') relockCards();
-        UI.screen = a; UI.modal = null; window.scrollTo(0, 0);
+        goTo(a); UI.modal = null;
         if (a === 'entry' && !UI.entrySeen) {
           UI.entrySeen = true;
           if (E.setupIssues(T).some(i => SETUP_SCOPES.entry.only.includes(i.id))) UI.modal = { kind: 'setup', scope: 'entry' };
@@ -4336,11 +4472,16 @@ function onClick(e) {
        book can still have it, from inside the window. */
     case 'goRule': UI.modal = { kind: 'rule', id: a }; break;
     case 'goRulePage':
-      UI.modal = null; UI.screen = 'rules'; window.scrollTo(0, 0); render();
+      UI.modal = null; goTo('rules'); render();
       { const d = document.getElementById('rule-' + a); if (d) { d.open = true; d.scrollIntoView({ block: 'center' }); } }
       return;
-    case 'boardTab': UI.boardTab = a; break;
-    case 'resortTab': commitResortNote(); UI.resortTab = a; break;
+    /* A different board under the same strip is a different page. Landing on
+       it at the depth you had reached in the one before drops you into the
+       middle of a list whose top you have never seen — which is most of what
+       "it lands behind the bar" turned out to be. The strip comes back up to
+       the top of the glass and the new board starts where it starts. */
+    case 'boardTab': UI.boardTab = a; UI.liftTo = '.btabs'; break;
+    case 'resortTab': commitResortNote(); UI.resortTab = a; UI.liftTo = '.btabs'; break;
     case 'resortPlanCat': UI.resortPlanCat = a; UI.resortPin = null; break;
     /* Choosing a point is a request to look at it closely. From the whole
        plan that means going in; from a level somebody has already chosen it
@@ -4470,7 +4611,7 @@ function onClick(e) {
     }
     case 'revealPins': UI.revealPins = !UI.revealPins; break;
     case 'setupOpen': UI.modal = { kind: 'setup', scope: a || 'all' }; UI.modalErr = ''; break;
-    case 'setupGo': UI.modal = null; UI.screen = a; window.scrollTo(0, 0); break;
+    case 'setupGo': UI.modal = null; goTo(a); break;
 
     case 'signIn':
       if (UI.role !== 'viewer') { UI.role = 'viewer'; saveRole('viewer'); if (UI.screen === 'setup') UI.screen = 'today'; break; }

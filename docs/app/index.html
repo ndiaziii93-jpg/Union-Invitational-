@@ -117,6 +117,18 @@ a{color:var(--green);text-underline-offset:3px}
 .nos::-webkit-scrollbar{display:none}
 .wrap{max-width:1180px;margin:0 auto;padding:0 clamp(14px,3vw,26px) 40px;position:relative;z-index:1}
 
+/* ---- a screen arriving ----
+   A tap used to swap one screen for another between two frames, with nothing
+   in between — which on a phone, under a fixed bar, reads as the page having
+   been there all along and the bar having been laid over it. A fifth of a
+   second of rise and resolve is enough to say a page was turned. It is on
+   the body of the screen only: the nameplate and the bar are the furniture
+   the pages are turned inside, and furniture that moves is a glitch. */
+.page{display:block}
+@keyframes pageTurn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.page[data-turn]{animation:pageTurn 200ms cubic-bezier(.22,.61,.36,1) both}
+@media (prefers-reduced-motion:reduce){.page[data-turn]{animation:none}}
+
 /* ---- watermark & masthead ---- */
 /* The crest behind every page — and, for the first two seconds of it, in
    front of the page instead. This is the resting state, which is also where
@@ -716,6 +728,34 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 
 /* ---- Manage: one door for everything set once ---- */
 .setup-chip.manage.done{color:var(--ink)}
+
+/* ---- the dial ----
+   One mark where the two full-width buttons used to band the page. The ring
+   is the lock, the sunburst is the crest's own compass, and the count in the
+   corner is what is still to settle. */
+.dial{flex:0 0 auto;position:relative;width:46px;height:46px;padding:0;border:0;background:none;
+  color:var(--turf);border-radius:50%;display:grid;place-items:center;align-self:center}
+.dial-g{width:44px;height:44px;display:block;transition:transform .14s ease}
+@media (hover:hover) and (pointer:fine){ .dial:hover{color:var(--ink)} .dial:hover .dial-g{transform:rotate(22deg)} }
+.dial:focus-visible{outline:2px solid var(--flag);outline-offset:2px}
+.dial:active .dial-g{transform:scale(.94)}
+/* no PIN anywhere: the ring is not closed, and says so without a word */
+.dial.free{color:var(--gold)}
+.dial.free .dial-r{stroke-dasharray:4.5 5.5}
+.dial.shut{color:var(--turf)}
+.dial.in{color:var(--green)}
+.dial-ct{position:absolute;top:-1px;right:-3px;min-width:21px;height:21px;padding:0 5px;
+  border-radius:999px;background:var(--flag);color:#FBFAF7;font-size:12.5px;font-weight:700;
+  line-height:21px;text-align:center;font-variant-numeric:tabular-nums;
+  box-shadow:0 0 0 2px var(--paper)}
+
+/* ---- who the book thinks you are, in the window that settles things ---- */
+.mg-role{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:14px;
+  padding:12px 13px;background:var(--paper);border-left:3px solid var(--gold);border-radius:2px}
+.mg-rw{flex:1 1 180px;min-width:0}
+.mg-rt{display:block;font-size:15px;font-weight:700}
+.mg-rn{display:block;font-size:13px;color:var(--turf);margin-top:2px;line-height:1.45}
+.mg-rb{flex:0 0 auto;min-height:38px;padding:7px 14px;font-size:14px}
 .mgmodal{--mpad-x:20px;max-width:460px;gap:0;padding:22px 20px 18px}
 .mglist{display:grid;margin-top:14px;border-top:1px solid var(--hair)}
 .mg-row{display:flex;align-items:center;gap:12px;width:100%;text-align:left;
@@ -1063,7 +1103,6 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
 .setup-item{display:flex;gap:14px;align-items:flex-start;padding:13px 0;border-bottom:1px solid var(--hair)}
 .setup-item .tx{flex:1;font-size:15px;line-height:1.45}
 .btn.sm{min-height:38px;padding:7px 13px;font-size:14px;white-space:nowrap;flex:0 0 auto}
-.mast-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end;margin-top:5px}
 .setup-chip{display:inline-flex;align-items:center;gap:8px;padding:7px 13px;border-radius:3px;
   font-size:15px;font-weight:600;min-height:40px;white-space:nowrap;border:1px solid transparent}
 .setup-chip.open{background:var(--flag);border-color:var(--flag);color:#FBFAF7}
@@ -1193,11 +1232,25 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
   /* saving stays in reach however long the hole list runs */
   .savebar{position:sticky;top:0;z-index:30;box-shadow:0 6px 16px -10px var(--shadow)}
 
-  .masthead{gap:10px;padding:12px 0 8px}
-  .masthead img{width:46px}
-  .mast-mid{flex:1 1 100%;order:2}
-  .mast-right{order:3;flex:1 1 100%;align-items:stretch;text-align:left}
-  .mast-actions{justify-content:flex-start}
+  /* THE NAMEPLATE, ON A PHONE. Crest, name and the dial on one line — the
+     three things that identify the book and the one control that is not a
+     destination — then the next tee time on its own line under them. The
+     dial is on the far right of the top line, which is the corner a thumb
+     reaches last and the eye looks at for a setting on every phone made. */
+  .masthead{gap:10px;padding:12px 0 8px;align-items:center}
+  .masthead img{width:44px}
+  .masthead .crestbtn{order:1}
+  /* flex-basis 0, not auto: on auto the name claims the width it wants, the
+     dial is pushed onto a line of its own and lands on the left, which is
+     the one corner a setting never sits in. */
+  .mast-mid{flex:1 1 0;min-width:0;order:2}
+  .masthead h1{font-size:20px}
+  /* flex-start, not centre: the venue line runs to three lines on a 390pt
+     screen, and a dial centred against the block lands beside the DATES
+     rather than beside the name it belongs to. */
+  .dial{order:3;margin-left:auto;align-self:flex-start;width:42px;height:42px}
+  .dial-g{width:40px;height:40px}
+  .mast-right{order:4;flex:1 1 100%;align-items:stretch;text-align:left}
   .weekgrid{grid-template-columns:1fr;gap:14px}
   .daycard{min-height:0}
   .daystrip{flex-wrap:wrap}
@@ -2326,8 +2379,32 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
     padding:7px max(6px,env(safe-area-inset-left,0px)) calc(7px + env(safe-area-inset-bottom,0px))
             max(6px,env(safe-area-inset-right,0px));
   }
-  /* The page has to end above the bar, not behind it. */
-  .wrap{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+  /* ---- THE PAGE, AND THE BAR IT ENDS AT ----
+
+     The page has to end ABOVE the bar, not behind it, and there are three
+     separate ways it can fail to:
+
+     1. The last line of the page lands under the bar. That is padding, and
+        it was already here — but it was a hair under what the bar needs
+        once the gold rule is counted, so the final line sat on the bar
+        rather than clear of it.
+     2. Something SCROLLED into view lands under the bar — a focused field, a
+        hole brought into reach, an anchor. The browser only knows to stop
+        short if it is told how much of the bottom is spoken for, which is
+        what scroll-padding is for and what was missing entirely.
+     3. Nothing says the page CONTINUES under the bar, so a row cut in half
+        by the bar's edge reads as a row that has been chopped off rather
+        than one that is scrolling past. A short fade of the paper, just
+        above the ink, makes it dissolve instead. */
+  .wrap{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
+  html{scroll-padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+  .tabbar::before{content:"";position:absolute;left:0;right:0;bottom:100%;height:28px;
+    pointer-events:none;background:linear-gradient(to top,var(--paper),rgba(227,219,203,0));
+    opacity:1;transition:opacity .18s ease}
+  /* At the foot of the page there is nothing left to pass under, so the fade
+     and the lift go, and the bar sits flat on the end of the book. */
+  html.docend .tabbar::before{opacity:0}
+  html.docend .tabbar{box-shadow:0 -2px 8px rgba(29,46,33,.10)}
   /* A window is over everything, the bar included. */
   .scrim{z-index:60}
 }
@@ -2497,7 +2574,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261014-1300';
+const BUILD = '20261015-0623';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -9212,8 +9289,30 @@ function manageModalHtml() {
           <span class="mg-go" aria-hidden="true">&rsaquo;</span></button>`;
       }).join('')}
     </div>
+    ${/* The two things that used to stand in the masthead all week: who the
+          book thinks you are, and whether it is asking anybody for a PIN.
+          They belong here, with the way to change them. */ ''}
+    <div class="mg-role">
+      <span class="mg-rw"><span class="mg-rt">${esc(roleLine())}</span>
+        <span class="mg-rn">${esc(roleNote())}</span></span>
+      ${D.PINS_ENABLED
+        ? `<button class="btn ghost mg-rb" data-act="signIn">${UI.role === 'viewer' ? 'Enter PIN' : 'Sign out'}</button>`
+        : ''}
+    </div>
     <div class="acts"><button class="btn ghost" data-act="modalCancel">Close</button></div>
   </div></div>`;
+}
+
+/** What the book calls you, and whether it is asking anybody for a PIN. */
+function roleLine() {
+  if (!D.PINS_ENABLED) return 'Unlocked — no PIN';
+  return UI.role === 'viewer' ? 'Viewer' : (S.ROLES[UI.role] || {}).label || 'Signed in';
+}
+function roleNote() {
+  if (!D.PINS_ENABLED) return 'Anybody holding a phone can score. Set the PINs on Setup to close it.';
+  return UI.role === 'viewer'
+    ? 'Read everything, change nothing. Enter a scorer PIN to put cards in.'
+    : 'You can enter and sign off scores.';
 }
 
 /** A re-render replaces the whole tree, which would blow away half-typed text
@@ -9274,6 +9373,69 @@ function inUse() {
 /* Every surface in the book that scrolls on its own. The page itself and the
    recap box are handled separately; these are the rest, and leaving any of
    them out means a redraw throws the reader back to the start of it. */
+/* ---------------- landing on a screen ----------------
+ *
+ * A tab used to drop you at the top of wherever you went, every time, which
+ * is the one behaviour no phone has had for fifteen years. Leave the boards
+ * half way down to check a tee time and you came back to the headline and
+ * had to find your place again.
+ *
+ * Each tab keeps its own place. Tapping the tab you are ALREADY on is the
+ * exception, and it means what it has always meant: take me back to the top.
+ * The scroll itself is put on after the new screen is in the page — set it
+ * before and the browser clamps it against the old screen's height. */
+const SCROLL_AT = Object.create(null);
+let paintedScreen = null;
+
+/* ---- the foot of the book ----
+   The bar is told whether there is still page under it. While there is, the
+   paper fades into the ink and the bar carries its lift; at the very bottom
+   there is nothing left to pass under, so both go and the bar sits flat on
+   the end of the book. Without this the last line of every screen looks cut
+   off by the bar rather than finished above it. */
+/* A TREE THAT HAS JUST BEEN WRITTEN IS NOT MEASURED YET. The photographs
+   and the serif the book is set in land frames later, so a page asked for a
+   position deeper than its half-built height is quietly given whatever it
+   can reach instead — and the reader, who was half way down a board, is put
+   back at the top of it. That is most of what reads as the book jumping.
+ *
+ * So the ask is repeated as the page grows, for up to six hundred
+ * milliseconds, and it stands down the moment any of three things is true:
+ * it arrived, a newer ask replaced it, or a finger moved the page itself. A
+ * reader always outranks a restore. */
+let settleId = 0;
+function scrollSettled(y) {
+  const id = ++settleId;
+  window.scrollTo(0, y);
+  if (Math.abs(window.scrollY - y) <= 1) return;
+  let lastSet = window.scrollY;            // what the half-built page allowed
+  const until = (performance && performance.now ? performance.now() : Date.now()) + 600;
+  const again = () => {
+    if (id !== settleId) return;                        // a newer ask won
+    if (Math.abs(window.scrollY - lastSet) > 1) return; // somebody scrolled: leave them be
+    if (Math.abs(window.scrollY - y) <= 1) return;      // arrived
+    window.scrollTo(0, y);
+    lastSet = window.scrollY;
+    if ((performance && performance.now ? performance.now() : Date.now()) < until)
+      requestAnimationFrame(again);
+  };
+  requestAnimationFrame(again);
+}
+
+function markDocEnd() {
+  const d = document.documentElement;
+  const left = d.scrollHeight - window.innerHeight - window.scrollY;
+  d.classList.toggle('docend', left <= 2);
+}
+addEventListener('scroll', markDocEnd, { passive: true });
+addEventListener('resize', markDocEnd, { passive: true });
+
+function goTo(id) {
+  if (id === UI.screen) { SCROLL_AT[id] = 0; UI.landAt = 0; }
+  else { SCROLL_AT[UI.screen] = window.scrollY; UI.landAt = SCROLL_AT[id] || 0; }
+  UI.screen = id;
+}
+
 const SCROLLERS = '.btabs, .tabs, .scroller, .daystrip, .planwrap, .askbox';
 /** What each one is, so it can be found again after the rebuild. An index is
  *  not enough: a window opening adds a scroller near the front of the list
@@ -9416,6 +9578,13 @@ function paint() {
                  calendar: scrCalendar, entry: scrEntry, roster: scrRoster, rules: scrRules,
                  tees: scrTees,
                  courses: scrCourses, setup: scrSetup }[UI.screen]();
+  /* AN ARRIVAL IS NOT A REDRAW. The book redraws itself every few seconds
+     off the shared store, and a page that faded in on each of those would
+     flicker all week. The screen rises and resolves only when it is actually
+     a different screen — the rest of the time it is replaced in place, as
+     it always was. */
+  const turning = paintedScreen !== UI.screen;
+  paintedScreen = UI.screen;
   /* The forecast is only ever wanted on one screen, so it is only ever asked
      for there — and `loadWeather` itself refuses to go more often than the
      quarter hour the reading changes on. */
@@ -9447,13 +9616,8 @@ function paint() {
       <div class="mast-right">
         <div class="lbl">Next Tee Time</div>
         <div class="val num">${nt ? esc(nt.day.dow) + ' ' + esc(E.to12(nt.time)) + ' — ' + esc(nt.round.short === 'Practice' ? 'Practice' : 'Round ' + nt.round.short.slice(1)) : '—'}</div>
-        <div class="mast-actions">
-          ${manageChip()}
-          ${D.PINS_ENABLED
-            ? `<button class="chip" data-act="signIn">${esc(role.label)}${UI.role === 'viewer' ? ' — enter PIN' : ' — sign out'}</button>`
-            : `<span class="chip">Unlocked — no PIN</span>`}
-        </div>
       </div>
+      ${manageDial(role)}
     </header>
     <div class="rule-heavy"></div>
     ${loaded() ? '' : `<div class="loadbar${meta.status === 'error' ? ' bad' : ''}">
@@ -9465,7 +9629,7 @@ function paint() {
         `<button class="tab${id === 'resort' ? ' named' : ''}" data-act="go" data-a="${id}"${UI.screen === id ? ' aria-current="page"' : ''}
           aria-label="${esc(label)}"><span class="lg">${esc(label)}</span><span class="sm">${esc(short)}</span></button>`).join('')}
     </nav>
-    ${body}
+    <main class="page"${turning ? ' data-turn="1"' : ''}>${body}</main>
     <div class="statusbar">
       <span class="dot ${dot}"></span><span>${esc(statusText)}</span>
       <span>${D.PINS_ENABLED ? esc(role.label) : 'Unlocked — anyone can score'}</span>
@@ -9489,7 +9653,29 @@ function paint() {
 
   const box2 = document.getElementById('recapBox');
   if (box2 && boxAt) box2.scrollTop = boxAt;
-  if (wasAt && !UI.recapOpen) window.scrollTo(0, wasAt);
+  /* A tab tapped says where to land and that wins; anything else is a redraw
+     of the screen already on, which must not move at all. */
+  /* ---- WHERE THE READER ENDS UP ----
+     Three things have a say, in this order: a tab tapped, which says exactly
+     where to land; a redraw of the screen already on, which must not move at
+     all; and a sub-tab, which may only pull somebody UP to the strip, never
+     push them down the page. */
+  let want = UI.landAt != null ? UI.landAt : (UI.recapOpen ? null : wasAt);
+  UI.landAt = null;
+  if (want != null) scrollSettled(want);
+  if (UI.liftTo) {
+    const el = document.querySelector(UI.liftTo);
+    UI.liftTo = null;
+    /* Measured as an offset from the top of the page, not from the top of
+       the glass: the line above may have been clamped by a page that is not
+       finished growing, and a reading taken off the glass would then be
+       wrong by however much it was clamped. */
+    if (el) {
+      const at = Math.max(0, el.getBoundingClientRect().top + window.scrollY);
+      if (want != null && want > at) scrollSettled(at);
+    }
+  }
+  markDocEnd();
 
   opened.forEach(id => { const el = document.getElementById(id); if (el) el.open = true; });
 
@@ -9627,11 +9813,38 @@ function confirmModalHtml() {
 /* ONE DOOR FOR EVERYTHING SET ONCE, and the outstanding count belongs on it.
    This was two controls — a Setup chip and nothing else — and it is now the
    way in to the roster, the week, the courses and the rules as well. */
-function manageChip() {
+/* ---------------- the dial ----------------
+ *
+ * Two full-width buttons used to sit under the masthead — Manage, and a
+ * standing label saying whether the book was locked. Between them they took
+ * a band the width of the page to say something a reader only wants on the
+ * two occasions he wants it, and on a phone that band is a tenth of the
+ * screen, every screen, all week.
+ *
+ * It is one mark instead, set where a crest's compass would be: the ring is
+ * the lock, the count in the corner is what is still to settle, and pressing
+ * it opens the door. Nothing is lost — the words are all still said, in the
+ * window it opens and in the label a screen reader is given. What goes is
+ * the band.
+ */
+function manageDial(role) {
   const n = E.setupIssues(T).length;
-  return `<button class="setup-chip manage${n ? ' open' : ' done'}" data-act="manageOpen"
-      aria-label="Manage the book${n ? ', ' + n + ' thing' + (n > 1 ? 's' : '') + ' still to settle' : ''}">
-      <span class="mk">${n ? '!' : '✓'}</span>Manage${n ? `<span class="ct">${n}</span>` : ''}</button>`;
+  const state = !D.PINS_ENABLED ? 'free' : UI.role === 'viewer' ? 'shut' : 'in';
+  const says = !D.PINS_ENABLED ? 'unlocked, no PIN set'
+             : UI.role === 'viewer' ? 'locked, a PIN is needed to score'
+             : (role.label || 'signed in').toLowerCase() + ', signed in';
+  return `<button class="dial ${state}" data-act="manageOpen"
+    aria-label="Manage the book — ${esc(says)}${n ? ', ' + n + ' still to settle' : ''}">
+    <svg class="dial-g" viewBox="0 0 48 48" fill="none" stroke="currentColor" aria-hidden="true">
+      <circle class="dial-r" cx="24" cy="24" r="20" stroke-width="1.4"/>
+      <circle cx="24" cy="24" r="2.6" fill="currentColor" stroke="none"/>
+      <g stroke-width="1.6" stroke-linecap="round">
+        <path d="M24 12.4v3.6M24 32v3.6M12.4 24h3.6M32 24h3.6"/>
+        <path d="M16.2 16.2l2.5 2.5M29.3 29.3l2.5 2.5M31.8 16.2l-2.5 2.5M18.7 29.3l-2.5 2.5"/>
+      </g>
+    </svg>
+    ${n ? `<span class="dial-ct" aria-hidden="true">${n}</span>` : ''}
+  </button>`;
 }
 
 /* Closest to the pin and longest drive are nominated before anyone tees off,
@@ -10254,10 +10467,10 @@ function onClick(e) {
       if (UI.modal && UI.modal.kind === 'manage') { UI.modal = null; UI.modalErr = ''; }
       /* The cup used to be a tab of its own as well as a board. It is one
          place now, and anything still asking for the old one lands there. */
-      if (a === 'ryder') { UI.screen = 'boards'; UI.boardTab = 'ryder'; window.scrollTo(0, 0); break; }
+      if (a === 'ryder') { goTo('boards'); UI.boardTab = 'ryder'; break; }
       if (a === 'entry') {     // going to the hole, not away from it
         if (UI.screen === 'courses') relockCards();
-        UI.screen = a; UI.modal = null; window.scrollTo(0, 0);
+        goTo(a); UI.modal = null;
         if (!UI.entrySeen) {
           UI.entrySeen = true;
           if (E.setupIssues(T).some(i => SETUP_SCOPES.entry.only.includes(i.id))) UI.modal = { kind: 'setup', scope: 'entry' };
@@ -10267,7 +10480,7 @@ function onClick(e) {
       }
       guardDraft(() => {
         if (UI.screen === 'courses' && a !== 'courses') relockCards();
-        UI.screen = a; UI.modal = null; window.scrollTo(0, 0);
+        goTo(a); UI.modal = null;
         if (a === 'entry' && !UI.entrySeen) {
           UI.entrySeen = true;
           if (E.setupIssues(T).some(i => SETUP_SCOPES.entry.only.includes(i.id))) UI.modal = { kind: 'setup', scope: 'entry' };
@@ -10356,11 +10569,16 @@ function onClick(e) {
        book can still have it, from inside the window. */
     case 'goRule': UI.modal = { kind: 'rule', id: a }; break;
     case 'goRulePage':
-      UI.modal = null; UI.screen = 'rules'; window.scrollTo(0, 0); render();
+      UI.modal = null; goTo('rules'); render();
       { const d = document.getElementById('rule-' + a); if (d) { d.open = true; d.scrollIntoView({ block: 'center' }); } }
       return;
-    case 'boardTab': UI.boardTab = a; break;
-    case 'resortTab': commitResortNote(); UI.resortTab = a; break;
+    /* A different board under the same strip is a different page. Landing on
+       it at the depth you had reached in the one before drops you into the
+       middle of a list whose top you have never seen — which is most of what
+       "it lands behind the bar" turned out to be. The strip comes back up to
+       the top of the glass and the new board starts where it starts. */
+    case 'boardTab': UI.boardTab = a; UI.liftTo = '.btabs'; break;
+    case 'resortTab': commitResortNote(); UI.resortTab = a; UI.liftTo = '.btabs'; break;
     case 'resortPlanCat': UI.resortPlanCat = a; UI.resortPin = null; break;
     /* Choosing a point is a request to look at it closely. From the whole
        plan that means going in; from a level somebody has already chosen it
@@ -10490,7 +10708,7 @@ function onClick(e) {
     }
     case 'revealPins': UI.revealPins = !UI.revealPins; break;
     case 'setupOpen': UI.modal = { kind: 'setup', scope: a || 'all' }; UI.modalErr = ''; break;
-    case 'setupGo': UI.modal = null; UI.screen = a; window.scrollTo(0, 0); break;
+    case 'setupGo': UI.modal = null; goTo(a); break;
 
     case 'signIn':
       if (UI.role !== 'viewer') { UI.role = 'viewer'; saveRole('viewer'); if (UI.screen === 'setup') UI.screen = 'today'; break; }

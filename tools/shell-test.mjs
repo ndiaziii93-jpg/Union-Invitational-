@@ -1,0 +1,227 @@
+/* THE FURNITURE, AND HOW A PAGE SITS INSIDE IT.
+ *
+ * Two complaints, both about the frame rather than the book:
+ *
+ *   - the top was busy. Two full-width buttons banded the page under the
+ *     nameplate all week to say something a reader wants twice: Manage, and
+ *     whether the book was asking anybody for a PIN. They are one mark now,
+ *     set where a crest's compass would be, and the words they carried are
+ *     said in the window it opens.
+ *
+ *   - the bottom "lands as if everything is behind the bar". Three separate
+ *     faults wearing one coat: the page ending a hair under the bar, nothing
+ *     telling the browser how much of the foot is spoken for when it scrolls
+ *     something into view, and no sign that the page CONTINUES under the ink
+ *     rather than having been cut off by it. And underneath all three, a tab
+ *     that threw you back to the top of wherever you went, every time.
+ *
+ * Run: node tools/shell-test.mjs
+ */
+import { chromium } from 'playwright';
+import { readFileSync, writeFileSync } from 'node:fs';
+
+const S = '/tmp/claude-0/-home-user-Union-Invitational-/8bcdc9be-12b5-528d-a069-2403e068b315/scratchpad';
+const W = S + '/shell.html';
+writeFileSync(W, '<!doctype html><html><head><meta charset="utf-8">'
+  + '<meta name="viewport" content="width=device-width, initial-scale=1">'
+  + '<style>:root{color-scheme:light}body{margin:0}img{max-width:100%}</style></head><body>'
+  + readFileSync('dist/union-invitational-sandbox.html', 'utf8') + '</body></html>');
+
+const fails = [];
+const ok = (n, g, w) => { const good = JSON.stringify(g) === JSON.stringify(w);
+  console.log((good ? '  PASS  ' : '  FAIL  ') + n + '  got ' + JSON.stringify(g) + (good ? '' : '  want ' + JSON.stringify(w)));
+  if (!good) fails.push(n); };
+
+const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+
+/* ================= the phone ================= */
+const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+const p = await ctx.newPage();
+p.on('pageerror', e => { console.log('  PAGE ERROR:', String(e).split('\n')[0]); fails.push('pageerror'); });
+const shut = async () => { for (let i = 0; i < 6; i++) { const m = p.locator('.scrim [data-act="modalCancel"]');
+  if (!await m.count()) return; await m.first().click({ force: true }).catch(() => {}); await p.waitForTimeout(200); } };
+const bar = async t => { await p.locator('.navbtn:visible', { hasText: t }).first().click(); await p.waitForTimeout(650); };
+
+await p.goto('file://' + W);
+await p.waitForSelector('#app.arrived', { timeout: 20000 }).catch(() => {});
+await p.waitForTimeout(900); await shut();
+
+/* ---------------- the dial ---------------- */
+console.log('\none mark where the band used to be');
+ok('the old pair of buttons is gone', await p.locator('.masthead .setup-chip, .mast-actions').count(), 0);
+ok('and nothing in the masthead says "Unlocked" any more',
+  (await p.locator('.masthead').innerText()).includes('Unlocked'), false);
+ok('there is one dial', await p.locator('.masthead .dial').count(), 1);
+ok('it is a real target, not a glyph', await p.evaluate(() => {
+  const r = document.querySelector('.dial').getBoundingClientRect();
+  return r.width >= 40 && r.height >= 40;
+}), true);
+ok('it sits at the right-hand end of the top line', await p.evaluate(() => {
+  const d = document.querySelector('.dial').getBoundingClientRect();
+  const h = document.querySelector('.masthead h1').getBoundingClientRect();
+  return d.left > h.right && Math.abs(innerWidth - d.right) < 24;
+}), true);
+ok('on the SAME line as the name, not a line of its own', await p.evaluate(() => {
+  const d = document.querySelector('.dial').getBoundingClientRect();
+  const h = document.querySelector('.masthead h1').getBoundingClientRect();
+  return d.top < h.bottom && d.bottom > h.top;
+}), true);
+
+/* The count it carries is the count the book keeps, and the ring says
+   whether anybody is being asked for a PIN. */
+const issues = await p.evaluate(() => (window.__issues || []).length);
+ok('the badge carries the count of what is still to settle',
+  (await p.locator('.dial-ct').innerText()).trim(), String(issues || 2));
+ok('the ring is open while no PIN is set', await p.evaluate(
+  () => getComputedStyle(document.querySelector('.dial-r')).strokeDasharray !== 'none'), true);
+ok('and it says the whole of it to a screen reader', await p.evaluate(() => {
+  const l = document.querySelector('.dial').getAttribute('aria-label') || '';
+  return /manage/i.test(l) && /unlocked|locked|signed/i.test(l);
+}), true);
+
+/* The chrome it saved. The two buttons and the venue line between them put
+   the first line of every screen a third of the way down the glass. */
+const chrome = await p.evaluate(
+  () => Math.round(document.querySelector('.rule-heavy').getBoundingClientRect().bottom));
+console.log('          (furniture above the page: ' + chrome + 'px of 844)');
+ok('the furniture above the page is a fraction of what it was', chrome < 200, true);
+
+console.log('\nand the words it used to carry are in the window it opens');
+await p.locator('.dial').click(); await p.waitForTimeout(600);
+ok('the dial opens Manage', await p.locator('.mgmodal').count(), 1);
+ok('which says whether the book is locked',
+  (await p.locator('.mg-role .mg-rt').innerText()).trim(), 'Unlocked — no PIN');
+ok('and what that means for whoever is reading',
+  (await p.locator('.mg-role .mg-rn').innerText()).includes('Setup'), true);
+await p.locator('.mgmodal [data-act="modalCancel"]').click(); await p.waitForTimeout(400);
+
+/* ---------------- the foot of the page ---------------- */
+console.log('\nthe page ends above the bar, not behind it');
+await bar('Boards');
+await p.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+await p.waitForTimeout(500);
+ok('the last line of the book clears the bar', await p.evaluate(() => {
+  const sb = document.querySelector('.statusbar').getBoundingClientRect();
+  const bar = document.querySelector('.tabbar').getBoundingClientRect();
+  return Math.round(bar.top - sb.bottom);
+}) >= 12, true);
+ok('and the browser knows how much of the foot is spoken for', await p.evaluate(() => {
+  const v = getComputedStyle(document.documentElement).scrollPaddingBottom;
+  const bar = document.querySelector('.tabbar').getBoundingClientRect().height;
+  return parseFloat(v) >= bar;
+}), true);
+
+/* The fade. While there is page left under the bar the paper dissolves into
+   the ink; at the very bottom there is nothing to dissolve, so it goes. */
+console.log('\nand it dissolves into the bar rather than being cut by it');
+ok('at the foot of the page the fade is off', await p.evaluate(
+  () => getComputedStyle(document.querySelector('.tabbar'), '::before').opacity), '0');
+await p.evaluate(() => window.scrollTo(0, 300)); await p.waitForTimeout(450);
+ok('and with page still to come it is on', await p.evaluate(
+  () => getComputedStyle(document.querySelector('.tabbar'), '::before').opacity), '1');
+ok('it sits directly above the bar and nothing else', await p.evaluate(() => {
+  const g = getComputedStyle(document.querySelector('.tabbar'), '::before');
+  return g.pointerEvents === 'none' && parseFloat(g.height) > 12;
+}), true);
+
+/* ---------------- landing on a screen ---------------- */
+console.log('\nevery tab keeps its own place');
+await p.evaluate(() => window.scrollTo(0, 520)); await p.waitForTimeout(400);
+const deep = await p.evaluate(() => Math.round(window.scrollY));
+ok('we are a way down the boards', deep > 400, true);
+await bar('Calendar');
+ok('the week opens at its top', await p.evaluate(() => Math.round(window.scrollY)), 0);
+await bar('Boards');
+const back = await p.evaluate(() => Math.round(window.scrollY));
+console.log('          (left the boards at ' + deep + ', came back to ' + back + ')');
+ok('and the boards come back where they were left', Math.abs(back - deep) <= 4, true);
+/* The oldest gesture on the platform. */
+await bar('Boards');
+ok('tapping the tab you are already on goes to the top',
+  await p.evaluate(() => Math.round(window.scrollY)), 0);
+
+/* A sub-tab is a page too. */
+console.log('\nand a different board starts at its own top');
+await bar('Boards');
+await p.evaluate(() => window.scrollTo(0, 600)); await p.waitForTimeout(400);
+ok('we are well down Team Competition', await p.evaluate(() => window.scrollY > 500), true);
+await p.locator('.btab', { hasText: 'Ryder Cup' }).first().click();
+await p.waitForTimeout(600);
+/* Never BELOW the strip of a board you have just opened. On a long board
+   that means the strip is lifted to the top of the glass; on one shorter
+   than the screen the page cannot scroll at all and it is already there. */
+const lift = await p.evaluate(() => ({
+  top: Math.round(document.querySelector('.btabs').getBoundingClientRect().top),
+  canScroll: document.documentElement.scrollHeight > innerHeight + 2,
+  y: Math.round(window.scrollY) }));
+const lifted = lift.top;
+console.log('          (the strip sits at ' + lifted + ' from the top of the glass; '
+  + (lift.canScroll ? 'the board is longer than the glass' : 'the board fits the glass, nothing can move') + ')');
+ok('you never land below the strip of the board you opened', lifted >= -1, true);
+ok('and the head of the new board is on screen with it', await p.evaluate(() => {
+  const s = document.querySelector('.btabs').getBoundingClientRect();
+  return s.bottom > 0 && s.top < innerHeight * 0.4;
+}), true);
+
+/* One-way: from above the strip nothing is pushed down. */
+await p.evaluate(() => window.scrollTo(0, 0)); await p.waitForTimeout(350);
+await p.locator('.btab', { hasText: 'MVP' }).first().click(); await p.waitForTimeout(600);
+ok('and from above it nothing moves at all',
+  await p.evaluate(() => Math.round(window.scrollY)), 0);
+
+/* ---------------- an arrival is not a redraw ---------------- */
+console.log('\na page turn looks like a page turn, and a redraw looks like nothing');
+await bar('Calendar');
+ok('the screen has a body of its own to turn', await p.locator('.wrap > main.page').count(), 1);
+ok('arriving marks it', await p.evaluate(async () => {
+  window.__forceRender && window.__forceRender();          // the live store, polling
+  await new Promise(r => setTimeout(r, 120));
+  return document.querySelector('.page').hasAttribute('data-turn');
+}), false);
+await p.locator('.navbtn:visible', { hasText: 'Resort' }).first().click();
+await p.waitForTimeout(90);
+ok('but a different screen does', await p.evaluate(
+  () => document.querySelector('.page').hasAttribute('data-turn')), true);
+await p.waitForTimeout(500);
+ok('and it is a fifth of a second, not a journey', await p.evaluate(() => {
+  const d = getComputedStyle(document.querySelector('.page')).animationDuration;
+  return parseFloat(d) <= 0.26;
+}), true);
+/* Nothing fixed may live inside a thing that moves. */
+ok('the bar is outside the page that turns',
+  await p.locator('.page .tabbar').count(), 0);
+
+/* ---------------- the tablet and the laptop ---------------- */
+await p.close();
+for (const [label, w, h] of [['tablet 834', 834, 1000], ['laptop 1300', 1300, 900]]) {
+  console.log('\n=== ' + label + ' ===');
+  const q = await (await b.newContext({ viewport: { width: w, height: h } })).newPage();
+  q.on('pageerror', e => { console.log('  PAGE ERROR:', String(e).split('\n')[0]); fails.push('pageerror ' + label); });
+  await q.goto('file://' + W);
+  await q.waitForSelector('#app.arrived', { timeout: 20000 }).catch(() => {});
+  await q.waitForTimeout(800);
+  for (let i = 0; i < 5; i++) { const m = q.locator('.scrim [data-act="modalCancel"]');
+    if (!await m.count()) break; await m.first().click({ force: true }).catch(() => {}); await q.waitForTimeout(200); }
+  ok('the dial is here too', await q.locator('.masthead .dial').count(), 1);
+  ok('at the far right of the nameplate, past the tee time', await q.evaluate(() => {
+    const d = document.querySelector('.dial').getBoundingClientRect();
+    const t = document.querySelector('.mast-right').getBoundingClientRect();
+    const wrap = document.querySelector('.wrap').getBoundingClientRect();
+    return d.left > t.right - 1 && wrap.right - d.right < 40;
+  }), true);
+  ok('on one line with the name', await q.evaluate(() => {
+    const d = document.querySelector('.dial').getBoundingClientRect();
+    const hh = document.querySelector('.masthead h1').getBoundingClientRect();
+    return d.top < hh.bottom && d.bottom > hh.top;
+  }), true);
+  ok('the strip along the top is the bar here, not the one at the foot',
+    await q.evaluate(() => getComputedStyle(document.querySelector('.tabbar')).display), 'none');
+  /* No fixed bar at the foot, so no gutter is held back for one. */
+  ok('and no gutter is held for a bar that is not there', await q.evaluate(
+    () => parseFloat(getComputedStyle(document.querySelector('.wrap')).paddingBottom) < 60), true);
+  await q.close();
+}
+
+await b.close();
+console.log(fails.length ? '\n' + fails.length + ' FAILED: ' + fails.join(', ') : '\nThe frame holds, and the pages sit inside it.');
+process.exit(fails.length ? 1 : 0);

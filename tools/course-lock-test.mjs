@@ -104,7 +104,12 @@ const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' })
   await goTab(p, 'Course Setup'); await p.waitForTimeout(400);
   ok('a signed-out viewer gets no verify control', await p.locator('[data-act="verifyCourse"]').count(), 0);
 
-  await p.locator('[data-act="signIn"]').first().click(); await p.waitForTimeout(250);
+  /* Signing in is behind the dial now, with everything else that is settled
+     rather than played: the masthead carries one mark, not a row of chips. */
+  await p.locator('.dial').click(); await p.waitForTimeout(400);
+  ok('and the window says the book is locked',
+    (await p.locator('.mg-role .mg-rt').innerText()).trim(), 'Viewer');
+  await p.locator('.mg-role [data-act="signIn"]').click(); await p.waitForTimeout(300);
   await p.locator('#pinField').fill('2000');                      // scorer 1
   await p.locator('[data-act="modalOk"]').click(); await p.waitForTimeout(400);
   await goTab(p, 'Course Setup'); await p.waitForTimeout(400);

@@ -219,7 +219,7 @@ ok('the band that failed is stored now', await p.evaluate(() =>
 // --- a stroke is a draft until the hole is saved
 await goTab(p, 'Score Entry'); await p.waitForTimeout(500);
 await p.locator('[data-act="modalCancel"]').click().catch(() => {});
-ok('chip present on Score Entry', (await p.locator('.masthead .setup-chip').count()) === 1, true);
+ok('the dial is on Score Entry too', (await p.locator('.masthead .dial').count()) === 1, true);
 await nominate(p);
 await p.locator('[data-act="openRound"]').first().click(); await p.waitForTimeout(1400); await shut();
 await shut();
