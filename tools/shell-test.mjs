@@ -114,7 +114,9 @@ ok('and it is one line, not three', await p.evaluate(() => {
 console.log('\nand the shield never goes further than a scroll away');
 ok('at the top of a page there is no strip on the glass', await p.evaluate(
   () => Math.round(document.querySelector('.topstrip').getBoundingClientRect().bottom) <= 0), true);
-await bar('Boards');
+/* The week, because it is long. The Boards tab is the front page now and the
+   front page fits one screen on purpose — there is nothing to scroll past. */
+await bar('Calendar');
 await p.evaluate(() => window.scrollTo(0, 420)); await p.waitForTimeout(600);
 ok('scroll past the nameplate and it comes down', await p.evaluate(
   () => Math.round(document.querySelector('.topstrip').getBoundingClientRect().top)), 0);
@@ -255,7 +257,7 @@ await p.evaluate(() => window.scrollTo(0, 0)); await p.waitForTimeout(350);
 
 /* ---------------- the foot of the page ---------------- */
 console.log('\nthe page ends above the bar, not behind it');
-await bar('Boards');
+await bar('Calendar');
 await p.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
 await p.waitForTimeout(500);
 ok('the last line of the book clears the bar', await p.evaluate(() => {
@@ -284,25 +286,30 @@ ok('it sits directly above the bar and nothing else', await p.evaluate(() => {
 
 /* ---------------- landing on a screen ---------------- */
 console.log('\nevery tab keeps its own place');
+await bar('Calendar');
 await p.evaluate(() => window.scrollTo(0, 520)); await p.waitForTimeout(400);
 const deep = await p.evaluate(() => Math.round(window.scrollY));
-ok('we are a way down the boards', deep > 400, true);
+ok('we are a way down the week', deep > 400, true);
+await bar('Resort');
+ok('the resort opens at its top', await p.evaluate(() => Math.round(window.scrollY)), 0);
 await bar('Calendar');
-ok('the week opens at its top', await p.evaluate(() => Math.round(window.scrollY)), 0);
-await bar('Boards');
 const back = await p.evaluate(() => Math.round(window.scrollY));
-console.log('          (left the boards at ' + deep + ', came back to ' + back + ')');
-ok('and the boards come back where they were left', Math.abs(back - deep) <= 4, true);
+console.log('          (left the week at ' + deep + ', came back to ' + back + ')');
+ok('and the week comes back where it was left', Math.abs(back - deep) <= 4, true);
 /* The oldest gesture on the platform. */
-await bar('Boards');
+await bar('Calendar');
 ok('tapping the tab you are already on goes to the top',
   await p.evaluate(() => Math.round(window.scrollY)), 0);
 
 /* A sub-tab is a page too. */
 console.log('\nand a different board starts at its own top');
 await bar('Boards');
-await p.evaluate(() => window.scrollTo(0, 600)); await p.waitForTimeout(400);
-ok('we are well down Team Competition', await p.evaluate(() => window.scrollY > 500), true);
+await p.locator('.btab', { hasText: 'Team Competition' }).click(); await p.waitForTimeout(700);
+/* With no cards in, a board is one screen and cannot scroll at all. Open the
+   hole — the diagram and the tables under it are what make a board long. */
+await p.locator('.holefold summary').click(); await p.waitForTimeout(700);
+await p.evaluate(() => window.scrollTo(0, 600)); await p.waitForTimeout(450);
+ok('we are down a board', await p.evaluate(() => window.scrollY > 200), true);
 await p.locator('.btab', { hasText: 'Ryder Cup' }).first().click();
 await p.waitForTimeout(600);
 /* Never BELOW the strip of a board you have just opened. On a long board

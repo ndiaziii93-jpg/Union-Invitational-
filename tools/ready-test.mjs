@@ -115,8 +115,10 @@ for (const breakage of ['reject', 'silent']) {
   ok('the book is no longer read-only', await p.locator('.loadbar').count(), 0);
 
   // a tee time must stay put
-  await tab('Leaderboards');
-  const sel = n => p.locator('.teetimes .timepick').first().locator('select').nth(n);
+  await tab('Tee times');
+  /* Named, because the practice round's block comes first on this screen. */
+  const sel = n => p.locator('.teeblock', { hasText: 'Round 1' })
+    .locator('.timepick').first().locator('select').nth(n);
   await sel(0).selectOption('9'); await p.waitForTimeout(500);
   await sel(1).selectOption('50'); await p.waitForTimeout(900);
   ok('the tee time does not reset itself', [await sel(0).inputValue(), await sel(1).inputValue()].join(':'), '9:50');

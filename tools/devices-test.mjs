@@ -115,8 +115,13 @@ for (const [name, viewport, touch, dpr] of DEVICES) {
     await p.goto('file://' + S + '/dev.html'); await p.waitForTimeout(2600); await dismiss();
 
     // 1. a tee time can be set, and it is what the book keeps
-    await tab('Leaderboards');
-    const sel = n => p.locator('.teetimes .timepick').first().locator('select').nth(n);
+    /* Set behind Manage now: a leaderboard reports, it does not hold the one
+       control that moves everybody's morning. */
+    await tab('Tee times');
+    /* Every round has a block of its own and the practice round comes first,
+       so the one this check is about has to be named. */
+    const sel = n => p.locator('.teeblock', { hasText: 'Round 1' })
+      .locator('.timepick').first().locator('select').nth(n);
     await sel(0).selectOption('9'); await p.waitForTimeout(400);
     await sel(1).selectOption('50'); await p.waitForTimeout(900);
     const kept = await p.evaluate(() => window.__docs['config/tournament'].rounds.r1.tees[0].time);

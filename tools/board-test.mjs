@@ -242,47 +242,47 @@ await A.p.locator('.rulemodal [data-act="modalCancel"]').click(); await A.p.wait
 console.log('\nthe MVP board, on a 390px screen');
 await A.tab('Boards');
 await A.p.locator('.btab', { hasText: 'MVP' }).click(); await A.p.waitForTimeout(700); await A.shut();
-ok('there are golfers on it', await A.p.locator('.rows .row').count() > 0, true);
+ok('there are golfers on it', await A.p.locator('.bdr.mvp').count() > 0, true);
 
-const boxes = await A.p.evaluate(() => {
-  const out = [];
-  for (const row of document.querySelectorAll('.mvprow')) {
-    const r = el => { const x = el.getBoundingClientRect(); return { l: x.left, r: x.right, t: x.top, b: x.bottom }; };
-    const who = r(row.querySelector('.who'));
-    const total = r(row.querySelector('.big'));
-    const meta = [...row.querySelectorAll('.mvpmeta .n')].map(r);
-    out.push({ who, total, meta, box: r(row),
-      name: row.querySelector('.who').textContent.trim(),
-      /* an ellipsis is a deliberate answer to a long name; a name drawn wider
-         than the box it sits in is the bug */
-      spills: row.querySelector('.who').getBoundingClientRect().right > r(row).r + 1 });
-  }
-  return out;
-});
-ok('every row has all four working figures', boxes.every(x => x.meta.length === 4), true);
-ok('no name is drawn over the figures', boxes.every(x =>
-  x.who.r <= x.total.l + 1 || x.who.b <= x.total.t + 1), true);
-ok('the figures do not sit on top of each other', boxes.every(x =>
-  x.meta.every((m, i) => i === 0 || m.l >= x.meta[i - 1].r - 1)), true);
+/* THE ANSWER COMES FIRST. The board used to open on a title, a lede and then
+   a seven-column table; the plate says who is winning before anything else
+   on the screen. */
+ok('a plate says who is leading', await A.p.locator('.plate').count(), 1);
+ok('and it is above the table', await A.p.evaluate(() => {
+  const pl = document.querySelector('.plate').getBoundingClientRect();
+  const bd = document.querySelector('.bd').getBoundingClientRect();
+  return pl.bottom <= bd.top + 1;
+}), true);
+ok('the name on the plate is the name in first place', await A.p.evaluate(() => {
+  const a = document.querySelector('.pl-n').childNodes[0].textContent.trim();
+  const b = document.querySelector('.bdr.mvp .w').textContent.trim();
+  return a === b;
+}), true);
+ok('and the figure on it is the figure in the Total column', await A.p.evaluate(() => {
+  const a = document.querySelector('.pl-big').textContent.trim();
+  const b = document.querySelector('.bdr.mvp .t').textContent.trim();
+  return a === b;
+}), true);
+/* The gap is the number a golfer talks in, and the leader has none. */
+ok('the leader has no gap to himself',
+  (await A.p.locator('.bdr.mvp .g').first().innerText()).trim(), '\u2014');
+ok('and everybody behind has one', await A.p.evaluate(
+  () => [...document.querySelectorAll('.bdr.mvp')].slice(1)
+    .every(r => /^\+\d+$/.test(r.querySelector('.g').textContent.trim()))), true);
 
-/* The bug was not boxes overlapping — the name's BOX shrank politely and
-   its TEXT carried straight on over the band figure, because nothing
-   clipped it. So the question is not "does the box fit" but "is anything
-   drawn outside the box it belongs to", and, separately, "does any box hang
-   off the end of its row" — which is what took the Total column off the
-   right-hand edge of the screen. */
-/* Deliberately NOT .mvprow: that class arrived with the fix, and a check
-   that cannot even find the old markup cannot fail against it. `.rows .row`
-   is what an MVP row was called before and still is. */
+/* The bug this file was written for: the name's BOX shrank politely and its
+   TEXT carried straight on over the band figure, because nothing clipped it.
+   So the question is not "does the box fit" but "is anything drawn outside
+   the box it belongs to", and "does any box hang off the end of its row". */
 const spill = await A.p.evaluate(() => {
   const out = [];
-  for (const row of document.querySelectorAll('.rows .row')) {
+  for (const row of document.querySelectorAll('.bdr')) {
     const rb = row.getBoundingClientRect();
-    for (const el of row.querySelectorAll('.pos, .who, .n, .big')) {
+    for (const el of row.querySelectorAll('.p, .w, .n, .t, .g')) {
       const cs = getComputedStyle(el);
       const r = el.getBoundingClientRect();
       out.push({
-        what: (el.dataset.l || el.className.replace(/ num| quiet/g, '')).trim(),
+        what: el.className.replace(/ num|under|over|level/g, '').trim(),
         text: el.textContent.trim().slice(0, 24),
         drawnOutside: el.scrollWidth > el.clientWidth + 1 && cs.overflowX === 'visible',
         pastTheRow: r.right > rb.right + 1 || r.left < rb.left - 1,
@@ -295,30 +295,28 @@ ok('nothing is drawn outside the box it belongs to',
   spill.filter(x => x.drawnOutside).map(x => x.what + ' \u2014 ' + x.text), []);
 ok('and nothing hangs off the end of its row',
   spill.filter(x => x.pastTheRow).map(x => x.what + ' \u2014 ' + x.text), []);
-ok('the total is on the same line as the name, not below it', boxes.every(x =>
-  x.total.t < x.who.b), true);
-ok('and the working out is below both', boxes.every(x => x.meta[0].t >= x.who.b - 1), true);
-ok('every figure says what it is', await A.p.evaluate(
-  () => [...document.querySelectorAll('.mvprow .mvpmeta .n')].map(e => e.dataset.l)
-    .slice(0, 4)), ['Band', 'Thru', 'Today', 'Pts']);
+/* The property is the NAME on one line, not the row at some height: a row's
+   height moves with its padding, a wrapped name is the actual bug. */
+ok('every golfer is on one line', await A.p.evaluate(
+  () => [...document.querySelectorAll('.bdr.mvp .w')]
+    .every(w => w.getBoundingClientRect().height < 30)), true);
 ok('the page still does not scroll sideways', await A.p.evaluate(
   () => document.documentElement.scrollWidth - document.documentElement.clientWidth <= 1), true);
-ok('a long name really was long enough to be a problem', boxes.some(
-  x => /Norberto|Wainwright|McAllister/.test(x.name)), true);
+ok('a long name really was long enough to be a problem', await A.p.evaluate(
+  () => [...document.querySelectorAll('.bdr.mvp .w')]
+    .some(w => /Norberto|Wainwright|McAllister/.test(w.textContent))), true);
 
-console.log('\nand wide, it is the table it always was');
+console.log('\nand wide, it is the same board with more room');
 await A.p.setViewportSize({ width: 1280, height: 1000 }); await A.p.waitForTimeout(600); await A.shut();
-ok('every golfer is back on one line', await A.p.evaluate(() =>
-  [...document.querySelectorAll('.mvprow')].every(row => {
-    const who = row.querySelector('.who').getBoundingClientRect();
-    const last = row.querySelector('.mvpmeta .n:last-child').getBoundingClientRect();
-    return Math.abs(who.top - last.top) < 12;
-  })), true);
-ok('the column headings are back', await A.p.locator('.rows.mvp .rowhead').isVisible(), true);
-ok('and the labels are not printed twice', await A.p.evaluate(() => {
-  const n = document.querySelector('.mvprow .mvpmeta .n');
-  return n ? getComputedStyle(n, '::before').content : 'no figures found';
-}), 'none');
+ok('still one line a golfer', await A.p.evaluate(
+  () => [...document.querySelectorAll('.bdr.mvp .w')]
+    .every(w => w.getBoundingClientRect().height < 30)), true);
+ok('the column headings are there', await A.p.locator('.bdh.mvp').isVisible(), true);
+ok('and the plate is still the first thing on it', await A.p.evaluate(() => {
+  const pl = document.querySelector('.plate').getBoundingClientRect();
+  const bd = document.querySelector('.bd').getBoundingClientRect();
+  return pl.bottom <= bd.top + 1;
+}), true);
 await A.ctx.close();
 
 /* ---------------------------------------------------------------- */

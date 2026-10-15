@@ -137,8 +137,11 @@ const tab = async (p, t) => { await dismiss(p); await goTab(p, t); await p.waitF
 for (const p of pages) { await p.waitForTimeout(2800); await dismiss(p); }
 
 console.log('\n=== device A sets a tee time, device B is still on the old one ===');
-await tab(A, 'Leaderboards');
-const sel = n => A.locator('.teetimes .timepick').first().locator('select').nth(n);
+/* Set behind Manage now, and named: every round has a block of its own on
+   that screen and the practice round's comes first. */
+await tab(A, 'Tee times');
+const sel = n => A.locator('.teeblock', { hasText: 'Round 1' })
+  .locator('.timepick').first().locator('select').nth(n);
 await sel(0).selectOption('9'); await A.waitForTimeout(400);
 await sel(1).selectOption('50'); await A.waitForTimeout(900);
 ok('A set the tee time', store['config/tournament'].rounds.r1.tees[0].time, '09:50');
@@ -163,7 +166,7 @@ console.log('\n=== and A must not have been undone ===');
 ok('A\'s tee time is still set', store['config/tournament'].rounds.r1.tees[0].time, '09:50');
 ok('A\'s round is still open',
   openedRound ? store['config/tournament'].rounds[openedRound[0]].state : null, 'open');
-await tab(A, 'Leaderboards'); await A.waitForTimeout(600);
+await tab(A, 'Tee times'); await A.waitForTimeout(600);
 ok('and A still shows it on screen',
   [await sel(0).inputValue().catch(() => '?'), await sel(1).inputValue().catch(() => '?')].join(':'), '9:50');
 

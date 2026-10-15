@@ -1251,36 +1251,196 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
 .setup-chip.done .mk{background:none;color:var(--green);font-size:15px}
 .setup-chip.done:hover{background:var(--sunk);color:var(--ink)}
 
+/* ================= THE BOARDS =================
+ *
+ * Three things, in the order a reader wants them: a front page that answers
+ * all six games at once, a plate at the head of each board that answers that
+ * one, and a table with the gap to the leader in it.
+ */
+
+/* ---- the front page ---- */
+.bh{margin-top:16px}
+.bh-s{font-size:14px;font-weight:400;color:var(--turf);font-style:italic}
+.club{display:grid;gap:8px;margin-top:12px}
+
+/* The state words are prefixed on purpose: a bare `.empty` on a card picked
+   up the paragraph rule of the same name further up this file, and the three
+   games with nothing in them came out two thirds the width of the rest. */
+.cc{display:block;width:100%;max-width:none;text-align:left;position:relative;
+  background:var(--page);border:1px solid var(--rule);border-radius:14px;
+  padding:9px 34px 10px 13px;color:var(--ink);font-family:inherit}
+@media (hover:hover) and (pointer:fine){ .cc:hover{background:var(--sunk);border-color:var(--turf)} }
+.cc:active{background:var(--sunk)}
+.cc:focus-visible{outline:2px solid var(--flag);outline-offset:2px}
+/* A game with a round in it carries the gold on its leading edge — the same
+   mark the bar and the strip use for the thing that is live. */
+.cc--live{border-left:4px solid var(--gold-up);padding-left:11px}
+.cc--closed,.cc--empty{opacity:.8}
+.cc-t{display:flex;align-items:center;gap:8px;font-size:10.5px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--turf);font-weight:700}
+.cc-st{margin-left:auto;color:var(--gold);letter-spacing:.06em;white-space:nowrap}
+.cc-w{display:flex;align-items:flex-end;gap:12px;margin-top:3px}
+.cc-n{flex:1 1 auto;min-width:0;font-size:17px;font-weight:700;line-height:1.2;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cc-f{flex:0 0 auto;font-size:26px;font-weight:700;line-height:1;letter-spacing:-.01em}
+.cc-b{display:block;font-size:11.5px;color:var(--turf);margin-top:2px}
+.cc-none{display:block;font-size:14px;color:var(--turf);font-style:italic;margin-top:3px;
+  line-height:1.4}
+.cc-go{position:absolute;right:11px;top:50%;transform:translateY(-50%);
+  color:var(--rule);font-size:21px;font-weight:700;line-height:1}
+@media (hover:hover) and (pointer:fine){ .cc:hover .cc-go{color:var(--turf)} }
+
+/* The Cup is the only one of the six with a clock on it, so it leads and it
+   is drawn in the pine. */
+.cc--cup{background:var(--ink);border-color:var(--ink);color:var(--page);padding-top:10px;padding-bottom:12px}
+.cc--cup .cc-t{color:var(--sage-up)}
+.cc--cup .cc-st{color:var(--gold-up)}
+.cc--cup .cc-go{color:var(--sage-up)}
+@media (hover:hover) and (pointer:fine){ .cc--cup:hover{background:#243a29;border-color:#243a29} }
+.cc-cup{display:flex;align-items:center;gap:9px;margin-top:5px}
+.cc-cup svg{flex:0 0 auto;border:1px solid rgba(255,255,255,.26);border-radius:2px}
+.cc-sc{font-size:27px;font-weight:700;line-height:1}
+.cc-v{color:var(--sage-up);font-size:15px}
+.cc-win{margin-left:auto;text-align:right;font-size:19px;font-weight:700;color:var(--gold-up);
+  line-height:1.05}
+.cc-win small{display:block;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;
+  font-weight:700;color:var(--sage-up)}
+
+/* ---- the plate at the head of a board ---- */
+.plate{display:block;margin-top:13px;background:var(--ink);color:var(--page);
+  border-radius:16px;padding:10px 15px 13px;
+  box-shadow:0 1px 3px rgba(16,22,17,.12),0 8px 20px rgba(16,22,17,.14)}
+.plate.flat{box-shadow:none;background:var(--page);color:var(--ink);border:1px solid var(--rule)}
+.pl-t{display:flex;align-items:center;gap:9px;font-size:10.5px;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--sage-up);font-weight:700}
+.plate.flat .pl-t{color:var(--turf)}
+.pl-live{margin-left:auto;color:var(--gold-up);letter-spacing:.09em}
+.pl-n{display:block;font-size:21px;font-weight:700;line-height:1.18;margin-top:2px}
+.pl-n small{font-size:15px;font-weight:400;color:var(--sage-up);padding-left:6px}
+.pl-f{display:flex;align-items:flex-end;gap:15px;margin-top:6px}
+.pl-big{font-size:42px;font-weight:700;line-height:.95;letter-spacing:-.02em;color:var(--gold-up)}
+.plate.flat .pl-big{color:var(--ink)}
+.pl-big small{font-size:15px;font-weight:400;color:var(--turf);padding-left:5px;letter-spacing:0}
+.pl-sep{width:1px;align-self:stretch;background:rgba(255,255,255,.18);margin:3px 0 4px}
+.plate.flat .pl-sep{background:var(--rule)}
+.pl-c{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--sage-up);
+  padding-bottom:4px;font-weight:700}
+.plate.flat .pl-c{color:var(--turf)}
+.pl-c b{display:block;font-size:19px;letter-spacing:0;text-transform:none;color:var(--page);
+  font-weight:700;margin-top:1px}
+.plate.flat .pl-c b{color:var(--ink)}
+/* The plate carries the under/over colours too, but on pine the gold has to
+   do the work the ochre does on paper. */
+.plate .pl-big.under{color:var(--gold-up)}
+.plate .pl-big.over{color:#D98A7C}
+.plate .pl-big.level{color:var(--page)}
+@media (max-width:420px){
+  .pl-n{font-size:19px}
+  .pl-big{font-size:36px}
+  .pl-f{gap:11px}
+}
+
+/* ---- a board that reads like a board ---- */
+.bd{margin-top:14px}
+.bd.narrow{max-width:520px}
+.bdh,.bdr{display:grid;gap:8px;align-items:center;padding:9px 2px}
+.bdh{font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--turf);
+  font-weight:700;border-bottom:2px solid var(--ink);padding-bottom:6px}
+.bdr{border-bottom:1px solid var(--hair);font-size:16px}
+.bdh span:nth-child(n+3),.bdr .n,.bdr .t,.bdr .g{text-align:right}
+.bdr .p{color:var(--turf);font-size:13px}
+.bdr .w{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bdr .n{font-size:14.5px;color:var(--turf)}
+.bdr .t{font-size:20px;font-weight:700}
+/* The gap is quieter than the total on purpose: the total is the score, the
+   gap is the context for it. */
+.bdr .g{font-size:13.5px;color:var(--turf)}
+/* The leader is marked by a bar and a tint, not by a gradient: a wash that
+   fades out over seventy per cent of the row is a stub on a phone and a
+   smudge on a laptop. */
+.bdr.lead{background:rgba(201,162,83,.13);border-radius:9px;
+  margin:0 -8px;padding-left:12px;padding-right:8px;
+  box-shadow:inset 3px 0 0 var(--gold-up)}
+.bdr.lead .w{font-weight:700}
+
+.bdh.pairs,.bdr.pairs{grid-template-columns:20px minmax(0,1fr) 38px 44px 54px 40px}
+.bdh.mvp,.bdr.mvp{grid-template-columns:20px minmax(0,1fr) 36px 36px 42px 52px 38px}
+.bdh.bbb,.bdr.bbb{grid-template-columns:20px minmax(0,1fr) 56px 56px}
+.bdh.oh,.bdr.oh{grid-template-columns:18px minmax(0,1fr) 34px 40px 52px}
+.bd.oh{margin-top:8px}
+.bdr.oh{font-size:15px}
+.bdr.oh .t{font-size:17px}
+@media (max-width:420px){
+  .bdh,.bdr{gap:5px}
+  .bdr{font-size:15px}
+  .bdr .t{font-size:18px}
+  .bdh.pairs,.bdr.pairs{grid-template-columns:17px minmax(0,1fr) 30px 38px 46px 34px}
+  .bdh.mvp,.bdr.mvp{grid-template-columns:17px minmax(0,1fr) 28px 28px 36px 44px 32px}
+  .bdh.oh,.bdr.oh{grid-template-columns:15px minmax(0,1fr) 28px 34px 44px}
+  .bdh{font-size:9.5px;letter-spacing:.04em}
+}
+/* The older .legend sits further down this file and reads right, which is
+   right for the caption under a hole's table and wrong under a board. */
+.bd + .legend,.hf-body .legend{font-size:13px;color:var(--turf);font-style:italic;margin:10px 0 0;
+  max-width:62ch;text-align:left}
+
+/* ---- the hole, which is reference ----
+   All of it is still here. It is a page you turn to rather than a page you
+   scroll past to reach the answer. */
+.holefold{margin-top:22px;border:1px solid var(--rule);border-radius:14px;
+  background:var(--page);overflow:hidden}
+.holefold summary{display:flex;align-items:center;gap:9px;padding:12px 14px;cursor:pointer;
+  list-style:none;font-size:15px;color:var(--turf)}
+.holefold summary::-webkit-details-marker{display:none}
+.holefold summary b{color:var(--ink);font-size:17px;font-weight:700}
+.hf-l{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;
+  color:var(--turf)}
+.hf-m{font-size:13px;color:var(--turf);min-width:0;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap}
+.hf-ch{margin-left:auto;font-size:19px;font-weight:700;color:var(--turf);
+  transition:transform .16s ease}
+.holefold[open] .hf-ch{transform:rotate(90deg)}
+@media (hover:hover) and (pointer:fine){ .holefold summary:hover{background:var(--sunk)} }
+.hf-body{padding:2px 14px 14px;border-top:1px solid var(--hair)}
+.hf-body .spread{border-top:0;margin-top:4px}
+.hf-body .leaf-l{padding-top:6px}
+
 /* ---- leaderboards ---- */
-.btabs{display:flex;gap:34px;overflow-x:auto;align-items:flex-end;margin-top:18px;
-  border-bottom:1px solid var(--rule);padding-bottom:0}
-.btab{padding:6px 0 11px;font-size:19px;color:var(--turf);white-space:nowrap;
-  border-bottom:3px solid transparent;margin-bottom:-1px}
-/* A finger has no hover. On a touch screen the :hover state sticks to
-   whatever was last tapped until something else is tapped — so the tab you
-   just left kept the dark ink it takes on hover, while losing the weight and
-   the underline that marked it as chosen. Black, unbolded, and wrong, which
-   is exactly what it looked like. Hover belongs to devices that have one. */
-@media (hover:hover) and (pointer:fine) { .btab:hover{color:var(--ink)} }
-.btab.on{color:var(--ink);font-weight:700;border-bottom-color:var(--ink)}
-.btab:focus-visible{color:var(--ink);outline:2px solid var(--green);outline-offset:2px}
+/* SEVEN NAMES ACROSS A PHONE. "Longest Drive & Closest to the Pin" is a
+   sentence, not a tab — so the strip carries the short name on the glass and
+   the long one for anything that reads the page, exactly as the bar at the
+   foot does. The first is the way back to the front page. */
+.btabs{display:flex;gap:7px;overflow-x:auto;align-items:center;margin-top:16px;
+  padding-bottom:2px}
+.btab{padding:7px 14px;font-size:14.5px;color:var(--turf);white-space:nowrap;
+  border:1px solid var(--rule);background:var(--page);border-radius:999px;flex:0 0 auto}
+.btab .lg{display:none}
+.btab.home{font-weight:700}
+@media (hover:hover) and (pointer:fine){ .btab:hover{background:var(--sunk);color:var(--ink)} }
+/* A finger has no hover: on a touch screen the state sticks to whatever was
+   last tapped, so hover belongs to devices that have one — see above. */
+.btab.on{background:var(--ink);border-color:var(--ink);color:var(--page);font-weight:700}
+@media (hover:hover) and (pointer:fine){ .btab.on:hover{background:var(--ink);color:var(--page)} }
+.btab:focus-visible{outline:2px solid var(--flag);outline-offset:2px}
 .titlerow{display:flex;align-items:baseline;gap:18px;flex-wrap:wrap}
 .titlerow .head{margin-top:22px}
 
-.roundband{display:grid;grid-template-columns:1fr;gap:0;margin-top:20px;
-  border-top:2px solid var(--ink);border-bottom:1px solid var(--rule)}
-@media (min-width:900px){.roundband{grid-template-columns:1fr 1fr}
-  .roundband .rounds{border-right:1px solid var(--ink);padding:16px 26px 18px 0}
-  .roundband .teetimes{padding:16px 0 18px 26px}}
-@media (max-width:899px){.roundband .rounds{padding:16px 0 6px}
-  .roundband .teetimes{padding:6px 0 18px;border-top:1px solid var(--rule)}}
-.rounds{display:grid;gap:2px;align-content:start}
-.roundpick{display:block;width:100%;padding:9px 14px;border-radius:2px;color:var(--ink)}
-.roundpick b{display:block;font-size:18px;font-weight:700;line-height:1.2}
-.roundpick span{display:block;font-size:15px;color:var(--turf);margin-top:1px}
-.roundpick:hover{background:var(--sunk)}
-.roundpick.on{background:var(--ink);color:var(--paper)}
-.roundpick.on span{color:var(--rule)}
+/* Which round the board is reading: a segmented control, not a column of
+   slabs. It is a filter on what is already on the screen, so it sits under
+   the answer and takes a line, not a panel. */
+.roundband{margin-top:14px}
+.rounds{display:flex;gap:6px}
+.roundpick{flex:1 1 0;min-width:0;padding:7px 8px;border-radius:10px;color:var(--ink);
+  border:1px solid var(--rule);background:var(--page);text-align:center;position:relative}
+.roundpick b{display:block;font-size:15px;font-weight:700;line-height:1.15;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.roundpick span{display:block;font-size:11.5px;color:var(--turf);margin-top:1px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (hover:hover) and (pointer:fine){ .roundpick:hover{background:var(--sunk)} }
+.roundpick.on{background:var(--ink);border-color:var(--ink);color:var(--page)}
+.roundpick.on span{color:var(--sage-up)}
+.roundpick.live:not(.on)::after{content:"";position:absolute;top:5px;right:6px;width:6px;height:6px;
+  border-radius:50%;background:var(--flag)}
 .tt-head{font-size:16px;color:var(--turf)}
 .tt-row{display:flex;gap:14px;align-items:center;justify-content:space-between;
   border-bottom:1px solid var(--hair);padding:7px 0;max-width:440px;font-size:17px}
@@ -2738,7 +2898,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261015-1018';
+const BUILD = '20261015-2027';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -4075,11 +4235,20 @@ function pairsBoard(T, now) {
     };
   }).filter(r => r.played);
   rows.sort((a, b) => a.total - b.total);
+  const lead = rows.length ? rows[0].total : 0;
   return rows.map((r, i) => ({ ...r, pos: i + 1,
     todayStr: r.today == null ? '—' : fmtToPar(r.today),
     thruStr: r.thru ? String(r.thru) : '—',
+    gap: r.total - lead, gapStr: gapOf(r.total - lead),
     totalStr: fmtToPar(r.total) }));
 }
+
+/* ---------- the gap to the leader ----------
+   The number a golfer actually talks in. "I am four under" is a fact about
+   you; "I am two back" is a fact about the tournament, and it is the one
+   that decides whether you are still in it. The leader has no gap — a nought
+   there reads as a score, so it is a dash. */
+function gapOf(n) { return n <= 0 ? '—' : '+' + n; }
 
 function mvpBoard(T, now) {
   const rows = golfers(T).map(p => {
@@ -4094,10 +4263,12 @@ function mvpBoard(T, now) {
     return { id: p.id, name: p.display, band: p.band, today, thru, total, stb, played };
   }).filter(r => r.played);
   rows.sort((a, b) => a.total - b.total);
+  const lead = rows.length ? rows[0].total : 0;
   return rows.map((r, i) => ({ ...r, pos: i + 1,
     bandStr: r.band ? String(r.band) : '—',
     todayStr: r.today == null ? '—' : fmtToPar(r.today),
     thruStr: r.thru ? String(r.thru) : '—',
+    gap: r.total - lead, gapStr: gapOf(r.total - lead),
     totalStr: fmtToPar(r.total), stbStr: String(r.stb) }));
 }
 
@@ -4779,6 +4950,96 @@ function ryderData(T, now) {
   };
 }
 
+/* ---------------- the clubhouse ----------------
+ *
+ * Six games run at once, and the book used to make you tap six tabs to find
+ * out where any of them stood — with the answer to each one buried under the
+ * reference material for that game. This is every game in one reading: who
+ * leads, by how much, and how far through.
+ *
+ * It is a SUMMARY and nothing else. Every figure in it comes from the same
+ * board function that draws the full table, so the front page and the board
+ * behind it can never disagree.
+ */
+function clubhouse(T, now) {
+  const live = countingRounds(T).find(r => phaseOf(T, r.id, now) === 'live');
+  const thru = (rows) => { const r = rows.find(x => x.thru); return r ? r.thru : null; };
+  /* "by 2" needs a second row to be ahead OF; a field of one is not a lead. */
+  const margin = (rows, key) => rows.length > 1 ? Math.abs(rows[1][key] - rows[0][key]) : null;
+
+  const out = [];
+
+  /* THE CUP FIRST. It is the only one of the six with a clock on it — points
+     that can still change hands this session — so it is the headline. */
+  const R = ryderData(T, now);
+  const played = R.sessions.reduce((n, s) => n + s.matches.filter(m => m.done).length, 0);
+  const total = R.sessions.reduce((n, s) => n + s.matches.length, 0);
+  const toWin = total ? Math.floor(total / 2) + (total % 2 ? 0.5 : 1) : null;
+  out.push({ id: 'ryder', kind: 'cup', label: 'Ryder Cup',
+    state: total && played === total ? 'closed' : played ? 'live' : 'open',
+    uk: R.ukTotal, usa: R.usaTotal, outstanding: total - played, toWin,
+    note: !total ? 'Put golfers in both squads'
+        : played === total ? 'All matches in'
+        : (total - played) + ' match' + (total - played === 1 ? '' : 'es') + ' still out' });
+
+  const pairs = pairsBoard(T, now);
+  out.push({ id: 'pairs', label: 'Team Competition', state: pairs.length ? (live ? 'live' : 'open') : 'empty',
+    who: pairs.length ? pairs[0].name : null, fig: pairs.length ? pairs[0].totalStr : null,
+    tone: pairs.length ? toneOf(pairs[0].total) : '',
+    thru: thru(pairs), by: margin(pairs, 'total'),
+    runner: pairs.length > 1 ? pairs[1].name : null,
+    note: pairs.length ? null : 'Opens once a counting round is under way' });
+
+  const mvp = mvpBoard(T, now);
+  out.push({ id: 'mvp', label: 'MVP', state: mvp.length ? (live ? 'live' : 'open') : 'empty',
+    who: mvp.length ? mvp[0].name : null, fig: mvp.length ? mvp[0].totalStr : null,
+    tone: mvp.length ? toneOf(mvp[0].total) : '',
+    thru: thru(mvp), by: margin(mvp, 'total'),
+    runner: mvp.length > 1 ? mvp[1].name : null,
+    note: mvp.length ? null : 'Every golfer needs a band before their card counts' });
+
+  const bbb = bbbBoard(T);
+  const banked = bbb.reduce((n, r) => n + r.pts, 0);
+  out.push({ id: 'bbb', label: 'Bingo Bango Bongo', state: banked ? 'live' : 'empty',
+    who: bbb.length ? bbb[0].name : null, fig: bbb.length ? bbb[0].ptsStr : null,
+    by: margin(bbb, 'pts'), runner: bbb.length > 1 ? bbb[1].name : null,
+    sub: banked ? banked + ' of ' + (countingRounds(T).length * 54) + ' banked' : null,
+    note: banked ? null : 'Scorers tap three names a hole on Score Entry' });
+
+  /* Two marks a round, and the only one of the six that is a list of facts
+     rather than a race. What it reports is how much of it is settled. */
+  const marks = [];
+  for (const r of countingRounds(T)) {
+    const c = roundCfg(T, r.id) || {};
+    marks.push({ kind: 'ctp', round: r, hole: c.ctpHole, who: c.ctpWinner });
+    marks.push({ kind: 'ld', round: r, hole: c.ldHole, who: c.ldWinner, dist: c.ldDist });
+  }
+  const got = marks.filter(m => m.who);
+  const lastLd = [...marks].reverse().find(m => m.kind === 'ld' && m.who);
+  out.push({ id: 'prizes', label: 'Drives & Pins',
+    state: !got.length ? 'empty' : got.length === marks.length ? 'closed' : 'open',
+    who: lastLd ? (person(T, lastLd.who) || {}).display : (got.length ? (person(T, got[got.length - 1].who) || {}).display : null),
+    fig: lastLd && lastLd.dist ? lastLd.dist : null,
+    sub: got.length + ' of ' + marks.length + ' marks in',
+    note: got.length ? null : 'Nominate the holes on Score Entry' });
+
+  const prac = practiceBoard(T);
+  const read = bandRead(T, 'practice');
+  const moves = read.filter(x => x.verdict === 'light' || x.verdict === 'heavy').length;
+  out.push({ id: 'practice', label: 'Practice Day',
+    state: prac.length ? (phaseOf(T, 'practice', now) === 'live' ? 'live' : 'closed') : 'empty',
+    who: prac.length ? prac[0].name : null,
+    fig: prac.length ? fmtToPar(prac[0].tp) : null,
+    tone: prac.length ? toneOf(prac[0].tp) : '',
+    sub: 'Counts for nothing' + (moves ? ' · ' + moves + ' band' + (moves === 1 ? '' : 's') + ' to move' : ''),
+    note: prac.length ? null : 'No cards in from Tuesday yet' });
+
+  return out;
+}
+
+/** Under par, over it, or level — the one word the colour is keyed off. */
+function toneOf(n) { return n < 0 ? 'under' : n > 0 ? 'over' : 'level'; }
+
 /* ---------- scorecard strip ---------- */
 
 function holeCells(T, roundId, pair) {
@@ -4915,7 +5176,7 @@ function roundToPar(T, roundId, pid) {
   return { tp, thru };
 }
 
-return {nowLocal, dayOf, hhmmToMin, to12, TEE_GAP_MIN, plusMins, to24, BANDS, strokesFor, bandTotal, fmtToPar, capFor, capped, person, golfers, roundDef, roundCfg, courseByKey, courseOf, scoreKey, card, pairName, phaseOf, phaseLabel, hasScores, countingRounds, playerNet, pairHole, PAIRS_PER_GROUP, teeTime, teeTimes, groups, finishGroups, groupThru18, groupDone, groupsOut, TURN_HOLES, toParThru, groupAtTurn, turnAt, turnGroups, turnSnapshot, practiceBoard, nearestBand, bandRead, practiceBbb, bandsLocked, pairsBoard, mvpBoard, BBB_SLOTS, bbbMarks, MARKS, MARK_KEYS, MOODS, OWNS, moodLabel, ownLabels, OWN_MARKS, OWN_KEYS, holeMarks, selfLog, selfMarks, markCoverage, markTally, markLine, bbbBoard, roundComplete, brief, roundBrief, recapRound, roundStanding, ribbon, pairRoundBoard, recapTable, swingOfTheDay, sideGames, recapInput, matchPlay, matchDetail, ryderData, holeCells, setupIssues, nextTee, fixtures, nextFixture, TEE_CHOICES, TEE_PRIV, teePrivilege, roundToPar};
+return {nowLocal, dayOf, hhmmToMin, to12, TEE_GAP_MIN, plusMins, to24, BANDS, strokesFor, bandTotal, fmtToPar, capFor, capped, person, golfers, roundDef, roundCfg, courseByKey, courseOf, scoreKey, card, pairName, phaseOf, phaseLabel, hasScores, countingRounds, playerNet, pairHole, PAIRS_PER_GROUP, teeTime, teeTimes, groups, finishGroups, groupThru18, groupDone, groupsOut, TURN_HOLES, toParThru, groupAtTurn, turnAt, turnGroups, turnSnapshot, practiceBoard, nearestBand, bandRead, practiceBbb, bandsLocked, pairsBoard, gapOf, mvpBoard, BBB_SLOTS, bbbMarks, MARKS, MARK_KEYS, MOODS, OWNS, moodLabel, ownLabels, OWN_MARKS, OWN_KEYS, holeMarks, selfLog, selfMarks, markCoverage, markTally, markLine, bbbBoard, roundComplete, brief, roundBrief, recapRound, roundStanding, ribbon, pairRoundBoard, recapTable, swingOfTheDay, sideGames, recapInput, matchPlay, matchDetail, ryderData, clubhouse, toneOf, holeCells, setupIssues, nextTee, fixtures, nextFixture, TEE_CHOICES, TEE_PRIV, teePrivilege, roundToPar};
 })();
 
 const __m_dbsupa = (function(){
@@ -6294,7 +6555,7 @@ const UI = {
   recap: { rid: null, busy: false, err: '', stream: '', edit: false, view: 'report' },
   upload: { queue: [], err: '' },
   role: 'viewer',
-  boardTab: 'pairs',
+  boardTab: 'home',     // the six games at once; a board is something you open
   boardRound: 'r1',
   bookHole: 0,
   entryRound: 'r1',
@@ -6511,34 +6772,120 @@ function scrToday() {
   </div>`;
 }
 
+/* ---------------- the boards ----------------
+ *
+ * Six games run at once, and the book used to make you tap six tabs to find
+ * out where any of them stood — with the answer to each one buried under the
+ * reference material for that game. The Team Competition standing started
+ * 2,111 pixels down a 2,620-pixel page on a phone: par, length, stroke
+ * index, three band allowances, the cap, the hole strip and the diagram all
+ * came first. Only the Cup led with its score, which is why the Cup was the
+ * only board that felt right.
+ *
+ * So: a front page that answers all six at once, a plate at the head of
+ * every board that answers that one, and the gap to the leader in the tables
+ * — which is the number a golfer actually talks in.
+ */
+const BOARDS = [['pairs',    'Team Competition',                   'Team'],
+                ['mvp',      'MVP',                                'MVP'],
+                ['bbb',      'Bingo Bango Bongo',                  'Bingo'],
+                ['ryder',    'Ryder Cup',                          'Cup'],
+                ['prizes',   'Longest Drive & Closest to the Pin', 'Prizes'],
+                ['practice', 'Practice Day',                       'Practice']];
+
 function scrBoards() {
-  const tabs = [['pairs', 'Team Competition'], ['mvp', 'MVP'], ['bbb', 'Bingo Bango Bongo'],
-                ['ryder', 'Ryder Cup'], ['prizes', 'Longest Drive & Closest to the Pin'],
-                ['practice', 'Practice Day']];
-  const body = { pairs: boardPairs, mvp: boardMvp, bbb: boardBbb, ryder: scrRyder,
-                 prizes: boardPrizes, practice: boardPractice }[UI.boardTab]();
-  return `<div class="btabs nos">${tabs.map(([id, l]) =>
-      `<button class="btab${UI.boardTab === id ? ' on' : ''}" data-act="boardTab" data-a="${id}">${esc(l)}</button>`).join('')}</div>${body}`;
+  /* The strip carries the long name for anything that reads the page and the
+     short one for the glass — seven of them have to fit across a phone, and
+     "Longest Drive & Closest to the Pin" is a sentence, not a tab. */
+  const strip = `<div class="btabs nos">
+    <button class="btab home${UI.boardTab === 'home' ? ' on' : ''}" data-act="boardTab" data-a="home"
+      aria-label="All games"><span class="lg">All games</span>${UI.boardTab === 'home' ? 'All' : '\u2039 All'}</button>
+    ${BOARDS.map(([id, long, short]) =>
+      `<button class="btab${UI.boardTab === id ? ' on' : ''}" data-act="boardTab" data-a="${id}"
+        aria-label="${esc(long)}"><span class="lg">${esc(long)}</span>${esc(short)}</button>`).join('')}
+  </div>`;
+  const body = { home: boardsHome, pairs: boardPairs, mvp: boardMvp, bbb: boardBbb, ryder: scrRyder,
+                 prizes: boardPrizes, practice: boardPractice }[UI.boardTab] || boardsHome;
+  return strip + body();
 }
 
-/** The round picker and its tee times, shared by the counting-round boards. */
+/* ---- the front page ----
+   Every game, and where it stands, without scrolling and without tapping.
+   The Cup is given the pine because it is the only one of the six with a
+   clock on it: points that can still change hands this session. */
+function boardsHome() {
+  const cards = E.clubhouse(T, now);
+  const live = E.countingRounds(T).find(r => E.phaseOf(T, r.id, now) === 'live');
+  return `<h2 class="head bh">Boards${live
+    ? ` <span class="bh-s">— ${esc(live.short === 'Practice' ? 'Practice' : 'Round ' + live.short.slice(1))} is live</span>`
+    : ''}</h2>
+  <div class="club">${cards.map(c => c.kind === 'cup' ? cupCard(c) : gameCard(c)).join('')}</div>`;
+}
+
+function cupCard(c) {
+  const half = n => Number.isInteger(n) ? String(n) : Math.floor(n) + '\u00BD';
+  return `<button class="cc cc--cup" data-act="boardTab" data-a="ryder"
+    aria-label="Ryder Cup — United Kingdom ${half(c.uk)}, United States ${half(c.usa)}. ${esc(c.note)}">
+    <span class="cc-t">Ryder Cup<span class="cc-st">${esc(c.note)}</span></span>
+    <span class="cc-cup">
+      ${ukFlag(26)}<span class="cc-sc num">${half(c.uk)}</span>
+      <span class="cc-v">\u2014</span>
+      <span class="cc-sc num">${half(c.usa)}</span>${usFlag(26)}
+      ${c.toWin ? `<span class="cc-win">${half(c.toWin)}<small>to win</small></span>` : ''}
+    </span>
+    <span class="cc-go" aria-hidden="true">\u203A</span></button>`;
+}
+
+function gameCard(c) {
+  const empty = c.state === 'empty';
+  return `<button class="cc cc--${esc(c.state)}" data-act="boardTab" data-a="${esc(c.id)}"
+    aria-label="${esc(c.label)}${empty ? ' — ' + c.note : c.who ? ' — ' + c.who + ' leads on ' + c.fig : ''}">
+    <span class="cc-t">${esc(c.label)}${c.sub || c.thru
+      ? `<span class="cc-st">${esc(c.sub || ('Thru ' + c.thru))}</span>` : ''}</span>
+    ${empty
+      ? `<span class="cc-none">${esc(c.note)}</span>`
+      : `<span class="cc-w"><span class="cc-n">${esc(c.who || '—')}</span>
+          ${c.fig ? `<span class="cc-f num ${esc(c.tone || '')}">${esc(c.fig)}</span>` : ''}</span>
+        ${c.by != null && c.runner
+          ? `<span class="cc-b">${c.by === 0 ? 'tied with' : 'ahead of'} ${esc(c.runner)}${
+              c.by ? ' by ' + c.by : ''}</span>`
+          : c.who ? `<span class="cc-b">the only card in so far</span>` : ''}`}
+    <span class="cc-go" aria-hidden="true">\u203A</span></button>`;
+}
+
+/* ---- the plate ----
+   The head of every board: who leads, the figure that decides it, and the
+   margin. It is the first thing on the screen because it is the first thing
+   anybody wants, and it is drawn in the pine every other frame in the book
+   is drawn in. */
+function leadPlate(o) {
+  if (!o.who) return '';
+  return `<div class="plate">
+    <span class="pl-t">${esc(o.eyebrow)}${o.live ? `<span class="pl-live">\u25CF Live</span>` : ''}</span>
+    <span class="pl-n">${esc(o.who)}${o.whoSub ? `<small>${esc(o.whoSub)}</small>` : ''}</span>
+    <span class="pl-f">
+      <span class="pl-big num ${esc(o.tone || '')}">${esc(o.fig)}</span>
+      ${o.cells.filter(Boolean).map(([l, v]) =>
+        `<span class="pl-sep"></span><span class="pl-c">${esc(l)}<b class="num">${esc(v)}</b></span>`).join('')}
+    </span>
+  </div>`;
+}
+
+/** Which round the board is reading. The tee times used to sit under this,
+ *  which left an editable control that moves everybody's morning on a page
+ *  whose job is to report. They are set under Manage \u2192 Tee times; the
+ *  week shows them read-only when you tap a round. */
 function roundBand(rid, act) {
-  const cfg = E.roundCfg(T, rid);
-  const r = E.roundDef(rid);
-  const ed = canEdit();
   return `<div class="roundband">
     <div class="rounds">
       ${E.countingRounds(T).map(x => {
         const d = E.dayOf(x.dayIdx);
-        return `<button class="roundpick${x.id === rid ? ' on' : ''}" data-act="${act}" data-a="${x.id}">
-          <b>${esc(x.full)}</b><span>${esc(d.dow)} ${esc(d.date)}</span></button>`;
+        const ph = E.phaseOf(T, x.id, now);
+        return `<button class="roundpick${x.id === rid ? ' on' : ''}${ph === 'live' ? ' live' : ''}"
+          data-act="${act}" data-a="${x.id}" aria-label="${esc(x.full)}">
+          <b>${esc(x.short === 'Practice' ? 'Practice' : 'Round ' + x.short.slice(1))}</b>
+          <span>${esc(d.dow)} ${esc(d.date)}</span></button>`;
       }).join('')}
-    </div>
-    <div class="teetimes">
-      <div class="tt-head">Tee times — ${esc(r.full)}</div>
-      ${E.groups(T, rid).map((g, i) => `<label class="tt-row"><span>${esc(g.label)}</span>
-        ${timePick(g.time, { kind: 'tee', a: rid, b: i, ed, clearable: true,
-          label: r.short + ' — ' + g.label + ' tee time' })}</label>`).join('')}
     </div>
   </div>`;
 }
@@ -6550,114 +6897,162 @@ function boardPairs() {
   const h = UI.bookHole;
   const course = E.courseOf(T, rid);
   const hole = course.holes[h];
+  const r = E.roundDef(rid);
+  const live = E.phaseOf(T, rid, now) === 'live';
   const totalOf = id => { const row = board.find(x => x.id === id); return row ? row : null; };
 
   const onHole = T.config.pairs.map(p => {
-    const s = E.pairHole(T, rid, p, h);
+    const sc = E.pairHole(T, rid, p, h);
     const tot = totalOf(p.id);
-    return { name: E.pairName(T, p), net: s, d: s == null ? null : s - hole.par, tot };
-  }).filter(r => r.net != null).sort((a, b) => a.net - b.net);
+    return { name: E.pairName(T, p), net: sc, d: sc == null ? null : sc - hole.par, tot };
+  }).filter(x => x.net != null).sort((a, b) => a.net - b.net);
 
   let thru = 0;
   for (const p of T.config.pairs) for (let i = 0; i < 18; i++) if (E.pairHole(T, rid, p, i) != null) thru = Math.max(thru, i + 1);
 
   return `
   <div class="titlerow"><h2 class="head">Team Competition</h2><button class="rulelink" data-act="goRule" data-a="pairs">Full rules</button></div>
-  <p class="lede">Better of the two net scores on every hole, cumulative across the three counting rounds. The book opens at the hole; the standing is the consequence.</p>
+
+  ${leadPlate({ eyebrow: 'Leading \u00B7 ' + (r.short === 'Practice' ? 'Practice' : 'Round ' + r.short.slice(1)),
+    live, who: board.length ? board[0].name : null,
+    fig: board.length ? board[0].totalStr : '', tone: board.length ? E.toneOf(board[0].total) : '',
+    cells: [board.length > 1 ? ['Ahead by', String(Math.abs(board[1].total - board[0].total))] : null,
+            board.length && board[0].thru ? ['Through', String(board[0].thru)] : null] })}
+
   ${roundBand(rid, 'boardRound')}
 
-  <div class="spread">
-    <div class="leaf-l">
-      <div class="eyebrow">${esc(course.name)}</div>
-      <div class="holeno"><b class="num">${hole.n}</b><span style="font-size:18px;color:var(--turf)">hole</span></div>
-      <table class="facts"><tbody>
-        <tr><td>Par</td><td>${hole.par}</td></tr>
-        <tr><td>Length, White tees</td><td>${hole.mW} m</td></tr>
-        <tr><td>Stroke index</td><td>${hole.si}</td></tr>
-        <tr><td>Band 15 receives</td><td>${E.strokesFor(15, hole.si)}</td></tr>
-        <tr><td>Band 20 receives</td><td>${E.strokesFor(20, hole.si)}</td></tr>
-        <tr><td>Band 25 receives</td><td>${E.strokesFor(25, hole.si)}</td></tr>
-        <tr class="cap"><td>Picks up at</td><td>${E.capFor(hole.par, T.config.capOver)}</td></tr>
-      </tbody></table>
+  ${board.length ? `<div class="bd">
+    <div class="bdh pairs"><span>Pos</span><span>Team</span>
+      <span>Thru</span><span>Today</span><span>Total</span><span>Gap</span></div>
+    ${board.map((x, i) => `<div class="bdr pairs${i === 0 ? ' lead' : ''}">
+      <span class="p num">${x.pos}</span>
+      <span class="w">${esc(x.name)}</span>
+      <span class="n num">${esc(x.thruStr)}</span>
+      <span class="n num ${cls(x.today)}">${esc(x.todayStr)}</span>
+      <span class="t num ${cls(x.total)}">${esc(x.totalStr)}</span>
+      <span class="g num">${esc(x.gapStr)}</span></div>`).join('')}
+  </div>
+  <p class="legend">Total is the tournament to par across the counting rounds. Gap is how far back of the leader.</p>`
+  : `<p class="empty">The championship board opens once a counting round is under way.</p>`}
+
+  ${/* THE HOLE IS REFERENCE, AND REFERENCE GOES AFTER THE ANSWER. All of it
+        is still here — par, length, index, what each band receives, where it
+        picks up, the diagram and who has played it — but it is a page you
+        turn to rather than a page you scroll past. */ ''}
+  <details class="holefold" id="pairs-hole">
+    <summary><span class="hf-l">The hole</span>
+      <b>Hole ${hole.n}</b><span class="hf-m">${esc(course.name)} \u00B7 par ${hole.par} \u00B7 index ${hole.si}</span>
+      <span class="hf-ch" aria-hidden="true">\u203A</span></summary>
+    <div class="hf-body">
       ${holeStrip(rid, h, 'bookHole', leadPair)}
-      ${IMG[hole.img] ? `<figure class="diagram"><img decoding="sync" src="${IMG[hole.img]}" alt="Diagram of hole ${hole.n} at ${esc(course.name)}" loading="lazy"></figure>` : ''}
       <p class="turn">Turn the page: tap a hole.</p>
-    </div>
-
-    <div class="leaf-r">
-      <div class="eyebrow">Teams on this hole — Net Better Ball</div>
-      <div class="rows tight">
-        <div class="rowhead"><span style="width:26px">Pos</span><span style="flex:1">Team</span>
-          <span style="min-width:52px;text-align:right">Net</span>
-          <span style="min-width:52px;text-align:right">Hole</span>
-          <span style="min-width:84px;text-align:right">Total</span></div>
-        ${onHole.length ? onHole.map((r, i) => `<div class="row">
-          <span class="pos num">${i + 1}</span>
-          <span class="who">${esc(r.name)}</span>
-          <span class="n num" style="min-width:52px">${r.net}</span>
-          <span class="n num ${cls(r.d)}" style="min-width:52px">${esc(E.fmtToPar(r.d))}</span>
-          <span class="big num ${r.tot ? cls(r.tot.total) : ''}" style="min-width:84px">${r.tot ? esc(r.tot.totalStr) : '—'}</span></div>`).join('')
-        : `<p class="empty">Nobody has played hole ${hole.n} yet.</p>`}
+      <div class="spread">
+        <div class="leaf-l">
+          <table class="facts"><tbody>
+            <tr><td>Par</td><td>${hole.par}</td></tr>
+            <tr><td>Length, White tees</td><td>${hole.mW} m</td></tr>
+            <tr><td>Stroke index</td><td>${hole.si}</td></tr>
+            <tr><td>Band 15 receives</td><td>${E.strokesFor(15, hole.si)}</td></tr>
+            <tr><td>Band 20 receives</td><td>${E.strokesFor(20, hole.si)}</td></tr>
+            <tr><td>Band 25 receives</td><td>${E.strokesFor(25, hole.si)}</td></tr>
+            <tr class="cap"><td>Picks up at</td><td>${E.capFor(hole.par, T.config.capOver)}</td></tr>
+          </tbody></table>
+          ${IMG[hole.img] ? `<figure class="diagram"><img decoding="sync" src="${IMG[hole.img]}" alt="Diagram of hole ${hole.n} at ${esc(course.name)}" loading="lazy"></figure>` : ''}
+        </div>
+        <div class="leaf-r">
+          <div class="eyebrow">Teams on this hole — Net Better Ball</div>
+          ${/* Sized by class rather than by inline widths: inside the fold the
+                column is narrower than the page it used to sit on, and four
+                fixed numeric columns squeezed "Norberto III & Norberto Jr."
+                down to one word a line. */ ''}
+          <div class="bd oh">
+            <div class="bdh oh"><span>Pos</span><span>Team</span>
+              <span>Net</span><span>Hole</span><span>Total</span></div>
+            ${onHole.length ? onHole.map((x, i) => `<div class="bdr oh">
+              <span class="p num">${i + 1}</span>
+              <span class="w">${esc(x.name)}</span>
+              <span class="n num">${x.net}</span>
+              <span class="n num ${cls(x.d)}">${esc(E.fmtToPar(x.d))}</span>
+              <span class="t num ${x.tot ? cls(x.tot.total) : ''}">${x.tot ? esc(x.tot.totalStr) : '—'}</span></div>`).join('')
+            : `<p class="empty">Nobody has played hole ${hole.n} yet.</p>`}
+          </div>
+          <p class="legend">Net = team\u2019s better ball, strokes applied. Hole = that score against par.</p>
+        </div>
       </div>
-      <p class="legend">Net = team’s better ball, strokes applied. Hole = that score against par. Total = tournament to par.</p>
-
-      <div class="eyebrow" style="margin-top:26px">Standing after ${thru} hole${thru === 1 ? '' : 's'} today</div>
-      <div class="rows tight">
-        <div class="rowhead"><span style="width:26px">Pos</span><span style="flex:1">Team</span>
-          <span style="min-width:64px;text-align:right">Thru</span>
-          <span style="min-width:52px;text-align:right">Today</span>
-          <span style="min-width:84px;text-align:right">Total</span></div>
-        ${board.length ? board.map(r => `<div class="row">
-          <span class="pos num">${r.pos}</span>
-          <span class="who plain">${esc(r.members)}</span>
-          <span class="n num" style="min-width:64px;color:var(--turf)">thru ${esc(r.thruStr)}</span>
-          <span class="n num ${cls(r.today)}" style="min-width:52px">${esc(r.todayStr)}</span>
-          <span class="big num ${cls(r.total)}" style="min-width:84px">${esc(r.totalStr)}</span></div>`).join('')
-        : `<p class="empty">The championship board opens once a counting round is under way.</p>`}
-      </div>
     </div>
-  </div>`;
+  </details>`;
 }
 
 function boardMvp() {
   const rows = E.mvpBoard(T, now);
+  const live = E.countingRounds(T).some(r => E.phaseOf(T, r.id, now) === 'live');
   return `<div class="titlerow"><h2 class="head">Tournament MVP</h2><button class="rulelink" data-act="goRule" data-a="mvp">Full rules</button></div>
-  <p class="lede">Your own ball, your own number, every stroke counted. Runs off the same card as the team competition.</p>
-  ${/* Seven columns is a table, and a table does not fit a phone: the names
-        ran straight over the band and the total hung off the right edge. The
-        four working figures are wrapped so that narrow they can drop to a
-        labelled strip on a second line, while wide they stay exactly the
-        columns they were — `display:contents` hands them back to the row. */ ''}
-  ${rows.length ? `<div class="rows mvp" style="margin-top:18px">
-    <div class="rowhead"><span style="width:24px">Pos</span><span style="flex:1">Player</span><span style="min-width:46px;text-align:right">Band</span><span style="min-width:46px;text-align:right">Thru</span><span style="min-width:46px;text-align:right">Today</span><span style="min-width:46px;text-align:right">Pts</span><span style="min-width:74px;text-align:right">Total</span></div>
-    ${rows.map(r => `<div class="row mvprow">
-      <span class="pos num">${r.pos}</span>
-      <span class="who">${esc(r.name)}</span>
-      <span class="mvpmeta">
-        <span class="n num quiet" data-l="Band">${esc(r.bandStr)}</span>
-        <span class="n num quiet" data-l="Thru">${esc(r.thruStr)}</span>
-        <span class="n num ${cls(r.today)}" data-l="Today">${esc(r.todayStr)}</span>
-        <span class="n num quiet" data-l="Pts">${esc(r.stbStr)}</span>
-      </span>
-      <span class="big num ${cls(r.total)}" data-l="Total">${esc(r.totalStr)}</span></div>`).join('')}
-  </div><p style="font-size:14px;color:var(--turf);font-style:italic;margin-top:10px">Pts is the Stableford equivalent, shown for interest — the MVP is decided on net to par.</p>`
+
+  ${leadPlate({ eyebrow: 'Leading', live,
+    who: rows.length ? rows[0].name : null,
+    whoSub: rows.length && rows[0].band ? '\u00B7 band ' + rows[0].band : '',
+    fig: rows.length ? rows[0].totalStr : '', tone: rows.length ? E.toneOf(rows[0].total) : '',
+    cells: [rows.length > 1 ? ['Ahead by', String(Math.abs(rows[1].total - rows[0].total))] : null,
+            rows.length && rows[0].thru ? ['Through', String(rows[0].thru)] : null] })}
+
+  ${rows.length ? `<div class="bd">
+    <div class="bdh mvp"><span>Pos</span><span>Player</span>
+      <span>Band</span><span>Thru</span><span>Today</span><span>Total</span><span>Gap</span></div>
+    ${rows.map((r, i) => `<div class="bdr mvp${i === 0 ? ' lead' : ''}">
+      <span class="p num">${r.pos}</span>
+      <span class="w">${esc(r.name)}</span>
+      <span class="n num">${esc(r.bandStr)}</span>
+      <span class="n num">${esc(r.thruStr)}</span>
+      <span class="n num ${cls(r.today)}">${esc(r.todayStr)}</span>
+      <span class="t num ${cls(r.total)}">${esc(r.totalStr)}</span>
+      <span class="g num">${esc(r.gapStr)}</span></div>`).join('')}
+  </div>
+  <p class="legend">Your own ball, your own number, every stroke counted — off the same card as the team
+  competition. Gap is how far back of the leader; the MVP is decided on net to par.</p>`
   : `<p class="empty">No individual scores yet. Every golfer needs a playing band before their card counts.</p>`}`;
 }
 
 function boardBbb() {
   const rows = E.bbbBoard(T);
+  const banked = rows.reduce((n, r) => n + r.pts, 0);
   return `<div class="titlerow"><h2 class="head">Bingo Bango Bongo</h2><button class="rulelink" data-act="goRule" data-a="bbb">Full rules</button></div>
-  <p class="lede">Three points a hole — first on, closest once all are on, first in. 54 a round, 162 across the week.</p>
-  ${rows.length ? `<div class="rows" style="margin-top:18px;max-width:560px">
-    <div class="rowhead"><span style="width:24px">Pos</span><span style="flex:1">Player</span><span style="min-width:74px;text-align:right">Points</span></div>
-    ${rows.map(r => `<div class="row"><span class="pos num">${r.pos}</span><span class="who">${esc(r.name)}</span>
-      <span class="big num">${esc(r.ptsStr)}</span></div>`).join('')}
-  </div>` : `<p class="empty">No points banked yet. Scorers tap the three names per hole on the Score Entry screen.</p>`}`;
+
+  ${leadPlate({ eyebrow: 'Leading', live: !!banked,
+    who: rows.length ? rows[0].name : null,
+    fig: rows.length ? rows[0].ptsStr : '',
+    cells: [rows.length > 1 ? ['Ahead by', String(rows[0].pts - rows[1].pts)] : null,
+            ['Banked', banked + ' of ' + (E.countingRounds(T).length * 54)]] })}
+
+  ${rows.length ? `<div class="bd narrow">
+    <div class="bdh bbb"><span>Pos</span><span>Player</span><span>Behind</span><span>Points</span></div>
+    ${rows.map((r, i) => `<div class="bdr bbb${i === 0 ? ' lead' : ''}">
+      <span class="p num">${r.pos}</span>
+      <span class="w">${esc(r.name)}</span>
+      <span class="g num">${i === 0 ? '—' : '\u2212' + (rows[0].pts - r.pts)}</span>
+      <span class="t num">${esc(r.ptsStr)}</span></div>`).join('')}
+  </div>
+  <p class="legend">Three points a hole — first on, closest once all are on, first in. 54 a round,
+  ${E.countingRounds(T).length * 54} across the week.</p>` : `<p class="empty">No points banked yet. Scorers tap the three names per hole on the Score Entry screen.</p>`}`;
 }
 
 function boardPrizes() {
   const nm = pid => (E.person(T, pid) || {}).display || '—';
+  const marks = E.countingRounds(T).flatMap(r => {
+    const c = E.roundCfg(T, r.id) || {};
+    return [c.ctpWinner, c.ldWinner];
+  });
+  const got = marks.filter(Boolean).length;
   return `<h2 class="head">Longest Drive &amp; Closest to the Pin</h2>
+  ${/* Not a race, so not a plate: what a reader wants here is how much of it
+        is settled and how much is still to play for. */ ''}
+  <div class="plate flat">
+    <span class="pl-t">The marks</span>
+    <span class="pl-f">
+      <span class="pl-big num">${got}<small>of ${marks.length}</small></span>
+      <span class="pl-sep"></span>
+      <span class="pl-c">${got === marks.length ? 'All settled' : 'Still open'}<b>${marks.length - got}</b></span>
+    </span>
+  </div>
   <p class="lede">One nominated hole each, per counting round. Nominate before play; record the mark as it
   stands. Closest to the pin carries no distance — the flag in the green is the mark.</p>
   ${E.countingRounds(T).map(r => {
@@ -6820,6 +7215,13 @@ function boardPractice() {
     <h2 class="head">Practice Day</h2>
     <span class="brtop">${bandReadButton()}</span>
   </div>
+
+  ${leadPlate({ eyebrow: 'Round of the day', live: E.phaseOf(T, rid, now) === 'live',
+    who: rows.length ? rows[0].name : null,
+    whoSub: rows.length && rows[0].band ? '\u00B7 band ' + rows[0].band : '',
+    fig: rows.length ? E.fmtToPar(rows[0].tp) : '', tone: rows.length ? E.toneOf(rows[0].tp) : '',
+    cells: [rows.length ? ['Gross', String(rows[0].gross)] : null,
+            rows.length && rows[0].thru ? ['Through', String(rows[0].thru)] : null] })}
   <p class="lede">${esc(d.dow)} ${esc(d.date)} — ${esc(E.courseOf(T, rid).name)}. Get Loose Foursomes, and a taste of
   everything to come: the points, the Bingo Bango Bongo, the longest drive and the closest to the pin.
   <b>None of it counts.</b> Nothing on this page feeds the Team Competition, the MVP or the Ryder Cup.</p>

@@ -508,11 +508,20 @@ export function pairsBoard(T, now) {
     };
   }).filter(r => r.played);
   rows.sort((a, b) => a.total - b.total);
+  const lead = rows.length ? rows[0].total : 0;
   return rows.map((r, i) => ({ ...r, pos: i + 1,
     todayStr: r.today == null ? '—' : fmtToPar(r.today),
     thruStr: r.thru ? String(r.thru) : '—',
+    gap: r.total - lead, gapStr: gapOf(r.total - lead),
     totalStr: fmtToPar(r.total) }));
 }
+
+/* ---------- the gap to the leader ----------
+   The number a golfer actually talks in. "I am four under" is a fact about
+   you; "I am two back" is a fact about the tournament, and it is the one
+   that decides whether you are still in it. The leader has no gap — a nought
+   there reads as a score, so it is a dash. */
+export function gapOf(n) { return n <= 0 ? '—' : '+' + n; }
 
 export function mvpBoard(T, now) {
   const rows = golfers(T).map(p => {
@@ -527,10 +536,12 @@ export function mvpBoard(T, now) {
     return { id: p.id, name: p.display, band: p.band, today, thru, total, stb, played };
   }).filter(r => r.played);
   rows.sort((a, b) => a.total - b.total);
+  const lead = rows.length ? rows[0].total : 0;
   return rows.map((r, i) => ({ ...r, pos: i + 1,
     bandStr: r.band ? String(r.band) : '—',
     todayStr: r.today == null ? '—' : fmtToPar(r.today),
     thruStr: r.thru ? String(r.thru) : '—',
+    gap: r.total - lead, gapStr: gapOf(r.total - lead),
     totalStr: fmtToPar(r.total), stbStr: String(r.stb) }));
 }
 
@@ -1211,6 +1222,96 @@ export function ryderData(T, now) {
     lopsided: Math.abs(gs.filter(g => g.location === 'UK').length - gs.filter(g => g.location === 'USA').length),
   };
 }
+
+/* ---------------- the clubhouse ----------------
+ *
+ * Six games run at once, and the book used to make you tap six tabs to find
+ * out where any of them stood — with the answer to each one buried under the
+ * reference material for that game. This is every game in one reading: who
+ * leads, by how much, and how far through.
+ *
+ * It is a SUMMARY and nothing else. Every figure in it comes from the same
+ * board function that draws the full table, so the front page and the board
+ * behind it can never disagree.
+ */
+export function clubhouse(T, now) {
+  const live = countingRounds(T).find(r => phaseOf(T, r.id, now) === 'live');
+  const thru = (rows) => { const r = rows.find(x => x.thru); return r ? r.thru : null; };
+  /* "by 2" needs a second row to be ahead OF; a field of one is not a lead. */
+  const margin = (rows, key) => rows.length > 1 ? Math.abs(rows[1][key] - rows[0][key]) : null;
+
+  const out = [];
+
+  /* THE CUP FIRST. It is the only one of the six with a clock on it — points
+     that can still change hands this session — so it is the headline. */
+  const R = ryderData(T, now);
+  const played = R.sessions.reduce((n, s) => n + s.matches.filter(m => m.done).length, 0);
+  const total = R.sessions.reduce((n, s) => n + s.matches.length, 0);
+  const toWin = total ? Math.floor(total / 2) + (total % 2 ? 0.5 : 1) : null;
+  out.push({ id: 'ryder', kind: 'cup', label: 'Ryder Cup',
+    state: total && played === total ? 'closed' : played ? 'live' : 'open',
+    uk: R.ukTotal, usa: R.usaTotal, outstanding: total - played, toWin,
+    note: !total ? 'Put golfers in both squads'
+        : played === total ? 'All matches in'
+        : (total - played) + ' match' + (total - played === 1 ? '' : 'es') + ' still out' });
+
+  const pairs = pairsBoard(T, now);
+  out.push({ id: 'pairs', label: 'Team Competition', state: pairs.length ? (live ? 'live' : 'open') : 'empty',
+    who: pairs.length ? pairs[0].name : null, fig: pairs.length ? pairs[0].totalStr : null,
+    tone: pairs.length ? toneOf(pairs[0].total) : '',
+    thru: thru(pairs), by: margin(pairs, 'total'),
+    runner: pairs.length > 1 ? pairs[1].name : null,
+    note: pairs.length ? null : 'Opens once a counting round is under way' });
+
+  const mvp = mvpBoard(T, now);
+  out.push({ id: 'mvp', label: 'MVP', state: mvp.length ? (live ? 'live' : 'open') : 'empty',
+    who: mvp.length ? mvp[0].name : null, fig: mvp.length ? mvp[0].totalStr : null,
+    tone: mvp.length ? toneOf(mvp[0].total) : '',
+    thru: thru(mvp), by: margin(mvp, 'total'),
+    runner: mvp.length > 1 ? mvp[1].name : null,
+    note: mvp.length ? null : 'Every golfer needs a band before their card counts' });
+
+  const bbb = bbbBoard(T);
+  const banked = bbb.reduce((n, r) => n + r.pts, 0);
+  out.push({ id: 'bbb', label: 'Bingo Bango Bongo', state: banked ? 'live' : 'empty',
+    who: bbb.length ? bbb[0].name : null, fig: bbb.length ? bbb[0].ptsStr : null,
+    by: margin(bbb, 'pts'), runner: bbb.length > 1 ? bbb[1].name : null,
+    sub: banked ? banked + ' of ' + (countingRounds(T).length * 54) + ' banked' : null,
+    note: banked ? null : 'Scorers tap three names a hole on Score Entry' });
+
+  /* Two marks a round, and the only one of the six that is a list of facts
+     rather than a race. What it reports is how much of it is settled. */
+  const marks = [];
+  for (const r of countingRounds(T)) {
+    const c = roundCfg(T, r.id) || {};
+    marks.push({ kind: 'ctp', round: r, hole: c.ctpHole, who: c.ctpWinner });
+    marks.push({ kind: 'ld', round: r, hole: c.ldHole, who: c.ldWinner, dist: c.ldDist });
+  }
+  const got = marks.filter(m => m.who);
+  const lastLd = [...marks].reverse().find(m => m.kind === 'ld' && m.who);
+  out.push({ id: 'prizes', label: 'Drives & Pins',
+    state: !got.length ? 'empty' : got.length === marks.length ? 'closed' : 'open',
+    who: lastLd ? (person(T, lastLd.who) || {}).display : (got.length ? (person(T, got[got.length - 1].who) || {}).display : null),
+    fig: lastLd && lastLd.dist ? lastLd.dist : null,
+    sub: got.length + ' of ' + marks.length + ' marks in',
+    note: got.length ? null : 'Nominate the holes on Score Entry' });
+
+  const prac = practiceBoard(T);
+  const read = bandRead(T, 'practice');
+  const moves = read.filter(x => x.verdict === 'light' || x.verdict === 'heavy').length;
+  out.push({ id: 'practice', label: 'Practice Day',
+    state: prac.length ? (phaseOf(T, 'practice', now) === 'live' ? 'live' : 'closed') : 'empty',
+    who: prac.length ? prac[0].name : null,
+    fig: prac.length ? fmtToPar(prac[0].tp) : null,
+    tone: prac.length ? toneOf(prac[0].tp) : '',
+    sub: 'Counts for nothing' + (moves ? ' · ' + moves + ' band' + (moves === 1 ? '' : 's') + ' to move' : ''),
+    note: prac.length ? null : 'No cards in from Tuesday yet' });
+
+  return out;
+}
+
+/** Under par, over it, or level — the one word the colour is keyed off. */
+export function toneOf(n) { return n < 0 ? 'under' : n > 0 ? 'over' : 'level'; }
 
 /* ---------- scorecard strip ---------- */
 

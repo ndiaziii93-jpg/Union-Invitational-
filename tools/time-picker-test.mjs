@@ -62,9 +62,16 @@ for (const [label, vp, mob] of [['phone 390', { width: 390, height: 844 }, true]
 
   ok('nothing anywhere asks you to type a time', await p.locator('input.tt-in, input.fxtime').count(), 0);
 
-  // --- a morning tee time on the Leaderboards round picker ---
-  await tab('Leaderboards');
-  const tee = p.locator('.teetimes .timepick').first();
+  /* --- a morning tee time, where tee times are now set ---
+     They used to sit under the round picker on the Leaderboards, which put
+     the one control that moves everybody's morning on a page whose job is to
+     report. Behind Manage, with the rest of what is settled once. */
+  await tab('Tee times');
+  /* Every round has a block of its own on this screen and the practice round
+     comes first, so the picker this file is about has to be named: it is the
+     one the store keeps under rounds.r1. */
+  const r1 = () => p.locator('.teeblock', { hasText: 'Round 1' }).locator('.timepick');
+  const tee = r1().first();
   ok('a tee time is three wheels', await tee.locator('select').count(), 3);
   ok('the minute wheel offers every minute', await tee.locator('select').nth(1).locator('option').count(), 61);
   ok('the hour wheel is 1 to 12', await tee.locator('select').nth(0).locator('option').count(), 13);
@@ -72,19 +79,19 @@ for (const [label, vp, mob] of [['phone 390', { width: 390, height: 844 }, true]
   ok('7:40 AM is kept as 07:40', (await teeTimes())[0], '07:40');
 
   // --- the afternoon is not the morning ---
-  await set(p.locator('.teetimes .timepick').first(), '1', '05', 'PM');
+  await set(r1().first(), '1', '05', 'PM');
   ok('1:05 PM is kept as 13:05', (await teeTimes())[0], '13:05');
   // noon and midnight are where 12-hour clocks go wrong
-  await set(p.locator('.teetimes .timepick').first(), '12', '00', 'PM');
+  await set(r1().first(), '12', '00', 'PM');
   ok('12:00 PM is noon, not midnight', (await teeTimes())[0], '12:00');
-  await set(p.locator('.teetimes .timepick').first(), '12', '30', 'AM');
+  await set(r1().first(), '12', '30', 'AM');
   ok('12:30 AM is after midnight', (await teeTimes())[0], '00:30');
 
   /* --- THE SECOND GROUP FOLLOWS THE FIRST ---
      The course sends groups out eight to ten minutes apart. Eight is not a
      number anybody should have to hold in their head at seven in the
      morning, so setting the first tee sets the second. */
-  const second = p.locator('.teetimes .timepick').nth(1);
+  const second = r1().nth(1);
   ok('the second group is already eight minutes behind the first',
     (await teeTimes())[1], '00:38');
 
@@ -96,33 +103,33 @@ for (const [label, vp, mob] of [['phone 390', { width: 390, height: 844 }, true]
   /* Setting the SECOND by hand is exactly what it says — the first does not
      move with it. Only the first carries the other. */
   ok('and the first stayed where it was', (await teeTimes())[0], '00:30');
-  await set(p.locator('.teetimes .timepick').first(), '7', '40', 'AM');
+  await set(r1().first(), '7', '40', 'AM');
   ok('moving the first takes the second with it', (await teeTimes())[0], '07:40');
   ok('eight minutes behind, wherever it was', (await teeTimes())[1], '07:48');
 
   /* --- HALF A TIME MUST NOT BE WRITTEN ---
      A rule about a picker with nothing in it, which since the second group
      now always shows a time means the FIRST one, emptied. */
-  await set(p.locator('.teetimes .timepick').first(), '', '', '');
+  await set(r1().first(), '', '', '');
   ok('the first can be emptied', (await teeTimes())[0], null);
   ok('and the second empties with it', (await teeTimes())[1], null);
-  await set(p.locator('.teetimes .timepick').first(), '9', null, null);
+  await set(r1().first(), '9', null, null);
   ok('an hour alone writes nothing', (await teeTimes())[0], null);
-  await set(p.locator('.teetimes .timepick').first(), null, '20', null);
+  await set(r1().first(), null, '20', null);
   ok('an hour and a minute still write nothing', (await teeTimes())[0], null);
-  await set(p.locator('.teetimes .timepick').first(), null, null, 'AM');
+  await set(r1().first(), null, null, 'AM');
   ok('the third wheel completes it', (await teeTimes())[0], '09:20');
   ok('and the second comes back with it', (await teeTimes())[1], '09:28');
 
   // --- and the second can be cleared on its own ---
-  await set(p.locator('.teetimes .timepick').nth(1), '', '', '');
+  await set(r1().nth(1), '', '', '');
   ok('clearing all three empties the slot', (await teeTimes())[1], null);
   /* Cleared in the book, but the group still has a time on screen: a blank
      second slot is read as eight minutes behind the first rather than shown
      as a group with no tee time at all. That is what carries the rounds
      written before the gap was settled. */
   ok('and the group still shows one',
-    await p.locator('.teetimes .timepick').nth(1).locator('select').first().inputValue(), '9');
+    await r1().nth(1).locator('select').first().inputValue(), '9');
 
   /* Calendar events pick the same way, in the window that writes them. The
      week is a week again: you tap an event to open it, not to type into it. */
@@ -139,7 +146,7 @@ for (const [label, vp, mob] of [['phone 390', { width: 390, height: 844 }, true]
   ok('6:15 PM is kept as 18:15', await firstFixture(), '18:15');
 
   // --- the wider control must not push anything off the screen ---
-  for (const t of ['Leaderboards', 'Calendar', 'Course Setup']) {
+  for (const t of ['Tee times', 'Leaderboards', 'Calendar', 'Course Setup']) {
     await tab(t);
     ok(t + ' does not scroll sideways', await p.evaluate(() =>
       document.documentElement.scrollWidth > window.innerWidth + 1), false);

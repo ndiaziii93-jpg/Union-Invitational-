@@ -103,7 +103,7 @@ ok('no hole is marked yet', await p.locator('.hcell.marked').count(), 0);
 console.log('\nthe ref marks the hole, for the group, in one visit');
 const board = async () => { await tab('Boards');
   await p.locator('.btab', { hasText: 'MVP' }).click(); await p.waitForTimeout(600); await shut();
-  const v = await p.locator('.mvprow .big').allInnerTexts();
+  const v = await p.locator('.bdr.mvp .t').allInnerTexts();
   await tab('Scores'); return v; };
 const was = await board();
 await p.locator('.hcell').first().click(); await p.waitForTimeout(450); await shut();
