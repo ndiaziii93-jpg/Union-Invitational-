@@ -512,12 +512,59 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
    align-items:flex-start with margin:auto on the child is the pattern that
    keeps a short window centred while letting a tall one scroll from its top
    rather than being clipped there. */
-.scrim{position:fixed;inset:0;background:rgba(20,26,21,.55);z-index:60;display:flex;
-  align-items:flex-start;justify-content:center;padding:18px;
+/* THE GUTTER IS NOT 18px ALL ROUND. A phone keeps its clock, its signal and
+   its battery in the top of the glass, and a window that opens flush to the
+   top sits underneath them — the title competing with the carrier name. The
+   inset is whatever the device says is safe, plus room to breathe, and the
+   same at the foot. */
+.scrim{position:fixed;inset:0;z-index:60;display:flex;
+  align-items:flex-start;justify-content:center;
+  padding:max(22px,calc(env(safe-area-inset-top,0px) + 14px)) 18px
+          max(22px,calc(env(safe-area-inset-bottom,0px) + 14px));
+  background:rgba(16,22,17,.46);
+  backdrop-filter:blur(16px) saturate(118%);
+  -webkit-backdrop-filter:blur(16px) saturate(118%);
   overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+/* No backdrop filter on the device: fall back to a scrim solid enough to
+   separate the window from the book behind it. */
+@supports not ((backdrop-filter:blur(2px)) or (-webkit-backdrop-filter:blur(2px))){
+  .scrim{background:rgba(16,22,17,.62)}
+}
+
+/* ---- a window opening ----
+   The scrim resolves, the card rises the last few pixels and settles out of
+   a slight undersize. A fifth of a second, on a curve that decelerates hard
+   — which is the difference between a thing that arrived and a thing that
+   was always there and you had simply not noticed.
+
+   Marked by the renderer, and only when the window is a different one from
+   the last redraw: the book polls, and a window that did this every few
+   seconds would be a twitch. */
+@keyframes scrimIn{from{opacity:0}to{opacity:1}}
+@keyframes cardIn{from{opacity:0;transform:translateY(12px) scale(.965)}
+                  to{opacity:1;transform:none}}
+.scrim[data-in]{animation:scrimIn .2s ease both}
+.scrim[data-in] > .modal,
+.scrim[data-in] > .askbox,
+.scrim[data-in] > .recapbox{animation:cardIn .26s cubic-bezier(.2,.9,.28,1) both}
+@media (prefers-reduced-motion:reduce){
+  .scrim[data-in],.scrim[data-in] > *{animation:none}
+}
+
+/* ---- the window itself ----
+   A window is not a page of the book: it is a card lying ON the book, and a
+   card is a different object. So it keeps the paper, the pine and the serif
+   and takes its GEOMETRY from the thing it actually is — a generous corner,
+   no drawn border, and a shadow in three layers: a hairline that separates
+   it from the paper, a close shadow that gives it a millimetre of lift, and
+   a long one that puts it well above the page. */
 .modal{--mpad-x:24px;--mpad-y:22px;
-  background:var(--page);border:1px solid var(--rule);border-top:3px solid var(--green);max-width:400px;width:100%;
-  margin:auto;padding:var(--mpad-y) var(--mpad-x);box-shadow:0 20px 54px var(--shadow);border-radius:3px;
+  background:var(--page);border:0;max-width:420px;width:100%;
+  margin:auto;padding:var(--mpad-y) var(--mpad-x);border-radius:20px;
+  box-shadow:0 0 0 .5px rgba(29,46,33,.16),
+             0 2px 8px rgba(16,22,17,.10),
+             0 16px 34px rgba(16,22,17,.20),
+             0 40px 80px rgba(16,22,17,.22);
   display:grid;gap:13px;overflow:hidden}
 
 /* ---- the top of every window ----
@@ -527,24 +574,59 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
    work out what they are looking at from the contents. It bleeds to the
    edges of the window, which is what the padding properties above are for:
    a banner cannot know what it is sitting in, so the window tells it. */
-.mbanner{margin:calc(var(--mpad-y) * -1) calc(var(--mpad-x) * -1) 4px;
-  padding:13px var(--mpad-x);background:var(--green);color:var(--paper);
+/* ONE PINE, EVERYWHERE. The banner used to be drawn in the mid green the
+   book uses for TEXT — a colour that reads well as a word on cream and goes
+   flat and minty across a whole band. The bar at the foot, the strip at the
+   head and the recap's own nameplate were all already the deep pine. The
+   banner joins them, with the same gold hairline on the edge that faces the
+   page, so every frame in the book is one material. */
+.mbanner{margin:calc(var(--mpad-y) * -1) calc(var(--mpad-x) * -1) 6px;
+  padding:15px var(--mpad-x) 14px;background:var(--ink);color:var(--page);
+  border-bottom:2px solid var(--gold-up);
   display:flex;align-items:center;gap:14px;text-align:left}
 .mb-w{flex:1 1 auto;min-width:0}
-.mb-t{display:block;font-size:19px;font-weight:700;line-height:1.22;letter-spacing:.01em}
-.mb-s{display:block;font-size:11px;letter-spacing:.11em;text-transform:uppercase;
-  margin-top:3px;opacity:.78}
+.mb-t{display:block;font-size:20px;font-weight:700;line-height:1.2;letter-spacing:-.005em}
+.mb-s{display:block;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+  margin-top:4px;color:var(--sage-up)}
 .mb-c{flex:0 0 auto;width:34px;height:auto;filter:invert(1);opacity:.92}
 @media (max-width:560px){
-  .mb-t{font-size:17px}
-  .mb-c{width:28px}
+  .mb-t{font-size:18px}
+  .mb-c{width:29px}
 }
 .modal h3{margin:0;font-size:21px;font-weight:700}
 .modal p{margin:0;font-size:15px;color:var(--turf)}
-.pinin{font-size:28px;font-variant-numeric:tabular-nums;letter-spacing:.32em;text-align:center;padding:12px;
-  border:1px solid var(--rule);background:var(--paper);color:var(--ink);width:100%;border-radius:2px}
+.pinin{font-size:28px;font-variant-numeric:tabular-nums;letter-spacing:.32em;text-align:center;padding:14px;
+  border:1px solid var(--rule);background:var(--paper);color:var(--ink);width:100%;border-radius:12px}
 .modal .err{color:var(--flag);font-size:14px;min-height:19px;margin:0}
-.modal .acts{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+.modal .acts{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:2px}
+
+/* ---- what you do about it ----
+   A window's buttons are the only round things in a book of printed rules,
+   and deliberately: they are the one part of it you touch. On a phone they
+   stop sitting in a row at the bottom right, which is a mouse's idea of
+   where a button goes, and become a stack the width of the card — with the
+   thing you came to do on top, whichever order the markup happens to be in. */
+.scrim .acts .btn{border-radius:999px;padding:11px 22px;min-height:46px;font-weight:600;
+  letter-spacing:.005em}
+.scrim .acts .btn.ghost{border-color:var(--rule);background:var(--paper)}
+@media (hover:hover) and (pointer:fine){ .scrim .acts .btn.ghost:hover{background:var(--sunk)} }
+/* Destructive is a red WORD on a quiet button, never a red slab. A slab that
+   size reads as the main thing to do, and taking an event off the week is
+   not the main thing to do on a window headed "Edit this event". */
+.scrim .acts .btn.danger{background:var(--paper);border-color:rgba(158,59,46,.45);color:var(--flag)}
+@media (hover:hover) and (pointer:fine){
+  .scrim .acts .btn.danger:hover{background:var(--flag);border-color:var(--flag);color:#fff}
+}
+@media (max-width:560px){
+  .scrim .acts{flex-direction:column;align-items:stretch;gap:8px}
+  .scrim .acts .btn{width:100%;order:2}
+  .scrim .acts .btn.danger{order:1}
+  .scrim .acts .btn:not(.ghost):not(.danger){order:0}
+}
+
+/* Anything you type or choose inside a window is rounded to match it. */
+.scrim .field,.scrim .timepick select{border-radius:12px;min-height:46px}
+.evk{border-radius:12px}
 
 /* ---- why a match stands where it does ---- */
 .mwmodal{--mpad-x:20px;max-width:520px;gap:0;padding:22px 20px 18px}
@@ -718,19 +800,31 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
   box-shadow:0 0 0 2px var(--paper)}
 
 /* ---- who the book thinks you are, in the window that settles things ---- */
-.mg-role{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:14px;
-  padding:12px 13px;background:var(--paper);border-left:3px solid var(--gold);border-radius:2px}
+/* The footer of the group: what the book thinks you are, and the way to
+   change it. Same surface as the list above it, so the window reads as two
+   blocks rather than a list and a warning. */
+.mg-role{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:12px;
+  padding:13px 15px;background:var(--paper);border:1px solid var(--hair);border-radius:14px}
 .mg-rw{flex:1 1 180px;min-width:0}
 .mg-rt{display:block;font-size:15px;font-weight:700}
 .mg-rn{display:block;font-size:13px;color:var(--turf);margin-top:2px;line-height:1.45}
 .mg-rb{flex:0 0 auto;min-height:38px;padding:7px 14px;font-size:14px}
 .mgmodal{--mpad-x:20px;max-width:460px;gap:0;padding:22px 20px 18px}
-.mglist{display:grid;margin-top:14px;border-top:1px solid var(--hair)}
+/* An inset grouped list, which is what this is: a short set of places to go,
+   gathered on a surface of their own and rounded off at both ends. The rules
+   between them start where the words start rather than running into the
+   corners — a separator that reaches the edge of a rounded box is the thing
+   that makes a list look drawn rather than made. */
+.mglist{display:grid;margin-top:14px;background:var(--paper);
+  border:1px solid var(--hair);border-radius:14px;overflow:hidden}
 .mg-row{display:flex;align-items:center;gap:12px;width:100%;text-align:left;
-  padding:13px 4px;border:0;border-bottom:1px solid var(--hair);background:none;
+  padding:13px 15px;border:0;background:none;position:relative;
   font-family:inherit;cursor:pointer;color:var(--ink)}
+.mg-row+.mg-row::before{content:"";position:absolute;left:15px;right:0;top:0;
+  height:1px;background:var(--hair)}
 .mg-row:focus-visible{outline:2px solid var(--flag);outline-offset:-2px}
-@media (hover:hover) and (pointer:fine){ .mg-row:hover{background:var(--paper)} }
+@media (hover:hover) and (pointer:fine){ .mg-row:hover{background:var(--sunk)} }
+.mg-row:active{background:var(--sunk)}
 .mg-row.on .mg-t{color:var(--green)}
 .mg-w{flex:1 1 auto;min-width:0}
 .mg-t{display:block;font-size:17px;font-weight:600;line-height:1.25}
@@ -746,7 +840,7 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
    the one open question kept visibly apart from the four. */
 .pkg{margin-top:16px;border:1px solid var(--rule);border-radius:3px;overflow:hidden;
   background:var(--paper)}
-.pkghead{background:var(--green);color:var(--paper);padding:11px 16px;
+.pkghead{background:var(--ink);color:var(--page);border-bottom:2px solid var(--gold-up);padding:12px 16px;
   display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .pkghead h3{margin:0;font-size:17px;font-weight:700}
 .pkgsrc{font-size:11px;letter-spacing:.1em;text-transform:uppercase;opacity:.78}
@@ -767,13 +861,16 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
    page everybody opens. */
 .rdmodal{--mpad-x:20px;max-width:460px;gap:0;padding:22px 20px 18px}
 .rd-fmt{margin:13px 0 0;font-size:14px;color:var(--turf);font-style:italic}
-.rd-tees{display:grid;margin-top:12px;border-top:1px solid var(--hair)}
+.rd-tees{display:grid;margin-top:13px;background:var(--paper);
+  border:1px solid var(--hair);border-radius:14px;overflow:hidden}
 .rd-row{display:grid;grid-template-columns:auto auto minmax(0,1fr);gap:4px 12px;
-  align-items:baseline;padding:11px 2px;border-bottom:1px solid var(--hair)}
+  align-items:baseline;padding:11px 14px;position:relative}
+.rd-row+.rd-row::before{content:"";position:absolute;left:14px;right:0;top:0;
+  height:1px;background:var(--hair)}
 .rd-g{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--turf);font-weight:700}
 .rd-t{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums}
 .rd-who{grid-column:1 / -1;font-size:14px;color:var(--turf);line-height:1.45}
-.rd-none{margin:12px 0 0;font-size:14.5px;color:var(--turf)}
+.rd-none{margin:0;padding:14px;font-size:14.5px;color:var(--turf)}
 .rd-note{margin:14px 0 0;font-size:13px;color:var(--turf)}
 
 /* The round on a day card opens that window, so it reads as a thing you can
@@ -820,7 +917,7 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 .evk{flex:1 1 0;padding:10px 6px;border:1px solid var(--rule);background:var(--paper);
   color:var(--turf);border-radius:3px;font-size:14px;font-weight:600;cursor:pointer}
 .evk:hover{border-color:var(--ink);color:var(--ink)}
-.evk.on{background:var(--green);border-color:var(--green);color:var(--paper)}
+.evk.on{background:var(--ink);border-color:var(--ink);color:var(--page)}
 .evmodal .err{margin-top:12px}
 .evmodal .acts{margin-top:4px}
 
@@ -1512,23 +1609,32 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
 .recapbtn.ready{animation:recappulse 2.2s ease-in-out infinite}
 @media (prefers-reduced-motion:reduce){.recapbtn.ready{animation:none}}
 
+/* The same card as every other window, and it CENTRES — it had no auto
+   margin, so it hung from the top of the scrim and ended up tucked under the
+   phone's own clock and battery. */
 .askbox{--mpad-x:20px;--mpad-y:18px;
-  background:var(--page);border:1px solid var(--rule);border-top:3px solid var(--green);border-radius:4px;
-  width:min(680px,94vw);max-height:86vh;overflow-y:auto;padding:18px 20px 20px;
-  box-shadow:0 18px 50px var(--shadow);overflow-x:hidden}
-.askbox .mbanner{margin-bottom:10px}
-.askhead{justify-content:flex-end}
-.askhead{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
-.askhead b{font-size:21px}
-.asknote{font-size:14px;color:var(--turf);margin:6px 0 12px;max-width:56ch}
+  background:var(--page);border:0;border-radius:20px;margin:auto;
+  width:min(680px,100%);max-height:min(76vh,640px);overflow-y:auto;
+  padding:var(--mpad-y) var(--mpad-x) 20px;
+  box-shadow:0 0 0 .5px rgba(29,46,33,.16),
+             0 2px 8px rgba(16,22,17,.10),
+             0 16px 34px rgba(16,22,17,.20),
+             0 40px 80px rgba(16,22,17,.22);
+  overflow-x:hidden}
+/* The banner stays put while the conversation scrolls under it. */
+.askbox .mbanner{position:sticky;top:calc(var(--mpad-y) * -1);z-index:2;margin-bottom:12px}
+.asknote{font-size:14px;color:var(--turf);margin:2px 0 13px;max-width:56ch;line-height:1.5}
 .askrow{display:flex;gap:8px;align-items:flex-start}
-.askin{flex:1;min-height:52px;resize:vertical;font-family:var(--serif)}
+.askin{flex:1;min-height:56px;resize:vertical;font-family:var(--serif);border-radius:12px;
+  padding:12px 13px;font-size:16px}
+.askrow .btn{border-radius:999px;min-height:46px;padding:11px 24px;font-weight:600}
+.askbox .acts{display:flex;justify-content:flex-end;margin-top:16px}
 .asklist{margin-top:16px}
 .askitem{border-top:1px solid var(--hair);padding:12px 0}
 .askitem:first-child{border-top:2px solid var(--ink)}
 /* the one you just asked, so you know where the answer is */
-.askitem.current{background:var(--green);color:var(--paper);border-radius:3px;
-  padding:12px 14px;border-top:0;margin-top:4px}
+.askitem.current{background:var(--ink);color:var(--page);border-radius:12px;
+  padding:13px 15px;border-top:0;margin-top:4px}
 .askitem.current .askq{color:var(--paper)}
 .askq{font-weight:700;font-size:16px}
 .aska{margin-top:5px;font-size:16px;line-height:1.55;white-space:pre-wrap}
@@ -1543,8 +1649,11 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
 .recaptext p{margin:0 0 12px}
 
 @media (max-width:720px){
-  .askbox{width:100vw;max-width:100vw;max-height:92vh;border-radius:0;padding:16px 16px 20px}
-  .askrow{flex-direction:column}
+  /* It used to go full-bleed and square-cornered, which is what a web page
+     does when it gives up, not what a window does. It stays a card. */
+  .askbox{--mpad-x:18px;width:100%;max-width:100%;max-height:min(74vh,620px);border-radius:20px}
+  .askrow{flex-direction:column;align-items:stretch}
+  .askin{width:100%}
   .askrow .btn{width:100%}
 }
 
@@ -1896,7 +2005,7 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
    broadsheet and a lower-third on a broadcast are the same object. */
 .artplate{display:flex;align-items:center;gap:12px;margin-top:16px;
   background:var(--ink);color:var(--paper);padding:10px clamp(12px,2vw,18px);
-  border-bottom:3px solid var(--green)}
+  border-bottom:3px solid var(--gold-up)}
 /* The crest on a dark band, with its drawing intact.
    `brightness(0) invert(1)` forces EVERY opaque pixel to the same white, so
    the linework and the panels it encloses come out identical and the whole

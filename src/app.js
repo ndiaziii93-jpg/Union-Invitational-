@@ -704,7 +704,6 @@ function askPanel() {
   if (!UI.askOpen) return '';
   return `<div class="scrim" data-act="askClose"><div class="askbox" role="dialog" aria-modal="true" aria-label="Ask the Union">
     ${modalBanner('Ask the Union', 'Anything in the book')}
-    <div class="askhead"><button class="rm" data-act="askClose">Close</button></div>
     <p class="asknote">Anything about this tournament — scores, bands, pairings, who is up. It answers from the
     book only, so if it has not been recorded, it will say so.</p>
     <div class="askrow">
@@ -722,6 +721,10 @@ function askPanel() {
       </div>`).join('')
       : '<p class="empty">Nothing asked yet.</p>'}
     </div>
+    ${/* Closing sits where it sits in every other window — at the foot, in
+          the row of things you do — rather than as a bare word under the
+          banner, which is the one place nobody looks for a way out. */ ''}
+    <div class="acts"><button class="btn ghost" data-act="askClose">Close</button></div>
   </div></div>`;
 }
 
@@ -3289,6 +3292,7 @@ function inUse() {
  * before and the browser clamps it against the old screen's height. */
 const SCROLL_AT = Object.create(null);
 let paintedScreen = null;
+let paintedWindow = null;
 
 /* ---- the foot of the book ----
    The bar is told whether there is still page under it. While there is, the
@@ -3614,6 +3618,13 @@ function paint() {
   const scrimNow = windowKind();
   const scrim2 = document.querySelector('.scrim');
   if (scrim2 && scrimAt && scrimWas === scrimNow) scrim2.scrollTop = scrimAt;
+  /* A WINDOW OPENS ONCE. The book redraws itself every few seconds off the
+     shared store and a window that rose and resolved on each of those would
+     be a twitch, not an entrance — so it is marked only when the window up
+     is a DIFFERENT window from the one that was up at the last redraw. The
+     same guard, and the same reason, as a screen arriving. */
+  if (scrim2 && scrimNow && scrimNow !== paintedWindow) scrim2.setAttribute('data-in', '1');
+  paintedWindow = scrimNow;
   /* The site plan is a panorama four times as wide as it is tall, so on a
      phone most of it is off the side. Picking a point out of the list has to
      bring it into view — otherwise the map appears not to have answered.

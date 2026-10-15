@@ -229,7 +229,9 @@ const band = await A.p.evaluate(() => {
   };
 });
 console.log('          (' + JSON.stringify(band) + ')');
-ok('it is pine', band.pine, 'rgb(62, 92, 67)');
+/* The deep pine the bar, the strip and the buttons are drawn in. It used to
+   be the mid green the book sets WORDS in, which reads flat across a band. */
+ok('it is pine', band.pine, 'rgb(29, 46, 33)');
 ok('it names the window', band.hasTitle, true);
 ok('the crest on it is struck white', band.crestIsWhite, true);
 ok('and it runs the full width of the window', band.flush, true);

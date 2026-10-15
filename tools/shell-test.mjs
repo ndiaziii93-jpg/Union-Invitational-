@@ -155,6 +155,104 @@ ok('and what that means for whoever is reading',
   (await p.locator('.mg-role .mg-rn').innerText()).includes('Setup'), true);
 await p.locator('.mgmodal [data-act="modalCancel"]').click(); await p.waitForTimeout(400);
 
+/* ---------------- the windows ----------------
+ *
+ * Two complaints and a free hand. The Ask panel opened flush to the top of
+ * the glass, where a phone keeps its clock, its signal and its battery — so
+ * the title of the window competed with the carrier name. And the banner
+ * was drawn in the mid green the book uses for WORDS, which reads flat and
+ * minty across a whole band next to the deep pine of a button.
+ */
+console.log('\nevery window is one material, and it is the pine');
+const PINE = 'rgb(29, 46, 33)';
+await p.locator('.crestbtn').click(); await p.waitForTimeout(700);
+ok('the Ask panel opens', await p.locator('.askbox').count(), 1);
+ok('its banner is the pine the buttons are', await p.evaluate(
+  () => getComputedStyle(document.querySelector('.askbox .mbanner')).backgroundColor), PINE);
+ok('the same pine, exactly', await p.evaluate(() => {
+  const a = getComputedStyle(document.querySelector('.askbox .mbanner')).backgroundColor;
+  const btn = [...document.querySelectorAll('.askrow .btn')][0];
+  return a === getComputedStyle(btn).backgroundColor;
+}), true);
+ok('with the gold hairline on the edge that faces the page', await p.evaluate(() => {
+  const b = getComputedStyle(document.querySelector('.askbox .mbanner'));
+  return parseFloat(b.borderBottomWidth) >= 2 && b.borderBottomColor !== b.backgroundColor;
+}), true);
+
+console.log('\nand it opens where a man can read it');
+const box = await p.evaluate(() => {
+  const r = document.querySelector('.askbox').getBoundingClientRect();
+  return { top: Math.round(r.top), below: Math.round(innerHeight - r.bottom) };
+});
+console.log('          (' + box.top + 'px above it, ' + box.below + 'px below)');
+ok('clear of the clock and the battery', box.top >= 20, true);
+ok('and centred, not hung from the top', Math.abs(box.top - box.below) <= 6, true);
+ok('it is a card, not a slab: no border drawn on it', await p.evaluate(
+  () => parseFloat(getComputedStyle(document.querySelector('.askbox')).borderTopWidth)), 0);
+ok('with a corner a card has', await p.evaluate(
+  () => parseFloat(getComputedStyle(document.querySelector('.askbox')).borderTopLeftRadius)) >= 14, true);
+ok('and the book behind it is thrown out of focus', await p.evaluate(() => {
+  const f = getComputedStyle(document.querySelector('.scrim')).backdropFilter
+         || getComputedStyle(document.querySelector('.scrim')).webkitBackdropFilter || '';
+  return /blur/.test(f);
+}), true);
+ok('the field fills the card on a phone', await p.evaluate(() => {
+  const f = document.querySelector('.askin').getBoundingClientRect();
+  const c = document.querySelector('.askbox').getBoundingClientRect();
+  return c.width - f.width < 46;
+}), true);
+/* It opens once. The book polls, and a window that rose on every poll
+   would be a twitch. */
+ok('a window opening is marked', await p.locator('.scrim[data-in]').count(), 1);
+ok('and a redraw while it is open is not', await p.evaluate(async () => {
+  window.__forceRender && window.__forceRender();
+  await new Promise(r => setTimeout(r, 140));
+  return document.querySelectorAll('.scrim[data-in]').length;
+}), 0);
+await p.locator('.askbox [data-act="askClose"]').click(); await p.waitForTimeout(500);
+
+console.log('\nand what you do about it sits where Apple puts it');
+await bar('Calendar'); await p.waitForTimeout(400);
+await p.locator('.daycard .de.tap').first().click(); await p.waitForTimeout(700);
+const acts = await p.evaluate(() => [...document.querySelectorAll('.scrim .acts .btn')]
+  .map(b => [b.textContent.trim(), b.getBoundingClientRect().top])
+  .sort((a, c) => a[1] - c[1]).map(x => x[0]));
+console.log('          (down the card: ' + acts.join(', ') + ')');
+ok('the thing you came to do is on top', acts[0], 'Save');
+ok('and taking it off the week is not', acts.indexOf('Remove') > 0, true);
+ok('they are the full width of the card', await p.evaluate(() => {
+  const b = document.querySelector('.scrim .acts .btn').getBoundingClientRect();
+  const a = document.querySelector('.scrim .acts').getBoundingClientRect();
+  return Math.abs(a.width - b.width) < 2;
+}), true);
+ok('and rounded, because they are the part you touch', await p.evaluate(
+  () => parseFloat(getComputedStyle(document.querySelector('.scrim .acts .btn')).borderTopLeftRadius)) > 20, true);
+ok('the destructive one is a red word, not a red slab', await p.evaluate(() => {
+  const d = document.querySelector('.scrim .acts .btn.danger');
+  const s = getComputedStyle(d);
+  return s.color.replace(/\s/g, '') === 'rgb(158,59,46)' && s.backgroundColor !== 'rgb(158, 59, 46)';
+}), true);
+await p.locator('.scrim [data-act="modalCancel"]').click(); await p.waitForTimeout(500);
+
+/* The pine is everywhere, not just on the one window that was complained
+   about. */
+console.log('\nand it is every window, not the one that was complained about');
+for (const [what, open] of [['Manage', async () => p.locator('.masthead .dial').click()],
+                            ['a round', async () => { await bar('Calendar');
+                              await p.locator('.daycard [data-act="roundOpen"]').nth(1).click(); }]]) {
+  await open(); await p.waitForTimeout(750);
+  ok(what + ' wears the same pine', await p.evaluate(
+    () => getComputedStyle(document.querySelector('.scrim .mbanner')).backgroundColor), PINE);
+  await p.locator('.scrim [data-act="modalCancel"]').click(); await p.waitForTimeout(450);
+}
+ok('and no banner anywhere is still the old mid green', await p.evaluate(() => {
+  const g = getComputedStyle(document.documentElement).getPropertyValue('--green').trim();
+  return g.toUpperCase() === '#3E5C43';     // the token is untouched; it is no longer a surface
+}), true);
+/* Opening those windows scrolled the week, and the week now REMEMBERS where
+   it was left — which is the next thing this file tests. Put it back. */
+await p.evaluate(() => window.scrollTo(0, 0)); await p.waitForTimeout(350);
+
 /* ---------------- the foot of the page ---------------- */
 console.log('\nthe page ends above the bar, not behind it');
 await bar('Boards');
