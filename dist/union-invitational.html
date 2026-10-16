@@ -613,7 +613,7 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
    nothing shifts sideways when the choice moves, and each row carries the
    one line that tells two rounds — or two groups — apart. */
 .shmodal{gap:0;max-height:84vh;overflow:auto}
-.shlist{display:grid;background:var(--paper);
+.shlist{display:grid;grid-template-columns:minmax(0,1fr);background:var(--paper);
   margin:0 calc(var(--mpad-x) * -1);
   border-top:1px solid var(--hair);border-bottom:1px solid var(--hair)}
 .sh-row{display:flex;align-items:center;gap:11px;width:100%;min-height:54px;
@@ -1799,7 +1799,7 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
   padding:5px 11px;border-radius:999px;cursor:pointer}
 @media (hover:hover) and (pointer:fine){ .calsec .add:hover{color:var(--ink);border-color:var(--ink)} }
 
-.callist{display:grid;border-top:1px solid var(--hair)}
+.callist{display:grid;grid-template-columns:minmax(0,1fr);border-top:1px solid var(--hair)}
 .callist .de{display:flex;gap:10px;align-items:center;padding:10px 2px;
   border-bottom:1px solid var(--hair);font-size:15.5px;min-height:46px}
 .callist .de.tap{width:100%;text-align:left;background:none;border:0;
@@ -1815,7 +1815,11 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
 .dcrest{width:18px;height:auto;flex:0 0 auto;margin-left:7px;opacity:.75;align-self:center}
 .cal-none{margin:8px 0 0;font-size:14px;color:var(--turf);font-style:italic}
 
-.wklist{display:grid;border-top:1px solid var(--hair)}
+/* minmax(0,1fr), not 1fr: a `1fr` track's minimum is auto, which is the
+   min-content width of the row's no-wrap small line — 386 points on a
+   360-point phone. The column may be as narrow as the page. */
+.wklist{display:grid;grid-template-columns:minmax(0,1fr);border-top:1px solid var(--hair)}
+.wk{min-width:0;max-width:100%}
 .wk{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:none;
   border:0;border-bottom:1px solid var(--hair);padding:9px 4px 9px 2px;font:inherit;
   color:var(--ink);cursor:pointer;min-height:58px}
@@ -2629,7 +2633,7 @@ h3.sub{display:flex;align-items:baseline;gap:12px}
 
 /* --- a venue, as a card (Right now) and as a row (the lists) --- */
 
-.vgrid{display:grid;grid-template-columns:1fr;gap:0;margin-top:6px;border-top:1px solid var(--hair)}
+.vgrid{display:grid;grid-template-columns:minmax(0,1fr);gap:0;margin-top:6px;border-top:1px solid var(--hair)}
 .vgrid.dim .vcard{opacity:.68}
 /* Every square is a way in to the place it names, so it has to look like
    one: a button, with a mark in the corner saying it can be pressed. */
@@ -3214,7 +3218,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261016-1337';
+const BUILD = '20261016-1344';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
