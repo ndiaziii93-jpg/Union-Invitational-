@@ -907,8 +907,14 @@ function recapPanel() {
   const sg = E.sideGames(T, rid);
   const nm = id => (E.person(T, id) || {}).display || '—';
   const pairNote = pid => (body && body.pairNotes && body.pairNotes[pid]) || '';
-  const hero = IMG['course_' + course.key];
+  /* THE PICTURE ON THE FRONT. The newest photograph anyone on the trip has
+     added to this round, and until there is one, the course the round was
+     played on — which alternates from round to round of its own accord. */
+  const snaps = photosFor(rid);
+  const hero = snaps.length ? snaps[0].url : IMG['course_' + course.key];
+  const heroAlt = snaps.length ? (snaps[0].caption || 'From the round') : course.name;
   const shots = st.field;
+  const top = table && table[0];
 
   const archive = D.ROUNDS.filter(x => E.roundStanding(T, x.id).started);
 
@@ -919,6 +925,20 @@ function recapPanel() {
       <span class="rt-s">${esc(r.short === 'Practice' ? 'Practice day' : (r.full || ''))}</span>
       <button class="rm" data-act="recapClose" aria-label="Close the recap">Close</button>
     </div>
+    ${gallery ? '' : `<div class="rhero">
+      ${hero ? `<img src="${esc(hero)}" alt="${esc(heroAlt)}">` : ''}
+      <div class="rh-in">
+        <span class="rh-k">${esc(r.short === 'Practice' ? 'Practice day' : 'Round ' + r.short.slice(1) + ' of 3')} · ${esc(course.name)} · ${esc(day.dow)} ${esc(day.date)}${
+          body ? (published ? '' : ' · Draft') : ''}</span>
+        ${editing ? '' : `<h2 class="rechead">${body ? esc(body.headline || '') : UI.recap.busy ? 'Writing the report…'
+          : st.complete ? 'No report yet' : esc(r.full)}</h2>`}
+      </div>
+    </div>
+    <div class="rtiles num">
+      <div class="rtile"><b class="g">${top && top.today != null ? esc(E.fmtToPar(top.today)) : '—'}</b><span>${top ? esc(top.name) : 'Leading pair'}</span></div>
+      <div class="rtile"><b>${sw ? sw.shots + ' shot' + (sw.shots === 1 ? '' : 's') : '—'}</b><span>Swing of the day${sw ? ', ' + sw.fromHole + '–' + sw.toHole : ''}</span></div>
+      <div class="rtile"><b>${st.inCards} / ${st.field}</b><span>Cards in</span></div>
+    </div>`}
     <div class="recapbar">
     <div>${gallery ? 'The whole week\'s photos, by round.' : esc(!st.started ? 'This round has not started.'
       : !st.complete ? 'Round in progress — ' + st.inCards + ' of ' + st.field + ' cards in. Standings only until every card is in.'
@@ -950,12 +970,6 @@ function recapPanel() {
         banded masthead, then a dateline, then a kicker, then the headline —
         and the reason is that it tells you what you are looking at before
         you have read a word. */ ''}
-  <div class="artplate">
-    ${IMG.crest ? `<img class="ap-crest" src="${IMG.crest}" alt="">` : ''}
-    <span class="ap-name">The Union Invitational</span>
-    <span class="ap-ed">The Day's Register</span>
-  </div>
-
   <div class="metarail">
     <span>${esc(r.short === 'Practice' ? 'Practice day' : 'Round ' + r.short.slice(1) + ' of 3')}</span>
     <span>${esc(course.name)}</span>
@@ -979,10 +993,7 @@ function recapPanel() {
       <div class="arthead">
       ${editing ? `<textarea class="field recedit head" rows="2" data-act="recapEdit" data-a="headline"
         aria-label="Headline">${esc(body.headline || '')}</textarea>`
-        : `<p class="kicker">${esc(r.short === 'Practice' ? 'Practice day' : 'Round ' + r.short.slice(1) + ' of 3')} <span>·</span> ${esc(day.dow)} ${esc(day.date)}</p>
-        <h2 class="rechead">${body ? esc(body.headline || '') : UI.recap.busy ? 'Writing the report…'
-        : st.complete ? 'No report yet' : esc(r.full)}</h2>
-        ${body ? `<p class="byline"><b>By the Union Register</b>${
+        : `${body ? `<p class="byline"><b>By the Union Register</b>${
           rec && rec.at ? `<span>${esc(E.to12(new Date(rec.at + D.TZ_OFFSET_MIN * 60000).toISOString().slice(11, 16)))}</span>` : ''}${
           published ? '' : '<span class="draftflag">Draft</span>'}</p>` : ''}`}
       </div>
@@ -999,8 +1010,6 @@ function recapPanel() {
       </div>
     </div>
     <aside class="recapside">
-      ${hero ? `<figure class="rechero"><img src="${hero}" alt="${esc(course.name)}">
-        <figcaption>${esc(course.name)}.</figcaption></figure>` : ''}
       ${sw ? `<div class="swing">
         <div class="sw-l">Swing of the day</div>
         <div class="sw-v num">${sw.shots} shot${sw.shots === 1 ? '' : 's'}</div>
@@ -1599,7 +1608,12 @@ function scrCalendar() {
  * behind Manage with the rest of what is settled once.
  */
 function scrTees() {
-  return `<h2 class="head">Tee times</h2>
+  const unset = D.ROUNDS.filter(r => !(E.roundCfg(T, r.id).tees[0] || {}).time).map(r => r.short);
+  const groups = E.groups(T, D.ROUNDS[0].id).length;
+  return `${manageHead('Tee times', 'Manage \u00B7 set the night before', [
+      [groups, groups === 1 ? 'Group' : 'Groups'],
+      ['8 min', 'Apart'],
+      [unset.length ? unset.join(', ') : 'All set', unset.length ? 'Not set' : 'Times', unset.length > 0]])}
   <p class="lede">What time each group goes out, and who is in it. The second group follows the first by
   eight minutes — set the first and the rest come with it.</p>
   ${teeBlocks()}`;
@@ -1648,9 +1662,10 @@ function teeBlocks() {
  * Phone only, by the stylesheet: a tablet and a laptop still show the
  * drawing beside the card, which is what the room is there for.
  */
-function holePlate(rid, h, hole, course, cap, list, slotPlayers) {
+function holePlate(rid, h, hole, course, cap, list, slotPlayers, opts) {
   const art = IMG[hole.img];
   if (!art) return '';
+  opts = opts || {};
   /* At most four markers. Past that they cover the green they are sitting
      on, so the rest are counted instead of named. */
   const inAlready = list.map(g => ({ g, raw: grossOf(rid, g.id, h) }))
@@ -1679,20 +1694,20 @@ function holePlate(rid, h, hole, course, cap, list, slotPlayers) {
   const kp = Math.max(Math.min(1 / bw, (5 / 4) / (bh * (736 / 520))), 1);
   const cx = (box[0] + box[2]) / 2, cy = (box[1] + box[3]) / 2;
   return `<div class="holeplate">
-    <div class="hp-scroll nos" data-act="holeArt" data-a="${h}" data-key="${esc(rid)}:${h}"
+    <div class="hp-scroll nos" data-act="holeArt" data-a="${h}"${opts.ckey ? ` data-b="${esc(opts.ckey)}"` : ''} data-key="${esc(opts.ckey ? 'course:' + opts.ckey : rid)}:${h}"
       data-cx="${cx.toFixed(3)}" data-cy="${cy.toFixed(3)}"
       role="img" aria-label="Hole ${hole.n} at ${esc(course.name)}, par ${hole.par}, stroke index ${hole.si}, ${hole.mW} metres. Tap to see the whole hole.">
       <img decoding="sync" src="${art}" alt="" style="--kw:${(kw * 100).toFixed(1)}%;--kp:${(kp * 100).toFixed(1)}%"></div>
-    <button class="hp-open" data-act="holeArt" data-a="${h}" aria-label="See the whole of hole ${hole.n}">⤢</button>
+    <button class="hp-open" data-act="holeArt" data-a="${h}"${opts.ckey ? ` data-b="${esc(opts.ckey)}"` : ''} aria-label="See the whole of hole ${hole.n}">⤢</button>
     <span class="hp-course">${esc(course.name)}</span>
     <span class="hp-ghost num" aria-hidden="true">${hole.n}</span>
-    ${gets.length ? `<span class="hp-tee">Tee <b>${esc(gets.join(' \u00B7 '))}</b></span>` : ''}
+    ${opts.tee ? `<span class="hp-tee">${opts.tee}</span>` : gets.length ? `<span class="hp-tee">Tee <b>${esc(gets.join(' \u00B7 '))}</b></span>` : ''}
     <span class="hp-pick">Picks up at ${cap}</span>
     ${show.length ? `<span class="hp-in">${show.map(x => `<span class="hp-pill">
       <span class="n num${x.raw < hole.par ? ' u' : x.raw > hole.par ? ' o' : ''}">${x.raw}</span>${esc(x.g.display)}
     </span>`).join('')}</span>` : ''}
     <span class="hp-foot"><b>${hole.mW} m</b> white
-      <span class="r">${inAlready.length} of ${list.length} in</span></span>
+      <span class="r">${opts.foot != null ? opts.foot : inAlready.length + ' of ' + list.length + ' in'}</span></span>
   </div>`;
 }
 
@@ -2509,8 +2524,12 @@ function scrRoster() {
     </div>`;
   };
 
-  return `<div class="titlerow">
-    <h2 class="head">Pairings</h2>
+  return `${manageHead('Roster &amp; Pairings', 'Manage \u00B7 fixed for the week', [
+      [T.config.pairs.length, 'Pairs'],
+      [unassigned.length, 'Unassigned', unassigned.length > 0],
+      [bandsSet + ' / ' + gs.length, 'Bands set', bandsSet < gs.length]])}
+  <div class="titlerow">
+    <h3 class="sub" style="font-size:28px;font-weight:700;margin:0">Pairings</h3>
     ${ed ? `<button class="btn ghost" data-act="addPair">Add pair</button>` : ''}
   </div>
   <p class="lede">Fixed for the week. Drag between pairs or use the Move to menu — both work one-handed. Shared with everyone.</p>
@@ -2580,7 +2599,8 @@ function scrRoster() {
 }
 
 function scrRules() {
-  return `<h2 class="head">Games &amp; Rules</h2>
+  return `${manageHead('Games &amp; Rules', 'Manage \u00B7 read all week', [
+      [RULES.length, 'Competitions'], [1, 'Scorecard'], ['Net', 'Off your band']])}
   <p class="lede">Six competitions, one scorecard. Everything is net off your playing band.</p>
 
   ${/* The one thing nobody works out on their own: the competitions count
@@ -2634,7 +2654,7 @@ function scrCourses() {
     ? 'Aerial view of Cullinan Links along the Mediterranean shore'
     : 'Green beside the Beşgöz River with the Taurus Mountains beyond';
 
-  const rows = c.holes.map((x, i) => `<tr>
+  const rows = c.holes.map((x, i) => `<tr${i === h ? ' class="on"' : ''}>
       <td><span class="holen">${x.n}</span></td>
       <td>${open
         ? `<select class="cardsel" aria-label="Par, hole ${x.n}" data-act="setHole" data-a="${c.key}" data-b="${i}" data-c="par">
@@ -2646,42 +2666,59 @@ function scrCourses() {
         : `<span class="cardval">${x[f]}</span>`}</td>`).join('')}
     </tr>`).join('');
 
-  return `<h2 class="head">Course Setup</h2>
+  const verified = Object.keys(D.COURSES).filter(k => E.courseByKey(T, k).verified).length;
+  const cap = E.capFor(hole.par, T.config.capOver);
+  const gets = E.BANDS.map(bd => `${bd} <b>+${E.strokesFor(bd, hole.si)}</b>`).join(' · ');
+  /* THE HOLE AS ON SCORES. The two courses as the index the boards use; a
+     band of pine with the hole and the eighteen on it; the hole itself, lit,
+     the band strokes at the tee; and the card below it with the chosen
+     hole lit. Nothing about how the card is read, edited or locked moves. */
+  return `${manageHead('Course Setup', 'Manage · the official card', [
+      [verified + ' / ' + Object.keys(D.COURSES).length, 'Verified', verified < Object.keys(D.COURSES).length],
+      ['Par ' + c.meta.par, c.name.replace('Cullinan ', '')],
+      [c.meta.crW + ' / ' + c.meta.slW, 'Rating / slope']])}
   <p class="lede">Par, stroke index and yardages loaded from the official Cullinan Links Golf Club scorecard. Cullinan Links, Belek — 36 holes by European Golf Design, 2021; back nines floodlit. Reopen a card only if the club issues a new one.</p>
 
-  <div class="ctabs">
+  <div class="gamesbar"><div class="btabs games rt nos">
     ${Object.keys(D.COURSES).map(k => {
       const x = E.courseByKey(T, k);
-      return `<button class="ctab${k === UI.courseTab ? ' on' : ''}" data-act="courseTab" data-a="${k}">${esc(x.name)}
-        <span>${x.verified ? 'Verified' : 'Not verified'}</span></button>`;
+      return `<button class="btab${k === UI.courseTab ? ' on' : ''}" data-act="courseTab" data-a="${k}"><span class="lg">${esc(x.name)}</span><span class="sm">${esc(x.name.replace('Cullinan ', ''))}</span>${x.verified ? '' : '<i class="unv" aria-label="not verified"></i>'}</button>`;
     }).join('')}
+  </div></div>
+
+  ${!c.verified ? `<div class="setline still warn">Not verified <span class="dot">·</span> <b>every net score on ${esc(c.name.replace('Cullinan ', ''))} is provisional</b></div>` : ''}
+
+  <div class="entryhd">
+    <div class="ehd-facts">
+      <span class="ehd-n num">${hole.n}</span>
+      <span class="ehd-l">Hole</span>
+      <span class="ehd-m">Par ${hole.par} · Index ${hole.si}<b>${c.verified ? 'Verified card' : 'Not verified'}</b></span>
+    </div>
+    <div class="scroller nos"><div class="hstrip">
+      ${c.holes.map((x, i) => `<button class="hcell${i === h ? ' on' : ''}" data-act="courseHole" data-a="${i}" aria-label="Hole ${x.n}, par ${x.par}">
+        <span class="n num">${x.n}</span><span class="p num">par ${x.par}</span></button>`).join('')}
+    </div></div>
   </div>
 
-  ${!c.verified ? `<div class="unverified">
-    <div class="t">This card is not verified.</div>
-    <p>Every net score on ${esc(c.name)} is provisional until par and stroke index are confirmed below.</p>
-  </div>` : ''}
-
-  ${photo ? `<figure class="cphoto"><img src="${photo}" alt="${esc(alt)}"></figure>` : ''}
-  <p class="rating num">Par ${c.meta.par} — Course Rating ${c.meta.crW}, Slope ${c.meta.slW} (White) — Course Rating ${c.meta.crY}, Slope ${c.meta.slY} (Yellow)</p>
-
-  <div class="cgrid">
-    <div class="scroller nos">
-      <table class="scard">
-        <thead><tr><th>Hole</th><th>Par</th><th>Stroke index</th><th>White (m)</th><th>Yellow (m)</th></tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>
-    <div class="cside">
-      ${IMG[hole.img] ? `<img decoding="sync" src="${IMG[hole.img]}" alt="Diagram of hole ${hole.n} at ${esc(c.name)}">` : ''}
-      <div class="cfacts num">
-        <span class="hn">Hole ${hole.n}</span>
-        <span>Par ${hole.par}</span>
-        <span class="m">SI ${hole.si}</span>
-        <span class="m">${hole.mW} m White</span>
+  <div class="entrygrid">
+    <div class="egl">
+      <div class="facttiles num">
+        <div class="fact"><b>${hole.par}</b><span>Par</span></div>
+        <div class="fact"><b>${hole.si}</b><span>Index</span></div>
+        <div class="fact"><b>${hole.mW}</b><span>White m</span></div>
+        <div class="fact"><b>${hole.mY}</b><span>Yellow m</span></div>
       </div>
-      <div class="cstrip">${c.holes.map((x, i) =>
-        `<button class="cell${i === h ? ' e' : ''}" data-act="courseHole" data-a="${i}" aria-label="Hole ${x.n}">${x.n}</button>`).join('')}</div>
+      <p class="rating num">Par ${c.meta.par} — Course Rating ${c.meta.crW}, Slope ${c.meta.slW} (White) — Course Rating ${c.meta.crY}, Slope ${c.meta.slY} (Yellow)</p>
+      <div class="scroller nos">
+        <table class="scard">
+          <thead><tr><th>Hole</th><th>Par</th><th>Stroke index</th><th>White (m)</th><th>Yellow (m)</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>
+    <div class="egr">
+      ${holePlate(UI.entryRound, h, hole, c, cap, [], [], { ckey: c.key,
+        tee: 'Band ' + gets, foot: hole.mY + ' m yellow · picks up at ' + cap })}
     </div>
   </div>
 
@@ -2703,7 +2740,12 @@ function scrSetup() {
   if (!canAdmin()) return `<h2 class="head">Setup</h2><p class="empty">The master PIN opens this screen.</p>
     <button class="btn" data-act="signIn">Enter PIN</button>`;
   const p = T.config.pins;
-  return `<h2 class="head">Setup</h2>
+  const outstanding = E.setupIssues(T).length;
+  return `${manageHead('Setup', 'Manage \u00B7 master reviewer', [
+      [D.PINS_ENABLED ? 'On' : 'Off', 'PINs', !D.PINS_ENABLED],
+      [[p.master, p.s1, p.s2].filter(Boolean).length, 'Saved'],
+      [outstanding, 'Outstanding', outstanding > 0],
+      [T.config.calLocked ? 'Locked' : 'Open', 'Calendar']])}
   <p class="lede">Master reviewer controls. PINs gate who may write to a card; everyone else reads the book.</p>
 
   <h3 class="sub">Scoring PINs</h3>
@@ -4296,13 +4338,26 @@ function hoursSheetHtml() {
   </div></div>`;
 }
 
+/* ---------------- the head of a Manage screen ----------------
+ * A band of pine that says what the screen is and the one or two numbers
+ * that matter on it, before anything scrolls — the way Scores opens on the
+ * hole. Five screens behind the dial wear it. */
+function manageHead(title, eyebrow, stats) {
+  return `<div class="mhead">
+    <span class="mh-ey">${esc(eyebrow)}</span>
+    <span class="mh-t">${title}</span>
+    ${stats && stats.length ? `<div class="mh-st">${stats.map(([v, l, warn]) =>
+      `<div${warn ? ' class="warn"' : ''}><b>${esc(String(v))}</b><span>${esc(l)}</span></div>`).join('')}</div>` : ''}
+  </div>`;
+}
+
 /* ---------------- the whole hole ----------------
  * What the plate opens: the render at full size, in a window that scrolls
  * if the glass is too short for it. The facts of the hole are on the band
  * above it so the picture carries nothing but the hole. */
 function artModalHtml() {
   const rid = UI.modal.rid, h = UI.modal.hole;
-  const course = E.courseOf(T, rid);
+  const course = UI.modal.ckey ? E.courseByKey(T, UI.modal.ckey) : E.courseOf(T, rid);
   const hole = course.holes[h];
   const art = hole && IMG[hole.img];
   if (!art) return '';
@@ -4988,7 +5043,7 @@ function onClick(e) {
       UI.modal = { kind: 'daysheet', n: +a };
       break;
     case 'holeArt':
-      UI.modal = { kind: 'art', rid: UI.entryRound, hole: +a };
+      UI.modal = { kind: 'art', rid: UI.entryRound, hole: +a, ckey: b || null };
       break;
     case 'hoursSheet':
       UI.modal = { kind: 'hours' };

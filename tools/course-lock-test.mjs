@@ -88,8 +88,8 @@ const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' })
 
   // switching card closes the one left open
   await p.locator('[data-act="verifyCourse"]').click(); await p.waitForTimeout(500);
-  await p.locator('.ctab', { hasText: 'Olympos' }).click(); await p.waitForTimeout(500);
-  await p.locator('.ctab', { hasText: 'Aspendos' }).click(); await p.waitForTimeout(500);
+  await p.locator('.btabs.rt .btab', { hasText: 'Olympos' }).click(); await p.waitForTimeout(500);
+  await p.locator('.btabs.rt .btab', { hasText: 'Aspendos' }).click(); await p.waitForTimeout(500);
   ok('switching card re-locked it', await p.locator('.cardsel').count(), 0);
   await p.close();
 }
