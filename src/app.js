@@ -275,13 +275,17 @@ function scrBoards() {
   /* The strip carries the long name for anything that reads the page and the
      short one for the glass — seven of them have to fit across a phone, and
      "Longest Drive & Closest to the Pin" is a sentence, not a tab. */
-  const strip = `<div class="btabs nos">
+  /* THE WRAPPER CARRIES THE CHROME, THE INNER DIV SCROLLS. A band of seven
+     names does not fit a phone, and the thing that stops the seventh reading
+     as sliced off — a fade on a phone, a rule that carries on across a
+     laptop — has to sit on something that does NOT move with the scroll. */
+  const strip = `<div class="gamesbar"><div class="btabs games nos">
     <button class="btab home${UI.boardTab === 'home' ? ' on' : ''}" data-act="boardTab" data-a="home"
       aria-label="All games"><span class="lg">All games</span>${UI.boardTab === 'home' ? 'All' : '\u2039 All'}</button>
     ${BOARDS.map(([id, long, short]) =>
       `<button class="btab${UI.boardTab === id ? ' on' : ''}" data-act="boardTab" data-a="${id}"
         aria-label="${esc(long)}"><span class="lg">${esc(long)}</span>${esc(short)}</button>`).join('')}
-  </div>`;
+  </div></div>`;
   const body = { home: boardsHome, pairs: boardPairs, mvp: boardMvp, bbb: boardBbb, ryder: scrRyder,
                  prizes: boardPrizes, practice: boardPractice }[UI.boardTab] || boardsHome;
   return strip + body();

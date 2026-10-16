@@ -226,6 +226,54 @@ ok('every tab still carries its full name', await p.evaluate(
   ['All games', 'Team Competition', 'MVP', 'Bingo Bango Bongo', 'Ryder Cup',
    'Longest Drive & Closest to the Pin', 'Practice Day']);
 
+/* ---------------- the strip, in two materials ----------------
+ *
+ * It used to be a row of outlined lozenges — a shape the book uses nowhere
+ * else, floating on cream paper with the seventh name sliced in half at the
+ * right edge. It is the same control in two materials now, because it is
+ * doing the same job in two different places.
+ */
+console.log('\non a phone the strip is a band of pine');
+await p.locator('.btab', { hasText: 'Team Competition' }).click(); await p.waitForTimeout(700);
+const band = await p.evaluate(() => {
+  const g = document.querySelector('.gamesbar');
+  const cs = getComputedStyle(g);
+  const r = g.getBoundingClientRect();
+  const on = document.querySelector('.btab.on');
+  return {
+    pine: cs.backgroundColor,
+    left: Math.round(r.left), right: Math.round(innerWidth - r.right),
+    tall: Math.round(r.height),
+    rule: getComputedStyle(g, '::before').backgroundColor,
+    fade: getComputedStyle(g, '::after').backgroundImage,
+    live: getComputedStyle(on).color,
+    quiet: getComputedStyle(document.querySelector('.btab:not(.on):not(.home)')).color,
+    mark: getComputedStyle(on, '::after').height,
+    caps: getComputedStyle(on).textTransform,
+    round: cs.borderRadius,
+  };
+});
+console.log('          (' + JSON.stringify(band) + ')');
+ok('it is the pine the head strip and the foot bar are', band.pine, 'rgb(29, 46, 33)');
+ok('and it runs edge to edge, not stopping at the gutter',
+  band.left === 0 && band.right === 0, true);
+ok('no lozenge left on it', band.round, '0px');
+ok('a thumb can land on it', band.tall >= 44, true);
+ok('the names are set in the book\u2019s tracked capitals', band.caps, 'uppercase');
+ok('the live game is struck in paper white', band.live, 'rgb(238, 232, 213)');
+ok('and the rest step back', band.quiet !== band.live, true);
+ok('with a gold mark under the live one', parseFloat(band.mark) >= 3, true);
+ok('a gold rule along the foot of the band', band.rule, 'rgb(201, 162, 83)');
+/* The seventh name must read as a page continuing, not as a mistake. */
+ok('and the band darkens into its own right edge', /gradient/.test(band.fade), true);
+ok('that fade is on the wrapper, which does not scroll', await p.evaluate(() => {
+  const g = document.querySelector('.gamesbar');
+  const i = document.querySelector('.btabs.games');
+  return g !== i && getComputedStyle(g).position === 'relative'
+    && getComputedStyle(i).overflowX !== 'visible';
+}), true);
+await p.locator('.btab.home').click(); await p.waitForTimeout(600);   // back to the front page
+
 /* ---------------- the laptop ---------------- */
 console.log('\n=== laptop 1300 ===');
 await p.setViewportSize({ width: 1300, height: 950 }); await p.waitForTimeout(700); await shut();
@@ -238,6 +286,30 @@ ok('and every tab fits without scrolling', await p.evaluate(() => {
   const s = document.querySelector('.btabs');
   return s.scrollWidth <= s.clientWidth + 1;
 }), true);
+
+/* With room for all seven and no pine strip above it, the band becomes an
+   index: the names on the paper, one hairline under the lot. */
+console.log('\nand with room it is an index, not a band');
+await p.locator('.btab', { hasText: 'Team Competition' }).click(); await p.waitForTimeout(700);
+const idx = await p.evaluate(() => {
+  const g = document.querySelector('.gamesbar');
+  const cs = getComputedStyle(g);
+  const on = document.querySelector('.btab.on');
+  return { bg: cs.backgroundColor, rule: cs.borderBottomStyle,
+    ruleWide: Math.round(g.getBoundingClientRect().width),
+    names: Math.round([...document.querySelectorAll('.btab')].pop().getBoundingClientRect().right
+             - document.querySelector('.btab').getBoundingClientRect().left),
+    live: getComputedStyle(on).color,
+    mark: getComputedStyle(on).borderBottomColor,
+    caps: getComputedStyle(on).textTransform };
+});
+console.log('          (' + JSON.stringify(idx) + ')');
+ok('no pine band up here', idx.bg, 'rgba(0, 0, 0, 0)');
+ok('one hairline under the lot instead', idx.rule, 'solid');
+ok('and the hairline runs on past the last name', idx.ruleWide > idx.names + 20, true);
+ok('the live game is in ink', idx.live, 'rgb(29, 46, 33)');
+ok('marked with a pine rule of its own', idx.mark, 'rgb(29, 46, 33)');
+ok('still the book\u2019s tracked capitals', idx.caps, 'uppercase');
 
 await b.close();
 console.log(fails.length ? '\n' + fails.length + ' FAILED: ' + fails.join(', ')

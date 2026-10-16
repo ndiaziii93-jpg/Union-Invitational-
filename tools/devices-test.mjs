@@ -233,8 +233,10 @@ for (const [name, viewport, touch, dpr] of DEVICES) {
 
     // 3d. the practice day stands alone: its scores show there and nowhere else
     await tab('Leaderboards');
+    /* The strip is set in capitals by the stylesheet now, and innerText gives
+       you what is DRAWN, not what is written. Ask without caring. */
     const tabNames = await p.locator('.btab').allInnerTexts();
-    if (!tabNames.some(t => t.includes('Practice'))) bad.push('no Practice Day board');
+    if (!tabNames.some(t => /practice/i.test(t))) bad.push('no Practice Day board');
     else {
       for (const t of ['Team Competition', 'MVP', 'Bingo Bango Bongo']) {
         await p.locator('.btab', { hasText: t }).click(); await p.waitForTimeout(600); await dismiss();

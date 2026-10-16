@@ -1355,6 +1355,54 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
 .btab.on{background:var(--ink);border-color:var(--ink);color:var(--page);font-weight:700}
 @media (hover:hover) and (pointer:fine){ .btab.on:hover{background:var(--ink);color:var(--page)} }
 .btab:focus-visible{outline:2px solid var(--flag);outline-offset:2px}
+
+/* ================= SWITCHING BETWEEN THE GAMES =================
+ *
+ * This strip used to be a row of outlined lozenges — a shape the book uses
+ * nowhere else, floating on cream paper between a tracked-caps dateline
+ * above and a serif headline below, with the seventh name sliced in half at
+ * the right edge. Nothing anchored it.
+ *
+ * It is the same control in two materials, because it is doing the same job
+ * in two different places:
+ *
+ *   On a phone it sits directly under the pine strip at the head, so it is
+ *   PINE: a band of the same material as the strip above it and the bar at
+ *   the foot, edge to edge, with the live game struck in paper white under
+ *   a gold mark. The book is framed in one material, top, middle and foot.
+ *
+ *   On a tablet or a laptop there is no strip above it and room for all
+ *   seven names at once, so it is an INDEX: the names in the small tracked
+ *   capitals the dateline and the recap's metarail already use, one hairline
+ *   under the lot, a pine mark under the live one. Which is exactly how the
+ *   tab strip along the top of a laptop already works.
+ *
+ * The WRAPPER carries the chrome and the INNER div scrolls, so the thing
+ * that stops the last name reading as cut off — a fade, or a rule that
+ * carries on — never moves with the names.
+ *
+ * The resort's own sub-tabs are left as they are on purpose: those are an
+ * in-page section switcher under a heading, not a competition switcher at
+ * the top of the screen. Different job, different place, different weight.
+ */
+.gamesbar{position:relative;margin-top:16px}
+.btabs.games{gap:0;margin-top:0;padding:0;align-items:stretch}
+.btabs.games .btab{border:0;background:none;border-radius:0;flex:0 0 auto;
+  font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:700;
+  position:relative;padding:11px 13px 10px}
+
+/* ---- the index, for anything with room: tablet and laptop ---- */
+.gamesbar{border-bottom:1px solid var(--rule)}
+.btabs.games{gap:20px;padding:4px 0 0}
+.btabs.games .btab{padding:0 0 9px;color:var(--turf);
+  border-bottom:2.5px solid transparent;margin-bottom:-1px}
+.btabs.games .btab.home{color:var(--gold)}
+.btabs.games .btab.on{background:none;color:var(--ink);border-bottom-color:var(--ink)}
+@media (hover:hover) and (pointer:fine){
+  .btabs.games .btab:hover{background:none;color:var(--ink)}
+  .btabs.games .btab.on:hover{background:none;color:var(--ink)}
+}
+.btabs.games .btab:focus-visible{outline:2px solid var(--flag);outline-offset:3px}
 .titlerow{display:flex;align-items:baseline;gap:18px;flex-wrap:wrap}
 .titlerow .head{margin-top:22px}
 
@@ -2655,6 +2703,35 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
   /* The strip is only ever here, and only once the plate has gone. */
   .topstrip{display:flex}
   html.up .topstrip{transform:none}
+
+  /* ---- the games, as a band of pine ----
+     Edge to edge: it is furniture, and furniture that stops short of the
+     glass is a panel. The negative margin is the page gutter, given back. */
+  /* Air above it, or the masthead's rule — which stops at the page gutter —
+     reads as a short underline lying on top of a band that does not. */
+  .gamesbar{margin:14px calc(clamp(14px,3vw,26px) * -1) 0;border-bottom:0;
+    background:var(--ink);box-shadow:0 4px 12px rgba(16,22,17,.14)}
+  .gamesbar::before{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;
+    background:var(--gold-up)}
+  /* The last name must not read as sliced off, so the band darkens into its
+     own right edge. It sits on the WRAPPER, which does not scroll. */
+  .gamesbar::after{content:"";position:absolute;right:0;top:0;bottom:0;width:30px;
+    pointer-events:none;background:linear-gradient(to right,rgba(29,46,33,0),var(--ink))}
+  .btabs.games{gap:0;padding:0;scroll-padding-left:14px}
+  /* A band a thumb lands on, not a caption: 44 points tall all in. */
+  .btabs.games .btab{padding:15px 13px 14px;color:var(--sage-up);
+    border-bottom:0;margin-bottom:0}
+  .btabs.games .btab:first-child{padding-left:max(15px,env(safe-area-inset-left,0px))}
+  .btabs.games .btab:last-child{padding-right:34px}
+  .btabs.games .btab.home{color:var(--gold-up)}
+  .btabs.games .btab.on{color:var(--page)}
+  /* The live game's own mark, on the edge that faces the page. It has to beat
+     the band's own gold rule, which it sits on top of — so it is taller than
+     that rule and a shade brighter, or the two read as one line. */
+  .btabs.games .btab.on::after{content:"";position:absolute;left:12px;right:12px;bottom:0;
+    height:4px;background:#E2C277;border-radius:3px 3px 0 0;z-index:1}
+  .btabs.games .btab.home.on::after{left:max(15px,env(safe-area-inset-left,0px))}
+  .btabs.games .btab:focus-visible{outline:2px solid var(--gold-up);outline-offset:-3px}
   .tabbar::before{content:"";position:absolute;left:0;right:0;bottom:100%;height:28px;
     pointer-events:none;background:linear-gradient(to top,var(--paper),rgba(227,219,203,0));
     opacity:1;transition:opacity .18s ease}
@@ -2831,7 +2908,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261015-2027';
+const BUILD = '20261016-0856';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -6730,13 +6807,17 @@ function scrBoards() {
   /* The strip carries the long name for anything that reads the page and the
      short one for the glass — seven of them have to fit across a phone, and
      "Longest Drive & Closest to the Pin" is a sentence, not a tab. */
-  const strip = `<div class="btabs nos">
+  /* THE WRAPPER CARRIES THE CHROME, THE INNER DIV SCROLLS. A band of seven
+     names does not fit a phone, and the thing that stops the seventh reading
+     as sliced off — a fade on a phone, a rule that carries on across a
+     laptop — has to sit on something that does NOT move with the scroll. */
+  const strip = `<div class="gamesbar"><div class="btabs games nos">
     <button class="btab home${UI.boardTab === 'home' ? ' on' : ''}" data-act="boardTab" data-a="home"
       aria-label="All games"><span class="lg">All games</span>${UI.boardTab === 'home' ? 'All' : '\u2039 All'}</button>
     ${BOARDS.map(([id, long, short]) =>
       `<button class="btab${UI.boardTab === id ? ' on' : ''}" data-act="boardTab" data-a="${id}"
         aria-label="${esc(long)}"><span class="lg">${esc(long)}</span>${esc(short)}</button>`).join('')}
-  </div>`;
+  </div></div>`;
   const body = { home: boardsHome, pairs: boardPairs, mvp: boardMvp, bbb: boardBbb, ryder: scrRyder,
                  prizes: boardPrizes, practice: boardPractice }[UI.boardTab] || boardsHome;
   return strip + body();
