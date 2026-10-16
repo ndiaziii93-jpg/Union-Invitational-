@@ -3018,7 +3018,11 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
     -webkit-overflow-scrolling:touch;touch-action:pan-x pan-y;cursor:zoom-in;
     scrollbar-width:none}
   .hp-scroll::-webkit-scrollbar{display:none}
-  .hp-scroll img{display:block;width:100%;height:auto;
+  /* The sheet has its shape before it has its pixels, so the window can be
+     put on the hole before the picture arrives rather than on the top edge
+     of nothing. The width is set on the element: how much sheet it takes
+     for the hole to fill the window is a fact about that hole. */
+  .hp-scroll img{display:block;width:100%;max-width:none;height:auto;aspect-ratio:520/736;
     filter:drop-shadow(0 8px 14px rgba(0,0,0,.45)) saturate(1.12) contrast(1.05)}
   .hp-course,.hp-ghost,.hp-tee,.hp-pick,.hp-in,.hp-foot{pointer-events:none}
   .hp-open{position:absolute;right:9px;bottom:30px;z-index:4;width:34px;height:34px;padding:0;

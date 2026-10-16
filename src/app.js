@@ -12,6 +12,9 @@ import * as R from './resort.js';
 import * as W from './weather.js';
 
 const IMG = window.UI_IMAGES || {};
+/* Where the hole actually is on each render: the box round its drawn
+   pixels, as fractions of the sheet. Measured at build time. */
+const ART = window.UI_ART_BOX || {};
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const cls = n => n == null ? '' : n < 0 ? 'under' : n > 0 ? 'over' : 'level';
 
@@ -1658,14 +1661,22 @@ function holePlate(rid, h, hole, course, cap, list, slotPlayers) {
      marker is for the strokes that are actually given, each named once. */
   const gets = [...new Set(list.map(g => E.strokesFor(g.band, hole.si))
     .filter(x => x != null && x > 0))].sort((a, b) => a - b).map(x => '+' + x);
-  /* The art is drawn at the width of the plate and the plate is a window
-     onto it, so a thumb can pan to the rest of the hole without leaving the
-     page; a tap opens the whole of it. The markers sit over the window and
-     let the thumb through. */
+  /* THE WINDOW IS FILLED BY THE HOLE, NOT BY THE SHEET. Every render is a
+     portrait sheet with the hole running corner to corner and the other two
+     corners empty, so a window onto the middle of the sheet could land on
+     empty pine with a sliver of fairway. The box round the hole's own pixels
+     is measured at build time; the sheet is drawn just large enough for that
+     box to cover the window, and the window opens on the box's centre. A
+     thumb can still pan to either end; a tap opens the whole of it. */
+  const box = ART[hole.img] || [0, 0, 1, 1];
+  const bw = Math.max(box[2] - box[0], 0.05), bh = Math.max(box[3] - box[1], 0.05);
+  const k = Math.max(1 / bw, (5 / 7) / (bh * (736 / 520)), 1);   // sheet width, in windows
+  const cx = (box[0] + box[2]) / 2, cy = (box[1] + box[3]) / 2;
   return `<div class="holeplate">
     <div class="hp-scroll nos" data-act="holeArt" data-a="${h}" data-key="${esc(rid)}:${h}"
+      data-cx="${cx.toFixed(3)}" data-cy="${cy.toFixed(3)}"
       role="img" aria-label="Hole ${hole.n} at ${esc(course.name)}, par ${hole.par}, stroke index ${hole.si}, ${hole.mW} metres. Tap to see the whole hole.">
-      <img decoding="sync" src="${art}" alt="" loading="lazy"></div>
+      <img decoding="sync" src="${art}" alt="" style="width:${(k * 100).toFixed(1)}%"></div>
     <button class="hp-open" data-act="holeArt" data-a="${h}" aria-label="See the whole of hole ${hole.n}">⤢</button>
     <span class="hp-course">${esc(course.name)}</span>
     <span class="hp-ghost num" aria-hidden="true">${hole.n}</span>
@@ -3944,8 +3955,9 @@ function paint() {
      a thumb has panned it to across the redraws the polling store lands. */
   document.querySelectorAll('.hp-scroll').forEach(w => {
     const kept = UI.hpPan && UI.hpPan.key === w.dataset.key ? UI.hpPan : null;
-    w.scrollTop = kept ? kept.top : (w.scrollHeight - w.clientHeight) / 2;
-    w.scrollLeft = kept ? kept.left : 0;
+    const cx = parseFloat(w.dataset.cx) || 0.5, cy = parseFloat(w.dataset.cy) || 0.5;
+    w.scrollTop = kept ? kept.top : cy * w.scrollHeight - w.clientHeight / 2;
+    w.scrollLeft = kept ? kept.left : cx * w.scrollWidth - w.clientWidth / 2;
   });
 
   opened.forEach(id => { const el = document.getElementById(id); if (el) el.open = true; });
