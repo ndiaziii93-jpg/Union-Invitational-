@@ -384,21 +384,19 @@ export function practiceBoard(T) {
   const rid = 'practice';
   const holes = courseOf(T, rid).holes;
   /* Tuesday is the day the bands get sorted out, so it is scored gross: a
-     golfer with no band yet still has a card. Points appear once a band does,
-     which is the point of playing the day at all. */
+     golfer with no band yet still has a card. The band read under the board
+     is what the day is for. */
   const rows = golfers(T).map(p => {
     const c = card(T, rid, p.id);
-    let gross = 0, tp = 0, thru = 0, stb = 0, netted = false;
+    let gross = 0, tp = 0, thru = 0;
     for (let h = 0; h < 18; h++) {
       const raw = c ? c.raw[h] : null;
       if (raw == null) continue;
       thru = h + 1;
       gross += raw;
       tp += raw - holes[h].par;
-      const n = playerNet(T, rid, p.id, h);
-      if (n != null) { netted = true; stb += Math.max(0, Math.min(5, 2 - (n - holes[h].par))); }
     }
-    return { id: p.id, name: p.display, band: p.band, gross, tp, thru, stb: netted ? stb : null };
+    return { id: p.id, name: p.display, band: p.band, gross, tp, thru };
   }).filter(r => r.thru > 0);
   rows.sort((a, b) => (a.tp - b.tp) || (b.thru - a.thru));
   return rows.map((r, i) => ({ ...r, pos: i + 1 }));
@@ -482,12 +480,12 @@ export function bandsLocked(T) { return roundCfg(T, 'practice').state === 'locke
 
 function toParPlayer(T, roundId, pid) {
   const holes = courseOf(T, roundId).holes;
-  let tp = 0, thru = 0, stb = 0;
+  let tp = 0, thru = 0;
   for (let h = 0; h < 18; h++) {
     const n = playerNet(T, roundId, pid, h);
-    if (n != null) { const d = n - holes[h].par; tp += d; thru = h + 1; stb += Math.max(0, Math.min(5, 2 - d)); }
+    if (n != null) { tp += n - holes[h].par; thru = h + 1; }
   }
-  return { tp, thru, stb };
+  return { tp, thru };
 }
 
 /* ---------- leaderboards ---------- */
@@ -525,15 +523,14 @@ export function gapOf(n) { return n <= 0 ? '—' : '+' + n; }
 
 export function mvpBoard(T, now) {
   const rows = golfers(T).map(p => {
-    let total = 0, today = null, thru = null, stb = 0, played = false;
+    let total = 0, today = null, thru = null, played = false;
     for (const r of countingRounds(T)) {
-      const { tp, thru: th, stb: s } = toParPlayer(T, r.id, p.id);
+      const { tp, thru: th } = toParPlayer(T, r.id, p.id);
       if (th > 0) played = true;
-      stb += s;
       if (phaseOf(T, r.id, now) === 'live') { today = th > 0 ? tp : null; thru = th; }
       if (th > 0) total += tp;
     }
-    return { id: p.id, name: p.display, band: p.band, today, thru, total, stb, played };
+    return { id: p.id, name: p.display, band: p.band, today, thru, total, played };
   }).filter(r => r.played);
   rows.sort((a, b) => a.total - b.total);
   const lead = rows.length ? rows[0].total : 0;
@@ -542,7 +539,7 @@ export function mvpBoard(T, now) {
     todayStr: r.today == null ? '—' : fmtToPar(r.today),
     thruStr: r.thru ? String(r.thru) : '—',
     gap: r.total - lead, gapStr: gapOf(r.total - lead),
-    totalStr: fmtToPar(r.total), stbStr: String(r.stb) }));
+    totalStr: fmtToPar(r.total) }));
 }
 
 /* A hole's Bingo Bango Bongo marks, whatever shape they were written in.
@@ -786,8 +783,7 @@ export function brief(T, now) {
   const mb = mvpBoard(T, now).filter(x => x.played);
   if (mb.length) {
     L.push('\nMVP');
-    mb.slice(0, 8).forEach(x => L.push('- ' + x.pos + '. ' + x.name + ' ' + x.totalStr
-      + (x.stb ? ', ' + x.stb + ' pts' : '')));
+    mb.slice(0, 8).forEach(x => L.push('- ' + x.pos + '. ' + x.name + ' ' + x.totalStr));
   }
   const bb = bbbBoard(T);
   if (bb.length) {
@@ -853,11 +849,11 @@ export function roundBrief(T, rid) {
   for (const p of golfers(T)) {
     const c = card(T, rid, p.id);
     if (!c || c.raw.every(v => v == null)) continue;
-    const { tp, thru, stb } = toParPlayer(T, rid, p.id);
+    const { tp, thru } = toParPlayer(T, rid, p.id);
     const gross = c.raw.reduce((a, v) => a + (v || 0), 0);
     L.push('- ' + p.display + ' (band ' + (p.band == null ? 'none' : p.band) + '): '
       + 'holes ' + c.raw.map(v => (v == null ? '-' : v)).join(',')
-      + ' | gross ' + gross + ', net to par ' + fmtToPar(tp) + ', ' + stb + ' pts, thru ' + thru);
+      + ' | gross ' + gross + ', net to par ' + fmtToPar(tp) + ', thru ' + thru);
   }
 
   /* What the numbers cannot say. Two sources, kept apart on purpose: the

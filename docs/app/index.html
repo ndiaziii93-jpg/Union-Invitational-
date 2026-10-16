@@ -1006,13 +1006,13 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
    give way instead, and the name wraps inside its own box. */
 .pboard .p-pos{width:24px}
 .pboard .p-who{flex:1 1 auto;min-width:0}
-.pboard .p-band,.pboard .p-thru,.pboard .p-gross,.pboard .p-par,.pboard .p-pts{text-align:right}
+.pboard .p-band,.pboard .p-thru,.pboard .p-gross,.pboard .p-par{text-align:right}
 .pboard .p-band{min-width:46px;color:var(--turf)}
 .pboard .p-thru{min-width:46px}
 .pboard .p-gross{min-width:52px}
-.pboard .p-par{min-width:56px}
-.pboard .p-pts{min-width:74px;font-size:23px;font-weight:700}
-.pboard .rowhead .p-pts{font-size:14px;font-weight:400}
+/* To par decides the day, so it is the figure set large. */
+.pboard .p-par{min-width:74px;font-size:23px;font-weight:700}
+.pboard .rowhead .p-par{font-size:14px;font-weight:400}
 @media (max-width:560px){
   .pboard .row,.pboard .rowhead{gap:7px}
   .pboard .p-pos{width:16px;font-size:13px}
@@ -1020,8 +1020,7 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
   .pboard .rowhead span{font-size:11.5px}
   .pboard .p-band,.pboard .p-thru{min-width:28px;font-size:15px}
   .pboard .p-gross{min-width:34px;font-size:15px}
-  .pboard .p-par{min-width:38px;font-size:15px}
-  .pboard .p-pts{min-width:34px;font-size:19px}
+  .pboard .p-par{min-width:44px;font-size:19px}
 }
 
 /* ---- the read as a window, and the verdict as the control ----
@@ -3601,7 +3600,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261016-2112';
+const BUILD = '20261016-2124';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -3823,7 +3822,6 @@ const RELIEF = {
     + 'costs you nothing to be wrong — and the Practice Day board reads every card back and says whether the '
     + 'band you chose is the one you should take into Thursday. A scorer settles them before Round 1, and '
     + 'after that they are fixed for the week.',
-  stableford: [['Double bogey or worse','0'],['Bogey','1'],['Par','2'],['Birdie','3'],['Eagle','4'],['Albatross','5']],
 };
 
 return {RULES, RELIEF};
@@ -4814,21 +4812,19 @@ function practiceBoard(T) {
   const rid = 'practice';
   const holes = courseOf(T, rid).holes;
   /* Tuesday is the day the bands get sorted out, so it is scored gross: a
-     golfer with no band yet still has a card. Points appear once a band does,
-     which is the point of playing the day at all. */
+     golfer with no band yet still has a card. The band read under the board
+     is what the day is for. */
   const rows = golfers(T).map(p => {
     const c = card(T, rid, p.id);
-    let gross = 0, tp = 0, thru = 0, stb = 0, netted = false;
+    let gross = 0, tp = 0, thru = 0;
     for (let h = 0; h < 18; h++) {
       const raw = c ? c.raw[h] : null;
       if (raw == null) continue;
       thru = h + 1;
       gross += raw;
       tp += raw - holes[h].par;
-      const n = playerNet(T, rid, p.id, h);
-      if (n != null) { netted = true; stb += Math.max(0, Math.min(5, 2 - (n - holes[h].par))); }
     }
-    return { id: p.id, name: p.display, band: p.band, gross, tp, thru, stb: netted ? stb : null };
+    return { id: p.id, name: p.display, band: p.band, gross, tp, thru };
   }).filter(r => r.thru > 0);
   rows.sort((a, b) => (a.tp - b.tp) || (b.thru - a.thru));
   return rows.map((r, i) => ({ ...r, pos: i + 1 }));
@@ -4912,12 +4908,12 @@ function bandsLocked(T) { return roundCfg(T, 'practice').state === 'locked'; }
 
 function toParPlayer(T, roundId, pid) {
   const holes = courseOf(T, roundId).holes;
-  let tp = 0, thru = 0, stb = 0;
+  let tp = 0, thru = 0;
   for (let h = 0; h < 18; h++) {
     const n = playerNet(T, roundId, pid, h);
-    if (n != null) { const d = n - holes[h].par; tp += d; thru = h + 1; stb += Math.max(0, Math.min(5, 2 - d)); }
+    if (n != null) { tp += n - holes[h].par; thru = h + 1; }
   }
-  return { tp, thru, stb };
+  return { tp, thru };
 }
 
 /* ---------- leaderboards ---------- */
@@ -4955,15 +4951,14 @@ function gapOf(n) { return n <= 0 ? '—' : '+' + n; }
 
 function mvpBoard(T, now) {
   const rows = golfers(T).map(p => {
-    let total = 0, today = null, thru = null, stb = 0, played = false;
+    let total = 0, today = null, thru = null, played = false;
     for (const r of countingRounds(T)) {
-      const { tp, thru: th, stb: s } = toParPlayer(T, r.id, p.id);
+      const { tp, thru: th } = toParPlayer(T, r.id, p.id);
       if (th > 0) played = true;
-      stb += s;
       if (phaseOf(T, r.id, now) === 'live') { today = th > 0 ? tp : null; thru = th; }
       if (th > 0) total += tp;
     }
-    return { id: p.id, name: p.display, band: p.band, today, thru, total, stb, played };
+    return { id: p.id, name: p.display, band: p.band, today, thru, total, played };
   }).filter(r => r.played);
   rows.sort((a, b) => a.total - b.total);
   const lead = rows.length ? rows[0].total : 0;
@@ -4972,7 +4967,7 @@ function mvpBoard(T, now) {
     todayStr: r.today == null ? '—' : fmtToPar(r.today),
     thruStr: r.thru ? String(r.thru) : '—',
     gap: r.total - lead, gapStr: gapOf(r.total - lead),
-    totalStr: fmtToPar(r.total), stbStr: String(r.stb) }));
+    totalStr: fmtToPar(r.total) }));
 }
 
 /* A hole's Bingo Bango Bongo marks, whatever shape they were written in.
@@ -5216,8 +5211,7 @@ function brief(T, now) {
   const mb = mvpBoard(T, now).filter(x => x.played);
   if (mb.length) {
     L.push('\nMVP');
-    mb.slice(0, 8).forEach(x => L.push('- ' + x.pos + '. ' + x.name + ' ' + x.totalStr
-      + (x.stb ? ', ' + x.stb + ' pts' : '')));
+    mb.slice(0, 8).forEach(x => L.push('- ' + x.pos + '. ' + x.name + ' ' + x.totalStr));
   }
   const bb = bbbBoard(T);
   if (bb.length) {
@@ -5283,11 +5277,11 @@ function roundBrief(T, rid) {
   for (const p of golfers(T)) {
     const c = card(T, rid, p.id);
     if (!c || c.raw.every(v => v == null)) continue;
-    const { tp, thru, stb } = toParPlayer(T, rid, p.id);
+    const { tp, thru } = toParPlayer(T, rid, p.id);
     const gross = c.raw.reduce((a, v) => a + (v || 0), 0);
     L.push('- ' + p.display + ' (band ' + (p.band == null ? 'none' : p.band) + '): '
       + 'holes ' + c.raw.map(v => (v == null ? '-' : v)).join(',')
-      + ' | gross ' + gross + ', net to par ' + fmtToPar(tp) + ', ' + stb + ' pts, thru ' + thru);
+      + ' | gross ' + gross + ', net to par ' + fmtToPar(tp) + ', thru ' + thru);
   }
 
   /* What the numbers cannot say. Two sources, kept apart on purpose: the
@@ -7965,27 +7959,25 @@ function boardPractice() {
     cells: [rows.length ? ['Gross', String(rows[0].gross)] : null,
             rows.length && rows[0].thru ? ['Through', String(rows[0].thru)] : null] })}
   <p class="lede">${esc(d.dow)} ${esc(d.date)} — ${esc(E.courseOf(T, rid).name)}. Get Loose Foursomes, and a taste of
-  everything to come: the points, the Bingo Bango Bongo, the longest drive and the closest to the pin.
+  everything to come: the Bingo Bango Bongo, the longest drive and the closest to the pin.
   <b>None of it counts.</b> Nothing on this page feeds the Team Competition, the MVP or the Ryder Cup.</p>
 
   ${!played ? `<p class="empty">No cards in from the practice round yet. Scores appear here hole by hole.</p>` : `
   <h3 class="sub">The day's card</h3>
-  <p class="lede" style="margin-bottom:0">Scored gross, so a golfer with no band yet still has a card. Points appear
-  once a band is set — which is what the day is for.</p>
+  <p class="lede" style="margin-bottom:0">Scored gross, so a golfer with no band yet still has a card. What the day is
+  for is the band read under it: whether the band you chose is the one to take into Thursday.</p>
   <div class="rows pboard" style="margin-top:8px">
     <div class="rowhead"><span class="p-pos">#</span><span class="p-who">Golfer</span>
       <span class="p-band">Band</span>
       <span class="p-thru">Thru</span>
       <span class="p-gross">Gross</span>
-      <span class="p-par">To par</span>
-      <span class="p-pts">Points</span></div>
+      <span class="p-par">To par</span></div>
     ${rows.map(x => `<div class="row"><span class="pos p-pos">${x.pos}</span>
       <span class="who p-who">${esc(x.name)}</span>
       <span class="num p-band">${x.band == null ? '—' : x.band}</span>
       <span class="num p-thru">${x.thru}</span>
       <span class="num p-gross">${x.gross}</span>
-      <span class="num p-par ${x.tp < 0 ? 'under' : x.tp > 0 ? 'over' : 'level'}">${esc(E.fmtToPar(x.tp))}</span>
-      <span class="num p-pts">${x.stb == null ? '—' : x.stb}</span></div>`).join('')}
+      <span class="num p-par ${x.tp < 0 ? 'under' : x.tp > 0 ? 'over' : 'level'}">${esc(E.fmtToPar(x.tp))}</span></div>`).join('')}
   </div>`}
 
   <span class="brlow">${bandReadButton()}</span>
@@ -9890,11 +9882,6 @@ function scrRules() {
   <h3 class="sub">The playing bands</h3>
   <div class="rows" style="margin-top:8px;max-width:640px">
     ${RELIEF.bands.map(([n, b]) => `<div class="row"><span class="who" style="flex:0 0 92px">${esc(n)}</span><span style="flex:1;font-size:15px;color:var(--turf)">${esc(b)}</span></div>`).join('')}
-  </div>
-
-  <h3 class="sub">Stableford equivalents</h3>
-  <div class="rows" style="margin-top:8px;max-width:400px">
-    ${RELIEF.stableford.map(([k, v]) => `<div class="row"><span class="who" style="font-weight:400;font-size:16px">${esc(k)}</span><span class="big num">${esc(v)}</span></div>`).join('')}
   </div>`;
 }
 

@@ -93,5 +93,4 @@ export const RELIEF = {
     + 'costs you nothing to be wrong — and the Practice Day board reads every card back and says whether the '
     + 'band you chose is the one you should take into Thursday. A scorer settles them before Round 1, and '
     + 'after that they are fixed for the week.',
-  stableford: [['Double bogey or worse','0'],['Bogey','1'],['Par','2'],['Birdie','3'],['Eagle','4'],['Albatross','5']],
 };

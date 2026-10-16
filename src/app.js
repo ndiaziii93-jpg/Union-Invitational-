@@ -740,27 +740,25 @@ function boardPractice() {
     cells: [rows.length ? ['Gross', String(rows[0].gross)] : null,
             rows.length && rows[0].thru ? ['Through', String(rows[0].thru)] : null] })}
   <p class="lede">${esc(d.dow)} ${esc(d.date)} — ${esc(E.courseOf(T, rid).name)}. Get Loose Foursomes, and a taste of
-  everything to come: the points, the Bingo Bango Bongo, the longest drive and the closest to the pin.
+  everything to come: the Bingo Bango Bongo, the longest drive and the closest to the pin.
   <b>None of it counts.</b> Nothing on this page feeds the Team Competition, the MVP or the Ryder Cup.</p>
 
   ${!played ? `<p class="empty">No cards in from the practice round yet. Scores appear here hole by hole.</p>` : `
   <h3 class="sub">The day's card</h3>
-  <p class="lede" style="margin-bottom:0">Scored gross, so a golfer with no band yet still has a card. Points appear
-  once a band is set — which is what the day is for.</p>
+  <p class="lede" style="margin-bottom:0">Scored gross, so a golfer with no band yet still has a card. What the day is
+  for is the band read under it: whether the band you chose is the one to take into Thursday.</p>
   <div class="rows pboard" style="margin-top:8px">
     <div class="rowhead"><span class="p-pos">#</span><span class="p-who">Golfer</span>
       <span class="p-band">Band</span>
       <span class="p-thru">Thru</span>
       <span class="p-gross">Gross</span>
-      <span class="p-par">To par</span>
-      <span class="p-pts">Points</span></div>
+      <span class="p-par">To par</span></div>
     ${rows.map(x => `<div class="row"><span class="pos p-pos">${x.pos}</span>
       <span class="who p-who">${esc(x.name)}</span>
       <span class="num p-band">${x.band == null ? '—' : x.band}</span>
       <span class="num p-thru">${x.thru}</span>
       <span class="num p-gross">${x.gross}</span>
-      <span class="num p-par ${x.tp < 0 ? 'under' : x.tp > 0 ? 'over' : 'level'}">${esc(E.fmtToPar(x.tp))}</span>
-      <span class="num p-pts">${x.stb == null ? '—' : x.stb}</span></div>`).join('')}
+      <span class="num p-par ${x.tp < 0 ? 'under' : x.tp > 0 ? 'over' : 'level'}">${esc(E.fmtToPar(x.tp))}</span></div>`).join('')}
   </div>`}
 
   <span class="brlow">${bandReadButton()}</span>
@@ -2665,11 +2663,6 @@ function scrRules() {
   <h3 class="sub">The playing bands</h3>
   <div class="rows" style="margin-top:8px;max-width:640px">
     ${RELIEF.bands.map(([n, b]) => `<div class="row"><span class="who" style="flex:0 0 92px">${esc(n)}</span><span style="flex:1;font-size:15px;color:var(--turf)">${esc(b)}</span></div>`).join('')}
-  </div>
-
-  <h3 class="sub">Stableford equivalents</h3>
-  <div class="rows" style="margin-top:8px;max-width:400px">
-    ${RELIEF.stableford.map(([k, v]) => `<div class="row"><span class="who" style="font-weight:400;font-size:16px">${esc(k)}</span><span class="big num">${esc(v)}</span></div>`).join('')}
   </div>`;
 }
 
