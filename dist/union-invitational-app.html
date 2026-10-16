@@ -2513,10 +2513,10 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
 .rhero.band .wx.cold .wx-cold{text-align:right;max-width:170px}
 .rhero.band + .gamesbar{margin-top:14px}
 /* The index carries the long names where there is room and the short ones
-   on a phone. Scoped to this strip: the boards' own is not touched. */
-.btab .sm{display:none}
-.btabs.games .btab .lg{display:inline}
-.btabs.games .btab .sm{display:none}
+   on a phone. Scoped to THIS strip: on the boards' own, `.lg` is the long
+   name kept for anything that reads the page aloud, and stays hidden. */
+.btabs.rt .btab .lg{display:inline}
+.btabs.rt .btab .sm{display:none}
 
 /* ---- the lists go dense ----
    One line a place: the name on the left, when it shuts on the right, a way
@@ -2950,8 +2950,8 @@ h3.sub{display:flex;align-items:baseline;gap:12px}
   .rhero.band .rt-words{max-width:60%}
   .rhero.band .wx.cold .wx-cold{max-width:120px;font-size:10px}
   .rhero.band + .gamesbar{margin-top:0}
-  .btabs.games .btab .lg{display:none}
-  .btabs.games .btab .sm{display:inline}
+  .btabs.rt .btab .lg{display:none}
+  .btabs.rt .btab .sm{display:inline}
   .vcard .vwhen{max-width:40%;font-size:13px}
   .setline{margin-left:calc(clamp(14px,3vw,26px) * -1);margin-right:calc(clamp(14px,3vw,26px) * -1);
     width:calc(100% + clamp(14px,3vw,26px) * 2)}
@@ -3243,7 +3243,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261016-1303';
+const BUILD = '20261016-1337';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -10129,7 +10129,7 @@ function scrResort() {
     </div>
     <div class="rt-wx">${weatherStrip()}</div>
   </figure>
-  <div class="gamesbar"><div class="btabs games nos">${tabs.map(([id, l, short]) =>
+  <div class="gamesbar"><div class="btabs games rt nos">${tabs.map(([id, l, short]) =>
     `<button class="btab${UI.resortTab === id ? ' on' : ''}" data-act="resortTab" data-a="${id}"><span class="lg">${l}</span><span class="sm">${short}</span></button>`).join('')}</div></div>
   ${hoursLineBar()}
   ${body()}`;

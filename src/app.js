@@ -3262,7 +3262,7 @@ function scrResort() {
     </div>
     <div class="rt-wx">${weatherStrip()}</div>
   </figure>
-  <div class="gamesbar"><div class="btabs games nos">${tabs.map(([id, l, short]) =>
+  <div class="gamesbar"><div class="btabs games rt nos">${tabs.map(([id, l, short]) =>
     `<button class="btab${UI.resortTab === id ? ' on' : ''}" data-act="resortTab" data-a="${id}"><span class="lg">${l}</span><span class="sm">${short}</span></button>`).join('')}</div></div>
   ${hoursLineBar()}
   ${body()}`;
