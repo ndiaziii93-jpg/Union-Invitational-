@@ -197,7 +197,7 @@ function scrToday() {
   /* THE THREE THAT MATTER ON THE FRONT: the Cup, the Team Competition and
      the MVP, as the cards the Boards' own front page draws them with. */
   const club = E.clubhouse(T, now);
-  const cards = ['pairs', 'ryder', 'mvp'].map(id => club.find(c => c.id === id)).filter(Boolean);
+  const cards = ['pairs', 'mvp', 'ryder', 'bbb'].map(id => club.find(c => c.id === id)).filter(Boolean);
   const priv = E.teePrivilege(T, now);
 
   /* The next thing on the card, said the way a golfer says it. */
@@ -246,7 +246,7 @@ function scrToday() {
 
   <div class="today-grid">
     <div class="tg-r">
-      <div class="club today-club">${cards.map(c => c.kind === 'cup' ? cupCard(c, 'todayCard')
+      <div class="club today-club">${cards.map(c => c.kind === 'cup' ? cupCard(c, 'todayCard', true)
         : gameCard(c, 'todayCard', c.id === 'pairs' ? 'cc--main' : '')).join('')}</div>
       ${recapButton()}
     </div>
@@ -335,9 +335,11 @@ function boardsHome() {
   <div class="club">${cards.map(c => c.kind === 'cup' ? cupCard(c) : gameCard(c)).join('')}</div>`;
 }
 
-function cupCard(c, act = 'boardTab') {
+/* `plain` draws it on the paper like any other game — the front page keeps
+   the pine for the main event. */
+function cupCard(c, act = 'boardTab', plain = false) {
   const half = n => Number.isInteger(n) ? String(n) : Math.floor(n) + '\u00BD';
-  return `<button class="cc cc--cup" data-act="${act}" data-a="ryder"
+  return `<button class="cc ${plain ? 'cc--cupq' : 'cc--cup'}" data-act="${act}" data-a="ryder"
     aria-label="Ryder Cup — United Kingdom ${half(c.uk)}, United States ${half(c.usa)}. ${esc(c.note)}">
     <span class="cc-t">Ryder Cup<span class="cc-st">${esc(c.note)}</span></span>
     <span class="cc-cup">

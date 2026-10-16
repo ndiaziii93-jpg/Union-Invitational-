@@ -72,14 +72,15 @@ ok('the words of the day are over the picture', await p.evaluate(() => {
 }), true);
 ok('the page does not run off the side', await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
 
-ok('the three that matter, as the Boards draw them', await p.locator('.today-club .cc').count(), 3);
+ok('the four that matter, as the Boards draw them', await p.locator('.today-club .cc').count(), 4);
 ok('the Team Competition first — the main event — in pine', await p.evaluate(() => {
   const c = document.querySelector('.today-club .cc');
   return c.dataset.a === 'pairs' && getComputedStyle(c).backgroundColor === 'rgb(29, 46, 33)';
 }), true);
-ok('the Cup second, in pine too', await p.evaluate(() => {
-  const c = document.querySelectorAll('.today-club .cc')[1];
-  return c.dataset.a === 'ryder' && getComputedStyle(c).backgroundColor === 'rgb(29, 46, 33)';
+ok('then the MVP, the Cup and the Bingo', await p.$$eval('.today-club .cc', els => els.map(e => e.dataset.a)), ['pairs', 'mvp', 'ryder', 'bbb']);
+ok('and the Cup is on the paper here, not in pine', await p.evaluate(() => {
+  const c = document.querySelector('.today-club .cc[data-a="ryder"]');
+  return getComputedStyle(c).backgroundColor !== 'rgb(29, 46, 33)' && c.querySelectorAll('.cc-cup svg').length === 2;
 }), true);
 ok('the clock sits in a ring', await p.locator('.nowplate .ring .np-big').count(), 1);
 ok('that has filled some of the way to the next fixture', await p.evaluate(() => {

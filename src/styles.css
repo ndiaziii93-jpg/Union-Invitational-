@@ -1290,6 +1290,10 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
 .cc--cup .cc-st{color:var(--gold-up)}
 .cc--cup .cc-go{color:var(--sage-up)}
 @media (hover:hover) and (pointer:fine){ .cc--cup:hover{background:#243a29;border-color:#243a29} }
+/* the Cup on the paper, as the front page draws it */
+.cc--cupq .cc-cup svg{border-color:var(--rule)}
+.cc--cupq .cc-win{color:var(--gold)}
+.cc--cupq .cc-win small{color:var(--turf)}
 /* The main event, in pine, at the head of the front page. After the base
    card on purpose: same specificity, and the later rule wins. */
 .cc--main{background:var(--ink);border-color:var(--ink);color:var(--page)}
