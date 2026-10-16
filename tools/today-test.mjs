@@ -16,17 +16,16 @@ const ok = (n, g, w) => { const good = JSON.stringify(g) === JSON.stringify(w);
 
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
 const errs = [];
-const open = async (w, h, mob) => {
+const open = async (w, h, mob, at = Date.UTC(2026, 9, 28, 10, 0)) => {   // 13:00 at the resort, the free day
   const pg = await (await b.newContext({ viewport: { width: w, height: h }, isMobile: mob, hasTouch: mob })).newPage();
   pg.on('pageerror', e => errs.push(String(e).slice(0, 200)));
-  await pg.addInitScript(() => {
-    const fixed = Date.UTC(2026, 9, 28, 10, 0);        // 13:00 at the resort, the free day
+  await pg.addInitScript(fixed => {
     const D = Date;
     window.Date = class extends D {
       constructor(...a) { super(...(a.length ? a : [fixed])); }
       static now() { return fixed; }
     };
-  });
+  }, at);
   await pg.goto('file://' + S + '/tt.html');
   await pg.waitForTimeout(4200);                       // the opening crest
   for (let i = 0; i < 6; i++) {
@@ -83,9 +82,17 @@ ok('and the Cup is on the paper here, not in pine', await p.evaluate(() => {
   return getComputedStyle(c).backgroundColor !== 'rgb(29, 46, 33)' && c.querySelectorAll('.cc-cup svg').length === 2;
 }), true);
 ok('the clock sits in a ring', await p.locator('.nowplate .ring .np-big').count(), 1);
-ok('that has filled some of the way to the next fixture', await p.evaluate(() => {
+ok('that shows the time left in gold, part way through the gap', await p.evaluate(() => {
   const v = parseFloat(document.querySelector('.ring').style.getPropertyValue('--pct')); return v > 0 && v < 100;
 }), true);
+/* Ten days before the week there is no earlier fixture to measure from:
+   the ring reads off a fortnight, so nine and a half days to go is most of
+   the ring, not none of it. */
+const early = await open(390, 844, true, Date.UTC(2026, 9, 16, 20, 0));
+ok('long before the week, the ring is mostly gold, not empty', await early.evaluate(() => {
+  const v = parseFloat(document.querySelector('.ring').style.getPropertyValue('--pct')); return v > 55 && v < 80;
+}), true);
+await early.context().close();
 ok('and the words beside it stand clear of the edge', await p.evaluate(() => {
   const np = document.querySelector('.nowplate').getBoundingClientRect(), k = document.querySelector('.np-k').getBoundingClientRect();
   return k.top - np.top >= 16 && k.left - np.left >= 100;

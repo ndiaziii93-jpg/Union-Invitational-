@@ -213,13 +213,15 @@ function scrToday() {
     }
   }
 
-  /* THE RING fills as the gap to the next fixture closes: from the last
-     thing on the card (or a week out, before the week begins) to the next. */
+  /* THE RING is the time left, in gold: full when the last thing on the
+     card has just happened, draining as the next one nears, empty at nought
+     — and full again for the one after. Before the first fixture there is
+     nothing to measure from, so the ring is full from a fortnight out. */
   let pct = 0;
   if (nf) {
     const prev = E.fixtures(T).filter(f => f.ms <= now.ms).pop();
-    const from = prev ? prev.ms : nf.ms - 7 * 86400000;
-    pct = Math.max(0, Math.min(1, (now.ms - from) / Math.max(1, nf.ms - from)));
+    const from = prev ? prev.ms : nf.ms - 14 * 86400000;
+    pct = Math.max(0, Math.min(1, (nf.ms - now.ms) / Math.max(1, nf.ms - from)));
   }
 
   return `
