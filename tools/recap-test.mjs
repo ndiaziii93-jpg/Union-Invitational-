@@ -4,6 +4,28 @@
 import { chromium } from 'playwright';
 import { readFileSync, writeFileSync } from 'node:fs';
 
+/* Whatever window is up is answered first — a half-entered hole's "not
+   saved" by taking the discard, anything else by its Cancel — because a
+   tap forced through a scrim lands on the scrim and only closes it. */
+const clearWin = async pg => { for (let i = 0; i < 5; i++) { if (!await pg.locator('.scrim').count()) return;
+  const alt = pg.locator('.scrim [data-act="confirmAlt"]'), c = pg.locator('.scrim [data-act="modalCancel"]');
+  if (await alt.count()) await alt.first().click({ force: true });
+  else if (await c.count()) await c.first().click({ force: true });
+  else await pg.locator('.scrim').first().click({ position: { x: 4, y: 4 }, force: true });
+  await pg.waitForTimeout(300); } };
+/* The group is picked off a chip where one is drawn, and off the line and
+   the sheet behind it everywhere else. The sheet stays up until it is
+   closed, as it does under a thumb. */
+const pickGroupOn = async (pg, i) => {
+  const chip = pg.locator('.gchip').nth(i);
+  if (await chip.isVisible().catch(() => false)) { await chip.click({ force: true }); return; }
+  await clearWin(pg);
+  await pg.locator('.setline').first().click(); await pg.waitForTimeout(400);
+  await pg.locator('.scrim .shlist').nth(1).locator('.sh-row').nth(i).click({ force: true });
+  await pg.waitForTimeout(300);
+};
+
+
 /* ---- getting about the book ----
    Four tabs now — Today, Scores, Boards, Resort — and the five screens that
    are set up once live behind Manage. So a name is looked for on the bar
@@ -142,7 +164,7 @@ if (await p.locator('[data-act="openRound"]').count()) {
 }
 const groups = await p.locator('.gchip').count();
 for (let g = 0; g < groups; g++) {
-  await p.locator('.gchip').nth(g).click(); await p.waitForTimeout(350); await shut();
+  await pickGroupOn(p, g); await p.waitForTimeout(350); await shut();
   await p.locator('.hcell').nth(0).click(); await p.waitForTimeout(300); await shut();
   const n = await p.locator('.step.plus').count();
   for (let h = 0; h < 18; h++) {

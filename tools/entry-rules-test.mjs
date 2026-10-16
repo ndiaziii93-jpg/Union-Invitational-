@@ -4,6 +4,28 @@
 import { chromium } from 'playwright';
 import { readFileSync, writeFileSync } from 'node:fs';
 
+/* Whatever window is up is answered first — a half-entered hole's "not
+   saved" by taking the discard, anything else by its Cancel — because a
+   tap forced through a scrim lands on the scrim and only closes it. */
+const clearWin = async pg => { for (let i = 0; i < 5; i++) { if (!await pg.locator('.scrim').count()) return;
+  const alt = pg.locator('.scrim [data-act="confirmAlt"]'), c = pg.locator('.scrim [data-act="modalCancel"]');
+  if (await alt.count()) await alt.first().click({ force: true });
+  else if (await c.count()) await c.first().click({ force: true });
+  else await pg.locator('.scrim').first().click({ position: { x: 4, y: 4 }, force: true });
+  await pg.waitForTimeout(300); } };
+/* The group is picked off a chip where one is drawn, and off the line and
+   the sheet behind it everywhere else. The sheet stays up until it is
+   closed, as it does under a thumb. */
+const pickGroupOn = async (pg, i) => {
+  const chip = pg.locator('.gchip').nth(i);
+  if (await chip.isVisible().catch(() => false)) { await chip.click({ force: true }); return; }
+  await clearWin(pg);
+  await pg.locator('.setline').first().click(); await pg.waitForTimeout(400);
+  await pg.locator('.scrim .shlist').nth(1).locator('.sh-row').nth(i).click({ force: true });
+  await pg.waitForTimeout(300);
+};
+
+
 /* ---- getting about the book ----
    Four tabs now — Today, Scores, Boards, Resort — and the five screens that
    are set up once live behind Manage. So a name is looked for on the bar
@@ -89,7 +111,7 @@ ok('and nobody else', g1.slice().sort(), inGroup1.map(x => x.replace('unsaved', 
 
 const chips = await p.locator('.gchip').count();
 if (chips > 1) {
-  await p.locator('.gchip').nth(1).click(); await p.waitForTimeout(600); await shut();
+  await pickGroupOn(p, 1); await p.waitForTimeout(600); await shut();
   const g2 = await names();
   ok('group 2 offers its own four', g2.length, (await p.locator('.prow .pwho .nm').allInnerTexts()).length);
   ok('and shares nobody with group 1', g2.filter(x => g1.includes(x)), []);
@@ -132,12 +154,12 @@ const gotoHole1 = async () => { await p.locator('.hcell').first().click();
 
 /* Group 2 has hole 1 in already, from the section above. Group 1 has not
    been near it. */
-await p.locator('.gchip').nth(1).click(); await p.waitForTimeout(600); await shut();
+await pickGroupOn(p, 1); await p.waitForTimeout(600); await shut();
 await gotoHole1();
 ok('the group that played hole 1 sees it filled', await hole1(), true);
 ok('and the bar says so', (await bar()).includes('saved'), true);
 
-await p.locator('.gchip').first().click(); await p.waitForTimeout(650); await shut();
+await pickGroupOn(p, 0); await p.waitForTimeout(650); await shut();
 await gotoHole1();
 ok('the group that has not, sees it to play', await hole1(), false);
 ok('and nothing at all on their card is marked', await p.locator('.hcell.saved').count(), 0);
@@ -149,10 +171,10 @@ await p.locator('.step.plus').first().click(); await p.waitForTimeout(250);
 await p.locator('[data-act="saveHole"]').click(); await p.waitForTimeout(1100); await shut();
 await gotoHole1();
 ok('playing it fills their cell too', await hole1(), true);
-await p.locator('.gchip').nth(1).click(); await p.waitForTimeout(650); await shut();
+await pickGroupOn(p, 1); await p.waitForTimeout(650); await shut();
 await gotoHole1();
 ok('and the other group still has its own', await hole1(), true);
-await p.locator('.gchip').first().click(); await p.waitForTimeout(650); await shut();
+await pickGroupOn(p, 0); await p.waitForTimeout(650); await shut();
 await p.locator('.hcell').nth(1).click(); await p.waitForTimeout(450); await shut();
 
 console.log('\na mulligan is spent once');
@@ -195,7 +217,7 @@ const mark = async (slot, idx) => {
 };
 const marked = async slot => p.locator('[data-act="setBbb"][data-a="' + slot + '"]').inputValue();
 
-await p.locator('.gchip').first().click(); await p.waitForTimeout(500); await shut();
+await pickGroupOn(p, 0); await p.waitForTimeout(500); await shut();
 /* Pin the hole. Marks are kept per hole, so a section that assumes hole one
    has to say so rather than inherit whatever the last section left open. */
 await p.locator('.hcell').nth(0).click(); await p.waitForTimeout(450); await shut();
@@ -205,7 +227,7 @@ await p.locator('[data-act="saveHole"]').click(); await p.waitForTimeout(900); a
 await p.locator('.hcell').first().click(); await p.waitForTimeout(400); await shut();
 ok('group 1 kept its mark', await marked('bingo'), one);
 
-await p.locator('.gchip').nth(1).click(); await p.waitForTimeout(600); await shut();
+await pickGroupOn(p, 1); await p.waitForTimeout(600); await shut();
 ok('group 2 starts with none of it', await marked('bingo'), '');
 await mark('bingo', 1);
 const two = await marked('bingo');
@@ -213,7 +235,7 @@ ok('and group 2 marked somebody else', two === one, false);
 await p.locator('[data-act="saveHole"]').click(); await p.waitForTimeout(900); await shut();
 await p.locator('.hcell').first().click(); await p.waitForTimeout(400); await shut();
 
-await p.locator('.gchip').first().click(); await p.waitForTimeout(600); await shut();
+await pickGroupOn(p, 0); await p.waitForTimeout(600); await shut();
 ok('group 1 still has its own mark after group 2 saved', await marked('bingo'), one);
 
 await tab('Leaderboards');
