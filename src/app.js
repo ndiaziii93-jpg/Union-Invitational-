@@ -3802,11 +3802,10 @@ function paint() {
     }
   }
 
-  if (UI.askOpen && UI.askFocus) {
-    UI.askFocus = false;
-    const f = document.getElementById('askField');
-    if (f) { f.focus(); f.setSelectionRange(f.value.length, f.value.length); }
-  }
+  /* THE KEYBOARD STAYS DOWN UNTIL SOMEBODY ASKS FOR IT. Opening the window
+     used to put the caret in the field, and on a phone a caret means the
+     keyboard — half the window gone before a word has been read, including
+     the answer to the last question. A field is focused by being tapped. */
   if (UI.modal && UI.modal.kind === 'pin') { const i = document.getElementById('pinField'); if (i) { i.focus(); i.select(); } }
   else if (UI.modal && UI.modal.kind === 'add') { const i = document.getElementById('addName'); if (i) i.focus(); }
   else restoreFocus(focused);
@@ -4653,7 +4652,7 @@ function onClick(e) {
       });
       return;
     case 'askOpen':
-      UI.askOpen = true; UI.askFocus = true; render();
+      UI.askOpen = true; render();
       return;
     case 'askText':
       return;                      // a field, not a button: typing is handled below
@@ -5404,7 +5403,8 @@ async function sendQuestion() {
   UI.asks.unshift(item);
   UI.askText = '';
   if (field) field.value = '';
-  UI.askFocus = true;           // ready for the next question
+  /* No focus here either: the answer streams into the panel and a reader
+     wants to see it, not type over it. Tap the field for the next one. */
   render();
   try {
     // Every question carries the book with it: there is no memory between calls.

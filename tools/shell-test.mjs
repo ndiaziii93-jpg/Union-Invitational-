@@ -198,6 +198,21 @@ ok('and the book behind it is thrown out of focus', await p.evaluate(() => {
          || getComputedStyle(document.querySelector('.scrim')).webkitBackdropFilter || '';
   return /blur/.test(f);
 }), true);
+/* THE KEYBOARD STAYS DOWN. Opening the window used to put the caret in the
+   field, and on a phone a caret means the keyboard — half the window gone
+   before a word has been read. */
+ok('nothing is focused for you when it opens', await p.evaluate(
+  () => document.activeElement && document.activeElement.id), '');
+await p.locator('#askField').click(); await p.waitForTimeout(350);
+ok('the field takes focus when it is tapped', await p.evaluate(
+  () => document.activeElement.id), 'askField');
+await p.locator('#askField').type('Who is leading?', { delay: 25 });
+ok('and typing into it still works',
+  await p.locator('#askField').inputValue(), 'Who is leading?');
+await p.locator('#askField').fill('');
+await p.locator('.askbox .mb-t').click({ force: true }).catch(() => {});   // let it go again
+await p.waitForTimeout(300);
+
 ok('the field fills the card on a phone', await p.evaluate(() => {
   const f = document.querySelector('.askin').getBoundingClientRect();
   const c = document.querySelector('.askbox').getBoundingClientRect();
