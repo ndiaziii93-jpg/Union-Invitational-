@@ -145,7 +145,7 @@ ok('and it closes', await p.locator('.rdmodal').count(), 0);
 console.log('\nand the times are set behind Manage');
 await goTab(p, 'Tee times'); await p.waitForTimeout(700);
 ok('Tee times is a screen of its own now',
-  (await p.locator('.head').first().innerText()).trim(), 'Tee times');
+  (await p.locator('.mhead .mh-t').first().innerText()).trim(), 'Tee times');
 ok('with a picker for every group of every round', await p.locator('.teeblock .timepick').count(), 12);
 await goTab(p, 'Calendar'); await p.waitForTimeout(700); await shut();
 ok('and back on the week there are still none', await p.locator('.timepick').count(), 0);
