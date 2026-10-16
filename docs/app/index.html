@@ -1990,7 +1990,10 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
 
 /* Save, held at the foot of the glass and inset to the page: the one
    control you need on every hole, never more than a glance away. */
-.savebar{position:fixed;left:50%;bottom:0;transform:translateX(-50%);z-index:30;margin:0;
+/* top:auto, spelled out: the rule for narrower tablets below makes this bar
+   sticky to the top, and a fixed box pinned top AND bottom is the whole
+   glass — it swallowed every press on an iPad mini. */
+.savebar{position:fixed;left:50%;top:auto;bottom:0;transform:translateX(-50%);z-index:30;margin:0;
   width:min(calc(100% - 2 * clamp(14px,3vw,26px)),calc(1180px - 2 * clamp(14px,3vw,26px)));
   border-radius:14px 14px 0 0;border:1px solid var(--rule);border-bottom:0;
   padding:12px 18px;box-shadow:0 -8px 24px rgba(16,22,17,.14)}
@@ -3414,7 +3417,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261016-1638';
+const BUILD = '20261016-1715';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 

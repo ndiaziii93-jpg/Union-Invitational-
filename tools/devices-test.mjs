@@ -110,6 +110,11 @@ for (const [name, viewport, touch, dpr] of DEVICES) {
   const dismiss = async () => { for (let i = 0; i < 5; i++) { if (!await p.locator('.scrim').count()) return;
     await p.locator('.scrim [data-act="modalCancel"]').click({ force: true }).catch(() => {}); await p.waitForTimeout(220); } };
   const tab = async t => { await dismiss(); await goTab(p, t); await p.waitForTimeout(550); await dismiss(); };
+  /* A driver's own scroll parks a target against the nearer edge of the
+     glass, which on the scoring screen is under the band at the head or
+     the bar at the foot. A thumb presses what it can see: put the target
+     in the middle of the glass, then press. */
+  const tap = async loc => { await loc.evaluate(e => e.scrollIntoView({ block: 'center' })); await p.waitForTimeout(120); await loc.click(); };
   const bad = [];
   try {
     await p.goto('file://' + S + '/dev.html'); await p.waitForTimeout(2600); await dismiss();
@@ -139,7 +144,7 @@ for (const [name, viewport, touch, dpr] of DEVICES) {
     if (!await p.locator('.step.plus').count()) bad.push('no scoring controls');
     else {
       const before = await p.locator('.holehead h3').innerText();
-      await p.locator('.step.plus').first().click(); await p.waitForTimeout(400);
+      await tap(p.locator('.step.plus').first()); await p.waitForTimeout(400);
       await p.locator('[data-act="saveHole"]').click(); await p.waitForTimeout(1500); await dismiss();
       const cards = await p.evaluate(() => Object.keys(window.__docs).filter(k => k.startsWith('scores/')).length);
       if (cards < 1) bad.push('the card never reached the book');
@@ -160,8 +165,8 @@ for (const [name, viewport, touch, dpr] of DEVICES) {
 
     // 3b. minus works from an empty cell, without a tap up first
     if (await p.locator('.step.minus').count()) {
-      await p.locator('.hcell').nth(5).click(); await p.waitForTimeout(500); await dismiss();
-      await p.locator('.step.minus').first().click(); await p.waitForTimeout(400);
+      await tap(p.locator('.hcell').nth(5)); await p.waitForTimeout(500); await dismiss();
+      await tap(p.locator('.step.minus').first()); await p.waitForTimeout(400);
       const one = await p.locator('.fig.raw .v').first().innerText();
       const par = await p.locator('.hcell.on .p').innerText();      // "par 4"
       const want = String(parseInt(par.replace(/\D/g, ''), 10) - 1);
@@ -177,9 +182,9 @@ for (const [name, viewport, touch, dpr] of DEVICES) {
       /* No red Lock and conclude on the bar any more: a round finishes group
          by group, so nothing on hole 6 can end it. */
       if (await p.locator('.savebar [data-act="lockRound"]').count()) bad.push('the bar still ends the round early');
-      await p.locator('.hcell').nth(17).click(); await p.waitForTimeout(500); await dismiss();
+      await tap(p.locator('.hcell').nth(17)); await p.waitForTimeout(500); await dismiss();
       const plus = p.locator('.step.plus'); const np = await plus.count();
-      for (let i = 0; i < np; i++) { await plus.nth(i).click(); await p.waitForTimeout(90); }
+      for (let i = 0; i < np; i++) { await tap(plus.nth(i)); await p.waitForTimeout(90); }
       if (np) { await p.locator('[data-act="saveHole"]').click(); await p.waitForTimeout(1400); }
       /* Saving now asks about the three Bingo Bango Bongo names first, and
          the crest queues behind them. Wave exactly that one past — the
