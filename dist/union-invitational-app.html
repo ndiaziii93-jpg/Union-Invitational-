@@ -1134,15 +1134,24 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 .cv-s b{color:var(--page);font-weight:600}
 /* the clock */
 .nowplate{position:relative;z-index:1;margin:0;
-  padding:0 clamp(14px,3vw,26px) 16px;background:var(--ink);color:var(--page);
-  display:flex;align-items:flex-end;gap:16px;border-bottom:3px solid var(--gold-up)}
-.np-big{font-size:clamp(38px,5vw,52px);font-weight:900;line-height:.95;letter-spacing:-.03em;
+  padding:18px clamp(18px,3.4vw,30px) 20px;background:var(--ink);color:var(--page);
+  display:flex;align-items:center;gap:20px;border-bottom:3px solid var(--gold-up)}
+/* The ring fills, in gold, as the gap to the next fixture closes; the clock
+   sits inside it. The disc is pine again, so the ring is a line of light. */
+.ring{--pct:0%;flex:0 0 auto;width:118px;height:118px;border-radius:50%;position:relative;
+  display:grid;place-items:center;
+  background:conic-gradient(#E2C277 0 var(--pct),rgba(159,179,163,.22) var(--pct) 100%)}
+.ring::before{content:"";position:absolute;inset:8px;border-radius:50%;background:var(--ink)}
+.rn{position:relative;text-align:center;line-height:1;padding:0 6px}
+.np-big{display:block;font-size:24px;font-weight:900;line-height:1;letter-spacing:-.03em;
   color:#E2C277;white-space:nowrap}
-.np-w{flex:1 1 auto;min-width:0;padding-bottom:3px}
+.rn span{display:block;font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;
+  color:var(--sage-up);margin-top:5px}
+.np-w{flex:1 1 auto;min-width:0;padding:2px 0}
 .np-k{display:block;font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;
   color:var(--sage-up);white-space:nowrap}
-.np-t{font-size:15.5px;font-weight:600;margin-top:3px}
-.np-w small{display:block;font-size:12.5px;color:var(--sage-up);margin-top:1px}
+.np-t{font-size:17px;font-weight:600;margin-top:6px;line-height:1.25}
+.np-w small{display:block;font-size:13px;color:var(--sage-up);margin-top:4px}
 /* the two columns */
 .today-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;align-items:start;margin-top:4px}
 @media (min-width:900px){
@@ -1285,6 +1294,16 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
 .cc--cup .cc-st{color:var(--gold-up)}
 .cc--cup .cc-go{color:var(--sage-up)}
 @media (hover:hover) and (pointer:fine){ .cc--cup:hover{background:#243a29;border-color:#243a29} }
+/* The main event, in pine, at the head of the front page. After the base
+   card on purpose: same specificity, and the later rule wins. */
+.cc--main{background:var(--ink);border-color:var(--ink);color:var(--page)}
+.cc--main .cc-t{color:var(--sage-up)}
+.cc--main .cc-st{color:var(--gold-up)}
+.cc--main .cc-b,.cc--main .cc-none{color:var(--sage-up)}
+.cc--main .cc-f{color:#E2C277}
+.cc--main .cc-go{color:var(--sage-up)}
+.cc--main.cc--closed,.cc--main.cc--empty{opacity:1}
+@media (hover:hover) and (pointer:fine){ .cc--main:hover{background:#243a29;border-color:#243a29} }
 .cc-cup{display:flex;align-items:center;gap:9px;margin-top:5px}
 .cc-cup svg{flex:0 0 auto;border:1px solid rgba(255,255,255,.26);border-radius:2px}
 .cc-sc{font-size:27px;font-weight:700;line-height:1}
@@ -2145,9 +2164,8 @@ html:has(.page.scoring){scroll-padding-top:136px;scroll-padding-bottom:110px}
 .recapbtn .rb-s{display:block;font-size:14px;color:var(--turf);margin-top:2px}
 .recapbtn:disabled{opacity:.55;cursor:not-allowed}
 /* it lights up only when every card for the day is in */
-/* It lights in the mid green it always has — the one lit thing on a page
-   of pine, which is what makes it read as lit. */
-.recapbtn.ready{background:var(--green);border-color:var(--green);border-radius:14px}
+/* It lights in the pine every band is drawn in, with the glow in gold. */
+.recapbtn.ready{background:var(--ink);border-color:var(--ink);border-radius:14px}
 .recapbtn.ready .rb-t{color:var(--paper)}
 .recapbtn.ready .rb-s{color:var(--paper);opacity:.85}
 .recapbtn.ready:hover{filter:brightness(1.08)}
@@ -2155,8 +2173,8 @@ html:has(.page.scoring){scroll-padding-top:136px;scroll-padding-bottom:110px}
    opens it — a slow glow, not a strobe, and nothing at all for anyone who
    has asked their device to stop moving things. */
 @keyframes recappulse{
-  0%,100%{box-shadow:0 0 0 0 rgba(62,92,67,0);filter:brightness(1)}
-  50%{box-shadow:0 0 26px 6px rgba(62,92,67,.5);filter:brightness(1.22)}
+  0%,100%{box-shadow:0 0 0 0 rgba(226,194,119,0);filter:brightness(1)}
+  50%{box-shadow:0 0 26px 6px rgba(226,194,119,.55);filter:brightness(1.12)}
 }
 .recapbtn.ready{animation:recappulse 2.2s ease-in-out infinite}
 @media (prefers-reduced-motion:reduce){.recapbtn.ready{animation:none}}
@@ -3370,7 +3388,9 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
      a sky, light through the middle, pine at the foot for the words */
   .coverbg::after{background:linear-gradient(to bottom,rgba(16,22,17,.74) 0,rgba(16,22,17,.5) 20%,
     rgba(16,22,17,.14) 40%,rgba(16,22,17,.5) 64%,rgba(16,22,17,.97) 100%)}
-  .np-big{font-size:40px}
+  .nowplate{padding:16px clamp(14px,3vw,26px) 18px;gap:16px}
+  .ring{width:108px;height:108px}
+  .np-big{font-size:22px}
   .tsec{margin-top:20px}
   /* the privilege lines bleed with the rest of the tap-lines; the picker
      and its note stay on the page */
@@ -3507,7 +3527,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261016-2021';
+const BUILD = '20261016-2046';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -7327,7 +7347,8 @@ function scrToday() {
 
   /* THE THREE THAT MATTER ON THE FRONT: the Cup, the Team Competition and
      the MVP, as the cards the Boards' own front page draws them with. */
-  const cards = E.clubhouse(T, now).filter(c => c.id === 'ryder' || c.id === 'pairs' || c.id === 'mvp');
+  const club = E.clubhouse(T, now);
+  const cards = ['pairs', 'ryder', 'mvp'].map(id => club.find(c => c.id === id)).filter(Boolean);
   const priv = E.teePrivilege(T, now);
 
   /* The next thing on the card, said the way a golfer says it. */
@@ -7343,6 +7364,15 @@ function scrToday() {
     }
   }
 
+  /* THE RING fills as the gap to the next fixture closes: from the last
+     thing on the card (or a week out, before the week begins) to the next. */
+  let pct = 0;
+  if (nf) {
+    const prev = E.fixtures(T).filter(f => f.ms <= now.ms).pop();
+    const from = prev ? prev.ms : nf.ms - 7 * 86400000;
+    pct = Math.max(0, Math.min(1, (now.ms - from) / Math.max(1, nf.ms - from)));
+  }
+
   return `
   <figure class="coverbg">${IMG.hero
     ? `<img src="${IMG.hero}" alt="Sunset aerial over Cullinan Links and the Titanic Deluxe, Belek">` : ''}</figure>
@@ -7354,7 +7384,10 @@ function scrToday() {
       groups ? ` · ${groups} group${groups === 1 ? '' : 's'}` : ''}</p>
   </div>
   <div class="nowplate countdown">
-    <div class="np-big fig num">${nf ? esc(nf.countdown) : '—'}</div>
+    <div class="ring" style="--pct:${Math.round(pct * 1000) / 10}%" role="img"
+      aria-label="${nf ? esc(nf.countdown) + ' to the next fixture' : 'Nothing left on the card'}">
+      <div class="rn"><b class="np-big fig num">${nf ? esc(nf.countdown) : '—'}</b><span>${nf && nf.golf ? 'to the tee' : 'to go'}</span></div>
+    </div>
     <div class="np-w">
       <span class="np-k">Next on the card</span>
       <div class="np-t nxt">${esc(npT)}</div>
@@ -7364,7 +7397,8 @@ function scrToday() {
 
   <div class="today-grid">
     <div class="tg-r">
-      <div class="club today-club">${cards.map(c => c.kind === 'cup' ? cupCard(c, 'todayCard') : gameCard(c, 'todayCard')).join('')}</div>
+      <div class="club today-club">${cards.map(c => c.kind === 'cup' ? cupCard(c, 'todayCard')
+        : gameCard(c, 'todayCard', c.id === 'pairs' ? 'cc--main' : '')).join('')}</div>
       ${recapButton()}
     </div>
     <div class="tg-l">
@@ -7466,9 +7500,9 @@ function cupCard(c, act = 'boardTab') {
     <span class="cc-go" aria-hidden="true">\u203A</span></button>`;
 }
 
-function gameCard(c, act = 'boardTab') {
+function gameCard(c, act = 'boardTab', extra = '') {
   const empty = c.state === 'empty';
-  return `<button class="cc cc--${esc(c.state)}" data-act="${act}" data-a="${esc(c.id)}"
+  return `<button class="cc cc--${esc(c.state)}${extra ? ' ' + extra : ''}" data-act="${act}" data-a="${esc(c.id)}"
     aria-label="${esc(c.label)}${empty ? ' — ' + c.note : c.who ? ' — ' + c.who + ' leads on ' + c.fig : ''}">
     <span class="cc-t">${esc(c.label)}${c.sub || c.thru
       ? `<span class="cc-st">${esc(c.sub || ('Thru ' + c.thru))}</span>` : ''}</span>

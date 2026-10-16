@@ -196,7 +196,8 @@ function scrToday() {
 
   /* THE THREE THAT MATTER ON THE FRONT: the Cup, the Team Competition and
      the MVP, as the cards the Boards' own front page draws them with. */
-  const cards = E.clubhouse(T, now).filter(c => c.id === 'ryder' || c.id === 'pairs' || c.id === 'mvp');
+  const club = E.clubhouse(T, now);
+  const cards = ['pairs', 'ryder', 'mvp'].map(id => club.find(c => c.id === id)).filter(Boolean);
   const priv = E.teePrivilege(T, now);
 
   /* The next thing on the card, said the way a golfer says it. */
@@ -212,6 +213,15 @@ function scrToday() {
     }
   }
 
+  /* THE RING fills as the gap to the next fixture closes: from the last
+     thing on the card (or a week out, before the week begins) to the next. */
+  let pct = 0;
+  if (nf) {
+    const prev = E.fixtures(T).filter(f => f.ms <= now.ms).pop();
+    const from = prev ? prev.ms : nf.ms - 7 * 86400000;
+    pct = Math.max(0, Math.min(1, (now.ms - from) / Math.max(1, nf.ms - from)));
+  }
+
   return `
   <figure class="coverbg">${IMG.hero
     ? `<img src="${IMG.hero}" alt="Sunset aerial over Cullinan Links and the Titanic Deluxe, Belek">` : ''}</figure>
@@ -223,7 +233,10 @@ function scrToday() {
       groups ? ` · ${groups} group${groups === 1 ? '' : 's'}` : ''}</p>
   </div>
   <div class="nowplate countdown">
-    <div class="np-big fig num">${nf ? esc(nf.countdown) : '—'}</div>
+    <div class="ring" style="--pct:${Math.round(pct * 1000) / 10}%" role="img"
+      aria-label="${nf ? esc(nf.countdown) + ' to the next fixture' : 'Nothing left on the card'}">
+      <div class="rn"><b class="np-big fig num">${nf ? esc(nf.countdown) : '—'}</b><span>${nf && nf.golf ? 'to the tee' : 'to go'}</span></div>
+    </div>
     <div class="np-w">
       <span class="np-k">Next on the card</span>
       <div class="np-t nxt">${esc(npT)}</div>
@@ -233,7 +246,8 @@ function scrToday() {
 
   <div class="today-grid">
     <div class="tg-r">
-      <div class="club today-club">${cards.map(c => c.kind === 'cup' ? cupCard(c, 'todayCard') : gameCard(c, 'todayCard')).join('')}</div>
+      <div class="club today-club">${cards.map(c => c.kind === 'cup' ? cupCard(c, 'todayCard')
+        : gameCard(c, 'todayCard', c.id === 'pairs' ? 'cc--main' : '')).join('')}</div>
       ${recapButton()}
     </div>
     <div class="tg-l">
@@ -335,9 +349,9 @@ function cupCard(c, act = 'boardTab') {
     <span class="cc-go" aria-hidden="true">\u203A</span></button>`;
 }
 
-function gameCard(c, act = 'boardTab') {
+function gameCard(c, act = 'boardTab', extra = '') {
   const empty = c.state === 'empty';
-  return `<button class="cc cc--${esc(c.state)}" data-act="${act}" data-a="${esc(c.id)}"
+  return `<button class="cc cc--${esc(c.state)}${extra ? ' ' + extra : ''}" data-act="${act}" data-a="${esc(c.id)}"
     aria-label="${esc(c.label)}${empty ? ' — ' + c.note : c.who ? ' — ' + c.who + ' leads on ' + c.fig : ''}">
     <span class="cc-t">${esc(c.label)}${c.sub || c.thru
       ? `<span class="cc-st">${esc(c.sub || ('Thru ' + c.thru))}</span>` : ''}</span>
