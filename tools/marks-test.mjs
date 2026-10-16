@@ -15,13 +15,25 @@
 import { chromium } from 'playwright';
 import { readFileSync, writeFileSync } from 'node:fs';
 
+/* Whatever window is up is answered first — a half-entered hole's "not
+   saved" by taking the discard, anything else by its Cancel — because a
+   tap forced through a scrim lands on the scrim and only closes it. */
+const clearWin = async pg => { for (let i = 0; i < 5; i++) { if (!await pg.locator('.scrim').count()) return;
+  const alt = pg.locator('.scrim [data-act="confirmAlt"]'), c = pg.locator('.scrim [data-act="modalCancel"]');
+  if (await alt.count()) await alt.first().click({ force: true });
+  else if (await c.count()) await c.first().click({ force: true });
+  else await pg.locator('.scrim').first().click({ position: { x: 4, y: 4 }, force: true });
+  await pg.waitForTimeout(300); } };
+
+
 /* The round is picked off a card where there is room for one, and off the
    line and the sheet behind it on a phone, where the cards are not drawn. */
 const pickRound = async (pg, which) => {
   const card = pg.locator(which === 'practice' ? '.rcard.practice' : '.rcard:not(.practice)').first();
   if (await card.isVisible().catch(() => false)) { await card.click(); return; }
+  await clearWin(pg);
   await pg.locator('.setline').first().click(); await pg.waitForTimeout(400);
-  await pg.locator('.scrim .sh-row', { hasText: which === 'practice' ? /Practice/ : /Round 1/ }).first().click();
+  await pg.locator('.scrim .sh-row', { hasText: which === 'practice' ? /Practice/ : /Round 1/ }).first().click({ force: true });
 };
 
 
