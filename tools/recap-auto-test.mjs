@@ -14,6 +14,25 @@
 import { chromium } from 'playwright';
 import { readFileSync, writeFileSync } from 'node:fs';
 
+/* The group is picked off a chip where there is room for one, and off the
+   line and the sheet behind it on a phone, where the chips are not drawn.
+   The sheet stays up until it is closed, as it does under a thumb. */
+const pickGroupOn = async (pg, i) => {
+  const chip = pg.locator('.gchip').nth(i);
+  if (await chip.isVisible().catch(() => false)) { await chip.click({ force: true }); return; }
+  await pg.locator('.setline').first().click(); await pg.waitForTimeout(400);
+  await pg.locator('.scrim .shlist').nth(1).locator('.sh-row').nth(i).click({ force: true });
+  await pg.waitForTimeout(300);
+};
+const pickRoundRow = async (pg, i) => {
+  const card = pg.locator('[data-act="entryRound"]').nth(i);
+  if (await card.isVisible().catch(() => false)) { await card.click(); return; }
+  await pg.locator('.setline').first().click(); await pg.waitForTimeout(400);
+  await pg.locator('.scrim .shlist').nth(0).locator('.sh-row').nth(i).click({ force: true });
+  await pg.waitForTimeout(300);
+};
+
+
 /* The round is picked off a card where there is room for one, and off the
    line and the sheet behind it on a phone, where the cards are not drawn. */
 const pickRound = async (pg, which) => {
@@ -131,7 +150,7 @@ console.log('\na round with a group still out is not a day');
    a report written while the third is on the 4th would be a report about
    two thirds of a day. */
 for (let g = 0; g < groups; g++) {
-  await p.locator('.gchip').nth(g).click(); await p.waitForTimeout(500); await shut();
+  await pickGroupOn(p, g); await p.waitForTimeout(500); await shut();
   for (let i = 0; i < 17; i++) await playHole(i);
   await shut();
   ok('group ' + (g + 1) + ' has a hole to play and nothing is written', await asks(), 0);

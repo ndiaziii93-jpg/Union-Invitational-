@@ -4,6 +4,25 @@
 import { chromium } from 'playwright';
 import { readFileSync, writeFileSync } from 'node:fs';
 
+/* The group is picked off a chip where there is room for one, and off the
+   line and the sheet behind it on a phone, where the chips are not drawn.
+   The sheet stays up until it is closed, as it does under a thumb. */
+const pickGroupOn = async (pg, i) => {
+  const chip = pg.locator('.gchip').nth(i);
+  if (await chip.isVisible().catch(() => false)) { await chip.click({ force: true }); return; }
+  await pg.locator('.setline').first().click(); await pg.waitForTimeout(400);
+  await pg.locator('.scrim .shlist').nth(1).locator('.sh-row').nth(i).click({ force: true });
+  await pg.waitForTimeout(300);
+};
+const pickRoundRow = async (pg, i) => {
+  const card = pg.locator('[data-act="entryRound"]').nth(i);
+  if (await card.isVisible().catch(() => false)) { await card.click(); return; }
+  await pg.locator('.setline').first().click(); await pg.waitForTimeout(400);
+  await pg.locator('.scrim .shlist').nth(0).locator('.sh-row').nth(i).click({ force: true });
+  await pg.waitForTimeout(300);
+};
+
+
 /* ---- getting about the book ----
    Four tabs now — Today, Scores, Boards, Resort — and the five screens that
    are set up once live behind Manage. So a name is looked for on the bar
@@ -158,8 +177,8 @@ for (const mode of ['the test copy (this device only)', 'the real book (shared d
   await tab('Score Entry');
   const rounds = p.locator('[data-act="entryRound"]');
   if (await rounds.count() > 1) {
-    await rounds.nth(1).click(); await p.waitForTimeout(700); await clear();
-    await rounds.nth(0).click(); await p.waitForTimeout(700); await clear();
+    await pickRoundRow(p, 1); await p.waitForTimeout(700); await clear();
+    await pickRoundRow(p, 0); await p.waitForTimeout(700); await clear();
   }
   ok('and survives another round being opened', await shown(), '4');
 

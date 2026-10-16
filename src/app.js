@@ -4158,9 +4158,12 @@ function stickyTop(role) {
   const when = nt ? (nt.day.iso === now.iso ? '' : nt.day.dow.slice(0, 3) + ' ') + E.to12(nt.time) : '';
   /* The shield on the strip is the same door as the shield on the
      masthead: the question box. A picture of a door is not a door. */
-  return `<div class="topstrip">
+  /* Still hidden from a screen reader and the tab order — the nameplate's
+     own shield and dial are the ones read out; these are the same two
+     doors, a thumb's reach away, for whoever has scrolled. */
+  return `<div class="topstrip" aria-hidden="true">
     ${IMG.crest ? `<button class="ts-ask" data-act="askOpen" title="Ask the Union a question"
-      aria-label="Ask the Union a question"><img class="ts-c" src="${IMG.crest}" alt=""></button>` : ''}
+      tabindex="-1"><img class="ts-c" src="${IMG.crest}" alt=""></button>` : ''}
     <span class="ts-n">Union Invitational</span>
     ${when ? `<span class="ts-t num">${esc(when)}</span>` : ''}
     ${dialMark(role, n, 'ts-d')}

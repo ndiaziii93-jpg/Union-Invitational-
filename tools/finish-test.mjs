@@ -16,6 +16,25 @@
 import { chromium } from 'playwright';
 import { readFileSync, writeFileSync } from 'node:fs';
 
+/* The group is picked off a chip where there is room for one, and off the
+   line and the sheet behind it on a phone, where the chips are not drawn.
+   The sheet stays up until it is closed, as it does under a thumb. */
+const pickGroupOn = async (pg, i) => {
+  const chip = pg.locator('.gchip').nth(i);
+  if (await chip.isVisible().catch(() => false)) { await chip.click({ force: true }); return; }
+  await pg.locator('.setline').first().click(); await pg.waitForTimeout(400);
+  await pg.locator('.scrim .shlist').nth(1).locator('.sh-row').nth(i).click({ force: true });
+  await pg.waitForTimeout(300);
+};
+const pickRoundRow = async (pg, i) => {
+  const card = pg.locator('[data-act="entryRound"]').nth(i);
+  if (await card.isVisible().catch(() => false)) { await card.click(); return; }
+  await pg.locator('.setline').first().click(); await pg.waitForTimeout(400);
+  await pg.locator('.scrim .shlist').nth(0).locator('.sh-row').nth(i).click({ force: true });
+  await pg.waitForTimeout(300);
+};
+
+
 /* The round is picked off a card where there is room for one, and off the
    line and the sheet behind it on a phone, where the cards are not drawn. */
 const pickRound = async (pg, which) => {
@@ -109,7 +128,7 @@ const scoreAndSave = async () => {
   await p.locator('[data-act="saveHole"]').click(); await p.waitForTimeout(800); await shut();
 };
 const gotoHole = async i => { await p.locator('.hcell').nth(i).click(); await p.waitForTimeout(420); await shut(); };
-const group = async i => { await p.locator('.gchip').nth(i).click(); await p.waitForTimeout(500); await shut(); };
+const group = async i => { await pickGroupOn(p, i); await p.waitForTimeout(500); await shut(); };
 
 console.log('\nthe window is raised by the 18th and nothing else');
 
