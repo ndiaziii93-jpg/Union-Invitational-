@@ -2174,9 +2174,14 @@ html:has(.page.scoring){scroll-padding-top:136px;scroll-padding-bottom:110px}
    the round on the front and the headline set over it, three tiles for the
    numbers of the day, then the report. The spine, the hairlines behind the
    sheet and the mid green are gone. */
+/* Up and down only. The strip and the picture bleed past the padding to the
+   window's edges, and a scrollbar's worth of difference is enough to let the
+   window be dragged sideways; the one thing that scrolls across is the hole
+   ribbon, which keeps its own scroller. */
 .recapbox{background:var(--page);border:0;
   border-radius:20px;width:min(1120px,96vw);
-  max-height:100%;overflow-y:auto;padding:0 clamp(16px,3.4vw,40px) 0;
+  max-height:100%;overflow-y:auto;overflow-x:hidden;touch-action:pan-y;
+  overscroll-behavior:contain;padding:0 clamp(16px,3.4vw,40px) 0;
   /* EDGES. A sheet lifted off a stack, not a panel floating in the middle of
      a screen: two hairlines offset behind it read as the pages underneath,
      and the pine rule down the left is the spine. Both are shadows rather
@@ -2193,6 +2198,7 @@ html:has(.page.scoring){scroll-padding-top:136px;scroll-padding-bottom:110px}
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .recaptop .rm{color:var(--page);font-size:14px;min-height:36px}
 /* the picture on the front, the headline over it */
+.recapbox .scroller{touch-action:pan-x pan-y}
 .rhero{position:relative;margin:0 calc(clamp(16px,3.4vw,40px) * -1);height:clamp(230px,34vw,360px);
   overflow:hidden;background:var(--ink)}
 .rhero img{width:100%;height:100%;object-fit:cover;object-position:50% 45%;display:block;opacity:.92}
@@ -3389,7 +3395,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261016-1937';
+const BUILD = '20261016-1945';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
