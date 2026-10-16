@@ -1554,6 +1554,54 @@ function teeBlocks() {
   </div>`).join('')}`;
 }
 
+/* ---------------- the hole, as a plate ----------------
+ *
+ * Eighteen renders, every one of them 520x736 with the tee at the bottom
+ * left and the flag at the top right. They were floating on cream paper
+ * with no frame, no light and nothing on them — three hundred points of
+ * phone for a picture that said nothing the card did not.
+ *
+ * Two corners of every render are empty, so cropping to a 7:5 window and
+ * scaling up makes the hole read BIGGER in a hundred and fifty points LESS
+ * height. Then it is lit: pine behind it, a warm glow where the green is, a
+ * shadow under the art so it lifts off the plate.
+ *
+ * And it is made to carry the hole. Who is already in and what they took
+ * sits at the green; the strokes this group receives sit at the tee; the
+ * pick-up is pinned in red where the flag is. A picture of what your group
+ * has done is worth a second look — a picture of a fairway is not.
+ *
+ * Phone only, by the stylesheet: a tablet and a laptop still show the
+ * drawing beside the card, which is what the room is there for.
+ */
+function holePlate(rid, h, hole, course, cap, list, slotPlayers) {
+  const art = IMG[hole.img];
+  if (!art) return '';
+  /* At most four markers. Past that they cover the green they are sitting
+     on, so the rest are counted instead of named. */
+  const inAlready = list.map(g => ({ g, raw: grossOf(rid, g.id, h) }))
+    .filter(x => x.raw != null);
+  const show = inAlready.slice(0, 4);
+  /* Who gets a shot here, said once. Four golfers off three bands produce
+     four identical numbers and a zero for whoever gets nothing; the tee
+     marker is for the strokes that are actually given, each named once. */
+  const gets = [...new Set(list.map(g => E.strokesFor(g.band, hole.si))
+    .filter(x => x != null && x > 0))].sort((a, b) => a - b).map(x => '+' + x);
+  return `<div class="holeplate" role="img"
+    aria-label="Hole ${hole.n} at ${esc(course.name)}, par ${hole.par}, stroke index ${hole.si}, ${hole.mW} metres">
+    <img decoding="sync" src="${art}" alt="" loading="lazy">
+    <span class="hp-course">${esc(course.name)}</span>
+    <span class="hp-ghost num" aria-hidden="true">${hole.n}</span>
+    ${gets.length ? `<span class="hp-tee">Tee <b>${esc(gets.join(' \u00B7 '))}</b></span>` : ''}
+    <span class="hp-pick">Picks up at ${cap}</span>
+    ${show.length ? `<span class="hp-in">${show.map(x => `<span class="hp-pill">
+      <span class="n num${x.raw < hole.par ? ' u' : x.raw > hole.par ? ' o' : ''}">${x.raw}</span>${esc(x.g.display)}
+    </span>`).join('')}</span>` : ''}
+    <span class="hp-foot"><b>${hole.mW} m</b> white
+      <span class="r">${inAlready.length} of ${list.length} in</span></span>
+  </div>`;
+}
+
 /* ---- score entry drafts ----
    Strokes typed on a hole are held locally until the scorer saves the hole.
    Saving confirms with a PIN and only then writes to the shared card, so a
@@ -2121,8 +2169,30 @@ function scrEntry() {
   <p class="lede">Gross strokes in. Raw and adjusted sit side by side, exactly as the group’s own cards read.</p>
   ${lanes}
 
+  ${/* ---- ONE LINE FOR WHERE YOU ARE STANDING ----
+        Four round cards and a row of group chips took a hundred and eighty
+        points of a phone to say two things that change twice a week. On a
+        phone they collapse to a line you tap; the sheet behind it is the
+        same two choices, in full. */ ''}
+  <button class="setline" data-act="roundSheet">
+    <b>${esc(r.short === 'Practice' ? 'Practice' : 'Round ' + r.short.slice(1))}</b>
+    <span class="dot">\u00B7</span>${esc((groups[slot] || {}).label || 'Everyone')}${
+      (groups[slot] || {}).time ? ' <span class="dot">\u00B7</span> ' + esc(E.to12(groups[slot].time)) : ''}
+    <span class="ch" aria-hidden="true">\u203A</span></button>
+
   <div class="entrytop">
    <div class="entryleft">
+    ${/* ---- THE HOLE, AT THE HEAD OF THE SCREEN ----
+          On a phone this is pine and it sticks: the hole you are standing on
+          and the eighteen you can move to never leave the glass. On anything
+          wider it keeps its place at the foot of the left column, which is
+          where it has always been — the `order` below puts it back. */ ''}
+    <div class="entryhd">
+      <div class="ehd-facts">
+        <span class="ehd-n num">${hole.n}</span>
+        <span class="ehd-l">Hole</span>
+        <span class="ehd-m">Par ${hole.par} \u00B7 Index ${hole.si}<b>Picks up at ${cap}</b></span>
+      </div>
     <div class="rcards">
       ${D.ROUNDS.map(x => {
         const d = E.dayOf(x.dayIdx);
@@ -2141,11 +2211,12 @@ function scrEntry() {
     </div>
     ${/* round, then group, then hole: every choice about where you are
           standing sits together, beside the picture of it */ ''}
-    <div class="scroller nos"><div class="hstrip">
-      ${course.holes.map((x, i) => `<button class="hcell${i === h ? ' on' : ''}${holeSavedBy(rid, i, slotPlayers) ? ' saved' : ''}${holeIsMarked(rid, i, slotPlayers) ? ' marked' : ''}"
-        data-act="entryHole" data-a="${i}" aria-label="Hole ${x.n}, par ${x.par}${holeIsMarked(rid, i, slotPlayers) ? ', marked' : ''}">
-        <span class="n num">${x.n}</span><span class="p num">par ${x.par}</span></button>`).join('')}
-    </div></div>
+      <div class="scroller nos"><div class="hstrip">
+        ${course.holes.map((x, i) => `<button class="hcell${i === h ? ' on' : ''}${holeSavedBy(rid, i, slotPlayers) ? ' saved' : ''}${holeIsMarked(rid, i, slotPlayers) ? ' marked' : ''}"
+          data-act="entryHole" data-a="${i}" aria-label="Hole ${x.n}, par ${x.par}${holeIsMarked(rid, i, slotPlayers) ? ', marked' : ''}">
+          <span class="n num">${x.n}</span><span class="p num">par ${x.par}</span></button>`).join('')}
+      </div></div>
+    </div>
    </div>
     ${/* the hole they are standing on, drawn exactly as Course Setup draws it,
           minus its hole strip — here the card decides which hole this is */ ''}
@@ -2159,6 +2230,8 @@ function scrEntry() {
       </div>
     </div>
   </div>
+
+  ${holePlate(rid, h, hole, course, cap, list, slotPlayers)}
 
   ${gate}${saveBar}
 
@@ -3700,7 +3773,9 @@ function paint() {
         `<button class="tab${id === 'resort' ? ' named' : ''}" data-act="go" data-a="${id}"${UI.screen === id ? ' aria-current="page"' : ''}
           aria-label="${esc(label)}"><span class="lg">${esc(label)}</span><span class="sm">${esc(short)}</span></button>`).join('')}
     </nav>
-    <main class="page"${turning ? ' data-turn="1"' : ''}>${body}</main>
+    ${/* `scoring` buys the room the fixed Save bar stands in, and only on
+          the screen that has one. */ ''}
+    <main class="page${UI.screen === 'entry' ? ' scoring' : ''}"${turning ? ' data-turn="1"' : ''}>${body}</main>
     <div class="statusbar">
       <span class="dot ${dot}"></span><span>${esc(statusText)}</span>
       <span>${D.PINS_ENABLED ? esc(role.label) : 'Unlocked — anyone can score'}</span>
@@ -3967,6 +4042,46 @@ function stickyTop(role) {
     ${when ? `<span class="ts-t num">${esc(when)}</span>` : ''}
     ${dialMark(role, n, 'ts-d')}
   </div>`;
+}
+
+/* ---------------- where you are standing ----------------
+ *
+ * Four round cards and a row of group chips, on a phone, is a hundred and
+ * eighty points spent on two choices that change twice a week — sitting
+ * directly between the top of the screen and the card you came to fill in.
+ * They are one line now, and this is what it opens: the same two choices,
+ * in full, with who is in each group so you can tell them apart.
+ */
+function roundSheetHtml() {
+  const rid = UI.entryRound;
+  const groups = E.groups(T, rid);
+  const slot = Math.min(UI.entryTee === 'all' ? 0 : +UI.entryTee, Math.max(groups.length - 1, 0));
+  const named = x => x.short === 'Practice' ? 'Practice' : 'Round ' + x.short.slice(1);
+  return `<div class="scrim" data-act="modalScrim"><div class="modal shmodal"
+    role="dialog" aria-modal="true" aria-label="Which round, and which group">
+    ${modalBanner('Where you are standing', 'Set once, before the first tee')}
+    <div class="shlist">
+      ${D.ROUNDS.map(x => {
+        const d = E.dayOf(x.dayIdx);
+        const ph = E.phaseOf(T, x.id, now);
+        return `<button class="sh-row${x.id === rid ? ' on' : ''}" data-act="entryRound" data-a="${x.id}">
+          <span class="tick" aria-hidden="true">${x.id === rid ? '\u2713' : ''}</span>
+          <span class="w">${esc(named(x))}<small>${esc(d.dow)} ${esc(d.date)} \u00B7 ${esc(E.courseOf(T, x.id).name)}</small></span>
+          ${ph === 'live' ? `<span class="sh-live">Live</span>` : ''}</button>`;
+      }).join('')}
+    </div>
+    <div class="sh-head">Your group</div>
+    <div class="shlist">
+      ${groups.length ? groups.map((g, i) => `<button class="sh-row${slot === i ? ' on' : ''}"
+        data-act="entryTee" data-a="${i}">
+        <span class="tick" aria-hidden="true">${slot === i ? '\u2713' : ''}</span>
+        <span class="w">${esc(g.label)}${g.time ? ' \u2014 ' + esc(E.to12(g.time)) : ''}<small>${
+          g.members.length ? esc(g.members.map(id => (E.person(T, id) || {}).display || '?').join(', ')) : 'Nobody paired yet'}</small></span>
+      </button>`).join('')
+      : `<p class="sh-none">No groups yet \u2014 the pairings make them. Everybody is listed until they do.</p>`}
+    </div>
+    <div class="acts"><button class="btn" data-act="modalCancel">Done</button></div>
+  </div></div>`;
 }
 
 /* ---------------- the dial ----------------
@@ -4529,6 +4644,7 @@ function modalHtml() {
   return UI.modal.kind === 'matchwhy' ? matchWhyHtml()
        : UI.modal.kind === 'manage' ? manageModalHtml()
        : UI.modal.kind === 'round' ? roundModalHtml()
+       : UI.modal.kind === 'roundsheet' ? roundSheetHtml()
        : UI.modal.kind === 'rule' ? ruleModalHtml()
        : UI.modal.kind === 'bandread' ? bandModalHtml()
        : UI.modal.kind === 'event' ? eventModalHtml()
@@ -4624,6 +4740,9 @@ function onClick(e) {
       break;
     case 'roundOpen':
       UI.modal = { kind: 'round', rid: a };
+      break;
+    case 'roundSheet':
+      UI.modal = { kind: 'roundsheet' };
       break;
     case 'go':
       /* A tab tapped from inside Manage closes it on the way through: the
