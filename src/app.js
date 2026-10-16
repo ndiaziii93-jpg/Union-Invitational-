@@ -172,84 +172,96 @@ function scrToday() {
              || D.ROUNDS[D.ROUNDS.length - 1];
   const day = E.dayOf(focus.dayIdx);
   const cfg = E.roundCfg(T, focus.id);
-  const teeTime = cfg.tees[0] && cfg.tees[0].time ? E.to12(cfg.tees[0].time) : 'to be set';
+  const teeTime = cfg.tees[0] && cfg.tees[0].time ? E.to12(cfg.tees[0].time) : null;
+  const groups = E.groups(T, focus.id).length;
   const nf = E.nextFixture(T, now);
   const isToday = day.iso === now.iso;
+  const rname = r => r.short === 'Practice' ? 'Practice' : 'Round ' + r.short.slice(1);
 
+  /* THE DAY'S LINES. The golf first, as the round, then whatever the week
+     has on that day. A golf line opens the round; anything else opens the
+     day, which is the sheet the Calendar opens. */
   const entries = [];
   for (const r of D.ROUNDS) {
     if (E.dayOf(r.dayIdx).iso !== day.iso) continue;
     const t = E.roundCfg(T, r.id).tees[0];
-    if (t && t.time) entries.push({ time: t.time, golf: true, title: r.full, sub: E.courseOf(T, r.id).name });
+    if (t && t.time) entries.push({ time: t.time, golf: true, title: r.full, sub: E.courseOf(T, r.id).name,
+      act: 'roundOpen', a: r.id });
   }
   for (const e of T.config.schedule) {
     if (E.dayOf(e.dayIdx).iso !== day.iso) continue;
-    entries.push({ time: e.time, golf: false, title: e.title, sub: '' });
+    entries.push({ time: e.time, golf: false, title: e.title, sub: '', act: 'daySheet', a: day.n });
   }
   entries.sort((a, b) => String(a.time).localeCompare(String(b.time)));
 
-  const pairs = E.pairsBoard(T, now);
-  const mvp = E.mvpBoard(T, now);
-  const R = E.ryderData(T, now);
+  /* THE THREE THAT MATTER ON THE FRONT: the Cup, the Team Competition and
+     the MVP, as the cards the Boards' own front page draws them with. */
+  const cards = E.clubhouse(T, now).filter(c => c.id === 'ryder' || c.id === 'pairs' || c.id === 'mvp');
   const priv = E.teePrivilege(T, now);
 
-  const leaderBlock = (lbl, row, who) => `<div class="leader"><div class="lbl">${esc(lbl)}</div>
-    <div class="fig ${row ? cls(row.total) : ''}">${row ? esc(row.totalStr) : '—'}</div>
-    <div class="who">${row ? esc(who(row)) : 'No card in yet'}</div></div>`;
+  /* The next thing on the card, said the way a golfer says it. */
+  let npT = 'Nothing left on the card.', npS = '';
+  if (nf) {
+    if (nf.golf) {
+      const r = E.roundDef(nf.rid);
+      npT = rname(r) + ' tee · ' + E.to12(nf.time);
+      npS = E.dayOf(nf.dayIdx).dow + ' · ' + E.courseOf(T, nf.rid).name;
+    } else {
+      npT = nf.title + ' · ' + E.to12(nf.time);
+      npS = E.dayOf(nf.dayIdx).dow;
+    }
+  }
 
   return `
-  ${IMG.hero ? `<figure class="hero"><img src="${IMG.hero}" alt="Sunset aerial over Cullinan Links and the Titanic Deluxe, Belek"></figure>` : ''}
-  <div class="today-grid">
-    <div>
-      <div class="today-day">Day ${day.n} of 8 — ${esc(day.dow)} ${esc(day.date)}</div>
-      <h1 class="today-title">${esc(focus.full)}</h1>
-      <p class="today-course">${esc(E.courseOf(T, focus.id).name)} — tee time ${esc(teeTime)}</p>
-
-      <div class="countdown">
-        <div class="today-day">Next fixture in</div>
-        <div class="fig">${nf ? esc(nf.countdown) : '—'}</div>
-        <div class="nxt">${nf ? esc(nf.label) : 'Nothing left on the card.'}</div>
-      </div>
-
-      <div class="tonight">
-        <div class="today-day">${isToday ? 'Tonight' : esc(day.dow)}</div>
-        ${entries.length ? entries.map(e => `<div class="line">
-          <time>${esc(E.to12(e.time))}</time>
-          <span class="t${e.golf ? ' golf' : ''}">${esc(e.title)}</span>
-          <span class="s">${esc(e.sub)}</span></div>`).join('')
-        : `<div class="line"><span class="s">Nothing scheduled.</span></div>`}
-      </div>
-
+  <figure class="coverbg">${IMG.hero
+    ? `<img src="${IMG.hero}" alt="Sunset aerial over Cullinan Links and the Titanic Deluxe, Belek">` : ''}</figure>
+  <div class="coverin">
+    <div class="cv-k today-day">Day ${day.n} of 8 · ${esc(day.dow)} ${esc(day.date)}</div>
+    <h1 class="today-title">${esc(focus.full)}</h1>
+    <p class="cv-s today-course"><b>${esc(E.courseOf(T, focus.id).name)}</b>${
+      teeTime ? ` · first tee <b class="num">${esc(teeTime)}</b>` : ' · tee time to be set'}${
+      groups ? ` · ${groups} group${groups === 1 ? '' : 's'}` : ''}</p>
+  </div>
+  <div class="nowplate countdown">
+    <div class="np-big fig num">${nf ? esc(nf.countdown) : '—'}</div>
+    <div class="np-w">
+      <span class="np-k">Next on the card</span>
+      <div class="np-t nxt">${esc(npT)}</div>
+      ${npS ? `<small>${esc(npS)}</small>` : ''}
     </div>
+  </div>
 
-    <div>
-      <div class="leaders">
-        ${leaderBlock('Team Comp Leader', pairs[0], r => r.name)}
-        ${leaderBlock('MVP Leader', mvp[0], r => r.name)}
-        <div class="leader">
-          <div class="lbl">Ryder Cup Leader</div>
-          <div class="cup">${ukFlag(26)}<span style="color:var(--green)">${R.ukTotal}</span>
-            <span style="color:var(--turf)">–</span>
-            <span style="color:var(--usa)">${R.usaTotal}</span>${usFlag(26)}</div>
-          ${R.unassigned ? `<div style="font-size:14px;color:var(--flag)">${R.unassigned} location${R.unassigned > 1 ? 's' : ''} still unset</div>` : ''}
-        </div>
+  <div class="today-grid">
+    <div class="tg-r">
+      <div class="club today-club">${cards.map(c => c.kind === 'cup' ? cupCard(c, 'todayCard') : gameCard(c, 'todayCard')).join('')}</div>
+      ${recapButton()}
+    </div>
+    <div class="tg-l">
+      <div class="tsec">${isToday ? 'Today' : esc(day.dow)}<span class="r">${esc(day.dow.slice(0, 3))} ${esc(day.date)}</span></div>
+      <div class="tnlist tonight">
+        ${entries.length ? entries.map(e => `<button class="tn${e.golf ? ' golf' : ''}" data-act="${e.act}" data-a="${esc(String(e.a))}"
+            aria-label="${esc(e.title)} at ${esc(E.to12(e.time))}">
+          <span class="tn-t num">${esc(E.to12(e.time))}</span>
+          <span class="tn-w">${esc(e.title)}${e.sub ? `<small>${esc(e.sub)}</small>` : ''}</span>
+          <span class="tn-ch" aria-hidden="true">›</span></button>`).join('')
+        : `<div class="tn none"><span class="tn-w">Nothing scheduled.</span></div>`}
       </div>
 
-      ${recapButton()}
-
-      <div class="privilege">
-        <h4>Tee-time privilege</h4>
+      <div class="priv privilege">
+        <div class="tsec">Tee-time privilege<span class="r">Two picks only</span></div>
         ${priv.map(p => {
           const pickDay = p.pickDay.dow;
-          if (p.done) return `<p><strong>${esc(p.leaderName || 'The leaders')}</strong> led ${esc(p.fromDay.dow)} and chose ${esc(pickDay)}’s tee: <strong>${esc(p.time12)}</strong>.</p>`;
-          if (!p.unlocked) return `<p class="note">${esc(pickDay)}’s pick unlocks when ${esc(p.fromDay.dow)} closes.</p>`;
-          return `<p><strong>${esc(p.leaderName)}</strong> lead ${esc(p.fromDay.dow)} and pick ${esc(pickDay)}’s tee.</p>
-            ${canEdit() ? `<select class="field" style="margin-top:8px;width:100%" data-act="pickTee" data-a="${p.pick}" aria-label="Pick ${esc(pickDay)}’s tee">
+          if (p.done) return `<div class="setline still"><span>${esc(pickDay)}’s tee</span><span class="dot">·</span>
+            <b class="num">${esc(p.time12)}</b><span class="pv-by">chosen by ${esc(p.leaderName || 'the leaders')}</span></div>`;
+          if (!p.unlocked) return `<div class="setline still"><span>${esc(pickDay)}’s pick</span><span class="dot">·</span>
+            <b>unlocks when ${esc(p.fromDay.dow)} closes</b></div>`;
+          return `<div class="setline still"><span>${esc(pickDay)}’s pick</span><span class="dot">·</span>
+            <b>${esc(p.leaderName)} lead ${esc(p.fromDay.dow)}</b></div>
+            ${canEdit() ? `<select class="field pv-sel" data-act="pickTee" data-a="${p.pick}" aria-label="Pick ${esc(pickDay)}’s tee">
               <option value="">Pick ${esc(pickDay)}’s tee</option>
               ${E.TEE_CHOICES.map(t => `<option value="${t}">${esc(E.to12(t))}</option>`).join('')}</select>`
-            : `<p class="note">A scorer records the pick.</p>`}`;
+            : `<p class="note pv-note">A scorer records the pick.</p>`}`;
         }).join('')}
-        <p class="note">Two picks only.</p>
       </div>
     </div>
   </div>`;
@@ -309,9 +321,9 @@ function boardsHome() {
   <div class="club">${cards.map(c => c.kind === 'cup' ? cupCard(c) : gameCard(c)).join('')}</div>`;
 }
 
-function cupCard(c) {
+function cupCard(c, act = 'boardTab') {
   const half = n => Number.isInteger(n) ? String(n) : Math.floor(n) + '\u00BD';
-  return `<button class="cc cc--cup" data-act="boardTab" data-a="ryder"
+  return `<button class="cc cc--cup" data-act="${act}" data-a="ryder"
     aria-label="Ryder Cup — United Kingdom ${half(c.uk)}, United States ${half(c.usa)}. ${esc(c.note)}">
     <span class="cc-t">Ryder Cup<span class="cc-st">${esc(c.note)}</span></span>
     <span class="cc-cup">
@@ -323,9 +335,9 @@ function cupCard(c) {
     <span class="cc-go" aria-hidden="true">\u203A</span></button>`;
 }
 
-function gameCard(c) {
+function gameCard(c, act = 'boardTab') {
   const empty = c.state === 'empty';
-  return `<button class="cc cc--${esc(c.state)}" data-act="boardTab" data-a="${esc(c.id)}"
+  return `<button class="cc cc--${esc(c.state)}" data-act="${act}" data-a="${esc(c.id)}"
     aria-label="${esc(c.label)}${empty ? ' — ' + c.note : c.who ? ' — ' + c.who + ' leads on ' + c.fig : ''}">
     <span class="cc-t">${esc(c.label)}${c.sub || c.thru
       ? `<span class="cc-st">${esc(c.sub || ('Thru ' + c.thru))}</span>` : ''}</span>
@@ -3743,6 +3755,24 @@ function measurePlate() {
   const r = document.querySelector('.rule-heavy');
   plateH = r ? Math.round(r.getBoundingClientRect().bottom + window.scrollY) : 0;
 }
+/* THE COVER. The photograph on the front page is one layer behind the
+   words set over it — and on a phone behind the nameplate too, which is
+   shell furniture the page cannot wrap. So it is laid under the page as a
+   measured sheet: from the top of the glass (a phone) or the top of the
+   page (anything wider) down to the foot of the block of words. */
+function measureCover() {
+  const bg = document.querySelector('.page > .coverbg');
+  if (!bg) return;
+  const page = bg.parentElement, cin = page.querySelector('.coverin');
+  if (!cin) return;
+  const pr = page.getBoundingClientRect(), cr = cin.getBoundingClientRect();
+  const phone = matchMedia('(max-width:699px)').matches;
+  const top = phone ? -(pr.top + window.scrollY) : 0;
+  bg.style.top = top + 'px';
+  bg.style.height = Math.max(0, cr.bottom - pr.top - top) + 'px';
+}
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => measureCover()).catch(() => {});
+
 function markTop() {
   const d = document.documentElement;
   const up = d.classList.contains('up');
@@ -3750,7 +3780,7 @@ function markTop() {
 }
 function onScroll() { markDocEnd(); markTop(); }
 addEventListener('scroll', onScroll, { passive: true });
-addEventListener('resize', () => { measurePlate(); onScroll(); }, { passive: true });
+addEventListener('resize', () => { measurePlate(); onScroll(); measureCover(); }, { passive: true });
 
 function goTo(id) {
   if (id === UI.screen) { SCROLL_AT[id] = 0; UI.landAt = 0; }
@@ -3927,7 +3957,7 @@ function paint() {
     : 'Connecting…';
 
   app.innerHTML = `
-  <div class="wrap">
+  <div class="wrap${UI.screen === 'today' ? ' cover' : ''}">
     <header class="masthead">
       ${IMG.crest ? `<button class="crestbtn" data-act="askOpen" title="Ask the Union a question"
         aria-label="Ask the Union a question"><img src="${IMG.crest}" alt="The Union Invitational crest"></button>` : ''}
@@ -4006,6 +4036,7 @@ function paint() {
   }
   measurePlate();
   onScroll();
+  measureCover();
   /* The window onto the hole opens on the middle of it — tee at one end,
      green at the other, the landing area in the glass — and keeps wherever
      a thumb has panned it to across the redraws the polling store lands. */
@@ -5168,6 +5199,8 @@ function onClick(e) {
        "it lands behind the bar" turned out to be. The strip comes back up to
        the top of the glass and the new board starts where it starts. */
     case 'boardTab': UI.boardTab = a; UI.liftTo = '.btabs'; break;
+    /* A card on the front page is a door to its board. */
+    case 'todayCard': goTo('boards'); UI.boardTab = a; break;
     case 'resortTab': commitResortNote(); UI.resortTab = a; UI.liftTo = '.btabs'; break;
     case 'resortPlanCat': UI.resortPlanCat = a; UI.resortPin = null; break;
     /* Choosing a point is a request to look at it closely. From the whole

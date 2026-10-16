@@ -1390,7 +1390,7 @@ export function fixtures(T) {
     const d = dayOf(r.dayIdx);
     const tee = roundCfg(T, r.id).tees[0];
     if (tee && tee.time) out.push({ ms: fixtureMs(d.iso, tee.time), time: tee.time, golf: true,
-      title: r.full + ' — ' + COURSES[r.course].name, short: r.short });
+      title: r.full + ' — ' + COURSES[r.course].name, short: r.short, rid: r.id, dayIdx: r.dayIdx });
   }
   for (const e of T.config.schedule) {
     const d = dayOf(e.dayIdx);

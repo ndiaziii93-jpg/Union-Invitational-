@@ -1100,32 +1100,81 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 .statusbar .sp{margin-left:auto}
 
 /* ---- today ---- */
-.hero{margin:20px 0 24px}
-.hero img{display:block;width:100%;height:170px;object-fit:cover;object-position:center 62%}
-.today-grid{display:grid;grid-template-columns:1fr;gap:36px;align-items:start}
-@media (min-width:900px){.today-grid{grid-template-columns:1fr 320px}}
+/* ================= TODAY: THE COVER =================
+ *
+ * The front page opens on the photograph, with the day and the round set
+ * over it the way the recap's front is. The picture is a measured sheet
+ * laid UNDER the page (see measureCover): on a phone it runs from the top
+ * of the glass, behind the nameplate, and on anything wider from the top
+ * of the page, under the index — down to the foot of the words. Then a
+ * pine plate carries the one number that matters, the clock to the next
+ * tee. The leaders are the Boards' own cards, the day is the Calendar's
+ * rows, the privilege is a tap-line.
+ */
+.page{position:relative}
+/* Under the index the picture keeps to the page's width, as the index does;
+   on a phone (below) it runs to the glass. */
+.coverbg{position:absolute;left:0;right:0;
+  top:0;height:0;margin:0;background:var(--ink);overflow:hidden;z-index:0;pointer-events:none}
+.coverbg img{width:100%;height:100%;object-fit:cover;object-position:50% 62%;display:block;opacity:.95}
+.coverbg::after{content:"";position:absolute;inset:0;
+  background:linear-gradient(to top,rgba(16,22,17,.97) 0,rgba(16,22,17,.55) 42%,rgba(16,22,17,.1) 78%)}
+.coverin{position:relative;z-index:1;min-height:clamp(250px,30vw,380px);display:flex;flex-direction:column;
+  justify-content:flex-end;padding:24px 0 18px;color:var(--page)}
 .today-day{font-size:15px;color:var(--turf)}
+.cv-k.today-day{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:#E2C277}
 .today-title{font-size:clamp(30px,4.6vw,46px);font-weight:700;line-height:1.05;margin:4px 0 0;text-wrap:balance}
-.today-course{font-size:19px;color:var(--green);margin:8px 0 0}
-.countdown{margin-top:26px;border-top:2px solid var(--ink);padding-top:12px}
-.countdown .fig{font-size:clamp(38px,6vw,54px);font-weight:900;line-height:1;font-variant-numeric:tabular-nums}
-.countdown .nxt{font-size:19px;margin-top:4px}
-.tonight{margin-top:28px}
-.tonight .line{display:flex;gap:16px;padding:10px 0;border-bottom:1px solid var(--rule);align-items:baseline;flex-wrap:wrap}
-.tonight .line time{font-variant-numeric:tabular-nums;font-weight:600;width:86px;flex:0 0 auto}
-.tonight .line .t{font-size:17px}
-.tonight .line .t.golf{font-weight:700;color:var(--green)}
-.tonight .line .s{color:var(--turf);font-size:15px}
-.leaders{margin-top:8px;display:grid;gap:14px}
-.leader{border-top:1px solid var(--rule);padding-top:10px;text-align:center}
-.leader .lbl{font-size:14px;color:var(--turf)}
-.leader .fig{font-size:31px;font-weight:900;font-variant-numeric:tabular-nums;line-height:1.1}
-.leader .who{font-size:17px}
-.leader .cup{display:flex;align-items:center;justify-content:center;gap:10px;font-size:31px;font-weight:900;font-variant-numeric:tabular-nums}
-.privilege{margin-top:22px;border-top:2px solid var(--gold);padding-top:12px}
-.privilege h4{font-size:17px;font-weight:700;color:var(--gold);margin:0}
-.privilege p{font-size:16px;margin:6px 0 0}
-.privilege p.note{font-size:14px;color:var(--turf)}
+.coverin .today-title{color:var(--page);margin:6px 0 0;font-size:clamp(32px,4.8vw,54px);line-height:1;
+  letter-spacing:-.025em;font-weight:900;text-shadow:0 2px 12px rgba(0,0,0,.4);max-width:20ch}
+.cv-s{margin:8px 0 0;font-size:15px;color:var(--sage-up)}
+.cv-s b{color:var(--page);font-weight:600}
+/* the clock */
+.nowplate{position:relative;z-index:1;margin:0;
+  padding:0 clamp(14px,3vw,26px) 16px;background:var(--ink);color:var(--page);
+  display:flex;align-items:flex-end;gap:16px;border-bottom:3px solid var(--gold-up)}
+.np-big{font-size:clamp(38px,5vw,52px);font-weight:900;line-height:.95;letter-spacing:-.03em;
+  color:#E2C277;white-space:nowrap}
+.np-w{flex:1 1 auto;min-width:0;padding-bottom:3px}
+.np-k{display:block;font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;
+  color:var(--sage-up);white-space:nowrap}
+.np-t{font-size:15.5px;font-weight:600;margin-top:3px}
+.np-w small{display:block;font-size:12.5px;color:var(--sage-up);margin-top:1px}
+/* the two columns */
+.today-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;align-items:start;margin-top:4px}
+@media (min-width:900px){
+  .today-grid{grid-template-columns:minmax(0,1fr) 360px;gap:44px;margin-top:18px}
+  .tg-l{grid-column:1;grid-row:1;min-width:0}
+  .tg-r{grid-column:2;grid-row:1;position:sticky;top:16px}
+  .today-club{margin-top:0}
+  .tg-l .tsec:first-child{margin-top:4px}
+}
+.today-club{margin-top:16px}
+.tg-r .recapwrap{margin-top:8px}
+.tsec{display:flex;align-items:baseline;gap:8px;margin:22px 0 6px;font-size:10.5px;letter-spacing:.14em;
+  text-transform:uppercase;font-weight:700;color:var(--turf)}
+.tsec .r{margin-left:auto;font-weight:600;letter-spacing:.06em}
+/* the day's lines, as the Calendar draws a day */
+.tnlist{display:grid;grid-template-columns:minmax(0,1fr);border-top:1px solid var(--hair)}
+.tn{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;border:0;
+  border-bottom:1px solid var(--hair);padding:10px 2px;font-family:inherit;color:var(--ink);
+  font-size:15px;line-height:1.25;cursor:pointer;border-radius:0}
+.tn .tn-t{flex:0 0 68px;font-size:12.5px;font-weight:600;color:var(--turf)}
+.tn .tn-w{flex:1 1 auto;min-width:0}
+.tn .tn-w small{display:block;font-size:12.5px;color:var(--turf);margin-top:2px}
+.tn.golf .tn-w{font-weight:700}
+.tn.golf .tn-w::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;
+  background:var(--gold-up);margin-right:7px;vertical-align:1px}
+.tn .tn-ch{color:var(--turf);font-size:18px}
+.tn:focus-visible{outline:2px solid var(--flag);outline-offset:-2px}
+@media (hover:hover) and (pointer:fine){ .tn:hover{background:var(--sunk)} }
+.tn.none{cursor:default;color:var(--turf);font-style:italic}
+/* the privilege, as tap-lines */
+.priv .setline{margin-top:0;border-top:0;cursor:default}
+.priv .setline:first-of-type{border-top:1px solid var(--rule)}
+.priv .setline:hover{background:var(--sunk)}
+.priv .pv-by{color:var(--turf);font-weight:600;letter-spacing:.06em}
+.priv .pv-sel{margin:10px 0 4px;width:100%}
+.priv .pv-note{font-size:13px;color:var(--turf);margin:8px 0 0}
 
 /* ---- course setup ---- */
 .ctabs{display:flex;gap:2px;margin-top:18px;flex-wrap:wrap}
@@ -2087,7 +2136,7 @@ html:has(.page.scoring){scroll-padding-top:136px;scroll-padding-bottom:110px}
 
 .recapwrap{margin-top:16px}
 .recapbtn{display:block;width:100%;text-align:left;padding:13px 16px;border:1px solid var(--rule);
-  background:var(--page);border-radius:3px;min-height:60px}
+  background:var(--page);border-radius:14px;min-height:60px}
 .recapbtn .rb-t{display:block;font-size:18px;font-weight:700;color:var(--turf)}
 .recapbtn .rb-s{display:block;font-size:14px;color:var(--turf);margin-top:2px}
 .recapbtn:disabled{opacity:.55;cursor:not-allowed}
@@ -3289,6 +3338,38 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
 .tab.named{color:var(--gold-up)}
 .tab.named[aria-current="page"]{color:var(--page)}
 @media (hover:hover) and (pointer:fine){ .tab.named:hover{color:var(--page)} }
+
+/* ---- the cover, on a phone ----
+   The picture runs from the top of the glass, so the nameplate sits on it:
+   cream, with the crest inverted as it is on the strip, and the rule under
+   it gone. The words of the page follow lower down the same sheet. */
+@media (max-width:699px){
+  .wrap.cover .masthead,.wrap.cover .dateline,.wrap.cover .loadbar{position:relative;z-index:2}
+  .wrap.cover .masthead h1{color:var(--page);text-shadow:0 1px 8px rgba(0,0,0,.45)}
+  .wrap.cover .crestbtn img{filter:invert(1);opacity:.95}
+  .wrap.cover .dial{color:var(--page)}
+  .wrap.cover .dial.free{color:var(--gold-up)}
+  .wrap.cover .dial.shut{color:var(--sage-up)}
+  .wrap.cover .dial.in{color:var(--page)}
+  .wrap.cover .dial-ct{box-shadow:0 0 0 2px var(--ink)}
+  .wrap.cover .dateline{color:var(--sage-up)}
+  .wrap.cover .dateline .hot{color:#E2C277}
+  .wrap.cover .dateline span+span::before{color:rgba(238,232,213,.4)}
+  .wrap.cover .rule-heavy{border-color:transparent}
+  .coverin{min-height:214px;padding:6px 0 16px}
+  .coverin .today-title{font-size:34px;max-width:none}
+  .coverbg{left:calc(clamp(14px,3vw,26px) * -1);right:calc(clamp(14px,3vw,26px) * -1)}
+  .nowplate{margin:0 calc(clamp(14px,3vw,26px) * -1)}
+  /* dark enough at the head for the nameplate and the dateline to read on
+     a sky, light through the middle, pine at the foot for the words */
+  .coverbg::after{background:linear-gradient(to bottom,rgba(16,22,17,.74) 0,rgba(16,22,17,.5) 20%,
+    rgba(16,22,17,.14) 40%,rgba(16,22,17,.5) 64%,rgba(16,22,17,.97) 100%)}
+  .np-big{font-size:40px}
+  .tsec{margin-top:20px}
+  /* the privilege lines bleed with the rest of the tap-lines; the picker
+     and its note stay on the page */
+  .priv .pv-sel,.priv .pv-note{margin-left:0;margin-right:0}
+}
 
 @media (max-width:699px){
   .tabbar{

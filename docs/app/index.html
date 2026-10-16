@@ -1171,32 +1171,81 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 .statusbar .sp{margin-left:auto}
 
 /* ---- today ---- */
-.hero{margin:20px 0 24px}
-.hero img{display:block;width:100%;height:170px;object-fit:cover;object-position:center 62%}
-.today-grid{display:grid;grid-template-columns:1fr;gap:36px;align-items:start}
-@media (min-width:900px){.today-grid{grid-template-columns:1fr 320px}}
+/* ================= TODAY: THE COVER =================
+ *
+ * The front page opens on the photograph, with the day and the round set
+ * over it the way the recap's front is. The picture is a measured sheet
+ * laid UNDER the page (see measureCover): on a phone it runs from the top
+ * of the glass, behind the nameplate, and on anything wider from the top
+ * of the page, under the index — down to the foot of the words. Then a
+ * pine plate carries the one number that matters, the clock to the next
+ * tee. The leaders are the Boards' own cards, the day is the Calendar's
+ * rows, the privilege is a tap-line.
+ */
+.page{position:relative}
+/* Under the index the picture keeps to the page's width, as the index does;
+   on a phone (below) it runs to the glass. */
+.coverbg{position:absolute;left:0;right:0;
+  top:0;height:0;margin:0;background:var(--ink);overflow:hidden;z-index:0;pointer-events:none}
+.coverbg img{width:100%;height:100%;object-fit:cover;object-position:50% 62%;display:block;opacity:.95}
+.coverbg::after{content:"";position:absolute;inset:0;
+  background:linear-gradient(to top,rgba(16,22,17,.97) 0,rgba(16,22,17,.55) 42%,rgba(16,22,17,.1) 78%)}
+.coverin{position:relative;z-index:1;min-height:clamp(250px,30vw,380px);display:flex;flex-direction:column;
+  justify-content:flex-end;padding:24px 0 18px;color:var(--page)}
 .today-day{font-size:15px;color:var(--turf)}
+.cv-k.today-day{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:#E2C277}
 .today-title{font-size:clamp(30px,4.6vw,46px);font-weight:700;line-height:1.05;margin:4px 0 0;text-wrap:balance}
-.today-course{font-size:19px;color:var(--green);margin:8px 0 0}
-.countdown{margin-top:26px;border-top:2px solid var(--ink);padding-top:12px}
-.countdown .fig{font-size:clamp(38px,6vw,54px);font-weight:900;line-height:1;font-variant-numeric:tabular-nums}
-.countdown .nxt{font-size:19px;margin-top:4px}
-.tonight{margin-top:28px}
-.tonight .line{display:flex;gap:16px;padding:10px 0;border-bottom:1px solid var(--rule);align-items:baseline;flex-wrap:wrap}
-.tonight .line time{font-variant-numeric:tabular-nums;font-weight:600;width:86px;flex:0 0 auto}
-.tonight .line .t{font-size:17px}
-.tonight .line .t.golf{font-weight:700;color:var(--green)}
-.tonight .line .s{color:var(--turf);font-size:15px}
-.leaders{margin-top:8px;display:grid;gap:14px}
-.leader{border-top:1px solid var(--rule);padding-top:10px;text-align:center}
-.leader .lbl{font-size:14px;color:var(--turf)}
-.leader .fig{font-size:31px;font-weight:900;font-variant-numeric:tabular-nums;line-height:1.1}
-.leader .who{font-size:17px}
-.leader .cup{display:flex;align-items:center;justify-content:center;gap:10px;font-size:31px;font-weight:900;font-variant-numeric:tabular-nums}
-.privilege{margin-top:22px;border-top:2px solid var(--gold);padding-top:12px}
-.privilege h4{font-size:17px;font-weight:700;color:var(--gold);margin:0}
-.privilege p{font-size:16px;margin:6px 0 0}
-.privilege p.note{font-size:14px;color:var(--turf)}
+.coverin .today-title{color:var(--page);margin:6px 0 0;font-size:clamp(32px,4.8vw,54px);line-height:1;
+  letter-spacing:-.025em;font-weight:900;text-shadow:0 2px 12px rgba(0,0,0,.4);max-width:20ch}
+.cv-s{margin:8px 0 0;font-size:15px;color:var(--sage-up)}
+.cv-s b{color:var(--page);font-weight:600}
+/* the clock */
+.nowplate{position:relative;z-index:1;margin:0;
+  padding:0 clamp(14px,3vw,26px) 16px;background:var(--ink);color:var(--page);
+  display:flex;align-items:flex-end;gap:16px;border-bottom:3px solid var(--gold-up)}
+.np-big{font-size:clamp(38px,5vw,52px);font-weight:900;line-height:.95;letter-spacing:-.03em;
+  color:#E2C277;white-space:nowrap}
+.np-w{flex:1 1 auto;min-width:0;padding-bottom:3px}
+.np-k{display:block;font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;
+  color:var(--sage-up);white-space:nowrap}
+.np-t{font-size:15.5px;font-weight:600;margin-top:3px}
+.np-w small{display:block;font-size:12.5px;color:var(--sage-up);margin-top:1px}
+/* the two columns */
+.today-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;align-items:start;margin-top:4px}
+@media (min-width:900px){
+  .today-grid{grid-template-columns:minmax(0,1fr) 360px;gap:44px;margin-top:18px}
+  .tg-l{grid-column:1;grid-row:1;min-width:0}
+  .tg-r{grid-column:2;grid-row:1;position:sticky;top:16px}
+  .today-club{margin-top:0}
+  .tg-l .tsec:first-child{margin-top:4px}
+}
+.today-club{margin-top:16px}
+.tg-r .recapwrap{margin-top:8px}
+.tsec{display:flex;align-items:baseline;gap:8px;margin:22px 0 6px;font-size:10.5px;letter-spacing:.14em;
+  text-transform:uppercase;font-weight:700;color:var(--turf)}
+.tsec .r{margin-left:auto;font-weight:600;letter-spacing:.06em}
+/* the day's lines, as the Calendar draws a day */
+.tnlist{display:grid;grid-template-columns:minmax(0,1fr);border-top:1px solid var(--hair)}
+.tn{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;border:0;
+  border-bottom:1px solid var(--hair);padding:10px 2px;font-family:inherit;color:var(--ink);
+  font-size:15px;line-height:1.25;cursor:pointer;border-radius:0}
+.tn .tn-t{flex:0 0 68px;font-size:12.5px;font-weight:600;color:var(--turf)}
+.tn .tn-w{flex:1 1 auto;min-width:0}
+.tn .tn-w small{display:block;font-size:12.5px;color:var(--turf);margin-top:2px}
+.tn.golf .tn-w{font-weight:700}
+.tn.golf .tn-w::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;
+  background:var(--gold-up);margin-right:7px;vertical-align:1px}
+.tn .tn-ch{color:var(--turf);font-size:18px}
+.tn:focus-visible{outline:2px solid var(--flag);outline-offset:-2px}
+@media (hover:hover) and (pointer:fine){ .tn:hover{background:var(--sunk)} }
+.tn.none{cursor:default;color:var(--turf);font-style:italic}
+/* the privilege, as tap-lines */
+.priv .setline{margin-top:0;border-top:0;cursor:default}
+.priv .setline:first-of-type{border-top:1px solid var(--rule)}
+.priv .setline:hover{background:var(--sunk)}
+.priv .pv-by{color:var(--turf);font-weight:600;letter-spacing:.06em}
+.priv .pv-sel{margin:10px 0 4px;width:100%}
+.priv .pv-note{font-size:13px;color:var(--turf);margin:8px 0 0}
 
 /* ---- course setup ---- */
 .ctabs{display:flex;gap:2px;margin-top:18px;flex-wrap:wrap}
@@ -2158,7 +2207,7 @@ html:has(.page.scoring){scroll-padding-top:136px;scroll-padding-bottom:110px}
 
 .recapwrap{margin-top:16px}
 .recapbtn{display:block;width:100%;text-align:left;padding:13px 16px;border:1px solid var(--rule);
-  background:var(--page);border-radius:3px;min-height:60px}
+  background:var(--page);border-radius:14px;min-height:60px}
 .recapbtn .rb-t{display:block;font-size:18px;font-weight:700;color:var(--turf)}
 .recapbtn .rb-s{display:block;font-size:14px;color:var(--turf);margin-top:2px}
 .recapbtn:disabled{opacity:.55;cursor:not-allowed}
@@ -3361,6 +3410,38 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
 .tab.named[aria-current="page"]{color:var(--page)}
 @media (hover:hover) and (pointer:fine){ .tab.named:hover{color:var(--page)} }
 
+/* ---- the cover, on a phone ----
+   The picture runs from the top of the glass, so the nameplate sits on it:
+   cream, with the crest inverted as it is on the strip, and the rule under
+   it gone. The words of the page follow lower down the same sheet. */
+@media (max-width:699px){
+  .wrap.cover .masthead,.wrap.cover .dateline,.wrap.cover .loadbar{position:relative;z-index:2}
+  .wrap.cover .masthead h1{color:var(--page);text-shadow:0 1px 8px rgba(0,0,0,.45)}
+  .wrap.cover .crestbtn img{filter:invert(1);opacity:.95}
+  .wrap.cover .dial{color:var(--page)}
+  .wrap.cover .dial.free{color:var(--gold-up)}
+  .wrap.cover .dial.shut{color:var(--sage-up)}
+  .wrap.cover .dial.in{color:var(--page)}
+  .wrap.cover .dial-ct{box-shadow:0 0 0 2px var(--ink)}
+  .wrap.cover .dateline{color:var(--sage-up)}
+  .wrap.cover .dateline .hot{color:#E2C277}
+  .wrap.cover .dateline span+span::before{color:rgba(238,232,213,.4)}
+  .wrap.cover .rule-heavy{border-color:transparent}
+  .coverin{min-height:214px;padding:6px 0 16px}
+  .coverin .today-title{font-size:34px;max-width:none}
+  .coverbg{left:calc(clamp(14px,3vw,26px) * -1);right:calc(clamp(14px,3vw,26px) * -1)}
+  .nowplate{margin:0 calc(clamp(14px,3vw,26px) * -1)}
+  /* dark enough at the head for the nameplate and the dateline to read on
+     a sky, light through the middle, pine at the foot for the words */
+  .coverbg::after{background:linear-gradient(to bottom,rgba(16,22,17,.74) 0,rgba(16,22,17,.5) 20%,
+    rgba(16,22,17,.14) 40%,rgba(16,22,17,.5) 64%,rgba(16,22,17,.97) 100%)}
+  .np-big{font-size:40px}
+  .tsec{margin-top:20px}
+  /* the privilege lines bleed with the rest of the tap-lines; the picker
+     and its note stay on the page */
+  .priv .pv-sel,.priv .pv-note{margin-left:0;margin-right:0}
+}
+
 @media (max-width:699px){
   .tabbar{
     background:var(--ink);
@@ -3491,7 +3572,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261016-1945';
+const BUILD = '20261016-2018';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -5710,7 +5791,7 @@ function fixtures(T) {
     const d = dayOf(r.dayIdx);
     const tee = roundCfg(T, r.id).tees[0];
     if (tee && tee.time) out.push({ ms: fixtureMs(d.iso, tee.time), time: tee.time, golf: true,
-      title: r.full + ' — ' + COURSES[r.course].name, short: r.short });
+      title: r.full + ' — ' + COURSES[r.course].name, short: r.short, rid: r.id, dayIdx: r.dayIdx });
   }
   for (const e of T.config.schedule) {
     const d = dayOf(e.dayIdx);
@@ -7287,84 +7368,96 @@ function scrToday() {
              || D.ROUNDS[D.ROUNDS.length - 1];
   const day = E.dayOf(focus.dayIdx);
   const cfg = E.roundCfg(T, focus.id);
-  const teeTime = cfg.tees[0] && cfg.tees[0].time ? E.to12(cfg.tees[0].time) : 'to be set';
+  const teeTime = cfg.tees[0] && cfg.tees[0].time ? E.to12(cfg.tees[0].time) : null;
+  const groups = E.groups(T, focus.id).length;
   const nf = E.nextFixture(T, now);
   const isToday = day.iso === now.iso;
+  const rname = r => r.short === 'Practice' ? 'Practice' : 'Round ' + r.short.slice(1);
 
+  /* THE DAY'S LINES. The golf first, as the round, then whatever the week
+     has on that day. A golf line opens the round; anything else opens the
+     day, which is the sheet the Calendar opens. */
   const entries = [];
   for (const r of D.ROUNDS) {
     if (E.dayOf(r.dayIdx).iso !== day.iso) continue;
     const t = E.roundCfg(T, r.id).tees[0];
-    if (t && t.time) entries.push({ time: t.time, golf: true, title: r.full, sub: E.courseOf(T, r.id).name });
+    if (t && t.time) entries.push({ time: t.time, golf: true, title: r.full, sub: E.courseOf(T, r.id).name,
+      act: 'roundOpen', a: r.id });
   }
   for (const e of T.config.schedule) {
     if (E.dayOf(e.dayIdx).iso !== day.iso) continue;
-    entries.push({ time: e.time, golf: false, title: e.title, sub: '' });
+    entries.push({ time: e.time, golf: false, title: e.title, sub: '', act: 'daySheet', a: day.n });
   }
   entries.sort((a, b) => String(a.time).localeCompare(String(b.time)));
 
-  const pairs = E.pairsBoard(T, now);
-  const mvp = E.mvpBoard(T, now);
-  const R = E.ryderData(T, now);
+  /* THE THREE THAT MATTER ON THE FRONT: the Cup, the Team Competition and
+     the MVP, as the cards the Boards' own front page draws them with. */
+  const cards = E.clubhouse(T, now).filter(c => c.id === 'ryder' || c.id === 'pairs' || c.id === 'mvp');
   const priv = E.teePrivilege(T, now);
 
-  const leaderBlock = (lbl, row, who) => `<div class="leader"><div class="lbl">${esc(lbl)}</div>
-    <div class="fig ${row ? cls(row.total) : ''}">${row ? esc(row.totalStr) : '—'}</div>
-    <div class="who">${row ? esc(who(row)) : 'No card in yet'}</div></div>`;
+  /* The next thing on the card, said the way a golfer says it. */
+  let npT = 'Nothing left on the card.', npS = '';
+  if (nf) {
+    if (nf.golf) {
+      const r = E.roundDef(nf.rid);
+      npT = rname(r) + ' tee · ' + E.to12(nf.time);
+      npS = E.dayOf(nf.dayIdx).dow + ' · ' + E.courseOf(T, nf.rid).name;
+    } else {
+      npT = nf.title + ' · ' + E.to12(nf.time);
+      npS = E.dayOf(nf.dayIdx).dow;
+    }
+  }
 
   return `
-  ${IMG.hero ? `<figure class="hero"><img src="${IMG.hero}" alt="Sunset aerial over Cullinan Links and the Titanic Deluxe, Belek"></figure>` : ''}
-  <div class="today-grid">
-    <div>
-      <div class="today-day">Day ${day.n} of 8 — ${esc(day.dow)} ${esc(day.date)}</div>
-      <h1 class="today-title">${esc(focus.full)}</h1>
-      <p class="today-course">${esc(E.courseOf(T, focus.id).name)} — tee time ${esc(teeTime)}</p>
-
-      <div class="countdown">
-        <div class="today-day">Next fixture in</div>
-        <div class="fig">${nf ? esc(nf.countdown) : '—'}</div>
-        <div class="nxt">${nf ? esc(nf.label) : 'Nothing left on the card.'}</div>
-      </div>
-
-      <div class="tonight">
-        <div class="today-day">${isToday ? 'Tonight' : esc(day.dow)}</div>
-        ${entries.length ? entries.map(e => `<div class="line">
-          <time>${esc(E.to12(e.time))}</time>
-          <span class="t${e.golf ? ' golf' : ''}">${esc(e.title)}</span>
-          <span class="s">${esc(e.sub)}</span></div>`).join('')
-        : `<div class="line"><span class="s">Nothing scheduled.</span></div>`}
-      </div>
-
+  <figure class="coverbg">${IMG.hero
+    ? `<img src="${IMG.hero}" alt="Sunset aerial over Cullinan Links and the Titanic Deluxe, Belek">` : ''}</figure>
+  <div class="coverin">
+    <div class="cv-k today-day">Day ${day.n} of 8 · ${esc(day.dow)} ${esc(day.date)}</div>
+    <h1 class="today-title">${esc(focus.full)}</h1>
+    <p class="cv-s today-course"><b>${esc(E.courseOf(T, focus.id).name)}</b>${
+      teeTime ? ` · first tee <b class="num">${esc(teeTime)}</b>` : ' · tee time to be set'}${
+      groups ? ` · ${groups} group${groups === 1 ? '' : 's'}` : ''}</p>
+  </div>
+  <div class="nowplate countdown">
+    <div class="np-big fig num">${nf ? esc(nf.countdown) : '—'}</div>
+    <div class="np-w">
+      <span class="np-k">Next on the card</span>
+      <div class="np-t nxt">${esc(npT)}</div>
+      ${npS ? `<small>${esc(npS)}</small>` : ''}
     </div>
+  </div>
 
-    <div>
-      <div class="leaders">
-        ${leaderBlock('Team Comp Leader', pairs[0], r => r.name)}
-        ${leaderBlock('MVP Leader', mvp[0], r => r.name)}
-        <div class="leader">
-          <div class="lbl">Ryder Cup Leader</div>
-          <div class="cup">${ukFlag(26)}<span style="color:var(--green)">${R.ukTotal}</span>
-            <span style="color:var(--turf)">–</span>
-            <span style="color:var(--usa)">${R.usaTotal}</span>${usFlag(26)}</div>
-          ${R.unassigned ? `<div style="font-size:14px;color:var(--flag)">${R.unassigned} location${R.unassigned > 1 ? 's' : ''} still unset</div>` : ''}
-        </div>
+  <div class="today-grid">
+    <div class="tg-r">
+      <div class="club today-club">${cards.map(c => c.kind === 'cup' ? cupCard(c, 'todayCard') : gameCard(c, 'todayCard')).join('')}</div>
+      ${recapButton()}
+    </div>
+    <div class="tg-l">
+      <div class="tsec">${isToday ? 'Today' : esc(day.dow)}<span class="r">${esc(day.dow.slice(0, 3))} ${esc(day.date)}</span></div>
+      <div class="tnlist tonight">
+        ${entries.length ? entries.map(e => `<button class="tn${e.golf ? ' golf' : ''}" data-act="${e.act}" data-a="${esc(String(e.a))}"
+            aria-label="${esc(e.title)} at ${esc(E.to12(e.time))}">
+          <span class="tn-t num">${esc(E.to12(e.time))}</span>
+          <span class="tn-w">${esc(e.title)}${e.sub ? `<small>${esc(e.sub)}</small>` : ''}</span>
+          <span class="tn-ch" aria-hidden="true">›</span></button>`).join('')
+        : `<div class="tn none"><span class="tn-w">Nothing scheduled.</span></div>`}
       </div>
 
-      ${recapButton()}
-
-      <div class="privilege">
-        <h4>Tee-time privilege</h4>
+      <div class="priv privilege">
+        <div class="tsec">Tee-time privilege<span class="r">Two picks only</span></div>
         ${priv.map(p => {
           const pickDay = p.pickDay.dow;
-          if (p.done) return `<p><strong>${esc(p.leaderName || 'The leaders')}</strong> led ${esc(p.fromDay.dow)} and chose ${esc(pickDay)}’s tee: <strong>${esc(p.time12)}</strong>.</p>`;
-          if (!p.unlocked) return `<p class="note">${esc(pickDay)}’s pick unlocks when ${esc(p.fromDay.dow)} closes.</p>`;
-          return `<p><strong>${esc(p.leaderName)}</strong> lead ${esc(p.fromDay.dow)} and pick ${esc(pickDay)}’s tee.</p>
-            ${canEdit() ? `<select class="field" style="margin-top:8px;width:100%" data-act="pickTee" data-a="${p.pick}" aria-label="Pick ${esc(pickDay)}’s tee">
+          if (p.done) return `<div class="setline still"><span>${esc(pickDay)}’s tee</span><span class="dot">·</span>
+            <b class="num">${esc(p.time12)}</b><span class="pv-by">chosen by ${esc(p.leaderName || 'the leaders')}</span></div>`;
+          if (!p.unlocked) return `<div class="setline still"><span>${esc(pickDay)}’s pick</span><span class="dot">·</span>
+            <b>unlocks when ${esc(p.fromDay.dow)} closes</b></div>`;
+          return `<div class="setline still"><span>${esc(pickDay)}’s pick</span><span class="dot">·</span>
+            <b>${esc(p.leaderName)} lead ${esc(p.fromDay.dow)}</b></div>
+            ${canEdit() ? `<select class="field pv-sel" data-act="pickTee" data-a="${p.pick}" aria-label="Pick ${esc(pickDay)}’s tee">
               <option value="">Pick ${esc(pickDay)}’s tee</option>
               ${E.TEE_CHOICES.map(t => `<option value="${t}">${esc(E.to12(t))}</option>`).join('')}</select>`
-            : `<p class="note">A scorer records the pick.</p>`}`;
+            : `<p class="note pv-note">A scorer records the pick.</p>`}`;
         }).join('')}
-        <p class="note">Two picks only.</p>
       </div>
     </div>
   </div>`;
@@ -7424,9 +7517,9 @@ function boardsHome() {
   <div class="club">${cards.map(c => c.kind === 'cup' ? cupCard(c) : gameCard(c)).join('')}</div>`;
 }
 
-function cupCard(c) {
+function cupCard(c, act = 'boardTab') {
   const half = n => Number.isInteger(n) ? String(n) : Math.floor(n) + '\u00BD';
-  return `<button class="cc cc--cup" data-act="boardTab" data-a="ryder"
+  return `<button class="cc cc--cup" data-act="${act}" data-a="ryder"
     aria-label="Ryder Cup — United Kingdom ${half(c.uk)}, United States ${half(c.usa)}. ${esc(c.note)}">
     <span class="cc-t">Ryder Cup<span class="cc-st">${esc(c.note)}</span></span>
     <span class="cc-cup">
@@ -7438,9 +7531,9 @@ function cupCard(c) {
     <span class="cc-go" aria-hidden="true">\u203A</span></button>`;
 }
 
-function gameCard(c) {
+function gameCard(c, act = 'boardTab') {
   const empty = c.state === 'empty';
-  return `<button class="cc cc--${esc(c.state)}" data-act="boardTab" data-a="${esc(c.id)}"
+  return `<button class="cc cc--${esc(c.state)}" data-act="${act}" data-a="${esc(c.id)}"
     aria-label="${esc(c.label)}${empty ? ' — ' + c.note : c.who ? ' — ' + c.who + ' leads on ' + c.fig : ''}">
     <span class="cc-t">${esc(c.label)}${c.sub || c.thru
       ? `<span class="cc-st">${esc(c.sub || ('Thru ' + c.thru))}</span>` : ''}</span>
@@ -10858,6 +10951,24 @@ function measurePlate() {
   const r = document.querySelector('.rule-heavy');
   plateH = r ? Math.round(r.getBoundingClientRect().bottom + window.scrollY) : 0;
 }
+/* THE COVER. The photograph on the front page is one layer behind the
+   words set over it — and on a phone behind the nameplate too, which is
+   shell furniture the page cannot wrap. So it is laid under the page as a
+   measured sheet: from the top of the glass (a phone) or the top of the
+   page (anything wider) down to the foot of the block of words. */
+function measureCover() {
+  const bg = document.querySelector('.page > .coverbg');
+  if (!bg) return;
+  const page = bg.parentElement, cin = page.querySelector('.coverin');
+  if (!cin) return;
+  const pr = page.getBoundingClientRect(), cr = cin.getBoundingClientRect();
+  const phone = matchMedia('(max-width:699px)').matches;
+  const top = phone ? -(pr.top + window.scrollY) : 0;
+  bg.style.top = top + 'px';
+  bg.style.height = Math.max(0, cr.bottom - pr.top - top) + 'px';
+}
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => measureCover()).catch(() => {});
+
 function markTop() {
   const d = document.documentElement;
   const up = d.classList.contains('up');
@@ -10865,7 +10976,7 @@ function markTop() {
 }
 function onScroll() { markDocEnd(); markTop(); }
 addEventListener('scroll', onScroll, { passive: true });
-addEventListener('resize', () => { measurePlate(); onScroll(); }, { passive: true });
+addEventListener('resize', () => { measurePlate(); onScroll(); measureCover(); }, { passive: true });
 
 function goTo(id) {
   if (id === UI.screen) { SCROLL_AT[id] = 0; UI.landAt = 0; }
@@ -11042,7 +11153,7 @@ function paint() {
     : 'Connecting…';
 
   app.innerHTML = `
-  <div class="wrap">
+  <div class="wrap${UI.screen === 'today' ? ' cover' : ''}">
     <header class="masthead">
       ${IMG.crest ? `<button class="crestbtn" data-act="askOpen" title="Ask the Union a question"
         aria-label="Ask the Union a question"><img src="${IMG.crest}" alt="The Union Invitational crest"></button>` : ''}
@@ -11121,6 +11232,7 @@ function paint() {
   }
   measurePlate();
   onScroll();
+  measureCover();
   /* The window onto the hole opens on the middle of it — tee at one end,
      green at the other, the landing area in the glass — and keeps wherever
      a thumb has panned it to across the redraws the polling store lands. */
@@ -12283,6 +12395,8 @@ function onClick(e) {
        "it lands behind the bar" turned out to be. The strip comes back up to
        the top of the glass and the new board starts where it starts. */
     case 'boardTab': UI.boardTab = a; UI.liftTo = '.btabs'; break;
+    /* A card on the front page is a door to its board. */
+    case 'todayCard': goTo('boards'); UI.boardTab = a; break;
     case 'resortTab': commitResortNote(); UI.resortTab = a; UI.liftTo = '.btabs'; break;
     case 'resortPlanCat': UI.resortPlanCat = a; UI.resortPin = null; break;
     /* Choosing a point is a request to look at it closely. From the whole
