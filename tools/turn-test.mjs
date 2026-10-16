@@ -14,6 +14,16 @@
 import { chromium } from 'playwright';
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 
+/* The round is picked off a card where there is room for one, and off the
+   line and the sheet behind it on a phone, where the cards are not drawn. */
+const pickRound = async (pg, which) => {
+  const card = pg.locator(which === 'practice' ? '.rcard.practice' : '.rcard:not(.practice)').first();
+  if (await card.isVisible().catch(() => false)) { await card.click(); return; }
+  await pg.locator('.setline').first().click(); await pg.waitForTimeout(400);
+  await pg.locator('.scrim .sh-row', { hasText: which === 'practice' ? /Practice/ : /Round 1/ }).first().click();
+};
+
+
 /* ---- getting about the book ----
    Four tabs now — Today, Scores, Boards, Resort — and the five screens that
    are set up once live behind Manage. So a name is looked for on the bar
@@ -172,7 +182,7 @@ console.log('          (squads: UK ' + nUK + ', USA ' + nUS + ', unassigned '
 ok('both squads have golfers in them', nUK > 0 && nUS > 0, true);
 
 await tab(A, 'Score Entry');
-await A.locator('.rcard:not(.practice)').first().click(); await A.waitForTimeout(600); await shut(A);
+await pickRound(A, 'r1'); await A.waitForTimeout(600); await shut(A);
 for (const f of ['ctpHole', 'ldHole']) {
   const sel = A.locator('[data-act="setRoundField"][data-a="' + f + '"]').first();
   if (await sel.count() && !await sel.inputValue()) {

@@ -18,6 +18,16 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import * as E from '../src/engine.js';
 import { defaultConfig, blankCard } from '../src/store.js';
 
+/* The round is picked off a card where there is room for one, and off the
+   line and the sheet behind it on a phone, where the cards are not drawn. */
+const pickRound = async (pg, which) => {
+  const card = pg.locator(which === 'practice' ? '.rcard.practice' : '.rcard:not(.practice)').first();
+  if (await card.isVisible().catch(() => false)) { await card.click(); return; }
+  await pg.locator('.setline').first().click(); await pg.waitForTimeout(400);
+  await pg.locator('.scrim .sh-row', { hasText: which === 'practice' ? /Practice/ : /Round 1/ }).first().click();
+};
+
+
 /* ---- getting about the book ----
    Four tabs now — Today, Scores, Boards, Resort — and the five screens that
    are set up once live behind Manage. So a name is looked for on the bar
@@ -187,7 +197,7 @@ for (let i = 0; i < rows; i++) {
 }
 await p.waitForTimeout(400); await shut();
 await tab('Scores');
-await p.locator('.rcard.practice').first().click(); await p.waitForTimeout(600); await shut();
+await pickRound(p, 'practice'); await p.waitForTimeout(600); await shut();
 for (const f of ['ctpHole', 'ldHole']) {
   const sel = p.locator('[data-act="setRoundField"][data-a="' + f + '"]').first();
   if (await sel.count()) { await sel.selectOption({ index: 1 }); await p.waitForTimeout(300); await shut(); }

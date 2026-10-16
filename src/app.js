@@ -59,6 +59,7 @@ const UI = {
   sayDraft: null,       // {rid, v} — the same, for the line about the round
   resortTab: 'now',     // The Titanic: which part of the resort is on screen
   resortMore: '',       // which folded list of maybes is open: 'summer', 'winter' or neither
+  hpPan: null,          // where the window onto the hole was panned to: {key, top, left}
   resortNote: null,     // {k, v} — a note being typed, held out of the DOM
   resortPlanCat: 'all', // which part of the site plan is labelled
   resortPin: null,      // which point on the plan is selected, by index
@@ -1657,9 +1658,15 @@ function holePlate(rid, h, hole, course, cap, list, slotPlayers) {
      marker is for the strokes that are actually given, each named once. */
   const gets = [...new Set(list.map(g => E.strokesFor(g.band, hole.si))
     .filter(x => x != null && x > 0))].sort((a, b) => a - b).map(x => '+' + x);
-  return `<div class="holeplate" role="img"
-    aria-label="Hole ${hole.n} at ${esc(course.name)}, par ${hole.par}, stroke index ${hole.si}, ${hole.mW} metres">
-    <img decoding="sync" src="${art}" alt="" loading="lazy">
+  /* The art is drawn at the width of the plate and the plate is a window
+     onto it, so a thumb can pan to the rest of the hole without leaving the
+     page; a tap opens the whole of it. The markers sit over the window and
+     let the thumb through. */
+  return `<div class="holeplate">
+    <div class="hp-scroll nos" data-act="holeArt" data-a="${h}" data-key="${esc(rid)}:${h}"
+      role="img" aria-label="Hole ${hole.n} at ${esc(course.name)}, par ${hole.par}, stroke index ${hole.si}, ${hole.mW} metres. Tap to see the whole hole.">
+      <img decoding="sync" src="${art}" alt="" loading="lazy"></div>
+    <button class="hp-open" data-act="holeArt" data-a="${h}" aria-label="See the whole of hole ${hole.n}">⤢</button>
     <span class="hp-course">${esc(course.name)}</span>
     <span class="hp-ghost num" aria-hidden="true">${hole.n}</span>
     ${gets.length ? `<span class="hp-tee">Tee <b>${esc(gets.join(' \u00B7 '))}</b></span>` : ''}
@@ -1987,20 +1994,50 @@ function scrMine(rid) {
     if (ks.length || tx) kept.push({ i, ks, tx });
   }
 
-  return `<h3 class="sub">My round — ${esc(who.display || '')}</h3>
+  const cap = E.capFor(hole.par, T.config.capOver);
+  const mine = gs.find(g => g.id === me);
+  /* THE SAME FURNITURE AS THE GROUP'S CARD, on a phone: the line that says
+     where you are standing, the band of pine with the hole and the eighteen
+     on it, the hole itself, and a bar at the foot. The group's bar carries
+     Save; nothing here is saved by hand, so this one walks the holes. On
+     anything wider the band dissolves into the page it always was. */
+  /* "Not you?" sits by the name, not in the paragraph: a phone hides the
+     paragraph, and a way out of the wrong name is not something to hide. */
+  return `<h3 class="sub minehead">My round — ${esc(who.display || '')}
+    <button class="rm" data-act="setMe" data-a="">Not you?</button></h3>
   <p class="lede">${esc(r.full)}. Yours to keep, and it feeds the day's recap.
-  It changes no score and no board — not even yours.
-  <button class="rm" data-act="setMe" data-a="">Not you?</button></p>
+  It changes no score and no board — not even yours.</p>
 
-  <div class="scroller nos"><div class="hstrip">
-    ${course.holes.map((x, i) => {
-      const some = E.selfMarks(T, rid, me, i).length
-        || (note && note.text && String(note.text[i] || '').trim());
-      return `<button class="hcell${i === h ? ' on' : ''}${some ? ' marked' : ''}"
-        data-act="mineHole" data-a="${i}" aria-label="Hole ${x.n}, par ${x.par}">
-        <span class="n num">${x.n}</span><span class="p num">par ${x.par}</span></button>`;
-    }).join('')}
-  </div></div>
+  <button class="setline" data-act="roundSheet">
+    <b>${esc(r.short === 'Practice' ? 'Practice' : 'Round ' + r.short.slice(1))}</b>
+    <span class="dot">·</span>My round<span class="dot">·</span>${esc(who.display || '')}
+    <span class="ch" aria-hidden="true">›</span></button>
+
+  <div class="entryhd">
+    <div class="ehd-facts">
+      <span class="ehd-n num">${hole.n}</span>
+      <span class="ehd-l">Hole</span>
+      <span class="ehd-m">Par ${hole.par} · Index ${hole.si}<b>${played != null ? 'You wrote ' + played : 'Not scored yet'}</b></span>
+    </div>
+    <div class="scroller nos"><div class="hstrip">
+      ${course.holes.map((x, i) => {
+        const some = E.selfMarks(T, rid, me, i).length
+          || (note && note.text && String(note.text[i] || '').trim());
+        const wrote = c && c.raw[i] != null;
+        return `<button class="hcell${i === h ? ' on' : ''}${wrote ? ' saved' : ''}${some ? ' marked' : ''}"
+          data-act="mineHole" data-a="${i}" aria-label="Hole ${x.n}, par ${x.par}${some ? ', marked' : ''}">
+          <span class="n num">${x.n}</span><span class="p num">par ${x.par}</span></button>`;
+      }).join('')}
+    </div></div>
+  </div>
+
+  ${mine ? holePlate(rid, h, hole, course, cap, [mine], [me]) : ''}
+
+  <div class="savebar mine">
+    <div class="sv"><b>Hole ${hole.n}</b><span>${played != null ? 'You wrote ' + played + ' · par ' + hole.par : 'Par ' + hole.par + ' · not scored yet'}</span></div>
+    <button class="btn ghost" data-act="mineHole" data-a="${Math.max(h - 1, 0)}"${h === 0 ? ' disabled' : ''} aria-label="Previous hole">‹</button>
+    <button class="btn" data-act="mineHole" data-a="${Math.min(h + 1, 17)}"${h === 17 ? ' disabled' : ''}>Next hole ›</button>
+  </div>
 
   <div class="holehead">
     <h3>Hole ${hole.n}</h3>
@@ -3902,6 +3939,14 @@ function paint() {
   }
   measurePlate();
   onScroll();
+  /* The window onto the hole opens on the middle of it — tee at one end,
+     green at the other, the landing area in the glass — and keeps wherever
+     a thumb has panned it to across the redraws the polling store lands. */
+  document.querySelectorAll('.hp-scroll').forEach(w => {
+    const kept = UI.hpPan && UI.hpPan.key === w.dataset.key ? UI.hpPan : null;
+    w.scrollTop = kept ? kept.top : (w.scrollHeight - w.clientHeight) / 2;
+    w.scrollLeft = kept ? kept.left : 0;
+  });
 
   opened.forEach(id => { const el = document.getElementById(id); if (el) el.open = true; });
 
@@ -4111,8 +4156,11 @@ function stickyTop(role) {
   const n = E.setupIssues(T).length;
   const nt = E.nextTee(T, now);
   const when = nt ? (nt.day.iso === now.iso ? '' : nt.day.dow.slice(0, 3) + ' ') + E.to12(nt.time) : '';
-  return `<div class="topstrip" aria-hidden="true">
-    ${IMG.crest ? `<img class="ts-c" src="${IMG.crest}" alt="">` : ''}
+  /* The shield on the strip is the same door as the shield on the
+     masthead: the question box. A picture of a door is not a door. */
+  return `<div class="topstrip">
+    ${IMG.crest ? `<button class="ts-ask" data-act="askOpen" title="Ask the Union a question"
+      aria-label="Ask the Union a question"><img class="ts-c" src="${IMG.crest}" alt=""></button>` : ''}
     <span class="ts-n">Union Invitational</span>
     ${when ? `<span class="ts-t num">${esc(when)}</span>` : ''}
     ${dialMark(role, n, 'ts-d')}
@@ -4216,6 +4264,24 @@ function hoursSheetHtml() {
       hotel’s own book in September; it is corrected by whoever gets there first.${
       ed ? '' : ' A scorer sets this.'}</p>
     <div class="acts"><button class="btn" data-act="modalCancel">Done</button></div>
+  </div></div>`;
+}
+
+/* ---------------- the whole hole ----------------
+ * What the plate opens: the render at full size, in a window that scrolls
+ * if the glass is too short for it. The facts of the hole are on the band
+ * above it so the picture carries nothing but the hole. */
+function artModalHtml() {
+  const rid = UI.modal.rid, h = UI.modal.hole;
+  const course = E.courseOf(T, rid);
+  const hole = course.holes[h];
+  const art = hole && IMG[hole.img];
+  if (!art) return '';
+  return `<div class="scrim" data-act="modalScrim"><div class="modal artmodal"
+    role="dialog" aria-modal="true" aria-label="Hole ${hole.n}, the whole of it">
+    ${modalBanner('Hole ' + hole.n, course.name + ' · par ' + hole.par + ' · index ' + hole.si + ' · ' + hole.mW + ' m')}
+    <div class="artwin nos"><img src="${art}" alt="Hole ${hole.n} at ${esc(course.name)}, drawn from tee to green"></div>
+    <div class="acts"><button class="btn" data-act="modalCancel">Close</button></div>
   </div></div>`;
 }
 
@@ -4781,6 +4847,7 @@ function modalHtml() {
        : UI.modal.kind === 'round' ? roundModalHtml()
        : UI.modal.kind === 'roundsheet' ? roundSheetHtml()
        : UI.modal.kind === 'daysheet' ? daySheetHtml()
+       : UI.modal.kind === 'art' ? artModalHtml()
        : UI.modal.kind === 'hours' ? hoursSheetHtml()
        : UI.modal.kind === 'rule' ? ruleModalHtml()
        : UI.modal.kind === 'bandread' ? bandModalHtml()
@@ -4890,6 +4957,9 @@ function onClick(e) {
       break;
     case 'daySheet':
       UI.modal = { kind: 'daysheet', n: +a };
+      break;
+    case 'holeArt':
+      UI.modal = { kind: 'art', rid: UI.entryRound, hole: +a };
       break;
     case 'hoursSheet':
       UI.modal = { kind: 'hours' };
@@ -5841,6 +5911,12 @@ export function boot() {
   });
   const app = document.getElementById('app');
   app.addEventListener('click', onClick);
+  /* scroll does not bubble; it is caught on the way down */
+  app.addEventListener('scroll', e => {
+    const w = e.target;
+    if (w && w.classList && w.classList.contains('hp-scroll'))
+      UI.hpPan = { key: w.dataset.key, top: w.scrollTop, left: w.scrollLeft };
+  }, { capture: true, passive: true });
   app.addEventListener('dragstart', e => {
     const el = e.target.closest('[data-act="dragGolfer"]');
     if (!el || !canEdit()) return;

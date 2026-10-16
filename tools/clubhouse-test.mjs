@@ -21,6 +21,16 @@
 import { chromium } from 'playwright';
 import { readFileSync, writeFileSync } from 'node:fs';
 
+/* The round is picked off a card where there is room for one, and off the
+   line and the sheet behind it on a phone, where the cards are not drawn. */
+const pickRound = async (pg, which) => {
+  const card = pg.locator(which === 'practice' ? '.rcard.practice' : '.rcard:not(.practice)').first();
+  if (await card.isVisible().catch(() => false)) { await card.click(); return; }
+  await pg.locator('.setline').first().click(); await pg.waitForTimeout(400);
+  await pg.locator('.scrim .sh-row', { hasText: which === 'practice' ? /Practice/ : /Round 1/ }).first().click();
+};
+
+
 const goTab = async (pg, t) => {
   const direct = pg.locator('.tab:visible, .navbtn:visible', { hasText: t });
   if (await direct.count()) { await direct.first().click(); return; }
@@ -92,7 +102,7 @@ for (let i = 0; i < 12; i++) {
 await p.waitForTimeout(400); await shut();
 
 await tab('Scores');
-await p.locator('.rcard:not(.practice)').first().click(); await p.waitForTimeout(600); await shut();
+await pickRound(p, 'r1'); await p.waitForTimeout(600); await shut();
 /* A round will not open until the two nominated holes are chosen, which is
    the book refusing to start a round nobody can win a prize on. */
 for (const f of ['ctpHole', 'ldHole']) {

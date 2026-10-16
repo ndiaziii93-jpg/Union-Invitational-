@@ -701,6 +701,14 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 .shmodal .acts{margin-top:16px}
 @media (hover:hover) and (pointer:fine){ .sh-row:hover{background:var(--sunk)} }
 
+/* ---- the whole hole ---- */
+.artmodal{max-width:520px;gap:0}
+.artwin{margin:12px 0 0;border-radius:12px;background:var(--ink);overflow:auto;
+  max-height:min(72vh,680px);overscroll-behavior:contain}
+.artwin img{display:block;width:100%;height:auto;
+  filter:drop-shadow(0 10px 18px rgba(0,0,0,.45)) saturate(1.1)}
+.artmodal .acts{margin-top:14px}
+
 /* ---- why a match stands where it does ---- */
 .mwmodal{--mpad-x:20px;max-width:520px;gap:0;padding:22px 20px 18px}
 .mwmodal .mw-eye{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--turf);
@@ -835,7 +843,10 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
   background:var(--ink);color:var(--page);border-bottom:3px solid var(--gold-up);
   box-shadow:0 6px 18px rgba(29,46,33,.22);
   transform:translateY(-100%);transition:transform .2s cubic-bezier(.22,.61,.36,1)}
-.ts-c{width:26px;height:auto;flex:0 0 auto;filter:invert(1);opacity:.94}
+.ts-ask{flex:0 0 auto;display:grid;place-items:center;min-width:40px;min-height:40px;
+  margin:-7px 0 -7px -8px;padding:0;border:0;background:none;border-radius:50%}
+.ts-ask:focus-visible{outline:2px solid var(--gold-up);outline-offset:-3px}
+.ts-c{width:26px;height:auto;flex:0 0 auto;filter:invert(1);opacity:.94;display:block}
 .ts-n{font-size:14.5px;font-weight:700;letter-spacing:.01em;white-space:nowrap;
   overflow:hidden;text-overflow:ellipsis;min-width:0}
 .ts-t{margin-left:auto;font-size:13px;color:var(--sage-up);white-space:nowrap;flex:0 0 auto}
@@ -1931,7 +1942,7 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
 .entryhd{order:3;display:contents}
 .ehd-facts{display:none}
 .holeplate{display:none}
-@media (min-width:700px){ .page.scoring > .setline{display:none} }
+@media (min-width:700px){ .page.scoring > .setline{display:none} .savebar.mine{display:none} }
 
 /* ---- the one line that stands for a choice you set once ----
    Round and group on Score Entry; which timetable the hotel is on, on The
@@ -2598,6 +2609,7 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
 h3.sub .subn{margin-left:auto;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
   color:var(--turf);font-weight:700}
 h3.sub{display:flex;align-items:baseline;gap:12px}
+h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
 .vmore{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;
   border:0;border-bottom:1px solid var(--hair);padding:10px 2px;font:inherit;font-size:13.5px;
   color:var(--turf);cursor:pointer}
@@ -3070,9 +3082,21 @@ h3.sub{display:flex;align-items:baseline;gap:12px}
     box-shadow:0 2px 10px rgba(16,22,17,.2)}
   /* Two corners of every render are empty. Cropped to this window and
      scaled, the hole reads bigger in a hundred and fifty points less. */
-  .holeplate>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
-    object-position:50% 46%;transform:scale(1.26);transform-origin:52% 48%;z-index:1;
+  /* A window onto the art, not a crop of it. The render is drawn at the
+     plate's width — the whole hole, tee to green, about twice the height
+     of the window — and the window pans. A tap opens the lot. */
+  .hp-scroll{position:absolute;inset:0;z-index:1;overflow:auto;overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;touch-action:pan-x pan-y;cursor:zoom-in;
+    scrollbar-width:none}
+  .hp-scroll::-webkit-scrollbar{display:none}
+  .hp-scroll img{display:block;width:100%;height:auto;
     filter:drop-shadow(0 8px 14px rgba(0,0,0,.45)) saturate(1.12) contrast(1.05)}
+  .hp-course,.hp-ghost,.hp-tee,.hp-pick,.hp-in,.hp-foot{pointer-events:none}
+  .hp-open{position:absolute;right:9px;bottom:30px;z-index:4;width:34px;height:34px;padding:0;
+    border:0;border-radius:50%;background:rgba(238,232,213,.92);color:var(--ink);
+    font-size:17px;line-height:1;display:grid;place-items:center;
+    box-shadow:0 2px 7px rgba(0,0,0,.3)}
+  .hp-open:focus-visible{outline:2px solid #E2C277;outline-offset:2px}
   .holeplate::before{content:"";position:absolute;inset:0;z-index:0;
     background:radial-gradient(60% 55% at 68% 26%,rgba(226,194,119,.26),rgba(226,194,119,0) 70%),
                radial-gradient(90% 80% at 40% 80%,rgba(0,0,0,.32),rgba(0,0,0,0) 70%)}
@@ -3122,6 +3146,10 @@ h3.sub{display:flex;align-items:baseline;gap:12px}
     background:var(--page);border:0;border-top:1px solid var(--rule);border-radius:0;
     box-shadow:0 -5px 14px rgba(16,22,17,.12)}
   .savebar.dirty{background:#F3EBD6;border-top-color:var(--gold-up)}
+  /* My round's bar walks the holes: back is a glyph, on is a word. */
+  .savebar.mine .btn.ghost{min-width:44px;padding:9px 12px;font-size:18px}
+  /* and the four round cards, which the line above stands for */
+  .page.scoring > .rcards{display:none}
   /* One row, not three. A bar nailed to the foot of a phone spends the
      screen it covers, so it says the hole, offers the one button that
      matters and keeps the rest to a word. */
@@ -3314,7 +3342,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261016-1344';
+const BUILD = '20261016-1405';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -6997,6 +7025,7 @@ const UI = {
   sayDraft: null,       // {rid, v} — the same, for the line about the round
   resortTab: 'now',     // The Titanic: which part of the resort is on screen
   resortMore: '',       // which folded list of maybes is open: 'summer', 'winter' or neither
+  hpPan: null,          // where the window onto the hole was panned to: {key, top, left}
   resortNote: null,     // {k, v} — a note being typed, held out of the DOM
   resortPlanCat: 'all', // which part of the site plan is labelled
   resortPin: null,      // which point on the plan is selected, by index
@@ -8595,9 +8624,15 @@ function holePlate(rid, h, hole, course, cap, list, slotPlayers) {
      marker is for the strokes that are actually given, each named once. */
   const gets = [...new Set(list.map(g => E.strokesFor(g.band, hole.si))
     .filter(x => x != null && x > 0))].sort((a, b) => a - b).map(x => '+' + x);
-  return `<div class="holeplate" role="img"
-    aria-label="Hole ${hole.n} at ${esc(course.name)}, par ${hole.par}, stroke index ${hole.si}, ${hole.mW} metres">
-    <img decoding="sync" src="${art}" alt="" loading="lazy">
+  /* The art is drawn at the width of the plate and the plate is a window
+     onto it, so a thumb can pan to the rest of the hole without leaving the
+     page; a tap opens the whole of it. The markers sit over the window and
+     let the thumb through. */
+  return `<div class="holeplate">
+    <div class="hp-scroll nos" data-act="holeArt" data-a="${h}" data-key="${esc(rid)}:${h}"
+      role="img" aria-label="Hole ${hole.n} at ${esc(course.name)}, par ${hole.par}, stroke index ${hole.si}, ${hole.mW} metres. Tap to see the whole hole.">
+      <img decoding="sync" src="${art}" alt="" loading="lazy"></div>
+    <button class="hp-open" data-act="holeArt" data-a="${h}" aria-label="See the whole of hole ${hole.n}">⤢</button>
     <span class="hp-course">${esc(course.name)}</span>
     <span class="hp-ghost num" aria-hidden="true">${hole.n}</span>
     ${gets.length ? `<span class="hp-tee">Tee <b>${esc(gets.join(' \u00B7 '))}</b></span>` : ''}
@@ -8925,20 +8960,50 @@ function scrMine(rid) {
     if (ks.length || tx) kept.push({ i, ks, tx });
   }
 
-  return `<h3 class="sub">My round — ${esc(who.display || '')}</h3>
+  const cap = E.capFor(hole.par, T.config.capOver);
+  const mine = gs.find(g => g.id === me);
+  /* THE SAME FURNITURE AS THE GROUP'S CARD, on a phone: the line that says
+     where you are standing, the band of pine with the hole and the eighteen
+     on it, the hole itself, and a bar at the foot. The group's bar carries
+     Save; nothing here is saved by hand, so this one walks the holes. On
+     anything wider the band dissolves into the page it always was. */
+  /* "Not you?" sits by the name, not in the paragraph: a phone hides the
+     paragraph, and a way out of the wrong name is not something to hide. */
+  return `<h3 class="sub minehead">My round — ${esc(who.display || '')}
+    <button class="rm" data-act="setMe" data-a="">Not you?</button></h3>
   <p class="lede">${esc(r.full)}. Yours to keep, and it feeds the day's recap.
-  It changes no score and no board — not even yours.
-  <button class="rm" data-act="setMe" data-a="">Not you?</button></p>
+  It changes no score and no board — not even yours.</p>
 
-  <div class="scroller nos"><div class="hstrip">
-    ${course.holes.map((x, i) => {
-      const some = E.selfMarks(T, rid, me, i).length
-        || (note && note.text && String(note.text[i] || '').trim());
-      return `<button class="hcell${i === h ? ' on' : ''}${some ? ' marked' : ''}"
-        data-act="mineHole" data-a="${i}" aria-label="Hole ${x.n}, par ${x.par}">
-        <span class="n num">${x.n}</span><span class="p num">par ${x.par}</span></button>`;
-    }).join('')}
-  </div></div>
+  <button class="setline" data-act="roundSheet">
+    <b>${esc(r.short === 'Practice' ? 'Practice' : 'Round ' + r.short.slice(1))}</b>
+    <span class="dot">·</span>My round<span class="dot">·</span>${esc(who.display || '')}
+    <span class="ch" aria-hidden="true">›</span></button>
+
+  <div class="entryhd">
+    <div class="ehd-facts">
+      <span class="ehd-n num">${hole.n}</span>
+      <span class="ehd-l">Hole</span>
+      <span class="ehd-m">Par ${hole.par} · Index ${hole.si}<b>${played != null ? 'You wrote ' + played : 'Not scored yet'}</b></span>
+    </div>
+    <div class="scroller nos"><div class="hstrip">
+      ${course.holes.map((x, i) => {
+        const some = E.selfMarks(T, rid, me, i).length
+          || (note && note.text && String(note.text[i] || '').trim());
+        const wrote = c && c.raw[i] != null;
+        return `<button class="hcell${i === h ? ' on' : ''}${wrote ? ' saved' : ''}${some ? ' marked' : ''}"
+          data-act="mineHole" data-a="${i}" aria-label="Hole ${x.n}, par ${x.par}${some ? ', marked' : ''}">
+          <span class="n num">${x.n}</span><span class="p num">par ${x.par}</span></button>`;
+      }).join('')}
+    </div></div>
+  </div>
+
+  ${mine ? holePlate(rid, h, hole, course, cap, [mine], [me]) : ''}
+
+  <div class="savebar mine">
+    <div class="sv"><b>Hole ${hole.n}</b><span>${played != null ? 'You wrote ' + played + ' · par ' + hole.par : 'Par ' + hole.par + ' · not scored yet'}</span></div>
+    <button class="btn ghost" data-act="mineHole" data-a="${Math.max(h - 1, 0)}"${h === 0 ? ' disabled' : ''} aria-label="Previous hole">‹</button>
+    <button class="btn" data-act="mineHole" data-a="${Math.min(h + 1, 17)}"${h === 17 ? ' disabled' : ''}>Next hole ›</button>
+  </div>
 
   <div class="holehead">
     <h3>Hole ${hole.n}</h3>
@@ -10840,6 +10905,14 @@ function paint() {
   }
   measurePlate();
   onScroll();
+  /* The window onto the hole opens on the middle of it — tee at one end,
+     green at the other, the landing area in the glass — and keeps wherever
+     a thumb has panned it to across the redraws the polling store lands. */
+  document.querySelectorAll('.hp-scroll').forEach(w => {
+    const kept = UI.hpPan && UI.hpPan.key === w.dataset.key ? UI.hpPan : null;
+    w.scrollTop = kept ? kept.top : (w.scrollHeight - w.clientHeight) / 2;
+    w.scrollLeft = kept ? kept.left : 0;
+  });
 
   opened.forEach(id => { const el = document.getElementById(id); if (el) el.open = true; });
 
@@ -11049,8 +11122,11 @@ function stickyTop(role) {
   const n = E.setupIssues(T).length;
   const nt = E.nextTee(T, now);
   const when = nt ? (nt.day.iso === now.iso ? '' : nt.day.dow.slice(0, 3) + ' ') + E.to12(nt.time) : '';
-  return `<div class="topstrip" aria-hidden="true">
-    ${IMG.crest ? `<img class="ts-c" src="${IMG.crest}" alt="">` : ''}
+  /* The shield on the strip is the same door as the shield on the
+     masthead: the question box. A picture of a door is not a door. */
+  return `<div class="topstrip">
+    ${IMG.crest ? `<button class="ts-ask" data-act="askOpen" title="Ask the Union a question"
+      aria-label="Ask the Union a question"><img class="ts-c" src="${IMG.crest}" alt=""></button>` : ''}
     <span class="ts-n">Union Invitational</span>
     ${when ? `<span class="ts-t num">${esc(when)}</span>` : ''}
     ${dialMark(role, n, 'ts-d')}
@@ -11154,6 +11230,24 @@ function hoursSheetHtml() {
       hotel’s own book in September; it is corrected by whoever gets there first.${
       ed ? '' : ' A scorer sets this.'}</p>
     <div class="acts"><button class="btn" data-act="modalCancel">Done</button></div>
+  </div></div>`;
+}
+
+/* ---------------- the whole hole ----------------
+ * What the plate opens: the render at full size, in a window that scrolls
+ * if the glass is too short for it. The facts of the hole are on the band
+ * above it so the picture carries nothing but the hole. */
+function artModalHtml() {
+  const rid = UI.modal.rid, h = UI.modal.hole;
+  const course = E.courseOf(T, rid);
+  const hole = course.holes[h];
+  const art = hole && IMG[hole.img];
+  if (!art) return '';
+  return `<div class="scrim" data-act="modalScrim"><div class="modal artmodal"
+    role="dialog" aria-modal="true" aria-label="Hole ${hole.n}, the whole of it">
+    ${modalBanner('Hole ' + hole.n, course.name + ' · par ' + hole.par + ' · index ' + hole.si + ' · ' + hole.mW + ' m')}
+    <div class="artwin nos"><img src="${art}" alt="Hole ${hole.n} at ${esc(course.name)}, drawn from tee to green"></div>
+    <div class="acts"><button class="btn" data-act="modalCancel">Close</button></div>
   </div></div>`;
 }
 
@@ -11719,6 +11813,7 @@ function modalHtml() {
        : UI.modal.kind === 'round' ? roundModalHtml()
        : UI.modal.kind === 'roundsheet' ? roundSheetHtml()
        : UI.modal.kind === 'daysheet' ? daySheetHtml()
+       : UI.modal.kind === 'art' ? artModalHtml()
        : UI.modal.kind === 'hours' ? hoursSheetHtml()
        : UI.modal.kind === 'rule' ? ruleModalHtml()
        : UI.modal.kind === 'bandread' ? bandModalHtml()
@@ -11828,6 +11923,9 @@ function onClick(e) {
       break;
     case 'daySheet':
       UI.modal = { kind: 'daysheet', n: +a };
+      break;
+    case 'holeArt':
+      UI.modal = { kind: 'art', rid: UI.entryRound, hole: +a };
       break;
     case 'hoursSheet':
       UI.modal = { kind: 'hours' };
@@ -12779,6 +12877,12 @@ function boot() {
   });
   const app = document.getElementById('app');
   app.addEventListener('click', onClick);
+  /* scroll does not bubble; it is caught on the way down */
+  app.addEventListener('scroll', e => {
+    const w = e.target;
+    if (w && w.classList && w.classList.contains('hp-scroll'))
+      UI.hpPan = { key: w.dataset.key, top: w.scrollTop, left: w.scrollLeft };
+  }, { capture: true, passive: true });
   app.addEventListener('dragstart', e => {
     const el = e.target.closest('[data-act="dragGolfer"]');
     if (!el || !canEdit()) return;
