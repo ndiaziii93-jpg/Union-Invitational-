@@ -84,20 +84,23 @@ await goTab(p, 'Calendar'); await p.waitForTimeout(700); await shut();
    crest on the calendar. Nothing else does — a mark everything carries is
    not a mark. */
 console.log('\nthe ceremonies wear the crest');
-ok('two crests on the week, and only two', await p.locator('.daycard .dcrest').count(), 2);
+/* The week is a plate for the day you are in and one line for each of the
+   other seven; a ceremony is the line's headline on its day, so the crest
+   sits on the line. */
+ok('two crests on the week, and only two', await p.locator('.calgrid .dcrest').count(), 2);
 ok('one on the opening',
-  await p.locator('.de', { hasText: 'Opening Ceremony' }).locator('.dcrest').count(), 1);
+  await p.locator('.wk, .de', { hasText: 'Opening Ceremony' }).locator('.dcrest').count(), 1);
 ok('one on the closing',
-  await p.locator('.de', { hasText: 'Closing Ceremony' }).locator('.dcrest').count(), 1);
+  await p.locator('.wk, .de', { hasText: 'Closing Ceremony' }).locator('.dcrest').count(), 1);
 ok('and none on the beers',
-  await p.locator('.de', { hasText: 'Mandatory Team Beers' }).first().locator('.dcrest').count(), 0);
+  await p.locator('.wk, .de', { hasText: 'Mandatory Team Beers' }).first().locator('.dcrest').count(), 0);
 ok('it is decoration, so it carries no alt text',
   await p.locator('.dcrest').first().getAttribute('alt'), '');
 ok('and it does not push the name off the line', await p.evaluate(() => {
-  const line = [...document.querySelectorAll('.de')].find(el => el.querySelector('.dcrest'));
-  const t = line.querySelector('.ti').getBoundingClientRect();
+  const line = [...document.querySelectorAll('.wk .wh, .de')].find(el => el.querySelector('.dcrest'));
+  const l = line.getBoundingClientRect();
   const c = line.querySelector('.dcrest').getBoundingClientRect();
-  return c.left >= t.right - 0.5 && c.top < t.bottom && c.bottom > t.top;
+  return c.left > l.left && c.right <= l.right + 0.5 && c.top < l.bottom && c.bottom > l.top;
 }), true);
 
 /* THE WEEK IS SOMETHING TO READ. The tee times used to sit under it, which
@@ -107,8 +110,12 @@ ok('and it does not push the name off the line', await p.evaluate(() => {
    with whom. */
 console.log('\nthe week tells you about the round, it does not set it');
 ok('no tee picker anywhere on the week', await p.locator('.teetimes, .teeblock, .timepick').count(), 0);
-ok('and every round on the week opens', await p.locator('.daycard [data-act="roundOpen"]').count(), 4);
-await tap(p.locator('.daycard [data-act="roundOpen"]').nth(1));
+ok('the four days with golf are marked on the week', await p.locator('.wk.golf').count(), 4);
+/* A line opens the day, and the round on the day opens the round. */
+await tap(p.locator('.wk[data-a="4"]')); await p.waitForTimeout(600);
+ok('a day opens in full', await p.locator('.dsmodal').count(), 1);
+ok('with the round at the head of it', await p.locator('.dsmodal [data-act="roundOpen"]').count(), 1);
+await tap(p.locator('.dsmodal [data-act="roundOpen"]'));
 await p.waitForTimeout(600);
 ok('the round window opens', await p.locator('.rdmodal').count(), 1);
 ok('under the name of the round',
@@ -148,8 +155,11 @@ ok('and back on the week there are still none', await p.locator('.timepick').cou
 console.log('\nwith a redraw landing every fifth of a second');
 await p.evaluate(() => { window.__beat = setInterval(() => window.__forceRender && window.__forceRender(), 200); });
 
-const day4 = p.locator('.daycard').nth(3);
-await day4.scrollIntoViewIfNeeded();
+/* The day is a sheet now, and an event opened from it goes back to it when
+   it is done with — so the day on screen is the sheet, through every one of
+   these. */
+await tap(p.locator('.wk[data-a="4"]')); await p.waitForTimeout(600);
+const day4 = p.locator('.dsmodal');
 /* Nothing is in local storage until the first write, so the count before is
    taken off the day itself. */
 const before = await day4.locator('.de').count();
@@ -177,7 +187,8 @@ await p.locator('.evmodal .timepick select').nth(2).selectOption('PM'); await p.
 await tap(p.locator('[data-act="evSave"]')); await p.waitForTimeout(800);
 ok('the window closes', await p.locator('.evmodal').count(), 0);
 
-ok('one event is now on the day', await p.locator('.daycard').nth(3).locator('.de').count(), before + 1);
+ok('saving it goes back to the day', await p.locator('.dsmodal').count(), 1);
+ok('one event is now on the day', await p.locator('.dsmodal .de').count(), before + 1);
 const rows = await schedule();
 ok('and the book has it', Array.isArray(rows), true);
 const made = rows.find(r => r.title === 'Boat trip to Kekova');
@@ -188,12 +199,12 @@ if (made) {
   ok('and the kind that was tapped', made.kind, 'travel');
 }
 ok('under that name on screen',
-  await p.locator('.daycard').nth(3).locator('.de', { hasText: 'Boat trip to Kekova' }).count(), 1);
+  await p.locator('.dsmodal .de', { hasText: 'Boat trip to Kekova' }).count(), 1);
 const saved = rows.length;
 
 /* Editing one has the same two hazards. */
 console.log('\nand changing one that is already there');
-await tap(p.locator('.daycard').nth(3).locator('.de.tap', { hasText: 'Boat trip to Kekova' }));
+await tap(p.locator('.dsmodal .de.tap', { hasText: 'Boat trip to Kekova' }));
 await p.waitForTimeout(600);
 ok('it opens with what was saved', await p.locator('#evTitle').inputValue(), 'Boat trip to Kekova');
 ok('and the kind it was given', await p.locator('.evk.on').innerText(), 'Travel');
@@ -208,12 +219,14 @@ ok('to the new name', (ed || {}).title, 'Boat trip to Kas');
 ok('and the new kind', (ed || {}).kind, 'social');
 
 console.log('\nand taking one off');
-await tap(p.locator('.daycard').nth(3).locator('.de.tap', { hasText: 'Boat trip to Kas' }));
+await tap(p.locator('.dsmodal .de.tap', { hasText: 'Boat trip to Kas' }));
 await p.waitForTimeout(600);
 await tap(p.locator('[data-act="evRemove"]')); await p.waitForTimeout(800);
 ok('the window closes', await p.locator('.evmodal').count(), 0);
 ok('and it is off the week', (await schedule()).length, saved - 1);
-ok('and off the day on screen', await p.locator('.daycard').nth(3).locator('.de').count(), before);
+ok('and off the day on screen', await p.locator('.dsmodal .de').count(), before);
+await tap(p.locator('.dsmodal [data-act="modalCancel"]')); await p.waitForTimeout(400);
+ok('and the day closes', await p.locator('.dsmodal').count(), 0);
 
 /* IT WAS NEVER ONLY THE CALENDAR. Every tap in the book went through the
    same hazard — the screen is rebuilt whole, and a rebuild between the press
@@ -229,8 +242,8 @@ const landed = await p.waitForSelector('.btabs', { timeout: 6000 }).then(() => t
 ok('a held tap on a tab still changes the screen', landed, true);
 /* And back to the week, which has a tab of its own. */
 await tap(p.locator('.tab:visible, .navbtn:visible', { hasText: 'Calendar' }));
-const back = await p.waitForSelector('.daycard', { timeout: 6000 }).then(() => true).catch(() => false);
-ok('and back again', back && await p.locator('.daycard').count(), 8);
+const back = await p.waitForSelector('.calgrid', { timeout: 6000 }).then(() => true).catch(() => false);
+ok('and back again', back && await p.locator('.wk').count(), 7);
 
 await p.evaluate(() => clearInterval(window.__beat));
 await b.close();

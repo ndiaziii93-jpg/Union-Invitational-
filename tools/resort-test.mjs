@@ -47,6 +47,12 @@ ok('and somewhere to walk into comes before somewhere to book',
 /* ---- 3. and now the screen ---- */
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
 const errs = [];
+/* The timetable is set behind the line that names it: open the sheet, pick,
+   and the sheet closes on the pick. */
+const season = async (pg, v) => {
+  await pg.click('[data-act="hoursSheet"]'); await pg.waitForTimeout(300);
+  await pg.click('.shmodal [data-act="resortSeason"][data-a="' + v + '"]'); await pg.waitForTimeout(350);
+};
 const open = async (w, h, schematic) => {
   const pg = await b.newPage({ viewport: { width: w, height: h } });
   pg.on('pageerror', e => errs.push(String(e).slice(0, 200)));
@@ -106,8 +112,10 @@ ok('The Titanic is the last of the five', order,
   ['today', 'entry', 'boards', 'calendar', 'resort']);
 
 await pg.click('[data-act="go"][data-a="resort"]:visible');
+/* The index is set in capitals by the stylesheet; innerText gives what is
+   drawn, so the name is read without caring about case. */
 ok('and opens on what is serving now',
-  await pg.locator('.btab.on').innerText(), 'Right now');
+  (await pg.locator('.btab.on').innerText()).toLowerCase(), 'right now');
 
 /* The plate at the head of the guide: a photograph with a line of type under
    it, above the heading — set the way the Today page sets its own, not as a
@@ -188,7 +196,7 @@ ok('and does not send you to Google instead',
   await pg.locator('.venuemodal a[href*="google"]').count(), 0);
 await pg.click('[data-act="resortShowOnMap"]');
 await pg.waitForTimeout(500);
-ok('which goes to the plan', await pg.locator('.btab.on').innerText(), 'The grounds');
+ok('which goes to the plan', (await pg.locator('.btab.on').innerText()).toLowerCase(), 'the grounds');
 ok('closing the window behind it', await pg.locator('.venuemodal').count(), 0);
 ok('with that place named on it', await pg.locator('.pin.on .pinlabel').innerText(), 'Main Restaurant');
 ok('and the card on the plan is where Google is offered',
@@ -232,7 +240,7 @@ await pg.waitForTimeout(200);
   for (let i = 0; i < 6; i++) { const d = wee.locator('[data-act="modalCancel"]');
     if (await d.count()) { await d.first().click({ force: true }); await wee.waitForTimeout(150); } else break; }
   await wee.click('[data-act="go"][data-a="resort"]:visible');
-  await wee.click('[data-act="resortSeason"][data-a="summer"]');
+  await season(wee, 'summer');
   await wee.waitForTimeout(400);
   const names = await wee.locator('.vcard .vn').allInnerTexts();
   ok('the late-night card is the one on test', names.includes('Floating Disco'), true);
@@ -295,13 +303,13 @@ ok('the charged one is tinted apart from the rest', blocks.tinted, true);
 ok('and each says how many places are in it', blocks.counted, true);
 
 /* The season switch re-times everything under it. */
-await pg.click('[data-act="resortSeason"][data-a="winter"]');
+await season(pg, 'winter');
 await pg.click('[data-act="resortTab"][data-a="eat"]');
 const shutRows = await pg.locator('.vrow.out').count();
 ok('winter greys out every closed room', shutRows, 21);
-await pg.click('[data-act="resortSeason"][data-a="summer"]');
+await season(pg, 'summer');
 ok('summer brings them all back', await pg.locator('.vrow.out').count(), 0);
-await pg.click('[data-act="resortSeason"][data-a=""]');
+await season(pg, '');
 ok('and unset shows both timetables side by side',
   (await pg.locator('.hrs.two').count()) > 10, true);
 

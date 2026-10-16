@@ -230,7 +230,7 @@ await p.locator('.askbox [data-act="askClose"]').click(); await p.waitForTimeout
 
 console.log('\nand what you do about it sits where Apple puts it');
 await bar('Calendar'); await p.waitForTimeout(400);
-await p.locator('.daycard .de.tap').first().click(); await p.waitForTimeout(700);
+await p.locator('.calfocus .de.tap').first().click(); await p.waitForTimeout(700);
 const acts = await p.evaluate(() => [...document.querySelectorAll('.scrim .acts .btn')]
   .map(b => [b.textContent.trim(), b.getBoundingClientRect().top])
   .sort((a, c) => a[1] - c[1]).map(x => x[0]));
@@ -256,7 +256,8 @@ await p.locator('.scrim [data-act="modalCancel"]').click(); await p.waitForTimeo
 console.log('\nand it is every window, not the one that was complained about');
 for (const [what, open] of [['Manage', async () => p.locator('.masthead .dial').click()],
                             ['a round', async () => { await bar('Calendar');
-                              await p.locator('.daycard [data-act="roundOpen"]').nth(1).click(); }]]) {
+                              await p.locator('.wk[data-a="4"]').click(); await p.waitForTimeout(500);
+                              await p.locator('.dsmodal [data-act="roundOpen"]').click(); }]]) {
   await open(); await p.waitForTimeout(750);
   ok(what + ' wears the same pine', await p.evaluate(
     () => getComputedStyle(document.querySelector('.scrim .mbanner')).backgroundColor), PINE);

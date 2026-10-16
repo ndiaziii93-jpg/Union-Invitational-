@@ -58,6 +58,7 @@ const UI = {
                         // redraw arriving mid-sentence does not take it back
   sayDraft: null,       // {rid, v} — the same, for the line about the round
   resortTab: 'now',     // The Titanic: which part of the resort is on screen
+  resortMore: '',       // which folded list of maybes is open: 'summer', 'winter' or neither
   resortNote: null,     // {k, v} — a note being typed, held out of the DOM
   resortPlanCat: 'all', // which part of the site plan is labelled
   resortPin: null,      // which point on the plan is selected, by index
@@ -1458,63 +1459,132 @@ function crestMark(e) {
     ? `<img class="dcrest" src="${IMG.crest}" alt="">` : '';
 }
 
+/* The day you are standing in, or the nearest one to it. Before the week
+   begins that is the first day; after it, the last — a calendar opened on
+   the plane home should still show the week, not an empty plate. */
+function focusDay() {
+  const i = D.DAYS.findIndex(d => d.iso === now.iso);
+  if (i >= 0) return { d: D.DAYS[i], why: 'today' };
+  if (now.iso < D.DAYS[0].iso) return { d: D.DAYS[0], why: 'before' };
+  return { d: D.DAYS[D.DAYS.length - 1], why: 'after' };
+}
+
+/* One line of a day, as the week list says it: the round if there is one,
+   else the evening, else the travel; and the rest of the day in small. */
+function dayLine(n) {
+  const es = dayEntries(n);
+  const golf = es.find(e => e.kind === 'golf');
+  const social = es.filter(e => e.kind !== 'golf');
+  const r = golf && E.roundDef(golf.rid);
+  const t = e => E.to12(e.time);
+  if (golf) {
+    const named = r.short === 'Practice' ? 'Practice' : 'Round ' + r.short.slice(1);
+    const rest = golf.title.includes(' — ') ? golf.title.split(' — ').slice(1).join(' — ') : r.format;
+    /* A ceremony on a golf day is the evening worth naming, and the day
+       wears its crest: the closing dinner is the day the cup is handed over. */
+    const cer = social.find(e => e.kind === 'ceremony');
+    return { head: `<b>${esc(named)}</b> — ${esc(rest)}`, crest: cer ? crestMark(cer) : '',
+      sub: [golf.sub.replace('Cullinan ', ''), golf.time ? t(golf) : 'tee time to set',
+            cer ? esc(cer.title) + ' ' + esc(t(cer))
+              : social.length ? '+' + social.length + ' this evening' : '']
+        .filter(Boolean).join(' · ') };
+  }
+  if (isRestDay(n)) return { head: 'Rest day', crest: '',
+    sub: social.length ? social.map(e => esc(e.title) + ' ' + esc(t(e))).join(' · ') : 'No golf, bar open.' };
+  const lead = social.find(e => e.kind === 'ceremony') || social.find(e => e.kind !== 'travel') || social[0];
+  if (!lead) return { head: 'Nothing on', crest: '', sub: '' };
+  const others = social.filter(e => e !== lead);
+  return { head: esc(lead.title), crest: crestMark(lead),
+    sub: [esc(t(lead)), ...others.map(e => esc(e.title) + ' ' + esc(t(e)))].join(' · ') };
+}
+
+/* An event, as one line: the time, the name, the crest if it wears one,
+   and a way in when the week can still be changed. */
+function eventRow(e, ed) {
+  const inner = `<span class="t num">${esc(E.to12(e.time))}</span>
+    <span class="ti ${esc(e.kind)}">${esc(e.title)}</span>${crestMark(e)}`;
+  return ed
+    ? `<button class="de tap" data-act="evOpen" data-a="${e.id}"
+        aria-label="Edit ${esc(e.title)} at ${esc(E.to12(e.time))}">${inner}
+        <span class="dpen" aria-hidden="true">&rsaquo;</span></button>`
+    : `<span class="de">${inner}</span>`;
+}
+
+/* ---------------- the calendar ----------------
+ *
+ * Eight identical cards, stacked, with a dashed button under every one of
+ * them, and the three days with golf on them drawn exactly like the five
+ * without. Nothing brought you to the day you were standing in: you
+ * scrolled until the word Today went past.
+ *
+ * The day you are in is a plate at the head — the round on it if there is
+ * one, with the course and the first tee, and the evening under it. The
+ * other seven days are one line each, and a line opens the day in full. A
+ * tablet and a laptop have room for both at once, side by side.
+ */
 function scrCalendar() {
   const locked = !!T.config.calLocked;
   const ed = canEdit() && !locked;
+  const { d, why } = focusDay();
+  const es = dayEntries(d.n);
+  const golf = es.find(e => e.kind === 'golf');
+  const social = es.filter(e => e.kind !== 'golf');
+  const r = golf && E.roundDef(golf.rid);
+  const course = golf && E.courseOf(T, golf.rid);
+  const art = course && IMG[course.holes[0].img];
+  const days = why === 'before'
+    ? Math.round((Date.parse(d.iso) - Date.parse(now.iso)) / 86400000) : 0;
+  const eyebrow = why === 'today' ? `<span class="tt">Today</span><span>Day ${d.n} of ${D.DAYS.length}</span>`
+    : why === 'before' ? `<span class="tt">First day</span><span>${days === 1 ? 'Tomorrow' : 'In ' + days + ' days'}</span>`
+    : `<span class="tt">Last day</span><span>The week is over</span>`;
 
-  return `<div class="titlerow">
-    <h2 class="head">Calendar</h2>
-  </div>
-  <p class="lede">The whole week at once. Tap a round for its tee times and course. ${locked
-    ? 'The calendar is locked — the week is settled.'
-    : ed ? 'Tap Add event at the foot of any day, or tap an event to change it.'
-    : 'Ask a scorer to change the week.'}</p>
+  const plate = `<div class="calplate${golf ? ' golf' : ''}">
+    ${art ? `<img class="cp-art" src="${art}" alt="" decoding="async">` : ''}
+    <div class="cp-ey">${eyebrow}</div>
+    <div class="cp-dn">${esc(d.dow)}<small>${esc(d.date)}</small></div>
+    ${golf ? `<div class="cp-ti">${esc(golf.title)}</div>
+      <div class="cp-tm">${esc(golf.sub)} · first tee <b class="num">${esc(golf.time ? E.to12(golf.time) : 'to set')}</b>${
+        r.noMulligans ? ' · no mulligans' : r.counts ? '' : ' · counts for nothing'}</div>
+      <button class="cp-go" data-act="roundOpen" data-a="${esc(golf.rid)}"
+        aria-label="${esc(golf.title)} — tee times and course">Tee times &amp; course &rsaquo;</button>`
+    : isRestDay(d.n) ? `<div class="cp-ti">Rest day</div><div class="cp-tm">No golf, bar open.</div>`
+    : social.length ? `<div class="cp-ti">${esc(social[0].title)}</div><div class="cp-tm">${esc(E.to12(social[0].time))}${
+        social.length > 1 ? ' · and ' + (social.length - 1) + ' more below' : ''}</div>`
+    : `<div class="cp-ti">Nothing on the book</div><div class="cp-tm">${ed ? 'Add something to the day below.' : 'A free day.'}</div>`}
+  </div>`;
 
-  ${canAdmin() ? `<div class="gate${locked ? '' : ' want'}">
-    <div class="msg"><b>${locked ? 'The calendar is locked' : 'The calendar is open for editing'}</b>
-      <span>${locked
-        ? 'Nobody can add, move or remove a fixture. Unlock it to make a change.'
-        : 'Anyone who can score can change the week. Lock it once it is settled.'}</span></div>
-    <button class="btn${locked ? ' ghost' : ''}" data-act="${locked ? 'calUnlock' : 'calLock'}">${
-      locked ? 'Unlock the calendar' : 'Lock the calendar'}</button>
-  </div>` : ''}
+  const focusRows = `<div class="calfocus">
+    <h3 class="calsec">${why === 'today' ? 'Today' : esc(d.dow)}${ed ? `<button class="add" data-act="evNew" data-a="${d.n}">Add event</button>` : ''}</h3>
+    ${social.length ? `<div class="callist">${social.map(e => eventRow(e, ed)).join('')}</div>`
+      : `<p class="cal-none">${golf ? 'Nothing else on the day.' : 'Nothing on the day.'}</p>`}
+  </div>`;
 
-  <div class="weekgrid">
-    ${D.DAYS.map(d => {
-      const es = dayEntries(d.n);
-      const golf = es.find(e => e.kind === 'golf');
-      const rest = isRestDay(d.n);
-      const social = es.filter(e => e.kind !== 'golf');
-      return `<div class="daycard${d.iso === now.iso ? ' today' : ''}${ed ? ' editing' : ''}">
-        <span class="dhead">
-          <span class="dn num">${d.n}</span>
-          <span class="dl">${esc(d.dow)} ${esc(d.date)}</span>
-          ${d.iso === now.iso ? `<span class="tt">Today</span>` : ''}
-        </span>
-        ${golf ? `<button class="dgolf tap" data-act="roundOpen" data-a="${esc(golf.rid)}"
-          aria-label="${esc(golf.title)} — tee times and course">
-          <span class="t num">${esc(golf.time ? E.to12(golf.time) : 'Tee time to set')}</span>
-          <span class="ti">${esc(golf.title)}</span>
-          <span class="sub">${esc(golf.sub)}</span>
-          <span class="dpen" aria-hidden="true">&rsaquo;</span></button>` : ''}
-        ${rest && !social.length ? `<span class="drest">Rest day — no golf, bar open.</span>` : ''}
+  const week = `<div class="calweek">
+    <h3 class="calsec">The rest of the week</h3>
+    <div class="wklist">${D.DAYS.filter(x => x.n !== d.n).map(x => {
+      const l = dayLine(x.n);
+      return `<button class="wk${roundOnDay(x.n) ? ' golf' : ''}" data-act="daySheet" data-a="${x.n}"
+        aria-label="${esc(x.dow)} ${esc(x.date)}">
+        <span class="d"><i>${esc(x.dow.slice(0, 3))}</i><b class="num">${x.n <= 0 ? '' : esc(x.date.split(' ')[0])}</b></span>
+        <span class="w"><span class="wh">${l.head}${l.crest}</span>${l.sub ? `<small>${l.sub}</small>` : ''}</span>
+        <span class="ch" aria-hidden="true">&rsaquo;</span></button>`;
+    }).join('')}</div>
+  </div>`;
 
-        ${social.length ? `<span class="dlist">${social.map(e => (ed
-          ? `<button class="de tap" data-act="evOpen" data-a="${e.id}"
-              aria-label="Edit ${esc(e.title)} at ${esc(E.to12(e.time))}">
-              <span class="t num">${esc(E.to12(e.time))}</span>
-              <span class="ti ${esc(e.kind)}">${esc(e.title)}</span>${crestMark(e)}
-              <span class="dpen" aria-hidden="true">&rsaquo;</span></button>`
-          : `<span class="de">
-              <span class="t num">${esc(E.to12(e.time))}</span>
-              <span class="ti ${esc(e.kind)}">${esc(e.title)}</span>${crestMark(e)}</span>`)).join('')}</span>` : ''}
+  const lock = canAdmin() ? `<div class="lockline">
+    <span class="lk" aria-hidden="true">${locked ? '🔒' : '🔓'}</span>
+    <span>The calendar is <b>${locked ? 'locked' : 'open for editing'}</b>${locked
+      ? ' — nobody can add, move or remove a fixture.' : ' — anyone who can score can change the week.'}</span>
+    <button class="btn ghost sm" data-act="${locked ? 'calUnlock' : 'calLock'}">${locked ? 'Unlock' : 'Lock'}</button>
+  </div>` : '';
 
-        ${ed ? `<button class="dashb daddb" data-act="evNew" data-a="${d.n}">Add event</button>` : ''}
-      </div>`;
-    }).join('')}
-  </div>
-
-  `;
+  return `<h2 class="head">Calendar</h2>
+  <p class="lede">${why === 'today' ? 'Where the week is, and what is on tonight.' : 'The whole week, with the day it opens on first.'} Tap a day for all of it${
+    locked ? '. The calendar is locked — the week is settled.' : ed ? ', or to change it.' : '.'}</p>
+  <div class="calgrid">
+    <div class="calnow">${plate}${focusRows}</div>
+    <div class="calrest">${week}${lock}</div>
+  </div>`;
 }
 
 /* ---------------- tee times, where they are set ----------------
@@ -2690,6 +2760,9 @@ async function loadWeather(force) {
 }
 
 /** The band under the plate: what it is doing outside, and what it will do. */
+/* The reading, in the corner of the plate. The picture and the number,
+   the word and the day's range under them, and the scale as two small
+   marks — a group split between two countries will never agree on one. */
 function weatherStrip() {
   const f = wx.data;
   const seen = wx.at ? new Date(wx.at + (f ? f.offset : 0) * 1000) : null;
@@ -2697,33 +2770,27 @@ function weatherStrip() {
     ${['C', 'F'].map(u => `<button class="ub${unit === u ? ' on' : ''}"
       data-act="wxUnit" data-a="${u}" aria-pressed="${unit === u}">°${u}</button>`).join('')}
   </div>`;
-
-  /* The switch goes on a line of its own above the reading. Beside it, the
-     condition and the day's range were squeezed into forty pixels on a
-     phone and broke across three lines. */
-  const head = `<div class="wx-head"><span class="wx-lbl">At the resort</span>${toggle}</div>`;
-
   if (!f) {
-    return `<div class="wx">${head}
+    return `<div class="wx cold">
       <p class="tiny wx-cold">${wx.state === 'off'
-        ? 'No forecast — it needs a connection, and this phone has not got one.'
-        : 'Fetching the forecast…'}</p></div>`;
+        ? 'No forecast — no connection.'
+        : 'Fetching the forecast…'}</p>${toggle}</div>`;
   }
-
   const l = W.look(f.code, f.isDay);
-  return `<div class="wx">${head}
+  return `<div class="wx">
     <div class="wx-now">
       ${sky(l.glyph, 'big')}
       <div class="wx-t num">${esc(W.degrees(f.c, unit))}</div>
-      <div class="wx-s">
-        <b>${esc(l.word)}</b>
-        <span>${f.max != null && f.min != null
-          ? 'High ' + esc(W.degrees(f.max, unit)) + ' · Low ' + esc(W.degrees(f.min, unit))
-          : f.feels != null ? 'Feels like ' + esc(W.degrees(f.feels, unit)) : ''}</span>
-      </div>
     </div>
+    <div class="wx-s">
+      <b>${esc(l.word)}</b>
+      <span>${f.max != null && f.min != null
+        ? esc(W.degrees(f.max, unit)) + ' / ' + esc(W.degrees(f.min, unit))
+        : f.feels != null ? 'Feels like ' + esc(W.degrees(f.feels, unit)) : ''}</span>
+    </div>
+    ${toggle}
     ${wx.state === 'stale' && seen
-      ? `<p class="tiny">Last reached at ${esc(E.to12(String(seen.getUTCHours()).padStart(2, '0') + ':' + String(seen.getUTCMinutes()).padStart(2, '0')))}. Showing what it said then.</p>`
+      ? `<p class="tiny wx-old">Last reached at ${esc(E.to12(String(seen.getUTCHours()).padStart(2, '0') + ':' + String(seen.getUTCMinutes()).padStart(2, '0')))}. Showing what it said then.</p>`
       : ''}
   </div>`;
 }
@@ -2792,20 +2859,14 @@ function resortNote(key, title, prompt) {
   </div>`;
 }
 
-/** The season switch, and what it costs. */
-function seasonBand() {
+/** The one line that says which timetable the hotel is on, and opens the
+ *  sheet where it is set. */
+function hoursLineBar() {
   const season = resortSeason();
-  const toll = R.seasonToll();
-  const ed = canEdit();
-  const pick = (id, label) => `<button class="sbtn${season === id ? ' on' : ''}"${ed ? ` data-act="resortSeason" data-a="${id || ''}"` : ' disabled'}>${esc(label)}</button>`;
-  return `<div class="seasonband">
-    <div class="sbs">${pick('summer', 'Summer hours')}${pick('winter', 'Winter hours')}${pick('', 'Not asked yet')}</div>
-    <p class="tiny">${season === 'winter'
-      ? `Winter. ${toll.shut} of the ${toll.total} places to eat and drink are shut, and the ${toll.open} below are what is left.`
-      : season === 'summer'
-        ? `Summer. Everything is running.`
-        : `Our week — 26 October to 2 November — lands on the changeover. The hotel runs two timetables and does not publish the date it switches, so both are shown. ${toll.shut} of ${toll.total} bars and restaurants close for the winter, so it is worth asking at reception on the first evening and setting this.`}</p>
-  </div>`;
+  return `<button class="setline hours" data-act="hoursSheet"
+    aria-label="Hotel hours: ${season === 'winter' ? 'winter' : season === 'summer' ? 'summer' : 'not asked yet'}. Change">
+    Hotel hours <span class="dot">·</span> <b>${season === 'winter' ? 'Winter' : season === 'summer' ? 'Summer' : 'Not asked yet'}</b>
+    <span class="ch" aria-hidden="true">›</span></button>`;
 }
 
 /* ---- what is open, right now ---- */
@@ -2815,12 +2876,25 @@ function resortNow() {
   const season = resortSeason();
   const clock = E.to12(String(now.hh).padStart(2, '0') + ':' + String(now.mm).padStart(2, '0'));
 
+  /* One line a place: the name on the left, when it shuts on the right. */
   const card = (v, extra) => `<button class="vcard${v.cost === 'cover' ? ' cover' : ''}"
     data-act="resortVenue" data-a="${esc(v.id)}">
-    <span class="vtop"><span class="vn">${esc(v.name)}</span>${v.cuisine ? `<span class="vc">${esc(v.cuisine)}</span>` : ''}</span>
+    <span class="vtop"><span class="vn">${esc(v.name)}</span>${v.cuisine ? `<span class="vc">${esc(v.cuisine)}</span>` : ''}${
+      v.cost === 'cover' ? `<span class="vtag">Cover charge · book ahead</span>` : ''}</span>
     <span class="vwhen">${extra}</span>
-    ${v.cost === 'cover' ? `<span class="vtag">Cover charge · book ahead</span>` : ''}
+    <span class="vgo" aria-hidden="true">›</span>
   </button>`;
+  /* The places that are only open on one of the two timetables are a maybe
+     until somebody asks at reception. Two of them show, and the rest fold
+     behind one line, so a dozen summer snack bars do not bury the page. */
+  const FOLD = 2;
+  const fold = (key, list, draw) => {
+    const open = UI.resortMore === key;
+    const shown = open ? list : list.slice(0, FOLD);
+    return `<div class="vgrid dim">${shown.map(draw).join('')}</div>${list.length > FOLD
+      ? `<button class="vmore" data-act="resortMore" data-a="${open ? '' : key}">${open
+          ? 'Show fewer' : 'Show the other ' + (list.length - FOLD)}<span class="ch" aria-hidden="true">›</span></button>` : ''}`;
+  };
 
   const openNow = (s) => R.whatsOn(s, min);
   /* When it shuts — except for the bar that never does, where "until 12am"
@@ -2852,13 +2926,13 @@ function resortNow() {
       ${both.length ? `<div class="vgrid">${both.map(o => card(o.v,
         o.slots.map(til).join('<br>'))).join('')}</div>`
         : `<p class="lede">Nothing is certain to be serving at ${esc(clock)}.</p>`}
-      ${onlyS.length ? `<h3 class="sub">Only if the resort is still on summer hours</h3>
-        <div class="vgrid dim">${onlyS.map(o => card(o.v, o.slots.map(til).join('<br>'))).join('')}</div>` : ''}
-      ${onlyW.length ? `<h3 class="sub">Only once it has turned over to winter</h3>
-        <div class="vgrid dim">${onlyW.map(o => card(o.v, o.slots.map(til).join('<br>'))).join('')}</div>` : ''}`;
+      ${onlyS.length ? `<h3 class="sub">Only if the resort is still on summer hours<span class="subn">${onlyS.length} ${onlyS.length === 1 ? 'place' : 'places'}</span></h3>
+        ${fold('summer', onlyS, o => card(o.v, o.slots.map(til).join('<br>')))}` : ''}
+      ${onlyW.length ? `<h3 class="sub">Only once it has turned over to winter<span class="subn">${onlyW.length} ${onlyW.length === 1 ? 'place' : 'places'}</span></h3>
+        ${fold('winter', onlyW, o => card(o.v, o.slots.map(til).join('<br>')))}` : ''}`;
   }
 
-  return `<p class="lede">It is ${esc(clock)} at the resort.</p>${sections}
+  return `<p class="clock">It is <b class="num">${esc(clock)}</b> at the resort.</p>${sections}
   ${resortNote('now', 'What we have found out', 'Anything the book has wrong — a place that was shut, a time that had moved.')}`;
 }
 
@@ -3170,26 +3244,27 @@ function resortPractical() {
 }
 
 function scrResort() {
-  const tabs = [['now', 'Right now'], ['eat', 'Eat &amp; drink'], ['plan', 'The grounds'],
-                ['spa', 'Spa &amp; pools'], ['prac', 'Practical']];
+  const tabs = [['now', 'Right now', 'Now'], ['eat', 'Eat &amp; drink', 'Eat'], ['plan', 'The grounds', 'Grounds'],
+                ['spa', 'Spa &amp; pools', 'Spa'], ['prac', 'Practical', 'Practical']];
   const body = { now: resortNow, eat: resortEat, plan: resortPlan, spa: resortSpa, prac: resortPractical }[UI.resortTab] || resortNow;
-  /* A plate at the head of the guide, set the way the Today page sets its
-     own — a band of photograph above the heading rather than a heading laid
-     over a photograph. The book is a printed thing and behaves like one. */
-  return `${IMG.resorthero ? `<figure class="rhero">
-    <img src="${IMG.resorthero}" alt="The resort at dusk, seen across the Beşgöz river: the hotel lit up, the riverside restaurants strung along the water, pine forest in the foreground">
-    <figcaption>Titanic Deluxe Golf Belek from across the Beşgöz, at dusk. The lit terraces along the water are the à la carte restaurants.</figcaption>
-  </figure>` : ''}
-  <div class="resorttop">
+  /* THE PLATE IS A BAND. The photograph used to sit above a caption, a
+     heading and a paragraph, with the weather in a box under those and the
+     parts of the guide under that: nine hundred points of a phone before
+     the first bar. The name is set on the photograph now, with the hotel's
+     name small above it, and the reading in the opposite corner. The parts
+     of the guide are the same index the boards use, pine on a phone, a
+     hairline on anything wider — one piece of furniture, not two. */
+  return `<figure class="rhero band">
+    ${IMG.resorthero ? `<img src="${IMG.resorthero}" alt="The resort at dusk, seen across the Beşgöz river: the hotel lit up, the riverside restaurants strung along the water, pine forest in the foreground">` : ''}
     <div class="rt-words">
+      <figcaption>Titanic Deluxe Golf Belek<span class="pl"> · Antalya</span></figcaption>
       <h2 class="head">The Titanic</h2>
-      <p class="lede">Titanic Deluxe Golf Belek — the other side of the week. Read off the hotel’s own book in September; corrected by whoever gets there first.</p>
     </div>
     <div class="rt-wx">${weatherStrip()}</div>
-    <div class="btabs nos">${tabs.map(([id, l]) =>
-      `<button class="btab${UI.resortTab === id ? ' on' : ''}" data-act="resortTab" data-a="${id}">${l}</button>`).join('')}</div>
-  </div>
-  ${seasonBand()}
+  </figure>
+  <div class="gamesbar"><div class="btabs games nos">${tabs.map(([id, l, short]) =>
+    `<button class="btab${UI.resortTab === id ? ' on' : ''}" data-act="resortTab" data-a="${id}"><span class="lg">${l}</span><span class="sm">${short}</span></button>`).join('')}</div></div>
+  ${hoursLineBar()}
   ${body()}`;
 }
 
@@ -4084,6 +4159,66 @@ function roundSheetHtml() {
   </div></div>`;
 }
 
+/* ---------------- a day, in full ----------------
+ * What a line of the week opens: everything on that day, the round first,
+ * and — when the week can still be changed — the way to change it. */
+function daySheetHtml() {
+  const n = +UI.modal.n;
+  const d = E.dayOf(n);
+  if (!d) return '';
+  const locked = !!T.config.calLocked;
+  const ed = canEdit() && !locked;
+  const es = dayEntries(n);
+  const golf = es.find(e => e.kind === 'golf');
+  const social = es.filter(e => e.kind !== 'golf');
+  return `<div class="scrim" data-act="modalScrim"><div class="modal dsmodal"
+    role="dialog" aria-modal="true" aria-label="${esc(d.dow)} ${esc(d.date)}">
+    ${modalBanner(d.dow + ' ' + d.date, (d.iso === now.iso ? 'Today · ' : '') + 'Day ' + n + ' of ' + D.DAYS.length)}
+    ${golf ? `<button class="ds-golf" data-act="roundOpen" data-a="${esc(golf.rid)}"
+        aria-label="${esc(golf.title)} — tee times and course">
+        <span class="t num">${esc(golf.time ? E.to12(golf.time) : 'Tee time to set')}</span>
+        <span class="ti">${esc(golf.title)}</span>
+        <span class="sub">${esc(golf.sub)} · tee times &amp; course</span>
+        <span class="dpen" aria-hidden="true">&rsaquo;</span></button>` : ''}
+    ${isRestDay(n) && !social.length ? `<p class="ds-rest">Rest day — no golf, bar open.</p>` : ''}
+    ${social.length ? `<div class="callist">${social.map(e => eventRow(e, ed)).join('')}</div>`
+      : golf ? `<p class="cal-none">Nothing else on the day.</p>` : ''}
+    <div class="acts">
+      ${ed ? `<button class="btn" data-act="evNew" data-a="${n}">Add event</button>` : ''}
+      <button class="btn${ed ? ' ghost' : ''}" data-act="modalCancel">Done</button>
+    </div>
+  </div></div>`;
+}
+
+/* ---------------- which hours the hotel is keeping ----------------
+ * Our week lands on the changeover between the hotel's two timetables, and
+ * it does not publish the date it switches. The line on the guide says
+ * which one we have found it to be on; this is where it is set, with the
+ * reason it matters. */
+function hoursSheetHtml() {
+  const season = resortSeason();
+  const toll = R.seasonToll();
+  const ed = canEdit();
+  const row = (id, label, note) => `<button class="sh-row${season === id ? ' on' : ''}"
+    data-act="resortSeason" data-a="${id}"${ed ? '' : ' disabled'}>
+    <span class="tick" aria-hidden="true">${season === id ? '✓' : ''}</span>
+    <span class="w">${esc(label)}<small>${esc(note)}</small></span></button>`;
+  return `<div class="scrim" data-act="modalScrim"><div class="modal shmodal"
+    role="dialog" aria-modal="true" aria-label="Which hours the hotel is keeping">
+    ${modalBanner('Hotel hours', 'Ask at reception on the first evening')}
+    <div class="shlist">
+      ${row('summer', 'Summer hours', 'Everything is running — all ' + toll.total + ' places to eat and drink.')}
+      ${row('winter', 'Winter hours', toll.shut + ' of the ' + toll.total + ' are shut for the season; ' + toll.open + ' stay open.')}
+      ${row('', 'Not asked yet', 'Both timetables are shown until somebody finds out.')}
+    </div>
+    <p class="sh-why">Our week — 26 October to 2 November — lands on the changeover. The hotel runs two
+      timetables and does not publish the date it switches. Everything in the guide was read off the
+      hotel’s own book in September; it is corrected by whoever gets there first.${
+      ed ? '' : ' A scorer sets this.'}</p>
+    <div class="acts"><button class="btn" data-act="modalCancel">Done</button></div>
+  </div></div>`;
+}
+
 /* ---------------- the dial ----------------
  *
  * Two full-width buttons used to sit under the masthead — Manage, and a
@@ -4645,6 +4780,8 @@ function modalHtml() {
        : UI.modal.kind === 'manage' ? manageModalHtml()
        : UI.modal.kind === 'round' ? roundModalHtml()
        : UI.modal.kind === 'roundsheet' ? roundSheetHtml()
+       : UI.modal.kind === 'daysheet' ? daySheetHtml()
+       : UI.modal.kind === 'hours' ? hoursSheetHtml()
        : UI.modal.kind === 'rule' ? ruleModalHtml()
        : UI.modal.kind === 'bandread' ? bandModalHtml()
        : UI.modal.kind === 'event' ? eventModalHtml()
@@ -4675,6 +4812,13 @@ function closeModal() {
   const m = UI.modal;
   UI.modal = null; UI.modalErr = '';
   if (m && m.kind === 'bbbmiss') raiseNext(m.next);
+  /* An event opened from a day goes back to that day when it is done with,
+     saved, removed or left alone: the day is where you were. */
+  if (m && m.kind === 'event' && m.from) UI.modal = { kind: 'daysheet', n: m.from };
+}
+/** The day sheet an event window is being opened from, if it is. */
+function fromDaySheet() {
+  return UI.modal && UI.modal.kind === 'daysheet' ? UI.modal.n : null;
 }
 
 function submitPin() {
@@ -4744,6 +4888,15 @@ function onClick(e) {
     case 'roundSheet':
       UI.modal = { kind: 'roundsheet' };
       break;
+    case 'daySheet':
+      UI.modal = { kind: 'daysheet', n: +a };
+      break;
+    case 'hoursSheet':
+      UI.modal = { kind: 'hours' };
+      break;
+    /* The places that are only open on one of the two timetables are folded
+       behind one line until somebody wants them. */
+    case 'resortMore': UI.resortMore = a; break;
     case 'go':
       /* A tab tapped from inside Manage closes it on the way through: the
          door is how you got there, not somewhere to come back to. */
@@ -4885,7 +5038,11 @@ function onClick(e) {
         : a === 'in' ? Math.min(3, Math.round((UI.resortZoom + 0.7) * 10) / 10)
         : Math.max(1, Math.round((UI.resortZoom - 0.7) * 10) / 10);
       break;
-    case 'resortSeason': setResortSeason(a); break;
+    case 'resortSeason':
+      setResortSeason(a);
+      /* picked from its sheet, the sheet has done its job */
+      if (UI.modal && UI.modal.kind === 'hours') UI.modal = null;
+      break;
     case 'boardRound': UI.boardRound = a; UI.bookHole = 0; break;
     case 'bookHole': UI.bookHole = +a; break;
     case 'entryRound': guardDraft(() => { UI.entryRound = a; UI.entryHole = 0; UI.entryTee = '0'; }); return;
@@ -4904,7 +5061,7 @@ function onClick(e) {
     case 'evNew':
       if (!canEdit() || T.config.calLocked) return;
       delete UI.timePick['draft:ev:'];
-      UI.modal = { kind: 'event', isNew: true,
+      UI.modal = { kind: 'event', isNew: true, from: fromDaySheet(),
                    ev: { id: null, dayIdx: +a, time: '19:00', title: '', kind: 'social' } };
       UI.modalErr = '';
       break;
@@ -4913,7 +5070,7 @@ function onClick(e) {
       const ev = (T.config.schedule || []).find(x => x.id === a);
       if (!ev) return;
       delete UI.timePick['draft:ev:'];
-      UI.modal = { kind: 'event', isNew: false, ev: { ...ev } };
+      UI.modal = { kind: 'event', isNew: false, from: fromDaySheet(), ev: { ...ev } };
       UI.modalErr = '';
       break;
     }

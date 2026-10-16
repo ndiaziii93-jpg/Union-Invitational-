@@ -228,8 +228,8 @@ ok('a hole cell has soft corners', await p.locator('.hcell').first().evaluate(
 console.log('\nthe calendar is one week, and it can be settled');
 await tab('Calendar');
 ok('the day view is gone', await p.locator('[data-act="calView"]').count(), 0);
-ok('the whole week is on the page', await p.locator('.daycard').count(), 8);
-ok('and every day has an Add event button', await p.locator('[data-act="evNew"]').count(), 8);
+ok('the whole week is on the page', await p.locator('.wk').count() + await p.locator('.calplate').count(), 8);
+ok('and the day on the plate has an Add event button', await p.locator('.calfocus [data-act="evNew"]').count(), 1);
 /* An event is written in a window now, not typed into the day. Nothing
    reaches the week until Save, so a half-filled one leaves nothing behind. */
 const before = await p.locator('.de').count();
@@ -250,9 +250,9 @@ ok('under the name it was given',
 await p.locator('[data-act="calLock"]').click(); await p.waitForTimeout(700); await shut();
 ok('locked, nothing can be added', await p.locator('[data-act="evNew"]').count(), 0);
 ok('and no event opens for editing', await p.locator('.de.tap').count(), 0);
-ok('the days are all still there to read', await p.locator('.daycard').count(), 8);
+ok('the days are all still there to read', await p.locator('.wk').count() + await p.locator('.calplate').count(), 8);
 await p.locator('[data-act="calUnlock"]').click(); await p.waitForTimeout(700); await shut();
-ok('the master can open it again', await p.locator('[data-act="evNew"]').count(), 8);
+ok('the master can open it again', await p.locator('.calfocus [data-act="evNew"]').count(), 1);
 
 /* pan-x on every horizontal scroller stopped the page moving under a thumb
    resting on the roster table, which reads as the scrolling sticking at the

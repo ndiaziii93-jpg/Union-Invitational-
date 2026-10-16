@@ -397,38 +397,10 @@ h3.sub{font-size:19px;font-weight:600;margin:26px 0 0}
   font-size:17px;min-height:44px}
 .segb.on{background:var(--ink);border-color:var(--ink);color:var(--paper);font-weight:600}
 
-.weekgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px;margin-top:18px}
-.daycard{display:flex;flex-direction:column;gap:0;padding:16px 18px 18px;border:1px solid var(--rule);
-  background:var(--page);border-radius:2px;text-align:left;color:var(--ink);min-height:190px}
-.daycard:hover{border-color:var(--ink)}
-.daycard.today{background:var(--sunk);border-color:var(--rule)}
-.daycard .dhead{display:flex;align-items:baseline;gap:10px;border-bottom:2px solid var(--ink);padding-bottom:8px}
-.daycard .dn{font-size:26px;font-weight:900;font-variant-numeric:tabular-nums}
-.daycard .dl{font-size:16px;font-weight:600}
-.daycard .tt{margin-left:auto;font-size:13px;font-weight:600;letter-spacing:.05em;color:var(--gold)}
-.daycard .dgolf{display:block;padding:12px 0;border-bottom:1px solid var(--rule)}
-.daycard .dgolf .t{display:block;font-size:14px;font-weight:600;color:var(--green);font-variant-numeric:tabular-nums}
-.daycard .dgolf .ti{display:block;font-size:19px;font-weight:700;line-height:1.25}
-.daycard .dgolf .sub{display:block;font-size:14px;font-style:italic;color:var(--turf)}
-.daycard .drest{display:block;padding:12px 0;border-bottom:1px solid var(--rule);
-  font-size:16px;font-style:italic;color:var(--gold)}
-.daycard .dlist{display:grid;gap:5px;padding-top:10px}
-.daycard .de{display:flex;gap:10px;align-items:baseline;font-size:15px}
 /* An event is read first and edited second, so the line stays a line: the
    whole of it is the tap target, with a chevron to say so. */
-.daycard .de.tap{width:100%;text-align:left;background:none;border:0;padding:5px 6px 5px 0;
-  border-radius:8px;cursor:pointer;align-items:center}
-.daycard .de.tap:hover{background:var(--sunk)}
-.daycard .de.tap .dpen{margin-left:auto;color:var(--turf);font-weight:700;padding-left:8px}
-.daycard .de.tap:focus-visible{outline:2px solid var(--flag);outline-offset:2px}
-.daycard .de .t{width:74px;flex:0 0 auto;font-weight:600;font-variant-numeric:tabular-nums}
-.daycard .de .ti{color:var(--green);font-weight:600}
-.daycard .de .ti.ceremony{color:var(--gold)}
 /* The crest beside a ceremony. Small enough to be a mark on the line rather
    than a thing in its own right, and it never takes space from the name. */
-.daycard .dcrest{width:18px;height:auto;flex:0 0 auto;margin-left:7px;opacity:.75;
-  align-self:center}
-.daycard .de .ti.travel{color:var(--green);font-weight:400}
 
 .daystrip{display:flex;gap:2px;margin-top:18px;overflow-x:auto}
 .dayb{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 16px;border:1px solid transparent;
@@ -905,13 +877,6 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 
 /* The round on a day card opens that window, so it reads as a thing you can
    press — the same chevron the events carry. */
-.daycard .dgolf.tap{display:block;width:100%;text-align:left;background:none;border:0;
-  border-bottom:1px solid var(--rule);padding:12px 6px 12px 0;cursor:pointer;position:relative;
-  border-radius:8px 8px 0 0}
-@media (hover:hover) and (pointer:fine){ .daycard .dgolf.tap:hover{background:var(--sunk)} }
-.daycard .dgolf.tap:focus-visible{outline:2px solid var(--flag);outline-offset:-2px}
-.daycard .dgolf.tap .dpen{position:absolute;right:6px;top:50%;transform:translateY(-50%);
-  color:var(--turf);font-weight:700;font-size:19px}
 
 /* ---- a rule, over the board it belongs to ---- */
 .rulemodal{--mpad-x:22px;max-width:580px;gap:0;padding:22px 22px 18px}
@@ -1471,7 +1436,6 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
 /* The week is the calendar. A day that can be edited holds its fixtures as
    controls rather than as text, so the card grows a little and its rows stop
    being one line. */
-.daycard.editing{cursor:default}
 .de.edit{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:5px 0;
   border-top:1px solid var(--hair)}
 .de.edit .fxtitle{flex:1 1 130px;min-width:0;font-size:15px}
@@ -1563,8 +1527,6 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
   .dateline{display:flex;flex-wrap:wrap;align-items:center;
     padding:0 0 9px;font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;
     color:var(--turf);font-weight:700}
-  .weekgrid{grid-template-columns:1fr;gap:14px}
-  .daycard{min-height:0}
   .daystrip{flex-wrap:wrap}
   .dayb{flex:1 1 auto;min-width:56px}
   .rcards{display:grid;grid-template-columns:1fr 1fr;gap:6px}
@@ -1792,6 +1754,100 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
    the height of the whole screen. Same treatment as Course Setup. */
 .entrytop .cside>img{width:auto;max-width:100%;max-height:500px;margin:0 auto}
 
+/* ================= THE CALENDAR =================
+ *
+ * Eight identical cards, stacked, with a dashed button under every one and
+ * the three days with golf on them drawn exactly like the five without.
+ * Nothing brought you to the day you were in.
+ *
+ * The day you are in is a PLATE: pine, the course on it when there is a
+ * round, the first tee in gold. What else is on that day sits under it as
+ * lines. The other seven days are one line each, and open in full. On a
+ * phone that stacks; on anything wider the plate and the week sit side by
+ * side, so the whole week is still one screen. */
+.calgrid{display:grid;grid-template-columns:minmax(0,1fr);gap:6px 36px;margin-top:14px}
+@media (min-width:700px){ .calgrid{grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);align-items:start} }
+.calplate{position:relative;overflow:hidden;border-radius:16px;background:var(--ink);color:var(--page);
+  padding:16px 18px 17px;min-height:150px;box-shadow:0 2px 10px rgba(16,22,17,.18)}
+.calplate .cp-art{position:absolute;right:-64px;top:-44px;width:310px;height:auto;z-index:0;
+  opacity:.88;filter:drop-shadow(0 8px 14px rgba(0,0,0,.45)) saturate(1.1);pointer-events:none}
+.calplate::before{content:"";position:absolute;inset:0;z-index:1;
+  background:linear-gradient(to right,var(--ink) 44%,rgba(29,46,33,.55))}
+.calplate > *:not(.cp-art){position:relative;z-index:2}
+.cp-ey{display:flex;gap:10px;font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  font-weight:700;color:var(--sage-up)}
+.cp-ey .tt{color:#E2C277}
+.cp-dn{font-size:32px;font-weight:700;line-height:1.05;letter-spacing:-.02em;margin:4px 0 12px}
+.cp-dn small{font-size:15px;font-weight:400;color:var(--sage-up);margin-left:9px;letter-spacing:0}
+.cp-ti{font-size:18px;font-weight:700;line-height:1.2}
+.cp-tm{font-size:13.5px;margin-top:3px;opacity:.92}
+.cp-tm b{color:#E2C277}
+.cp-go{display:inline-block;margin-top:12px;padding:8px 13px;border:0;border-radius:999px;
+  background:#E2C277;color:var(--ink);font-family:inherit;font-size:10.5px;letter-spacing:.1em;
+  text-transform:uppercase;font-weight:700;cursor:pointer}
+.cp-go:focus-visible{outline:2px solid var(--page);outline-offset:2px}
+@media (hover:hover) and (pointer:fine){ .cp-go:hover{background:var(--page)} }
+
+.calsec{display:flex;align-items:center;gap:10px;margin:20px 0 4px;font-size:11px;
+  letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--turf)}
+.calsec .add{margin-left:auto;background:none;border:1px dashed var(--gold);color:var(--turf);
+  font:inherit;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;
+  padding:5px 11px;border-radius:999px;cursor:pointer}
+@media (hover:hover) and (pointer:fine){ .calsec .add:hover{color:var(--ink);border-color:var(--ink)} }
+
+.callist{display:grid;border-top:1px solid var(--hair)}
+.callist .de{display:flex;gap:10px;align-items:center;padding:10px 2px;
+  border-bottom:1px solid var(--hair);font-size:15.5px;min-height:46px}
+.callist .de.tap{width:100%;text-align:left;background:none;border:0;
+  border-bottom:1px solid var(--hair);font:inherit;color:var(--ink);cursor:pointer}
+.callist .de .t{flex:0 0 74px;font-size:13px;font-weight:600;color:var(--turf);
+  font-variant-numeric:tabular-nums}
+.callist .de .ti{color:var(--ink);font-weight:600}
+.callist .de .ti.ceremony{color:var(--gold)}
+.callist .de .ti.travel{font-weight:400}
+.callist .de .dpen{margin-left:auto;color:var(--turf);font-size:18px;padding-left:8px}
+.callist .de.tap:focus-visible{outline:2px solid var(--flag);outline-offset:-2px}
+/* The crest beside a ceremony. A mark on the line, not a thing of its own. */
+.dcrest{width:18px;height:auto;flex:0 0 auto;margin-left:7px;opacity:.75;align-self:center}
+.cal-none{margin:8px 0 0;font-size:14px;color:var(--turf);font-style:italic}
+
+.wklist{display:grid;border-top:1px solid var(--hair)}
+.wk{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:none;
+  border:0;border-bottom:1px solid var(--hair);padding:9px 4px 9px 2px;font:inherit;
+  color:var(--ink);cursor:pointer;min-height:58px}
+.wk.golf{background:rgba(29,46,33,.045)}
+.wk .d{flex:0 0 42px;text-align:center;line-height:1}
+.wk .d i{display:block;font-style:normal;font-size:9px;letter-spacing:.1em;text-transform:uppercase;
+  font-weight:700;color:var(--turf);margin-bottom:3px}
+.wk .d b{font-size:20px;font-weight:700}
+.wk .w{flex:1 1 auto;min-width:0;font-size:15px;line-height:1.25}
+.wk .wh{display:block;min-width:0}
+.wk .wh .dcrest{vertical-align:-4px}
+.wk .w small{display:block;font-size:12.5px;color:var(--turf);margin-top:2px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wk .ch{color:var(--turf);font-size:18px}
+.wk:focus-visible{outline:2px solid var(--flag);outline-offset:-2px}
+@media (hover:hover) and (pointer:fine){ .wk:hover,.callist .de.tap:hover{background:var(--sunk)} }
+
+.lockline{display:flex;align-items:center;gap:10px;margin-top:18px;padding:12px 0 0;
+  border-top:1px solid var(--hair);font-size:13px;color:var(--turf);line-height:1.4}
+.lockline b{color:var(--ink)}
+.lockline .btn.sm{margin-left:auto;flex:0 0 auto;padding:6px 13px;min-height:34px;font-size:13px}
+
+/* ---- a day, in full ---- */
+.dsmodal{gap:0}
+.ds-golf{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:2px 12px;align-items:center;
+  width:100%;text-align:left;margin:6px 0 0;padding:12px 13px;border:0;border-radius:12px;
+  background:var(--ink);color:var(--page);font:inherit;cursor:pointer}
+.ds-golf .t{grid-column:1;font-size:13px;color:#E2C277;font-weight:700;font-variant-numeric:tabular-nums}
+.ds-golf .ti{grid-column:2;font-size:16px;font-weight:700;line-height:1.2}
+.ds-golf .sub{grid-column:1 / span 2;font-size:12.5px;color:var(--sage-up)}
+.ds-golf .dpen{grid-column:3;grid-row:1 / span 2;font-size:20px;color:var(--sage-up)}
+.ds-golf:focus-visible{outline:2px solid var(--flag);outline-offset:2px}
+.ds-rest{margin:12px 0 0;font-size:14px;color:var(--turf);font-style:italic}
+.dsmodal .callist{margin-top:8px}
+.dsmodal .acts{margin-top:16px}
+
 /* ---- the hole head ----
    A tablet and a laptop are not changing: the hole strip keeps its place at
    the foot of the left column, which `order` puts it back to, and the facts
@@ -1799,8 +1855,24 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
    them. */
 .entryhd{order:3;display:contents}
 .ehd-facts{display:none}
-.setline{display:none}
 .holeplate{display:none}
+@media (min-width:700px){ .page.scoring > .setline{display:none} }
+
+/* ---- the one line that stands for a choice you set once ----
+   Round and group on Score Entry; which timetable the hotel is on, on The
+   Titanic. The sheet behind it is where the choice is actually made. */
+.setline{display:flex;align-items:center;gap:7px;width:100%;margin-top:14px;
+  padding:11px 15px;background:var(--sunk);border:0;
+  border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);
+  font-family:inherit;font-size:11px;letter-spacing:.11em;text-transform:uppercase;
+  font-weight:700;color:var(--turf);text-align:left;cursor:pointer}
+.setline b{color:var(--ink)}
+.setline .dot{color:var(--rule)}
+.setline .ch{margin-left:auto;font-size:17px;color:var(--turf)}
+.setline:focus-visible{outline:2px solid var(--flag);outline-offset:-2px}
+@media (hover:hover) and (pointer:fine){ .setline:hover{background:var(--rule)} }
+/* under the index it needs no rule of its own above it */
+.gamesbar + .setline{margin-top:0;border-top:0}
 
 @media (max-width:900px){
   /* on a phone the hole leads, then the round picker under it */
@@ -2407,6 +2479,57 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
   .rhero img{height:160px}
 }
 
+/* THE PLATE IS A BAND. The name is set on the photograph, the hotel's own
+   name small above it, and the reading in the opposite corner — the way a
+   guide's title page carries its date. What used to be a caption, a head,
+   a paragraph and a box is one piece. */
+.rhero.band{position:relative;margin:14px 0 0;border-radius:16px;overflow:hidden;
+  background:var(--ink);color:var(--page);min-height:150px}
+.rhero.band img{height:250px;object-position:center 58%}
+.rhero.band::after{content:"";position:absolute;inset:0;
+  background:linear-gradient(to top,rgba(16,22,17,.92) 0,rgba(16,22,17,.32) 50%,rgba(16,22,17,0))}
+.rhero.band .rt-words{position:absolute;left:18px;bottom:15px;z-index:2;max-width:58%}
+.rhero.band figcaption{margin:0 0 6px;font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  font-weight:700;color:var(--sage-up);max-width:none;line-height:1.3}
+.rhero.band .head{margin:0;color:var(--page);font-size:30px;line-height:1;letter-spacing:-.01em}
+.rhero.band .rt-wx{position:absolute;right:16px;bottom:13px;z-index:2;text-align:right}
+.rhero.band .wx{margin:0;padding:0;background:none;border:0;color:var(--page);
+  display:grid;justify-items:end;gap:2px}
+.rhero.band .wx-now{display:flex;align-items:center;gap:8px}
+.rhero.band .sky.big{width:30px;height:30px;color:#E2C277}
+.rhero.band .wx-t{font-size:30px;font-weight:700;line-height:1;letter-spacing:-.02em}
+.rhero.band .wx-s{display:flex;flex-direction:row;gap:6px;font-size:10.5px;letter-spacing:.08em;
+  text-transform:uppercase;font-weight:700;color:var(--sage-up)}
+.rhero.band .wx-s b{color:var(--page);font-size:10.5px}
+.rhero.band .units{margin:5px 0 0;border:1px solid rgba(255,255,255,.3);border-radius:999px;overflow:hidden}
+.rhero.band .ub{min-width:34px;min-height:24px;padding:0 8px;font-size:11px;
+  background:none;color:var(--sage-up);border:0}
+.rhero.band .ub.on{background:var(--page);color:var(--ink);font-weight:700}
+.rhero.band .wx .tiny{margin:4px 0 0;color:var(--sage-up);font-size:10.5px;max-width:190px;line-height:1.35}
+.rhero.band .wx.cold .wx-cold{text-align:right;max-width:170px}
+.rhero.band + .gamesbar{margin-top:14px}
+/* The index carries the long names where there is room and the short ones
+   on a phone. Scoped to this strip: the boards' own is not touched. */
+.btab .sm{display:none}
+.btabs.games .btab .lg{display:inline}
+.btabs.games .btab .sm{display:none}
+
+/* ---- the lists go dense ----
+   One line a place: the name on the left, when it shuts on the right, a way
+   in at the end. Seventeen snack bars as full cards were a page in
+   themselves; as lines they are a column. */
+.clock{margin:14px 0 0;font-size:14px;color:var(--turf)}
+.clock b{color:var(--ink)}
+h3.sub .subn{margin-left:auto;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--turf);font-weight:700}
+h3.sub{display:flex;align-items:baseline;gap:12px}
+.vmore{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;
+  border:0;border-bottom:1px solid var(--hair);padding:10px 2px;font:inherit;font-size:13.5px;
+  color:var(--turf);cursor:pointer}
+.vmore .ch{margin-left:auto;font-size:18px}
+@media (hover:hover) and (pointer:fine){ .vmore:hover{color:var(--ink)} }
+
+
 /* ---------------- The Titanic ----------------
    A guide, not a scorecard: the type is a little larger, the rows breathe,
    and nothing is set in the tabular figures the boards use. */
@@ -2502,31 +2625,35 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
 
 /* --- a venue, as a card (Right now) and as a row (the lists) --- */
 
-.vgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;margin-top:8px}
-.vgrid.dim .vcard{background:transparent;border-style:dashed}
+.vgrid{display:grid;grid-template-columns:1fr;gap:0;margin-top:6px;border-top:1px solid var(--hair)}
+.vgrid.dim .vcard{opacity:.68}
 /* Every square is a way in to the place it names, so it has to look like
    one: a button, with a mark in the corner saying it can be pressed. */
-.vcard{display:block;width:100%;text-align:left;position:relative;
-  padding:12px 30px 12px 14px;background:var(--page);border:1px solid var(--rule)}
-.vcard.cover{border-left:3px solid var(--gold)}
-.vcard .vtop{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
-.vcard .vwhen{display:block;margin-top:4px;font-size:15px;color:var(--turf)}
-.vcard .vtag{display:inline-block;margin-top:7px;white-space:normal;line-height:1.5}
-.vcard::after{content:'›';position:absolute;top:10px;right:11px;font-size:20px;
-  line-height:1;color:var(--rule)}
+.vcard{display:flex;align-items:center;gap:12px;width:100%;text-align:left;position:relative;
+  padding:10px 2px;min-height:52px;background:none;border:0;border-bottom:1px solid var(--hair);
+  font:inherit;color:var(--ink);cursor:pointer}
+.vcard.cover{box-shadow:inset 3px 0 0 var(--gold);padding-left:11px}
+.vcard .vtop{flex:1 1 auto;min-width:0;display:flex;gap:3px 8px;align-items:baseline;flex-wrap:wrap}
+.vcard .vn{font-size:16px}
+.vcard .vc{font-size:13px}
+.vcard .vwhen{flex:0 0 auto;margin:0;font-size:13.5px;color:var(--turf);text-align:right;
+  line-height:1.3;max-width:46%}
+.vcard .vtag{display:inline-block;margin-top:0;white-space:normal;line-height:1.5;font-size:10px;padding:1px 6px}
+.vcard .vgo{flex:0 0 auto;font-size:19px;line-height:1;color:var(--rule)}
+.vcard:focus-visible{outline:2px solid var(--flag);outline-offset:-2px}
 @media (hover:hover) and (pointer:fine){
-  .vcard:hover{border-color:var(--ink)}
-  .vcard:hover::after{color:var(--ink)}
+  .vcard:hover{background:var(--sunk)}
+  .vcard:hover .vgo{color:var(--ink)}
 }
 .vgroup .plink .vb{display:block;margin:4px 0 0}
 @media (hover:hover) and (pointer:fine){ .vgroup .plink:hover .vn{text-decoration:underline} }
 
 .vlist{margin-top:8px;border-top:1px solid var(--hair)}
-.vrow{display:flex;gap:18px;align-items:flex-start;padding:12px 2px;border-bottom:1px solid var(--hair)}
+.vrow{display:flex;gap:16px;align-items:flex-start;padding:10px 2px;border-bottom:1px solid var(--hair)}
 .vrow.out{opacity:.5}
 .vmain{flex:1 1 auto;min-width:0}
 .vtop{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
-.vn{font-size:18px;font-weight:700}
+.vn{font-size:17px;font-weight:700}
 .vc{font-size:14px;color:var(--turf);font-style:italic}
 .vtag{font-size:11px;letter-spacing:.07em;text-transform:uppercase;font-family:var(--mono);
   color:var(--gold);border:1px solid var(--gold);padding:1px 6px;white-space:nowrap;
@@ -2804,17 +2931,26 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
      what gross and net mean, which is worth a phone's height once and not
      on every hole, and the wider screens keep it. */
   .page.scoring > .lede{display:none}
-  .setline{display:flex;align-items:center;gap:7px;margin-top:14px;
-    padding:11px 15px;background:var(--sunk);border:0;
-    border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);
-    margin-left:calc(clamp(14px,3vw,26px) * -1);margin-right:calc(clamp(14px,3vw,26px) * -1);
-    width:calc(100% + clamp(14px,3vw,26px) * 2);
-    font-family:inherit;font-size:11px;letter-spacing:.11em;text-transform:uppercase;
-    font-weight:700;color:var(--turf);text-align:left}
-  .setline b{color:var(--ink)}
-  .setline .dot{color:var(--rule)}
-  .setline .ch{margin-left:auto;font-size:17px;color:var(--turf)}
-  @media (hover:hover) and (pointer:fine){ .setline:hover{background:var(--rule)} }
+  /* the calendar's plate, tighter */
+  .calplate{padding:14px 15px 15px}
+  .calplate .cp-art{width:250px;right:-52px;top:-34px}
+  .cp-dn{font-size:28px}
+  /* The Titanic: the photograph runs edge to edge between the strip and
+     the index, which is both pine, and the names on the index are short. */
+  .rhero.band{margin:0 calc(clamp(14px,3vw,26px) * -1);border-radius:0}
+  .rhero.band img{height:172px}
+  .rhero.band .head{font-size:24px}
+  .rhero.band .wx-t{font-size:26px}
+  .rhero.band .sky.big{width:26px;height:26px}
+  .rhero.band figcaption .pl{display:none}
+  .rhero.band .rt-words{max-width:60%}
+  .rhero.band .wx.cold .wx-cold{max-width:120px;font-size:10px}
+  .rhero.band + .gamesbar{margin-top:0}
+  .btabs.games .btab .lg{display:none}
+  .btabs.games .btab .sm{display:inline}
+  .vcard .vwhen{max-width:40%;font-size:13px}
+  .setline{margin-left:calc(clamp(14px,3vw,26px) * -1);margin-right:calc(clamp(14px,3vw,26px) * -1);
+    width:calc(100% + clamp(14px,3vw,26px) * 2)}
 
   /* Above the save bar, deliberately. Near the top of the page the band
      has not started sticking yet and still sits in the flow, which can put

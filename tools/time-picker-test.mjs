@@ -135,7 +135,7 @@ for (const [label, vp, mob] of [['phone 390', { width: 390, height: 844 }, true]
      week is a week again: you tap an event to open it, not to type into it. */
   await tab('Calendar');
   ok('the week is the only view', await p.locator('[data-act="calView"]').count(), 0);
-  ok('and every day of it is there', await p.locator('.daycard').count(), 8);
+  ok('and every day of it is there', await p.locator('.wk').count() + 1, 8);
   await p.locator('.de.tap').first().click(); await p.waitForTimeout(600);
   const fx = p.locator('.evmodal .timepick');
   ok('the event window picks a time the same way', await fx.locator('select').count(), 3);
