@@ -1670,13 +1670,19 @@ function holePlate(rid, h, hole, course, cap, list, slotPlayers) {
      thumb can still pan to either end; a tap opens the whole of it. */
   const box = ART[hole.img] || [0, 0, 1, 1];
   const bw = Math.max(box[2] - box[0], 0.05), bh = Math.max(box[3] - box[1], 0.05);
-  const k = Math.max(1 / bw, (5 / 7) / (bh * (736 / 520)), 1);   // sheet width, in windows
+  /* Two fits. A phone's window is a wide slot, so the sheet is drawn large
+     enough for the hole to COVER it and the window pans along the hole. A
+     tablet or a laptop gives the hole a tall card beside the rows, so the
+     sheet is drawn so the hole fits WITHIN it, whole, and the card pans
+     only for the last few points of a long par five. */
+  const kw = Math.max(1 / bw, (5 / 7) / (bh * (736 / 520)), 1);
+  const kp = Math.max(Math.min(1 / bw, (5 / 4) / (bh * (736 / 520))), 1);
   const cx = (box[0] + box[2]) / 2, cy = (box[1] + box[3]) / 2;
   return `<div class="holeplate">
     <div class="hp-scroll nos" data-act="holeArt" data-a="${h}" data-key="${esc(rid)}:${h}"
       data-cx="${cx.toFixed(3)}" data-cy="${cy.toFixed(3)}"
       role="img" aria-label="Hole ${hole.n} at ${esc(course.name)}, par ${hole.par}, stroke index ${hole.si}, ${hole.mW} metres. Tap to see the whole hole.">
-      <img decoding="sync" src="${art}" alt="" style="width:${(k * 100).toFixed(1)}%"></div>
+      <img decoding="sync" src="${art}" alt="" style="--kw:${(kw * 100).toFixed(1)}%;--kp:${(kp * 100).toFixed(1)}%"></div>
     <button class="hp-open" data-act="holeArt" data-a="${h}" aria-label="See the whole of hole ${hole.n}">⤢</button>
     <span class="hp-course">${esc(course.name)}</span>
     <span class="hp-ghost num" aria-hidden="true">${hole.n}</span>
@@ -2042,8 +2048,6 @@ function scrMine(rid) {
     </div></div>
   </div>
 
-  ${mine ? holePlate(rid, h, hole, course, cap, [mine], [me]) : ''}
-
   <div class="savebar mine">
     <div class="sv"><b>Hole ${hole.n}</b><span>${played != null ? 'You wrote ' + played + ' · par ' + hole.par : 'Par ' + hole.par + ' · not scored yet'}</span></div>
     <button class="btn ghost" data-act="mineHole" data-a="${Math.max(h - 1, 0)}"${h === 0 ? ' disabled' : ''} aria-label="Previous hole">‹</button>
@@ -2061,6 +2065,8 @@ function scrMine(rid) {
         things nobody watching could know — whether it deserved better, or a
         great deal worse, and whether the trouble came before the swing or
         during it. */ ''}
+  <div class="entrygrid">
+  <div class="egl">
   <p class="sublede">Only you know these. The ref is already writing down where the ball went.</p>
   <div class="minemarks">
     ${E.OWN_MARKS.map(m => `<button class="mnchip ${m.tone}${on.includes(m.key) ? ' on' : ''}"
@@ -2102,6 +2108,9 @@ function scrMine(rid) {
       value="${esc(sayText)}">
   </label>
 
+  </div>
+  <div class="egr">
+  ${mine ? holePlate(rid, h, hole, course, cap, [mine], [me]) : ''}
   ${kept.length ? `<h3 class="sub">Your round so far</h3>
     <div class="rows" style="margin-top:8px;border-top:1px solid var(--rule)">
       ${kept.map(k => `<div class="row minerow">
@@ -2112,7 +2121,9 @@ function scrMine(rid) {
         }).join(' ')}${k.tx ? ` <span class="minetx">${esc(k.tx)}</span>` : ''}</span>
       </div>`).join('')}
     </div>`
-  : `<p class="empty">Nothing kept yet. Tap a mark above, or write a line about a hole.</p>`}`;
+  : `<p class="empty">Nothing kept yet. Tap a mark above, or write a line about a hole.</p>`}
+  </div>
+  </div>`;
 }
 
 function scrEntry() {
@@ -2349,8 +2360,6 @@ function scrEntry() {
     </div>
   </div>
 
-  ${holePlate(rid, h, hole, course, cap, list, slotPlayers)}
-
   ${gate}${saveBar}
 
   <div class="holehead">
@@ -2360,9 +2369,14 @@ function scrEntry() {
     <span class="r num">Picks up at ${cap}</span>
   </div>
 
+  ${/* THE HOLE BESIDE THE ROWS. On a phone the plate comes first and the
+        rows follow; on anything wider the rows take the page and the hole
+        stands beside them in a card that stays put while they scroll. The
+        same markup, placed by the stylesheet. */ ''}
   <div class="entrygrid">
-    <div>${rows || `<p class="empty">No golfers in this group.</p>`}</div>
-    <div>
+    <div class="egl">${rows || `<p class="empty">No golfers in this group.</p>`}</div>
+    <div class="egr">
+      ${holePlate(rid, h, hole, course, cap, list, slotPlayers)}
       <div class="side-b" data-reveal="bbb">
         <h3>Bingo Bango Bongo — hole ${hole.n}</h3>
         <p class="sublede">First on, closest once all on, first in.</p>

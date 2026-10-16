@@ -185,7 +185,7 @@ await p.screenshot({ path: S + '/entry-phone.png' });
 await ctx.close();
 
 /* ================================ the laptop ================================ */
-console.log('\nnone of it reaches a laptop');
+console.log('\nand a laptop wears the same furniture, fitted to its room');
 const ctx2 = await b.newContext({ viewport: { width: 1280, height: 860 } });
 const q = await ctx2.newPage();
 await q.goto('file://' + W);
@@ -196,15 +196,21 @@ for (let i = 0; i < 8; i++) { const m = q.locator('.scrim [data-act="modalCancel
   if (await m.count()) await m.first().click({ force: true }).catch(() => {}); await q.waitForTimeout(250); }
 await q.locator('.tab:visible, .navbtn:visible', { hasText: 'Score Entry' }).first().click();
 await q.waitForTimeout(800);
-ok('the round cards are still there', await q.locator('.rcards:visible').count(), 1);
-ok('so is the row of group chips', await q.locator('.grouprow:visible').count(), 1);
-ok('the drawing is still beside the card', await q.locator('.cside img').count(), 1);
-ok('the one-line stand-in is not', await q.locator('.setline:visible').count(), 0);
-ok('nor is the phone-only plate', await q.locator('.holeplate:visible').count(), 0);
-ok('and nothing is nailed to the foot', await q.evaluate(() => {
-  const e = document.querySelector('.savebar');
-  return !e || getComputedStyle(e).position !== 'fixed'; }), true);
+ok('the round cards are gone here too', await q.locator('.rcards:visible').count(), 0);
+ok('and the row of group chips', await q.locator('.grouprow:visible').count(), 0);
+ok('one line stands for both', await q.locator('.setline:visible').count(), 1);
+ok('the band sticks at the head', await q.evaluate(() => getComputedStyle(document.querySelector('.entryhd')).position), 'sticky');
+ok('with the par under every number', await q.locator('.entryhd .hcell .p:visible').count(), 18);
+ok('the hole stands beside the rows', await q.evaluate(() => {
+  const pl = document.querySelector('.egr .holeplate').getBoundingClientRect();
+  const rows = document.querySelector('.egl').getBoundingClientRect();
+  return pl.left > rows.right - 2 && pl.top < rows.bottom; }), true);
+ok('whole, in a tall card', await q.evaluate(() => {
+  const r = document.querySelector('.holeplate').getBoundingClientRect(); return r.height > r.width; }), true);
+ok('and the card keeps its place while the rows scroll',
+  await q.evaluate(() => getComputedStyle(document.querySelector('.egr')).position), 'sticky');
 ok('the paragraph is still read on a laptop', await q.locator('.page.scoring > .lede:visible').count(), 1);
+ok('the drawing beside the card is gone, the plate having taken its place', await q.locator('.cside:visible').count(), 0);
 await q.screenshot({ path: S + '/entry-laptop.png' });
 
 await b.close();
