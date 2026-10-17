@@ -2759,6 +2759,9 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
 .pinstate{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--flag);align-self:center;margin-right:8px}
 .pinstate.on{color:var(--green)}
 
+.btn.wa{background:#25D366;border-color:#25D366;color:#0B2A17}
+.btn.wa:hover{filter:brightness(1.05)}
+
 /* ---- how'd it feel? the question put the moment a score lands ----
    A strip of pine above the nav, one tap to answer, a word if they want
    one. On the scoring page it stands above the Save bar; on anything

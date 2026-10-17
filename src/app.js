@@ -1109,6 +1109,8 @@ function recapPanel() {
       ${ed && body && !gallery ? `<button class="btn ghost${editing ? ' on' : ''}" data-act="recapEditToggle" aria-pressed="${editing}">${
         editing ? 'Done editing' : 'Edit the words'}</button>` : ''}
       ${ed && body && !published && !gallery ? `<button class="btn" data-act="recapPublish" data-a="${rid}">Share to the group</button>` : ''}
+      ${body && (published || ed) && !gallery ? `<button class="btn wa" data-act="recapWhatsApp" data-a="${rid}">Send to WhatsApp</button>
+        <button class="btn ghost" data-act="recapCopy" data-a="${rid}">${UI.recap.copied ? 'Copied' : 'Copy the words'}</button>` : ''}
       ${UI.recap.busy ? '<button class="btn ghost" data-act="recapStop">Stop</button>' : ''}
     </div>
   </div>
@@ -1467,6 +1469,26 @@ async function addPhotos(rid, files) {
   }
 }
 
+/* THE REPORT, AS A MESSAGE. The recap is written to be read in the book,
+   but the group lives in WhatsApp, so the words go there too: the headline,
+   the three paragraphs, the swing and the honours, as plain text with the
+   book's address at the foot. Everyone who can read the report can send it. */
+function recapText(rid) {
+  const rec = T.recaps[rid]; const b = rec && rec.body; if (!b) return '';
+  const r = E.roundDef(rid) || {}; const d = E.dayOf(r.dayIdx || 0) || {};
+  const who = id => (E.person(T, id) || {}).display || (() => { const pr = (T.config.pairs || []).find(x => x.id === id); return pr ? E.pairName(T, pr) : id; })();
+  const L = [];
+  L.push('THE UNION INVITATIONAL \u2014 ' + (r.full || '') + (d.dow ? ', ' + d.dow + ' ' + d.date : ''));
+  if (b.headline) L.push('', '*' + b.headline + '*');
+  (b.narrative || []).forEach(para => L.push('', para));
+  if (b.swing && b.swing.value) L.push('', 'Swing of the day: ' + b.swing.value + (b.swing.caption ? ' \u2014 ' + b.swing.caption : ''));
+  const hs = (b.honours || []).filter(h => h.winner);
+  if (hs.length) { L.push('', 'Honours'); hs.forEach(h => { const lab = (HONOURS.find(x => x.slot === h.slot) || {}).label || h.slot; L.push('\u2022 ' + lab + ' \u2014 ' + who(h.winner) + (h.citation ? ': ' + h.citation : '')); }); }
+  const pn = Object.entries(b.pairNotes || {}).filter(([, v]) => v);
+  if (pn.length) { L.push('', 'The pairs'); pn.forEach(([id, v]) => L.push('\u2022 ' + who(id) + ': ' + v)); }
+  L.push('', 'The whole book, boards and photos: ' + D.SITE_URL);
+  return L.join('\n');
+}
 const HONOURS = [
   { slot: 'shot_of_the_day', label: 'Shot of the day' },
   { slot: 'round_of_the_day', label: 'Round of the day' },
@@ -5558,6 +5580,21 @@ function onClick(e) {
     case 'recapGen':
       writeRecap(a, true);
       return;
+    case 'recapWhatsApp': {
+      const text = recapText(a); if (!text) return;
+      /* the phone's own share sheet first, which lets them pick the group;
+         WhatsApp's link otherwise, which opens the app with the words in */
+      const wa = () => { try { window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank'); } catch (e) { /* nothing to open */ } };
+      if (navigator.share) navigator.share({ text }).catch(err => { if (!err || err.name !== 'AbortError') wa(); });
+      else wa();
+      return;
+    }
+    case 'recapCopy': {
+      const text = recapText(a); if (!text) return;
+      const done = () => { UI.recap.copied = true; render(); setTimeout(() => { UI.recap.copied = false; render(); }, 1800); };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, () => {});
+      return;
+    }
     case 'recapPublish':
       if (!canEdit()) return;
       store.writeRecap(a, r => { r.status = 'published'; r.at = Date.now(); });

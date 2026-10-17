@@ -6,6 +6,8 @@
    score, and no dialog asks for a PIN. Flip this to true to arm the three PINs
    set on the Setup screen — nothing else needs to change. */
 export const PINS_ENABLED = true;
+/* where the book lives, for the words that leave it */
+export const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
