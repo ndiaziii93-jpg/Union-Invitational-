@@ -36,6 +36,8 @@ const UI = {
   recapOpen: false,
   recapOpen: false,
   recap: { rid: null, busy: false, err: '', stream: '', edit: false, view: 'report' },
+  feelOn: null,         // the hole the golfer is being asked about: {rid, h}
+  feelDraft: null,      // the word they are typing on it: {rid, h, v}
   upload: { queue: [], err: '' },
   role: 'viewer',
   boardTab: 'home',     // the six games at once; a board is something you open
@@ -82,6 +84,22 @@ function loadRole() { try { return localStorage.getItem(ROLE_KEY); } catch (e) {
 const ME_KEY = 'union-invitational:me';
 function saveMe(pid) { try { localStorage.setItem(ME_KEY, pid || ''); } catch (e) { /* storage blocked */ } }
 function loadMe() { try { return localStorage.getItem(ME_KEY) || null; } catch (e) { return null; } }
+/* The holes this phone has already asked about and had answered or waved
+   away, so a question is put once. Kept on the device: the answer itself
+   goes in the book, the fact of having been asked does not. */
+const FEEL_KEY = 'union-invitational:feel';
+let feelSeenCache = null;
+function feelSeen() {
+  if (feelSeenCache) return feelSeenCache;
+  try { feelSeenCache = JSON.parse(localStorage.getItem(FEEL_KEY) || '{}') || {}; }
+  catch (e) { feelSeenCache = {}; }
+  return feelSeenCache;
+}
+function markFeelSeen(rid, h) {
+  const seen = feelSeen();
+  seen[rid + ':' + h] = 1;
+  try { localStorage.setItem(FEEL_KEY, JSON.stringify(seen)); } catch (e) { /* storage blocked */ }
+}
 
 /* Nothing is editable until the shared book has loaded. Before that the page is
    showing factory defaults, and an edit would write those over the real
@@ -859,7 +877,8 @@ function recapState(rid) {
   if (!st.complete) {
     return { key: 'live', line: 'Round in progress — ' + st.inCards + ' of ' + st.field + ' cards in.' };
   }
-  if (!written) return { key: 'togen', line: 'Round complete — tap to read the day.' };
+  if (!written) return { key: 'togen', line: rec && rec.claim && (Date.now() - rec.claim.at) < CLAIM_MS
+    ? 'Round complete — the report is being written.' : 'Round complete — tap to read the day.' };
   return { key: 'ready', line: E.roundDef(rid).short + ' is complete — read the report.' };
 }
 
@@ -876,6 +895,86 @@ function recapButton() {
       </span>
       ${IMG.crest ? `<img class="rb-c" src="${IMG.crest}" alt="">` : ''}
     </button>
+  </div>`;
+}
+
+/* ---------------- how'd it feel? ----------------
+ *
+ * The four marks a golfer can put on their own hole are the recap's best
+ * material and the hardest to collect: nobody opens My Round on a fairway.
+ * So the book asks, the moment a score lands that is worth asking about —
+ * a double or worse, a birdie or better, a hole the ref marked, the two
+ * nominated holes — and asks nothing on a par with nothing to it. The
+ * question is a strip above the nav, answered with one tap and a word if
+ * they want one, and it is put once: answered or skipped, it does not come
+ * back. The bar follows the round the golfer is on and stops the moment
+ * the day's report is written, because by then the moment has passed. */
+function feelRound() {
+  let best = null;
+  for (const r of D.ROUNDS) {
+    const c = E.card(T, r.id, UI.me);
+    if (!c || !c.raw.some(v => v != null)) continue;
+    const rec = T.recaps[r.id];
+    if (rec && rec.body) continue;
+    best = r.id;
+  }
+  return best;
+}
+function feelBar() {
+  if (!UI.me || UI.modal || UI.recapOpen || UI.askOpen || !loaded()) return '';
+  const rid = feelRound();
+  if (!rid) { UI.feelOn = null; return ''; }
+  const seen = feelSeen();
+  /* the hole being answered stays up while it is answered — a mark put on
+     it would otherwise drop it out of the asks before the word is typed */
+  let cur = UI.feelOn && UI.feelOn.rid === rid && !seen[rid + ':' + UI.feelOn.h] ? UI.feelOn.h : null;
+  if (cur == null) {
+    const asks = E.feelAsks(T, rid, UI.me).filter(a => !seen[rid + ':' + a.h]);
+    if (!asks.length) { UI.feelOn = null; return ''; }
+    cur = asks[0].h;
+    UI.feelOn = { rid, h: cur };
+  }
+  const hole = E.courseOf(T, rid).holes[cur];
+  const c = E.card(T, rid, UI.me);
+  const raw = c ? c.raw[cur] : null;
+  if (raw == null) { UI.feelOn = null; return ''; }      // the score was taken back
+  const on = E.selfMarks(T, rid, UI.me, cur);
+  const text = (UI.feelDraft && UI.feelDraft.rid === rid && UI.feelDraft.h === cur) ? UI.feelDraft.v : '';
+  return `<aside class="feelbar" role="region" aria-label="How'd you feel on hole ${hole.n}">
+    <div class="fb-h"><span class="fb-n num">${hole.n}</span>
+      <div class="fb-w"><b>How'd it feel?</b><span>${esc(E.scoreName(raw, hole.par))} on a par ${hole.par} · yours, not the card's</span></div>
+      <button class="fb-skip" data-act="feelSkip" data-a="${rid}" data-b="${cur}">Skip</button></div>
+    <div class="fb-chips">${E.OWN_MARKS.map(m => `<button class="fb-chip ${m.tone}${on.includes(m.key) ? ' on' : ''}"
+      data-act="feelMark" data-a="${m.key}" data-b="${cur}" data-c="${rid}" aria-pressed="${on.includes(m.key)}"><b>${esc(m.label)}</b><span>${esc(m.hint)}</span></button>`).join('')}</div>
+    <div class="fb-row"><input class="field fb-word" id="feelText" data-b="${cur}" data-c="${rid}" maxlength="140"
+        placeholder="A word on it, if you want one…" value="${esc(text)}" aria-label="A word on hole ${hole.n}">
+      <button class="btn fb-done" data-act="feelDone" data-a="${rid}" data-b="${cur}">Done</button></div>
+  </aside>`;
+}
+/** The word typed on the bar, written to the golfer's own notes. */
+function commitFeel() {
+  const d = UI.feelDraft;
+  UI.feelDraft = null;
+  if (!d || !UI.me || !store) return;
+  const v = String(d.v || '').trim().slice(0, 140);
+  const had = E.selfLog(T, d.rid, UI.me);
+  const was = had && had.text ? String(had.text[d.h] || '') : '';
+  if (v === was) return;
+  store.writeNote(d.rid, UI.me, n => {
+    if (v) n.text[d.h] = v; else delete n.text[d.h];
+    n.at[d.h] = Date.now();
+  });
+}
+/** A golfer's own round so far, on My Round: what they have kept, counted,
+ *  and the last thing they wrote. Seeing it build is the reason to keep
+ *  adding to it. */
+function feelStrip(rid, me) {
+  const t = E.feelTally(T, rid, me);
+  if (!t.played && !t.marked) return '';
+  return `<div class="feelstrip" aria-label="Your round so far">
+    <span class="fs-n">Marked ${t.marked} of ${t.played} played</span>
+    ${t.counts.map(m => `<span class="fs-t ${m.tone}"><i class="num">${m.holes.length}</i>${esc(m.short)}</span>`).join('')}
+    ${t.last ? `<span class="fs-q">“${esc(t.last.text)}” — hole ${t.last.h + 1}</span>` : ''}
   </div>`;
 }
 
@@ -2060,6 +2159,7 @@ function scrMine(rid) {
     <button class="rm" data-act="setMe" data-a="">Not you?</button></h3>
   <p class="lede">${esc(r.full)}. Yours to keep, and it feeds the day's recap.
   It changes no score and no board — not even yours.</p>
+  ${feelStrip(rid, me)}
 
   <button class="setline" data-act="roundSheet">
     <b>${esc(r.short === 'Practice' ? 'Practice' : 'Round ' + r.short.slice(1))}</b>
@@ -4023,6 +4123,7 @@ function paint() {
       <span class="build" title="Which copy of the book this device is running">build ${esc(D.BUILD)}</span>
     </div>
   </div>
+  ${feelBar()}
   ${tabBar()}
   ${stickyTop(role)}
   ${UI.modal ? modalHtml() : ''}
@@ -4072,6 +4173,7 @@ function paint() {
 
   opened.forEach(id => { const el = document.getElementById(id); if (el) el.open = true; });
   mountHole3D();
+  setTimeout(recapWatch, 0);
 
   applyScrollMarks(strips);
   /* The scrim is the one surface a window scrolls on — that is what stopped
@@ -5719,6 +5821,30 @@ function onClick(e) {
       render();
       return;
     }
+    /* the bar: a mark on the hole it asks about, the word, and the way out */
+    case 'feelMark': {
+      if (!UI.me) return;
+      const h = +b;
+      store.writeNote(c, UI.me, n => {
+        const was = Array.isArray(n.marks[h]) ? n.marks[h] : [];
+        const next = was.includes(a) ? was.filter(k => k !== a) : was.concat(a);
+        if (next.length) n.marks[h] = next; else delete n.marks[h];
+        n.at[h] = Date.now();
+      });
+      render();
+      return;
+    }
+    case 'feelDone':
+    case 'feelSkip': {
+      const fld = document.getElementById('feelText');
+      if (act === 'feelDone' && fld && fld.value.trim()) UI.feelDraft = { rid: a, h: +b, v: fld.value };
+      else UI.feelDraft = null;
+      if (act === 'feelDone') commitFeel();
+      markFeelSeen(a, +b);
+      UI.feelOn = null;
+      render();
+      return;
+    }
     case 'tglMine': {
       if (!UI.me) return;
       const h = +b;
@@ -5764,7 +5890,7 @@ function onClick(e) {
              already guarded — writeRecap refuses when a report exists, when
              the round is not complete, or when one is already running — and
              opening the panel still writes it if this never got the chance. */
-          if (h === 17) setTimeout(() => writeRecap(rid, false), 0);
+          if (h === 17) startRecap(rid);
           const next = h < 17 ? { what: 'hole', rid, h: h + 1 } : { what: 'finish', rid };
           /* Three points a hole that nobody can reconstruct afterwards. If
              any of them is blank, that goes FIRST and the rest queues behind
@@ -6123,6 +6249,10 @@ const RECAP_RULES = [
   '  not the ref\'s. Attribute it — "by his own account", "as he tells it" —',
   '  and never state it as established fact.',
   '- Their own words may be quoted, briefly, and should be where they are good.',
+  '- Under what the golfers said about their own holes, each feeling sits',
+  '  beside the score it goes with. Use them together: a seven that "deserved',
+  '  better" and a seven that was "the wrong club" are two different stories.',
+  '  Where the field agrees a hole robbed them, the hole is the character.',
   '',
   '- Three paragraphs of roughly 60 to 90 words each.',
   '- At least two honours must be winnable by somebody having a bad round.',
@@ -6161,7 +6291,36 @@ function parseRecap(raw) {
   };
 }
 
-async function writeRecap(rid, again) {
+/* THE REPORT WRITES ITSELF. The phone that saves the last card starts it;
+   and because that phone may have no writer, or lose its signal at the
+   last putt, every phone that could have pressed the button watches too:
+   a finished round with no report and no fresh claim on it is started by
+   whoever sees it first. The claim is written to the book before the
+   writer is asked, so two phones seeing the same moment do not pay for two
+   reports; a claim older than four minutes is a phone that died, and the
+   next one takes over. Three goes and it stops, for a person to look at. */
+const CLAIM_MS = 4 * 60000;
+let recapStarting = false;
+function startRecap(rid) {
+  if (recapStarting || !store) return;
+  recapStarting = true;
+  store.writeRecap(rid, r => { r.claim = { at: Date.now() }; r.tries = (r.tries || 0) + 1; });
+  setTimeout(() => { recapStarting = false; writeRecap(rid, false, true); }, 0);
+}
+function recapWatch() {
+  if (!loaded() || !askClaude || !canEdit() || UI.recap.busy || recapStarting) return;
+  for (const r of D.ROUNDS) {
+    const rec = T.recaps[r.id];
+    if (rec && rec.body) continue;
+    if (rec && (rec.tries || 0) >= 3) continue;
+    if (rec && rec.claim && rec.claim.at && Date.now() - rec.claim.at < CLAIM_MS) continue;
+    if (!E.roundStanding(T, r.id).complete) continue;
+    startRecap(r.id);
+    return;
+  }
+}
+
+async function writeRecap(rid, again, auto) {
   if (!rid || UI.recap.busy) return;
   /* Opening the panel writes the report by itself, but only for a round that
      is actually finished, and only for someone who could have pressed the
@@ -6182,7 +6341,10 @@ async function writeRecap(rid, again) {
     });
     const body = parseRecap(text);
     if (!body.narrative.length) throw new Error('no narrative');
-    await store.writeRecap(rid, r => { r.body = body; r.status = r.status === 'published' ? 'published' : 'draft'; r.at = Date.now(); });
+    /* Written by the book itself, it goes straight to the group: nobody is
+       standing by to press Share at the end of a round. A commissioner can
+       still edit it afterwards. */
+    await store.writeRecap(rid, r => { r.body = body; r.status = (auto || r.status === 'published') ? 'published' : 'draft'; r.at = Date.now(); delete r.claim; });
   } catch (e) {
     UI.recap.err = (e && e.code) ? sampleError(e)
       : 'The report came back in a shape the book could not read. Try again.';
@@ -6221,6 +6383,7 @@ export function boot() {
 
   store = S.createStore((state, m) => {
     T = state; meta = m;
+    window.__T = T; window.__UI = UI;        // read by the tests, written by nobody
     /* `ready` means the subscriptions are registered, which happens almost
        at once and well before any tournament has arrived. */
     if (m.ready && !UI.setupSeen) {
@@ -6282,6 +6445,9 @@ export function boot() {
     }
     if (e.target && e.target.id === 'mineText') {
       UI.mineDraft = { rid: UI.entryRound, h: +e.target.dataset.b, v: e.target.value };
+    }
+    if (e.target && e.target.id === 'feelText') {
+      UI.feelDraft = { rid: e.target.dataset.c, h: +e.target.dataset.b, v: e.target.value };
     }
     if (e.target && e.target.id === 'mineSay') {
       UI.sayDraft = { rid: UI.entryRound, v: e.target.value };

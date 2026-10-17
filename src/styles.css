@@ -2731,6 +2731,50 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
   .mnchip{flex:1 1 100%}
 }
 
+/* ---- how'd it feel? the question put the moment a score lands ----
+   A strip of pine above the nav, one tap to answer, a word if they want
+   one. On the scoring page it stands above the Save bar; on anything
+   wider it is a card in the corner, off the page's own column. */
+.feelbar{position:fixed;left:12px;right:12px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:29;
+  background:var(--ink);color:var(--page);border-radius:18px;padding:12px 14px;
+  box-shadow:0 10px 30px rgba(16,22,17,.38);border-top:2px solid var(--gold-up);
+  animation:feelin .28s ease-out}
+@keyframes feelin{from{transform:translateY(16px);opacity:0}to{transform:none;opacity:1}}
+html:has(.page.scoring) .feelbar{bottom:calc(150px + env(safe-area-inset-bottom,0px))}
+.fb-h{display:flex;align-items:center;gap:11px;margin-bottom:10px}
+.fb-n{font-size:28px;font-weight:700;line-height:1;color:#E2C277;min-width:26px;letter-spacing:-.02em}
+.fb-w{flex:1;min-width:0}
+.fb-w b{display:block;font-size:16px;line-height:1.2}
+.fb-w span{display:block;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--sage-up);margin-top:3px}
+.fb-skip{background:none;border:0;color:var(--sage-up);font-family:inherit;font-size:13px;padding:8px 0 8px 10px}
+.fb-chips{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.fb-chip{border:1px solid rgba(238,232,213,.28);border-radius:12px;padding:8px 11px;background:rgba(238,232,213,.07);
+  text-align:left;font-family:inherit;color:var(--page);min-height:50px;-webkit-tap-highlight-color:transparent}
+.fb-chip b{display:block;font-size:14px;font-weight:600}
+.fb-chip span{display:block;font-size:11px;color:var(--sage-up);margin-top:1px}
+.fb-chip.on{background:var(--page);border-color:var(--page)}
+.fb-chip.on b{color:var(--ink)}.fb-chip.on span{color:var(--turf)}
+.fb-chip.good.on{background:var(--gold-up);border-color:var(--gold-up)}
+.fb-row{display:flex;gap:8px;margin-top:9px}
+.fb-word{flex:1;min-width:0;border-radius:12px;background:rgba(238,232,213,.08);color:var(--page);
+  border-color:rgba(238,232,213,.28);font-size:15px}
+.fb-word::placeholder{color:rgba(238,232,213,.5)}
+.fb-done{background:var(--gold-up);color:var(--ink);border-color:var(--gold-up);border-radius:12px;padding:0 18px;font-weight:600}
+@media (min-width:700px){
+  .feelbar{left:auto;right:22px;width:380px;bottom:22px}
+  html:has(.page.scoring) .feelbar{bottom:22px}
+}
+
+/* ---- your round so far, on My Round: what has been kept, counted ---- */
+.feelstrip{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin:10px 0 14px;padding:10px 14px;
+  border:1px solid var(--rule);border-radius:12px;background:var(--sunk)}
+.feelstrip .fs-n{font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--turf);margin-right:auto}
+.feelstrip .fs-t{display:inline-flex;align-items:center;gap:5px;font-size:13px;font-weight:600;color:var(--ink)}
+.feelstrip .fs-t i{font-style:normal;display:inline-grid;place-items:center;min-width:20px;height:20px;border-radius:999px;
+  background:var(--ink);color:var(--page);font-size:11.5px;padding:0 5px}
+.feelstrip .fs-t.good i{background:var(--gold-up);color:var(--ink)}
+.feelstrip .fs-q{flex-basis:100%;font-style:italic;color:var(--turf);font-size:13.5px}
+
 /* ---- the end of the round, in the golfer's own words ----
    One mood, mutually exclusive, so it reads as a single answer rather than a
    set of switches. The confessions beside it reuse the My Round chip. */

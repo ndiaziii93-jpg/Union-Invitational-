@@ -727,6 +727,166 @@ export function markLine(T, rid, pid, self) {
   return bits.join('; ');
 }
 
+/* ---------- how a hole felt ----------
+ *
+ * The four marks above are only worth anything if golfers put them on, and
+ * nobody opens My Round on a fairway unless something pulls them there. So
+ * the book asks — once, on the holes worth asking about, the moment the
+ * score lands. A par with nothing to it needs no question; a double or
+ * worse, a birdie or better, a hole the ref marked, and the two nominated
+ * holes do. Fewer questions is the point: they keep answering the ones
+ * they get. */
+
+/** What a score is called, against par. */
+export function scoreName(raw, par) {
+  const d = raw - par;
+  if (raw === 1) return 'an ace';
+  if (d <= -3) return 'an albatross';
+  if (d === -2) return 'an eagle';
+  if (d === -1) return 'a birdie';
+  if (d === 0) return 'a par';
+  if (d === 1) return 'a bogey';
+  if (d === 2) return 'a double';
+  if (d === 3) return 'a triple';
+  return 'a ' + raw;
+}
+
+/** Why a hole is worth asking about, or null when it is not. */
+export function feelWhy(T, rid, pid, h) {
+  const c = card(T, rid, pid);
+  const raw = c ? c.raw[h] : null;
+  if (raw == null) return null;
+  const hole = courseOf(T, rid).holes[h];
+  const cfg = roundCfg(T, rid) || {};
+  const d = raw - hole.par;
+  if (d >= 2) return 'trouble';
+  if (d < 0) return 'good';
+  if (holeMarks(T, rid, pid, h).length) return 'marked';
+  if (cfg.ctpHole === hole.n || cfg.ldHole === hole.n) return 'nominated';
+  return null;
+}
+
+/** The holes a golfer should be asked about and has not yet answered on:
+ *  scored, worth asking, and carrying none of their own marks or words.
+ *  Latest hole first, because that is the one they just walked off. */
+export function feelAsks(T, rid, pid) {
+  const out = [];
+  const n = selfLog(T, rid, pid);
+  const holes = courseOf(T, rid).holes;
+  const c = card(T, rid, pid);
+  if (!c) return out;
+  for (let h = 17; h >= 0; h--) {
+    const why = feelWhy(T, rid, pid, h);
+    if (!why) continue;
+    if (selfMarks(T, rid, pid, h).length) continue;
+    if (n && n.text && String(n.text[h] || '').trim()) continue;
+    out.push({ h, raw: c.raw[h], par: holes[h].par, why });
+  }
+  return out;
+}
+
+/** A golfer's own round so far: how many holes they have marked of those
+ *  played, each mark with its holes, and the last thing they wrote. */
+export function feelTally(T, rid, pid) {
+  const c = card(T, rid, pid);
+  const n = selfLog(T, rid, pid);
+  let played = 0, marked = 0, last = null;
+  for (let h = 0; h < 18; h++) {
+    if (c && c.raw[h] != null) played++;
+    const ks = selfMarks(T, rid, pid, h);
+    const tx = n && n.text ? String(n.text[h] || '').trim() : '';
+    if (ks.length || tx) marked++;
+    if (tx) last = { h, text: tx };
+  }
+  const t = markTally(T, rid, pid, true);
+  const counts = OWN_MARKS.map(m => ({ ...m, holes: t[m.key] || [] })).filter(m => m.holes.length);
+  return { played, marked, counts, last };
+}
+
+/** What the golfers said about the holes, for the writer. Two sources,
+ *  kept apart on purpose: the ref's marks are what somebody standing there
+ *  wrote down, and the self log is what a golfer said about their own
+ *  hole. They are different kinds of claim and the recap must not treat
+ *  them as one. The coverage line is the important one: marks are made on
+ *  the holes somebody remembered to mark, which is never all of them, so
+ *  every count is a floor and never a total. */
+export function feelBlock(T, rid) {
+  const L = [];
+  const holes = courseOf(T, rid).holes;
+  const marked = [];
+  for (const p of golfers(T)) {
+    const c = card(T, rid, p.id);
+    if (!c || c.raw.every(v => v == null)) continue;
+    const line = markLine(T, rid, p.id);
+    const cov = markCoverage(T, rid, p.id);
+    if (line) marked.push('- ' + p.display + ': ' + line
+      + '  [marked on ' + cov.marked + ' of the ' + cov.played + ' holes they played]');
+  }
+  if (marked.length) {
+    L.push('\nMARKS, PUT IN BY THE REF WALKING WITH THE GROUP');
+    L.push('Only some holes get marked. These counts are a FLOOR, never a total:');
+    L.push('say "at least" or "of the holes marked", and never that somebody did');
+    L.push('something no more than n times, or never did it at all.');
+    L.push(...marked);
+  }
+
+  /* each golfer, hole by hole: the score beside the feeling, so the writer
+     can say WHAT the seven felt like rather than only that there was one */
+  const said = [];
+  const byHole = {};          // mark -> hole -> who
+  for (const p of golfers(T)) {
+    const n = selfLog(T, rid, p.id);
+    if (!n) continue;
+    const c = card(T, rid, p.id);
+    const hs = [];
+    for (let h = 0; h < 18; h++) {
+      const ks = selfMarks(T, rid, p.id, h);
+      const tx = n.text ? String(n.text[h] || '').trim() : '';
+      if (!ks.length && !tx) continue;
+      const raw = c ? c.raw[h] : null;
+      const score = raw == null ? 'not scored' : scoreName(raw, holes[h].par) + ' (' + raw + ' on a par ' + holes[h].par + ')';
+      const words = ks.map(k => (OWN_MARKS.find(m => m.key === k) || {}).label || k);
+      hs.push('hole ' + (h + 1) + ', ' + score + ': ' + [words.join(', '), tx ? '"' + tx + '"' : ''].filter(Boolean).join(' — '));
+      ks.forEach(k => { (byHole[k] = byHole[k] || {})[h] = (byHole[k][h] || []).concat(p.display); });
+    }
+    const bits = [];
+    if (n.mood) bits.push('felt like: ' + moodLabel(n.mood));
+    const owns = ownLabels(n.owns);
+    if (owns.length) bits.push('owns up to: ' + owns.join(', '));
+    const say = String(n.say || '').trim();
+    if (say) bits.push('on the round: "' + say + '"');
+    if (!hs.length && !bits.length) continue;
+    said.push('- ' + p.display + ':' + (hs.length ? '\n    ' + hs.join('\n    ') : '') + (bits.length ? '\n    ' + bits.join('; ') : ''));
+  }
+  if (said.length) {
+    L.push('\nWHAT THE GOLFERS SAID ABOUT THEIR OWN HOLES');
+    L.push('Self-reported, and deliberately about things the ref CANNOT see —');
+    L.push('whether a hole deserved better or a good deal worse, whether the');
+    L.push('trouble came before the swing or during it, how the round felt.');
+    L.push('None of it can contradict the card, because none of it is a claim');
+    L.push('about a fact. Where a golfer\'s account and the marks pull apart,');
+    L.push('that gap is the best material on this page — a man who three-putted');
+    L.push('twice and called it robbery has told you something. Attribute it to');
+    L.push('them; never restate it as established fact.');
+    L.push(...said);
+    /* the course as the golfers felt it: which hole robbed the most of
+       them, which the most got away with — the one thing no single card
+       can say */
+    const agg = [];
+    for (const m of OWN_MARKS) {
+      const at = byHole[m.key]; if (!at) continue;
+      const rows = Object.keys(at).map(Number).sort((a, b) => at[b].length - at[a].length || a - b);
+      const top = rows[0];
+      if (at[top].length >= 2) agg.push('- "' + m.label + '" most on hole ' + (top + 1) + ': ' + at[top].join(', '));
+    }
+    if (agg.length) {
+      L.push('\nHOW THE HOLES FELT, ACROSS THE FIELD (by their own account)');
+      L.push(...agg);
+    }
+  }
+  return L;
+}
+
 export function bbbBoard(T) {
   const tally = {};
   for (const r of countingRounds(T)) {
@@ -856,67 +1016,7 @@ export function roundBrief(T, rid) {
       + ' | gross ' + gross + ', net to par ' + fmtToPar(tp) + ', thru ' + thru);
   }
 
-  /* What the numbers cannot say. Two sources, kept apart on purpose: the
-     ref's marks are what somebody standing there wrote down, and the self
-     log is what a golfer said about their own round afterwards. They are
-     different kinds of claim and the recap should not treat them as one.
-
-     The coverage line is the important one. Marks are made on the holes
-     somebody remembered to mark, which is never all of them, so the count
-     is a floor and never a total. */
-  const marked = [];
-  for (const p of golfers(T)) {
-    const c = card(T, rid, p.id);
-    if (!c || c.raw.every(v => v == null)) continue;
-    const line = markLine(T, rid, p.id);
-    const cov = markCoverage(T, rid, p.id);
-    if (line) marked.push('- ' + p.display + ': ' + line
-      + '  [marked on ' + cov.marked + ' of the ' + cov.played + ' holes they played]');
-  }
-  if (marked.length) {
-    L.push('\nMARKS, PUT IN BY THE REF WALKING WITH THE GROUP');
-    L.push('Only some holes get marked. These counts are a FLOOR, never a total:');
-    L.push('say "at least" or "of the holes marked", and never that somebody did');
-    L.push('something no more than n times, or never did it at all.');
-    L.push(...marked);
-  }
-
-  const said = [];
-  for (const p of golfers(T)) {
-    const n = selfLog(T, rid, p.id);
-    if (!n) continue;
-    const line = markLine(T, rid, p.id, true);
-    const words = Object.keys(n.text || {})
-      .map(Number).sort((a, b) => a - b)
-      .filter(h => String(n.text[h] || '').trim())
-      .map(h => 'hole ' + (h + 1) + ': "' + String(n.text[h]).trim() + '"');
-    /* The end-of-round questionnaire: how it felt, what they will own up to,
-       and a line about the day. None of it is checkable and none of it is
-       meant to be. */
-    const bits = [];
-    if (n.mood) bits.push('felt like: ' + moodLabel(n.mood));
-    const owns = ownLabels(n.owns);
-    if (owns.length) bits.push('owns up to: ' + owns.join(', '));
-    const say = String(n.say || '').trim();
-    if (say) bits.push('on the round: "' + say + '"');
-    if (!line && !words.length && !bits.length) continue;
-    const parts = [];
-    if (line) parts.push(line);
-    if (words.length) parts.push('in their own words, ' + words.join('; '));
-    if (bits.length) parts.push(bits.join('; '));
-    said.push('- ' + p.display + ': ' + parts.join(' | '));
-  }
-  if (said.length) {
-    L.push('\nWHAT THE GOLFERS SAID ABOUT THEIR OWN ROUNDS');
-    L.push('Self-reported, and deliberately about things the ref CANNOT see —');
-    L.push('how a round felt, what they blame, whether they got away with it.');
-    L.push('None of it can contradict the card, because none of it is a claim');
-    L.push('about a fact. Where a golfer\'s account and the marks pull apart,');
-    L.push('that gap is the best material on this page — a man who three-putted');
-    L.push('twice and called it striping it has told you something. Attribute');
-    L.push('it to them; never restate it as established fact.');
-    L.push(...said);
-  }
+  L.push(...feelBlock(T, rid));
 
   const b = T.bbb[rid];
   if (b) {
@@ -1100,6 +1200,10 @@ export function recapInput(T, rid, now) {
   const sw = swingOfTheDay(T, rid);
   if (sw) L.push('\nSWING: the leaders took ' + sw.shots + ' shots out of third place between holes '
     + sw.fromHole + ' and ' + sw.toHole + '.');
+
+  /* what the golfers said: the marks the ref made and the feelings the
+     golfers kept, hole by hole, beside the scores they go with */
+  L.push(...feelBlock(T, rid));
 
   L.push('\nPLAYER IDS (use these exactly in pairNotes and honours)');
   golfers(T).forEach(p => L.push('- ' + p.id + ' = ' + p.display));

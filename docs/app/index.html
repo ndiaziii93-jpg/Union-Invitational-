@@ -2802,6 +2802,50 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
   .mnchip{flex:1 1 100%}
 }
 
+/* ---- how'd it feel? the question put the moment a score lands ----
+   A strip of pine above the nav, one tap to answer, a word if they want
+   one. On the scoring page it stands above the Save bar; on anything
+   wider it is a card in the corner, off the page's own column. */
+.feelbar{position:fixed;left:12px;right:12px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:29;
+  background:var(--ink);color:var(--page);border-radius:18px;padding:12px 14px;
+  box-shadow:0 10px 30px rgba(16,22,17,.38);border-top:2px solid var(--gold-up);
+  animation:feelin .28s ease-out}
+@keyframes feelin{from{transform:translateY(16px);opacity:0}to{transform:none;opacity:1}}
+html:has(.page.scoring) .feelbar{bottom:calc(150px + env(safe-area-inset-bottom,0px))}
+.fb-h{display:flex;align-items:center;gap:11px;margin-bottom:10px}
+.fb-n{font-size:28px;font-weight:700;line-height:1;color:#E2C277;min-width:26px;letter-spacing:-.02em}
+.fb-w{flex:1;min-width:0}
+.fb-w b{display:block;font-size:16px;line-height:1.2}
+.fb-w span{display:block;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--sage-up);margin-top:3px}
+.fb-skip{background:none;border:0;color:var(--sage-up);font-family:inherit;font-size:13px;padding:8px 0 8px 10px}
+.fb-chips{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.fb-chip{border:1px solid rgba(238,232,213,.28);border-radius:12px;padding:8px 11px;background:rgba(238,232,213,.07);
+  text-align:left;font-family:inherit;color:var(--page);min-height:50px;-webkit-tap-highlight-color:transparent}
+.fb-chip b{display:block;font-size:14px;font-weight:600}
+.fb-chip span{display:block;font-size:11px;color:var(--sage-up);margin-top:1px}
+.fb-chip.on{background:var(--page);border-color:var(--page)}
+.fb-chip.on b{color:var(--ink)}.fb-chip.on span{color:var(--turf)}
+.fb-chip.good.on{background:var(--gold-up);border-color:var(--gold-up)}
+.fb-row{display:flex;gap:8px;margin-top:9px}
+.fb-word{flex:1;min-width:0;border-radius:12px;background:rgba(238,232,213,.08);color:var(--page);
+  border-color:rgba(238,232,213,.28);font-size:15px}
+.fb-word::placeholder{color:rgba(238,232,213,.5)}
+.fb-done{background:var(--gold-up);color:var(--ink);border-color:var(--gold-up);border-radius:12px;padding:0 18px;font-weight:600}
+@media (min-width:700px){
+  .feelbar{left:auto;right:22px;width:380px;bottom:22px}
+  html:has(.page.scoring) .feelbar{bottom:22px}
+}
+
+/* ---- your round so far, on My Round: what has been kept, counted ---- */
+.feelstrip{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin:10px 0 14px;padding:10px 14px;
+  border:1px solid var(--rule);border-radius:12px;background:var(--sunk)}
+.feelstrip .fs-n{font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--turf);margin-right:auto}
+.feelstrip .fs-t{display:inline-flex;align-items:center;gap:5px;font-size:13px;font-weight:600;color:var(--ink)}
+.feelstrip .fs-t i{font-style:normal;display:inline-grid;place-items:center;min-width:20px;height:20px;border-radius:999px;
+  background:var(--ink);color:var(--page);font-size:11.5px;padding:0 5px}
+.feelstrip .fs-t.good i{background:var(--gold-up);color:var(--ink)}
+.feelstrip .fs-q{flex-basis:100%;font-style:italic;color:var(--turf);font-size:13.5px}
+
 /* ---- the end of the round, in the golfer's own words ----
    One mood, mutually exclusive, so it reads as a single answer rather than a
    set of switches. The confessions beside it reuse the My Round chip. */
@@ -3764,7 +3808,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261017-1004';
+const BUILD = '20261017-1043';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -5319,6 +5363,166 @@ function markLine(T, rid, pid, self) {
   return bits.join('; ');
 }
 
+/* ---------- how a hole felt ----------
+ *
+ * The four marks above are only worth anything if golfers put them on, and
+ * nobody opens My Round on a fairway unless something pulls them there. So
+ * the book asks — once, on the holes worth asking about, the moment the
+ * score lands. A par with nothing to it needs no question; a double or
+ * worse, a birdie or better, a hole the ref marked, and the two nominated
+ * holes do. Fewer questions is the point: they keep answering the ones
+ * they get. */
+
+/** What a score is called, against par. */
+function scoreName(raw, par) {
+  const d = raw - par;
+  if (raw === 1) return 'an ace';
+  if (d <= -3) return 'an albatross';
+  if (d === -2) return 'an eagle';
+  if (d === -1) return 'a birdie';
+  if (d === 0) return 'a par';
+  if (d === 1) return 'a bogey';
+  if (d === 2) return 'a double';
+  if (d === 3) return 'a triple';
+  return 'a ' + raw;
+}
+
+/** Why a hole is worth asking about, or null when it is not. */
+function feelWhy(T, rid, pid, h) {
+  const c = card(T, rid, pid);
+  const raw = c ? c.raw[h] : null;
+  if (raw == null) return null;
+  const hole = courseOf(T, rid).holes[h];
+  const cfg = roundCfg(T, rid) || {};
+  const d = raw - hole.par;
+  if (d >= 2) return 'trouble';
+  if (d < 0) return 'good';
+  if (holeMarks(T, rid, pid, h).length) return 'marked';
+  if (cfg.ctpHole === hole.n || cfg.ldHole === hole.n) return 'nominated';
+  return null;
+}
+
+/** The holes a golfer should be asked about and has not yet answered on:
+ *  scored, worth asking, and carrying none of their own marks or words.
+ *  Latest hole first, because that is the one they just walked off. */
+function feelAsks(T, rid, pid) {
+  const out = [];
+  const n = selfLog(T, rid, pid);
+  const holes = courseOf(T, rid).holes;
+  const c = card(T, rid, pid);
+  if (!c) return out;
+  for (let h = 17; h >= 0; h--) {
+    const why = feelWhy(T, rid, pid, h);
+    if (!why) continue;
+    if (selfMarks(T, rid, pid, h).length) continue;
+    if (n && n.text && String(n.text[h] || '').trim()) continue;
+    out.push({ h, raw: c.raw[h], par: holes[h].par, why });
+  }
+  return out;
+}
+
+/** A golfer's own round so far: how many holes they have marked of those
+ *  played, each mark with its holes, and the last thing they wrote. */
+function feelTally(T, rid, pid) {
+  const c = card(T, rid, pid);
+  const n = selfLog(T, rid, pid);
+  let played = 0, marked = 0, last = null;
+  for (let h = 0; h < 18; h++) {
+    if (c && c.raw[h] != null) played++;
+    const ks = selfMarks(T, rid, pid, h);
+    const tx = n && n.text ? String(n.text[h] || '').trim() : '';
+    if (ks.length || tx) marked++;
+    if (tx) last = { h, text: tx };
+  }
+  const t = markTally(T, rid, pid, true);
+  const counts = OWN_MARKS.map(m => ({ ...m, holes: t[m.key] || [] })).filter(m => m.holes.length);
+  return { played, marked, counts, last };
+}
+
+/** What the golfers said about the holes, for the writer. Two sources,
+ *  kept apart on purpose: the ref's marks are what somebody standing there
+ *  wrote down, and the self log is what a golfer said about their own
+ *  hole. They are different kinds of claim and the recap must not treat
+ *  them as one. The coverage line is the important one: marks are made on
+ *  the holes somebody remembered to mark, which is never all of them, so
+ *  every count is a floor and never a total. */
+function feelBlock(T, rid) {
+  const L = [];
+  const holes = courseOf(T, rid).holes;
+  const marked = [];
+  for (const p of golfers(T)) {
+    const c = card(T, rid, p.id);
+    if (!c || c.raw.every(v => v == null)) continue;
+    const line = markLine(T, rid, p.id);
+    const cov = markCoverage(T, rid, p.id);
+    if (line) marked.push('- ' + p.display + ': ' + line
+      + '  [marked on ' + cov.marked + ' of the ' + cov.played + ' holes they played]');
+  }
+  if (marked.length) {
+    L.push('\nMARKS, PUT IN BY THE REF WALKING WITH THE GROUP');
+    L.push('Only some holes get marked. These counts are a FLOOR, never a total:');
+    L.push('say "at least" or "of the holes marked", and never that somebody did');
+    L.push('something no more than n times, or never did it at all.');
+    L.push(...marked);
+  }
+
+  /* each golfer, hole by hole: the score beside the feeling, so the writer
+     can say WHAT the seven felt like rather than only that there was one */
+  const said = [];
+  const byHole = {};          // mark -> hole -> who
+  for (const p of golfers(T)) {
+    const n = selfLog(T, rid, p.id);
+    if (!n) continue;
+    const c = card(T, rid, p.id);
+    const hs = [];
+    for (let h = 0; h < 18; h++) {
+      const ks = selfMarks(T, rid, p.id, h);
+      const tx = n.text ? String(n.text[h] || '').trim() : '';
+      if (!ks.length && !tx) continue;
+      const raw = c ? c.raw[h] : null;
+      const score = raw == null ? 'not scored' : scoreName(raw, holes[h].par) + ' (' + raw + ' on a par ' + holes[h].par + ')';
+      const words = ks.map(k => (OWN_MARKS.find(m => m.key === k) || {}).label || k);
+      hs.push('hole ' + (h + 1) + ', ' + score + ': ' + [words.join(', '), tx ? '"' + tx + '"' : ''].filter(Boolean).join(' — '));
+      ks.forEach(k => { (byHole[k] = byHole[k] || {})[h] = (byHole[k][h] || []).concat(p.display); });
+    }
+    const bits = [];
+    if (n.mood) bits.push('felt like: ' + moodLabel(n.mood));
+    const owns = ownLabels(n.owns);
+    if (owns.length) bits.push('owns up to: ' + owns.join(', '));
+    const say = String(n.say || '').trim();
+    if (say) bits.push('on the round: "' + say + '"');
+    if (!hs.length && !bits.length) continue;
+    said.push('- ' + p.display + ':' + (hs.length ? '\n    ' + hs.join('\n    ') : '') + (bits.length ? '\n    ' + bits.join('; ') : ''));
+  }
+  if (said.length) {
+    L.push('\nWHAT THE GOLFERS SAID ABOUT THEIR OWN HOLES');
+    L.push('Self-reported, and deliberately about things the ref CANNOT see —');
+    L.push('whether a hole deserved better or a good deal worse, whether the');
+    L.push('trouble came before the swing or during it, how the round felt.');
+    L.push('None of it can contradict the card, because none of it is a claim');
+    L.push('about a fact. Where a golfer\'s account and the marks pull apart,');
+    L.push('that gap is the best material on this page — a man who three-putted');
+    L.push('twice and called it robbery has told you something. Attribute it to');
+    L.push('them; never restate it as established fact.');
+    L.push(...said);
+    /* the course as the golfers felt it: which hole robbed the most of
+       them, which the most got away with — the one thing no single card
+       can say */
+    const agg = [];
+    for (const m of OWN_MARKS) {
+      const at = byHole[m.key]; if (!at) continue;
+      const rows = Object.keys(at).map(Number).sort((a, b) => at[b].length - at[a].length || a - b);
+      const top = rows[0];
+      if (at[top].length >= 2) agg.push('- "' + m.label + '" most on hole ' + (top + 1) + ': ' + at[top].join(', '));
+    }
+    if (agg.length) {
+      L.push('\nHOW THE HOLES FELT, ACROSS THE FIELD (by their own account)');
+      L.push(...agg);
+    }
+  }
+  return L;
+}
+
 function bbbBoard(T) {
   const tally = {};
   for (const r of countingRounds(T)) {
@@ -5448,67 +5652,7 @@ function roundBrief(T, rid) {
       + ' | gross ' + gross + ', net to par ' + fmtToPar(tp) + ', thru ' + thru);
   }
 
-  /* What the numbers cannot say. Two sources, kept apart on purpose: the
-     ref's marks are what somebody standing there wrote down, and the self
-     log is what a golfer said about their own round afterwards. They are
-     different kinds of claim and the recap should not treat them as one.
-
-     The coverage line is the important one. Marks are made on the holes
-     somebody remembered to mark, which is never all of them, so the count
-     is a floor and never a total. */
-  const marked = [];
-  for (const p of golfers(T)) {
-    const c = card(T, rid, p.id);
-    if (!c || c.raw.every(v => v == null)) continue;
-    const line = markLine(T, rid, p.id);
-    const cov = markCoverage(T, rid, p.id);
-    if (line) marked.push('- ' + p.display + ': ' + line
-      + '  [marked on ' + cov.marked + ' of the ' + cov.played + ' holes they played]');
-  }
-  if (marked.length) {
-    L.push('\nMARKS, PUT IN BY THE REF WALKING WITH THE GROUP');
-    L.push('Only some holes get marked. These counts are a FLOOR, never a total:');
-    L.push('say "at least" or "of the holes marked", and never that somebody did');
-    L.push('something no more than n times, or never did it at all.');
-    L.push(...marked);
-  }
-
-  const said = [];
-  for (const p of golfers(T)) {
-    const n = selfLog(T, rid, p.id);
-    if (!n) continue;
-    const line = markLine(T, rid, p.id, true);
-    const words = Object.keys(n.text || {})
-      .map(Number).sort((a, b) => a - b)
-      .filter(h => String(n.text[h] || '').trim())
-      .map(h => 'hole ' + (h + 1) + ': "' + String(n.text[h]).trim() + '"');
-    /* The end-of-round questionnaire: how it felt, what they will own up to,
-       and a line about the day. None of it is checkable and none of it is
-       meant to be. */
-    const bits = [];
-    if (n.mood) bits.push('felt like: ' + moodLabel(n.mood));
-    const owns = ownLabels(n.owns);
-    if (owns.length) bits.push('owns up to: ' + owns.join(', '));
-    const say = String(n.say || '').trim();
-    if (say) bits.push('on the round: "' + say + '"');
-    if (!line && !words.length && !bits.length) continue;
-    const parts = [];
-    if (line) parts.push(line);
-    if (words.length) parts.push('in their own words, ' + words.join('; '));
-    if (bits.length) parts.push(bits.join('; '));
-    said.push('- ' + p.display + ': ' + parts.join(' | '));
-  }
-  if (said.length) {
-    L.push('\nWHAT THE GOLFERS SAID ABOUT THEIR OWN ROUNDS');
-    L.push('Self-reported, and deliberately about things the ref CANNOT see —');
-    L.push('how a round felt, what they blame, whether they got away with it.');
-    L.push('None of it can contradict the card, because none of it is a claim');
-    L.push('about a fact. Where a golfer\'s account and the marks pull apart,');
-    L.push('that gap is the best material on this page — a man who three-putted');
-    L.push('twice and called it striping it has told you something. Attribute');
-    L.push('it to them; never restate it as established fact.');
-    L.push(...said);
-  }
+  L.push(...feelBlock(T, rid));
 
   const b = T.bbb[rid];
   if (b) {
@@ -5692,6 +5836,10 @@ function recapInput(T, rid, now) {
   const sw = swingOfTheDay(T, rid);
   if (sw) L.push('\nSWING: the leaders took ' + sw.shots + ' shots out of third place between holes '
     + sw.fromHole + ' and ' + sw.toHole + '.');
+
+  /* what the golfers said: the marks the ref made and the feelings the
+     golfers kept, hole by hole, beside the scores they go with */
+  L.push(...feelBlock(T, rid));
 
   L.push('\nPLAYER IDS (use these exactly in pairNotes and honours)');
   golfers(T).forEach(p => L.push('- ' + p.id + ' = ' + p.display));
@@ -6037,7 +6185,7 @@ function roundToPar(T, roundId, pid) {
   return { tp, thru };
 }
 
-return {nowLocal, dayOf, hhmmToMin, to12, TEE_GAP_MIN, plusMins, to24, BANDS, strokesFor, bandTotal, fmtToPar, capFor, capped, person, golfers, roundDef, roundCfg, courseByKey, courseOf, scoreKey, card, pairName, phaseOf, phaseLabel, hasScores, countingRounds, playerNet, pairHole, PAIRS_PER_GROUP, teeTime, teeTimes, groups, finishGroups, groupThru18, groupDone, groupsOut, TURN_HOLES, toParThru, groupAtTurn, turnAt, turnGroups, turnSnapshot, practiceBoard, nearestBand, bandRead, practiceBbb, bandsLocked, pairsBoard, gapOf, mvpBoard, BBB_SLOTS, bbbMarks, MARKS, MARK_KEYS, MOODS, OWNS, moodLabel, ownLabels, OWN_MARKS, OWN_KEYS, holeMarks, selfLog, selfMarks, markCoverage, markTally, markLine, bbbBoard, roundComplete, brief, roundBrief, recapRound, roundStanding, ribbon, pairRoundBoard, recapTable, swingOfTheDay, sideGames, recapInput, matchPlay, matchDetail, ryderData, clubhouse, toneOf, holeCells, setupIssues, nextTee, fixtures, nextFixture, TEE_CHOICES, TEE_PRIV, teePrivilege, roundToPar};
+return {nowLocal, dayOf, hhmmToMin, to12, TEE_GAP_MIN, plusMins, to24, BANDS, strokesFor, bandTotal, fmtToPar, capFor, capped, person, golfers, roundDef, roundCfg, courseByKey, courseOf, scoreKey, card, pairName, phaseOf, phaseLabel, hasScores, countingRounds, playerNet, pairHole, PAIRS_PER_GROUP, teeTime, teeTimes, groups, finishGroups, groupThru18, groupDone, groupsOut, TURN_HOLES, toParThru, groupAtTurn, turnAt, turnGroups, turnSnapshot, practiceBoard, nearestBand, bandRead, practiceBbb, bandsLocked, pairsBoard, gapOf, mvpBoard, BBB_SLOTS, bbbMarks, MARKS, MARK_KEYS, MOODS, OWNS, moodLabel, ownLabels, OWN_MARKS, OWN_KEYS, holeMarks, selfLog, selfMarks, markCoverage, markTally, markLine, scoreName, feelWhy, feelAsks, feelTally, feelBlock, bbbBoard, roundComplete, brief, roundBrief, recapRound, roundStanding, ribbon, pairRoundBoard, recapTable, swingOfTheDay, sideGames, recapInput, matchPlay, matchDetail, ryderData, clubhouse, toneOf, holeCells, setupIssues, nextTee, fixtures, nextFixture, TEE_CHOICES, TEE_PRIV, teePrivilege, roundToPar};
 })();
 
 const __m_holes3d = (function(){
@@ -7833,6 +7981,8 @@ const UI = {
   recapOpen: false,
   recapOpen: false,
   recap: { rid: null, busy: false, err: '', stream: '', edit: false, view: 'report' },
+  feelOn: null,         // the hole the golfer is being asked about: {rid, h}
+  feelDraft: null,      // the word they are typing on it: {rid, h, v}
   upload: { queue: [], err: '' },
   role: 'viewer',
   boardTab: 'home',     // the six games at once; a board is something you open
@@ -7879,6 +8029,22 @@ function loadRole() { try { return localStorage.getItem(ROLE_KEY); } catch (e) {
 const ME_KEY = 'union-invitational:me';
 function saveMe(pid) { try { localStorage.setItem(ME_KEY, pid || ''); } catch (e) { /* storage blocked */ } }
 function loadMe() { try { return localStorage.getItem(ME_KEY) || null; } catch (e) { return null; } }
+/* The holes this phone has already asked about and had answered or waved
+   away, so a question is put once. Kept on the device: the answer itself
+   goes in the book, the fact of having been asked does not. */
+const FEEL_KEY = 'union-invitational:feel';
+let feelSeenCache = null;
+function feelSeen() {
+  if (feelSeenCache) return feelSeenCache;
+  try { feelSeenCache = JSON.parse(localStorage.getItem(FEEL_KEY) || '{}') || {}; }
+  catch (e) { feelSeenCache = {}; }
+  return feelSeenCache;
+}
+function markFeelSeen(rid, h) {
+  const seen = feelSeen();
+  seen[rid + ':' + h] = 1;
+  try { localStorage.setItem(FEEL_KEY, JSON.stringify(seen)); } catch (e) { /* storage blocked */ }
+}
 
 /* Nothing is editable until the shared book has loaded. Before that the page is
    showing factory defaults, and an edit would write those over the real
@@ -8656,7 +8822,8 @@ function recapState(rid) {
   if (!st.complete) {
     return { key: 'live', line: 'Round in progress — ' + st.inCards + ' of ' + st.field + ' cards in.' };
   }
-  if (!written) return { key: 'togen', line: 'Round complete — tap to read the day.' };
+  if (!written) return { key: 'togen', line: rec && rec.claim && (Date.now() - rec.claim.at) < CLAIM_MS
+    ? 'Round complete — the report is being written.' : 'Round complete — tap to read the day.' };
   return { key: 'ready', line: E.roundDef(rid).short + ' is complete — read the report.' };
 }
 
@@ -8673,6 +8840,86 @@ function recapButton() {
       </span>
       ${IMG.crest ? `<img class="rb-c" src="${IMG.crest}" alt="">` : ''}
     </button>
+  </div>`;
+}
+
+/* ---------------- how'd it feel? ----------------
+ *
+ * The four marks a golfer can put on their own hole are the recap's best
+ * material and the hardest to collect: nobody opens My Round on a fairway.
+ * So the book asks, the moment a score lands that is worth asking about —
+ * a double or worse, a birdie or better, a hole the ref marked, the two
+ * nominated holes — and asks nothing on a par with nothing to it. The
+ * question is a strip above the nav, answered with one tap and a word if
+ * they want one, and it is put once: answered or skipped, it does not come
+ * back. The bar follows the round the golfer is on and stops the moment
+ * the day's report is written, because by then the moment has passed. */
+function feelRound() {
+  let best = null;
+  for (const r of D.ROUNDS) {
+    const c = E.card(T, r.id, UI.me);
+    if (!c || !c.raw.some(v => v != null)) continue;
+    const rec = T.recaps[r.id];
+    if (rec && rec.body) continue;
+    best = r.id;
+  }
+  return best;
+}
+function feelBar() {
+  if (!UI.me || UI.modal || UI.recapOpen || UI.askOpen || !loaded()) return '';
+  const rid = feelRound();
+  if (!rid) { UI.feelOn = null; return ''; }
+  const seen = feelSeen();
+  /* the hole being answered stays up while it is answered — a mark put on
+     it would otherwise drop it out of the asks before the word is typed */
+  let cur = UI.feelOn && UI.feelOn.rid === rid && !seen[rid + ':' + UI.feelOn.h] ? UI.feelOn.h : null;
+  if (cur == null) {
+    const asks = E.feelAsks(T, rid, UI.me).filter(a => !seen[rid + ':' + a.h]);
+    if (!asks.length) { UI.feelOn = null; return ''; }
+    cur = asks[0].h;
+    UI.feelOn = { rid, h: cur };
+  }
+  const hole = E.courseOf(T, rid).holes[cur];
+  const c = E.card(T, rid, UI.me);
+  const raw = c ? c.raw[cur] : null;
+  if (raw == null) { UI.feelOn = null; return ''; }      // the score was taken back
+  const on = E.selfMarks(T, rid, UI.me, cur);
+  const text = (UI.feelDraft && UI.feelDraft.rid === rid && UI.feelDraft.h === cur) ? UI.feelDraft.v : '';
+  return `<aside class="feelbar" role="region" aria-label="How'd you feel on hole ${hole.n}">
+    <div class="fb-h"><span class="fb-n num">${hole.n}</span>
+      <div class="fb-w"><b>How'd it feel?</b><span>${esc(E.scoreName(raw, hole.par))} on a par ${hole.par} · yours, not the card's</span></div>
+      <button class="fb-skip" data-act="feelSkip" data-a="${rid}" data-b="${cur}">Skip</button></div>
+    <div class="fb-chips">${E.OWN_MARKS.map(m => `<button class="fb-chip ${m.tone}${on.includes(m.key) ? ' on' : ''}"
+      data-act="feelMark" data-a="${m.key}" data-b="${cur}" data-c="${rid}" aria-pressed="${on.includes(m.key)}"><b>${esc(m.label)}</b><span>${esc(m.hint)}</span></button>`).join('')}</div>
+    <div class="fb-row"><input class="field fb-word" id="feelText" data-b="${cur}" data-c="${rid}" maxlength="140"
+        placeholder="A word on it, if you want one…" value="${esc(text)}" aria-label="A word on hole ${hole.n}">
+      <button class="btn fb-done" data-act="feelDone" data-a="${rid}" data-b="${cur}">Done</button></div>
+  </aside>`;
+}
+/** The word typed on the bar, written to the golfer's own notes. */
+function commitFeel() {
+  const d = UI.feelDraft;
+  UI.feelDraft = null;
+  if (!d || !UI.me || !store) return;
+  const v = String(d.v || '').trim().slice(0, 140);
+  const had = E.selfLog(T, d.rid, UI.me);
+  const was = had && had.text ? String(had.text[d.h] || '') : '';
+  if (v === was) return;
+  store.writeNote(d.rid, UI.me, n => {
+    if (v) n.text[d.h] = v; else delete n.text[d.h];
+    n.at[d.h] = Date.now();
+  });
+}
+/** A golfer's own round so far, on My Round: what they have kept, counted,
+ *  and the last thing they wrote. Seeing it build is the reason to keep
+ *  adding to it. */
+function feelStrip(rid, me) {
+  const t = E.feelTally(T, rid, me);
+  if (!t.played && !t.marked) return '';
+  return `<div class="feelstrip" aria-label="Your round so far">
+    <span class="fs-n">Marked ${t.marked} of ${t.played} played</span>
+    ${t.counts.map(m => `<span class="fs-t ${m.tone}"><i class="num">${m.holes.length}</i>${esc(m.short)}</span>`).join('')}
+    ${t.last ? `<span class="fs-q">“${esc(t.last.text)}” — hole ${t.last.h + 1}</span>` : ''}
   </div>`;
 }
 
@@ -9857,6 +10104,7 @@ function scrMine(rid) {
     <button class="rm" data-act="setMe" data-a="">Not you?</button></h3>
   <p class="lede">${esc(r.full)}. Yours to keep, and it feeds the day's recap.
   It changes no score and no board — not even yours.</p>
+  ${feelStrip(rid, me)}
 
   <button class="setline" data-act="roundSheet">
     <b>${esc(r.short === 'Practice' ? 'Practice' : 'Round ' + r.short.slice(1))}</b>
@@ -11820,6 +12068,7 @@ function paint() {
       <span class="build" title="Which copy of the book this device is running">build ${esc(D.BUILD)}</span>
     </div>
   </div>
+  ${feelBar()}
   ${tabBar()}
   ${stickyTop(role)}
   ${UI.modal ? modalHtml() : ''}
@@ -11869,6 +12118,7 @@ function paint() {
 
   opened.forEach(id => { const el = document.getElementById(id); if (el) el.open = true; });
   mountHole3D();
+  setTimeout(recapWatch, 0);
 
   applyScrollMarks(strips);
   /* The scrim is the one surface a window scrolls on — that is what stopped
@@ -13516,6 +13766,30 @@ function onClick(e) {
       render();
       return;
     }
+    /* the bar: a mark on the hole it asks about, the word, and the way out */
+    case 'feelMark': {
+      if (!UI.me) return;
+      const h = +b;
+      store.writeNote(c, UI.me, n => {
+        const was = Array.isArray(n.marks[h]) ? n.marks[h] : [];
+        const next = was.includes(a) ? was.filter(k => k !== a) : was.concat(a);
+        if (next.length) n.marks[h] = next; else delete n.marks[h];
+        n.at[h] = Date.now();
+      });
+      render();
+      return;
+    }
+    case 'feelDone':
+    case 'feelSkip': {
+      const fld = document.getElementById('feelText');
+      if (act === 'feelDone' && fld && fld.value.trim()) UI.feelDraft = { rid: a, h: +b, v: fld.value };
+      else UI.feelDraft = null;
+      if (act === 'feelDone') commitFeel();
+      markFeelSeen(a, +b);
+      UI.feelOn = null;
+      render();
+      return;
+    }
     case 'tglMine': {
       if (!UI.me) return;
       const h = +b;
@@ -13561,7 +13835,7 @@ function onClick(e) {
              already guarded — writeRecap refuses when a report exists, when
              the round is not complete, or when one is already running — and
              opening the panel still writes it if this never got the chance. */
-          if (h === 17) setTimeout(() => writeRecap(rid, false), 0);
+          if (h === 17) startRecap(rid);
           const next = h < 17 ? { what: 'hole', rid, h: h + 1 } : { what: 'finish', rid };
           /* Three points a hole that nobody can reconstruct afterwards. If
              any of them is blank, that goes FIRST and the rest queues behind
@@ -13920,6 +14194,10 @@ const RECAP_RULES = [
   '  not the ref\'s. Attribute it — "by his own account", "as he tells it" —',
   '  and never state it as established fact.',
   '- Their own words may be quoted, briefly, and should be where they are good.',
+  '- Under what the golfers said about their own holes, each feeling sits',
+  '  beside the score it goes with. Use them together: a seven that "deserved',
+  '  better" and a seven that was "the wrong club" are two different stories.',
+  '  Where the field agrees a hole robbed them, the hole is the character.',
   '',
   '- Three paragraphs of roughly 60 to 90 words each.',
   '- At least two honours must be winnable by somebody having a bad round.',
@@ -13958,7 +14236,36 @@ function parseRecap(raw) {
   };
 }
 
-async function writeRecap(rid, again) {
+/* THE REPORT WRITES ITSELF. The phone that saves the last card starts it;
+   and because that phone may have no writer, or lose its signal at the
+   last putt, every phone that could have pressed the button watches too:
+   a finished round with no report and no fresh claim on it is started by
+   whoever sees it first. The claim is written to the book before the
+   writer is asked, so two phones seeing the same moment do not pay for two
+   reports; a claim older than four minutes is a phone that died, and the
+   next one takes over. Three goes and it stops, for a person to look at. */
+const CLAIM_MS = 4 * 60000;
+let recapStarting = false;
+function startRecap(rid) {
+  if (recapStarting || !store) return;
+  recapStarting = true;
+  store.writeRecap(rid, r => { r.claim = { at: Date.now() }; r.tries = (r.tries || 0) + 1; });
+  setTimeout(() => { recapStarting = false; writeRecap(rid, false, true); }, 0);
+}
+function recapWatch() {
+  if (!loaded() || !askClaude || !canEdit() || UI.recap.busy || recapStarting) return;
+  for (const r of D.ROUNDS) {
+    const rec = T.recaps[r.id];
+    if (rec && rec.body) continue;
+    if (rec && (rec.tries || 0) >= 3) continue;
+    if (rec && rec.claim && rec.claim.at && Date.now() - rec.claim.at < CLAIM_MS) continue;
+    if (!E.roundStanding(T, r.id).complete) continue;
+    startRecap(r.id);
+    return;
+  }
+}
+
+async function writeRecap(rid, again, auto) {
   if (!rid || UI.recap.busy) return;
   /* Opening the panel writes the report by itself, but only for a round that
      is actually finished, and only for someone who could have pressed the
@@ -13979,7 +14286,10 @@ async function writeRecap(rid, again) {
     });
     const body = parseRecap(text);
     if (!body.narrative.length) throw new Error('no narrative');
-    await store.writeRecap(rid, r => { r.body = body; r.status = r.status === 'published' ? 'published' : 'draft'; r.at = Date.now(); });
+    /* Written by the book itself, it goes straight to the group: nobody is
+       standing by to press Share at the end of a round. A commissioner can
+       still edit it afterwards. */
+    await store.writeRecap(rid, r => { r.body = body; r.status = (auto || r.status === 'published') ? 'published' : 'draft'; r.at = Date.now(); delete r.claim; });
   } catch (e) {
     UI.recap.err = (e && e.code) ? sampleError(e)
       : 'The report came back in a shape the book could not read. Try again.';
@@ -14018,6 +14328,7 @@ function boot() {
 
   store = S.createStore((state, m) => {
     T = state; meta = m;
+    window.__T = T; window.__UI = UI;        // read by the tests, written by nobody
     /* `ready` means the subscriptions are registered, which happens almost
        at once and well before any tournament has arrived. */
     if (m.ready && !UI.setupSeen) {
@@ -14079,6 +14390,9 @@ function boot() {
     }
     if (e.target && e.target.id === 'mineText') {
       UI.mineDraft = { rid: UI.entryRound, h: +e.target.dataset.b, v: e.target.value };
+    }
+    if (e.target && e.target.id === 'feelText') {
+      UI.feelDraft = { rid: e.target.dataset.c, h: +e.target.dataset.b, v: e.target.value };
     }
     if (e.target && e.target.id === 'mineSay') {
       UI.sayDraft = { rid: UI.entryRound, v: e.target.value };
