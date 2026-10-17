@@ -5,6 +5,27 @@
 import { chromium } from 'playwright';
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 
+/* THE KEYPAD. A score goes in by tapping the golfer's tile and then the
+   number on the pad that rises. These emulate n taps of the old plus or
+   minus (from an empty cell the first plus landed on par, the first minus
+   one under) so the arithmetic of every scenario below is unchanged. */
+const __pad = async (pg, i, taps, dir) => {
+  const tiles = pg.locator('.ptile[data-act="padOpen"]');
+  if (await tiles.count() <= i) return;
+  await tiles.nth(i).focus().catch(() => {}); await tiles.nth(i).dispatchEvent('click'); await pg.waitForTimeout(140);
+  const kp = pg.locator('.keypad'); if (!await kp.count()) return;
+  if (taps <= 0) return;
+  const par = +(await kp.getAttribute('data-par')), cap = +(await kp.getAttribute('data-cap'));
+  const curS = await kp.getAttribute('data-cur'); const cur = curS ? +curS : null;
+  let v = cur == null ? par + (dir > 0 ? taps - 1 : -taps) : cur + dir * taps;
+  v = Math.max(1, Math.min(cap, v));
+  const key = kp.locator('.key[data-b="' + v + '"]'); await key.focus().catch(() => {}); await key.dispatchEvent('click'); await pg.waitForTimeout(120);
+};
+const __plus = (pg, i, taps = 1) => __pad(pg, i, taps, 1);
+const __minus = (pg, i, taps = 1) => __pad(pg, i, taps, -1);
+const __open = (pg, i) => __pad(pg, i, 0, 1);
+
+
 /* ---- getting about the book ----
    Four tabs now — Today, Scores, Boards, Resort — and the five screens that
    are set up once live behind Manage. So a name is looked for on the bar
@@ -131,7 +152,7 @@ for (const breakage of ['reject', 'silent']) {
   await nominate(p); await dismiss();
   await p.locator('[data-act="openRound"]').first().tap(); await p.waitForTimeout(1600); await dismiss();
   ok('opening the round worked', await p.locator('[data-act="openRound"]').count(), 0);
-  await p.locator('.step.plus').first().click(); await p.waitForTimeout(400);
+  await __plus(p, 0, 1); await p.waitForTimeout(400);
   await p.locator('[data-act="saveHole"]').click(); await p.waitForTimeout(1500); await dismiss();
   ok('saving moved on to the next hole', await p.locator('.holehead h3').innerText(), 'Hole 2');
   ok('and hole 1 is marked as scored',

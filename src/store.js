@@ -904,14 +904,20 @@ export function createStore(onChange) {
   async function resetAll() {
     if (tooEarly()) return;
     const fresh = emptyState();
-    T.config = fresh.config; T.scores = {}; T.bbb = {}; T.notes = {};
+    /* The PINs survive a reset. They are the one thing in the config that
+       is a secret, and a reset that put the factory PINs back — which are
+       in the public repository — would quietly unlock the book. */
+    const pins = T.config && T.config.pins ? { ...T.config.pins } : null;
+    T.config = fresh.config;
+    if (pins) { T.config.pins = pins; T.config.pinsChanged = true; }
+    T.scores = {}; T.bbb = {}; T.notes = {}; T.recaps = {}; T.photos = {};
     for (const k of Object.keys(rev)) delete rev[k];
     bump('config', T.config);
     notify();
     if (mode === 'local') { saveLocal(); return; }
     try {
       await db.doc('config/tournament').set(T.config);
-      for (const coll of ['scores', 'bbb', 'notes', 'people', 'pairs']) {
+      for (const coll of ['scores', 'bbb', 'notes', 'recaps', 'photos', 'people', 'pairs']) {
         const got = await db.collection(coll).get();
         for (const d of got.docs) await db.doc(coll + '/' + d.id).delete();
       }

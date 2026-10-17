@@ -16,6 +16,27 @@
 import { chromium } from 'playwright';
 import { readFileSync, writeFileSync } from 'node:fs';
 
+/* THE KEYPAD. A score goes in by tapping the golfer's tile and then the
+   number on the pad that rises. These emulate n taps of the old plus or
+   minus (from an empty cell the first plus landed on par, the first minus
+   one under) so the arithmetic of every scenario below is unchanged. */
+const __pad = async (pg, i, taps, dir) => {
+  const tiles = pg.locator('.ptile[data-act="padOpen"]');
+  if (await tiles.count() <= i) return;
+  await tiles.nth(i).focus().catch(() => {}); await tiles.nth(i).dispatchEvent('click'); await pg.waitForTimeout(140);
+  const kp = pg.locator('.keypad'); if (!await kp.count()) return;
+  if (taps <= 0) return;
+  const par = +(await kp.getAttribute('data-par')), cap = +(await kp.getAttribute('data-cap'));
+  const curS = await kp.getAttribute('data-cur'); const cur = curS ? +curS : null;
+  let v = cur == null ? par + (dir > 0 ? taps - 1 : -taps) : cur + dir * taps;
+  v = Math.max(1, Math.min(cap, v));
+  const key = kp.locator('.key[data-b="' + v + '"]'); await key.focus().catch(() => {}); await key.dispatchEvent('click'); await pg.waitForTimeout(120);
+};
+const __plus = (pg, i, taps = 1) => __pad(pg, i, taps, 1);
+const __minus = (pg, i, taps = 1) => __pad(pg, i, taps, -1);
+const __open = (pg, i) => __pad(pg, i, 0, 1);
+
+
 /* Whatever window is up is answered first — a half-entered hole's "not
    saved" by taking the discard, anything else by its Cancel — because a
    tap forced through a scrim lands on the scrim and only closes it. */
@@ -137,8 +158,8 @@ ok('the card is split into real groups to finish', groupCount > 1, true);
 
 /** Put a whole group's scores into the hole the screen is on, and save it. */
 const scoreAndSave = async () => {
-  const plus = p.locator('.step.plus'); const c = await plus.count();
-  for (let i = 0; i < c; i++) { await plus.nth(i).click(); await p.waitForTimeout(60); }
+  const c = await p.locator('.ptile[data-act="padOpen"]').count();
+  for (let i = 0; i < c; i++) await __plus(p, i, 1);
   await p.locator('[data-act="saveHole"]').click(); await p.waitForTimeout(800); await shut();
 };
 const gotoHole = async i => { await p.locator('.hcell').nth(i).click(); await p.waitForTimeout(420); await shut(); };
@@ -180,7 +201,7 @@ ok('which says what it does', (await p.locator('[data-act="askFinish"]').innerTe
 
 /* A score on the 18th corrected after the window was waved away must bring
    it back — otherwise the correction is the last anybody hears of it. */
-await p.locator('.step.plus').first().click(); await p.waitForTimeout(150);
+await __plus(p, 0, 1); await p.waitForTimeout(150);
 await p.locator('[data-act="saveHole"]').click(); await p.waitForTimeout(800);
 /* The three names come first on every save now; shut() waves them past and
    stops at the crest behind them. */
@@ -192,14 +213,14 @@ console.log('\none group finishes, one card closes');
    page left open in somebody's pocket would still be holding. The window is
    waved away to read it, then raised again from the bar. */
 await p.locator('.finishmodal [data-act="modalCancel"]').click(); await p.waitForTimeout(400);
-const pid0 = await p.locator('.step.plus').first().getAttribute('data-a');
+const pid0 = await p.locator('.ptile[data-act="padOpen"]').first().getAttribute('data-a');
 await p.locator('[data-act="askFinish"]').click(); await p.waitForTimeout(450);
 await p.locator('.finishmodal [data-act="finishGroup"]').click(); await p.waitForTimeout(900); await shut();
 
 ok('the bar says the group has finished',
   /has finished/.test(await p.locator('.savebar.done .sv b').innerText()), true);
 ok('there is nothing left to save', await p.locator('[data-act="saveHole"]').count(), 0);
-ok('and no way to put a stroke on the card', await p.locator('.step.plus').count(), 0);
+ok('and no way to put a stroke on the card', await p.locator('.ptile[data-act="padOpen"], .keypad').count(), 0);
 ok('but a way to undo it', await p.locator('[data-act="reopenGroup"]').count(), 1);
 ok('the mulligans take no more taps',
   await p.locator('.mchip:not([disabled])').count(), 0);
@@ -209,7 +230,7 @@ ok('and the group\u2019s Bingo Bango Bongo is shut with it',
 /* The heart of it. Group 2 is still on the course. */
 await group(1);
 ok('the next group is still scoring', await p.locator('[data-act="saveHole"]').count(), 1);
-ok('with their buttons intact', await p.locator('.step.plus').count() > 0, true);
+ok('with their tiles intact', await p.locator('.ptile[data-act="padOpen"]').count() > 0, true);
 ok('and no finished bar over them', await p.locator('.savebar.done').count(), 0);
 ok('nor a window asking them anything', await p.locator('.finishmodal').count(), 0);
 

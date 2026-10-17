@@ -9,6 +9,27 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import * as E from '../src/engine.js';
 import { defaultConfig, blankCard, blankNote } from '../src/store.js';
 
+/* THE KEYPAD. A score goes in by tapping the golfer's tile and then the
+   number on the pad that rises. These emulate n taps of the old plus or
+   minus (from an empty cell the first plus landed on par, the first minus
+   one under) so the arithmetic of every scenario below is unchanged. */
+const __pad = async (pg, i, taps, dir) => {
+  const tiles = pg.locator('.ptile[data-act="padOpen"]');
+  if (await tiles.count() <= i) return;
+  await tiles.nth(i).focus().catch(() => {}); await tiles.nth(i).dispatchEvent('click'); await pg.waitForTimeout(140);
+  const kp = pg.locator('.keypad'); if (!await kp.count()) return;
+  if (taps <= 0) return;
+  const par = +(await kp.getAttribute('data-par')), cap = +(await kp.getAttribute('data-cap'));
+  const curS = await kp.getAttribute('data-cur'); const cur = curS ? +curS : null;
+  let v = cur == null ? par + (dir > 0 ? taps - 1 : -taps) : cur + dir * taps;
+  v = Math.max(1, Math.min(cap, v));
+  const key = kp.locator('.key[data-b="' + v + '"]'); await key.focus().catch(() => {}); await key.dispatchEvent('click'); await pg.waitForTimeout(120);
+};
+const __plus = (pg, i, taps = 1) => __pad(pg, i, taps, 1);
+const __minus = (pg, i, taps = 1) => __pad(pg, i, taps, -1);
+const __open = (pg, i) => __pad(pg, i, 0, 1);
+
+
 const fails = [];
 const ok = (n, g, w) => { const good = JSON.stringify(g) === JSON.stringify(w);
   console.log((good ? '  PASS  ' : '  FAIL  ') + n + '  got ' + JSON.stringify(g) + (good ? '' : '  want ' + JSON.stringify(w)));
@@ -87,8 +108,8 @@ const pickGroup = async i => { await shut();
    every golfer gets one, and the first gets `over` more */
 const playHole = async (i, over) => { await shut();
   await p.locator('.hcell').nth(i).click(); await p.waitForTimeout(300); await shut();
-  const plus = p.locator('.step.plus'); const n = await plus.count();
-  for (let k = 0; k < n; k++) { const times = 1 + (k === 0 ? over : 0); for (let j = 0; j < times; j++) { await plus.nth(k).click(); await p.waitForTimeout(40); } }
+  const n = await p.locator('.ptile[data-act="padOpen"]').count();
+  for (let k = 0; k < n; k++) await __plus(p, k, 1 + (k === 0 ? over : 0));
   await p.locator('[data-act="saveHole"]').click(); await p.waitForTimeout(500); };
 
 await p.goto('file://' + S + '/feel.html');
@@ -109,7 +130,7 @@ const first = await p.evaluate(() => { const g = document.querySelector('.hstrip
 ok('the card is open to score', first, true);
 await pickGroup(0);
 /* whoever is first on the sheet is "me" */
-const pid = await p.evaluate(() => { const el = document.querySelector('.step.plus'); return el ? (el.dataset.a || el.closest('[data-pid]')?.dataset.pid || null) : null; });
+const pid = await p.evaluate(() => { const el = document.querySelector('.ptile[data-act="padOpen"]'); return el ? el.dataset.a : null; });
 await p.evaluate(id => { localStorage.setItem('union-invitational:me', id); window.__UI.me = id; window.__forceRender(); }, pid);
 await p.waitForTimeout(300);
 

@@ -37,6 +37,7 @@ const UI = {
   recapOpen: false,
   recap: { rid: null, busy: false, err: '', stream: '', edit: false, view: 'report' },
   feelOn: null,         // the hole the golfer is being asked about: {rid, h}
+  pad: null,            // the golfer whose keypad is up on Score Entry
   feelDraft: null,      // the word they are typing on it: {rid, h, v}
   upload: { queue: [], err: '' },
   role: 'viewer',
@@ -2009,8 +2010,17 @@ function holeSavedBy(rid, h, who) {
   return null;
 }
 
+/** The golfers the keypad walks through: the group on screen, in order. */
+function padList(rid) {
+  const groups = E.groups(T, rid);
+  const slot = Math.min(UI.entryTee === 'all' ? 0 : +UI.entryTee, Math.max(groups.length - 1, 0));
+  const g = groups[slot];
+  const ids = g && g.members && g.members.length ? g.members : null;
+  return ids ? E.golfers(T).filter(x => ids.includes(x.id)) : E.golfers(T);
+}
 function commitDraft(role) {
   const d = UI.draft;
+  UI.pad = null;
   if (!d) return;
   const h = d.hole;
   for (const [pid, v] of Object.entries(d.strokes)) {
@@ -2359,6 +2369,12 @@ function scrEntry() {
         : '');
   };
 
+  /* ONE ROW A GOLFER, ONE NUMBER ON IT. The row is the name, what the band
+     gives them here, and how they stand; the score is a tile. Tap the tile
+     and the keypad rises with every number the hole allows — par outlined,
+     the pick-up in red — and moves itself to the next golfer, so four scores
+     are four taps. Mulligans, the breakfast ball and Clear live on the pad,
+     not the page: the page is for reading the group. */
   const rows = list.map(g => {
     const raw = grossOf(rid, g.id, h);
     const st = E.strokesFor(g.band, hole.si);
@@ -2369,29 +2385,52 @@ function scrEntry() {
     const tp = E.roundToPar(T, rid, g.id);
     const pending = UI.draft && UI.draft.rid === rid && UI.draft.hole === h && (g.id in UI.draft.strokes)
       && UI.draft.strokes[g.id] !== (c ? c.raw[h] : null);
-    return `<div class="prow${pending ? ' pending' : ''}">
+    const spent = [c && c.mF ? 'front mulligan used' : '', c && c.mB ? 'back mulligan used' : '', h === 0 && c && c.bb ? 'breakfast ball used' : ''].filter(Boolean);
+    const tone = raw == null ? '' : capped ? ' cap' : raw < hole.par ? ' u' : raw > hole.par ? ' o' : '';
+    const tile = `<span class="fig raw"><span class="v num">${raw == null ? '\u00b7' : raw}</span></span>`;
+    return `<div class="prow${pending ? ' pending' : ''}${UI.pad === g.id ? ' sel' : ''}">
       <div class="pmain">
         <div class="pwho">
           <div class="nm">${esc(g.display)}${pending ? '<span class="tag">unsaved</span>' : ''}</div>
-          <div class="bd num">band ${g.band ? g.band : '—'} <span>${st == null ? '·' : '+' + st + ' here'}</span></div>
+          <div class="bd num">band ${g.band ? g.band : '\u2014'} <span>${st == null ? '\u00b7' : '+' + st + ' here'}</span>${
+            net != null ? ' \u00b7 net ' + net : ''}${tp.thru ? ' \u00b7 ' + esc(E.fmtToPar(tp.tp)) + ' thru ' + tp.thru : ''}${
+            capped ? ' \u00b7 <em class="capped">picked up</em>' : ''}${spent.length ? ' \u00b7 ' + spent.join(', ') : ''}</div>
         </div>
-        ${editable ? `<button class="step minus" data-act="bump" data-a="${g.id}" data-b="-1" aria-label="One stroke fewer for ${esc(g.display)}">−</button>` : ''}
-        <div class="fig raw"><div class="v num">${raw == null ? '·' : raw}</div><div class="l">raw</div></div>
-        ${editable ? `<button class="step plus" data-act="bump" data-a="${g.id}" data-b="1" aria-label="One stroke more for ${esc(g.display)}"${capped ? ' disabled' : ''}>+</button>` : ''}
-        <div class="fig"><div class="v num">${adj == null ? '·' : adj}</div><div class="l">adjusted</div></div>
-        <div class="fig"><div class="v num net">${net == null ? '·' : net}</div><div class="l">net</div></div>
-        <div class="fig end"><div class="v num ${cls(tp.thru ? tp.tp : null)}">${tp.thru ? esc(E.fmtToPar(tp.tp)) : '—'}</div><div class="l num">thru ${tp.thru}</div></div>
+        ${editable
+          ? `<button class="ptile${tone}" data-act="padOpen" data-a="${g.id}" aria-label="Score for ${esc(g.display)} on hole ${hole.n}${raw == null ? '' : ': ' + raw}" aria-expanded="${UI.pad === g.id}">${tile}</button>`
+          : `<span class="ptile still${tone}">${tile}</span>`}
       </div>
-      ${ed ? `<div class="prelief">
-        ${capped ? `<span class="capchip">Capped at ${cap} — pick up</span>` : ''}
-        ${r.noMulligans ? '' : `
-          ${relief(g, c, 'mF', 'Front mulligan', '1 left', editable)}
-          ${relief(g, c, 'mB', 'Back mulligan', '1 left', editable)}`}
-        ${h === 0 ? relief(g, c, 'bb', 'Breakfast ball', 'Available', editable) : ''}
-        ${editable ? `<button class="clearh" data-act="clearHole" data-a="${g.id}">Clear hole</button>` : ''}
-      </div>` : ''}
     </div>`;
   }).join('');
+
+  /* THE KEYPAD. One golfer at a time, every number the hole allows, and
+     the relief that golfer still holds. It is a sheet on a phone and a card
+     in the corner on anything wider; it is never up over a PIN box. */
+  const padFor = editable && !UI.modal && UI.pad ? list.find(g => g.id === UI.pad) : null;
+  const keypad = padFor ? (() => {
+    const g = padFor;
+    const raw = grossOf(rid, g.id, h);
+    const c = E.card(T, rid, g.id);
+    const at = list.findIndex(x => x.id === g.id);
+    const next = list[at + 1] || null;
+    const keys = [];
+    for (let n = 1; n <= cap; n++) keys.push(`<button class="key num${n === hole.par ? ' par' : ''}${n === cap ? ' cap' : ''}${n === raw ? ' on' : ''}"
+      data-act="setScore" data-a="${g.id}" data-b="${n}" aria-label="${n}${n === hole.par ? ', par' : n === cap ? ', pick up' : ''}${n === raw ? ', entered' : ''}">${n}${
+      n === hole.par ? '<i>par</i>' : n === cap ? '<i>pick up</i>' : ''}</button>`);
+    keys.push(`<button class="key wide" data-act="clearHole" data-a="${g.id}">Clear</button>`);
+    return `<div class="keypad" role="dialog" aria-label="Score for ${esc(g.display)} on hole ${hole.n}"
+      data-par="${hole.par}" data-cap="${cap}" data-cur="${raw == null ? '' : raw}">
+      <div class="kh"><b>${esc(g.display)}</b><span>Hole ${hole.n} \u00b7 par ${hole.par} \u00b7 picks up at ${cap}</span>
+        <button class="xx" data-act="padClose">Done</button></div>
+      <div class="keys">${keys.join('')}</div>
+      ${ed && (!r.noMulligans || h === 0) ? `<div class="krow">
+        ${r.noMulligans ? '' : relief(g, c, 'mF', 'Front mulligan', '1 left', editable) + relief(g, c, 'mB', 'Back mulligan', '1 left', editable)}
+        ${h === 0 ? relief(g, c, 'bb', 'Breakfast ball', 'Available', editable) : ''}
+      </div>` : ''}
+      ${next ? `<button class="knext" data-act="padOpen" data-a="${next.id}">Next: ${esc(next.display)} \u203a</button>`
+             : `<button class="knext" data-act="padClose">That is the group \u00b7 Done</button>`}
+    </div>`;
+  })() : '';
 
   const people = sel => `<option value="">Nobody yet</option>` + E.golfers(T).map(g =>
     `<option value="${g.id}"${sel === g.id ? ' selected' : ''}>${esc(g.display)}</option>`).join('');
@@ -2509,28 +2548,34 @@ function scrEntry() {
         rows follow; on anything wider the rows take the page and the hole
         stands beside them in a card that stays put while they scroll. The
         same markup, placed by the stylesheet. */ ''}
+  ${keypad}
   <div class="entrygrid">
     <div class="egl">${rows || `<p class="empty">No golfers in this group.</p>`}</div>
     <div class="egr">
       ${holePlate(rid, h, hole, course, cap, list, slotPlayers)}
       <div class="side-b" data-reveal="bbb">
         <h3>Bingo Bango Bongo — hole ${hole.n}</h3>
-        <p class="sublede">First on, closest once all on, first in.</p>
-        <div class="fieldset">
-          ${[['bingo', 'Bingo — first on the green'], ['bango', 'Bango — closest once all on'], ['bongo', 'Bongo — first to hole out']].map(([k, lbl]) =>
+        <p class="sublede">First on the green, closest once all are on, first to hole out.</p>
+        <div class="fieldset bbb3">
+          ${[['bingo', 'Bingo'], ['bango', 'Bango'], ['bongo', 'Bongo']].map(([k, lbl]) =>
             `<label>${esc(lbl)}
               <select class="field" data-act="setBbb" data-a="${k}"${editable ? '' : ' disabled'}>${inGroup(bbbOf(rid, h, k, gid))}</select></label>`).join('')}
         </div>
         <p class="sublede" style="margin-top:8px">Only ${esc((groups[slot] || {}).label || 'this group')} appears here — the other group's ref scores their own.</p>
       </div>
 
-      <div class="side-g" data-reveal="pins">
+      ${/* ONLY ON THE HOLES IT IS ABOUT. Until the round opens the section
+            stands on every hole, because nominating is what opens it; once
+            it is open the closest-to-the-pin fields appear on that hole and
+            the longest-drive fields on theirs, and the other sixteen holes
+            carry neither. */ ''}
+      ${(!open || cfg.ctpHole === hole.n || cfg.ldHole === hole.n) ? `<div class="side-g" data-reveal="pins">
         <h3>Pin &amp; drive — ${esc(r.short)}</h3>
         <p class="sublede">${nominated
           ? (open ? 'Nominated. Moving a hole now asks a scorer to confirm.' : 'Both nominated — the round can open.')
           : 'Both holes must be nominated before the round can open.'}</p>
         <div class="fieldset">
-          <label>Closest to the Pin hole
+          ${(!open || cfg.ctpHole === hole.n) ? `<label>Closest to the Pin hole
             <select class="field${cfg.ctpHole ? '' : ' unset'}" data-act="setRoundField" data-a="ctpHole"${ed && !locked ? '' : ' disabled'}>
               <option value="">Not chosen yet</option>
               ${course.holes.filter(x => x.par === 3).map(x => `<option value="${x.n}"${cfg.ctpHole === x.n ? ' selected' : ''}>Hole ${x.n}</option>`).join('')}
@@ -2544,8 +2589,8 @@ function scrEntry() {
                 there is no number for the book and the flag to disagree
                 about. Longest drive keeps its distance: nothing is marking
                 the fairway. */ ''}
-          <p class="sublede" style="margin-top:-4px">The flag on the green is the mark. Beat it, move it, and put your name here.</p>
-          <label>Longest Drive hole
+          <p class="sublede" style="margin-top:-4px">The flag on the green is the mark. Beat it, move it, and put your name here.</p>` : ''}
+          ${(!open || cfg.ldHole === hole.n) ? `<label>Longest Drive hole
             <select class="field${cfg.ldHole ? '' : ' unset'}" data-act="setRoundField" data-a="ldHole"${ed && !locked ? '' : ' disabled'}>
               <option value="">Not chosen yet</option>
               ${course.holes.map(x => `<option value="${x.n}"${cfg.ldHole === x.n ? ' selected' : ''}>Hole ${x.n} — par ${x.par}</option>`).join('')}
@@ -2554,9 +2599,9 @@ function scrEntry() {
             <select class="field" data-act="setRoundField" data-a="ldWinner"${ed ? '' : ' disabled'}>${people(cfg.ldWinner)}</select></label>
           <label>Distance
             <input class="field" type="text" value="${esc(cfg.ldDist || '')}" placeholder="e.g. 260 m"
-              data-act="setRoundField" data-a="ldDist"${ed ? '' : ' disabled'}></label>
+              data-act="setRoundField" data-a="ldDist"${ed ? '' : ' disabled'}></label>` : ''}
         </div>
-      </div>
+      </div>` : ''}
     </div>
   </div>`;
 }
@@ -4057,6 +4102,7 @@ function paint() {
      book redraws on a timer, and a redraw replaces the whole tree — taking
      the <details> open with it. Which ones were open is remembered by id. */
   const opened = [...document.querySelectorAll('details[id][open]')].map(el => el.id);
+  if (UI.screen !== 'entry' || UI.entryMode === 'mine') UI.pad = null;
   const body = { today: scrToday, resort: scrResort, boards: scrBoards, ryder: scrRyder,
                  calendar: scrCalendar, entry: scrEntry, roster: scrRoster, rules: scrRules,
                  tees: scrTees,
@@ -4116,10 +4162,11 @@ function paint() {
     ${/* `scoring` buys the room the fixed Save bar stands in, and only on
           the screen that has one. */ ''}
     <main class="page${UI.screen === 'entry' ? ' scoring' : ''}"${turning ? ' data-turn="1"' : ''}>${body}</main>
+    ${/* One quiet line: the connection, who you are to the book, the build.
+          It was four lines of plain text at the foot of every page. */ ''}
     <div class="statusbar">
-      <span class="dot ${dot}"></span><span>${esc(statusText)}</span>
-      <span>${D.PINS_ENABLED ? esc(role.label) : 'Unlocked — anyone can score'}</span>
-      <span class="sp">The Union Invitational — Belek, Türkiye — 2026</span>
+      <span class="dot ${dot}"></span><span class="st">${esc(statusText)}</span>
+      <span class="who">${D.PINS_ENABLED ? esc(role.label) : 'Unlocked \u2014 anyone can score'}</span>
       <span class="build" title="Which copy of the book this device is running">build ${esc(D.BUILD)}</span>
     </div>
   </div>
@@ -5527,8 +5574,8 @@ function onClick(e) {
     case 'boardRound': UI.boardRound = a; UI.bookHole = 0; break;
     case 'bookHole': UI.bookHole = +a; break;
     case 'entryRound': guardDraft(() => { UI.entryRound = a; UI.entryHole = 0; UI.entryTee = '0'; }); return;
-    case 'entryHole': guardDraft(() => { UI.entryHole = +a; holeNotice(UI.entryRound, +a); }); return;
-    case 'entryTee': guardDraft(() => { UI.entryTee = a; }); return;
+    case 'entryHole': UI.pad = null; guardDraft(() => { UI.entryHole = +a; holeNotice(UI.entryRound, +a); }); return;
+    case 'entryTee': UI.pad = null; guardDraft(() => { UI.entryTee = a; }); return;
     case 'calLock':
     case 'calUnlock':
       if (!canAdmin()) return;
@@ -5730,20 +5777,28 @@ function onClick(e) {
           setRound(a, { state: 'open', lockedBy: null, lockedAt: null, done: {}, turn: {} }); });
       return;
 
-    case 'bump': {
+    case 'padOpen':
+      if (!canEdit() || E.roundCfg(T, rid).state !== 'open' || cardClosed(rid) || closedFor(rid, a)) return;
+      UI.pad = a;
+      break;
+    case 'padClose':
+      UI.pad = null;
+      break;
+    case 'setScore': {
       if (!canEdit() || E.roundCfg(T, rid).state !== 'open') return;
       if (cardClosed(rid) || closedFor(rid, a)) return;   // that card has finished; it is read-only
       const h = UI.entryHole;
       const hole = E.courseOf(T, rid).holes[h];
       const cap = E.capFor(hole.par, T.config.capOver);
-      const d = draftFor(rid, h);
-      const cur = grossOf(rid, a, h);
-      // From an empty cell either button starts at par: plus lands on it,
-      // minus one under. Going below par took a tap up and a tap back.
-      let v = cur == null ? hole.par + (+b > 0 ? 0 : -1) : cur + (+b);
-      if (v != null && v < 1) v = null;
-      if (v != null && v > cap) v = cap;
-      d.strokes[a] = v;
+      let v = Math.round(+b);
+      if (!(v >= 1)) return;
+      if (v > cap) v = cap;
+      draftFor(rid, h).strokes[a] = v;
+      /* the pad walks on to the next golfer of its own accord, and closes
+         after the last: four scores, four taps */
+      const list = padList(rid);
+      const at = list.findIndex(x => x.id === a);
+      UI.pad = at >= 0 && list[at + 1] ? list[at + 1].id : null;
       break;
     }
     case 'clearHole': {

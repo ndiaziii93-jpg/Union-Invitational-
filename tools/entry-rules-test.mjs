@@ -4,6 +4,27 @@
 import { chromium } from 'playwright';
 import { readFileSync, writeFileSync } from 'node:fs';
 
+/* THE KEYPAD. A score goes in by tapping the golfer's tile and then the
+   number on the pad that rises. These emulate n taps of the old plus or
+   minus (from an empty cell the first plus landed on par, the first minus
+   one under) so the arithmetic of every scenario below is unchanged. */
+const __pad = async (pg, i, taps, dir) => {
+  const tiles = pg.locator('.ptile[data-act="padOpen"]');
+  if (await tiles.count() <= i) return;
+  await tiles.nth(i).focus().catch(() => {}); await tiles.nth(i).dispatchEvent('click'); await pg.waitForTimeout(140);
+  const kp = pg.locator('.keypad'); if (!await kp.count()) return;
+  if (taps <= 0) return;
+  const par = +(await kp.getAttribute('data-par')), cap = +(await kp.getAttribute('data-cap'));
+  const curS = await kp.getAttribute('data-cur'); const cur = curS ? +curS : null;
+  let v = cur == null ? par + (dir > 0 ? taps - 1 : -taps) : cur + dir * taps;
+  v = Math.max(1, Math.min(cap, v));
+  const key = kp.locator('.key[data-b="' + v + '"]'); await key.focus().catch(() => {}); await key.dispatchEvent('click'); await pg.waitForTimeout(120);
+};
+const __plus = (pg, i, taps = 1) => __pad(pg, i, taps, 1);
+const __minus = (pg, i, taps = 1) => __pad(pg, i, taps, -1);
+const __open = (pg, i) => __pad(pg, i, 0, 1);
+
+
 /* Whatever window is up is answered first — a half-entered hole's "not
    saved" by taking the discard, anything else by its Cancel — because a
    tap forced through a scrim lands on the scrim and only closes it. */
@@ -87,7 +108,12 @@ ok('the nominations stuck', [await pick('ctpHole').inputValue() !== '', await pi
 
 await p.locator('[data-act="openRound"]').first().click(); await p.waitForTimeout(1300); await shut();
 ok('the card is open', await p.locator('[data-act="saveHole"]').count(), 1);
+/* Once the round is open the nominations live on the holes they are about
+   and nowhere else, so the checks go to those holes. */
+const nomOf = k => p.evaluate(k => window.__T.config.rounds[window.__UI.entryRound][k], k);
+await p.locator('.hcell').nth(await nomOf('ctpHole') - 1).click(); await p.waitForTimeout(600); await shut();
 ok('and a scorer can still move a hole', await pick('ctpHole').isDisabled(), false);
+ok('but only on the hole it is about', await p.locator('[data-act="setRoundField"][data-a="ldDist"]').count(), +(await nomOf('ldHole') === await nomOf('ctpHole')));
 
 /* Closest to the pin is settled on the green, by a flag in the ground that
    the next man to beat it picks up and moves. A distance box would be a
@@ -98,10 +124,13 @@ ok('there is nowhere to type a closest-to-the-pin distance',
   await p.locator('[data-act="setRoundField"][data-a="ctpDist"]').count(), 0);
 ok('and the screen says what the mark is instead',
   /flag/i.test(await p.locator('[data-reveal="pins"]').innerText()), true);
+await p.locator('.hcell').nth(await nomOf('ldHole') - 1).click(); await p.waitForTimeout(600); await shut();
 ok('longest drive still takes one',
   await p.locator('[data-act="setRoundField"][data-a="ldDist"]').count(), 1);
 ok('and the only distance box on the screen is that one',
   (await p.locator('.side-g label').allInnerTexts()).filter(t => /distance/i.test(t)).length, 1);
+await p.locator('.hcell').nth(0).click(); await p.waitForTimeout(500); await shut();
+ok('and a plain hole carries neither', await p.locator('[data-reveal="pins"]').count(), +([await nomOf('ctpHole'), await nomOf('ldHole')].includes(1)));
 
 console.log('\nBingo Bango Bongo stays inside the group');
 const g1 = await names();
@@ -120,7 +149,10 @@ if (chips > 1) {
 console.log('\nthe nominated holes announce themselves');
 /* Closest to the pin and longest drive are chosen before anyone tees off and
    are then easy to walk straight past. */
-const ctp = parseInt(await pick('ctpHole').inputValue(), 10);
+/* the hole was visited above, so its once-only word has been said; this
+   device forgets it so the arrival can be watched */
+await p.evaluate(() => { window.__UI.noticed = {}; });
+const ctp = await nomOf('ctpHole');
 await p.locator('.hcell').nth(ctp - 1).click(); await p.waitForTimeout(700);
 ok('arriving at the nominated hole says so', await p.locator('.holemodal').count(), 1);
 ok('and names which game it is', (await p.locator('.holemodal .mb-t').innerText())
@@ -137,10 +169,10 @@ await p.evaluate(() => window.scrollTo(0, 420));
 await p.waitForTimeout(250);
 const before2 = await p.evaluate(() => window.scrollY);
 ok('scrolled down the card', before2 > 300, true);
-await p.locator('.step.plus').first().click(); await p.waitForTimeout(250);
+await __plus(p, 0, 1); await p.waitForTimeout(250);
 await p.locator('[data-act="saveHole"]').click(); await p.waitForTimeout(1100); await shut();
 ok('the hole was saved and it walked on', await p.locator('.holehead h3').innerText(), 'Hole 2');
-ok('and the screen stayed where it was', await p.evaluate(() => window.scrollY) > 300, true);
+ok('and the screen stayed where it was', Math.abs(await p.evaluate(() => window.scrollY) - before2) <= 2, true);
 
 console.log('\na fresh group starts on a fresh card');
 /* The hole strip walked every golfer on the round, not every golfer in the
@@ -167,7 +199,7 @@ ok('the bar does not tell them it is done', (await bar()).includes('saved'), fal
 
 /* And once they do play it, their own cell fills — the strip is not simply
    blank for everybody but the first group round. */
-await p.locator('.step.plus').first().click(); await p.waitForTimeout(250);
+await __plus(p, 0, 1); await p.waitForTimeout(250);
 await p.locator('[data-act="saveHole"]').click(); await p.waitForTimeout(1100); await shut();
 await gotoHole1();
 ok('playing it fills their cell too', await hole1(), true);
@@ -181,6 +213,8 @@ console.log('\na mulligan is spent once');
 /* It was written as a toggle — `c[b] = !c[b]` — so a second tap handed the
    shot straight back and the chip went from "Used" to "1 left" again. That
    is a mulligan a hole, all the way up the front nine. */
+/* the relief lives on the keypad now: open it for the first golfer */
+await __open(p, 0); await p.waitForTimeout(200);
 const front = p.locator('.mchip', { hasText: 'Front mulligan' }).first();
 ok('it starts with one in hand', (await front.innerText()).includes('1 left'), true);
 await front.click(); await p.waitForTimeout(600); await shut();
@@ -198,6 +232,7 @@ ok('the master has a separate release', await p.locator(
 await p.locator('[data-act="unspend"][data-b="mF"]').first().click(); await p.waitForTimeout(500);
 ok('which asks before it does anything', await p.locator('.modal .acts').count(), 1);
 await p.locator('[data-act="confirmOk"]').click(); await p.waitForTimeout(700); await shut();
+if (!await p.locator('.keypad').count()) { await __open(p, 0); await p.waitForTimeout(200); }
 ok('and only then hands it back', (await p.locator('.mchip', { hasText: 'Front mulligan' })
   .first().innerText()).includes('1 left'), true);
 await p.locator('.mchip', { hasText: 'Front mulligan' }).first().click();

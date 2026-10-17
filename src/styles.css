@@ -249,20 +249,47 @@ h3.sub{font-size:19px;font-weight:600;margin:26px 0 0}
   background:var(--flag);color:#FBFAF7;vertical-align:2px;font-weight:400}
 .pwho .bd{font-size:14px;color:var(--turf);font-variant-numeric:tabular-nums}
 .pwho .bd span{color:var(--green)}
-.step{width:52px;height:52px;border:1px solid var(--ink);background:var(--page);font-size:26px;line-height:1;
-  display:flex;align-items:center;justify-content:center;border-radius:2px;flex:0 0 auto}
-.step.plus{background:var(--ink);border-color:var(--ink);color:var(--paper)}
-.step:disabled{opacity:.35}
-.fig{min-width:58px;text-align:center;flex:0 0 auto}
-.fig.raw{min-width:64px}
-.fig.raw .v{font-size:34px;font-weight:900;line-height:1}
-.fig .v{font-size:22px;font-variant-numeric:tabular-nums;line-height:1.1}
-.fig .v.net{color:var(--gold)}
-.fig .l{font-size:12px;color:var(--turf);margin-top:2px}
-.fig.end{min-width:78px;text-align:right;margin-left:auto}
-.fig.end .v{font-size:18px}
-
-.prelief{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center}
+/* THE TILE. The score is the only big thing on the row; everything else
+   is a line of small type under the name. */
+.prow.sel{background:var(--sunk);margin:0 -16px;padding-left:16px;padding-right:16px}
+.ptile{width:64px;height:54px;flex:0 0 auto;margin-left:auto;border:1px solid var(--rule);border-radius:12px;
+  background:var(--paper);display:grid;place-items:center;font-family:inherit;color:var(--ink);
+  -webkit-tap-highlight-color:transparent;transition:border-color .15s ease,background .15s ease}
+.ptile[aria-expanded="true"]{border:2px solid var(--ink);background:var(--page)}
+.ptile.u{color:var(--gold-up)}.ptile.cap{color:var(--flag)}
+.ptile.still{background:none;border-color:transparent}
+.ptile .fig.raw .v{font-size:26px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.pwho .bd .capped{font-style:normal;color:var(--flag);font-weight:600}
+/* THE KEYPAD: a sheet of pine from the foot of a phone, a card in the
+   corner of anything wider. Par is outlined in gold, the pick-up reads red. */
+.keypad{position:fixed;left:0;right:0;bottom:calc(150px + env(safe-area-inset-bottom,0px));z-index:29;background:var(--ink);color:var(--page);
+  border-radius:22px;margin:0 8px;padding:14px 16px 12px;
+  box-shadow:0 -12px 40px rgba(16,22,17,.4);animation:feelin .22s ease-out}
+.keypad .kh{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.keypad .kh b{font-size:18px}
+.keypad .kh span{flex:1;min-width:0;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--sage-up)}
+.keypad .kh .xx{background:none;border:0;color:#E2C277;font-family:inherit;font-size:14px;font-weight:700;padding:8px 0 8px 8px}
+.keypad .keys{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.keypad .key{height:58px;border-radius:14px;border:1px solid rgba(238,232,213,.22);background:rgba(238,232,213,.08);
+  color:var(--page);font-size:24px;font-weight:700;font-family:inherit;position:relative;-webkit-tap-highlight-color:transparent}
+.keypad .key i{position:absolute;left:0;right:0;bottom:5px;font-size:8.5px;letter-spacing:.12em;text-transform:uppercase;font-style:normal;color:var(--sage-up);font-weight:700}
+.keypad .key.par{border:2px solid #E2C277}
+.keypad .key.cap{color:#E99A8C}
+.keypad .key.on{background:var(--page);color:var(--ink)}
+.keypad .key.on i{color:var(--turf)}
+.keypad .key.wide{font-size:14px;font-weight:600;color:var(--sage-up)}
+.keypad .krow{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;align-items:center}
+.keypad .mchip{flex:1 1 auto;border-radius:999px;border-color:rgba(238,232,213,.3);background:none;color:var(--page);font-size:12.5px;padding:7px 10px;min-height:38px;text-align:center}
+.keypad .mchip:disabled{opacity:.55}
+.keypad .mchip.on{background:var(--green);border-color:var(--green);color:#FBFAF7;opacity:1}
+.keypad .relq{color:var(--sage-up)}
+.keypad .knext{display:block;width:100%;margin-top:10px;background:none;border:0;color:var(--sage-up);font-family:inherit;font-size:13.5px;padding:8px}
+/* the page under the pad can still be scrolled up past it */
+html:has(.keypad) .page.scoring{padding-bottom:470px}
+@media (min-width:700px){
+  .keypad{left:auto;right:22px;bottom:118px;width:400px;margin:0;padding-bottom:14px}
+  html:has(.keypad) .page.scoring{padding-bottom:96px}
+}
 .capchip{font-size:14px;color:#FBFAF7;background:var(--flag);padding:5px 11px;border-radius:2px}
 .mchip{padding:6px 12px;border:1px solid var(--rule);background:var(--page);color:var(--ink);
   font-size:14px;border-radius:2px;min-height:36px}
@@ -285,6 +312,9 @@ h3.sub{font-size:19px;font-weight:600;margin:26px 0 0}
 .clearh:hover{color:var(--ink)}
 
 .side-b{border-top:2px solid var(--ink);padding-top:12px}
+.bbb3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.bbb3 label{min-width:0}
+.bbb3 .field{width:100%;min-width:0}
 .side-g{border-top:2px solid var(--gold);padding-top:12px;margin-top:26px}
 .side-b h3,.side-g h3{font-size:19px;font-weight:700;margin:0}
 .side-g h3{color:var(--gold)}
@@ -1193,12 +1223,13 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 .savebar.done{border-left:3px solid var(--gold);background:var(--sunk)}
 
 /* ---- status foot ---- */
-.statusbar{margin-top:52px;border-top:1px solid var(--rule);padding:14px 0 0;display:flex;gap:16px;
-  align-items:center;font-size:14px;color:var(--turf);flex-wrap:wrap}
+.statusbar{margin-top:44px;border-top:1px solid var(--rule);padding:12px 0 0;display:flex;gap:10px;flex-wrap:wrap;align-items:center;
+  font-size:12px;color:var(--turf);line-height:1.4}
 .statusbar .dot{width:8px;height:8px;border-radius:50%;background:var(--turf);flex:0 0 auto}
 .statusbar .dot.live{background:var(--under)}
 .statusbar .dot.err{background:var(--flag)}
-.statusbar .sp{margin-left:auto}
+.statusbar .who::before,.statusbar .build::before{content:"\00B7";padding-right:10px;color:var(--rule)}
+.statusbar .build{margin-left:auto}
 
 /* ---- today ---- */
 /* ================= TODAY: THE COVER =================
@@ -1714,13 +1745,9 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
   .hcell .n{font-size:17px}
 
   /* the stepper row stacks its figures rather than squeezing them */
-  .pmain{gap:10px}
-  .pwho{flex:1 1 100%}
-  .step{width:56px;height:56px;font-size:28px}
-  .fig{min-width:52px}
-  .fig.raw{min-width:58px}
-  .fig.raw .v{font-size:30px}
-  .fig.end{min-width:64px;margin-left:0;text-align:center}
+  .pmain{gap:10px;flex-wrap:nowrap}
+  .pwho{flex:1 1 auto;min-width:0}
+  .ptile{width:66px;height:56px}
 
   /* saving stays in reach however long the hole list runs */
   .savebar{position:sticky;top:0;z-index:30;box-shadow:0 6px 16px -10px var(--shadow)}

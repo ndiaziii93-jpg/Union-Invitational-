@@ -31,6 +31,27 @@
 import { chromium } from 'playwright';
 import { readFileSync, writeFileSync } from 'node:fs';
 
+/* THE KEYPAD. A score goes in by tapping the golfer's tile and then the
+   number on the pad that rises. These emulate n taps of the old plus or
+   minus (from an empty cell the first plus landed on par, the first minus
+   one under) so the arithmetic of every scenario below is unchanged. */
+const __pad = async (pg, i, taps, dir) => {
+  const tiles = pg.locator('.ptile[data-act="padOpen"]');
+  if (await tiles.count() <= i) return;
+  await tiles.nth(i).focus().catch(() => {}); await tiles.nth(i).dispatchEvent('click'); await pg.waitForTimeout(140);
+  const kp = pg.locator('.keypad'); if (!await kp.count()) return;
+  if (taps <= 0) return;
+  const par = +(await kp.getAttribute('data-par')), cap = +(await kp.getAttribute('data-cap'));
+  const curS = await kp.getAttribute('data-cur'); const cur = curS ? +curS : null;
+  let v = cur == null ? par + (dir > 0 ? taps - 1 : -taps) : cur + dir * taps;
+  v = Math.max(1, Math.min(cap, v));
+  const key = kp.locator('.key[data-b="' + v + '"]'); await key.focus().catch(() => {}); await key.dispatchEvent('click'); await pg.waitForTimeout(120);
+};
+const __plus = (pg, i, taps = 1) => __pad(pg, i, taps, 1);
+const __minus = (pg, i, taps = 1) => __pad(pg, i, taps, -1);
+const __open = (pg, i) => __pad(pg, i, 0, 1);
+
+
 const S = '/tmp/claude-0/-home-user-Union-Invitational-/8bcdc9be-12b5-528d-a069-2403e068b315/scratchpad';
 const W = S + '/entry-phone.html';
 writeFileSync(W, '<!doctype html><html><head><meta charset="utf-8">'
@@ -154,8 +175,7 @@ await tap(p.locator('.entryhd .hcell').nth(0)); await p.waitForTimeout(600); awa
 ok('the hole is drawn', await p.locator('.holeplate img:visible').count(), 1);
 ok('nothing is in yet', (await p.locator('.hp-foot').innerText()).toLowerCase().includes('0 of 4 in'), true);
 for (let i = 0; i < 3; i++) {
-  const plus = p.locator('.prow .step.plus');
-  if (await plus.count() > i) for (let k = 0; k < 4; k++) { await tap(plus.nth(i)); await p.waitForTimeout(60); }
+  await __plus(p, i, 4);
 }
 await p.locator('[data-act="saveHole"]').first().click(); await p.waitForTimeout(800); await shut();
 await tap(p.locator('.entryhd .hcell').nth(0)); await p.waitForTimeout(700); await shut();
@@ -175,8 +195,8 @@ ok('the tee marker never says the same thing twice', await p.evaluate(() => {
 
 /* ---------- 6. the workflow itself is untouched ---------- */
 console.log('\nand the way a hole is scored has not moved');
-ok('every golfer still has a stepper', await p.locator('.prow .step.plus').count(), 4);
-ok('raw and adjusted still sit side by side', await p.locator('.prow .fig.raw').count(), 4);
+ok('every golfer still has a way to score', await p.locator('.prow .ptile[data-act="padOpen"]').count(), 4);
+ok('the score is still the big number on the row', await p.locator('.prow .fig.raw').count(), 4);
 ok('the hole is still saved by hand', await p.locator('[data-act="saveHole"]').count(), 1);
 ok('and marks are still one button', await p.locator('.savebar .markbtn').count(), 1);
 ok('which still asks the whole question out loud',

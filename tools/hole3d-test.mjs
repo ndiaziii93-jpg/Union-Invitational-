@@ -60,7 +60,7 @@ ok('switched to metres the number shrinks by the right amount', Math.abs(m * 1.0
 ok('and the pill shows it', await p.locator('.h3unit button.on').innerText(), 'M');
 ok('the dock carries par', (await p.locator('.h3dock .par b').innerText()).trim(), (await p.evaluate(() => document.querySelector('.h3dock .par b').textContent)).trim());
 ok('and asks who you are until you say', (await p.locator('.h3dock .fig span').innerText()).trim().toLowerCase(), 'who are you?');
-ok('nothing on the window scores a hole', await p.locator('.h3dwin [data-act="saveHole"], .h3dwin .step').count(), 0);
+ok('nothing on the window scores a hole', await p.locator('.h3dwin [data-act="saveHole"], .h3dwin .ptile, .h3dwin .keypad').count(), 0);
 /* a tap on the ground puts the target down */
 const live = p.locator('.h3live'); const lb = await live.boundingBox();
 await p.mouse.click(lb.x + lb.width * .5, lb.y + lb.height * .42); await p.waitForTimeout(400);

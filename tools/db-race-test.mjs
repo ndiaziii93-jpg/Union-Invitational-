@@ -5,6 +5,27 @@
    Both of these silently reverted the user's edits. Run: node tools/db-race-test.mjs */
 import { chromium } from 'playwright';
 
+/* THE KEYPAD. A score goes in by tapping the golfer's tile and then the
+   number on the pad that rises. These emulate n taps of the old plus or
+   minus (from an empty cell the first plus landed on par, the first minus
+   one under) so the arithmetic of every scenario below is unchanged. */
+const __pad = async (pg, i, taps, dir) => {
+  const tiles = pg.locator('.ptile[data-act="padOpen"]');
+  if (await tiles.count() <= i) return;
+  await tiles.nth(i).focus().catch(() => {}); await tiles.nth(i).dispatchEvent('click'); await pg.waitForTimeout(140);
+  const kp = pg.locator('.keypad'); if (!await kp.count()) return;
+  if (taps <= 0) return;
+  const par = +(await kp.getAttribute('data-par')), cap = +(await kp.getAttribute('data-cap'));
+  const curS = await kp.getAttribute('data-cur'); const cur = curS ? +curS : null;
+  let v = cur == null ? par + (dir > 0 ? taps - 1 : -taps) : cur + dir * taps;
+  v = Math.max(1, Math.min(cap, v));
+  const key = kp.locator('.key[data-b="' + v + '"]'); await key.focus().catch(() => {}); await key.dispatchEvent('click'); await pg.waitForTimeout(120);
+};
+const __plus = (pg, i, taps = 1) => __pad(pg, i, taps, 1);
+const __minus = (pg, i, taps = 1) => __pad(pg, i, taps, -1);
+const __open = (pg, i) => __pad(pg, i, 0, 1);
+
+
 /* ---- getting about the book ----
    Four tabs now — Today, Scores, Boards, Resort — and the five screens that
    are set up once live behind Manage. So a name is looked for on the bar
@@ -223,7 +244,7 @@ ok('the dial is on Score Entry too', (await p.locator('.masthead .dial').count()
 await nominate(p);
 await p.locator('[data-act="openRound"]').first().click(); await p.waitForTimeout(1400); await shut();
 await shut();
-await p.locator('.step.plus').first().click(); await p.waitForTimeout(300);
+await __plus(p, 0, 1); await p.waitForTimeout(300);
 ok('entry: stroke shows as a draft', await p.locator('.fig.raw .v').first().innerText(), '4');
 ok('entry: draft is flagged unsaved', await p.locator('.savebar .sv b').innerText(), 'Hole 1 is not saved');
 ok('entry: nothing on the leaderboard yet', await p.evaluate(() => Object.keys(window.__mockDocs).filter(k => k.startsWith('scores/')).length), 0);
@@ -245,7 +266,7 @@ ok('entry: stroke survives the race', await p.locator('.fig.raw .v').first().inn
 
 // --- discard drops the draft and moves on
 await shut();
-await p.locator('.step.plus').first().click(); await p.waitForTimeout(300);
+await __plus(p, 0, 1); await p.waitForTimeout(300);
 await p.locator('.hcell').nth(3).click(); await p.waitForTimeout(300);
 await p.locator('[data-act="confirmAlt"]').click(); await p.waitForTimeout(600);
 ok('entry: discard moved to hole 4', await p.locator('.holehead h3').innerText(), 'Hole 4');

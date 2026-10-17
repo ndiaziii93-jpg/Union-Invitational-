@@ -3,6 +3,27 @@
 import { chromium } from 'playwright';
 import { readFileSync, writeFileSync } from 'node:fs';
 
+/* THE KEYPAD. A score goes in by tapping the golfer's tile and then the
+   number on the pad that rises. These emulate n taps of the old plus or
+   minus (from an empty cell the first plus landed on par, the first minus
+   one under) so the arithmetic of every scenario below is unchanged. */
+const __pad = async (pg, i, taps, dir) => {
+  const tiles = pg.locator('.ptile[data-act="padOpen"]');
+  if (await tiles.count() <= i) return;
+  await tiles.nth(i).focus().catch(() => {}); await tiles.nth(i).dispatchEvent('click'); await pg.waitForTimeout(140);
+  const kp = pg.locator('.keypad'); if (!await kp.count()) return;
+  if (taps <= 0) return;
+  const par = +(await kp.getAttribute('data-par')), cap = +(await kp.getAttribute('data-cap'));
+  const curS = await kp.getAttribute('data-cur'); const cur = curS ? +curS : null;
+  let v = cur == null ? par + (dir > 0 ? taps - 1 : -taps) : cur + dir * taps;
+  v = Math.max(1, Math.min(cap, v));
+  const key = kp.locator('.key[data-b="' + v + '"]'); await key.focus().catch(() => {}); await key.dispatchEvent('click'); await pg.waitForTimeout(120);
+};
+const __plus = (pg, i, taps = 1) => __pad(pg, i, taps, 1);
+const __minus = (pg, i, taps = 1) => __pad(pg, i, taps, -1);
+const __open = (pg, i) => __pad(pg, i, 0, 1);
+
+
 /* Whatever window is up is answered first — a half-entered hole's "not
    saved" by taking the discard, anything else by its Cancel — because a
    tap forced through a scrim lands on the scrim and only closes it. */
@@ -128,7 +149,7 @@ if (await p.locator('[data-act="openRound"]').count()) {
   await nominate(p); await shut();
   await p.locator('[data-act="openRound"]').first().click(); await p.waitForTimeout(1100); await shut();
 }
-await p.locator('.step.plus').first().click(); await p.waitForTimeout(200);
+await __plus(p, 0, 1); await p.waitForTimeout(200);
 await p.locator('[data-act="saveHole"]').click(); await p.waitForTimeout(900); await shut();
 await tab('Today');
 ok('a card going in reads as in progress', (await line()).startsWith('Round in progress —'), true);
@@ -139,9 +160,9 @@ const groups = await p.locator('.gchip').count();
 for (let g = 0; g < groups; g++) {
   await pickGroupOn(p, g); await p.waitForTimeout(300); await shut();
   await p.locator('.hcell').nth(0).click(); await p.waitForTimeout(250); await shut();
-  const n = await p.locator('.step.plus').count();
+  const n = await p.locator('.ptile[data-act="padOpen"]').count();
   for (let h = 0; h < 18; h++) {
-    for (let i = 0; i < n; i++) { await p.locator('.step.plus').nth(i).click(); await p.waitForTimeout(20); }
+    for (let i = 0; i < n; i++) await __plus(p, i, 1);
     await p.locator('[data-act="saveHole"]').click(); await p.waitForTimeout(300); await shut();
   }
   if (g + 1 < groups) { await p.locator('.hcell').nth(0).click(); await p.waitForTimeout(220); }

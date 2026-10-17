@@ -14,6 +14,27 @@
 import { chromium } from 'playwright';
 import { readFileSync, writeFileSync } from 'node:fs';
 
+/* THE KEYPAD. A score goes in by tapping the golfer's tile and then the
+   number on the pad that rises. These emulate n taps of the old plus or
+   minus (from an empty cell the first plus landed on par, the first minus
+   one under) so the arithmetic of every scenario below is unchanged. */
+const __pad = async (pg, i, taps, dir) => {
+  const tiles = pg.locator('.ptile[data-act="padOpen"]');
+  if (await tiles.count() <= i) return;
+  await tiles.nth(i).focus().catch(() => {}); await tiles.nth(i).dispatchEvent('click'); await pg.waitForTimeout(140);
+  const kp = pg.locator('.keypad'); if (!await kp.count()) return;
+  if (taps <= 0) return;
+  const par = +(await kp.getAttribute('data-par')), cap = +(await kp.getAttribute('data-cap'));
+  const curS = await kp.getAttribute('data-cur'); const cur = curS ? +curS : null;
+  let v = cur == null ? par + (dir > 0 ? taps - 1 : -taps) : cur + dir * taps;
+  v = Math.max(1, Math.min(cap, v));
+  const key = kp.locator('.key[data-b="' + v + '"]'); await key.focus().catch(() => {}); await key.dispatchEvent('click'); await pg.waitForTimeout(120);
+};
+const __plus = (pg, i, taps = 1) => __pad(pg, i, taps, 1);
+const __minus = (pg, i, taps = 1) => __pad(pg, i, taps, -1);
+const __open = (pg, i) => __pad(pg, i, 0, 1);
+
+
 /* Whatever window is up is answered first — a half-entered hole's "not
    saved" by taking the discard, anything else by its Cancel — because a
    tap forced through a scrim lands on the scrim and only closes it. */
@@ -153,8 +174,8 @@ ok('there is more than one group out', groups > 1, true);
 const playHole = async i => {
   await shut();
   await p.locator('.hcell').nth(i).click(); await p.waitForTimeout(350); await shut();
-  const plus = p.locator('.step.plus'); const c = await plus.count();
-  for (let k = 0; k < c; k++) { await plus.nth(k).click(); await p.waitForTimeout(55); }
+  const c = await p.locator('.ptile[data-act="padOpen"]').count();
+  for (let k = 0; k < c; k++) await __plus(p, k, 1);
   await p.locator('[data-act="saveHole"]').click(); await p.waitForTimeout(600);
 };
 const asks = () => p.evaluate(() => window.__asks);

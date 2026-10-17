@@ -4,6 +4,27 @@
 import { chromium } from 'playwright';
 import { readFileSync, writeFileSync } from 'node:fs';
 
+/* THE KEYPAD. A score goes in by tapping the golfer's tile and then the
+   number on the pad that rises. These emulate n taps of the old plus or
+   minus (from an empty cell the first plus landed on par, the first minus
+   one under) so the arithmetic of every scenario below is unchanged. */
+const __pad = async (pg, i, taps, dir) => {
+  const tiles = pg.locator('.ptile[data-act="padOpen"]');
+  if (await tiles.count() <= i) return;
+  await tiles.nth(i).focus().catch(() => {}); await tiles.nth(i).dispatchEvent('click'); await pg.waitForTimeout(140);
+  const kp = pg.locator('.keypad'); if (!await kp.count()) return;
+  if (taps <= 0) return;
+  const par = +(await kp.getAttribute('data-par')), cap = +(await kp.getAttribute('data-cap'));
+  const curS = await kp.getAttribute('data-cur'); const cur = curS ? +curS : null;
+  let v = cur == null ? par + (dir > 0 ? taps - 1 : -taps) : cur + dir * taps;
+  v = Math.max(1, Math.min(cap, v));
+  const key = kp.locator('.key[data-b="' + v + '"]'); await key.focus().catch(() => {}); await key.dispatchEvent('click'); await pg.waitForTimeout(120);
+};
+const __plus = (pg, i, taps = 1) => __pad(pg, i, taps, 1);
+const __minus = (pg, i, taps = 1) => __pad(pg, i, taps, -1);
+const __open = (pg, i) => __pad(pg, i, 0, 1);
+
+
 /* Whatever window is up is answered first — a half-entered hole's "not
    saved" by taking the discard, anything else by its Cancel — because a
    tap forced through a scrim lands on the scrim and only closes it. */
@@ -173,7 +194,7 @@ for (const mode of ['the test copy (this device only)', 'the real book (shared d
 
   // --- enter a stroke and save the hole ---
   await openEntry();
-  await p.locator('.step.plus').first().click(); await p.waitForTimeout(350);
+  await __plus(p, 0, 1); await p.waitForTimeout(350);
   ok('a stroke shows before saving', await shown(), '4');
   ok('and is flagged as not saved', await p.locator('.savebar .sv b').innerText(), 'Hole 1 is not saved');
   await p.locator('[data-act="saveHole"]').click(); await p.waitForTimeout(1500); await clear();
@@ -248,7 +269,7 @@ for (const mode of ['the test copy (this device only)', 'the real book (shared d
   const open = p.locator('[data-act="openRound"]');
   if (await open.count()) { await nominate(p); await clear();
     await open.first().click(); await p.waitForTimeout(1300); await clear(); }
-  await p.locator('.step.plus').first().click(); await p.waitForTimeout(400);
+  await __plus(p, 0, 1); await p.waitForTimeout(400);
   ok('the stroke is entered', await p.locator('.fig.raw .v').first().innerText(), '4');
   // no Save tapped — the phone locks, the tab is discarded, they come back
   await p.reload(); await settled(p); await clear();

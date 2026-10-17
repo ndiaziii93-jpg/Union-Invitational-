@@ -7,6 +7,27 @@
 import { chromium } from 'playwright';
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 
+/* THE KEYPAD. A score goes in by tapping the golfer's tile and then the
+   number on the pad that rises. These emulate n taps of the old plus or
+   minus (from an empty cell the first plus landed on par, the first minus
+   one under) so the arithmetic of every scenario below is unchanged. */
+const __pad = async (pg, i, taps, dir) => {
+  const tiles = pg.locator('.ptile[data-act="padOpen"]');
+  if (await tiles.count() <= i) return;
+  await tiles.nth(i).focus().catch(() => {}); await tiles.nth(i).dispatchEvent('click'); await pg.waitForTimeout(140);
+  const kp = pg.locator('.keypad'); if (!await kp.count()) return;
+  if (taps <= 0) return;
+  const par = +(await kp.getAttribute('data-par')), cap = +(await kp.getAttribute('data-cap'));
+  const curS = await kp.getAttribute('data-cur'); const cur = curS ? +curS : null;
+  let v = cur == null ? par + (dir > 0 ? taps - 1 : -taps) : cur + dir * taps;
+  v = Math.max(1, Math.min(cap, v));
+  const key = kp.locator('.key[data-b="' + v + '"]'); await key.focus().catch(() => {}); await key.dispatchEvent('click'); await pg.waitForTimeout(120);
+};
+const __plus = (pg, i, taps = 1) => __pad(pg, i, taps, 1);
+const __minus = (pg, i, taps = 1) => __pad(pg, i, taps, -1);
+const __open = (pg, i) => __pad(pg, i, 0, 1);
+
+
 /* ---- getting about the book ----
    Four tabs now — Today, Scores, Boards, Resort — and the five screens that
    are set up once live behind Manage. So a name is looked for on the bar
@@ -141,10 +162,10 @@ for (const [name, viewport, touch, dpr] of DEVICES) {
     if (await p.locator('[data-act="openRound"]').count()) bad.push('round would not open');
 
     // 3. a stroke goes in and saves
-    if (!await p.locator('.step.plus').count()) bad.push('no scoring controls');
+    if (!await p.locator('.ptile[data-act="padOpen"]').count()) bad.push('no scoring controls');
     else {
       const before = await p.locator('.holehead h3').innerText();
-      await tap(p.locator('.step.plus').first()); await p.waitForTimeout(400);
+      await __plus(p, 0, 1); await p.waitForTimeout(400);
       await p.locator('[data-act="saveHole"]').click(); await p.waitForTimeout(1500); await dismiss();
       const cards = await p.evaluate(() => Object.keys(window.__docs).filter(k => k.startsWith('scores/')).length);
       if (cards < 1) bad.push('the card never reached the book');
@@ -164,9 +185,9 @@ for (const [name, viewport, touch, dpr] of DEVICES) {
     }
 
     // 3b. minus works from an empty cell, without a tap up first
-    if (await p.locator('.step.minus').count()) {
+    if (await p.locator('.ptile[data-act="padOpen"]').count()) {
       await tap(p.locator('.hcell').nth(5)); await p.waitForTimeout(500); await dismiss();
-      await tap(p.locator('.step.minus').first()); await p.waitForTimeout(400);
+      await __minus(p, 0, 1); await p.waitForTimeout(400);
       const one = await p.locator('.fig.raw .v').first().innerText();
       const par = await p.locator('.hcell.on .p').innerText();      // "par 4"
       const want = String(parseInt(par.replace(/\D/g, ''), 10) - 1);
@@ -183,8 +204,8 @@ for (const [name, viewport, touch, dpr] of DEVICES) {
          by group, so nothing on hole 6 can end it. */
       if (await p.locator('.savebar [data-act="lockRound"]').count()) bad.push('the bar still ends the round early');
       await tap(p.locator('.hcell').nth(17)); await p.waitForTimeout(500); await dismiss();
-      const plus = p.locator('.step.plus'); const np = await plus.count();
-      for (let i = 0; i < np; i++) { await tap(plus.nth(i)); await p.waitForTimeout(90); }
+      const np = await p.locator('.ptile[data-act="padOpen"]').count();
+      for (let i = 0; i < np; i++) { await __plus(p, i, 1); await p.waitForTimeout(90); }
       if (np) { await p.locator('[data-act="saveHole"]').click(); await p.waitForTimeout(1400); }
       /* Saving now asks about the three Bingo Bango Bongo names first, and
          the crest queues behind them. Wave exactly that one past — the
@@ -281,7 +302,7 @@ for (const [name, viewport, touch, dpr] of DEVICES) {
     await tab('Score Entry');
     const small = await p.evaluate(() => {
       let n = 0;
-      document.querySelectorAll('.step, [data-act="saveHole"], .hcell').forEach(e => {
+      document.querySelectorAll('.ptile, .keypad .key, [data-act="saveHole"], .hcell').forEach(e => {
         const r = e.getBoundingClientRect();
         if (r.height && r.height < 40) n++;
       });

@@ -320,20 +320,47 @@ h3.sub{font-size:19px;font-weight:600;margin:26px 0 0}
   background:var(--flag);color:#FBFAF7;vertical-align:2px;font-weight:400}
 .pwho .bd{font-size:14px;color:var(--turf);font-variant-numeric:tabular-nums}
 .pwho .bd span{color:var(--green)}
-.step{width:52px;height:52px;border:1px solid var(--ink);background:var(--page);font-size:26px;line-height:1;
-  display:flex;align-items:center;justify-content:center;border-radius:2px;flex:0 0 auto}
-.step.plus{background:var(--ink);border-color:var(--ink);color:var(--paper)}
-.step:disabled{opacity:.35}
-.fig{min-width:58px;text-align:center;flex:0 0 auto}
-.fig.raw{min-width:64px}
-.fig.raw .v{font-size:34px;font-weight:900;line-height:1}
-.fig .v{font-size:22px;font-variant-numeric:tabular-nums;line-height:1.1}
-.fig .v.net{color:var(--gold)}
-.fig .l{font-size:12px;color:var(--turf);margin-top:2px}
-.fig.end{min-width:78px;text-align:right;margin-left:auto}
-.fig.end .v{font-size:18px}
-
-.prelief{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center}
+/* THE TILE. The score is the only big thing on the row; everything else
+   is a line of small type under the name. */
+.prow.sel{background:var(--sunk);margin:0 -16px;padding-left:16px;padding-right:16px}
+.ptile{width:64px;height:54px;flex:0 0 auto;margin-left:auto;border:1px solid var(--rule);border-radius:12px;
+  background:var(--paper);display:grid;place-items:center;font-family:inherit;color:var(--ink);
+  -webkit-tap-highlight-color:transparent;transition:border-color .15s ease,background .15s ease}
+.ptile[aria-expanded="true"]{border:2px solid var(--ink);background:var(--page)}
+.ptile.u{color:var(--gold-up)}.ptile.cap{color:var(--flag)}
+.ptile.still{background:none;border-color:transparent}
+.ptile .fig.raw .v{font-size:26px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.pwho .bd .capped{font-style:normal;color:var(--flag);font-weight:600}
+/* THE KEYPAD: a sheet of pine from the foot of a phone, a card in the
+   corner of anything wider. Par is outlined in gold, the pick-up reads red. */
+.keypad{position:fixed;left:0;right:0;bottom:calc(150px + env(safe-area-inset-bottom,0px));z-index:29;background:var(--ink);color:var(--page);
+  border-radius:22px;margin:0 8px;padding:14px 16px 12px;
+  box-shadow:0 -12px 40px rgba(16,22,17,.4);animation:feelin .22s ease-out}
+.keypad .kh{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.keypad .kh b{font-size:18px}
+.keypad .kh span{flex:1;min-width:0;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--sage-up)}
+.keypad .kh .xx{background:none;border:0;color:#E2C277;font-family:inherit;font-size:14px;font-weight:700;padding:8px 0 8px 8px}
+.keypad .keys{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.keypad .key{height:58px;border-radius:14px;border:1px solid rgba(238,232,213,.22);background:rgba(238,232,213,.08);
+  color:var(--page);font-size:24px;font-weight:700;font-family:inherit;position:relative;-webkit-tap-highlight-color:transparent}
+.keypad .key i{position:absolute;left:0;right:0;bottom:5px;font-size:8.5px;letter-spacing:.12em;text-transform:uppercase;font-style:normal;color:var(--sage-up);font-weight:700}
+.keypad .key.par{border:2px solid #E2C277}
+.keypad .key.cap{color:#E99A8C}
+.keypad .key.on{background:var(--page);color:var(--ink)}
+.keypad .key.on i{color:var(--turf)}
+.keypad .key.wide{font-size:14px;font-weight:600;color:var(--sage-up)}
+.keypad .krow{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;align-items:center}
+.keypad .mchip{flex:1 1 auto;border-radius:999px;border-color:rgba(238,232,213,.3);background:none;color:var(--page);font-size:12.5px;padding:7px 10px;min-height:38px;text-align:center}
+.keypad .mchip:disabled{opacity:.55}
+.keypad .mchip.on{background:var(--green);border-color:var(--green);color:#FBFAF7;opacity:1}
+.keypad .relq{color:var(--sage-up)}
+.keypad .knext{display:block;width:100%;margin-top:10px;background:none;border:0;color:var(--sage-up);font-family:inherit;font-size:13.5px;padding:8px}
+/* the page under the pad can still be scrolled up past it */
+html:has(.keypad) .page.scoring{padding-bottom:470px}
+@media (min-width:700px){
+  .keypad{left:auto;right:22px;bottom:118px;width:400px;margin:0;padding-bottom:14px}
+  html:has(.keypad) .page.scoring{padding-bottom:96px}
+}
 .capchip{font-size:14px;color:#FBFAF7;background:var(--flag);padding:5px 11px;border-radius:2px}
 .mchip{padding:6px 12px;border:1px solid var(--rule);background:var(--page);color:var(--ink);
   font-size:14px;border-radius:2px;min-height:36px}
@@ -356,6 +383,9 @@ h3.sub{font-size:19px;font-weight:600;margin:26px 0 0}
 .clearh:hover{color:var(--ink)}
 
 .side-b{border-top:2px solid var(--ink);padding-top:12px}
+.bbb3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.bbb3 label{min-width:0}
+.bbb3 .field{width:100%;min-width:0}
 .side-g{border-top:2px solid var(--gold);padding-top:12px;margin-top:26px}
 .side-b h3,.side-g h3{font-size:19px;font-weight:700;margin:0}
 .side-g h3{color:var(--gold)}
@@ -1264,12 +1294,13 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 .savebar.done{border-left:3px solid var(--gold);background:var(--sunk)}
 
 /* ---- status foot ---- */
-.statusbar{margin-top:52px;border-top:1px solid var(--rule);padding:14px 0 0;display:flex;gap:16px;
-  align-items:center;font-size:14px;color:var(--turf);flex-wrap:wrap}
+.statusbar{margin-top:44px;border-top:1px solid var(--rule);padding:12px 0 0;display:flex;gap:10px;flex-wrap:wrap;align-items:center;
+  font-size:12px;color:var(--turf);line-height:1.4}
 .statusbar .dot{width:8px;height:8px;border-radius:50%;background:var(--turf);flex:0 0 auto}
 .statusbar .dot.live{background:var(--under)}
 .statusbar .dot.err{background:var(--flag)}
-.statusbar .sp{margin-left:auto}
+.statusbar .who::before,.statusbar .build::before{content:"\00B7";padding-right:10px;color:var(--rule)}
+.statusbar .build{margin-left:auto}
 
 /* ---- today ---- */
 /* ================= TODAY: THE COVER =================
@@ -1785,13 +1816,9 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
   .hcell .n{font-size:17px}
 
   /* the stepper row stacks its figures rather than squeezing them */
-  .pmain{gap:10px}
-  .pwho{flex:1 1 100%}
-  .step{width:56px;height:56px;font-size:28px}
-  .fig{min-width:52px}
-  .fig.raw{min-width:58px}
-  .fig.raw .v{font-size:30px}
-  .fig.end{min-width:64px;margin-left:0;text-align:center}
+  .pmain{gap:10px;flex-wrap:nowrap}
+  .pwho{flex:1 1 auto;min-width:0}
+  .ptile{width:66px;height:56px}
 
   /* saving stays in reach however long the hole list runs */
   .savebar{position:sticky;top:0;z-index:30;box-shadow:0 6px 16px -10px var(--shadow)}
@@ -3798,7 +3825,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261017-1132';
+const BUILD = '20261017-1217';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -7890,14 +7917,20 @@ function createStore(onChange) {
   async function resetAll() {
     if (tooEarly()) return;
     const fresh = emptyState();
-    T.config = fresh.config; T.scores = {}; T.bbb = {}; T.notes = {};
+    /* The PINs survive a reset. They are the one thing in the config that
+       is a secret, and a reset that put the factory PINs back — which are
+       in the public repository — would quietly unlock the book. */
+    const pins = T.config && T.config.pins ? { ...T.config.pins } : null;
+    T.config = fresh.config;
+    if (pins) { T.config.pins = pins; T.config.pinsChanged = true; }
+    T.scores = {}; T.bbb = {}; T.notes = {}; T.recaps = {}; T.photos = {};
     for (const k of Object.keys(rev)) delete rev[k];
     bump('config', T.config);
     notify();
     if (mode === 'local') { saveLocal(); return; }
     try {
       await db.doc('config/tournament').set(T.config);
-      for (const coll of ['scores', 'bbb', 'notes', 'people', 'pairs']) {
+      for (const coll of ['scores', 'bbb', 'notes', 'recaps', 'photos', 'people', 'pairs']) {
         const got = await db.collection(coll).get();
         for (const d of got.docs) await db.doc(coll + '/' + d.id).delete();
       }
@@ -7972,6 +8005,7 @@ const UI = {
   recapOpen: false,
   recap: { rid: null, busy: false, err: '', stream: '', edit: false, view: 'report' },
   feelOn: null,         // the hole the golfer is being asked about: {rid, h}
+  pad: null,            // the golfer whose keypad is up on Score Entry
   feelDraft: null,      // the word they are typing on it: {rid, h, v}
   upload: { queue: [], err: '' },
   role: 'viewer',
@@ -9944,8 +9978,17 @@ function holeSavedBy(rid, h, who) {
   return null;
 }
 
+/** The golfers the keypad walks through: the group on screen, in order. */
+function padList(rid) {
+  const groups = E.groups(T, rid);
+  const slot = Math.min(UI.entryTee === 'all' ? 0 : +UI.entryTee, Math.max(groups.length - 1, 0));
+  const g = groups[slot];
+  const ids = g && g.members && g.members.length ? g.members : null;
+  return ids ? E.golfers(T).filter(x => ids.includes(x.id)) : E.golfers(T);
+}
 function commitDraft(role) {
   const d = UI.draft;
+  UI.pad = null;
   if (!d) return;
   const h = d.hole;
   for (const [pid, v] of Object.entries(d.strokes)) {
@@ -10294,6 +10337,12 @@ function scrEntry() {
         : '');
   };
 
+  /* ONE ROW A GOLFER, ONE NUMBER ON IT. The row is the name, what the band
+     gives them here, and how they stand; the score is a tile. Tap the tile
+     and the keypad rises with every number the hole allows — par outlined,
+     the pick-up in red — and moves itself to the next golfer, so four scores
+     are four taps. Mulligans, the breakfast ball and Clear live on the pad,
+     not the page: the page is for reading the group. */
   const rows = list.map(g => {
     const raw = grossOf(rid, g.id, h);
     const st = E.strokesFor(g.band, hole.si);
@@ -10304,29 +10353,52 @@ function scrEntry() {
     const tp = E.roundToPar(T, rid, g.id);
     const pending = UI.draft && UI.draft.rid === rid && UI.draft.hole === h && (g.id in UI.draft.strokes)
       && UI.draft.strokes[g.id] !== (c ? c.raw[h] : null);
-    return `<div class="prow${pending ? ' pending' : ''}">
+    const spent = [c && c.mF ? 'front mulligan used' : '', c && c.mB ? 'back mulligan used' : '', h === 0 && c && c.bb ? 'breakfast ball used' : ''].filter(Boolean);
+    const tone = raw == null ? '' : capped ? ' cap' : raw < hole.par ? ' u' : raw > hole.par ? ' o' : '';
+    const tile = `<span class="fig raw"><span class="v num">${raw == null ? '\u00b7' : raw}</span></span>`;
+    return `<div class="prow${pending ? ' pending' : ''}${UI.pad === g.id ? ' sel' : ''}">
       <div class="pmain">
         <div class="pwho">
           <div class="nm">${esc(g.display)}${pending ? '<span class="tag">unsaved</span>' : ''}</div>
-          <div class="bd num">band ${g.band ? g.band : '—'} <span>${st == null ? '·' : '+' + st + ' here'}</span></div>
+          <div class="bd num">band ${g.band ? g.band : '\u2014'} <span>${st == null ? '\u00b7' : '+' + st + ' here'}</span>${
+            net != null ? ' \u00b7 net ' + net : ''}${tp.thru ? ' \u00b7 ' + esc(E.fmtToPar(tp.tp)) + ' thru ' + tp.thru : ''}${
+            capped ? ' \u00b7 <em class="capped">picked up</em>' : ''}${spent.length ? ' \u00b7 ' + spent.join(', ') : ''}</div>
         </div>
-        ${editable ? `<button class="step minus" data-act="bump" data-a="${g.id}" data-b="-1" aria-label="One stroke fewer for ${esc(g.display)}">−</button>` : ''}
-        <div class="fig raw"><div class="v num">${raw == null ? '·' : raw}</div><div class="l">raw</div></div>
-        ${editable ? `<button class="step plus" data-act="bump" data-a="${g.id}" data-b="1" aria-label="One stroke more for ${esc(g.display)}"${capped ? ' disabled' : ''}>+</button>` : ''}
-        <div class="fig"><div class="v num">${adj == null ? '·' : adj}</div><div class="l">adjusted</div></div>
-        <div class="fig"><div class="v num net">${net == null ? '·' : net}</div><div class="l">net</div></div>
-        <div class="fig end"><div class="v num ${cls(tp.thru ? tp.tp : null)}">${tp.thru ? esc(E.fmtToPar(tp.tp)) : '—'}</div><div class="l num">thru ${tp.thru}</div></div>
+        ${editable
+          ? `<button class="ptile${tone}" data-act="padOpen" data-a="${g.id}" aria-label="Score for ${esc(g.display)} on hole ${hole.n}${raw == null ? '' : ': ' + raw}" aria-expanded="${UI.pad === g.id}">${tile}</button>`
+          : `<span class="ptile still${tone}">${tile}</span>`}
       </div>
-      ${ed ? `<div class="prelief">
-        ${capped ? `<span class="capchip">Capped at ${cap} — pick up</span>` : ''}
-        ${r.noMulligans ? '' : `
-          ${relief(g, c, 'mF', 'Front mulligan', '1 left', editable)}
-          ${relief(g, c, 'mB', 'Back mulligan', '1 left', editable)}`}
-        ${h === 0 ? relief(g, c, 'bb', 'Breakfast ball', 'Available', editable) : ''}
-        ${editable ? `<button class="clearh" data-act="clearHole" data-a="${g.id}">Clear hole</button>` : ''}
-      </div>` : ''}
     </div>`;
   }).join('');
+
+  /* THE KEYPAD. One golfer at a time, every number the hole allows, and
+     the relief that golfer still holds. It is a sheet on a phone and a card
+     in the corner on anything wider; it is never up over a PIN box. */
+  const padFor = editable && !UI.modal && UI.pad ? list.find(g => g.id === UI.pad) : null;
+  const keypad = padFor ? (() => {
+    const g = padFor;
+    const raw = grossOf(rid, g.id, h);
+    const c = E.card(T, rid, g.id);
+    const at = list.findIndex(x => x.id === g.id);
+    const next = list[at + 1] || null;
+    const keys = [];
+    for (let n = 1; n <= cap; n++) keys.push(`<button class="key num${n === hole.par ? ' par' : ''}${n === cap ? ' cap' : ''}${n === raw ? ' on' : ''}"
+      data-act="setScore" data-a="${g.id}" data-b="${n}" aria-label="${n}${n === hole.par ? ', par' : n === cap ? ', pick up' : ''}${n === raw ? ', entered' : ''}">${n}${
+      n === hole.par ? '<i>par</i>' : n === cap ? '<i>pick up</i>' : ''}</button>`);
+    keys.push(`<button class="key wide" data-act="clearHole" data-a="${g.id}">Clear</button>`);
+    return `<div class="keypad" role="dialog" aria-label="Score for ${esc(g.display)} on hole ${hole.n}"
+      data-par="${hole.par}" data-cap="${cap}" data-cur="${raw == null ? '' : raw}">
+      <div class="kh"><b>${esc(g.display)}</b><span>Hole ${hole.n} \u00b7 par ${hole.par} \u00b7 picks up at ${cap}</span>
+        <button class="xx" data-act="padClose">Done</button></div>
+      <div class="keys">${keys.join('')}</div>
+      ${ed && (!r.noMulligans || h === 0) ? `<div class="krow">
+        ${r.noMulligans ? '' : relief(g, c, 'mF', 'Front mulligan', '1 left', editable) + relief(g, c, 'mB', 'Back mulligan', '1 left', editable)}
+        ${h === 0 ? relief(g, c, 'bb', 'Breakfast ball', 'Available', editable) : ''}
+      </div>` : ''}
+      ${next ? `<button class="knext" data-act="padOpen" data-a="${next.id}">Next: ${esc(next.display)} \u203a</button>`
+             : `<button class="knext" data-act="padClose">That is the group \u00b7 Done</button>`}
+    </div>`;
+  })() : '';
 
   const people = sel => `<option value="">Nobody yet</option>` + E.golfers(T).map(g =>
     `<option value="${g.id}"${sel === g.id ? ' selected' : ''}>${esc(g.display)}</option>`).join('');
@@ -10444,28 +10516,34 @@ function scrEntry() {
         rows follow; on anything wider the rows take the page and the hole
         stands beside them in a card that stays put while they scroll. The
         same markup, placed by the stylesheet. */ ''}
+  ${keypad}
   <div class="entrygrid">
     <div class="egl">${rows || `<p class="empty">No golfers in this group.</p>`}</div>
     <div class="egr">
       ${holePlate(rid, h, hole, course, cap, list, slotPlayers)}
       <div class="side-b" data-reveal="bbb">
         <h3>Bingo Bango Bongo — hole ${hole.n}</h3>
-        <p class="sublede">First on, closest once all on, first in.</p>
-        <div class="fieldset">
-          ${[['bingo', 'Bingo — first on the green'], ['bango', 'Bango — closest once all on'], ['bongo', 'Bongo — first to hole out']].map(([k, lbl]) =>
+        <p class="sublede">First on the green, closest once all are on, first to hole out.</p>
+        <div class="fieldset bbb3">
+          ${[['bingo', 'Bingo'], ['bango', 'Bango'], ['bongo', 'Bongo']].map(([k, lbl]) =>
             `<label>${esc(lbl)}
               <select class="field" data-act="setBbb" data-a="${k}"${editable ? '' : ' disabled'}>${inGroup(bbbOf(rid, h, k, gid))}</select></label>`).join('')}
         </div>
         <p class="sublede" style="margin-top:8px">Only ${esc((groups[slot] || {}).label || 'this group')} appears here — the other group's ref scores their own.</p>
       </div>
 
-      <div class="side-g" data-reveal="pins">
+      ${/* ONLY ON THE HOLES IT IS ABOUT. Until the round opens the section
+            stands on every hole, because nominating is what opens it; once
+            it is open the closest-to-the-pin fields appear on that hole and
+            the longest-drive fields on theirs, and the other sixteen holes
+            carry neither. */ ''}
+      ${(!open || cfg.ctpHole === hole.n || cfg.ldHole === hole.n) ? `<div class="side-g" data-reveal="pins">
         <h3>Pin &amp; drive — ${esc(r.short)}</h3>
         <p class="sublede">${nominated
           ? (open ? 'Nominated. Moving a hole now asks a scorer to confirm.' : 'Both nominated — the round can open.')
           : 'Both holes must be nominated before the round can open.'}</p>
         <div class="fieldset">
-          <label>Closest to the Pin hole
+          ${(!open || cfg.ctpHole === hole.n) ? `<label>Closest to the Pin hole
             <select class="field${cfg.ctpHole ? '' : ' unset'}" data-act="setRoundField" data-a="ctpHole"${ed && !locked ? '' : ' disabled'}>
               <option value="">Not chosen yet</option>
               ${course.holes.filter(x => x.par === 3).map(x => `<option value="${x.n}"${cfg.ctpHole === x.n ? ' selected' : ''}>Hole ${x.n}</option>`).join('')}
@@ -10479,8 +10557,8 @@ function scrEntry() {
                 there is no number for the book and the flag to disagree
                 about. Longest drive keeps its distance: nothing is marking
                 the fairway. */ ''}
-          <p class="sublede" style="margin-top:-4px">The flag on the green is the mark. Beat it, move it, and put your name here.</p>
-          <label>Longest Drive hole
+          <p class="sublede" style="margin-top:-4px">The flag on the green is the mark. Beat it, move it, and put your name here.</p>` : ''}
+          ${(!open || cfg.ldHole === hole.n) ? `<label>Longest Drive hole
             <select class="field${cfg.ldHole ? '' : ' unset'}" data-act="setRoundField" data-a="ldHole"${ed && !locked ? '' : ' disabled'}>
               <option value="">Not chosen yet</option>
               ${course.holes.map(x => `<option value="${x.n}"${cfg.ldHole === x.n ? ' selected' : ''}>Hole ${x.n} — par ${x.par}</option>`).join('')}
@@ -10489,9 +10567,9 @@ function scrEntry() {
             <select class="field" data-act="setRoundField" data-a="ldWinner"${ed ? '' : ' disabled'}>${people(cfg.ldWinner)}</select></label>
           <label>Distance
             <input class="field" type="text" value="${esc(cfg.ldDist || '')}" placeholder="e.g. 260 m"
-              data-act="setRoundField" data-a="ldDist"${ed ? '' : ' disabled'}></label>
+              data-act="setRoundField" data-a="ldDist"${ed ? '' : ' disabled'}></label>` : ''}
         </div>
-      </div>
+      </div>` : ''}
     </div>
   </div>`;
 }
@@ -11992,6 +12070,7 @@ function paint() {
      book redraws on a timer, and a redraw replaces the whole tree — taking
      the <details> open with it. Which ones were open is remembered by id. */
   const opened = [...document.querySelectorAll('details[id][open]')].map(el => el.id);
+  if (UI.screen !== 'entry' || UI.entryMode === 'mine') UI.pad = null;
   const body = { today: scrToday, resort: scrResort, boards: scrBoards, ryder: scrRyder,
                  calendar: scrCalendar, entry: scrEntry, roster: scrRoster, rules: scrRules,
                  tees: scrTees,
@@ -12051,10 +12130,11 @@ function paint() {
     ${/* `scoring` buys the room the fixed Save bar stands in, and only on
           the screen that has one. */ ''}
     <main class="page${UI.screen === 'entry' ? ' scoring' : ''}"${turning ? ' data-turn="1"' : ''}>${body}</main>
+    ${/* One quiet line: the connection, who you are to the book, the build.
+          It was four lines of plain text at the foot of every page. */ ''}
     <div class="statusbar">
-      <span class="dot ${dot}"></span><span>${esc(statusText)}</span>
-      <span>${D.PINS_ENABLED ? esc(role.label) : 'Unlocked — anyone can score'}</span>
-      <span class="sp">The Union Invitational — Belek, Türkiye — 2026</span>
+      <span class="dot ${dot}"></span><span class="st">${esc(statusText)}</span>
+      <span class="who">${D.PINS_ENABLED ? esc(role.label) : 'Unlocked \u2014 anyone can score'}</span>
       <span class="build" title="Which copy of the book this device is running">build ${esc(D.BUILD)}</span>
     </div>
   </div>
@@ -13462,8 +13542,8 @@ function onClick(e) {
     case 'boardRound': UI.boardRound = a; UI.bookHole = 0; break;
     case 'bookHole': UI.bookHole = +a; break;
     case 'entryRound': guardDraft(() => { UI.entryRound = a; UI.entryHole = 0; UI.entryTee = '0'; }); return;
-    case 'entryHole': guardDraft(() => { UI.entryHole = +a; holeNotice(UI.entryRound, +a); }); return;
-    case 'entryTee': guardDraft(() => { UI.entryTee = a; }); return;
+    case 'entryHole': UI.pad = null; guardDraft(() => { UI.entryHole = +a; holeNotice(UI.entryRound, +a); }); return;
+    case 'entryTee': UI.pad = null; guardDraft(() => { UI.entryTee = a; }); return;
     case 'calLock':
     case 'calUnlock':
       if (!canAdmin()) return;
@@ -13665,20 +13745,28 @@ function onClick(e) {
           setRound(a, { state: 'open', lockedBy: null, lockedAt: null, done: {}, turn: {} }); });
       return;
 
-    case 'bump': {
+    case 'padOpen':
+      if (!canEdit() || E.roundCfg(T, rid).state !== 'open' || cardClosed(rid) || closedFor(rid, a)) return;
+      UI.pad = a;
+      break;
+    case 'padClose':
+      UI.pad = null;
+      break;
+    case 'setScore': {
       if (!canEdit() || E.roundCfg(T, rid).state !== 'open') return;
       if (cardClosed(rid) || closedFor(rid, a)) return;   // that card has finished; it is read-only
       const h = UI.entryHole;
       const hole = E.courseOf(T, rid).holes[h];
       const cap = E.capFor(hole.par, T.config.capOver);
-      const d = draftFor(rid, h);
-      const cur = grossOf(rid, a, h);
-      // From an empty cell either button starts at par: plus lands on it,
-      // minus one under. Going below par took a tap up and a tap back.
-      let v = cur == null ? hole.par + (+b > 0 ? 0 : -1) : cur + (+b);
-      if (v != null && v < 1) v = null;
-      if (v != null && v > cap) v = cap;
-      d.strokes[a] = v;
+      let v = Math.round(+b);
+      if (!(v >= 1)) return;
+      if (v > cap) v = cap;
+      draftFor(rid, h).strokes[a] = v;
+      /* the pad walks on to the next golfer of its own accord, and closes
+         after the last: four scores, four taps */
+      const list = padList(rid);
+      const at = list.findIndex(x => x.id === a);
+      UI.pad = at >= 0 && list[at + 1] ? list[at + 1].id : null;
       break;
     }
     case 'clearHole': {
@@ -14439,7 +14527,7 @@ if ('serviceWorker' in navigator) {
    So every return reads the build stamp off the server and, when it has
    moved on, the page reloads itself — unless a hole is half entered, in
    which case it waits for the save. */
-var BOOK_BUILD = '20261017-1132';
+var BOOK_BUILD = '20261017-1217';
 function checkBuild() {
   if (document.hidden || navigator.onLine === false) return;
   fetch('sw.js', { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (t) {
