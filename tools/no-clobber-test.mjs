@@ -39,7 +39,7 @@ const W = S + '/preview.html';
 writeFileSync(W, '<!doctype html><html><head><meta charset="utf-8">'
   + '<meta name="viewport" content="width=device-width, initial-scale=1">'
   + '<style>:root{color-scheme:light}body{margin:0}img{max-width:100%}</style></head><body>'
-  + readFileSync('/home/user/Union-Invitational-/dist/union-invitational.html', 'utf8') + '</body></html>');
+  + readFileSync('/home/user/Union-Invitational-/dist/union-invitational.html', 'utf8').replace('const PINS_ENABLED = true', 'const PINS_ENABLED = false') + '</body></html>');
 
 /* A tournament somebody has already edited: four golfers removed. */
 const STORED = JSON.parse(readFileSync(FIX + '/db2/config/tournament.json', 'utf8'));

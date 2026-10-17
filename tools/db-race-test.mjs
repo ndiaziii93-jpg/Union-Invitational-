@@ -49,7 +49,12 @@ const goTab = async (pg, t) => {
 };
 
 
-const PAGE = 'file:///home/user/Union-Invitational-/dist/union-invitational.html';
+/* the live book is armed; this test scores with no PIN, so it opens a copy
+   with the switch off */
+import { readFileSync as __rf, writeFileSync as __wf } from 'node:fs';
+__wf('/tmp/claude-0/-home-user-Union-Invitational-/8bcdc9be-12b5-528d-a069-2403e068b315/scratchpad/dbrace.html',
+  __rf('/home/user/Union-Invitational-/dist/union-invitational.html', 'utf8').replace('const PINS_ENABLED = true', 'const PINS_ENABLED = false'));
+const PAGE = 'file:///tmp/claude-0/-home-user-Union-Invitational-/8bcdc9be-12b5-528d-a069-2403e068b315/scratchpad/dbrace.html';
 
 const MOCK = () => {
   const docs = {};                       // path -> data

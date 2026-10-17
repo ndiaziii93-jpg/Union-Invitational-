@@ -34,12 +34,10 @@ const HEAD = '<!doctype html><html><head><meta charset="utf-8">'
   + '<style>:root{color-scheme:light}body{margin:0;font:14px system-ui}img{max-width:100%}</style></head><body>';
 
 function preview(name, pinsArmed) {
-  let html = SRC;
-  if (pinsArmed) {
-    const before = html;
-    html = html.replace('const PINS_ENABLED = false', 'const PINS_ENABLED = true');
-    if (html === before) throw new Error('could not arm PINS_ENABLED in the build');
-  }
+  /* the live book is armed; the open copy is made from it, not the other
+     way round */
+  if (!SRC.includes('const PINS_ENABLED = true')) throw new Error('the build is not armed — PINS_ENABLED moved?');
+  const html = pinsArmed ? SRC : SRC.replace('const PINS_ENABLED = true', 'const PINS_ENABLED = false');
   const f = S + '/' + name + '.html';
   writeFileSync(f, HEAD + html + '</body></html>');
   return 'file://' + f;

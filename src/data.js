@@ -5,7 +5,7 @@
 /* PINs are OFF while the book is being built: anyone who can open the page can
    score, and no dialog asks for a PIN. Flip this to true to arm the three PINs
    set on the Setup screen — nothing else needs to change. */
-export const PINS_ENABLED = false;
+export const PINS_ENABLED = true;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */

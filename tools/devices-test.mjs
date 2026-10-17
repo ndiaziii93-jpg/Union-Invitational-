@@ -58,7 +58,7 @@ const FIX = new URL('./fixtures/', import.meta.url).pathname.replace(/\/$/, '');
 writeFileSync(S + '/dev.html', '<!doctype html><html><head><meta charset="utf-8">'
   + '<meta name="viewport" content="width=device-width, initial-scale=1">'
   + '<style>:root{color-scheme:light}body{margin:0}img{max-width:100%}</style></head><body>'
-  + readFileSync('dist/union-invitational.html', 'utf8') + '</body></html>');
+  + readFileSync('dist/union-invitational.html', 'utf8').replace('const PINS_ENABLED = true', 'const PINS_ENABLED = false') + '</body></html>');
 
 const LIVE = JSON.parse(readFileSync(FIX + '/db7/config/tournament.json', 'utf8'));
 const seed = { 'config/tournament': LIVE };

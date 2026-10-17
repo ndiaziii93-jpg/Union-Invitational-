@@ -72,9 +72,10 @@ load cannot write the factory roster over the real one.
 
 ## Who can score
 
-**PINs are currently OFF.** Anyone who can open the page can enter scores, open a
-round and lock it. Flip `PINS_ENABLED` in `src/data.js` to `true` and rebuild to
-arm them — nothing else needs to change.
+**PINs are ON.** `PINS_ENABLED` in `src/data.js` is `true`: a round opens, scores
+go in and a round locks only under a scorer or master PIN, set once by the master
+reviewer in Setup and never shown again. The test copy (`tools/sandbox.py`) turns
+the switch off so the tests and a tester with no PIN can score.
 
 When on, three PINs, set by the master reviewer in Setup:
 

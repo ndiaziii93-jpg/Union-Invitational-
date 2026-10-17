@@ -83,7 +83,7 @@ const S = '/tmp/claude-0/-home-user-Union-Invitational-/8bcdc9be-12b5-528d-a069-
 const wrap = f => '<!doctype html><html><head><meta charset="utf-8">'
   + '<meta name="viewport" content="width=device-width, initial-scale=1">'
   + '<style>:root{color-scheme:light}body{margin:0}img{max-width:100%}</style></head><body>'
-  + readFileSync(f, 'utf8') + '</body></html>';
+  + readFileSync(f, 'utf8').replace('const PINS_ENABLED = true', 'const PINS_ENABLED = false') + '</body></html>';
 writeFileSync(S + '/dur-local.html', wrap('dist/union-invitational-sandbox.html'));
 writeFileSync(S + '/dur-db.html', wrap('dist/union-invitational.html'));
 

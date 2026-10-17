@@ -17,5 +17,14 @@ old = '<title>Union Invitational Yardage Book</title>'
 new = '<title>Union Invitational Test Copy</title>'
 if old not in html:
     raise SystemExit('the title has moved — update tools/sandbox.py')
-out.write_text(html.replace(old, new, 1), encoding='utf-8')
+html = html.replace(old, new, 1)
+# The test copy keeps its door open. The live book is armed — three PINs
+# set by the master reviewer — but a tester with no PIN, and every test in
+# tools/, scores straight away. The one test that checks the lock arms it
+# itself.
+armed = 'const PINS_ENABLED = true'
+if armed not in html:
+    raise SystemExit('the PIN switch has moved — update tools/sandbox.py')
+html = html.replace(armed, 'const PINS_ENABLED = false', 1)
+out.write_text(html, encoding='utf-8')
 print(f'{out}  {out.stat().st_size / 1e6:.2f} MB')

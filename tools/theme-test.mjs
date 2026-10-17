@@ -30,12 +30,12 @@ const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' })
 const wrap = f => '<!doctype html><html><head><meta charset="utf-8">'
   + '<meta name="viewport" content="width=device-width, initial-scale=1">'
   + '<style>body{margin:0}img{max-width:100%}</style></head><body>'
-  + readFileSync(f, 'utf8') + '</body></html>';
+  + readFileSync(f, 'utf8').replace('const PINS_ENABLED = true', 'const PINS_ENABLED = false') + '</body></html>';
 
 const BUILDS = [
   ['the book on the shared database', wrap('dist/union-invitational.html'), 'theme-db.html'],
   ['the team test copy', wrap('dist/union-invitational-sandbox.html'), 'theme-sandbox.html'],
-  ['the installed app', readFileSync('docs/app/index.html', 'utf8'), 'theme-app.html'],
+  ['the installed app', readFileSync('docs/app/index.html', 'utf8').replace('const PINS_ENABLED = true', 'const PINS_ENABLED = false'), 'theme-app.html'],
 ];
 
 for (const [name, html, file] of BUILDS) {
