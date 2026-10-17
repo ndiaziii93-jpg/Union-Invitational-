@@ -1692,8 +1692,21 @@ function teeBlocks() {
  * Phone only, by the stylesheet: a tablet and a laptop still show the
  * drawing beside the card, which is what the room is there for.
  */
+/* The plate's picture is the hole's ground, drawn once and kept: the same
+   island the window stands up, taken whole from behind the tee. The drawn
+   sheet stands in where there is no WebGL to draw it. */
+const SNAPS = {};
+function holeSnap(courseKey, hole) {
+  const key = courseKey + '_' + hole.n;
+  if (SNAPS[key] !== undefined) return SNAPS[key];
+  if (!H3D.available()) return (SNAPS[key] = null);
+  try { SNAPS[key] = H3D.snapshot(HOLES.model(courseKey, hole)); }
+  catch (err) { if (store && store.note) store.note('hole snap FAILED', String(err && err.message || err).slice(0, 160)); SNAPS[key] = null; }
+  return SNAPS[key];
+}
 function holePlate(rid, h, hole, course, cap, list, slotPlayers, opts) {
-  const art = IMG[hole.img];
+  const snap = holeSnap(course.key, hole);
+  const art = snap || IMG[hole.img];
   if (!art) return '';
   opts = opts || {};
   /* At most four markers. Past that they cover the green they are sitting
@@ -1713,7 +1726,7 @@ function holePlate(rid, h, hole, course, cap, list, slotPlayers, opts) {
      is measured at build time; the sheet is drawn just large enough for that
      box to cover the window, and the window opens on the box's centre. A
      thumb can still pan to either end; a tap opens the whole of it. */
-  const box = ART[hole.img] || [0, 0, 1, 1];
+  const box = snap ? [0.02, 0.02, 0.98, 0.98] : (ART[hole.img] || [0, 0, 1, 1]);
   const bw = Math.max(box[2] - box[0], 0.05), bh = Math.max(box[3] - box[1], 0.05);
   /* Two fits. A phone's window is a wide slot, so the sheet is drawn large
      enough for the hole to COVER it and the window pans along the hole. A
