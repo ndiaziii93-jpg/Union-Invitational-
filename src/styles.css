@@ -2181,7 +2181,6 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
 /* clear of the band above it, which is 116 tall with its rule */
 .egr{position:sticky;top:134px;min-width:0}
 .egr .holeplate{aspect-ratio:4/5;margin:0 0 22px}
-.egr .hp-scroll img{width:var(--kp,100%)}
 .egr .side-b{margin-top:0}
 
 /* Save, held at the foot of the glass and inset to the page: the one
@@ -2200,22 +2199,24 @@ html:has(.page.scoring){scroll-padding-top:136px;scroll-padding-bottom:110px}
 .holeplate{display:block;position:relative;margin:13px 0 0;border-radius:16px;
   overflow:hidden;aspect-ratio:7/5;background:var(--ink);
   box-shadow:0 2px 10px rgba(16,22,17,.2)}
-/* Two corners of every render are empty. Cropped to this window and
-   scaled, the hole reads bigger in a hundred and fifty points less. */
-/* A window onto the art, not a crop of it. The render is drawn at the
-   plate's width — the whole hole, tee to green, about twice the height
-   of the window — and the window pans. A tap opens the lot. */
-.hp-scroll{position:absolute;inset:0;z-index:1;overflow:auto;overscroll-behavior:contain;
-  -webkit-overflow-scrolling:touch;touch-action:pan-x pan-y;cursor:zoom-in;
-  scrollbar-width:none}
-.hp-scroll::-webkit-scrollbar{display:none}
-/* The sheet has its shape before it has its pixels, so the window can be
-   put on the hole before the picture arrives rather than on the top edge
-   of nothing. The width is set on the element: how much sheet it takes
-   for the hole to fill the window is a fact about that hole. */
-.hp-scroll img.hp-wide{display:none}
-.hp-scroll img{display:block;width:var(--kw,100%);max-width:none;height:auto;aspect-ratio:520/736;
-  filter:drop-shadow(0 8px 14px rgba(0,0,0,.45)) saturate(1.12) contrast(1.05)}
+/* THE SHEET LAID BACK INTO THE PLATE. The stage is the window, with its
+   vanishing point a third of the way down; the sheet is the drawing,
+   centred on the stage and tilted fifty-two degrees away from the glass,
+   then scaled and slid by the script to land the hole whole. The tilt is
+   fixed here so every hole lies at the same angle; the sheet's half-height
+   as a margin (736/520, halved) is what centres it before the slide. */
+.hp-stage{position:absolute;inset:0;z-index:1;overflow:hidden;cursor:zoom-in;
+  perspective:760px;perspective-origin:50% 35%}
+.hp-sheet{position:absolute;left:50%;top:50%;width:100%;aspect-ratio:520/736;margin:-70.77% 0 0 -50%;
+  transform:translate(var(--tx,0px),var(--ty,0px)) rotateX(52deg) scale(var(--s,1));
+  transform-origin:50% 50%;will-change:transform}
+.hp-sheet img{display:block;width:100%;height:auto;
+  filter:drop-shadow(0 16px 16px rgba(0,0,0,.55)) saturate(1.12) contrast(1.05)}
+/* the outline's points, read back off the glass by the fit */
+.hp-k{position:absolute;width:1px;height:1px}
+/* the far end into shade: the ground going away */
+.hp-stage::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(to bottom,rgba(16,22,17,.5),rgba(16,22,17,0) 40%)}
 .hp-course,.hp-ghost,.hp-tee,.hp-pick,.hp-in,.hp-foot{pointer-events:none}
 .hp-open{position:absolute;right:9px;bottom:30px;z-index:4;width:34px;height:34px;padding:0;
   border:0;border-radius:50%;background:rgba(238,232,213,.92);color:var(--ink);
@@ -3376,7 +3377,6 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
      from a content width of nothing — every child is positioned — so it
      came out nought by nought. */
   .egr .holeplate{order:-1;aspect-ratio:7/5;margin:13px 0 0;width:100%;flex:0 0 auto}
-  .egr .hp-scroll img{width:var(--kw,100%)}
   .side-b,.side-g{order:1}
   .side-b{margin-top:26px}
   .page.scoring > .setline{border-radius:0;border-left:0;border-right:0;background:var(--sunk);padding:11px 15px}
@@ -3549,12 +3549,6 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
   /* the privilege lines bleed with the rest of the tap-lines; the picker
      and its note stay on the page */
   .priv .pv-sel,.priv .pv-note{margin-left:0;margin-right:0}
-}
-
-/* the plate on a phone: the hole lying across the wide slot, whole */
-@media (max-width:699px){
-  .hp-scroll img.hp-tall{display:none}
-  .hp-scroll img.hp-wide{display:block}
 }
 
 @media (max-width:699px){

@@ -14,9 +14,9 @@ import * as H3D from './hole3d.js';
 import * as HOLES from './holes3d.js';
 
 const IMG = window.UI_IMAGES || {};
-/* Where the hole actually is on each render: the box round its drawn
+/* Where the hole actually is on each render: the outline round its drawn
    pixels, as fractions of the sheet. Measured at build time. */
-const ART = window.UI_ART_BOX || {};
+const HULL = window.UI_ART_HULL || {};
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const cls = n => n == null ? '' : n < 0 ? 'under' : n > 0 ? 'over' : 'level';
 
@@ -64,7 +64,6 @@ const UI = {
   sayDraft: null,       // {rid, v} — the same, for the line about the round
   resortTab: 'now',     // The Titanic: which part of the resort is on screen
   resortMore: '',       // which folded list of maybes is open: 'summer', 'winter' or neither
-  hpPan: null,          // where the window onto the hole was panned to: {key, top, left}
   resortNote: null,     // {k, v} — a note being typed, held out of the DOM
   resortPlanCat: 'all', // which part of the site plan is labelled
   resortPin: null,      // which point on the plan is selected, by index
@@ -1679,9 +1678,10 @@ function teeBlocks() {
  * with no frame, no light and nothing on them — three hundred points of
  * phone for a picture that said nothing the card did not.
  *
- * Two corners of every render are empty, so cropping to a 7:5 window and
- * scaling up makes the hole read BIGGER in a hundred and fifty points LESS
- * height. Then it is lit: pine behind it, a warm glow where the green is, a
+ * Two corners of every render are empty, so the sheet is laid back into
+ * the plate — tilted away from the glass — and the hole runs into the
+ * page, whole, in a hundred and fifty points less height than it stood
+ * flat. Then it is lit: pine behind it, a warm glow where the green is, a
  * shadow under the art so it lifts off the plate.
  *
  * And it is made to carry the hole. Who is already in and what they took
@@ -1689,29 +1689,18 @@ function teeBlocks() {
  * pick-up is pinned in red where the flag is. A picture of what your group
  * has done is worth a second look — a picture of a fairway is not.
  *
- * Phone only, by the stylesheet: a tablet and a laptop still show the
- * drawing beside the card, which is what the room is there for.
+ * On a tablet and a laptop the same plate stands tall beside the card.
  */
-/* The plate's picture is the hole's ground, drawn once and kept: the same
-   island the window stands up, taken whole from behind the tee. The drawn
-   sheet stands in where there is no WebGL to draw it. */
-const SNAPS = {};
-/* Two pictures a hole: upright for the tall card a tablet or a laptop
-   gives it, and lying across for the wide slot a phone gives it, each
-   drawn to fit its plate exactly so the whole hole is always in view. */
-function holeSnap(courseKey, hole, shape) {
-  const key = courseKey + '_' + hole.n + ':' + shape;
-  if (SNAPS[key] !== undefined) return SNAPS[key];
-  if (!H3D.available()) return (SNAPS[key] = null);
-  try { SNAPS[key] = shape === 'wide' ? H3D.snapshot(HOLES.model(courseKey, hole), 736, 526, true)
-                                      : H3D.snapshot(HOLES.model(courseKey, hole), 520, 650, false); }
-  catch (err) { if (store && store.note) store.note('hole snap FAILED', String(err && err.message || err).slice(0, 160)); SNAPS[key] = null; }
-  return SNAPS[key];
-}
+/* THE PLATE IS THE DRAWING, LAID BACK INTO THE PAGE. The sheet is the
+   hole as drawn — tee bottom-left, green top-right — and it is tilted away
+   from the glass so the far end recedes: the tee near and large, the green
+   small and distant. A hole drawn taller than the plate is wide fits that
+   way without panning, whole, and reads as ground rather than as a map.
+   How far to scale and slide the sheet is measured after the tilt, on the
+   hole's own outline (fitPlates below), so every one of the thirty-six
+   lands whole with the flag clear of the pills. */
 function holePlate(rid, h, hole, course, cap, list, slotPlayers, opts) {
-  const snap = holeSnap(course.key, hole, 'tall');
-  const snapW = snap ? holeSnap(course.key, hole, 'wide') : null;
-  const art = snap || IMG[hole.img];
+  const art = IMG[hole.img];
   if (!art) return '';
   opts = opts || {};
   /* At most four markers. Past that they cover the green they are sitting
@@ -1724,30 +1713,12 @@ function holePlate(rid, h, hole, course, cap, list, slotPlayers, opts) {
      marker is for the strokes that are actually given, each named once. */
   const gets = [...new Set(list.map(g => E.strokesFor(g.band, hole.si))
     .filter(x => x != null && x > 0))].sort((a, b) => a - b).map(x => '+' + x);
-  /* THE WINDOW IS FILLED BY THE HOLE, NOT BY THE SHEET. Every render is a
-     portrait sheet with the hole running corner to corner and the other two
-     corners empty, so a window onto the middle of the sheet could land on
-     empty pine with a sliver of fairway. The box round the hole's own pixels
-     is measured at build time; the sheet is drawn just large enough for that
-     box to cover the window, and the window opens on the box's centre. A
-     thumb can still pan to either end; a tap opens the whole of it. */
-  const box = snap ? [0.02, 0.02, 0.98, 0.98] : (ART[hole.img] || [0, 0, 1, 1]);
-  const bw = Math.max(box[2] - box[0], 0.05), bh = Math.max(box[3] - box[1], 0.05);
-  /* Two fits. A phone's window is a wide slot, so the sheet is drawn large
-     enough for the hole to COVER it and the window pans along the hole. A
-     tablet or a laptop gives the hole a tall card beside the rows, so the
-     sheet is drawn so the hole fits WITHIN it, whole, and the card pans
-     only for the last few points of a long par five. */
-  const kw = Math.max(1 / bw, (5 / 7) / (bh * (736 / 520)), 1);
-  const kp = Math.max(Math.min(1 / bw, (5 / 4) / (bh * (736 / 520))), 1);
-  const cx = (box[0] + box[2]) / 2, cy = (box[1] + box[3]) / 2;
+  const hull = HULL[hole.img] || [[0, 0], [1, 0], [1, 1], [0, 1]];
   return `<div class="holeplate">
-    <div class="hp-scroll nos" data-act="holeArt" data-a="${h}"${opts.ckey ? ` data-b="${esc(opts.ckey)}"` : ''} data-key="${esc(opts.ckey ? 'course:' + opts.ckey : rid)}:${h}"
-      data-cx="${cx.toFixed(3)}" data-cy="${cy.toFixed(3)}"
+    <div class="hp-stage nos" data-act="holeArt" data-a="${h}"${opts.ckey ? ` data-b="${esc(opts.ckey)}"` : ''}
       role="img" aria-label="Hole ${hole.n} at ${esc(course.name)}, par ${hole.par}, stroke index ${hole.si}, ${hole.mW} metres. Tap to see the whole hole.">
-      ${snap
-        ? `<img class="hp-tall" decoding="sync" src="${snap}" alt="" style="--kw:100%;--kp:100%;aspect-ratio:520/650"><img class="hp-wide" decoding="sync" src="${snapW || snap}" alt="" style="--kw:100%;--kp:100%;aspect-ratio:736/526">`
-        : `<img decoding="sync" src="${art}" alt="" style="--kw:${(kw * 100).toFixed(1)}%;--kp:${(kp * 100).toFixed(1)}%">`}</div>
+      <div class="hp-sheet"><img decoding="sync" src="${art}" alt="">${hull.map(([x, y]) => `<i class="hp-k" style="left:${(x * 100).toFixed(1)}%;top:${(y * 100).toFixed(1)}%"></i>`).join('')}</div>
+    </div>
     <button class="hp-open" data-act="holeArt" data-a="${h}"${opts.ckey ? ` data-b="${esc(opts.ckey)}"` : ''} aria-label="See the whole of hole ${hole.n}">⤢</button>
     <span class="hp-course">${esc(course.name)}</span>
     <span class="hp-ghost num" aria-hidden="true">${hole.n}</span>
@@ -3783,6 +3754,33 @@ function markDocEnd() {
    measured on each redraw rather than guessed, because the dateline under
    the name is one line on some days and two on others. A few pixels of
    hysteresis so a page resting exactly on the line does not flicker. */
+/* THE SHEET FITTED TO ITS PLATE. The tilt is in the stylesheet; how big
+   the sheet is drawn and where it sits are not, because they depend on the
+   hole: a par three lies short and fat on the sheet, a par five runs corner
+   to corner. The outline's points are laid on the sheet, the sheet is
+   tilted, and the points are read back off the glass: the box round them
+   is the hole as it will be seen. Scale and slide until that box fills the
+   plate's open middle — the pills along the top and the foot kept clear —
+   and go round again, because under perspective a bigger sheet does not
+   grow evenly. Six passes settle it to under a pixel. */
+function fitPlates() {
+  document.querySelectorAll('.hp-stage').forEach(st => {
+    const sh = st.querySelector('.hp-sheet'); if (!sh) return;
+    const R = st.getBoundingClientRect(); if (!R.width || !R.height) return;
+    const M = 8, top = 58, bot = 24, aw = R.width - 2 * M, ah = R.height - top - bot;
+    const ks = sh.querySelectorAll('.hp-k');
+    let sc = 1, tx = 0, ty = 0;
+    for (let i = 0; i < 6; i++) {
+      sh.style.setProperty('--s', sc); sh.style.setProperty('--tx', tx + 'px'); sh.style.setProperty('--ty', ty + 'px');
+      let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+      ks.forEach(k => { const b = k.getBoundingClientRect(); x0 = Math.min(x0, b.left); x1 = Math.max(x1, b.right); y0 = Math.min(y0, b.top); y1 = Math.max(y1, b.bottom); });
+      if (!(x1 > x0 && y1 > y0)) return;
+      sc *= Math.min(aw / (x1 - x0), ah / (y1 - y0));
+      tx += (R.left + M + aw / 2) - (x0 + x1) / 2;
+      ty += (R.top + top + ah / 2) - (y0 + y1) / 2;
+    }
+  });
+}
 let plateH = 0;
 function measurePlate() {
   const r = document.querySelector('.rule-heavy');
@@ -3813,7 +3811,7 @@ function markTop() {
 }
 function onScroll() { markDocEnd(); markTop(); }
 addEventListener('scroll', onScroll, { passive: true });
-addEventListener('resize', () => { measurePlate(); onScroll(); measureCover(); }, { passive: true });
+addEventListener('resize', () => { measurePlate(); onScroll(); measureCover(); fitPlates(); }, { passive: true });
 
 function goTo(id) {
   if (id === UI.screen) { SCROLL_AT[id] = 0; UI.landAt = 0; }
@@ -4070,15 +4068,7 @@ function paint() {
   measurePlate();
   onScroll();
   measureCover();
-  /* The window onto the hole opens on the middle of it — tee at one end,
-     green at the other, the landing area in the glass — and keeps wherever
-     a thumb has panned it to across the redraws the polling store lands. */
-  document.querySelectorAll('.hp-scroll').forEach(w => {
-    const kept = UI.hpPan && UI.hpPan.key === w.dataset.key ? UI.hpPan : null;
-    const cx = parseFloat(w.dataset.cx) || 0.5, cy = parseFloat(w.dataset.cy) || 0.5;
-    w.scrollTop = kept ? kept.top : cy * w.scrollHeight - w.clientHeight / 2;
-    w.scrollLeft = kept ? kept.left : cx * w.scrollWidth - w.clientWidth / 2;
-  });
+  fitPlates();
 
   opened.forEach(id => { const el = document.getElementById(id); if (el) el.open = true; });
   mountHole3D();
@@ -6243,12 +6233,6 @@ export function boot() {
   });
   const app = document.getElementById('app');
   app.addEventListener('click', onClick);
-  /* scroll does not bubble; it is caught on the way down */
-  app.addEventListener('scroll', e => {
-    const w = e.target;
-    if (w && w.classList && w.classList.contains('hp-scroll'))
-      UI.hpPan = { key: w.dataset.key, top: w.scrollTop, left: w.scrollLeft };
-  }, { capture: true, passive: true });
   app.addEventListener('dragstart', e => {
     const el = e.target.closest('[data-act="dragGolfer"]');
     if (!el || !canEdit()) return;
