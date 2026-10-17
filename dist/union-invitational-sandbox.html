@@ -275,8 +275,10 @@ h3.sub{font-size:19px;font-weight:600;margin:26px 0 0}
 .keypad .kh .xx{background:none;border:0;color:#E2C277;font-family:inherit;font-size:14px;font-weight:700;padding:8px 0 8px 8px}
 .keypad .keys{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 .keypad .key{height:58px;border-radius:14px;border:1px solid rgba(238,232,213,.22);background:rgba(238,232,213,.08);
-  color:var(--page);font-size:24px;font-weight:700;font-family:inherit;position:relative;-webkit-tap-highlight-color:transparent}
-.keypad .key i{position:absolute;left:0;right:0;bottom:5px;font-size:8.5px;letter-spacing:.12em;text-transform:uppercase;font-style:normal;color:var(--sage-up);font-weight:700}
+  color:var(--page);font-size:24px;font-weight:700;font-family:inherit;position:relative;-webkit-tap-highlight-color:transparent;
+  text-align:center;padding:0 0 4px;display:grid;place-items:center}
+.keypad .key i{position:absolute;left:0;right:0;bottom:5px;font-size:8.5px;letter-spacing:.12em;text-transform:uppercase;font-style:normal;color:var(--sage-up);font-weight:700;text-align:center}
+.keypad .key.par,.keypad .key.cap{padding-bottom:12px}
 .keypad .key.par{border:2px solid #E2C277}
 .keypad .key.cap{color:#E99A8C}
 .keypad .key.on{background:var(--page);color:var(--ink)}
@@ -1234,6 +1236,11 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 .statusbar .dot.err{background:var(--flag)}
 .statusbar .who::before,.statusbar .build::before{content:"\00B7";padding-right:10px;color:var(--rule)}
 .statusbar .build{margin-left:auto}
+/* on a phone the foot is two deliberate lines: the connection, then who you are and the build */
+@media (max-width:699px){
+  .statusbar .st{flex-basis:100%}
+  .statusbar .who::before{content:none}
+}
 
 /* ---- today ---- */
 /* ================= TODAY: THE COVER =================
@@ -3733,7 +3740,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261017-1559';
+const BUILD = '20261017-1657';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
