@@ -39,7 +39,7 @@ ok('and keeps the last word', t.last && t.last.text, 'Tree. Then another tree.')
 const d = blankCard(); for (let h = 0; h < 18; h++) d.raw[h] = holes[h].par; d.raw[2] = holes[2].par + 3;
 T.scores['r1__g2'] = d; T.notes['r1__g2'] = { ...blankNote('r1', 'g2'), marks: { 2: ['robbed'] } };
 const input = E.recapInput(T, 'r1', E.nowLocal());
-ok('the writer is told what the golfers said, hole by hole', /WHAT THE GOLFERS SAID ABOUT THEIR OWN HOLES/.test(input), true);
+ok('the writer is told what the golfers said, hole by hole', /WHAT THE GOLFERS SAID ABOUT THEIR OWN ROUNDS/.test(input), true);
 ok('with the score beside the feeling', /hole 3, a double \(\d on a par \d\): Robbed — "Tree\. Then another tree\."/.test(input), true);
 ok('and which hole robbed the field', /"Robbed" most on hole 3: Norberto III, Norberto Jr\./.test(input), true);
 ok('and the ref\'s marks, as a floor', /MARKS, PUT IN BY THE REF/.test(input) && /Water ×1 \(hole 11\)/.test(input), true);

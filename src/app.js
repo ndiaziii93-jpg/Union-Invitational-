@@ -6236,7 +6236,7 @@ const RECAP_RULES = [
   '  not the ref\'s. Attribute it — "by his own account", "as he tells it" —',
   '  and never state it as established fact.',
   '- Their own words may be quoted, briefly, and should be where they are good.',
-  '- Under what the golfers said about their own holes, each feeling sits',
+  '- Under what the golfers said about their own rounds, each feeling sits',
   '  beside the score it goes with. Use them together: a seven that "deserved',
   '  better" and a seven that was "the wrong club" are two different stories.',
   '  Where the field agrees a hole robbed them, the hole is the character.',

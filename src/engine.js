@@ -859,7 +859,7 @@ export function feelBlock(T, rid) {
     said.push('- ' + p.display + ':' + (hs.length ? '\n    ' + hs.join('\n    ') : '') + (bits.length ? '\n    ' + bits.join('; ') : ''));
   }
   if (said.length) {
-    L.push('\nWHAT THE GOLFERS SAID ABOUT THEIR OWN HOLES');
+    L.push('\nWHAT THE GOLFERS SAID ABOUT THEIR OWN ROUNDS');
     L.push('Self-reported, and deliberately about things the ref CANNOT see —');
     L.push('whether a hole deserved better or a good deal worse, whether the');
     L.push('trouble came before the swing or during it, how the round felt.');
