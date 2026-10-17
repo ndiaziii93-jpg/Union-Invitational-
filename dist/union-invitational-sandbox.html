@@ -3733,7 +3733,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261017-1509';
+const BUILD = '20261017-1523';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -7920,6 +7920,8 @@ const UI = {
   recap: { rid: null, busy: false, err: '', stream: '', edit: false, view: 'report' },
   feelOn: null,         // the hole the golfer is being asked about: {rid, h}
   pad: null,            // the golfer whose keypad is up on Score Entry
+  pinDraft: { master: '', s1: '', s2: '' },   // PINs typed on Setup and not yet saved
+  pinNote: '',          // what the last Save PINs did
   feelDraft: null,      // the word they are typing on it: {rid, h, v}
   upload: { queue: [], err: '' },
   role: 'viewer',
@@ -10826,16 +10828,20 @@ function scrSetup() {
   ${!D.PINS_ENABLED ? `<div class="notice"><b>PINs are switched off</b>
     <div style="font-size:15px;color:var(--turf)">Anyone who can open this page can enter scores, open a round and lock it. The three PINs below are saved and ready — ask for them to be switched on once the book is finished.</div></div>` : ''}
   <div class="notice"><b>A PIN is written once and never shown again.</b>
-    <div style="font-size:15px;color:var(--turf)">Type a new one over an old one to replace it. Nothing in the book ever reads a PIN back — not this screen, not the scorers' phones. They are a courtesy lock: they stop the wrong thumb changing a score, and they live in the shared database, so do not reuse a passcode from anywhere else.</div></div>
+    <div style="font-size:15px;color:var(--turf)">Type into the boxes you want to change, then tap Save PINs. A box left empty keeps the PIN it has. Nothing in the book ever reads a PIN back \u2014 not this screen, not the scorers' phones. They are a courtesy lock: they stop the wrong thumb changing a score, and they live in the shared database, so do not reuse a passcode from anywhere else.</div></div>
   <div class="panel">
     ${[['master', 'Master reviewer', 'Opens, locks and reopens rounds, clears the scores, changes every PIN'],
        ['s1', 'Scorer 1', 'Signs in once a day; enters and finishes rounds'],
        ['s2', 'Scorer 2', 'Signs in once a day; enters and finishes rounds']].map(([k, label, hint]) => `
     <div class="kv"><span class="k">${label}<small>${hint}</small></span>
       <span class="chiprow"><span class="pinstate${p[k] ? ' on' : ''}">${p[k] ? 'Set' : 'Not set'}</span>
-        <input class="field num pinbox" type="password" inputmode="numeric" maxlength="8" autocomplete="off" value=""
-          placeholder="${p[k] ? '\u2022\u2022\u2022\u2022' : '4\u20138 digits'}" data-act="setPin" data-a="${k}" aria-label="${label} PIN"></span></div>`).join('')}
-    ${!T.config.pinsChanged ? `<div class="chiprow"><span class="eyebrow" style="color:var(--flag)">Still the factory defaults \u2014 set all three before the book goes live</span></div>` : ''}
+        <input class="field num pinbox" id="pin_${k}" type="password" inputmode="numeric" maxlength="8" autocomplete="off"
+          value="${esc(UI.pinDraft[k] || '')}" placeholder="${p[k] ? '\u2022\u2022\u2022\u2022' : '4\u20138 digits'}" aria-label="${label} PIN"></span></div>`).join('')}
+    <div class="chiprow" style="align-items:center;gap:12px">
+      <button class="btn" data-act="savePins">Save PINs</button>
+      ${UI.pinNote ? `<span class="eyebrow" style="color:${/saved/i.test(UI.pinNote) ? 'var(--green)' : 'var(--flag)'}">${esc(UI.pinNote)}</span>`
+        : !T.config.pinsChanged ? `<span class="eyebrow" style="color:var(--flag)">Still the factory defaults \u2014 set all three before the book goes live</span>` : ''}
+    </div>
   </div>
 
   <h3 class="sub">Relief</h3>
@@ -13964,6 +13970,22 @@ function onClick(e) {
       if (!canAdmin()) return;
       store.writeConfig(c => { c.capOver = +a; });
       return;
+    case 'savePins': {
+      if (!canAdmin()) return;
+      const d = UI.pinDraft || {};
+      const next = {}; const bad = [];
+      for (const k of ['master', 's1', 's2']) {
+        const v = String(d[k] || '').replace(/\D/g, '');
+        if (!v) continue;
+        if (v.length < 4) bad.push(k); else next[k] = v.slice(0, 8);
+      }
+      if (bad.length) { UI.pinNote = 'A PIN is 4 to 8 digits'; break; }
+      if (!Object.keys(next).length) { UI.pinNote = 'Nothing typed, nothing changed'; break; }
+      store.writeConfig(c => { for (const k of Object.keys(next)) c.pins[k] = next[k]; c.pinsChanged = true; });
+      UI.pinDraft = { master: '', s1: '', s2: '' };
+      UI.pinNote = 'Saved \u00b7 ' + Object.keys(next).length + ' of 3';
+      break;
+    }
     case 'resetScores':
       askPinStrict('Clear every score', 'Every card, point, note and report for every round, on every device. The roster, bands, pairs and calendar stay. Enter the master PIN.', 'Clear scores',
         role => { if (role !== 'master') return; store.resetScores(); UI.screen = 'today'; });
@@ -14075,15 +14097,6 @@ function onChange(e) {
       if (UI.modal && UI.modal.kind === 'event') { keepEvTitle(); UI.modal.ev.time = t; }
       render();
     }
-  } else if (act === 'setPin') {
-    if (!canAdmin()) return;
-    /* four to eight digits, or nothing happens: a box left empty on the way
-       past must never blank a PIN, and the box is emptied again on the
-       redraw so the digits are not left on the glass */
-    const v = el.value.replace(/\D/g, '').slice(0, 8);
-    if (v.length < 4) { el.value = ''; return; }
-    store.writeConfig(c => { c.pins[a] = v; c.pinsChanged = true; });
-    el.value = '';
   } else if (act === 'setHole') {
     if (!canEdit()) return;
     if (E.courseByKey(T, a).verified) { render(); return; } // locked: refuse the write, not just the control
@@ -14405,6 +14418,8 @@ function boot() {
      mid-sentence often. */
   app.addEventListener('input', e => {
     if (e.target && e.target.id === 'askField') UI.askText = e.target.value;
+    /* a PIN half typed outlives the redraws the shared book lands */
+    if (e.target && /^pin_(master|s1|s2)$/.test(e.target.id)) UI.pinDraft[e.target.id.slice(4)] = e.target.value;
     /* The event being written lives in UI.modal, not in the DOM: a redraw can
        land between the name and the Save, and what is typed must outlive it. */
     if (e.target && e.target.id === 'evTitle' && UI.modal && UI.modal.kind === 'event') {

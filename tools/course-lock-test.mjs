@@ -36,8 +36,9 @@ const HEAD = '<!doctype html><html><head><meta charset="utf-8">'
 function preview(name, pinsArmed) {
   /* the live book is armed; the open copy is made from it, not the other
      way round */
-  if (!SRC.includes('const PINS_ENABLED = true')) throw new Error('the build is not armed — PINS_ENABLED moved?');
-  const html = pinsArmed ? SRC : SRC.replace('const PINS_ENABLED = true', 'const PINS_ENABLED = false');
+  if (!SRC.includes('const PINS_ENABLED = ')) throw new Error('PINS_ENABLED moved?');
+  const html = pinsArmed ? SRC.replace('const PINS_ENABLED = false', 'const PINS_ENABLED = true')
+                         : SRC.replace('const PINS_ENABLED = true', 'const PINS_ENABLED = false');
   const f = S + '/' + name + '.html';
   writeFileSync(f, HEAD + html + '</body></html>');
   return 'file://' + f;

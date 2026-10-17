@@ -46,6 +46,21 @@ ok('the pairs stay', await p.evaluate(() => JSON.stringify(window.__T.config.pai
 ok('the calendar stays', await p.evaluate(() => window.__T.config.schedule.some(e => e.id === 'x1')), true);
 ok('and the PINs stay', await p.evaluate(() => window.__T.config.pins), { master: '4321', s1: '1111', s2: '2222' });
 ok('and it lands on Today', await p.evaluate(() => window.__UI.screen), 'today');
+
+console.log('\nthe PIN boxes');
+await p.locator('[data-act="manageOpen"]').first().click(); await p.waitForTimeout(400);
+await p.locator('.mg-row', { hasText: 'Setup' }).first().click(); await p.waitForTimeout(600); await shut();
+await p.locator('#pin_master').fill('9876'); await p.locator('#pin_s1').fill('55');
+await p.evaluate(() => window.__forceRender()); await p.waitForTimeout(300);
+ok('what is typed survives a redraw', [await p.locator('#pin_master').inputValue(), await p.locator('#pin_s1').inputValue()], ['9876', '55']);
+ok('and nothing is written until Save', await p.evaluate(() => window.__T.config.pins.master), '4321');
+await p.locator('[data-act="savePins"]').click(); await p.waitForTimeout(300);
+ok('a short one is refused, and nothing is written', [/4 to 8/.test(await p.locator('.panel .eyebrow').innerText()), await p.evaluate(() => window.__T.config.pins.master)], [true, '4321']);
+await p.locator('#pin_s1').fill('5555'); await p.locator('[data-act="savePins"]').click(); await p.waitForTimeout(400);
+ok('Save writes the typed ones', await p.evaluate(() => [window.__T.config.pins.master, window.__T.config.pins.s1]), ['9876', '5555']);
+ok('and keeps the one left blank', await p.evaluate(() => window.__T.config.pins.s2), '2222');
+ok('then empties the boxes', await p.evaluate(() => [...document.querySelectorAll('.pinbox')].every(i => i.value === '')), true);
+ok('and says so', /Saved/.test(await p.locator('.panel .eyebrow').innerText()), true);
 await b.close();
 console.log(fails.length ? '\n' + fails.length + ' FAILED: ' + fails.join(', ') : '\nall good');
 process.exit(fails.length ? 1 : 0);

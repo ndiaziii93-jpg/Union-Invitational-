@@ -22,9 +22,8 @@ html = html.replace(old, new, 1)
 # set by the master reviewer — but a tester with no PIN, and every test in
 # tools/, scores straight away. The one test that checks the lock arms it
 # itself.
-armed = 'const PINS_ENABLED = true'
-if armed not in html:
+if 'const PINS_ENABLED = ' not in html:
     raise SystemExit('the PIN switch has moved — update tools/sandbox.py')
-html = html.replace(armed, 'const PINS_ENABLED = false', 1)
+html = html.replace('const PINS_ENABLED = true', 'const PINS_ENABLED = false', 1)
 out.write_text(html, encoding='utf-8')
 print(f'{out}  {out.stat().st_size / 1e6:.2f} MB')
