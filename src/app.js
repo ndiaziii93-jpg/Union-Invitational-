@@ -52,7 +52,6 @@ const UI = {
   modal: null,       // {title, note, onOk(pin) -> string|null err}
   bandMoved: {},     // id -> the band they were on before the read moved them
   modalErr: '',
-  revealPins: false,
   toast: '',
   draft: null,
   dragging: null,
@@ -2923,20 +2922,17 @@ function scrSetup() {
   <h3 class="sub">Scoring PINs</h3>
   ${!D.PINS_ENABLED ? `<div class="notice"><b>PINs are switched off</b>
     <div style="font-size:15px;color:var(--turf)">Anyone who can open this page can enter scores, open a round and lock it. The three PINs below are saved and ready — ask for them to be switched on once the book is finished.</div></div>` : ''}
-  <div class="notice"><b>These PINs are a courtesy lock, not security.</b>
-    <div style="font-size:15px;color:var(--turf)">They stop a spectator tapping a score by accident. Anyone determined enough to read the page source can find them, so treat the master PIN as a convenience — not a secret worth protecting.</div></div>
+  <div class="notice"><b>A PIN is written once and never shown again.</b>
+    <div style="font-size:15px;color:var(--turf)">Type a new one over an old one to replace it. Nothing in the book ever reads a PIN back — not this screen, not the scorers' phones. They are a courtesy lock: they stop the wrong thumb changing a score, and they live in the shared database, so do not reuse a passcode from anywhere else.</div></div>
   <div class="panel">
-    <div class="kv"><span class="k">Master reviewer<small>Opens, locks, reopens, and sees every PIN</small></span>
-      <span class="chiprow"><input class="field num" style="width:110px;text-align:center;letter-spacing:.2em" type="text" inputmode="numeric" maxlength="8"
-        value="${esc(p.master)}" data-act="setPin" data-a="master" aria-label="Master PIN"></span></div>
-    <div class="kv"><span class="k">Scorer 1<small>Enters and locks rounds</small></span>
-      <span class="chiprow"><input class="field num" style="width:110px;text-align:center;letter-spacing:.2em" type="${UI.revealPins ? 'text' : 'password'}" inputmode="numeric" maxlength="8"
-        value="${esc(p.s1)}" data-act="setPin" data-a="s1" aria-label="Scorer 1 PIN"></span></div>
-    <div class="kv"><span class="k">Scorer 2<small>Enters and locks rounds</small></span>
-      <span class="chiprow"><input class="field num" style="width:110px;text-align:center;letter-spacing:.2em" type="${UI.revealPins ? 'text' : 'password'}" inputmode="numeric" maxlength="8"
-        value="${esc(p.s2)}" data-act="setPin" data-a="s2" aria-label="Scorer 2 PIN"></span></div>
-    <div class="chiprow"><button class="chip" data-act="revealPins">${UI.revealPins ? 'Hide scorer PINs' : 'Show scorer PINs'}</button>
-      ${!T.config.pinsChanged ? `<span class="eyebrow" style="color:var(--flag)">Still the factory defaults</span>` : ''}</div>
+    ${[['master', 'Master reviewer', 'Opens, locks and reopens rounds, clears the scores, changes every PIN'],
+       ['s1', 'Scorer 1', 'Signs in once a day; enters and finishes rounds'],
+       ['s2', 'Scorer 2', 'Signs in once a day; enters and finishes rounds']].map(([k, label, hint]) => `
+    <div class="kv"><span class="k">${label}<small>${hint}</small></span>
+      <span class="chiprow"><span class="pinstate${p[k] ? ' on' : ''}">${p[k] ? 'Set' : 'Not set'}</span>
+        <input class="field num pinbox" type="password" inputmode="numeric" maxlength="8" autocomplete="off" value=""
+          placeholder="${p[k] ? '\u2022\u2022\u2022\u2022' : '4\u20138 digits'}" data-act="setPin" data-a="${k}" aria-label="${label} PIN"></span></div>`).join('')}
+    ${!T.config.pinsChanged ? `<div class="chiprow"><span class="eyebrow" style="color:var(--flag)">Still the factory defaults \u2014 set all three before the book goes live</span></div>` : ''}
   </div>
 
   <h3 class="sub">Relief</h3>
@@ -2961,10 +2957,8 @@ function scrSetup() {
 
   <h3 class="sub">Start over</h3>
   <div class="panel">
-    <div class="kv"><span class="k">Clear the scores<small>Wipes every card, point, prize, note and report for every round, on every device, and closes every round. The roster, bands, squads, pairs, tee times, calendar and PINs stay. This is the one to press the night before the trip.</small></span>
+    <div class="kv"><span class="k">Clear the scores<small>Wipes every card, point, prize, note, photo and report for every round, on every device, and closes every round. The roster, bands, squads, pairs, tee times, calendar and PINs stay. This is the one to press the night before the trip. It cannot be undone.</small></span>
       <span><button class="btn" data-act="resetScores">Clear scores</button></span></div>
-    <div class="kv"><span class="k">Clear everything<small>The scores AND the roster, pairings, bands and squads, all back to factory. The PINs and the calendar stay. This cannot be undone.</small></span>
-      <span><button class="btn danger" data-act="resetAll">Clear tournament</button></span></div>
   </div>`;
 }
 
@@ -5698,7 +5692,6 @@ function onClick(e) {
       }
       return;
     }
-    case 'revealPins': UI.revealPins = !UI.revealPins; break;
     case 'setupOpen': UI.modal = { kind: 'setup', scope: a || 'all' }; UI.modalErr = ''; break;
     case 'setupGo': UI.modal = null; goTo(a); break;
 
@@ -6072,10 +6065,6 @@ function onClick(e) {
       askPinStrict('Clear every score', 'Every card, point, note and report for every round, on every device. The roster, bands, pairs and calendar stay. Enter the master PIN.', 'Clear scores',
         role => { if (role !== 'master') return; store.resetScores(); UI.screen = 'today'; });
       return;
-    case 'resetAll':
-      askPinStrict('Clear the whole tournament', 'Every card, every point, every prize — on every device. Enter the master PIN.', 'Clear everything',
-        role => { if (role !== 'master') return; store.resetAll(); UI.screen = 'today'; });
-      return;
 
     case 'modalOk': submitPin(); return;
     case 'modalCancel': closeModal(); break;
@@ -6185,9 +6174,13 @@ function onChange(e) {
     }
   } else if (act === 'setPin') {
     if (!canAdmin()) return;
+    /* four to eight digits, or nothing happens: a box left empty on the way
+       past must never blank a PIN, and the box is emptied again on the
+       redraw so the digits are not left on the glass */
     const v = el.value.replace(/\D/g, '').slice(0, 8);
-    if (v.length < 3) return;
+    if (v.length < 4) { el.value = ''; return; }
     store.writeConfig(c => { c.pins[a] = v; c.pinsChanged = true; });
+    el.value = '';
   } else if (act === 'setHole') {
     if (!canEdit()) return;
     if (E.courseByKey(T, a).verified) { render(); return; } // locked: refuse the write, not just the control

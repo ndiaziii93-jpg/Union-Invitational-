@@ -905,8 +905,9 @@ export function createStore(onChange) {
    *  and report for every round goes, and each round goes back to closed
    *  with nothing nominated — but the people, their bands and squads, the
    *  pairs, the tee times and groups, the calendar, the courses and the
-   *  PINs all stay exactly as they are. This is what is pressed the night
-   *  before the trip to wipe the practice scores. */
+   *  PINs all stay exactly as they are. The photo rows go too; the files
+   *  behind them stay in the bucket, unreferenced. This is what is pressed
+   *  the night before the trip to wipe the practice scores. */
   async function resetScores() {
     if (tooEarly()) return false;
     const fresh = defaultConfig();
@@ -915,14 +916,14 @@ export function createStore(onChange) {
       const was = c.rounds[rid] || {};
       c.rounds[rid] = { ...(fresh.rounds[rid] || {}), tees: was.tees || (fresh.rounds[rid] || {}).tees || [] };
     }
-    T.config = c; T.scores = {}; T.bbb = {}; T.notes = {}; T.recaps = {};
-    for (const k of Object.keys(rev)) if (/^(scores|bbb|notes|recaps)\//.test(k)) delete rev[k];
+    T.config = c; T.scores = {}; T.bbb = {}; T.notes = {}; T.recaps = {}; T.photos = {};
+    for (const k of Object.keys(rev)) if (/^(scores|bbb|notes|recaps|photos)\//.test(k)) delete rev[k];
     bump('config', T.config);
     notify();
     if (mode === 'local') { saveLocal(); return true; }
     try {
       await db.doc('config/tournament').set(T.config);
-      for (const coll of ['scores', 'bbb', 'notes', 'recaps']) {
+      for (const coll of ['scores', 'bbb', 'notes', 'recaps', 'photos']) {
         const got = await db.collection(coll).get();
         for (const d of got.docs) await db.doc(coll + '/' + d.id).delete();
       }
@@ -931,32 +932,7 @@ export function createStore(onChange) {
     } catch (e) { status = 'error'; saveState = 'error'; notify(); return false; }
   }
 
-  async function resetAll() {
-    if (tooEarly()) return;
-    const fresh = emptyState();
-    /* The PINs survive a reset. They are the one thing in the config that
-       is a secret, and a reset that put the factory PINs back — which are
-       in the public repository — would quietly unlock the book. */
-    const pins = T.config && T.config.pins ? { ...T.config.pins } : null;
-    T.config = fresh.config;
-    if (pins) { T.config.pins = pins; T.config.pinsChanged = true; }
-    T.scores = {}; T.bbb = {}; T.notes = {}; T.recaps = {}; T.photos = {};
-    for (const k of Object.keys(rev)) delete rev[k];
-    bump('config', T.config);
-    notify();
-    if (mode === 'local') { saveLocal(); return; }
-    try {
-      await db.doc('config/tournament').set(T.config);
-      for (const coll of ['scores', 'bbb', 'notes', 'recaps', 'photos', 'people', 'pairs']) {
-        const got = await db.collection(coll).get();
-        for (const d of got.docs) await db.doc(coll + '/' + d.id).delete();
-      }
-      splitDone = false;
-      await splitOutRoster();
-    } catch (e) { status = 'error'; notify(); }
-  }
-
-  return { T, connect, writeConfig, writeCard, writeBbb, writeNote, writeRecap, writePhoto, dropPhoto, resetAll, resetScores, resave, note,
+  return { T, connect, writeConfig, writeCard, writeBbb, writeNote, writeRecap, writePhoto, dropPhoto, resetScores, resave, note,
            writePerson, writeAllPeople, addPerson, removePerson,
            writePair, addPair, removePair, movePlayer, movePairBy,
            get mode() { return mode; }, get status() { return status; }, get ready() { return ready; },
