@@ -11,7 +11,7 @@ SRC = os.path.join(ROOT, 'src')
 DIST = os.path.join(ROOT, 'dist')
 WEB = os.path.join(SRC, 'assets', 'web')
 
-MODULE_ORDER = ['data', 'config', 'rules', 'resort', 'weather', 'engine', 'dbsupa', 'store', 'app']
+MODULE_ORDER = ['data', 'config', 'rules', 'resort', 'weather', 'engine', 'holes3d', 'hole3d', 'dbsupa', 'store', 'app']
 
 """Two copies come out of one source. The artifact keeps the platform store it
    already holds a real tournament in; the installable app talks to the book's
@@ -142,6 +142,9 @@ def main():
     # the store looks for window.__supabase
     vendor = os.path.join(SRC, 'vendor', 'supabase.min.js')
     vendor_js = open(vendor, encoding='utf-8').read() if os.path.exists(vendor) else ''
+    # the 3D library behind the hole window, in both copies
+    three = os.path.join(SRC, 'vendor', 'three.min.js')
+    three_js = open(three, encoding='utf-8').read() if os.path.exists(three) else ''
     # a stamp the book can show, so a phone holding an old copy gives itself away
     stamp = datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%d-%H%M')
     bundle = bundle.replace('__BUILD__', stamp)
@@ -154,6 +157,7 @@ def main():
                 .replace('/*CREST*/', opening)
                 .replace('/*IMAGES*/', images)
                 .replace('/*VENDOR*/', vend)
+                .replace('/*THREE*/', three_js)
                 .replace('/*BUNDLE*/', bundle
                          .replace('__SUPABASE_URL__', url)
                          .replace('__SUPABASE_KEY__', kkey)))

@@ -10,6 +10,8 @@ import { createSupabaseFiles } from './dbsupa.js';
 import { RULES, RELIEF } from './rules.js';
 import * as R from './resort.js';
 import * as W from './weather.js';
+import * as H3D from './hole3d.js';
+import * as HOLES from './holes3d.js';
 
 const IMG = window.UI_IMAGES || {};
 /* Where the hole actually is on each render: the box round its drawn
@@ -4059,6 +4061,7 @@ function paint() {
   });
 
   opened.forEach(id => { const el = document.getElementById(id); if (el) el.open = true; });
+  mountHole3D();
 
   applyScrollMarks(strips);
   /* The scrim is the one surface a window scrolls on — that is what stopped
@@ -4397,18 +4400,178 @@ function manageHead(title, eyebrow, stats) {
  * What the plate opens: the render at full size, in a window that scrolls
  * if the glass is too short for it. The facts of the hole are on the band
  * above it so the picture carries nothing but the hole. */
+/* ---------------- the hole window ----------------
+ *
+ * Tap the hole on its plate and it stands up: the ground of the hole,
+ * modelled and lit, with the yardages laid over it. The layout is the one
+ * every golf app has taught a golfer to read — a pill with the hole at the
+ * head, rails of round buttons, the green on a card, a tap anywhere for a
+ * number — in the book's own cloth. Nothing on it scores a hole: the foot
+ * carries your band, your net to par so far, par, and How'd you feel?,
+ * which opens your own notes for the hole.
+ *
+ * The ground is drawn by hole3d.js and kept alive across redraws by
+ * mountHole3D below. Without WebGL the window shows the drawn hole instead.
+ */
+const UNITS_KEY = 'union-invitational:units';
+function holeUnits() {
+  if (!UI.units) { try { UI.units = localStorage.getItem(UNITS_KEY) || 'yd'; } catch (e) { UI.units = 'yd'; } }
+  return UI.units === 'm' ? 'm' : 'yd';
+}
 function artModalHtml() {
   const rid = UI.modal.rid, h = UI.modal.hole;
   const course = UI.modal.ckey ? E.courseByKey(T, UI.modal.ckey) : E.courseOf(T, rid);
   const hole = course.holes[h];
-  const art = hole && IMG[hole.img];
-  if (!art) return '';
-  return `<div class="scrim" data-act="modalScrim"><div class="modal artmodal"
-    role="dialog" aria-modal="true" aria-label="Hole ${hole.n}, the whole of it">
-    ${modalBanner('Hole ' + hole.n, course.name + ' · par ' + hole.par + ' · index ' + hole.si + ' · ' + hole.mW + ' m')}
-    <div class="artwin nos"><img src="${art}" alt="Hole ${hole.n} at ${esc(course.name)}, drawn from tee to green"></div>
-    <div class="acts"><button class="btn" data-act="modalCancel">Close</button></div>
+  if (!hole) return '';
+  const art = IMG[hole.img];
+  const live = H3D.available();
+  const model = HOLES.model(course.key, hole);
+  const units = holeUnits();
+  const me = UI.me ? E.person(T, UI.me) : null;
+  const scored = me && rid && !UI.modal.ckey ? E.roundToPar(T, rid, UI.me) : null;
+  const canFeel = !!(rid && !UI.modal.ckey);
+  const geo = HOLES.geoOf(T, course.key, hole.n);
+  const ico = {
+    flag: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 21V4l9 3-9 3"/><path d="M3 21h8"/></svg>',
+    draw: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="14" height="16" rx="2"/><path d="M15 3l4 4-7 7H8v-4z"/></svg>',
+    info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>',
+    locate: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 3L3 10.5l8 2.5 2.5 8z"/></svg>',
+    layers: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg>',
+  };
+  const shield = `<span class="h3shield${me ? ' on' : ''}"><svg viewBox="0 0 40 46" aria-hidden="true"><path class="sh" d="${CREST_SHIELD}"></path><path class="in" d="${CREST_INNER}"></path></svg><span class="bn num">${me && me.band ? me.band : '?'}</span></span>`;
+  return `<div class="scrim h3scrim" data-act="modalScrim"><div class="modal h3dwin"
+    role="dialog" aria-modal="true" aria-label="Hole ${hole.n} at ${esc(course.name)}">
+    <div class="h3sky"></div>
+    <div class="h3mount" id="h3dMount" data-key="${esc(course.key + ':' + h)}">${live ? ''
+      : `<div class="h3fallback nos"><img src="${art || ''}" alt="Hole ${hole.n} at ${esc(course.name)}, drawn from tee to green"></div>`}</div>
+    <div class="h3pill"><span class="fl">${ico.flag}</span><span class="sep"></span>
+      <button class="ar" data-act="artHole" data-a="${h - 1}"${h === 0 ? ' disabled' : ''} aria-label="Previous hole">‹</button>
+      <span class="n">Hole ${hole.n}</span>
+      <button class="ar" data-act="artHole" data-a="${h + 1}"${h === 17 ? ' disabled' : ''} aria-label="Next hole">›</button></div>
+    <button class="h3x" data-act="modalCancel" aria-label="Close">✕</button>
+    <div class="h3rail l">
+      <button class="${UI.modal.draw ? 'on' : ''}" data-act="artDraw" aria-label="The drawn hole" aria-pressed="${!!UI.modal.draw}">${ico.draw}</button>
+      <button class="${UI.modal.info ? 'on' : ''}" data-act="artInfo" aria-label="About the hole" aria-pressed="${!!UI.modal.info}">${ico.info}</button>
+    </div>
+    <div class="h3unit" role="group" aria-label="Units">
+      <button class="${units === 'yd' ? 'on' : ''}" data-act="artUnits" data-a="yd" aria-pressed="${units === 'yd'}">YDS</button>
+      <button class="${units === 'm' ? 'on' : ''}" data-act="artUnits" data-a="m" aria-pressed="${units === 'm'}">M</button>
+    </div>
+    <div class="h3rail r">
+      <button class="g${UI.gps && UI.gps.fix ? ' live' : ''}${geo ? '' : ' dim'}" data-act="artLocate" aria-label="${geo ? 'Where you are' : 'This hole is not surveyed yet, so the numbers read from the tee'}">${ico.locate}</button>
+      <button class="${UI.h3labels === false ? '' : 'on'}" data-act="artLabels" aria-label="Yardages on or off" aria-pressed="${UI.h3labels !== false}">${ico.layers}</button>
+      <button class="${UI.h3flat ? 'on' : ''}" data-act="artFlat" aria-label="Flat or tilted" aria-pressed="${!!UI.h3flat}">2D</button>
+    </div>
+    ${!model.traced && live ? `<div class="h3note">Shape drawn from the card · not surveyed yet</div>` : ''}
+    ${UI.gps && UI.gps.err ? `<div class="h3note warn">${esc(UI.gps.err)}</div>` : ''}
+    <div class="h3dock">
+      <button class="h3who" data-act="${canFeel ? 'artFeel' : 'artInfo'}" aria-label="${me ? 'Band ' + me.band : 'Who are you?'}">${shield}</button>
+      <div class="w">
+        <div class="fig"><b class="num">${scored && scored.thru ? E.fmtToPar(scored.tp) : me ? 'E' : '—'}</b>
+          <span>${me ? 'Band ' + (me.band || '—') + (scored && scored.thru ? ' · thru ' + scored.thru : '') : 'Who are you?'}</span></div>
+        <div class="div"></div>
+        <div class="par"><b class="num">${hole.par}</b><span>Par</span></div>
+      </div>
+      ${canFeel ? `<button class="h3feel" data-act="artFeel">HOW'D<br>YOU FEEL?</button>`
+        : `<span class="h3feel still"><b>${hole.mW}</b><small>m · white</small></span>`}
+    </div>
+    ${UI.modal.draw && art ? `<div class="h3over" data-act="artDraw"><div class="h3drawwin nos"><img src="${art}" alt="Hole ${hole.n}, drawn from tee to green"></div></div>` : ''}
+    ${UI.modal.info ? `<div class="h3over" data-act="artInfo"><div class="h3card">
+      <div class="k">${esc(course.name)} · Hole ${hole.n}</div>
+      <div class="rows"><div><b>${hole.par}</b><span>Par</span></div><div><b>${hole.si}</b><span>Index</span></div><div><b>${hole.mW}</b><span>m · white</span></div><div><b>${hole.mY}</b><span>m · yellow</span></div></div>
+      <p>${model.traced ? 'Surveyed: the ground is the hole as it lies.' : 'The ground here is drawn from the card — the right length and par, bending the way its number says — until the hole is surveyed. The yardages read from the tee.'}</p>
+    </div></div>` : ''}
+    ${UI.modal.feel && canFeel ? feelSheet(rid, h, hole) : ''}
   </div></div>`;
+}
+
+/* ---- How'd you feel? ----
+   Your own marks on the hole, in a sheet over the ground: the four things
+   only you know, and a line of your own. It writes to your notes, never to
+   the card — the same document My round keeps. */
+function feelSheet(rid, h, hole) {
+  const gs = E.golfers(T);
+  const me = UI.me && gs.some(g => g.id === UI.me) ? UI.me : null;
+  const note = me ? E.selfLog(T, rid, me) : null;
+  const on = me ? E.selfMarks(T, rid, me, h) : [];
+  const text = (UI.mineDraft && UI.mineDraft.rid === rid && UI.mineDraft.h === h) ? UI.mineDraft.v
+             : (note && note.text ? (note.text[h] || '') : '');
+  return `<div class="h3over" data-act="artFeel"></div>
+  <div class="h3feelwin" role="dialog" aria-modal="true" aria-label="How'd you feel on hole ${hole.n}">
+    <div class="mb"><div class="w"><span class="t">How'd you feel?</span><span class="s">Hole ${hole.n} · par ${hole.par} · your own notes</span></div>
+      ${IMG.crest ? `<img src="${IMG.crest}" alt="">` : ''}<button class="xx" data-act="artFeel">Close</button></div>
+    ${!me ? `<p class="lede">Who are you? This phone will remember.</p>
+      <div class="chiprow h3pick">${gs.map(g => `<button class="chip" data-act="setMe" data-a="${g.id}">${esc(g.display)}</button>`).join('')}</div>`
+    : `<p class="lede">Yours, not the card's. The scorer's marks say what happened; this says what it felt like, and the recap reads both.</p>
+      <div class="h3chips">${E.OWN_MARKS.map(m => `<button class="h3chip ${m.tone}${on.includes(m.key) ? ' on' : ''}"
+        data-act="tglMine" data-a="${m.key}" data-b="${h}" aria-pressed="${on.includes(m.key)}"><b>${esc(m.label)}</b><span>${esc(m.hint)}</span></button>`).join('')}</div>
+      <input class="field h3word" id="mineText" data-act="mineText" data-b="${h}" maxlength="140"
+        placeholder="A word on the hole, if you want one…" value="${esc(text)}" aria-label="A word on hole ${hole.n}">
+      <div class="acts"><button class="btn" data-act="artFeel">Done</button></div>`}
+  </div>`;
+}
+
+/* ---- keeping the ground alive ----
+   The page is rebuilt on every redraw. The controller is not: it lives in
+   UI.h3 and its element is moved into whatever mount the new page has. A
+   different hole throws it away and builds the next. */
+function mountHole3D() {
+  const mount = document.getElementById('h3dMount');
+  if (!mount) { dropHole3D(); return; }
+  if (!H3D.available()) return;
+  const key = mount.dataset.key;
+  if (UI.h3 && UI.h3.key !== key) dropHole3D();
+  if (!UI.h3) {
+    const m = UI.modal; const course = m.ckey ? E.courseByKey(T, m.ckey) : E.courseOf(T, m.rid);
+    const hole = course.holes[m.hole];
+    try {
+      const ctl = H3D.create(mount, HOLES.model(course.key, hole), { units: holeUnits(), flat: !!UI.h3flat, labels: UI.h3labels !== false,
+        onTarget: () => { if (store && store.note) store.note('hole target', course.key + ' ' + hole.n); } });
+      UI.h3 = { key, ctl, course: course.key, n: hole.n };
+    } catch (err) {
+      if (store && store.note) store.note('hole3d FAILED', String(err && err.message || err).slice(0, 160));
+      mount.innerHTML = `<div class="h3fallback nos"><img src="${IMG[hole.img] || ''}" alt=""></div>`;
+      return;
+    }
+  } else if (UI.h3.ctl.el.parentNode !== mount) {
+    mount.appendChild(UI.h3.ctl.el);
+    UI.h3.ctl.refresh();
+  }
+  placeMe();
+}
+function dropHole3D() {
+  if (UI.h3) { UI.h3.ctl.dispose(); UI.h3 = null; }
+  stopGps();
+}
+/* ---- where you are ----
+   The phone's fix, put on the hole through its two surveyed points. A hole
+   without them reads from the tee, and says so on the locate button. */
+function placeMe() {
+  if (!UI.h3) return;
+  const geo = HOLES.geoOf(T, UI.h3.course, UI.h3.n);
+  const fix = UI.gps && UI.gps.fix;
+  if (!geo || !fix) { UI.h3.ctl.setMe(null); return; }
+  const p = HOLES.localOf(geo, fix.lat, fix.lon, UI.h3.ctl.points.gMid.z);
+  UI.h3.ctl.setMe(p);
+}
+function startGps() {
+  if (!navigator.geolocation) { UI.gps = { err: 'This phone has no location to give.' }; return; }
+  if (UI.gps && UI.gps.watch != null) return;
+  UI.gps = { watch: null, fix: null, err: '' };
+  UI.gps.watch = navigator.geolocation.watchPosition(pos => {
+    UI.gps.fix = { lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy, at: Date.now() };
+    UI.gps.err = '';
+    placeMe();
+    const b = document.querySelector('.h3rail .g'); if (b) b.classList.add('live');
+  }, err => {
+    UI.gps.err = err && err.code === 1 ? 'Location is off for this page — allow it in Settings to read from where you stand.'
+               : 'No fix yet — the numbers read from the tee.';
+    render();
+  }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 });
+}
+function stopGps() {
+  if (UI.gps && UI.gps.watch != null && navigator.geolocation) navigator.geolocation.clearWatch(UI.gps.watch);
+  UI.gps = null;
 }
 
 /* ---------------- the dial ----------------
@@ -5003,6 +5166,7 @@ function askPin(title, note, ok, onOk) {
  *  take: the button, the scrim, or anything added later. */
 function closeModal() {
   const m = UI.modal;
+  if (m && m.kind === 'art') dropHole3D();
   UI.modal = null; UI.modalErr = '';
   if (m && m.kind === 'bbbmiss') raiseNext(m.next);
   /* An event opened from a day goes back to that day when it is done with,
@@ -5086,6 +5250,26 @@ function onClick(e) {
       break;
     case 'holeArt':
       UI.modal = { kind: 'art', rid: UI.entryRound, hole: +a, ckey: b || null };
+      break;
+    /* ---- the hole window ---- */
+    case 'artHole': {
+      const n = Math.max(0, Math.min(17, +a));
+      UI.modal = { ...UI.modal, hole: n, draw: false, info: false, feel: false };
+      break;
+    }
+    case 'artUnits':
+      UI.units = a === 'm' ? 'm' : 'yd';
+      try { localStorage.setItem(UNITS_KEY, UI.units); } catch (err) { /* storage blocked */ }
+      if (UI.h3) UI.h3.ctl.setUnits(UI.units);
+      break;
+    case 'artDraw': UI.modal.draw = !UI.modal.draw; UI.modal.info = false; break;
+    case 'artInfo': UI.modal.info = !UI.modal.info; UI.modal.draw = false; break;
+    case 'artFeel': UI.modal.feel = !UI.modal.feel; if (UI.modal.feel) commitMine(); break;
+    case 'artLabels': UI.h3labels = UI.h3labels === false; if (UI.h3) UI.h3.ctl.setLabels(UI.h3labels); break;
+    case 'artFlat': UI.h3flat = !UI.h3flat; if (UI.h3) UI.h3.ctl.setFlat(UI.h3flat); break;
+    case 'artLocate':
+      startGps();
+      if (UI.h3 && UI.gps && UI.gps.fix) UI.h3.ctl.focusMe();
       break;
     case 'hoursSheet':
       UI.modal = { kind: 'hours' };
