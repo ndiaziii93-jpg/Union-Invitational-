@@ -138,9 +138,31 @@ FOOT = """
    is roaming. A failure here must never stop the page loading. */
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {
-    navigator.serviceWorker.register('sw.js').catch(function () { /* offline is a bonus, not a requirement */ });
+    navigator.serviceWorker.register('sw.js').then(function (reg) {
+      /* the worker only looks for a newer copy of itself once a day; a phone
+         coming back to the book looks every time */
+      document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) reg.update().catch(function () {});
+      });
+    }).catch(function () { /* offline is a bonus, not a requirement */ });
   });
 }
+/* THE BOOK IN HAND IS THE BOOK PUBLISHED. A home-screen app is not closed
+   by leaving it: it is resumed, hours later, exactly where it was, with the
+   newer copy the worker fetched sitting behind a page that never reloads.
+   So every return reads the build stamp off the server and, when it has
+   moved on, the page reloads itself — unless a hole is half entered, in
+   which case it waits for the save. */
+var BOOK_BUILD = '__STAMP__';
+function checkBuild() {
+  if (document.hidden || navigator.onLine === false) return;
+  fetch('sw.js', { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (t) {
+    var m = /Build (\S+)\./.exec(t);
+    if (m && m[1] !== BOOK_BUILD && !document.querySelector('.savebar.dirty')) location.reload();
+  }).catch(function () {});
+}
+document.addEventListener('visibilitychange', checkBuild);
+window.addEventListener('pageshow', function (e) { if (e.persisted) checkBuild(); });
 </script>
 </body>
 </html>
@@ -232,7 +254,7 @@ def main():
     head = HEAD.format(green=GREEN, paper=PAPER, short=SHORT)
     head += (title.group(0) if title else '<title>%s</title>' % NAME) + '\n'
     head += '<style>\n' + face_css + '</style>\n</head>\n<body>\n'
-    doc = head + body + FOOT
+    doc = head + body + FOOT.replace('__STAMP__', stamp)
 
     p = os.path.join(OUT, 'index.html')
     open(p, 'w', encoding='utf-8').write(doc)
