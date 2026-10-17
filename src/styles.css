@@ -2213,6 +2213,7 @@ html:has(.page.scoring){scroll-padding-top:136px;scroll-padding-bottom:110px}
    put on the hole before the picture arrives rather than on the top edge
    of nothing. The width is set on the element: how much sheet it takes
    for the hole to fill the window is a fact about that hole. */
+.hp-scroll img.hp-wide{display:none}
 .hp-scroll img{display:block;width:var(--kw,100%);max-width:none;height:auto;aspect-ratio:520/736;
   filter:drop-shadow(0 8px 14px rgba(0,0,0,.45)) saturate(1.12) contrast(1.05)}
 .hp-course,.hp-ghost,.hp-tee,.hp-pick,.hp-in,.hp-foot{pointer-events:none}
@@ -3548,6 +3549,12 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
   /* the privilege lines bleed with the rest of the tap-lines; the picker
      and its note stay on the page */
   .priv .pv-sel,.priv .pv-note{margin-left:0;margin-right:0}
+}
+
+/* the plate on a phone: the hole lying across the wide slot, whole */
+@media (max-width:699px){
+  .hp-scroll img.hp-tall{display:none}
+  .hp-scroll img.hp-wide{display:block}
 }
 
 @media (max-width:699px){

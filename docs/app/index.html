@@ -2284,6 +2284,7 @@ html:has(.page.scoring){scroll-padding-top:136px;scroll-padding-bottom:110px}
    put on the hole before the picture arrives rather than on the top edge
    of nothing. The width is set on the element: how much sheet it takes
    for the hole to fill the window is a fact about that hole. */
+.hp-scroll img.hp-wide{display:none}
 .hp-scroll img{display:block;width:var(--kw,100%);max-width:none;height:auto;aspect-ratio:520/736;
   filter:drop-shadow(0 8px 14px rgba(0,0,0,.45)) saturate(1.12) contrast(1.05)}
 .hp-course,.hp-ghost,.hp-tee,.hp-pick,.hp-in,.hp-foot{pointer-events:none}
@@ -3621,6 +3622,12 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
   .priv .pv-sel,.priv .pv-note{margin-left:0;margin-right:0}
 }
 
+/* the plate on a phone: the hole lying across the wide slot, whole */
+@media (max-width:699px){
+  .hp-scroll img.hp-tall{display:none}
+  .hp-scroll img.hp-wide{display:block}
+}
+
 @media (max-width:699px){
   .tabbar{
     background:var(--ink);
@@ -3763,7 +3770,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261017-0927';
+const BUILD = '20261017-0933';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -6309,7 +6316,9 @@ function buildScene(m) {
    on whatever the plate is painted. Drawn once per hole and kept by the
    book; one offscreen renderer serves them all. */
 let snapR = null;
-function snapshot(m, w = 520, h = 736) {
+/** `across` lays the hole left to right — tee on the left — for a plate
+ *  that is wider than it is tall. */
+function snapshot(m, w = 520, h = 650, across = false) {
   const T3 = window.THREE;
   if (!snapR) {
     const c = document.createElement('canvas');
@@ -6320,7 +6329,14 @@ function snapshot(m, w = 520, h = 736) {
   snapR.setSize(w, h, false);
   const S = buildScene(m);
   const cam = new T3.PerspectiveCamera(44, w / h, 1, 4000);
-  S.aim(cam, 0.5, 0, fitZoom(S.LEN, w / h), false);
+  if (across) {
+    /* the same stand behind the tee, the camera rolled a quarter turn so the
+       hole runs along the long side of the picture */
+    const z = Math.max(1, Math.min(3.6, S.LEN / 230 * 1.08 * (h / w) * 0.92));
+    const f = S.at(0.5), g = S.tan(0.5), n = S.nrm(0.5);
+    cam.position.set(f.x - g.x * 200 * z, 300 * z, f.z - g.z * 200 * z);
+    cam.up.copy(n).negate(); cam.lookAt(f.x + g.x * 50, -20, f.z + g.z * 50);
+  } else S.aim(cam, 0.5, 0, fitZoom(S.LEN, w / h) * 0.9, false);
   snapR.render(S.sc, cam);
   const url = snapR.domElement.toDataURL('image/png');
   S.dispose();
@@ -9483,16 +9499,21 @@ function teeBlocks() {
    island the window stands up, taken whole from behind the tee. The drawn
    sheet stands in where there is no WebGL to draw it. */
 const SNAPS = {};
-function holeSnap(courseKey, hole) {
-  const key = courseKey + '_' + hole.n;
+/* Two pictures a hole: upright for the tall card a tablet or a laptop
+   gives it, and lying across for the wide slot a phone gives it, each
+   drawn to fit its plate exactly so the whole hole is always in view. */
+function holeSnap(courseKey, hole, shape) {
+  const key = courseKey + '_' + hole.n + ':' + shape;
   if (SNAPS[key] !== undefined) return SNAPS[key];
   if (!H3D.available()) return (SNAPS[key] = null);
-  try { SNAPS[key] = H3D.snapshot(HOLES.model(courseKey, hole)); }
+  try { SNAPS[key] = shape === 'wide' ? H3D.snapshot(HOLES.model(courseKey, hole), 736, 526, true)
+                                      : H3D.snapshot(HOLES.model(courseKey, hole), 520, 650, false); }
   catch (err) { if (store && store.note) store.note('hole snap FAILED', String(err && err.message || err).slice(0, 160)); SNAPS[key] = null; }
   return SNAPS[key];
 }
 function holePlate(rid, h, hole, course, cap, list, slotPlayers, opts) {
-  const snap = holeSnap(course.key, hole);
+  const snap = holeSnap(course.key, hole, 'tall');
+  const snapW = snap ? holeSnap(course.key, hole, 'wide') : null;
   const art = snap || IMG[hole.img];
   if (!art) return '';
   opts = opts || {};
@@ -9527,7 +9548,9 @@ function holePlate(rid, h, hole, course, cap, list, slotPlayers, opts) {
     <div class="hp-scroll nos" data-act="holeArt" data-a="${h}"${opts.ckey ? ` data-b="${esc(opts.ckey)}"` : ''} data-key="${esc(opts.ckey ? 'course:' + opts.ckey : rid)}:${h}"
       data-cx="${cx.toFixed(3)}" data-cy="${cy.toFixed(3)}"
       role="img" aria-label="Hole ${hole.n} at ${esc(course.name)}, par ${hole.par}, stroke index ${hole.si}, ${hole.mW} metres. Tap to see the whole hole.">
-      <img decoding="sync" src="${art}" alt="" style="--kw:${(kw * 100).toFixed(1)}%;--kp:${(kp * 100).toFixed(1)}%"></div>
+      ${snap
+        ? `<img class="hp-tall" decoding="sync" src="${snap}" alt="" style="--kw:100%;--kp:100%;aspect-ratio:520/650"><img class="hp-wide" decoding="sync" src="${snapW || snap}" alt="" style="--kw:100%;--kp:100%;aspect-ratio:736/526">`
+        : `<img decoding="sync" src="${art}" alt="" style="--kw:${(kw * 100).toFixed(1)}%;--kp:${(kp * 100).toFixed(1)}%">`}</div>
     <button class="hp-open" data-act="holeArt" data-a="${h}"${opts.ckey ? ` data-b="${esc(opts.ckey)}"` : ''} aria-label="See the whole of hole ${hole.n}">⤢</button>
     <span class="hp-course">${esc(course.name)}</span>
     <span class="hp-ghost num" aria-hidden="true">${hole.n}</span>

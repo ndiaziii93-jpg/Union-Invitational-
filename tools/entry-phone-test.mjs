@@ -151,7 +151,7 @@ ok('and a press on the ribbon is not swallowed by the bar', await p.evaluate(() 
 /* ---------- 5. the hole, carrying what the group has done ---------- */
 console.log('\nthe plate, and the three of four already in');
 await tap(p.locator('.entryhd .hcell').nth(0)); await p.waitForTimeout(600); await shut();
-ok('the hole is drawn', await p.locator('.holeplate img').count(), 1);
+ok('the hole is drawn', await p.locator('.holeplate img:visible').count(), 1);
 ok('nothing is in yet', (await p.locator('.hp-foot').innerText()).toLowerCase().includes('0 of 4 in'), true);
 for (let i = 0; i < 3; i++) {
   const plus = p.locator('.prow .step.plus');

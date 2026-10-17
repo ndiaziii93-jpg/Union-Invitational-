@@ -164,7 +164,9 @@ function buildScene(m) {
    on whatever the plate is painted. Drawn once per hole and kept by the
    book; one offscreen renderer serves them all. */
 let snapR = null;
-export function snapshot(m, w = 520, h = 736) {
+/** `across` lays the hole left to right — tee on the left — for a plate
+ *  that is wider than it is tall. */
+export function snapshot(m, w = 520, h = 650, across = false) {
   const T3 = window.THREE;
   if (!snapR) {
     const c = document.createElement('canvas');
@@ -175,7 +177,14 @@ export function snapshot(m, w = 520, h = 736) {
   snapR.setSize(w, h, false);
   const S = buildScene(m);
   const cam = new T3.PerspectiveCamera(44, w / h, 1, 4000);
-  S.aim(cam, 0.5, 0, fitZoom(S.LEN, w / h), false);
+  if (across) {
+    /* the same stand behind the tee, the camera rolled a quarter turn so the
+       hole runs along the long side of the picture */
+    const z = Math.max(1, Math.min(3.6, S.LEN / 230 * 1.08 * (h / w) * 0.92));
+    const f = S.at(0.5), g = S.tan(0.5), n = S.nrm(0.5);
+    cam.position.set(f.x - g.x * 200 * z, 300 * z, f.z - g.z * 200 * z);
+    cam.up.copy(n).negate(); cam.lookAt(f.x + g.x * 50, -20, f.z + g.z * 50);
+  } else S.aim(cam, 0.5, 0, fitZoom(S.LEN, w / h) * 0.9, false);
   snapR.render(S.sc, cam);
   const url = snapR.domElement.toDataURL('image/png');
   S.dispose();

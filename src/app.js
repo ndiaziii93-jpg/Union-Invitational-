@@ -1696,16 +1696,21 @@ function teeBlocks() {
    island the window stands up, taken whole from behind the tee. The drawn
    sheet stands in where there is no WebGL to draw it. */
 const SNAPS = {};
-function holeSnap(courseKey, hole) {
-  const key = courseKey + '_' + hole.n;
+/* Two pictures a hole: upright for the tall card a tablet or a laptop
+   gives it, and lying across for the wide slot a phone gives it, each
+   drawn to fit its plate exactly so the whole hole is always in view. */
+function holeSnap(courseKey, hole, shape) {
+  const key = courseKey + '_' + hole.n + ':' + shape;
   if (SNAPS[key] !== undefined) return SNAPS[key];
   if (!H3D.available()) return (SNAPS[key] = null);
-  try { SNAPS[key] = H3D.snapshot(HOLES.model(courseKey, hole)); }
+  try { SNAPS[key] = shape === 'wide' ? H3D.snapshot(HOLES.model(courseKey, hole), 736, 526, true)
+                                      : H3D.snapshot(HOLES.model(courseKey, hole), 520, 650, false); }
   catch (err) { if (store && store.note) store.note('hole snap FAILED', String(err && err.message || err).slice(0, 160)); SNAPS[key] = null; }
   return SNAPS[key];
 }
 function holePlate(rid, h, hole, course, cap, list, slotPlayers, opts) {
-  const snap = holeSnap(course.key, hole);
+  const snap = holeSnap(course.key, hole, 'tall');
+  const snapW = snap ? holeSnap(course.key, hole, 'wide') : null;
   const art = snap || IMG[hole.img];
   if (!art) return '';
   opts = opts || {};
@@ -1740,7 +1745,9 @@ function holePlate(rid, h, hole, course, cap, list, slotPlayers, opts) {
     <div class="hp-scroll nos" data-act="holeArt" data-a="${h}"${opts.ckey ? ` data-b="${esc(opts.ckey)}"` : ''} data-key="${esc(opts.ckey ? 'course:' + opts.ckey : rid)}:${h}"
       data-cx="${cx.toFixed(3)}" data-cy="${cy.toFixed(3)}"
       role="img" aria-label="Hole ${hole.n} at ${esc(course.name)}, par ${hole.par}, stroke index ${hole.si}, ${hole.mW} metres. Tap to see the whole hole.">
-      <img decoding="sync" src="${art}" alt="" style="--kw:${(kw * 100).toFixed(1)}%;--kp:${(kp * 100).toFixed(1)}%"></div>
+      ${snap
+        ? `<img class="hp-tall" decoding="sync" src="${snap}" alt="" style="--kw:100%;--kp:100%;aspect-ratio:520/650"><img class="hp-wide" decoding="sync" src="${snapW || snap}" alt="" style="--kw:100%;--kp:100%;aspect-ratio:736/526">`
+        : `<img decoding="sync" src="${art}" alt="" style="--kw:${(kw * 100).toFixed(1)}%;--kp:${(kp * 100).toFixed(1)}%">`}</div>
     <button class="hp-open" data-act="holeArt" data-a="${h}"${opts.ckey ? ` data-b="${esc(opts.ckey)}"` : ''} aria-label="See the whole of hole ${hole.n}">⤢</button>
     <span class="hp-course">${esc(course.name)}</span>
     <span class="hp-ghost num" aria-hidden="true">${hole.n}</span>
