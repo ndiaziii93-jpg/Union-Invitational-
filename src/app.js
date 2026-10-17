@@ -108,6 +108,10 @@ function markFeelSeen(rid, h) {
 const loaded = () => meta.settled !== false;
 const canEdit = () => loaded() && (!D.PINS_ENABLED || S.ROLES[UI.role].canEdit);
 const canAdmin = () => loaded() && (!D.PINS_ENABLED || S.ROLES[UI.role].canAdmin);
+/* The week is the master reviewer's once PINs are armed: a scorer's PIN
+   scores, it does not move dinner. With PINs off, anyone who can score may
+   change the week until it is locked. */
+const canEditCal = () => loaded() && (D.PINS_ENABLED ? S.ROLES[UI.role].canAdmin : (canEdit() && !T.config.calLocked));
 
 /* ---------------- flags ---------------- */
 
@@ -923,6 +927,8 @@ function feelRound() {
 }
 function feelBar() {
   if (!UI.me || UI.modal || UI.recapOpen || UI.askOpen || !loaded()) return '';
+  if (UI.screen === 'entry' && UI.entryMode === 'mine') return '';   // that lane IS the question
+
   const rid = feelRound();
   if (!rid) { UI.feelOn = null; return ''; }
   const seen = feelSeen();
@@ -1666,7 +1672,7 @@ function eventRow(e, ed) {
  */
 function scrCalendar() {
   const locked = !!T.config.calLocked;
-  const ed = canEdit() && !locked;
+  const ed = canEditCal();
   const { d, why } = focusDay();
   const es = dayEntries(d.n);
   const golf = es.find(e => e.kind === 'golf');
@@ -1713,7 +1719,12 @@ function scrCalendar() {
     }).join('')}</div>
   </div>`;
 
-  const lock = canAdmin() ? `<div class="lockline">
+  /* With PINs armed the week is the master reviewer's and there is nothing
+     to lock: a scorer's PIN scores, and only the master PIN moves dinner. */
+  const lock = D.PINS_ENABLED ? `<div class="lockline">
+    <span class="lk" aria-hidden="true">🔒</span>
+    <span>The calendar is <b>the master reviewer's</b> — only the master PIN can add, move or remove a fixture.</span>
+  </div>` : canAdmin() ? `<div class="lockline">
     <span class="lk" aria-hidden="true">${locked ? '🔒' : '🔓'}</span>
     <span>The calendar is <b>${locked ? 'locked' : 'open for editing'}</b>${locked
       ? ' — nobody can add, move or remove a fixture.' : ' — anyone who can score can change the week.'}</span>
@@ -4489,8 +4500,7 @@ function daySheetHtml() {
   const n = +UI.modal.n;
   const d = E.dayOf(n);
   if (!d) return '';
-  const locked = !!T.config.calLocked;
-  const ed = canEdit() && !locked;
+  const ed = canEditCal();
   const es = dayEntries(n);
   const golf = es.find(e => e.kind === 'golf');
   const social = es.filter(e => e.kind !== 'golf');
@@ -5303,7 +5313,19 @@ function modalHtml() {
 
 /* ---------------- dispatch ---------------- */
 
+/* THE PIN IS ASKED ONCE. A ref signs in on their own phone at the start of
+   the day and the phone keeps the role; saving a hole, finishing a group or
+   moving a nominated hole then goes straight through under that role. The
+   things that change the shape of a day — opening a round, locking it,
+   reopening it, clearing the book, reopening a verified course card — ask
+   for the PIN again every time, whoever is holding the phone. */
 function askPin(title, note, ok, onOk) {
+  if (!D.PINS_ENABLED) { onOk('master'); render(); return; }
+  const r = S.ROLES[UI.role];
+  if (r && r.canEdit && UI.role !== 'viewer') { onOk(UI.role); render(); return; }
+  UI.modal = { kind: 'pin', title, note, ok, onOk }; UI.modalErr = ''; render();
+}
+function askPinStrict(title, note, ok, onOk) {
   if (!D.PINS_ENABLED) { onOk('master'); render(); return; }
   UI.modal = { kind: 'pin', title, note, ok, onOk }; UI.modalErr = ''; render();
 }
@@ -5587,14 +5609,14 @@ function onClick(e) {
     /* Nothing is written until Save. The window holds the whole event until
        then, so a half-filled one leaves no "New fixture" sitting on the day. */
     case 'evNew':
-      if (!canEdit() || T.config.calLocked) return;
+      if (!canEditCal()) return;
       delete UI.timePick['draft:ev:'];
       UI.modal = { kind: 'event', isNew: true, from: fromDaySheet(),
                    ev: { id: null, dayIdx: +a, time: '19:00', title: '', kind: 'social' } };
       UI.modalErr = '';
       break;
     case 'evOpen': {
-      if (!canEdit() || T.config.calLocked) return;
+      if (!canEditCal()) return;
       const ev = (T.config.schedule || []).find(x => x.id === a);
       if (!ev) return;
       delete UI.timePick['draft:ev:'];
@@ -5608,7 +5630,7 @@ function onClick(e) {
       UI.modal.ev.kind = a;
       break;
     case 'evSave': {
-      if (!canEdit()) return;
+      if (!canEditCal()) return;
       keepEvTitle();
       const ev = UI.modal.ev;
       const title = (ev.title || '').trim().replace(/\s+/g, ' ').slice(0, 60);
@@ -5625,7 +5647,7 @@ function onClick(e) {
       break;
     }
     case 'evRemove':
-      if (!canEdit()) return;
+      if (!canEditCal()) return;
       store.writeConfig(c => { c.schedule = (c.schedule || []).filter(e => e.id !== a); });
       delete UI.timePick['draft:ev:'];
       closeModal();
@@ -5661,14 +5683,14 @@ function onClick(e) {
       const cur = E.courseByKey(T, a);
       const setVerified = v => { store.writeConfig(cf => { cf.courses[a].verified = v; }); };
       if (cur.verified) {
-        askPin('Reopen the ' + cur.name + ' card',
+        askPinStrict('Reopen the ' + cur.name + ' card',
           'Reopening unlocks par, stroke index and the yardages so the card can be corrected. It locks itself again when you leave.',
           'Reopen card',
           () => { UI.reopened[a] = true; setVerified(false); render(); });
       } else if (UI.reopened[a]) {
         setVerified(true); delete UI.reopened[a];   // this device opened it — no second PIN
       } else {
-        askPin('Verify the ' + cur.name + ' card',
+        askPinStrict('Verify the ' + cur.name + ' card',
           'Verifying locks the card so nothing can be changed by accident.',
           'Verify card', () => { setVerified(true); render(); });
       }
@@ -5680,7 +5702,7 @@ function onClick(e) {
 
     case 'signIn':
       if (UI.role !== 'viewer') { UI.role = 'viewer'; saveRole('viewer'); if (UI.screen === 'setup') UI.screen = 'today'; break; }
-      askPin('Enter your PIN', 'Scorers may record and lock rounds. The master reviewer can also reopen a locked round and change every PIN.', 'Sign in',
+      askPinStrict('Enter your PIN', 'Scorers may record and lock rounds. The master reviewer can also reopen a locked round and change every PIN.', 'Sign in',
         role => { UI.role = role; saveRole(role); });
       return;
 
@@ -5692,7 +5714,7 @@ function onClick(e) {
         render();
         return;
       }
-      askPin('Open ' + E.roundDef(a).short + ' for scoring', 'Confirm with your PIN. Both scorers can then write to this card.', 'Open round',
+      askPinStrict('Open ' + E.roundDef(a).short + ' for scoring', 'Confirm with your PIN. Both scorers can then write to this card.', 'Open round',
         role => {
           if (store.note) store.note('openRound', a + ' was ' + (T.config.rounds[a] || {}).state);
           setRound(a, { state: 'open', openedBy: role });
@@ -5765,11 +5787,11 @@ function onClick(e) {
     }
     case 'lockRound':
       if (draftDirty()) { guardDraft(() => {}); return; }
-      askPin('Lock and conclude ' + E.roundDef(a).short, 'Re-enter your PIN to close the card. Nothing more can be entered unless the master reviewer reopens it.', 'Lock round',
+      askPinStrict('Lock and conclude ' + E.roundDef(a).short, 'Re-enter your PIN to close the card. Nothing more can be entered unless the master reviewer reopens it.', 'Lock round',
         role => { setRound(a, { state: 'locked', lockedBy: role, lockedAt: Date.now() }); });
       return;
     case 'unlockRound':
-      askPin('Reopen ' + E.roundDef(a).short, 'The master PIN is required to reopen a concluded round.', 'Reopen',
+      askPinStrict('Reopen ' + E.roundDef(a).short, 'The master PIN is required to reopen a concluded round.', 'Reopen',
         role => { if (role !== 'master') { UI.toast = 'Only the master PIN reopens a round.'; return; }
           /* Every group goes back out with it. Reopening the round and
              leaving the groups finished would hand back a card that still
@@ -6045,7 +6067,7 @@ function onClick(e) {
       store.writeConfig(c => { c.capOver = +a; });
       return;
     case 'resetAll':
-      askPin('Clear the whole tournament', 'Every card, every point, every prize — on every device. Enter the master PIN.', 'Clear everything',
+      askPinStrict('Clear the whole tournament', 'Every card, every point, every prize — on every device. Enter the master PIN.', 'Clear everything',
         role => { if (role !== 'master') return; store.resetAll(); UI.screen = 'today'; });
       return;
 
