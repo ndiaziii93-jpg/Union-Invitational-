@@ -1232,6 +1232,45 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 }
 .today-club{margin-top:16px}
 .tg-r .recapwrap{margin-top:8px}
+
+/* ---- the cover on a tablet and a laptop ----
+   One rounded sheet under the index: the photograph at two to one with
+   the words inset from its edge, the plate under it with a ring and type
+   sized for the room, and the columns below held to the same margins. The
+   phone keeps its own measures in its own block. */
+@media (min-width:700px){
+  .coverin{margin-top:14px;min-height:clamp(320px,38vw,500px);
+    padding:28px clamp(24px,3vw,40px) 26px}
+  .coverbg{border-radius:20px 20px 0 0}
+  .cv-k.today-day{font-size:12px}
+  .coverin .today-title{font-size:clamp(38px,5vw,60px)}
+  .cv-s{font-size:17px;margin-top:10px}
+  .nowplate{border-radius:0 0 20px 20px;padding:26px clamp(24px,3vw,40px) 28px;gap:28px}
+  .ring{width:148px;height:148px}
+  .ring::before{inset:9px}
+  .np-big{font-size:30px}
+  .rn span{font-size:10px;margin-top:7px}
+  .np-k{font-size:11.5px}
+  .np-t{font-size:22px;margin-top:8px}
+  .np-w small{font-size:15px;margin-top:5px}
+  .today-grid{padding:0 clamp(20px,2.6vw,36px);margin-top:26px}
+  .tsec{font-size:12px;margin-top:26px}
+  .tn{font-size:17px;padding:12px 4px}
+  .tn .tn-t{flex-basis:80px;font-size:14px}
+  .tn .tn-w small{font-size:14px}
+  .priv .setline{font-size:12px;padding:13px 16px}
+  .today-club .cc{padding-top:12px;padding-bottom:13px}
+  .today-club .cc-t{font-size:11.5px}
+  .today-club .cc-n{font-size:19px}
+  .today-club .cc-f{font-size:30px}
+  .today-club .cc-b,.today-club .cc-none{font-size:13px}
+  .today-club .cc-sc{font-size:30px}
+  .recapbtn .rb-t{font-size:19px}
+  .recapbtn .rb-s{font-size:15px}
+}
+@media (min-width:1200px){
+  .today-grid{grid-template-columns:minmax(0,1fr) 380px;gap:52px}
+}
 .tsec{display:flex;align-items:baseline;gap:8px;margin:22px 0 6px;font-size:10.5px;letter-spacing:.14em;
   text-transform:uppercase;font-weight:700;color:var(--turf)}
 .tsec .r{margin-left:auto;font-weight:600;letter-spacing:.06em}
@@ -3600,7 +3639,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261016-2124';
+const BUILD = '20261017-0707';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -10997,7 +11036,7 @@ function measureCover() {
   if (!cin) return;
   const pr = page.getBoundingClientRect(), cr = cin.getBoundingClientRect();
   const phone = matchMedia('(max-width:699px)').matches;
-  const top = phone ? -(pr.top + window.scrollY) : 0;
+  const top = phone ? -(pr.top + window.scrollY) : cr.top - pr.top;   // wider: from the top of the words' block
   bg.style.top = top + 'px';
   bg.style.height = Math.max(0, cr.bottom - pr.top - top) + 'px';
 }

@@ -3778,7 +3778,7 @@ function measureCover() {
   if (!cin) return;
   const pr = page.getBoundingClientRect(), cr = cin.getBoundingClientRect();
   const phone = matchMedia('(max-width:699px)').matches;
-  const top = phone ? -(pr.top + window.scrollY) : 0;
+  const top = phone ? -(pr.top + window.scrollY) : cr.top - pr.top;   // wider: from the top of the words' block
   bg.style.top = top + 'px';
   bg.style.height = Math.max(0, cr.bottom - pr.top - top) + 'px';
 }

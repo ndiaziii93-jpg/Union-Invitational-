@@ -136,7 +136,7 @@ const cols = await L.evaluate(() => {
 });
 ok('two columns: the day on the left, the cards on the right', cols.side, true);
 ok('the cards keep up as the page scrolls', cols.sticky, 'sticky');
-ok('in a column of 360', cols.rw, 360);
+ok('in a column of 380 on a laptop', cols.rw, 380);
 ok('nothing runs off the side', await L.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
 ok('no errors on the way', errs, []);
 
