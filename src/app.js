@@ -2961,7 +2961,9 @@ function scrSetup() {
 
   <h3 class="sub">Start over</h3>
   <div class="panel">
-    <div class="kv"><span class="k">Clear every score<small>Wipes all cards, points and prizes for every round, on every device. The roster, pairings and bands go back to factory too. This cannot be undone.</small></span>
+    <div class="kv"><span class="k">Clear the scores<small>Wipes every card, point, prize, note and report for every round, on every device, and closes every round. The roster, bands, squads, pairs, tee times, calendar and PINs stay. This is the one to press the night before the trip.</small></span>
+      <span><button class="btn" data-act="resetScores">Clear scores</button></span></div>
+    <div class="kv"><span class="k">Clear everything<small>The scores AND the roster, pairings, bands and squads, all back to factory. The PINs and the calendar stay. This cannot be undone.</small></span>
       <span><button class="btn danger" data-act="resetAll">Clear tournament</button></span></div>
   </div>`;
 }
@@ -6065,6 +6067,10 @@ function onClick(e) {
     case 'setCap':
       if (!canAdmin()) return;
       store.writeConfig(c => { c.capOver = +a; });
+      return;
+    case 'resetScores':
+      askPinStrict('Clear every score', 'Every card, point, note and report for every round, on every device. The roster, bands, pairs and calendar stay. Enter the master PIN.', 'Clear scores',
+        role => { if (role !== 'master') return; store.resetScores(); UI.screen = 'today'; });
       return;
     case 'resetAll':
       askPinStrict('Clear the whole tournament', 'Every card, every point, every prize — on every device. Enter the master PIN.', 'Clear everything',

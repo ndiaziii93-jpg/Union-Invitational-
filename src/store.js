@@ -901,6 +901,36 @@ export function createStore(onChange) {
     catch (e) { status = 'error'; notify(); }
   }
 
+  /** The week's play, gone; the week itself, kept. Every card, point, note
+   *  and report for every round goes, and each round goes back to closed
+   *  with nothing nominated — but the people, their bands and squads, the
+   *  pairs, the tee times and groups, the calendar, the courses and the
+   *  PINs all stay exactly as they are. This is what is pressed the night
+   *  before the trip to wipe the practice scores. */
+  async function resetScores() {
+    if (tooEarly()) return false;
+    const fresh = defaultConfig();
+    const c = JSON.parse(JSON.stringify(T.config));
+    for (const rid of Object.keys(c.rounds || {})) {
+      const was = c.rounds[rid] || {};
+      c.rounds[rid] = { ...(fresh.rounds[rid] || {}), tees: was.tees || (fresh.rounds[rid] || {}).tees || [] };
+    }
+    T.config = c; T.scores = {}; T.bbb = {}; T.notes = {}; T.recaps = {};
+    for (const k of Object.keys(rev)) if (/^(scores|bbb|notes|recaps)\//.test(k)) delete rev[k];
+    bump('config', T.config);
+    notify();
+    if (mode === 'local') { saveLocal(); return true; }
+    try {
+      await db.doc('config/tournament').set(T.config);
+      for (const coll of ['scores', 'bbb', 'notes', 'recaps']) {
+        const got = await db.collection(coll).get();
+        for (const d of got.docs) await db.doc(coll + '/' + d.id).delete();
+      }
+      saveState = 'saved'; lastSavedAt = Date.now(); notify();
+      return true;
+    } catch (e) { status = 'error'; saveState = 'error'; notify(); return false; }
+  }
+
   async function resetAll() {
     if (tooEarly()) return;
     const fresh = emptyState();
@@ -926,7 +956,7 @@ export function createStore(onChange) {
     } catch (e) { status = 'error'; notify(); }
   }
 
-  return { T, connect, writeConfig, writeCard, writeBbb, writeNote, writeRecap, writePhoto, dropPhoto, resetAll, resave, note,
+  return { T, connect, writeConfig, writeCard, writeBbb, writeNote, writeRecap, writePhoto, dropPhoto, resetAll, resetScores, resave, note,
            writePerson, writeAllPeople, addPerson, removePerson,
            writePair, addPair, removePair, movePlayer, movePairBy,
            get mode() { return mode; }, get status() { return status; }, get ready() { return ready; },

@@ -3825,7 +3825,7 @@ const PINS_ENABLED = false;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261017-1251';
+const BUILD = '20261017-1308';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -7914,6 +7914,36 @@ function createStore(onChange) {
     catch (e) { status = 'error'; notify(); }
   }
 
+  /** The week's play, gone; the week itself, kept. Every card, point, note
+   *  and report for every round goes, and each round goes back to closed
+   *  with nothing nominated — but the people, their bands and squads, the
+   *  pairs, the tee times and groups, the calendar, the courses and the
+   *  PINs all stay exactly as they are. This is what is pressed the night
+   *  before the trip to wipe the practice scores. */
+  async function resetScores() {
+    if (tooEarly()) return false;
+    const fresh = defaultConfig();
+    const c = JSON.parse(JSON.stringify(T.config));
+    for (const rid of Object.keys(c.rounds || {})) {
+      const was = c.rounds[rid] || {};
+      c.rounds[rid] = { ...(fresh.rounds[rid] || {}), tees: was.tees || (fresh.rounds[rid] || {}).tees || [] };
+    }
+    T.config = c; T.scores = {}; T.bbb = {}; T.notes = {}; T.recaps = {};
+    for (const k of Object.keys(rev)) if (/^(scores|bbb|notes|recaps)\//.test(k)) delete rev[k];
+    bump('config', T.config);
+    notify();
+    if (mode === 'local') { saveLocal(); return true; }
+    try {
+      await db.doc('config/tournament').set(T.config);
+      for (const coll of ['scores', 'bbb', 'notes', 'recaps']) {
+        const got = await db.collection(coll).get();
+        for (const d of got.docs) await db.doc(coll + '/' + d.id).delete();
+      }
+      saveState = 'saved'; lastSavedAt = Date.now(); notify();
+      return true;
+    } catch (e) { status = 'error'; saveState = 'error'; notify(); return false; }
+  }
+
   async function resetAll() {
     if (tooEarly()) return;
     const fresh = emptyState();
@@ -7939,7 +7969,7 @@ function createStore(onChange) {
     } catch (e) { status = 'error'; notify(); }
   }
 
-  return { T, connect, writeConfig, writeCard, writeBbb, writeNote, writeRecap, writePhoto, dropPhoto, resetAll, resave, note,
+  return { T, connect, writeConfig, writeCard, writeBbb, writeNote, writeRecap, writePhoto, dropPhoto, resetAll, resetScores, resave, note,
            writePerson, writeAllPeople, addPerson, removePerson,
            writePair, addPair, removePair, movePlayer, movePairBy,
            get mode() { return mode; }, get status() { return status; }, get ready() { return ready; },
@@ -10929,7 +10959,9 @@ function scrSetup() {
 
   <h3 class="sub">Start over</h3>
   <div class="panel">
-    <div class="kv"><span class="k">Clear every score<small>Wipes all cards, points and prizes for every round, on every device. The roster, pairings and bands go back to factory too. This cannot be undone.</small></span>
+    <div class="kv"><span class="k">Clear the scores<small>Wipes every card, point, prize, note and report for every round, on every device, and closes every round. The roster, bands, squads, pairs, tee times, calendar and PINs stay. This is the one to press the night before the trip.</small></span>
+      <span><button class="btn" data-act="resetScores">Clear scores</button></span></div>
+    <div class="kv"><span class="k">Clear everything<small>The scores AND the roster, pairings, bands and squads, all back to factory. The PINs and the calendar stay. This cannot be undone.</small></span>
       <span><button class="btn danger" data-act="resetAll">Clear tournament</button></span></div>
   </div>`;
 }
@@ -14034,6 +14066,10 @@ function onClick(e) {
       if (!canAdmin()) return;
       store.writeConfig(c => { c.capOver = +a; });
       return;
+    case 'resetScores':
+      askPinStrict('Clear every score', 'Every card, point, note and report for every round, on every device. The roster, bands, pairs and calendar stay. Enter the master PIN.', 'Clear scores',
+        role => { if (role !== 'master') return; store.resetScores(); UI.screen = 'today'; });
+      return;
     case 'resetAll':
       askPinStrict('Clear the whole tournament', 'Every card, every point, every prize — on every device. Enter the master PIN.', 'Clear everything',
         role => { if (role !== 'master') return; store.resetAll(); UI.screen = 'today'; });
@@ -14549,7 +14585,7 @@ if ('serviceWorker' in navigator) {
    So every return reads the build stamp off the server and, when it has
    moved on, the page reloads itself — unless a hole is half entered, in
    which case it waits for the save. */
-var BOOK_BUILD = '20261017-1251';
+var BOOK_BUILD = '20261017-1308';
 function checkBuild() {
   if (document.hidden || navigator.onLine === false) return;
   fetch('sw.js', { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (t) {
