@@ -303,9 +303,11 @@ ok('it sits directly above the bar and nothing else', await p.evaluate(() => {
 /* ---------------- landing on a screen ---------------- */
 console.log('\nevery tab keeps its own place');
 await bar('Calendar');
-await p.evaluate(() => window.scrollTo(0, 520)); await p.waitForTimeout(400);
+/* as far down the week as the page allows: the foot of every page is one
+   quiet line now, so on a short week the page may not reach 520 */
+await p.evaluate(() => window.scrollTo(0, Math.min(520, document.documentElement.scrollHeight - innerHeight - 4))); await p.waitForTimeout(400);
 const deep = await p.evaluate(() => Math.round(window.scrollY));
-ok('we are a way down the week', deep > 400, true);
+ok('we are a way down the week', deep > 200, true);
 await bar('Resort');
 ok('the resort opens at its top', await p.evaluate(() => Math.round(window.scrollY)), 0);
 await bar('Calendar');
