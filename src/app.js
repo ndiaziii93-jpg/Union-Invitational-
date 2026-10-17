@@ -4545,8 +4545,6 @@ function artModalHtml() {
   const geo = HOLES.geoOf(T, course.key, hole.n);
   const ico = {
     flag: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 21V4l9 3-9 3"/><path d="M3 21h8"/></svg>',
-    draw: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="14" height="16" rx="2"/><path d="M15 3l4 4-7 7H8v-4z"/></svg>',
-    info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>',
     locate: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 3L3 10.5l8 2.5 2.5 8z"/></svg>',
     layers: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg>',
   };
@@ -4561,10 +4559,6 @@ function artModalHtml() {
       <span class="n">Hole ${hole.n}</span>
       <button class="ar" data-act="artHole" data-a="${h + 1}"${h === 17 ? ' disabled' : ''} aria-label="Next hole">›</button></div>
     <button class="h3x" data-act="modalCancel" aria-label="Close">✕</button>
-    <div class="h3rail l">
-      <button class="${UI.modal.draw ? 'on' : ''}" data-act="artDraw" aria-label="The drawn hole" aria-pressed="${!!UI.modal.draw}">${ico.draw}</button>
-      <button class="${UI.modal.info ? 'on' : ''}" data-act="artInfo" aria-label="About the hole" aria-pressed="${!!UI.modal.info}">${ico.info}</button>
-    </div>
     <div class="h3unit" role="group" aria-label="Units">
       <button class="${units === 'yd' ? 'on' : ''}" data-act="artUnits" data-a="yd" aria-pressed="${units === 'yd'}">YDS</button>
       <button class="${units === 'm' ? 'on' : ''}" data-act="artUnits" data-a="m" aria-pressed="${units === 'm'}">M</button>
@@ -4577,7 +4571,8 @@ function artModalHtml() {
     ${!model.traced && live ? `<div class="h3note">Shape drawn from the card · not surveyed yet</div>` : ''}
     ${UI.gps && UI.gps.err ? `<div class="h3note warn">${esc(UI.gps.err)}</div>` : ''}
     <div class="h3dock">
-      <button class="h3who" data-act="${canFeel ? 'artFeel' : 'artInfo'}" aria-label="${me ? 'Band ' + me.band : 'Who are you?'}">${shield}</button>
+      ${canFeel ? `<button class="h3who" data-act="artFeel" aria-label="${me ? 'Band ' + me.band : 'Who are you?'}">${shield}</button>`
+                : `<span class="h3who" aria-label="${me ? 'Band ' + me.band : 'Who are you?'}">${shield}</span>`}
       <div class="w">
         <div class="fig"><b class="num">${scored && scored.thru ? E.fmtToPar(scored.tp) : me ? 'E' : '—'}</b>
           <span>${me ? 'Band ' + (me.band || '—') + (scored && scored.thru ? ' · thru ' + scored.thru : '') : 'Who are you?'}</span></div>
@@ -4587,12 +4582,6 @@ function artModalHtml() {
       ${canFeel ? `<button class="h3feel" data-act="artFeel">HOW'D<br>YOU FEEL?</button>`
         : `<span class="h3feel still"><b>${hole.mW}</b><small>m · white</small></span>`}
     </div>
-    ${UI.modal.draw && art ? `<div class="h3over" data-act="artDraw"><div class="h3drawwin nos"><img src="${art}" alt="Hole ${hole.n}, drawn from tee to green"></div></div>` : ''}
-    ${UI.modal.info ? `<div class="h3over" data-act="artInfo"><div class="h3card">
-      <div class="k">${esc(course.name)} · Hole ${hole.n}</div>
-      <div class="rows"><div><b>${hole.par}</b><span>Par</span></div><div><b>${hole.si}</b><span>Index</span></div><div><b>${hole.mW}</b><span>m · white</span></div><div><b>${hole.mY}</b><span>m · yellow</span></div></div>
-      <p>${model.traced ? 'Surveyed: the ground is the hole as it lies.' : 'The ground here is drawn from the card — the right length and par, bending the way its number says — until the hole is surveyed. The yardages read from the tee.'}</p>
-    </div></div>` : ''}
     ${UI.modal.feel && canFeel ? feelSheet(rid, h, hole) : ''}
   </div></div>`;
 }
@@ -5366,7 +5355,7 @@ function onClick(e) {
     /* ---- the hole window ---- */
     case 'artHole': {
       const n = Math.max(0, Math.min(17, +a));
-      UI.modal = { ...UI.modal, hole: n, draw: false, info: false, feel: false };
+      UI.modal = { ...UI.modal, hole: n, feel: false };
       break;
     }
     case 'artUnits':
@@ -5374,8 +5363,6 @@ function onClick(e) {
       try { localStorage.setItem(UNITS_KEY, UI.units); } catch (err) { /* storage blocked */ }
       if (UI.h3) UI.h3.ctl.setUnits(UI.units);
       break;
-    case 'artDraw': UI.modal.draw = !UI.modal.draw; UI.modal.info = false; break;
-    case 'artInfo': UI.modal.info = !UI.modal.info; UI.modal.draw = false; break;
     case 'artFeel': UI.modal.feel = !UI.modal.feel; if (UI.modal.feel) commitMine(); break;
     case 'artLabels': UI.h3labels = UI.h3labels === false; if (UI.h3) UI.h3.ctl.setLabels(UI.h3labels); break;
     case 'artFlat': UI.h3flat = !UI.h3flat; if (UI.h3) UI.h3.ctl.setFlat(UI.h3flat); break;
