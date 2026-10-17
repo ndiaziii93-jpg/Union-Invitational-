@@ -3762,7 +3762,7 @@ const PINS_ENABLED = true;
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261017-1426';
+const BUILD = '20261017-1509';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -7985,8 +7985,29 @@ const UI = {
 };
 
 const ROLE_KEY = 'union-invitational:role';
-function saveRole(role) { try { localStorage.setItem(ROLE_KEY, role); } catch (e) { /* storage blocked */ } }
-function loadRole() { try { return localStorage.getItem(ROLE_KEY); } catch (e) { return null; } }
+/* A role is kept WITH the PIN that earned it, so the phone can prove it
+   again against the book every time the book changes. A role saved while
+   the PINs were off, or under a PIN that has since been changed, proves
+   nothing and the phone goes back to reading. */
+function saveRole(role, pin) { try { localStorage.setItem(ROLE_KEY, JSON.stringify({ role, pin: String(pin || '') })); } catch (e) { /* storage blocked */ } }
+function loadRole() {
+  try {
+    const raw = localStorage.getItem(ROLE_KEY);
+    if (!raw) return null;
+    if (raw[0] !== '{') return { role: raw, pin: '' };     // the old shape: a bare word, no proof
+    const v = JSON.parse(raw);
+    return v && v.role ? { role: String(v.role), pin: String(v.pin || '') } : null;
+  } catch (e) { return null; }
+}
+/** The phone's role, proved against the book as it stands. Run whenever the
+ *  book changes: a PIN changed in Setup signs out every phone that used the
+ *  old one, at once. */
+function checkRole() {
+  if (!D.PINS_ENABLED || UI.role === 'viewer' || !loaded()) return;
+  const saved = loadRole();
+  const proven = saved && saved.pin && S.roleForPin(T.config, saved.pin) === UI.role;
+  if (!proven) { UI.role = 'viewer'; saveRole('viewer', ''); if (UI.screen === 'setup') UI.screen = 'today'; }
+}
 
 /* The book has no accounts — anyone with the link can open it — so "who am
    I" is a thing this PHONE knows rather than a thing the tournament knows.
@@ -13262,7 +13283,7 @@ function submitPin() {
   if (!role) { UI.modalErr = 'That PIN is not on the list. Try again, or ask the master reviewer.'; render(); return; }
   const m = UI.modal;
   UI.modal = null; UI.modalErr = '';
-  if (m && m.onOk) m.onOk(role);
+  if (m && m.onOk) m.onOk(role, pin);
   render();
 }
 
@@ -13607,9 +13628,9 @@ function onClick(e) {
     case 'setupGo': UI.modal = null; goTo(a); break;
 
     case 'signIn':
-      if (UI.role !== 'viewer') { UI.role = 'viewer'; saveRole('viewer'); if (UI.screen === 'setup') UI.screen = 'today'; break; }
+      if (UI.role !== 'viewer') { UI.role = 'viewer'; saveRole('viewer', ''); if (UI.screen === 'setup') UI.screen = 'today'; break; }
       askPinStrict('Enter your PIN', 'Scorers may record and lock rounds. The master reviewer can also reopen a locked round and change every PIN.', 'Sign in',
-        role => { UI.role = role; saveRole(role); });
+        (role, pin) => { UI.role = role; saveRole(role, pin); });
       return;
 
     case 'openRound': {
@@ -13902,7 +13923,7 @@ function onClick(e) {
       });
       if (!canEdit()) {
         askPin('Enter your PIN', 'Squads are set by a scorer or the master reviewer. Sign in and this change goes straight through.',
-          'Sign in', role => { UI.role = role; saveRole(role); cycle(); });
+          'Sign in', (role, pin) => { UI.role = role; saveRole(role, pin); cycle(); });
         return;
       }
       cycle();
@@ -14363,9 +14384,10 @@ function boot() {
     if (m.ready && !UI.setupSeen) {
       UI.setupSeen = true;
       const saved = loadRole();
-      if (saved && S.ROLES[saved] && saved !== 'viewer') UI.role = saved;
+      if (saved && S.ROLES[saved.role] && saved.role !== 'viewer') UI.role = saved.role;
       if (E.setupIssues(T).length) UI.modal = { kind: 'setup' };
     }
+    checkRole();
     render();
   });
   const app = document.getElementById('app');

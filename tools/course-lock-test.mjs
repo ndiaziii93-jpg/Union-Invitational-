@@ -96,6 +96,9 @@ const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' })
 {
   console.log('\nPINs armed (how it will run in Belek)');
   const p = await (await b.newContext({ viewport: { width: 1400, height: 1100 } })).newPage();
+  /* a phone that tapped Sign in while the PINs were off was handed "master"
+     for nothing; armed, that word proves nothing and the phone reads */
+  await p.addInitScript(() => { try { localStorage.setItem('union-invitational:role', 'master'); } catch (e) {} });
   await p.goto(preview('lock-on', true)); await p.waitForTimeout(1400);
   await p.locator('[data-act="modalCancel"]').click().catch(() => {});
 
