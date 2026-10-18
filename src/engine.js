@@ -650,11 +650,19 @@ const markDef = k => MARKS.find(m => m.key === k) || null;
  *
  * Every one is a judgement about a shot the card has already recorded, so
  * none of them can contradict anything on it. */
+/* Asked in two steps: did it go right or wrong, then which of three. The
+   good three were added so a golfer with nothing to complain about has
+   something to say; the keys of the first four never change, so a note
+   kept before still reads. */
 export const OWN_MARKS = [
-  { key: 'robbed', label: 'Robbed', short: 'Robbed', tone: 'bad',
-    hint: 'deserved better than it got' },
   { key: 'away', label: 'Got away with it', short: 'Got away', tone: 'good',
     hint: 'deserved a good deal worse' },
+  { key: 'pured', label: 'Pured it', short: 'Pured', tone: 'good',
+    hint: 'struck exactly as meant' },
+  { key: 'clutch', label: 'Clutch', short: 'Clutch', tone: 'good',
+    hint: 'made the one that mattered' },
+  { key: 'robbed', label: 'Robbed', short: 'Robbed', tone: 'bad',
+    hint: 'deserved better than it got' },
   { key: 'club', label: 'Wrong club', short: 'Wrong club', tone: 'bad',
     hint: 'beaten before the swing' },
   { key: 'bottled', label: 'Bottled it', short: 'Bottled', tone: 'bad',

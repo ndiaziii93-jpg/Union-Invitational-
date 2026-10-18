@@ -38,6 +38,7 @@ const UI = {
   recap: { rid: null, busy: false, err: '', stream: '', edit: false, view: 'report' },
   feelOn: null,         // the hole the golfer is being asked about: {rid, h}
   pad: null,            // the golfer whose keypad is up on Score Entry
+  feelTone: {},         // which half of the feeling is open, by round and hole: 'good' | 'bad'
   pinDraft: { master: '', s1: '', s2: '' },   // PINs typed on Setup and not yet saved
   pinNote: '',          // what the last Save PINs did
   pinTyped: '',         // the PIN half typed into the PIN window, kept across redraws
@@ -134,6 +135,8 @@ const canAdmin = () => loaded() && (!D.PINS_ENABLED || S.ROLES[UI.role].canAdmin
 /* The week is the master reviewer's once PINs are armed: a scorer's PIN
    scores, it does not move dinner. With PINs off, anyone who can score may
    change the week until it is locked. */
+/* A ref's phone scores; it is not asked how the golfer felt. */
+const isRef = () => D.PINS_ENABLED && (UI.role === 's1' || UI.role === 's2');
 const canEditCal = () => loaded() && (D.PINS_ENABLED ? S.ROLES[UI.role].canAdmin : (canEdit() && !T.config.calLocked));
 
 /* ---------------- flags ---------------- */
@@ -966,6 +969,18 @@ function recapButton() {
  * they want one, and it is put once: answered or skipped, it does not come
  * back. The bar follows the round the golfer is on and stops the moment
  * the day's report is written, because by then the moment has passed. */
+/** How a hole felt, in two steps: right or wrong, then which of three. The
+ *  open half follows a mark already on the hole, or the last one tapped. */
+function feelPicker(rid, h, on, chip) {
+  const key = rid + ':' + h;
+  const had = E.OWN_MARKS.find(m => on.includes(m.key));
+  const tone = UI.feelTone[key] || (had ? had.tone : null);
+  const opts = tone ? E.OWN_MARKS.filter(m => m.tone === tone) : [];
+  return `<div class="tonepick">
+      <button class="tone good${tone === 'good' ? ' on' : ''}" data-act="feelTone" data-a="good" data-b="${esc(key)}" aria-pressed="${tone === 'good'}">Went right</button>
+      <button class="tone bad${tone === 'bad' ? ' on' : ''}" data-act="feelTone" data-a="bad" data-b="${esc(key)}" aria-pressed="${tone === 'bad'}">Went wrong</button>
+    </div>${opts.length ? `<div class="toneopts">${opts.map(chip).join('')}</div>` : ''}`;
+}
 function feelRound() {
   let best = null;
   for (const r of D.ROUNDS) {
@@ -977,8 +992,10 @@ function feelRound() {
   }
   return best;
 }
+const FEEL_FRESH_MS = 20 * 60000;    // asked about the hole just saved, not one from an hour ago
 function feelBar() {
-  if (!UI.me || UI.modal || UI.recapOpen || UI.askOpen || !loaded()) return '';
+  if (!UI.me || UI.modal || UI.recapOpen || UI.askOpen || !loaded() || isRef()) return '';
+  if (UI.screen !== 'today' && UI.screen !== 'entry') return '';
   if (UI.screen === 'entry' && UI.entryMode === 'mine') return '';   // that lane IS the question
 
   const rid = feelRound();
@@ -988,7 +1005,9 @@ function feelBar() {
      it would otherwise drop it out of the asks before the word is typed */
   let cur = UI.feelOn && UI.feelOn.rid === rid && !seen[rid + ':' + UI.feelOn.h] ? UI.feelOn.h : null;
   if (cur == null) {
-    const asks = E.feelAsks(T, rid, UI.me).filter(a => !seen[rid + ':' + a.h]);
+    const card = E.card(T, rid, UI.me);
+    const fresh = a => { const t = card && card.at ? card.at[a.h] : null; return t && Date.now() - t < FEEL_FRESH_MS; };
+    const asks = E.feelAsks(T, rid, UI.me).filter(a => !seen[rid + ':' + a.h] && fresh(a)).slice(0, 1);
     if (!asks.length) { UI.feelOn = null; return ''; }
     cur = asks[0].h;
     UI.feelOn = { rid, h: cur };
@@ -1003,8 +1022,8 @@ function feelBar() {
     <div class="fb-h"><span class="fb-n num">${hole.n}</span>
       <div class="fb-w"><b>How'd it feel?</b><span>${esc(E.scoreName(raw, hole.par))} on a par ${hole.par} · yours, not the card's</span></div>
       <button class="fb-skip" data-act="feelSkip" data-a="${rid}" data-b="${cur}">Skip</button></div>
-    <div class="fb-chips">${E.OWN_MARKS.map(m => `<button class="fb-chip ${m.tone}${on.includes(m.key) ? ' on' : ''}"
-      data-act="feelMark" data-a="${m.key}" data-b="${cur}" data-c="${rid}" aria-pressed="${on.includes(m.key)}"><b>${esc(m.label)}</b><span>${esc(m.hint)}</span></button>`).join('')}</div>
+    <div class="fb-chips">${feelPicker(rid, cur, on, m => `<button class="fb-chip ${m.tone}${on.includes(m.key) ? ' on' : ''}"
+      data-act="feelMark" data-a="${m.key}" data-b="${cur}" data-c="${rid}" aria-pressed="${on.includes(m.key)}"><b>${esc(m.label)}</b><span>${esc(m.hint)}</span></button>`)}</div>
     <div class="fb-row"><input class="field fb-word" id="feelText" data-b="${cur}" data-c="${rid}" maxlength="140"
         placeholder="A word on it, if you want one…" value="${esc(text)}" aria-label="A word on hole ${hole.n}">
       <button class="btn fb-done" data-act="feelDone" data-a="${rid}" data-b="${cur}">Done</button></div>
@@ -2300,9 +2319,9 @@ function scrMine(rid) {
   <div class="egl">
   <p class="sublede">Only you know these. The ref is already writing down where the ball went.</p>
   <div class="minemarks">
-    ${E.OWN_MARKS.map(m => `<button class="mnchip ${m.tone}${on.includes(m.key) ? ' on' : ''}"
+    ${feelPicker(rid, h, on, m => `<button class="mnchip ${m.tone}${on.includes(m.key) ? ' on' : ''}"
       data-act="tglMine" data-a="${m.key}" data-b="${h}"
-      aria-pressed="${on.includes(m.key)}"><b>${esc(m.label)}</b><span>${esc(m.hint)}</span></button>`).join('')}
+      aria-pressed="${on.includes(m.key)}"><b>${esc(m.label)}</b><span>${esc(m.hint)}</span></button>`)}
   </div>
 
   <label class="minesay">
@@ -2316,7 +2335,7 @@ function scrMine(rid) {
         again: the ref can already see where the ball went, and asking a
         golfer the same question only produces two answers to arbitrate.
         These are the things nobody else can answer. */ ''}
-  <h3 class="sub">How was the round?</h3>
+  ${h === 17 ? `<h3 class="sub">How was the round?</h3>
   <p class="sublede">Once for the whole day, and only you can answer it. None of
   it can clash with the card — a feeling is not a rival claim about a fact.</p>
   <div class="moodrow">
@@ -2337,7 +2356,7 @@ function scrMine(rid) {
     <input class="field" id="mineSay" data-act="mineSay"
       maxlength="200" placeholder="Started well. Stopped."
       value="${esc(sayText)}">
-  </label>
+  </label>` : `<p class="sublede" style="margin-top:18px">How the whole round went is asked on the 18th.</p>`}
 
   </div>
   <div class="egr">
@@ -2533,7 +2552,8 @@ function scrEntry() {
      their own round. Putting the second behind a tenth top-level tab would
      have broken the three-by-three grid the nav sits in on a phone, and
      nobody would have found it — whereas everybody opens Score Entry. */
-  const lanes = `<div class="lanes" role="tablist" aria-label="Score Entry">
+  if (isRef()) UI.entryMode = 'group';      // a ref scores; My round is for the golfers
+  const lanes = isRef() ? '' : `<div class="lanes" role="tablist" aria-label="Score Entry">
     <button class="lane${UI.entryMode === 'mine' ? '' : ' on'}" data-act="entryMode" data-a="group"
       role="tab" aria-selected="${UI.entryMode !== 'mine'}">Score the group</button>
     <button class="lane${UI.entryMode === 'mine' ? ' on' : ''}" data-act="entryMode" data-a="mine"
@@ -4681,7 +4701,7 @@ function artModalHtml() {
   const units = holeUnits();
   const me = UI.me ? E.person(T, UI.me) : null;
   const scored = me && rid && !UI.modal.ckey ? E.roundToPar(T, rid, UI.me) : null;
-  const canFeel = !!(rid && !UI.modal.ckey);
+  const canFeel = !!(rid && !UI.modal.ckey) && !isRef();
   const geo = HOLES.geoOf(T, course.key, hole.n);
   const ico = {
     flag: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 21V4l9 3-9 3"/><path d="M3 21h8"/></svg>',
@@ -4744,8 +4764,8 @@ function feelSheet(rid, h, hole) {
     ${!me ? `<p class="lede">Who are you? This phone will remember.</p>
       <div class="chiprow h3pick">${gs.map(g => `<button class="chip" data-act="setMe" data-a="${g.id}">${esc(g.display)}</button>`).join('')}</div>`
     : `<p class="lede">Yours, not the card's. The scorer's marks say what happened; this says what it felt like, and the recap reads both.</p>
-      <div class="h3chips">${E.OWN_MARKS.map(m => `<button class="h3chip ${m.tone}${on.includes(m.key) ? ' on' : ''}"
-        data-act="tglMine" data-a="${m.key}" data-b="${h}" aria-pressed="${on.includes(m.key)}"><b>${esc(m.label)}</b><span>${esc(m.hint)}</span></button>`).join('')}</div>
+      <div class="h3chips">${feelPicker(rid, h, on, m => `<button class="h3chip ${m.tone}${on.includes(m.key) ? ' on' : ''}"
+        data-act="tglMine" data-a="${m.key}" data-b="${h}" aria-pressed="${on.includes(m.key)}"><b>${esc(m.label)}</b><span>${esc(m.hint)}</span></button>`)}</div>
       <input class="field h3word" id="mineText" data-act="mineText" data-b="${h}" maxlength="140"
         placeholder="A word on the hole, if you want one…" value="${esc(text)}" aria-label="A word on hole ${hole.n}">
       <div class="acts"><button class="btn" data-act="artFeel">Done</button></div>`}
@@ -5995,6 +6015,10 @@ function onClick(e) {
       render();
       return;
     }
+    case 'feelTone':
+      UI.feelTone[b] = UI.feelTone[b] === a ? null : a;
+      render();
+      return;
     case 'feelDone':
     case 'feelSkip': {
       const fld = document.getElementById('feelText');

@@ -2762,6 +2762,25 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
 .btn.wa{background:#25D366;border-color:#25D366;color:#0B2A17}
 .btn.wa:hover{filter:brightness(1.05)}
 
+/* ---- how a hole felt, in two steps ---- */
+.tonepick{display:grid;grid-template-columns:1fr 1fr;gap:8px;grid-column:1 / -1}
+.tone{min-height:46px;border-radius:12px;font-family:inherit;font-size:15px;font-weight:700;border:1.5px solid var(--rule);text-align:center;padding:0 10px;
+  background:var(--paper);color:var(--ink);-webkit-tap-highlight-color:transparent}
+.tone.good.on{background:var(--green);border-color:var(--green);color:#FBFAF7}
+.tone.bad.on{background:var(--flag);border-color:var(--flag);color:#FBFAF7}
+.toneopts{display:grid;grid-template-columns:1fr;gap:7px;margin-top:8px;grid-column:1 / -1}
+@media (min-width:520px){.toneopts{grid-template-columns:repeat(3,1fr)}}
+.minemarks{display:block}
+.minemarks .toneopts .mnchip{width:100%}
+.feelbar .tone{background:rgba(238,232,213,.07);border-color:rgba(238,232,213,.28);color:var(--page)}
+.feelbar .tone.good.on{background:var(--gold-up);border-color:var(--gold-up);color:var(--ink)}
+.feelbar .tone.bad.on{background:#B4523F;border-color:#B4523F;color:#fff}
+.feelbar .fb-chips{display:block}
+.feelbar .toneopts{grid-template-columns:repeat(3,1fr);gap:6px}
+.feelbar .toneopts .fb-chip span{display:none}
+.feelbar .toneopts .fb-chip{text-align:center;padding:8px 6px}
+.h3chips{display:block}
+
 /* ---- how'd it feel? the question put the moment a score lands ----
    A strip of pine above the nav, one tap to answer, a word if they want
    one. On the scoring page it stands above the Save bar; on anything

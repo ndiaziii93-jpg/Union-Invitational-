@@ -37,6 +37,12 @@ console.log('\na ref');
   ok('which asks first', await p.locator('.modal [data-act="confirmOk"]').count(), 1);
   await p.locator('[data-act="confirmOk"]').click(); await p.waitForTimeout(500);
   ok('and then hands it back', await p.evaluate(([pid]) => window.__T.scores[window.__UI.entryRound + '__' + pid].mF, [pid]), false);
+  /* a ref scores; the golfers' questions are not put to him */
+  ok('a ref is not offered My round', await p.locator('.lanes').count(), 0);
+  await p.evaluate(([pid]) => { const T = window.__T, rid = window.__UI.entryRound; const c = T.scores[rid + '__' + pid];
+    c.raw[1] = 7; c.at = { 1: Date.now() }; window.__UI.me = pid; window.__UI.screen = 'today'; window.__forceRender(); }, [pid]);
+  await p.waitForTimeout(400);
+  ok('nor asked how a hole felt, even on a double', await p.locator('.feelbar').count(), 0);
 }
 console.log('\nsomebody with no PIN');
 {

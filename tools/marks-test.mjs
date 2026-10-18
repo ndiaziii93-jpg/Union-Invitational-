@@ -230,7 +230,13 @@ ok('and offers the golfers', await p.locator('.minepick .chip').count() > 3, tru
 const me = await p.locator('.minepick .chip').nth(1).innerText();
 await p.locator('.minepick .chip').nth(1).click(); await p.waitForTimeout(700); await shut();
 ok('it takes your name', (await p.locator('h3.sub').first().innerText()).includes(me), true);
-ok('four marks, as big as a thumb', await p.locator('.minemarks .mnchip').count(), 4);
+/* two steps: right or wrong first, then which of three */
+ok('it asks first whether the hole went right or wrong', await p.locator('.minemarks .tone').allInnerTexts(), ['Went right', 'Went wrong']);
+ok('and holds the choices back until then', await p.locator('.minemarks .mnchip').count(), 0);
+await p.locator('.minemarks .tone.good').click(); await p.waitForTimeout(400);
+ok('right opens three', await p.evaluate(() => [...document.querySelectorAll('.minemarks .mnchip b')].map(e => e.textContent.trim())), ['Got away with it', 'Pured it', 'Clutch']);
+await p.locator('.minemarks .tone.bad').click(); await p.waitForTimeout(400);
+ok('wrong opens the other three, as big as a thumb', await p.locator('.minemarks .mnchip').count(), 3);
 /* THE point of the second lane. Ask a golfer what the ref is already
    writing down and you get two answers to arbitrate, and the ref's is the
    one with a witness. */
@@ -241,9 +247,9 @@ ok('and not one of them is a question the ref is already answering', await p.eva
   ['Three-putt', 'Out of bounds', 'In the water', 'Shot of the hole']), []);
 ok('they are the things only the man who hit it knows', await p.evaluate(
   () => [...document.querySelectorAll('.minemarks .mnchip b')].map(e => e.textContent.trim())),
-  ['Robbed', 'Got away with it', 'Wrong club', 'Bottled it']);
+  ['Robbed', 'Wrong club', 'Bottled it']);
 ok('and each says what it means, so nobody has to guess on a tee box',
-  await p.locator('.minemarks .mnchip span').count(), 4);
+  await p.locator('.minemarks .mnchip span').count(), 3);
 ok('and every one of them clears 44px', await p.evaluate(
   () => [...document.querySelectorAll('.mnchip')].every(e => e.getBoundingClientRect().height >= 44)), true);
 
@@ -277,6 +283,9 @@ ok('beside the mark, on the right hole', (await p.locator('.minerow').first().in
 ok('the hole wears a dot here too', await p.locator('.hcell.marked').count() >= 1, true);
 
 console.log('\nand at the end, the part only they can answer');
+ok('the round is not asked about on hole 1', await p.locator('.mdchip').count(), 0);
+await p.locator('.hcell').nth(17).click(); await p.waitForTimeout(700); await shut();
+ok('it is asked on the 18th', await p.locator('.mdchip').count() > 0, true);
 /* Deliberately NOT the four marks again. Ask a golfer what the ref can
    already see and you get two answers to arbitrate; ask them what only they
    know and you get the half a scorecard has never held. */
@@ -297,6 +306,7 @@ ok('nor does the end of the round ask the per-hole questions again', await p.eva
             .map(s2 => s2.toLowerCase());
           return [...document.querySelectorAll('.mdchip, .ownsrow .mnchip')]
             .map(e => e.textContent.trim().toLowerCase()).filter(t => hole.includes(t)); }), []);
+
 await p.locator('.mdchip').first().click(); await p.waitForTimeout(600); await shut();
 ok('a mood goes on', await p.locator('.mdchip.on').count(), 1);
 await p.locator('.mdchip').nth(2).click(); await p.waitForTimeout(600); await shut();
