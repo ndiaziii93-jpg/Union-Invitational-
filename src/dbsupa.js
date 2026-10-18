@@ -18,8 +18,13 @@
  *   2. A POLL behind the live socket. A WebSocket on a mobile network does
  *      not announce that it has died; it just stops saying anything, and a
  *      book that has quietly stopped updating is worse than one that is
- *      obviously offline. One indexed query every few seconds is cheap
- *      insurance and catches whatever the socket missed.
+ *      obviously offline. So a single indexed query catches whatever the
+ *      socket missed — but every one wakes the phone's radio, and a phone
+ *      on a golf course all day has a battery to think of. The poll keeps
+ *      to a minute while the socket is live, which is only a net; to fifteen
+ *      seconds while it is down, when the poll IS the update; and to nothing
+ *      at all while the book is in somebody's pocket. Coming back to the
+ *      front, or getting signal back, looks at once.
  *
  *   3. FROZEN snapshots, like the platform's. The worst bug in this project
  *      was code mutating a snapshot body; the store deep-clones to avoid it,
@@ -30,7 +35,9 @@
 /* Every collection the book keeps. A path outside this list is not polled,
    so adding one here is part of adding one at all. */
 const PREFIXES = ['config', 'people', 'pairs', 'scores', 'bbb', 'notes', 'recaps', 'photos', 'diag'];
-const POLL_MS = 6000;         // the net under the live socket
+const POLL_LIVE_MS = 60000;   // the net under a live socket: once a minute
+const POLL_DOWN_MS = 15000;   // the socket is down, so the poll is the update
+const hidden = () => typeof document !== 'undefined' && document.visibilityState === 'hidden';
 const RETRY_MS = 4000;        // how often a stranded outbox tries again
 const OUTBOX_KEY = 'ui.outbox.v1';
 
@@ -225,9 +232,10 @@ export function createSupabaseDb(opts) {
           }
         })
         .subscribe(state => {
-          if (state === 'SUBSCRIBED') { live = true; say('live'); }
+          if (state === 'SUBSCRIBED') { live = true; say('live'); armPoll(); }
           else if (state === 'CHANNEL_ERROR' || state === 'TIMED_OUT' || state === 'CLOSED') {
             live = false; say('polling');
+            soon();                   // the socket just went: look now, then every fifteen seconds
           }
         });
     } catch (e) { live = false; }
@@ -247,9 +255,20 @@ export function createSupabaseDb(opts) {
     } catch (e) { say('offline'); }
   }
 
-  function armPoll() {
+  /* The next look, at the pace the socket allows. In a pocket there is no
+     next look: the book catches up the moment it is back in a hand. */
+  function armPoll(ms) {
     if (closed) return;
-    pollTimer = setTimeout(async () => { await sweep(); armPoll(); }, POLL_MS);
+    clearTimeout(pollTimer); pollTimer = null;
+    if (hidden()) return;
+    pollTimer = setTimeout(async () => { await sweep(); armPoll(); }, ms != null ? ms : (live ? POLL_LIVE_MS : POLL_DOWN_MS));
+  }
+  const soon = () => armPoll(800);
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', () => { if (closed) return; if (hidden()) armPoll(); else soon(); });
+  }
+  if (typeof window !== 'undefined' && window.addEventListener) {
+    window.addEventListener('online', () => { if (closed) return; soon(); clearTimeout(retryTimer); retryTimer = null; armRetry(); });
   }
 
   /* ---------------- the interface store.js is written against ---------------- */

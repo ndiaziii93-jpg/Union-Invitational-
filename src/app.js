@@ -6674,7 +6674,11 @@ export function boot() {
   /* The store redraws whenever it hears anything; this is the same redraw,
      on demand, so a test can land one in the middle of a sentence. */
   window.__forceRender = render;
-  setInterval(() => { now = E.nowLocal(); render(); }, 30000);
+  /* The clock on the page reads in minutes, so a minute is often enough,
+     and nobody is reading it from a pocket. Nothing here touches the
+     network. */
+  setInterval(() => { if (document.visibilityState === 'hidden') return; now = E.nowLocal(); render(); }, 60000);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { now = E.nowLocal(); render(); } });
   render();
   store.connect();
 }

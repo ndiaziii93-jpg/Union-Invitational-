@@ -216,6 +216,11 @@ function open(fake) {
   db.start();
   await wait(60);
   ok('the socket came up', db.live, true);
+  /* while the socket is live the poll is only a net, and keeps to a minute:
+     a phone on a golf course all day has a battery */
+  const quiet = fake.state.sweeps;
+  await wait(7000);
+  ok('a live socket is not polled every few seconds', fake.state.sweeps, quiet);
 
   // the other ref's phone writes a card; the socket delivers it
   fake.rows.set('scores/r2__g5', { path: 'scores/r2__g5', doc: { raw: [5] }, updated_at: new Date(5000).toISOString() });
@@ -229,8 +234,8 @@ function open(fake) {
   ok('the book knows it is no longer live', db.live, false);
   fake.rows.set('scores/r2__g6', { path: 'scores/r2__g6', doc: { raw: [7] }, updated_at: new Date(9000).toISOString() });
   const before = fake.state.sweeps;
-  await wait(6600);
-  ok('it went and looked instead', fake.state.sweeps > before, true);
+  await wait(1400);
+  ok('it went and looked at once', fake.state.sweeps > before, true);
   ok('and found the card the socket never sent', seen[seen.length - 1], 2);
   db.close();
 }
