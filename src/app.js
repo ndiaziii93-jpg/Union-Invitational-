@@ -2687,7 +2687,7 @@ function scrEntry() {
               ${course.holes.filter(x => x.par === 3).map(x => `<option value="${x.n}"${cfg.ctpHole === x.n ? ' selected' : ''}>Hole ${x.n}</option>`).join('')}
             </select></label>
           <label>Closest — who is in there now
-            <select class="field" data-act="setRoundField" data-a="ctpWinner"${ed ? '' : ' disabled'}>${people(cfg.ctpWinner)}</select></label>
+            <select class="field" data-act="setRoundField" data-a="ctpWinner"${barOn ? '' : ' disabled'}>${people(cfg.ctpWinner)}</select></label>
           ${/* No distance to type. A closest-to-the-pin flag goes in the
                 ground where the best ball finished, and the next player to
                 beat it moves the flag and puts their own name here — so the
@@ -2702,11 +2702,16 @@ function scrEntry() {
               ${course.holes.map(x => `<option value="${x.n}"${cfg.ldHole === x.n ? ' selected' : ''}>Hole ${x.n} — par ${x.par}</option>`).join('')}
             </select></label>
           <label>Longest — current marker
-            <select class="field" data-act="setRoundField" data-a="ldWinner"${ed ? '' : ' disabled'}>${people(cfg.ldWinner)}</select></label>
+            <select class="field" data-act="setRoundField" data-a="ldWinner"${barOn ? '' : ' disabled'}>${people(cfg.ldWinner)}</select></label>
           <label>Distance
             <input class="field" type="text" value="${esc(cfg.ldDist || '')}" placeholder="e.g. 260 m"
-              data-act="setRoundField" data-a="ldDist"${ed ? '' : ' disabled'}></label>` : ''}
+              data-act="setRoundField" data-a="ldDist"${barOn ? '' : ' disabled'}></label>` : ''}
         </div>
+        ${/* A NAME GOES IN ONCE THE ROUND IS OPEN. Nobody has hit a shot
+              before then, so the winner boxes stay shut until it is — and
+              say so. They used to look open, take the pick, refuse it
+              without a word, and put Nobody yet back at the next redraw. */
+          !open && ed ? `<p class="sublede">The names go in once the round is open.</p>` : ''}
       </div>` : ''}
     </div>
   </div>`;
@@ -3898,10 +3903,16 @@ function captureFocus() {
   if (!key || !('value' in el)) return null;
   return { key, value: el.value, start: el.selectionStart, end: el.selectionEnd };
 }
+/* A DROPDOWN NEVER GETS THE FOCUS BACK. On a phone, focusing a <select>
+   is what opens its wheel, so handing the focus back to the rebuilt one
+   after a pick opened the same wheel a second time — every dropdown in the
+   book, the nominated holes most of all. Only a box being typed in has a
+   caret worth putting back. */
 function restoreFocus(f) {
   if (!f) return;
   const el = Array.from(document.querySelectorAll('[data-act]')).find(x => fieldKey(x) === f.key);
-  if (!el || !('value' in el)) return;
+  if (!el || !('value' in el) || el.tagName === 'SELECT') return;
+  if (el.tagName === 'INPUT' && /^(checkbox|radio|button|submit|range|color|file)$/.test(el.type)) return;
   el.value = f.value;
   el.focus();
   try { el.setSelectionRange(f.start, f.end); } catch (e) { /* not a text input */ }
@@ -4398,8 +4409,9 @@ function paint() {
     const el = document.querySelector(`[data-reveal="${want}"]`);
     if (el) {
       el.scrollIntoView({ block: 'center', behavior: 'smooth' });
-      const field = el.querySelector('select, input');
-      if (field) field.focus();
+      /* brought into view, not opened: focusing a dropdown on a phone opens
+         its wheel and focusing a box raises the keyboard, neither of which
+         anybody asked for */
     }
   }
 }
@@ -6264,14 +6276,16 @@ function onChange(e) {
     });
     render();
   } else if (act === 'setBbb') {
-    if (!editable || cardClosed(rid)) return;   // the group has finished; so have its points
+    if (!editable || cardClosed(rid)) { render(); return; }   // the group has finished; so have its points; the box shows what stands
     draftFor(rid, UI.entryHole).bbb[a] = el.value || null;
     render();
   } else if (act === 'setRoundField') {
     const nom = a === 'ctpHole' || a === 'ldHole';
     /* The nominations are made before the card opens, so they cannot wait on
        the round being open the way a winner or a distance does. */
-    if (nom ? (!canEdit() || E.roundCfg(T, rid).state === 'locked') : !editable) return;
+    /* Refused, the box is redrawn at once to show what is really saved,
+       rather than showing a pick that never went in until the next redraw. */
+    if (nom ? (!canEdit() || E.roundCfg(T, rid).state === 'locked') : !editable) { render(); return; }
     const v = el.value ? +el.value : null;
     const write = () => store.writeConfig(c => {
       c.rounds[rid][a] = nom ? v : (el.value || (a.endsWith('Dist') ? '' : null));

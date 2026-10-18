@@ -359,7 +359,9 @@ console.log('\nthe panel on Today');
 
   console.log('\nthe four of them, twice over');
   ok('four marks, no more', E.MARKS.length, 4);
-  ok('and four for the golfer too', E.OWN_MARKS.length, 4);
+  /* the golfer's own are two steps now: went right, went wrong, three each */
+  ok('and six for the golfer, three each way', [E.OWN_MARKS.length,
+    E.OWN_MARKS.filter(m => m.tone === 'good').length, E.OWN_MARKS.filter(m => m.tone === 'bad').length].join('/'), '6/3/3');
   /* The whole reason there are two sets. */
   ok('no word appears in both lists',
     E.OWN_MARKS.map(m => m.label).filter(l => E.MARKS.some(x => x.label === l)), []);

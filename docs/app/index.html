@@ -3862,7 +3862,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261018-1450';
+const BUILD = '20261018-1510';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -7479,6 +7479,8 @@ function createStore(onChange) {
       } else if (Array.isArray(data.people) && data.people.length) {
         legacy = { people: T.config.people, pairs: T.config.pairs };
       }
+      /* an edit made here and not sent yet stays on the screen */
+      for (const u of unsent) T.config[u.k] = layDown(T.config[u.k] === undefined ? undefined : JSON.parse(JSON.stringify(T.config[u.k])), u.changes);
       settle();
       splitOutRoster();
     };
@@ -7850,14 +7852,74 @@ function createStore(onChange) {
     }
   }
 
-  async function writeConfig(mutate, silent) {
-    if (!settled) { if (!silent) { saveState = 'error'; notify(); } return false; }
-    const before = {};
-    for (const k of Object.keys(T.config)) before[k] = JSON.stringify(T.config[k]);
+  /* EVERY FIELD THAT CHANGED, AND ONLY THOSE. The server merges a write at
+     the top of the book, so a change to one round sends every round — and
+     a phone that had not yet heard another phone's pick sent its own stale
+     copy of that round back over it. That is how a closest-to-the-pin name
+     went in on one phone and came back as Nobody yet on both: the other
+     ref had typed a longest-drive distance a moment later.
+     So a write now reads the server's copy first, lays down only the
+     fields this edit touched, and sends that. */
+  const isObj = x => x && typeof x === 'object' && !Array.isArray(x);
+  function leafDiff(a, b, path, out) {
+    if (isObj(a) && isObj(b)) {
+      for (const k of new Set([...Object.keys(a), ...Object.keys(b)])) leafDiff(a[k], b[k], path.concat(k), out);
+    } else if (JSON.stringify(a) !== JSON.stringify(b)) out.push([path, b === undefined ? undefined : JSON.parse(JSON.stringify(b))]);
+    return out;
+  }
+  function layDown(base, changes) {
+    let root = base;
+    for (const [path, v] of changes) {
+      if (!path.length) { root = v; continue; }
+      if (!isObj(root)) root = {};
+      let o = root;
+      for (const k of path.slice(0, -1)) { if (!isObj(o[k])) o[k] = {}; o = o[k]; }
+      const last = path[path.length - 1];
+      if (v === undefined) delete o[last]; else o[last] = v;
+    }
+    return root;
+  }
+
+  /* One at a time. Two edits made close together on the same phone — a
+     hole nominated, then the other — must not each read the server before
+     the other has landed, or the second would send the first one back out.
+     The screen shows an edit the moment it is made; only the sending waits
+     its turn. Every edit not yet sent is laid down again over whatever the
+     server hands back, so none of them blinks off the screen meanwhile. */
+  let configChain = Promise.resolve();
+  const unsent = [];                       // [{ k, changes }] in the order made
+  function writeConfig(mutate, silent) {
+    if (!settled) { if (!silent) { saveState = 'error'; notify(); } return Promise.resolve(false); }
+    const before = {}, was = {};
+    for (const k of Object.keys(T.config)) { before[k] = JSON.stringify(T.config[k]); was[k] = before[k] === undefined ? undefined : JSON.parse(before[k]); }
     mutate(T.config);
     const keys = Object.keys(T.config)
       .filter(k => k !== 'rev' && JSON.stringify(T.config[k]) !== before[k]);
-    return pushConfig(keys, silent);
+    const mine = keys.filter(k => k !== 'people' && k !== 'pairs')   // those live in their own documents
+      .map(k => ({ k, changes: leafDiff(was[k], T.config[k], [], []) }));
+    unsent.push(...mine);
+    const send = async () => {
+      if (mode === 'db' && keys.length) {
+        try {
+          const snap = await db.doc('config/tournament').get();
+          const fresh = snap && snap.exists ? body(snap) : null;
+          if (fresh) {
+            for (const k of new Set(mine.map(x => x.k))) {
+              let v = fresh[k] === undefined ? undefined : JSON.parse(JSON.stringify(fresh[k]));
+              for (const u of unsent) if (u.k === k) v = layDown(v, u.changes);
+              T.config[k] = v;
+            }
+            T.config.rev = Math.max(T.config.rev || 0, fresh.rev || 0);
+            rev.config = Math.max(rev.config || 0, fresh.rev || 0);
+          }
+        } catch (e) { note('config read-before-write skipped', (e && e.message) || ''); }
+      }
+      try { return await pushConfig(keys, silent); }
+      finally { for (const x of mine) { const i = unsent.indexOf(x); if (i >= 0) unsent.splice(i, 1); } }
+    };
+    const run = configChain.then(send, send);
+    configChain = run.catch(() => {});
+    return run;
   }
 
   /* ---- roster writers ----
@@ -10851,7 +10913,7 @@ function scrEntry() {
               ${course.holes.filter(x => x.par === 3).map(x => `<option value="${x.n}"${cfg.ctpHole === x.n ? ' selected' : ''}>Hole ${x.n}</option>`).join('')}
             </select></label>
           <label>Closest — who is in there now
-            <select class="field" data-act="setRoundField" data-a="ctpWinner"${ed ? '' : ' disabled'}>${people(cfg.ctpWinner)}</select></label>
+            <select class="field" data-act="setRoundField" data-a="ctpWinner"${barOn ? '' : ' disabled'}>${people(cfg.ctpWinner)}</select></label>
           ${/* No distance to type. A closest-to-the-pin flag goes in the
                 ground where the best ball finished, and the next player to
                 beat it moves the flag and puts their own name here — so the
@@ -10866,11 +10928,16 @@ function scrEntry() {
               ${course.holes.map(x => `<option value="${x.n}"${cfg.ldHole === x.n ? ' selected' : ''}>Hole ${x.n} — par ${x.par}</option>`).join('')}
             </select></label>
           <label>Longest — current marker
-            <select class="field" data-act="setRoundField" data-a="ldWinner"${ed ? '' : ' disabled'}>${people(cfg.ldWinner)}</select></label>
+            <select class="field" data-act="setRoundField" data-a="ldWinner"${barOn ? '' : ' disabled'}>${people(cfg.ldWinner)}</select></label>
           <label>Distance
             <input class="field" type="text" value="${esc(cfg.ldDist || '')}" placeholder="e.g. 260 m"
-              data-act="setRoundField" data-a="ldDist"${ed ? '' : ' disabled'}></label>` : ''}
+              data-act="setRoundField" data-a="ldDist"${barOn ? '' : ' disabled'}></label>` : ''}
         </div>
+        ${/* A NAME GOES IN ONCE THE ROUND IS OPEN. Nobody has hit a shot
+              before then, so the winner boxes stay shut until it is — and
+              say so. They used to look open, take the pick, refuse it
+              without a word, and put Nobody yet back at the next redraw. */
+          !open && ed ? `<p class="sublede">The names go in once the round is open.</p>` : ''}
       </div>` : ''}
     </div>
   </div>`;
@@ -12062,10 +12129,16 @@ function captureFocus() {
   if (!key || !('value' in el)) return null;
   return { key, value: el.value, start: el.selectionStart, end: el.selectionEnd };
 }
+/* A DROPDOWN NEVER GETS THE FOCUS BACK. On a phone, focusing a <select>
+   is what opens its wheel, so handing the focus back to the rebuilt one
+   after a pick opened the same wheel a second time — every dropdown in the
+   book, the nominated holes most of all. Only a box being typed in has a
+   caret worth putting back. */
 function restoreFocus(f) {
   if (!f) return;
   const el = Array.from(document.querySelectorAll('[data-act]')).find(x => fieldKey(x) === f.key);
-  if (!el || !('value' in el)) return;
+  if (!el || !('value' in el) || el.tagName === 'SELECT') return;
+  if (el.tagName === 'INPUT' && /^(checkbox|radio|button|submit|range|color|file)$/.test(el.type)) return;
   el.value = f.value;
   el.focus();
   try { el.setSelectionRange(f.start, f.end); } catch (e) { /* not a text input */ }
@@ -12562,8 +12635,9 @@ function paint() {
     const el = document.querySelector(`[data-reveal="${want}"]`);
     if (el) {
       el.scrollIntoView({ block: 'center', behavior: 'smooth' });
-      const field = el.querySelector('select, input');
-      if (field) field.focus();
+      /* brought into view, not opened: focusing a dropdown on a phone opens
+         its wheel and focusing a box raises the keyboard, neither of which
+         anybody asked for */
     }
   }
 }
@@ -14428,14 +14502,16 @@ function onChange(e) {
     });
     render();
   } else if (act === 'setBbb') {
-    if (!editable || cardClosed(rid)) return;   // the group has finished; so have its points
+    if (!editable || cardClosed(rid)) { render(); return; }   // the group has finished; so have its points; the box shows what stands
     draftFor(rid, UI.entryHole).bbb[a] = el.value || null;
     render();
   } else if (act === 'setRoundField') {
     const nom = a === 'ctpHole' || a === 'ldHole';
     /* The nominations are made before the card opens, so they cannot wait on
        the round being open the way a winner or a distance does. */
-    if (nom ? (!canEdit() || E.roundCfg(T, rid).state === 'locked') : !editable) return;
+    /* Refused, the box is redrawn at once to show what is really saved,
+       rather than showing a pick that never went in until the next redraw. */
+    if (nom ? (!canEdit() || E.roundCfg(T, rid).state === 'locked') : !editable) { render(); return; }
     const v = el.value ? +el.value : null;
     const write = () => store.writeConfig(c => {
       c.rounds[rid][a] = nom ? v : (el.value || (a.endsWith('Dist') ? '' : null));
@@ -14901,7 +14977,7 @@ if ('serviceWorker' in navigator) {
    So every return reads the build stamp off the server and, when it has
    moved on, the page reloads itself — unless a hole is half entered, in
    which case it waits for the save. */
-var BOOK_BUILD = '20261018-1450';
+var BOOK_BUILD = '20261018-1510';
 function checkBuild() {
   if (document.hidden || navigator.onLine === false) return;
   fetch('sw.js', { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (t) {
