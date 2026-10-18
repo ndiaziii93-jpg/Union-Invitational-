@@ -112,7 +112,13 @@ const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' })
   ok('and the window says the book is locked',
     (await p.locator('.mg-role .mg-rt').innerText()).trim(), 'Viewer');
   await p.locator('.mg-role [data-act="signIn"]').click(); await p.waitForTimeout(300);
-  await p.locator('#pinField').fill('2000');                      // scorer 1
+  /* the shared book redraws while a PIN is half typed: the digits stay */
+  await p.locator('#pinField').click(); await p.locator('#pinField').type('20', { delay: 60 });
+  await p.evaluate(() => window.__forceRender()); await p.waitForTimeout(250);
+  ok('a redraw mid-PIN keeps the digits', await p.locator('#pinField').inputValue(), '20');
+  ok('and the finger stays in the box', await p.evaluate(() => document.activeElement && document.activeElement.id), 'pinField');
+  await p.locator('#pinField').type('00', { delay: 60 });
+  ok('so the PIN completes', await p.locator('#pinField').inputValue(), '2000');
   await p.locator('[data-act="modalOk"]').click(); await p.waitForTimeout(400);
   await goTab(p, 'Course Setup'); await p.waitForTimeout(400);
   ok('a signed-in scorer sees the verify control', await p.locator('[data-act="verifyCourse"]').count(), 1);

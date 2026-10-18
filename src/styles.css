@@ -2770,6 +2770,8 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
   background:var(--ink);color:var(--page);border-radius:18px;padding:12px 14px;
   box-shadow:0 10px 30px rgba(16,22,17,.38);border-top:2px solid var(--gold-up);
   animation:feelin .28s ease-out}
+/* already up when the page was rebuilt: no second entrance */
+.keypad.still,.feelbar.still{animation:none}
 @keyframes feelin{from{transform:translateY(16px);opacity:0}to{transform:none;opacity:1}}
 html:has(.page.scoring) .feelbar{bottom:calc(150px + env(safe-area-inset-bottom,0px))}
 .fb-h{display:flex;align-items:center;gap:11px;margin-bottom:10px}

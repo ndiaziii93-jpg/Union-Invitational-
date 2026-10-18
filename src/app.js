@@ -40,6 +40,7 @@ const UI = {
   pad: null,            // the golfer whose keypad is up on Score Entry
   pinDraft: { master: '', s1: '', s2: '' },   // PINs typed on Setup and not yet saved
   pinNote: '',          // what the last Save PINs did
+  pinTyped: '',         // the PIN half typed into the PIN window, kept across redraws
   feelDraft: null,      // the word they are typing on it: {rid, h, v}
   upload: { queue: [], err: '' },
   role: 'viewer',
@@ -3916,7 +3917,7 @@ function inUse() {
      nothing is lost by waiting — the page catches up the moment the finger
      leaves the field. A textarea is left out on purpose: the Ask panel streams
      its answer into the page while the question is still focused. */
-  if (el.tagName === 'INPUT' && /^(text|search|tel|number|url|email)$/.test(el.type)) return true;
+  if (el.tagName === 'INPUT' && /^(text|search|tel|number|url|email|password)$/.test(el.type)) return true;
   return el.tagName === 'SELECT';
 }
 /* Every surface in the book that scrolls on its own. The page itself and the
@@ -4183,6 +4184,8 @@ function paint() {
      the order it happens to appear in, because a window opening changes that
      order and an index is then quietly the wrong element. */
   const strips = scrollMarks();
+  /* what was already up stays up: a redraw must not make it rise again */
+  const hadPad = !!document.querySelector('.keypad'), hadBar = !!document.querySelector('.feelbar');
   /* A rule opened to be read was closing itself after fifteen seconds. The
      book redraws on a timer, and a redraw replaces the whole tree — taking
      the <details> open with it. Which ones were open is remembered by id. */
@@ -4302,6 +4305,8 @@ function paint() {
   onScroll();
   measureCover();
   fitPlates();
+  if (hadPad) { const k = document.querySelector('.keypad'); if (k) k.classList.add('still'); }
+  if (hadBar) { const f = document.querySelector('.feelbar'); if (f) f.classList.add('still'); }
 
   opened.forEach(id => { const el = document.getElementById(id); if (el) el.open = true; });
   mountHole3D();
@@ -4358,7 +4363,10 @@ function paint() {
      used to put the caret in the field, and on a phone a caret means the
      keyboard — half the window gone before a word has been read, including
      the answer to the last question. A field is focused by being tapped. */
-  if (UI.modal && UI.modal.kind === 'pin') { const i = document.getElementById('pinField'); if (i) { i.focus(); i.select(); } }
+  /* the PIN box takes the finger once, and keeps the caret at the end: a
+     redraw that selected the lot made the next digit replace them all */
+  if (UI.modal && UI.modal.kind === 'pin') { const i = document.getElementById('pinField');
+    if (i && document.activeElement !== i) { i.focus(); const n = i.value.length; try { i.setSelectionRange(n, n); } catch (e) { /* not a text box */ } } }
   else if (UI.modal && UI.modal.kind === 'add') { const i = document.getElementById('addName'); if (i) i.focus(); }
   else restoreFocus(focused);
 
@@ -4410,7 +4418,7 @@ function pinModalHtml() {
   return `<div class="scrim" data-act="modalScrim"><div class="modal" role="dialog" aria-modal="true" aria-label="${esc(m.title)}">
     ${modalBanner(m.title, 'The Union Invitational')}
     ${m.note ? `<p>${esc(m.note)}</p>` : ''}
-    <input class="pinin" id="pinField" type="password" inputmode="numeric" autocomplete="off" maxlength="8" placeholder="••••" aria-label="PIN">
+    <input class="pinin" id="pinField" type="password" inputmode="numeric" autocomplete="off" maxlength="8" placeholder="••••" aria-label="PIN" value="${esc(UI.pinTyped || '')}">
     <p class="err">${esc(UI.modalErr)}</p>
     <div class="acts"><button class="btn ghost" data-act="modalCancel">Cancel</button>
       <button class="btn" data-act="modalOk">${esc(m.ok || 'Confirm')}</button></div>
@@ -5397,11 +5405,11 @@ function askPin(title, note, ok, onOk) {
   if (!D.PINS_ENABLED) { onOk('master'); render(); return; }
   const r = S.ROLES[UI.role];
   if (r && r.canEdit && UI.role !== 'viewer') { onOk(UI.role); render(); return; }
-  UI.modal = { kind: 'pin', title, note, ok, onOk }; UI.modalErr = ''; render();
+  UI.modal = { kind: 'pin', title, note, ok, onOk }; UI.modalErr = ''; UI.pinTyped = ''; render();
 }
 function askPinStrict(title, note, ok, onOk) {
   if (!D.PINS_ENABLED) { onOk('master'); render(); return; }
-  UI.modal = { kind: 'pin', title, note, ok, onOk }; UI.modalErr = ''; render();
+  UI.modal = { kind: 'pin', title, note, ok, onOk }; UI.modalErr = ''; UI.pinTyped = ''; render();
 }
 
 /** Shut whatever is up — and raise anything that was queued behind it.
@@ -5411,7 +5419,7 @@ function askPinStrict(title, note, ok, onOk) {
 function closeModal() {
   const m = UI.modal;
   if (m && m.kind === 'art') dropHole3D();
-  UI.modal = null; UI.modalErr = '';
+  UI.modal = null; UI.modalErr = ''; UI.pinTyped = '';
   if (m && m.kind === 'bbbmiss') raiseNext(m.next);
   /* An event opened from a day goes back to that day when it is done with,
      saved, removed or left alone: the day is where you were. */
@@ -5428,7 +5436,7 @@ function submitPin() {
   const role = S.roleForPin(T.config, pin);
   if (!role) { UI.modalErr = 'That PIN is not on the list. Try again, or ask the master reviewer.'; render(); return; }
   const m = UI.modal;
-  UI.modal = null; UI.modalErr = '';
+  UI.modal = null; UI.modalErr = ''; UI.pinTyped = '';
   if (m && m.onOk) m.onOk(role, pin);
   render();
 }
@@ -6619,6 +6627,7 @@ export function boot() {
     if (e.target && e.target.id === 'askField') UI.askText = e.target.value;
     /* a PIN half typed outlives the redraws the shared book lands */
     if (e.target && /^pin_(master|s1|s2)$/.test(e.target.id)) UI.pinDraft[e.target.id.slice(4)] = e.target.value;
+    if (e.target && e.target.id === 'pinField') UI.pinTyped = e.target.value;
     /* The event being written lives in UI.modal, not in the DOM: a redraw can
        land between the name and the Save, and what is typed must outlive it. */
     if (e.target && e.target.id === 'evTitle' && UI.modal && UI.modal.kind === 'event') {
