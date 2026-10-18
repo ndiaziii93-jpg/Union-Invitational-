@@ -12,9 +12,23 @@ for (const [key, c] of Object.entries(COURSES)) c.holes.forEach((h, i) => holes.
 ok('all 36 holes are traced from a drawing', holes.filter(([k, h]) => TRACED[k + '_' + h.n]).length, 36);
 ok('and every model says so', holes.every(([k, h]) => model(k, h).traced === 'drawing'), true);
 const m = (k, n) => { const h = COURSES[k].holes[n - 1]; return model(k, { ...h, n }); };
-ok('Olympos 5 has its lake, down the left', m('olympos', 5).water.some(w => w.side === -1 && w.segs.length > 10), true);
-ok('Olympos 12 has its lake on the right', m('olympos', 12).water.some(w => w.side === 1), true);
-ok('Aspendos 1 is dry', m('aspendos', 1).water.length, 0);
+const lakeSide = (x, lake) => Math.sign(lake.reduce((a, [, d]) => a + d, 0));
+ok('Olympos 5 has its lake, down the left', m('olympos', 5).lakes.some(l => lakeSide(0, l) === -1 && l.length > 20), true);
+ok('Olympos 12 has its lake on the right', m('olympos', 12).lakes.some(l => lakeSide(0, l) === 1), true);
+ok('Aspendos 1 is dry', m('aspendos', 1).lakes.length, 0);
+/* Olympos 1: one lake, across the hole in front of the tee, as drawn. The
+   line from the tee runs into it, it reaches out to the right beyond, and
+   the line is dry again before the green. */
+const o1 = m('olympos', 1);
+ok('Olympos 1 has one lake', o1.lakes.length, 1);
+const dry = [...Array(101).keys()].map(i => i / 100).filter(t => !o1.wet(t, 0, 0));
+const wetLine = [...Array(101).keys()].map(i => i / 100).filter(t => o1.wet(t, 0, 0));
+ok('it crosses the line in front of the tee', wetLine.length > 3 && wetLine[0] > .1 && wetLine[wetLine.length - 1] < .45, true);
+ok('the tee and the green are dry', dry.includes(0.02) && dry.includes(0.96), true);
+ok('it reaches out to the right of the line', o1.lakes[0].some(([, d]) => d > 40), true);
+ok('every lake lies on the ground', holes.every(([k, h]) => { const x = model(k, h);
+  return x.lakes.every(l => l.every(([t, d]) => { const i = Math.max(0, Math.min(23, Math.floor(t * 24)));
+    return Math.abs(d) <= (d < 0 ? x.islandL : x.islandR)[i] + 1; })); }), true);
 ok('the two courses are not the same holes', JSON.stringify(m('olympos', 1).cl) !== JSON.stringify(m('aspendos', 1).cl), true);
 ok('no bunker sits in the water', holes.every(([k, h]) => { const x = model(k, h); return x.bunkers.every(b => !x.wet(b.t, b.d)); }), true);
 ok('and the length is still the card\'s', m('olympos', 5).len, COURSES.olympos.holes[4].mW);

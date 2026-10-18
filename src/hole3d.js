@@ -56,6 +56,29 @@ function buildScene(m) {
   /* a measured width, where the drawing gave one */
   const along = (arr, t) => { const n = arr.length, x = Math.max(0, Math.min(n - 1, t * n - .5)), i = Math.floor(x), f = x - i;
     return arr[i] * (1 - f) + arr[Math.min(n - 1, i + 1)] * f; };
+  /* how far the fairway can run, on one side, before the water: scanned
+     out a metre at a time against the lake outlines, keeping five metres
+     of rough between them every way, so a shore that runs slantwise across
+     the hole is never clipped by a corner of the fairway */
+  const reachDry = (t, sg, w) => { if (!m.wet) return w;
+    for (let x = 0; x <= w; x += 1) if (m.wet(t, sg * x, 5)) return x - 1;   // five metres clear, along and across
+    return w; };
+  /* THE FAIRWAY STOPS AT THE WATER. Each side runs out to its measured
+     width or to five metres short of the shore, whichever comes first;
+     where a lake crosses the line the fairway breaks, and the tee shot
+     carries it as it does in the drawing. One shape per unbroken run. */
+  function fairwayRuns(t0, t1, n = 60) {
+    const runs = []; let cur = null;
+    for (let i = 0; i <= n; i++) { const t = t0 + (t1 - t0) * i / n;
+      const w = m.fwHalf ? along(m.fwHalf, t) : m.fw.w0 + (m.fw.w1 - m.fw.w0) * (i / n);
+      const wl = reachDry(t, -1, w), wr = reachDry(t, 1, w);
+      if (wl < 2 || wr < 2) { if (cur && cur.L.length > 2) runs.push(cur); cur = null; continue; }
+      if (!cur) cur = { L: [], R: [] };
+      cur.L.push(side(t, -wl)); cur.R.push(side(t, wr)); }
+    if (cur && cur.L.length > 2) runs.push(cur);
+    return runs.map(({ L, R }) => { const sh = new T3.Shape(); sh.moveTo(L[0].x, L[0].z); L.forEach(p => sh.lineTo(p.x, p.z));
+      R.slice().reverse().forEach(p => sh.lineTo(p.x, p.z)); sh.closePath(); return sh; });
+  }
   function ribbon(w0, w1, t0, t1, n = 40) {
     const L = [], R = [];
     for (let i = 0; i <= n; i++) { const t = t0 + (t1 - t0) * i / n;
@@ -66,21 +89,32 @@ function buildScene(m) {
   }
   function islandShape() {
     const pts = [], n = 26, t0 = -0.03, t1 = 1.03;
-    const W = m.islandW ? (t => along(m.islandW, Math.max(0, Math.min(1, t))) + 5 * (Math.sin(t * 8.3) * .6 + Math.sin(t * 15.7 + 1) * .4))
-                        : (t => 62 + 8 * t + 10 * (Math.sin(t * 8.3) * .6 + Math.sin(t * 15.7 + 1) * .4));
-    for (let i = 0; i <= n; i++) { const t = t0 + (t1 - t0) * i / n; pts.push(side(t, -W(t))); }
-    { const c = at(t1), g = tan(t1), nn = nrm(t1), R = W(t1);
-      for (let j = 1; j < 8; j++) { const a = Math.PI - Math.PI * j / 8; pts.push(c.clone().add(nn.clone().multiplyScalar(Math.cos(a) * R)).add(g.clone().multiplyScalar(Math.sin(a) * R * .8))); } }
-    for (let i = n; i >= 0; i--) { const t = t0 + (t1 - t0) * i / n; pts.push(side(t, W(t))); }
-    { const c = at(t0), g = tan(t0), nn = nrm(t0), R = W(t0);
-      for (let j = 1; j < 8; j++) { const a = -Math.PI * j / 8; pts.push(c.clone().add(nn.clone().multiplyScalar(Math.cos(a) * R)).add(g.clone().multiplyScalar(Math.sin(a) * R * .8))); } }
+    const wob = t => Math.sin(t * 8.3) * .6 + Math.sin(t * 15.7 + 1) * .4;
+    const W = m.islandL ? ((t, sg) => along(sg < 0 ? m.islandL : m.islandR, Math.max(0, Math.min(1, t))) + 4 * wob(t))
+            : m.islandW ? ((t) => along(m.islandW, Math.max(0, Math.min(1, t))) + 5 * wob(t))
+                        : (t => 62 + 8 * t + 10 * wob(t));
+    for (let i = 0; i <= n; i++) { const t = t0 + (t1 - t0) * i / n; pts.push(side(t, -W(t, -1))); }
+    /* the two ends: half an ellipse each, its centre between the two sides
+       so a lopsided hole still closes cleanly */
+    const cap = (t, from, to, dir) => { const l = W(t, -1), r = W(t, 1), c = side(t, (r - l) / 2), g = tan(t), nn = nrm(t), R = (l + r) / 2;
+      for (let j = 1; j < 8; j++) { const a = from + (to - from) * j / 8; pts.push(c.clone().add(nn.clone().multiplyScalar(Math.cos(a) * R)).add(g.clone().multiplyScalar(dir * Math.abs(Math.sin(a)) * Math.min(R, 70) * .8))); } };
+    cap(t1, Math.PI, 0, 1);
+    for (let i = n; i >= 0; i--) { const t = t0 + (t1 - t0) * i / n; pts.push(side(t, W(t, 1))); }
+    cap(t0, 0, -Math.PI, -1);
     const v2 = pts.map(p => new T3.Vector2(p.x, p.z));
     const s = new T3.Shape(); s.moveTo(v2[0].x, v2[0].y); s.splineThru(v2.slice(1).concat([v2[0]])); return s;
   }
-  function flat(shape, color, y, map) {
+  /* FLAT LAYERS DO NOT FIGHT. The shore, the water, the fairway, the tee
+     and the green lie on the same ground, and a few centimetres apart they
+     flicker against each other as the camera moves. Each is lifted clear
+     of the one below and told, through the depth offset, which one wins. */
+  const LAYER = { shore: [.5, 1], water: [.8, 2], fairway: [1.1, 3], tee: [1.3, 4], fringe: [1.3, 4], lip: [1.4, 5], green: [1.6, 6], sand: [1.7, 7] };
+  const layered = (mt, k) => { mt.polygonOffset = true; mt.polygonOffsetFactor = -k; mt.polygonOffsetUnits = -k * 4; return mt; };
+  function flat(shape, color, y, map, k) {
     const g = G(new T3.ShapeGeometry(shape, 24)); g.rotateX(Math.PI / 2);
-    const mesh = new T3.Mesh(g, M(new T3.MeshLambertMaterial({ color, map: map || null, side: DS })));
-    mesh.position.y = y; mesh.receiveShadow = true; return mesh;
+    const mt = M(new T3.MeshLambertMaterial({ color, map: map || null, side: DS })); if (k) layered(mt, k);
+    const mesh = new T3.Mesh(g, mt);
+    mesh.position.y = y; mesh.receiveShadow = true; if (k) mesh.renderOrder = k; return mesh;
   }
   function ellipse(cx, cz, rx, rz, rot) {
     const s = new T3.Shape(); s.absellipse(0, 0, rx, rz, 0, Math.PI * 2, false, 0);
@@ -114,47 +148,50 @@ function buildScene(m) {
   const island = new T3.Mesh(eg, M(new T3.MeshLambertMaterial({ color: 0x6FB83A }))); island.position.y = -7.1; island.receiveShadow = true; island.castShadow = true;
   const sides = new T3.Mesh(eg, M(new T3.MeshLambertMaterial({ color: 0x4F8C2A }))); sides.position.y = -7.4; sides.scale.set(.995, 1, .995); sc.add(sides); sc.add(island);
 
-  /* WATER, where the drawing has it: each run a lake beside the line, its
-     near shore and far shore measured slice by slice, laid just under the
-     fairway so the turf wins where the two meet. */
-  (m.water || []).forEach(wa => {
-    const sg = wa.side, segs = wa.segs; if (segs.length < 2) return;
-    const ext = (i, k) => segs[Math.max(0, Math.min(segs.length - 1, i))][k];
-    const t0 = segs[0][0] - .02, t1 = segs[segs.length - 1][0] + .02;
-    const inner = [side(t0, sg * (ext(0, 1) + 3))], outer = [side(t0, sg * (ext(0, 2) - 2))];
-    segs.forEach(([t, di, dout]) => { inner.push(side(t, sg * di)); outer.push(side(t, sg * dout)); });
-    inner.push(side(t1, sg * (ext(segs.length - 1, 1) + 3))); outer.push(side(t1, sg * (ext(segs.length - 1, 2) - 2)));
-    const pts = inner.concat(outer.reverse()).map(p => new T3.Vector2(p.x, p.z));
-    const shape = new T3.Shape(); shape.moveTo(pts[0].x, pts[0].y); shape.splineThru(pts.slice(1).concat([pts[0]]));
-    sc.add(flat(shape, 0xE3D9B4, .16));                                     // the shore, a pale lip
-    const g = G(new T3.ShapeGeometry(shape, 24)); g.rotateX(Math.PI / 2); g.scale(.985, 1, .985);
-    const c = g.boundingBox || (g.computeBoundingBox(), g.boundingBox);
-    const cx = (c.min.x + c.max.x) / 2, cz = (c.min.z + c.max.z) / 2; g.translate(cx * .015, 0, cz * .015);
-    const lake = new T3.Mesh(g, M(new T3.MeshLambertMaterial({ color: 0x4E9ED6, emissive: 0x0E3550, emissiveIntensity: .35, side: DS })));
-    lake.position.y = .2; lake.receiveShadow = true; sc.add(lake);
+  /* WATER, as the drawing has it: each lake its own outline, smoothed
+     round its edge (centripetal, so it never loops past a point), with a
+     pale shore just outside it. Water, shore and turf sit on their own
+     layers so none of them shimmers through another as the camera moves. */
+  (m.lakes || []).forEach(poly => {
+    if (poly.length < 4) return;
+    const raw = poly.map(([t, d]) => side(t, d));
+    const ring = new T3.CatmullRomCurve3(raw, true, 'centripetal').getSpacedPoints(Math.max(48, poly.length * 4));
+    ring.pop();
+    let area = 0; ring.forEach((p, i) => { const q = ring[(i + 1) % ring.length]; area += p.x * q.z - q.x * p.z; });
+    const out = Math.sign(area) || 1;
+    const shape = grow => { const pts = ring.map((p, i) => { if (!grow) return new T3.Vector2(p.x, p.z);
+        const a0 = ring[(i - 1 + ring.length) % ring.length], a1 = ring[(i + 1) % ring.length];
+        let dx = a1.x - a0.x, dz = a1.z - a0.z; const l = Math.hypot(dx, dz) || 1; dx /= l; dz /= l;
+        return new T3.Vector2(p.x + dz * grow * out, p.z - dx * grow * out); });
+      return new T3.Shape(pts); };
+    sc.add(flat(shape(2.4), 0xE3D9B4, LAYER.shore[0], null, LAYER.shore[1]));
+    const lm = layered(M(new T3.MeshLambertMaterial({ color: 0x4E9ED6, emissive: 0x0E3550, emissiveIntensity: .35, side: DS })), LAYER.water[1]);
+    const lg = G(new T3.ShapeGeometry(shape(0))); lg.rotateX(Math.PI / 2);
+    const lake = new T3.Mesh(lg, lm); lake.position.y = LAYER.water[0]; lake.renderOrder = LAYER.water[1]; lake.receiveShadow = true; sc.add(lake);
   });
 
   const tex = stripes();
-  sc.add(flat(ribbon(m.fw.w0, m.fw.w1, m.fw.t0, m.fw.t1), 0xffffff, .25, tex));
-  sc.add(pad(0.025, 0, 15, 26, 5, 0xB9E67A, .3));
+  if (m.lakes && m.lakes.length) fairwayRuns(m.fw.t0, m.fw.t1).forEach(sh => sc.add(flat(sh, 0xffffff, LAYER.fairway[0], tex, LAYER.fairway[1])));
+  else sc.add(flat(ribbon(m.fw.w0, m.fw.w1, m.fw.t0, m.fw.t1), 0xffffff, LAYER.fairway[0], tex, LAYER.fairway[1]));
+  { const tee = pad(0.025, 0, 15, 26, 5, 0xB9E67A, LAYER.tee[0]); layered(tee.material, LAYER.tee[1]); tee.renderOrder = LAYER.tee[1]; sc.add(tee); }
   const tp = side(0.012, 0);
   { const coin = new T3.Group();
-    const ring = new T3.Mesh(G(new T3.CylinderGeometry(2.8, 2.8, .5, 28)), M(new T3.MeshLambertMaterial({ color: 0xF6F6F3 }))); ring.position.y = .55; coin.add(ring);
-    const disc = new T3.Mesh(G(new T3.CylinderGeometry(2.0, 2.0, .3, 28)), M(new T3.MeshLambertMaterial({ color: 0x8E949A }))); disc.position.y = .85; coin.add(disc);
+    const ring = new T3.Mesh(G(new T3.CylinderGeometry(2.8, 2.8, .5, 28)), M(new T3.MeshLambertMaterial({ color: 0xF6F6F3 }))); ring.position.y = 1.6; coin.add(ring);
+    const disc = new T3.Mesh(G(new T3.CylinderGeometry(2.0, 2.0, .3, 28)), M(new T3.MeshLambertMaterial({ color: 0x8E949A }))); disc.position.y = 1.9; coin.add(disc);
     coin.position.set(tp.x, 0, tp.z); sc.add(coin); }
 
   const gC = at(m.green.t), gr = tan(m.green.t), ga = Math.atan2(gr.x, gr.z);
-  const fringe = new T3.Mesh(ellipse(gC.x, gC.z, m.green.rx + 4, m.green.rz + 3.5, ga), M(new T3.MeshLambertMaterial({ color: 0x8CD14A, side: DS }))); fringe.position.y = .3; fringe.receiveShadow = true; sc.add(fringe);
-  const green = new T3.Mesh(ellipse(gC.x, gC.z, m.green.rx, m.green.rz, ga), M(new T3.MeshLambertMaterial({ color: 0xB2E86F, side: DS }))); green.position.y = .4; green.receiveShadow = true; sc.add(green);
+  const fringe = new T3.Mesh(ellipse(gC.x, gC.z, m.green.rx + 4, m.green.rz + 3.5, ga), layered(M(new T3.MeshLambertMaterial({ color: 0x8CD14A, side: DS })), LAYER.fringe[1])); fringe.position.y = LAYER.fringe[0]; fringe.renderOrder = LAYER.fringe[1]; fringe.receiveShadow = true; sc.add(fringe);
+  const green = new T3.Mesh(ellipse(gC.x, gC.z, m.green.rx, m.green.rz, ga), layered(M(new T3.MeshLambertMaterial({ color: 0xB2E86F, side: DS })), LAYER.green[1])); green.position.y = LAYER.green[0]; green.renderOrder = LAYER.green[1]; green.receiveShadow = true; sc.add(green);
   { const pole = new T3.Mesh(G(new T3.CylinderGeometry(.25, .25, 7, 6)), M(new T3.MeshLambertMaterial({ color: 0xf4f4f4 }))); pole.position.set(gC.x + 2, 3.5, gC.z); sc.add(pole);
     const flag = new T3.Mesh(G(new T3.PlaneGeometry(4, 2.4)), M(new T3.MeshLambertMaterial({ color: 0xD9342B, side: DS }))); flag.position.set(gC.x + 4, 6, gC.z); flag.castShadow = true; sc.add(flag);
-    const cup = new T3.Mesh(G(new T3.CircleGeometry(.8, 12)), M(new T3.MeshBasicMaterial({ color: 0x1D2E21 }))); cup.rotation.x = -Math.PI / 2; cup.position.set(gC.x + 2, .45, gC.z); sc.add(cup); }
+    const cup = new T3.Mesh(G(new T3.CircleGeometry(.8, 12)), M(new T3.MeshBasicMaterial({ color: 0x1D2E21 }))); cup.rotation.x = -Math.PI / 2; cup.position.set(gC.x + 2, LAYER.green[0] + .08, gC.z); cup.renderOrder = 9; sc.add(cup); }
 
-  const sand = M(new T3.MeshLambertMaterial({ color: 0xEBDDB3, side: DS }));
-  const lipM = M(new T3.MeshLambertMaterial({ color: 0x5E9A33, side: DS }));
+  const sand = layered(M(new T3.MeshLambertMaterial({ color: 0xEBDDB3, side: DS })), LAYER.sand[1]);
+  const lipM = layered(M(new T3.MeshLambertMaterial({ color: 0x5E9A33, side: DS })), LAYER.lip[1]);
   const bunkerPts = m.bunkers.map(b => { const p = side(b.t, b.d);
-    const lip = new T3.Mesh(ellipse(p.x, p.z, b.rx + 1.2, b.rz + 1.2, 0), lipM); lip.position.y = .32; sc.add(lip);
-    const mesh = new T3.Mesh(ellipse(p.x, p.z, b.rx, b.rz, rnd() * 1.2), sand); mesh.position.y = .35; mesh.receiveShadow = true; sc.add(mesh); return p; });
+    const lip = new T3.Mesh(ellipse(p.x, p.z, b.rx + 1.2, b.rz + 1.2, 0), lipM); lip.position.y = LAYER.lip[0]; lip.renderOrder = LAYER.lip[1]; sc.add(lip);
+    const mesh = new T3.Mesh(ellipse(p.x, p.z, b.rx, b.rz, rnd() * 1.2), sand); mesh.position.y = LAYER.sand[0]; mesh.renderOrder = LAYER.sand[1]; mesh.receiveShadow = true; sc.add(mesh); return p; });
 
   const greens = [0x3F7D2B, 0x4E9A33, 0x5FAE3F, 0x2F6A24];
   const trunkM = M(new T3.MeshLambertMaterial({ color: 0x6E4B2A }));
@@ -173,12 +210,17 @@ function buildScene(m) {
   /* the trees stand where the drawing has them: on the side it puts them,
      off the fairway, and never in the water */
   const pickSide = () => (rnd() < (m.treeR != null ? m.treeR : .5) ? 1 : -1);
-  const clear = (t, d) => !(m.wet && m.wet(t, d)) && (!m.fwHalf || Math.abs(d) > along(m.fwHalf, t) + 5) && (!m.islandW || Math.abs(d) < along(m.islandW, t) - 2);
+  const edgeAt = (t, d) => m.islandL ? along(d < 0 ? m.islandL : m.islandR, Math.max(0, Math.min(1, t))) : m.islandW ? along(m.islandW, t) : 999;
+  const clear = (t, d) => !(m.wet && m.wet(t, d)) && (!m.fwHalf || Math.abs(d) > along(m.fwHalf, t) + 5) && Math.abs(d) < edgeAt(t, d) - 2;
   const span = t => m.islandW ? Math.max(8, along(m.islandW, t) - (m.fwHalf ? along(m.fwHalf, t) : 20) - 8) : 36;
-  for (let i = 0, tries = 0; i < nTrees * .75 && tries < nTrees * 6; tries++) { const t = 0.04 + rnd() * .9; const s = pickSide();
+  if (m.stands && m.stands.length >= 5) {
+    /* where the drawing stands them: a tree to each clump it draws */
+    m.stands.forEach(([t, d]) => { const tt = t + (rnd() - .5) * 4 / LEN, dd = d + (rnd() - .5) * 4;
+      if (tt < .01 || !clear(tt, dd)) return; const p = side(tt, dd); tree(p.x, p.z, .85 + rnd() * .6); });
+  } else for (let i = 0, tries = 0; i < nTrees * .75 && tries < nTrees * 6; tries++) { const t = 0.04 + rnd() * .9; const s = pickSide();
     const base = m.fwHalf ? along(m.fwHalf, t) + 8 : 30; const d = s * (base + rnd() * span(t));
     if (!clear(t, d)) continue; const p = side(t, d); tree(p.x, p.z, .85 + rnd() * .7); i++; }
-  for (let i = 0, tries = 0; i < nTrees * .25 && tries < nTrees * 3; tries++) { const t = .72 + rnd() * .25; const d = pickSide() * (14 + rnd() * 28);
+  if (!(m.stands && m.stands.length >= 5)) for (let i = 0, tries = 0; i < nTrees * .25 && tries < nTrees * 3; tries++) { const t = .72 + rnd() * .25; const d = pickSide() * (14 + rnd() * 28);
     if (!clear(t, d)) continue; const p = side(t, d); tree(p.x, p.z, .8 + rnd() * .5); i++; }
 
   const points = { tee: tp, gMid: gC, gFront: gC.clone().sub(gr.clone().multiplyScalar(m.green.rz)), gBack: gC.clone().add(gr.clone().multiplyScalar(m.green.rz)), bunkers: bunkerPts };
@@ -209,7 +251,7 @@ export function snapshot(m, w = 520, h = 650, across = false) {
   }
   snapR.setSize(w, h, false);
   const S = buildScene(m);
-  const cam = new T3.PerspectiveCamera(44, w / h, 1, 4000);
+  const cam = new T3.PerspectiveCamera(44, w / h, 5, 4000);
   if (across) {
     /* the same stand behind the tee, the camera rolled a quarter turn so the
        hole runs along the long side of the picture */
@@ -238,7 +280,7 @@ export function create(mount, m, opts = {}) {
   const r = new T3.WebGLRenderer({ canvas, antialias: true, alpha: true });
   r.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   r.shadowMap.enabled = true; r.shadowMap.type = T3.PCFSoftShadowMap; r.outputColorSpace = T3.SRGBColorSpace;
-  const cam = new T3.PerspectiveCamera(44, 1, 1, 4000);
+  const cam = new T3.PerspectiveCamera(44, 1, 5, 4000);
   const ground = new T3.Plane(new T3.Vector3(0, 1, 0), 0);
   const ray = new T3.Raycaster();
   let W = 1, Hh = 1, fitted = false;
