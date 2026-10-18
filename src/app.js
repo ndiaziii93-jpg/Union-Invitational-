@@ -2441,14 +2441,15 @@ function scrEntry() {
      taps from anybody — which is the whole point, since it was a second tap
      that kept handing the shot back.
      A mis-tap still needs a way out, but it must not BE another tap on the
-     same chip. The master reviewer gets a separate, quietly-labelled release
-     beside it: a different control, deliberately chosen. */
+     same chip. The refs and the master reviewer get a separate, quietly-
+     labelled release beside it: a different control, deliberately chosen,
+     and it still asks before it hands anything back. */
   const relief = (g, c, key, label, spare, editable) => {
     const used = !!(c && c[key]);
     return `<button class="mchip${used ? ' on' : ''}" data-act="tgl"
       data-a="${g.id}" data-b="${key}"${used || !editable ? ' disabled' : ''}
       aria-pressed="${used}">${label}: ${used ? 'Used' : spare}</button>`
-      + (used && editable && canAdmin()
+      + (used && editable && canEdit()
         ? `<button class="rm relq" data-act="unspend" data-a="${g.id}" data-b="${key}"
             aria-label="Give ${esc(g.display)} back ${esc(RELIEFNAME[key] || 'it')}">release</button>`
         : '');
@@ -6074,7 +6075,8 @@ function onClick(e) {
       return;
     }
     case 'unspend': {
-      if (!canAdmin() || E.roundCfg(T, rid).state !== 'open') return;
+      if (!canEdit() || E.roundCfg(T, rid).state !== 'open') return;
+      if (cardClosed(rid) || closedFor(rid, a)) return;   // a finished card stays as it is
       const who = (E.person(T, a) || {}).display || 'that golfer';
       UI.modal = { kind: 'confirm',
         title: 'Give back ' + (RELIEFNAME[b] || 'it'),
