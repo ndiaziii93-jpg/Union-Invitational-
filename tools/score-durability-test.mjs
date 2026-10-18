@@ -201,6 +201,14 @@ for (const mode of ['the test copy (this device only)', 'the real book (shared d
   ok('saving moved on to the next hole', await p.locator('.holehead h3').innerText(), 'Hole 2');
   ok('and hole 1 is marked as scored', await p.locator('.hcell').first().getAttribute('class').then(c => c.includes('saved')), true);
   await p.locator('.hcell').first().click(); await p.waitForTimeout(500); await clear();
+  if (isDb) {
+    /* the card must be in the database before the phone goes away; if it is
+       not, say why, from the book's own log of what it did */
+    const cards = await p.evaluate(() => Object.keys(window.__docs || {}).filter(k => k.startsWith('scores/')).length);
+    ok('the card reached the database before the reload', cards > 0, true);
+    if (!cards) { await p.waitForTimeout(3000);
+      console.log('  book log:', JSON.stringify(await p.evaluate(() => { const d = Object.entries(window.__docs || {}).find(([k]) => k.startsWith('diag/')); return d ? d[1] : null; }))); }
+  }
 
   // --- the phone is put away and reopened ---
   await p.reload(); await settled(p); await clear();
