@@ -4708,7 +4708,7 @@ function artModalHtml() {
       <button class="${UI.h3labels === false ? '' : 'on'}" data-act="artLabels" aria-label="Yardages on or off" aria-pressed="${UI.h3labels !== false}">${ico.layers}</button>
       <button class="${UI.h3flat ? 'on' : ''}" data-act="artFlat" aria-label="Flat or tilted" aria-pressed="${!!UI.h3flat}">2D</button>
     </div>
-    ${!model.traced && live ? `<div class="h3note">Shape drawn from the card · not surveyed yet</div>` : ''}
+    ${model.traced !== true && live ? `<div class="h3note">${model.traced === 'drawing' ? 'Traced from the drawing' : 'Shape drawn from the card'} · not surveyed yet</div>` : ''}
     ${UI.gps && UI.gps.err ? `<div class="h3note warn">${esc(UI.gps.err)}</div>` : ''}
     <div class="h3dock">
       ${canFeel ? `<button class="h3who" data-act="artFeel" aria-label="${me ? 'Band ' + me.band : 'Who are you?'}">${shield}</button>`

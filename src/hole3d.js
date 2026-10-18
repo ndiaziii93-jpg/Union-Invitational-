@@ -53,16 +53,21 @@ function buildScene(m) {
   const G = g => { geos.push(g); return g; };
   const M = mt => { mats.push(mt); return mt; };
 
+  /* a measured width, where the drawing gave one */
+  const along = (arr, t) => { const n = arr.length, x = Math.max(0, Math.min(n - 1, t * n - .5)), i = Math.floor(x), f = x - i;
+    return arr[i] * (1 - f) + arr[Math.min(n - 1, i + 1)] * f; };
   function ribbon(w0, w1, t0, t1, n = 40) {
     const L = [], R = [];
-    for (let i = 0; i <= n; i++) { const t = t0 + (t1 - t0) * i / n; const w = w0 + (w1 - w0) * (i / n) * (1 - (i / n) * .25);
+    for (let i = 0; i <= n; i++) { const t = t0 + (t1 - t0) * i / n;
+      const w = m.fwHalf ? along(m.fwHalf, t) * (i === 0 || i === n ? .82 : 1) : w0 + (w1 - w0) * (i / n) * (1 - (i / n) * .25);
       L.push(side(t, -w)); R.push(side(t, w)); }
     const s = new T3.Shape(); s.moveTo(L[0].x, L[0].z); L.forEach(p => s.lineTo(p.x, p.z));
     R.reverse().forEach(p => s.lineTo(p.x, p.z)); s.closePath(); return s;
   }
   function islandShape() {
     const pts = [], n = 26, t0 = -0.03, t1 = 1.03;
-    const W = t => 62 + 8 * t + 10 * (Math.sin(t * 8.3) * .6 + Math.sin(t * 15.7 + 1) * .4);
+    const W = m.islandW ? (t => along(m.islandW, Math.max(0, Math.min(1, t))) + 5 * (Math.sin(t * 8.3) * .6 + Math.sin(t * 15.7 + 1) * .4))
+                        : (t => 62 + 8 * t + 10 * (Math.sin(t * 8.3) * .6 + Math.sin(t * 15.7 + 1) * .4));
     for (let i = 0; i <= n; i++) { const t = t0 + (t1 - t0) * i / n; pts.push(side(t, -W(t))); }
     { const c = at(t1), g = tan(t1), nn = nrm(t1), R = W(t1);
       for (let j = 1; j < 8; j++) { const a = Math.PI - Math.PI * j / 8; pts.push(c.clone().add(nn.clone().multiplyScalar(Math.cos(a) * R)).add(g.clone().multiplyScalar(Math.sin(a) * R * .8))); } }
@@ -109,6 +114,26 @@ function buildScene(m) {
   const island = new T3.Mesh(eg, M(new T3.MeshLambertMaterial({ color: 0x6FB83A }))); island.position.y = -7.1; island.receiveShadow = true; island.castShadow = true;
   const sides = new T3.Mesh(eg, M(new T3.MeshLambertMaterial({ color: 0x4F8C2A }))); sides.position.y = -7.4; sides.scale.set(.995, 1, .995); sc.add(sides); sc.add(island);
 
+  /* WATER, where the drawing has it: each run a lake beside the line, its
+     near shore and far shore measured slice by slice, laid just under the
+     fairway so the turf wins where the two meet. */
+  (m.water || []).forEach(wa => {
+    const sg = wa.side, segs = wa.segs; if (segs.length < 2) return;
+    const ext = (i, k) => segs[Math.max(0, Math.min(segs.length - 1, i))][k];
+    const t0 = segs[0][0] - .02, t1 = segs[segs.length - 1][0] + .02;
+    const inner = [side(t0, sg * (ext(0, 1) + 3))], outer = [side(t0, sg * (ext(0, 2) - 2))];
+    segs.forEach(([t, di, dout]) => { inner.push(side(t, sg * di)); outer.push(side(t, sg * dout)); });
+    inner.push(side(t1, sg * (ext(segs.length - 1, 1) + 3))); outer.push(side(t1, sg * (ext(segs.length - 1, 2) - 2)));
+    const pts = inner.concat(outer.reverse()).map(p => new T3.Vector2(p.x, p.z));
+    const shape = new T3.Shape(); shape.moveTo(pts[0].x, pts[0].y); shape.splineThru(pts.slice(1).concat([pts[0]]));
+    sc.add(flat(shape, 0xE3D9B4, .16));                                     // the shore, a pale lip
+    const g = G(new T3.ShapeGeometry(shape, 24)); g.rotateX(Math.PI / 2); g.scale(.985, 1, .985);
+    const c = g.boundingBox || (g.computeBoundingBox(), g.boundingBox);
+    const cx = (c.min.x + c.max.x) / 2, cz = (c.min.z + c.max.z) / 2; g.translate(cx * .015, 0, cz * .015);
+    const lake = new T3.Mesh(g, M(new T3.MeshLambertMaterial({ color: 0x4E9ED6, emissive: 0x0E3550, emissiveIntensity: .35, side: DS })));
+    lake.position.y = .2; lake.receiveShadow = true; sc.add(lake);
+  });
+
   const tex = stripes();
   sc.add(flat(ribbon(m.fw.w0, m.fw.w1, m.fw.t0, m.fw.t1), 0xffffff, .25, tex));
   sc.add(pad(0.025, 0, 15, 26, 5, 0xB9E67A, .3));
@@ -145,8 +170,16 @@ function buildScene(m) {
     g.position.set(x, 0, z); g.rotation.y = rnd() * 6; sc.add(g);
   }
   const nTrees = m.trees || 60;
-  for (let i = 0; i < nTrees * .75; i++) { const t = 0.04 + rnd() * .9; const d = (rnd() < .5 ? -1 : 1) * (30 + rnd() * 36); const p = side(t, d); tree(p.x, p.z, .85 + rnd() * .7); }
-  for (let i = 0; i < nTrees * .25; i++) { const t = rnd() * .25; const d = (rnd() < .5 ? -1 : 1) * (14 + rnd() * 28); const p = side(t + .72, d); tree(p.x, p.z, .8 + rnd() * .5); }
+  /* the trees stand where the drawing has them: on the side it puts them,
+     off the fairway, and never in the water */
+  const pickSide = () => (rnd() < (m.treeR != null ? m.treeR : .5) ? 1 : -1);
+  const clear = (t, d) => !(m.wet && m.wet(t, d)) && (!m.fwHalf || Math.abs(d) > along(m.fwHalf, t) + 5) && (!m.islandW || Math.abs(d) < along(m.islandW, t) - 2);
+  const span = t => m.islandW ? Math.max(8, along(m.islandW, t) - (m.fwHalf ? along(m.fwHalf, t) : 20) - 8) : 36;
+  for (let i = 0, tries = 0; i < nTrees * .75 && tries < nTrees * 6; tries++) { const t = 0.04 + rnd() * .9; const s = pickSide();
+    const base = m.fwHalf ? along(m.fwHalf, t) + 8 : 30; const d = s * (base + rnd() * span(t));
+    if (!clear(t, d)) continue; const p = side(t, d); tree(p.x, p.z, .85 + rnd() * .7); i++; }
+  for (let i = 0, tries = 0; i < nTrees * .25 && tries < nTrees * 3; tries++) { const t = .72 + rnd() * .25; const d = pickSide() * (14 + rnd() * 28);
+    if (!clear(t, d)) continue; const p = side(t, d); tree(p.x, p.z, .8 + rnd() * .5); i++; }
 
   const points = { tee: tp, gMid: gC, gFront: gC.clone().sub(gr.clone().multiplyScalar(m.green.rz)), gBack: gC.clone().add(gr.clone().multiplyScalar(m.green.rz)), bunkers: bunkerPts };
   /* where the camera stands for a focus along the line, a zoom and a tilt */
