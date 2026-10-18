@@ -323,9 +323,10 @@ function scrToday() {
             <b>unlocks when ${esc(p.fromDay.dow)} closes</b></div>`;
           return `<div class="setline still"><span>${esc(pickDay)}’s pick</span><span class="dot">·</span>
             <b>${esc(p.leaderName)} lead ${esc(p.fromDay.dow)}</b></div>
-            ${canEdit() ? `<select class="field pv-sel" data-act="pickTee" data-a="${p.pick}" aria-label="Pick ${esc(pickDay)}’s tee">
+            ${canEdit() ? pickWrap(`<select class="field pv-sel" data-act="pickTee" data-a="${p.pick}" aria-label="Pick ${esc(pickDay)}’s tee">
               <option value="">Pick ${esc(pickDay)}’s tee</option>
-              ${E.TEE_CHOICES.map(t => `<option value="${t}">${esc(E.to12(t))}</option>`).join('')}</select>`
+              ${E.TEE_CHOICES.map(t => `<option value="${t}">${esc(E.to12(t))}</option>`).join('')}</select>`,
+              { kind: 'tee', title: pickDay + '’s tee', sub: 'Chosen by the leaders' })
             : `<p class="note pv-note">A scorer records the pick.</p>`}`;
         }).join('')}
       </div>
@@ -1267,11 +1268,11 @@ function recapPanel() {
             ${editing ? `<input class="field recedit one" data-act="recapEdit" data-a="cite" data-b="${h.slot}"
                 aria-label="Citation for ${esc(h.label)}" placeholder="What they did…" value="${esc((won && won.citation) || '')}">`
               : `<small>${won && won.citation ? esc(won.citation) : 'Not awarded yet.'}</small>`}</span>
-            ${editing ? `<select class="field recedit pick" data-act="recapEdit" data-a="winner" data-b="${h.slot}"
+            ${editing ? pickWrap(`<select class="field recedit pick" data-act="recapEdit" data-a="winner" data-b="${h.slot}"
                 aria-label="Winner of ${esc(h.label)}">
                 <option value="">Not awarded</option>
                 ${(T.config.people || []).map(pn => `<option value="${esc(pn.id)}"${won && won.winner === pn.id ? ' selected' : ''}>${esc(pn.display)}</option>`).join('')}
-              </select>`
+              </select>`, { kind: 'name', title: h.label, sub: 'Who won it', cls: 'recedit-pk' })
               : `<span class="n rt-v win">${won && won.winner ? esc(nm(won.winner)) : '—'}</span>`}</div>`;
         }).join('')}
       </div>
@@ -2665,7 +2666,8 @@ function scrEntry() {
         <div class="fieldset bbb3">
           ${[['bingo', 'Bingo'], ['bango', 'Bango'], ['bongo', 'Bongo']].map(([k, lbl]) =>
             `<label>${esc(lbl)}
-              <select class="field" data-act="setBbb" data-a="${k}"${editable ? '' : ' disabled'}>${inGroup(bbbOf(rid, h, k, gid))}</select></label>`).join('')}
+              ${pickWrap(`<select class="field" data-act="setBbb" data-a="${k}"${editable ? '' : ' disabled'}>${inGroup(bbbOf(rid, h, k, gid))}</select>`,
+                { kind: 'name', title: lbl, sub: 'Hole ' + hole.n + ' · ' + ({ bingo: 'first on the green', bango: 'closest once all are on', bongo: 'first in the hole' })[k] })}</label>`).join('')}
         </div>
         <p class="sublede" style="margin-top:8px">Only ${esc((groups[slot] || {}).label || 'this group')} appears here — the other group's ref scores their own.</p>
       </div>
@@ -2682,12 +2684,13 @@ function scrEntry() {
           : 'Both holes must be nominated before the round can open.'}</p>
         <div class="fieldset">
           ${(!open || cfg.ctpHole === hole.n) ? `<label>Closest to the Pin hole
-            <select class="field${cfg.ctpHole ? '' : ' unset'}" data-act="setRoundField" data-a="ctpHole"${ed && !locked ? '' : ' disabled'}>
+            ${pickWrap(`<select class="field${cfg.ctpHole ? '' : ' unset'}" data-act="setRoundField" data-a="ctpHole"${ed && !locked ? '' : ' disabled'}>
               <option value="">Not chosen yet</option>
-              ${course.holes.filter(x => x.par === 3).map(x => `<option value="${x.n}"${cfg.ctpHole === x.n ? ' selected' : ''}>Hole ${x.n}</option>`).join('')}
-            </select></label>
+              ${course.holes.filter(x => x.par === 3 || cfg.ctpHole === x.n).map(x => `<option value="${x.n}" data-sub="par ${x.par} · ${x.mW} m"${cfg.ctpHole === x.n ? ' selected' : ''}>Hole ${x.n}</option>`).join('')}
+            </select>`, { kind: 'hole', title: 'Closest to the Pin hole', sub: r.short + ' · the par threes' })}</label>
           <label>Closest — who is in there now
-            <select class="field" data-act="setRoundField" data-a="ctpWinner"${barOn ? '' : ' disabled'}>${people(cfg.ctpWinner)}</select></label>
+            ${pickWrap(`<select class="field" data-act="setRoundField" data-a="ctpWinner"${barOn ? '' : ' disabled'}>${people(cfg.ctpWinner)}</select>`,
+              { kind: 'name', title: 'Closest to the pin', sub: 'Hole ' + (cfg.ctpHole || '–') + ' · who is in there now' })}</label>
           ${/* No distance to type. A closest-to-the-pin flag goes in the
                 ground where the best ball finished, and the next player to
                 beat it moves the flag and puts their own name here — so the
@@ -2697,12 +2700,16 @@ function scrEntry() {
                 the fairway. */ ''}
           <p class="sublede" style="margin-top:-4px">The flag on the green is the mark. Beat it, move it, and put your name here.</p>` : ''}
           ${(!open || cfg.ldHole === hole.n) ? `<label>Longest Drive hole
-            <select class="field${cfg.ldHole ? '' : ' unset'}" data-act="setRoundField" data-a="ldHole"${ed && !locked ? '' : ' disabled'}>
+            ${/* ONLY THE PAR FIVES. A longest drive on a par three is a tee shot
+                  at a green; on a par four half the field lays up. A hole
+                  nominated before this rule stays shown until it is moved. */
+              pickWrap(`<select class="field${cfg.ldHole ? '' : ' unset'}" data-act="setRoundField" data-a="ldHole"${ed && !locked ? '' : ' disabled'}>
               <option value="">Not chosen yet</option>
-              ${course.holes.map(x => `<option value="${x.n}"${cfg.ldHole === x.n ? ' selected' : ''}>Hole ${x.n} — par ${x.par}</option>`).join('')}
-            </select></label>
+              ${course.holes.filter(x => x.par === 5 || cfg.ldHole === x.n).map(x => `<option value="${x.n}" data-sub="par ${x.par} · ${x.mW} m"${cfg.ldHole === x.n ? ' selected' : ''}>Hole ${x.n}</option>`).join('')}
+            </select>`, { kind: 'hole', title: 'Longest Drive hole', sub: r.short + ' · the par fives' })}</label>
           <label>Longest — current marker
-            <select class="field" data-act="setRoundField" data-a="ldWinner"${barOn ? '' : ' disabled'}>${people(cfg.ldWinner)}</select></label>
+            ${pickWrap(`<select class="field" data-act="setRoundField" data-a="ldWinner"${barOn ? '' : ' disabled'}>${people(cfg.ldWinner)}</select>`,
+              { kind: 'name', title: 'Longest drive', sub: 'Hole ' + (cfg.ldHole || '–') + ' · the current marker' })}</label>
           <label>Distance
             <input class="field" type="text" value="${esc(cfg.ldDist || '')}" placeholder="e.g. 260 m"
               data-act="setRoundField" data-a="ldDist"${barOn ? '' : ' disabled'}></label>` : ''}
@@ -2716,6 +2723,193 @@ function scrEntry() {
     </div>
   </div>`;
 }
+
+/* ---------------- the pickers ----------------
+ *
+ * A phone's own dropdown is a grey wheel from another app laid over the
+ * book. Every choice in the book is made in one of its own windows instead,
+ * in three shapes, each for the kind of thing being chosen:
+ *
+ *   A  the Window — a person, or any plain list. The card every window in
+ *      the book is, the choices as rows; a tap flashes pine and closes it.
+ *   B  the Sheet  — a time. It rises from the foot of the glass, where the
+ *      thumb is, and the time turns on wheels inside it.
+ *   C  the Tiles  — a hole. Coins, as on the hole strip, carrying the par and
+ *      the metres: only the par threes for the pin, the par fives for the
+ *      drive.
+ *
+ * The real <select> stays in the page, unseen and untouchable, and the field
+ * drawn over it opens the window. A choice is put into that select and its
+ * `change` fired, so every save, guard and PIN that a dropdown went through
+ * before is exactly the path it goes through now. The field comes FIRST in
+ * the markup, so a <label> around the pair points at the field and a tap on
+ * the label's words opens the window rather than the phone's own wheel. */
+const PK_STYLE = { name: 'A', list: 'A', hole: 'C', time: 'B', tee: 'B' };
+function pickWrap(sel, o) {
+  const tag = (sel.match(/<select\b[^>]*>/) || [''])[0];
+  const off = /\sdisabled(\s|>|=)/.test(tag);
+  const opts = [...sel.matchAll(/<option\b([^>]*)>([^<]*)<\/option>/g)];
+  const on = opts.find(x => /\sselected\b/.test(x[1])) || opts[0] || ['', '', ''];
+  const val = ((on[1] || '').match(/value="([^"]*)"/) || [, ''])[1];
+  const sub = ((on[1] || '').match(/data-sub="([^"]*)"/) || [, ''])[1];
+  const label = (on[2] || '').trim();
+  const kind = o.kind || 'list';
+  const quiet = val === '';
+  const inner = kind === 'hole' && !quiet
+    ? `<span class="pk-coin num">${esc(val)}</span><span class="pk-v">${label}${sub ? `<small>${sub}</small>` : ''}</span><span class="pk-ed">Change</span>`
+    : kind === 'hole'
+      ? `<span class="pk-coin none">?</span><span class="pk-v none">${label}</span><span class="pk-ed">Choose</span>`
+      : `<span class="pk-v${quiet ? ' none' : ''}">${label}</span><i class="pk-chev" aria-hidden="true"></i>`;
+  const hidden = sel.replace(/<select class="/, '<select tabindex="-1" aria-hidden="true" class="pk-sel ');
+  return `<span class="pk pk-${kind}${o.small ? ' sm' : ''}${o.cls ? ' ' + o.cls : ''}"><button type="button" class="pkf${quiet ? ' unset' : ''}"
+    data-act="pickOpen" data-pk="${kind}" data-title="${esc(o.title || '')}" data-sub="${esc(o.sub || '')}"${off ? ' disabled' : ''}>${inner}</button>${hidden}</span>`;
+}
+
+/** The window for a field just tapped, built from the select under it. */
+function pickOpen(btn) {
+  const wrap = btn.closest('.pk');
+  if (!wrap) return;
+  const kind = btn.dataset.pk;
+  const sels = [...wrap.querySelectorAll('select')];
+  if (!sels.length || sels[0].disabled) return;
+  const keyOf = el => ['act', 'a', 'b', 'c', 'part'].filter(k => el.dataset[k] != null)
+    .map(k => `[data-${k}="${CSS.escape(el.dataset[k])}"]`).join('');
+  const m = { kind: 'pick', kind2: kind, style: PK_STYLE[kind] || 'A', title: btn.dataset.title || '', sub: btn.dataset.sub || '',
+    parent: UI.modal && UI.modal.kind !== 'pick' ? UI.modal : null, fresh: true };
+  if (kind === 'time') {
+    const box = wrap.closest('.timepick') || wrap;
+    m.box = box.dataset.key;
+    m.keys = sels.map(keyOf);
+    m.cols = sels.map(el => [...el.options].filter(op => op.value !== '').map(op => op.value));
+    m.clearable = [...sels[0].options].some(op => op.value === '');
+    const held = UI.timePick[box.dataset.key];
+    const cur = held ? [held.h, held.m, held.ap] : sels.map(el => el.value);
+    /* an empty time opens on the morning the book plays most of its golf */
+    m.draft = cur.map((v, i) => v || ['9', '00', 'AM'][i]);
+  } else {
+    const el = sels[0];
+    m.key = keyOf(el);
+    m.cur = el.value;
+    m.opts = [...el.options].map(op => ({ v: op.value, t: op.textContent.trim(), sub: op.dataset.sub || '' }));
+    if (m.style === 'B') m.draft = [el.value || (m.opts.find(x => x.v) || {}).v || ''];
+  }
+  UI.modal = m;
+  render();
+}
+
+/** Put the choice into the select under the field, and let it save the way
+ *  it always has. The window closes first, with its little exit. */
+function pickApply(m, values) {
+  m.closing = true;
+  render();
+  setTimeout(() => {
+    if (UI.modal !== m) return;
+    UI.modal = m.parent || null;
+    if (m.kind2 === 'time') {
+      const [h, mn, ap] = values;
+      UI.timePick[m.box] = { h, m: mn, ap };
+      const el = document.querySelector('select' + m.keys[2]);
+      if (el) { el.value = ap; el.dispatchEvent(new Event('change', { bubbles: true })); }
+    } else {
+      const el = document.querySelector('select' + m.key);
+      if (el && el.value !== values[0]) { el.value = values[0]; el.dispatchEvent(new Event('change', { bubbles: true })); }
+    }
+    render();
+  }, m.style === 'B' ? 200 : 170);
+}
+
+function pickHtml(m) {
+  const out = m.closing ? ' out' : '';
+  const stack = m.parent ? ' over' : '';
+  const banner = m.style === 'B'
+    ? `<div class="mbanner pk-grab"><span class="pk-handle" aria-hidden="true"><i></i></span><span class="mb-w"><span class="mb-t">${esc(m.title)}</span>${m.sub ? `<span class="mb-s">${esc(m.sub)}</span>` : ''}</span>${IMG.crest ? `<img class="mb-c" src="${IMG.crest}" alt="">` : ''}</div>`
+    : modalBanner(m.title, m.sub);
+  let body = '', acts = `<button class="btn ghost" data-act="modalCancel">Cancel</button>`;
+  if (m.style === 'A') {
+    body = `<div class="pk-list">${m.opts.map(o => {
+      const on = o.v === m.cur, hit = m.closing && o.v === m.chosen;
+      return `<button class="pk-li${on ? ' on' : ''}${o.v === '' ? ' none' : ''}${hit ? ' flash' : ''}" data-act="pickChoose" data-a="${esc(o.v)}">
+        <span class="tick" aria-hidden="true">${on ? '✓' : ''}</span><span class="t">${esc(o.t)}</span>${o.sub ? `<span class="s">${esc(o.sub)}</span>` : ''}</button>`;
+    }).join('')}</div>`;
+  } else if (m.style === 'C') {
+    const holes = m.opts.filter(o => o.v !== ''), blank = m.opts.find(o => o.v === '');
+    body = `<div class="pk-coins">${holes.map(o => `<button class="pk-hc${o.v === m.cur || (m.closing && o.v === m.chosen) ? ' on' : ''}" data-act="pickChoose" data-a="${esc(o.v)}"
+        aria-label="${esc(o.t)}${o.sub ? ', ' + esc(o.sub) : ''}"><b class="num">${esc(o.v)}</b>${o.sub ? `<small class="num">${esc(o.sub)}</small>` : ''}</button>`).join('')}</div>
+      ${blank ? `<button class="pk-li none pk-clear${m.cur === '' ? ' on' : ''}" data-act="pickChoose" data-a="">${esc(blank.t)}</button>` : ''}`;
+    if (!holes.length) body = `<p class="pk-empty">No hole on this course fits.</p>` + body;
+  } else {
+    const cols = m.kind2 === 'time' ? m.cols : [m.opts.filter(o => o.v !== '').map(o => o.v)];
+    const label = (k, v) => m.kind2 === 'time' ? v : (m.opts.find(o => o.v === v) || {}).t || v;
+    body = `<div class="pk-wheels n${cols.length}">${cols.map((vals, k) => `<div class="pk-wheel" data-k="${k}">${vals.map(v =>
+      `<button class="pk-wi${String(m.draft[k]) === String(v) ? ' on' : ''}" data-act="pickWheel" data-a="${k}" data-b="${esc(v)}">${esc(label(k, v))}</button>`).join('')}</div>`).join('')}</div>`;
+    acts = `<button class="btn" data-act="pickDone">${m.kind2 === 'time' ? 'Set time' : 'Choose'}</button>`
+      + (m.clearable || (m.opts && m.opts.some(o => o.v === '') && m.kind2 !== 'tee') ? `<button class="btn ghost" data-act="pickClear">Clear</button>` : '')
+      + acts;
+  }
+  return `<div class="scrim pkscrim${m.style === 'B' ? ' bottom' : ''}${stack}${out}" data-act="modalScrim"${m.fresh ? ' data-in="1"' : ''}>
+    <div class="modal pickm pk-${m.style.toLowerCase()}" role="dialog" aria-modal="true" aria-label="${esc(m.title)}">
+      ${banner}<div class="pk-body">${body}</div><div class="acts">${acts}</div></div></div>`;
+}
+
+/* The wheels: where each one is standing is kept in the window's own state,
+   so a redraw puts it back where the finger left it, and the book does not
+   redraw at all while one is still turning. */
+const PK_ROW = 44;
+let pkTurning = 0;
+function pickWheelsPlace() {
+  const m = UI.modal;
+  if (!m || m.kind !== 'pick' || m.style !== 'B') return;
+  document.querySelectorAll('.pk-wheel').forEach(w => {
+    const k = +w.dataset.k, items = [...w.children];
+    const i = Math.max(0, items.findIndex(x => x.dataset.b === String(m.draft[k])));
+    w.dataset.want = String(i * PK_ROW);
+    w.scrollTop = i * PK_ROW;
+  });
+}
+document.addEventListener('scroll', e => {
+  const w = e.target;
+  if (!w || !w.classList || !w.classList.contains('pk-wheel')) return;
+  if (Math.abs(w.scrollTop - (+w.dataset.want || 0)) < 2) return;     // our own placing, not a finger
+  pkTurning = Date.now();
+  clearTimeout(w._settle);
+  w._settle = setTimeout(() => {
+    const m = UI.modal;
+    if (!m || m.kind !== 'pick') return;
+    const i = Math.round(w.scrollTop / PK_ROW), it = w.children[i];
+    if (!it) return;
+    m.draft[+w.dataset.k] = it.dataset.b;
+    w.dataset.want = String(i * PK_ROW);
+    [...w.children].forEach(x => x.classList.toggle('on', x === it));
+  }, 90);
+}, true);
+
+/* The sheet goes away the way a sheet does: pulled down by its banner. */
+(() => {
+  let y0 = null, dy = 0, sheet = null;
+  document.addEventListener('pointerdown', e => {
+    const g = e.target.closest && e.target.closest('.pk-b .pk-grab');
+    if (!g) return;
+    sheet = g.closest('.pk-b'); y0 = e.clientY; dy = 0; pkTurning = Date.now();
+    sheet.style.transition = 'none';
+  });
+  document.addEventListener('pointermove', e => {
+    if (y0 == null || !sheet) return;
+    dy = Math.max(0, e.clientY - y0); pkTurning = Date.now();
+    sheet.style.transform = `translateY(${dy}px)`;
+  });
+  const end = () => {
+    if (y0 == null || !sheet) return;
+    const s = sheet; y0 = null; sheet = null;
+    pkTurning = 0;                     // the finger is off: the book may redraw again
+    s.style.transition = 'transform .2s ease';
+    if (dy > 70) {
+      s.style.transform = 'translateY(110%)';
+      setTimeout(() => { if (UI.modal && UI.modal.kind === 'pick') { closeModal(); render(); } }, 190);
+    } else s.style.transform = '';
+  };
+  document.addEventListener('pointerup', end);
+  document.addEventListener('pointercancel', end);
+})();
 
 /* Typing "7:40 AM" on a phone keyboard is a chore and every mistyping was a
    silently refused write. Three wheels instead: hour, minute, AM or PM. The
@@ -2737,11 +2931,17 @@ function timePick(time, o) {
   const blank = o.clearable ? opt('', '––', '') : '';
   const hours = Array.from({ length: 12 }, (_, i) => i + 1).map(x => opt(x, x, hh)).join('');
   const mins = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0')).map(x => opt(x, x, mm)).join('');
-  return `<span class="timepick" data-tkind="${o.kind}" data-a="${esc(o.a)}" data-b="${esc(o.b == null ? '' : o.b)}" data-key="${esc(timeKey(o))}">
-    <select class="field small tsel" data-act="setTime" data-part="h" aria-label="${esc(o.label)} — hour">${blank}${hours}</select>
-    <span class="tcolon" aria-hidden="true">:</span>
-    <select class="field small tsel" data-act="setTime" data-part="m" aria-label="${esc(o.label)} — minute">${blank}${mins}</select>
-    <select class="field small tsel ampm" data-act="setTime" data-part="ap" aria-label="${esc(o.label)} — AM or PM">${blank}${opt('AM', 'AM', ap)}${opt('PM', 'PM', ap)}</select>
+  /* THE SHEET. One field showing the time, which opens the wheels; the
+     three selects are still under it, unseen, and are what a choice is put
+     into — the save below reads them exactly as it always has. */
+  const shown = hh && mm && ap ? `${hh}:${mm} ${ap}` : 'Set a time';
+  const hid = 'tabindex="-1" aria-hidden="true" class="pk-sel field small tsel';
+  return `<span class="timepick pk pk-time" data-tkind="${o.kind}" data-a="${esc(o.a)}" data-b="${esc(o.b == null ? '' : o.b)}" data-key="${esc(timeKey(o))}">
+    <button type="button" class="pkf${hh && mm && ap ? '' : ' unset'}" data-act="pickOpen" data-pk="time" data-title="${esc(o.label)}" data-sub="Hour · minute · AM or PM"
+      aria-label="${esc(o.label)}: ${esc(shown)}"><span class="pk-v num${hh && mm && ap ? '' : ' none'}">${esc(shown)}</span><i class="pk-clock" aria-hidden="true"></i></button>
+    <select ${hid}" data-act="setTime" data-part="h" aria-label="${esc(o.label)} — hour">${blank}${hours}</select>
+    <select ${hid}" data-act="setTime" data-part="m" aria-label="${esc(o.label)} — minute">${blank}${mins}</select>
+    <select ${hid} ampm" data-act="setTime" data-part="ap" aria-label="${esc(o.label)} — AM or PM">${blank}${opt('AM', 'AM', ap)}${opt('PM', 'PM', ap)}</select>
   </span>`;
 }
 
@@ -2797,7 +2997,8 @@ function scrRoster() {
       <span class="mn">${esc(p.display || '?')}</span>
       <span class="ml">${esc(p.location || '—')}</span>
       <span class="mb num">${p.band == null ? '—' : p.band}</span>
-      ${ed ? `<select class="field small" data-act="moveGolfer" data-a="${m}" aria-label="Move ${esc(p.display)} to">${pairOptions(pairId)}</select>` : ''}
+      ${ed ? pickWrap(`<select class="field small" data-act="moveGolfer" data-a="${m}" aria-label="Move ${esc(p.display)} to">${pairOptions(pairId)}</select>`,
+        { kind: 'list', small: true, title: 'Move ' + p.display, sub: 'To which pairing' }) : ''}
     </div>`;
   };
 
@@ -2851,9 +3052,9 @@ function scrRoster() {
                 data-act="setPerson" data-a="${p.id}" data-b="name">` : esc(p.name)}</td>
           <td data-l="Display">${ed ? `<input class="cellin sm" type="text" value="${esc(p.display)}" aria-label="Display name" maxlength="24"
                 data-act="setPerson" data-a="${p.id}" data-b="display">` : esc(p.display)}</td>
-          <td data-l="Role">${ed ? `<select class="field small" data-act="setPerson" data-a="${p.id}" data-b="role" aria-label="Role">
+          <td data-l="Role">${ed ? pickWrap(`<select class="field small" data-act="setPerson" data-a="${p.id}" data-b="role" aria-label="Role">
                 ${[['golfer', 'Golfer'], ['official', 'Official'], ['spectator', 'Spectator']].map(([v, l]) =>
-                  `<option value="${v}"${p.role === v ? ' selected' : ''}>${l}</option>`).join('')}</select>` : esc(p.role)}</td>
+                  `<option value="${v}"${p.role === v ? ' selected' : ''}>${l}</option>`).join('')}</select>`, { kind: 'list', small: true, title: p.display, sub: 'Role' }) : esc(p.role)}</td>
           <td data-l="Squad">${(() => {
             const sq = p.location || null;
             const next = sq === null ? 'United States' : sq === 'USA' ? 'United Kingdom' : 'unassigned';
@@ -2863,8 +3064,8 @@ function scrRoster() {
                 title="Change to ${esc(next)}">${squadFlag(sq, 34)}</button>
               <span class="sqlabel">${sq ? esc(sq) : 'Unassigned'}</span></span>`;
           })()}</td>
-          <td data-l="Group">${ed ? `<select class="field small" data-act="setPerson" data-a="${p.id}" data-b="group" aria-label="Group">
-                ${['7-day', '5-day'].map(v => `<option value="${v}"${p.group === v ? ' selected' : ''}>${v}</option>`).join('')}</select>` : esc(p.group)}</td>
+          <td data-l="Group">${ed ? pickWrap(`<select class="field small" data-act="setPerson" data-a="${p.id}" data-b="group" aria-label="Group">
+                ${['7-day', '5-day'].map(v => `<option value="${v}"${p.group === v ? ' selected' : ''}>${v}</option>`).join('')}</select>`, { kind: 'list', small: true, title: p.display, sub: 'Which trip' }) : esc(p.group)}</td>
           <td data-l="Band">${p.role === 'golfer' ? `<div class="bandrow">
             ${E.BANDS.map(bnd => bandCrest(p, bnd, bandEd)).join('')}
           </div>` : ''}</td>
@@ -2929,8 +3130,9 @@ function scrCourses() {
   const rows = c.holes.map((x, i) => `<tr${i === h ? ' class="on"' : ''}>
       <td><span class="holen">${x.n}</span></td>
       <td>${open
-        ? `<select class="cardsel" aria-label="Par, hole ${x.n}" data-act="setHole" data-a="${c.key}" data-b="${i}" data-c="par">
-             ${[3, 4, 5].map(p => `<option value="${p}"${x.par === p ? ' selected' : ''}>${p}</option>`).join('')}</select>`
+        ? pickWrap(`<select class="cardsel" aria-label="Par, hole ${x.n}" data-act="setHole" data-a="${c.key}" data-b="${i}" data-c="par">
+             ${[3, 4, 5].map(p => `<option value="${p}"${x.par === p ? ' selected' : ''}>Par ${p}</option>`).join('')}</select>`,
+             { kind: 'list', small: true, cls: 'cardpk', title: 'Hole ' + x.n, sub: c.name ? c.name + ' · par' : 'Par' })
         : `<span class="cardval">${x.par}</span>`}</td>
       ${['si', 'mW', 'mY'].map(f => `<td>${open
         ? `<input class="cardin" inputmode="numeric" value="${x[f]}" aria-label="${f === 'si' ? 'Stroke index' : f === 'mW' ? 'Metres from White' : 'Metres from Yellow'}, hole ${x.n}"
@@ -3938,6 +4140,7 @@ let zoomShown = 1;       // and how far in it was when that happened
 let wheelDone = null;
 function inUse() {
   if (pinch) return true;              // never redraw under a moving finger
+  if (Date.now() - pkTurning < 600) return true;   // nor under a picker's wheel still turning
   if (tapping) return true;            // nor between a press and its release
   const el = document.activeElement;
   if (!el || !document.getElementById('app')) return false;
@@ -4108,7 +4311,10 @@ function applyScrollMarks(marks) {
 /** Which window is up, so its scroll is kept for it and not handed to the
  *  next one that opens. */
 function windowKind() {
-  return UI.recapOpen ? 'recap' : UI.askOpen ? 'ask' : UI.modal ? 'modal:' + UI.modal.kind : null;
+  /* a picker over a window is still that window underneath: it must not
+     make the window beneath rise again as it opens or closes */
+  const m = UI.modal && UI.modal.kind === 'pick' && UI.modal.parent ? UI.modal.parent : UI.modal;
+  return UI.recapOpen ? 'recap' : UI.askOpen ? 'ask' : m ? 'modal:' + m.kind : null;
 }
 
 function flushRender() {
@@ -4293,9 +4499,13 @@ function paint() {
   ${feelBar()}
   ${tabBar()}
   ${stickyTop(role)}
-  ${UI.modal ? modalHtml() : ''}
+  ${UI.modal && UI.modal.kind !== 'pick' ? modalHtml() : ''}
+  ${/* a picker opened from inside a window lies over that window, which
+        stays drawn beneath it with the select the choice goes into */ ''}
+  ${UI.modal && UI.modal.kind === 'pick' && UI.modal.parent ? modalOf(UI.modal.parent) : ''}
   ${askPanel()}
-  ${recapPanel()}`;
+  ${recapPanel()}
+  ${UI.modal && UI.modal.kind === 'pick' ? pickHtml(UI.modal) : ''}`;
 
   // the page behind a window does not scroll with it
   /* THE PAGE BEHIND A WINDOW MUST NOT MOVE.
@@ -4357,8 +4567,10 @@ function paint() {
      be a twitch, not an entrance — so it is marked only when the window up
      is a DIFFERENT window from the one that was up at the last redraw. The
      same guard, and the same reason, as a screen arriving. */
-  if (scrim2 && scrimNow && scrimNow !== paintedWindow) scrim2.setAttribute('data-in', '1');
+  if (scrim2 && scrimNow && scrimNow !== paintedWindow && !scrim2.classList.contains('pkscrim')) scrim2.setAttribute('data-in', '1');
   paintedWindow = scrimNow;
+  /* a picker rises once, when it opens, and its wheels stand where they were left */
+  if (UI.modal && UI.modal.kind === 'pick') { UI.modal.fresh = false; pickWheelsPlace(); }
   /* The site plan is a panorama four times as wide as it is tall, so on a
      phone most of it is off the side. Picking a point out of the list has to
      bring it into view — otherwise the map appears not to have answered.
@@ -5403,6 +5615,12 @@ function ord(n) {
   return n + ({ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th');
 }
 
+/** Draw a window that is not the one up — the one a picker lies over. */
+function modalOf(m) {
+  const keep = UI.modal;
+  UI.modal = m;
+  try { return modalHtml(); } finally { UI.modal = keep; }
+}
 function modalHtml() {
   return UI.modal.kind === 'matchwhy' ? matchWhyHtml()
        : UI.modal.kind === 'manage' ? manageModalHtml()
@@ -5451,6 +5669,7 @@ function askPinStrict(title, note, ok, onOk) {
  *  take: the button, the scrim, or anything added later. */
 function closeModal() {
   const m = UI.modal;
+  if (m && m.kind === 'pick') { UI.modal = m.parent || null; return; }   // back to the window it was opened from
   if (m && m.kind === 'art') dropHole3D();
   UI.modal = null; UI.modalErr = ''; UI.pinTyped = '';
   if (m && m.kind === 'bbbmiss') raiseNext(m.next);
@@ -5521,6 +5740,36 @@ function onClick(e) {
   if (UI.resortNote) commitResortNote();
 
   switch (act) {
+    /* ---- the pickers ---- */
+    case 'pickOpen': pickOpen(el); return;
+    case 'pickChoose': {
+      const m = UI.modal;
+      if (!m || m.kind !== 'pick' || m.closing) return;
+      m.chosen = a || '';
+      pickApply(m, [m.chosen]);
+      return;
+    }
+    case 'pickWheel': {
+      const m = UI.modal;
+      if (!m || m.kind !== 'pick') return;
+      m.draft[+a] = b;
+      const w = el.parentElement;
+      if (w) { const i = [...w.children].indexOf(el); w.dataset.want = String(i * PK_ROW); w.scrollTo({ top: i * PK_ROW, behavior: 'smooth' });
+        [...w.children].forEach(x => x.classList.toggle('on', x === el)); }
+      return;
+    }
+    case 'pickDone': {
+      const m = UI.modal;
+      if (!m || m.kind !== 'pick' || m.closing) return;
+      pickApply(m, m.draft.slice());
+      return;
+    }
+    case 'pickClear': {
+      const m = UI.modal;
+      if (!m || m.kind !== 'pick' || m.closing) return;
+      pickApply(m, m.kind2 === 'time' ? ['', '', ''] : ['']);
+      return;
+    }
     case 'manageOpen':
       UI.modal = { kind: 'manage' };
       break;

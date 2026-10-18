@@ -29,6 +29,16 @@ ok('it reaches out to the right of the line', o1.lakes[0].some(([, d]) => d > 40
 ok('every lake lies on the ground', holes.every(([k, h]) => { const x = model(k, h);
   return x.lakes.every(l => l.every(([t, d]) => { const i = Math.max(0, Math.min(23, Math.floor(t * 24)));
     return Math.abs(d) <= (d < 0 ? x.islandL : x.islandR)[i] + 1; })); }), true);
+/* every surface as its own outline, as the drawing draws it */
+ok('every hole has its ground outlined', holes.every(([k, h]) => model(k, h).grounds.length >= 1), true);
+ok('and its fairways', holes.every(([k, h]) => model(k, h).fairways.length >= 1), true);
+ok('nearly every green is drawn from its outline', holes.filter(([k, h]) => !!model(k, h).green.poly).length >= 32, true);
+ok('no fairway runs into a lake', holes.every(([k, h]) => { const x = model(k, h);
+  const pts = x.fairways.flat(); return pts.filter(([t, d]) => x.wet(t, d, 0)).length <= pts.length * .05; }), true);
+ok('the path across Aspendos 3 is there', m('aspendos', 3).paths.some(p => { const ds = p.map(q => q[1]), ts = p.map(q => q[0]);
+  return Math.min(...ds) < -3 && Math.max(...ds) > 0 && Math.max(...ts) - Math.min(...ts) < .1; }), true);
+ok('and the hole is one piece of ground across it', m('aspendos', 3).grounds.length, 1);
+ok('the closest-to-the-pin holes on the card are par threes', ['olympos', 'aspendos'].every(k => COURSES[k].holes.some(h => h.par === 3)), true);
 ok('the two courses are not the same holes', JSON.stringify(m('olympos', 1).cl) !== JSON.stringify(m('aspendos', 1).cl), true);
 ok('no bunker sits in the water', holes.every(([k, h]) => { const x = model(k, h); return x.bunkers.every(b => !x.wet(b.t, b.d)); }), true);
 ok('and the length is still the card\'s', m('olympos', 5).len, COURSES.olympos.holes[4].mW);

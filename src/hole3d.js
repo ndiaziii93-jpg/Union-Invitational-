@@ -31,7 +31,9 @@ const fmt = (metres, units) => String(Math.round(units === 'yd' ? metres * H.YAR
 
 /* How far back the camera stands to take in the whole hole: a zoom of one
    shows about 230 metres of ground on a phone. */
-const fitZoom = (LEN, aspect) => Math.max(1, Math.min(3.6, LEN / 230 * 1.08 * Math.max(1, (0.5 / aspect))));
+/* A short hole is stood closer to, so a par three fills the glass as its
+   drawing fills the page instead of sitting small in the middle of it. */
+const fitZoom = (LEN, aspect) => Math.max(.62, Math.min(3.6, LEN / 230 * 1.08 * Math.max(1, (0.5 / aspect))));
 
 /* ---- the ground ---- */
 function buildScene(m) {
@@ -104,11 +106,29 @@ function buildScene(m) {
     const v2 = pts.map(p => new T3.Vector2(p.x, p.z));
     const s = new T3.Shape(); s.moveTo(v2[0].x, v2[0].y); s.splineThru(v2.slice(1).concat([v2[0]])); return s;
   }
+  /* AN OUTLINE FROM THE DRAWING, as a shape on the ground: its points laid
+     along the line, smoothed round (centripetal, so it never loops past a
+     point), and grown outward by `grow` metres for a lip or a shore. */
+  function outlineRing(poly) {
+    const raw = poly.map(([t, d]) => side(t, d));
+    const ring = new T3.CatmullRomCurve3(raw, true, 'centripetal').getSpacedPoints(Math.max(40, poly.length * 4));
+    ring.pop();
+    let area = 0; ring.forEach((p, i) => { const q = ring[(i + 1) % ring.length]; area += p.x * q.z - q.x * p.z; });
+    return { ring, out: Math.sign(area) || 1 };
+  }
+  function outlineShape(poly, grow = 0) {
+    const { ring, out } = outlineRing(poly);
+    const pts = ring.map((p, i) => { if (!grow) return new T3.Vector2(p.x, p.z);
+      const a0 = ring[(i - 1 + ring.length) % ring.length], a1 = ring[(i + 1) % ring.length];
+      let dx = a1.x - a0.x, dz = a1.z - a0.z; const l = Math.hypot(dx, dz) || 1; dx /= l; dz /= l;
+      return new T3.Vector2(p.x + dz * grow * out, p.z - dx * grow * out); });
+    return new T3.Shape(pts);
+  }
   /* FLAT LAYERS DO NOT FIGHT. The shore, the water, the fairway, the tee
      and the green lie on the same ground, and a few centimetres apart they
      flicker against each other as the camera moves. Each is lifted clear
      of the one below and told, through the depth offset, which one wins. */
-  const LAYER = { shore: [.5, 1], water: [.8, 2], fairway: [1.1, 3], tee: [1.3, 4], fringe: [1.3, 4], lip: [1.4, 5], green: [1.6, 6], sand: [1.7, 7] };
+  const LAYER = { shore: [.5, 1], water: [.8, 2], fairway: [1.1, 3], path: [1.2, 3.5], tee: [1.3, 4], fringe: [1.4, 4.5], lip: [1.5, 5], green: [1.6, 6], sand: [1.7, 7] };
   const layered = (mt, k) => { mt.polygonOffset = true; mt.polygonOffsetFactor = -k; mt.polygonOffsetUnits = -k * 4; return mt; };
   function flat(shape, color, y, map, k) {
     const g = G(new T3.ShapeGeometry(shape, 24)); g.rotateX(Math.PI / 2);
@@ -143,10 +163,24 @@ function buildScene(m) {
   sun.target.position.set(0, 0, -LEN / 2); sc.add(sun.target);
   sun.shadow.bias = -0.0008; sc.add(sun);
 
-  const eg = G(new T3.ExtrudeGeometry(islandShape(), { depth: 14, bevelEnabled: true, bevelThickness: 7, bevelSize: 9, bevelSegments: 4, curveSegments: 40 }));
-  eg.rotateX(Math.PI / 2);
-  const island = new T3.Mesh(eg, M(new T3.MeshLambertMaterial({ color: 0x6FB83A }))); island.position.y = -7.1; island.receiveShadow = true; island.castShadow = true;
-  const sides = new T3.Mesh(eg, M(new T3.MeshLambertMaterial({ color: 0x4F8C2A }))); sides.position.y = -7.4; sides.scale.set(.995, 1, .995); sc.add(sides); sc.add(island);
+  /* THE GROUND IS THE DRAWING'S: each piece of it, as outlined, stood on a
+     slab — or, for a hole with no outline, the island made from its widths */
+  /* the rough a shade darker than the fairway, as the drawings paint it,
+     so the fairway's own shape reads from across the hole */
+  const topM = M(new T3.MeshLambertMaterial({ color: m.grounds && m.grounds.length ? 0x4D9430 : 0x6FB83A })), sideM = M(new T3.MeshLambertMaterial({ color: 0x3F7A26 }));
+  /* pieces that overlap would flicker where they meet, so each stands a
+     little above the last */
+  /* A SHORT HOLE IS NOT A LONG ONE WITH LESS IN IT. The drawings fill the
+     page whatever the length, so on a 120-metre par three a fixed margin, a
+     tee box and full-size trees swamped the hole the drawing draws. They
+     are scaled to the hole: full size from 300 metres. */
+  const kS = Math.max(.42, Math.min(1, LEN / 300));
+  (m.grounds && m.grounds.length ? m.grounds.map(p => outlineShape(p, 5 * kS)) : [islandShape()]).forEach((shape, gi) => {
+    const eg = G(new T3.ExtrudeGeometry(shape, { depth: 14, bevelEnabled: true, bevelThickness: 7, bevelSize: m.grounds && m.grounds.length ? 7 * kS : 9, bevelSegments: 4, curveSegments: 40 }));
+    eg.rotateX(Math.PI / 2);
+    const island = new T3.Mesh(eg, topM); island.position.y = -7.1 + gi * .12; island.receiveShadow = true; island.castShadow = true;
+    const sides = new T3.Mesh(eg, sideM); sides.position.y = -7.4 + gi * .12; sides.scale.set(.995, 1, .995); sc.add(sides); sc.add(island);
+  });
 
   /* WATER, as the drawing has it: each lake its own outline, smoothed
      round its edge (centripetal, so it never loops past a point), with a
@@ -154,51 +188,67 @@ function buildScene(m) {
      layers so none of them shimmers through another as the camera moves. */
   (m.lakes || []).forEach(poly => {
     if (poly.length < 4) return;
-    const raw = poly.map(([t, d]) => side(t, d));
-    const ring = new T3.CatmullRomCurve3(raw, true, 'centripetal').getSpacedPoints(Math.max(48, poly.length * 4));
-    ring.pop();
-    let area = 0; ring.forEach((p, i) => { const q = ring[(i + 1) % ring.length]; area += p.x * q.z - q.x * p.z; });
-    const out = Math.sign(area) || 1;
-    const shape = grow => { const pts = ring.map((p, i) => { if (!grow) return new T3.Vector2(p.x, p.z);
-        const a0 = ring[(i - 1 + ring.length) % ring.length], a1 = ring[(i + 1) % ring.length];
-        let dx = a1.x - a0.x, dz = a1.z - a0.z; const l = Math.hypot(dx, dz) || 1; dx /= l; dz /= l;
-        return new T3.Vector2(p.x + dz * grow * out, p.z - dx * grow * out); });
-      return new T3.Shape(pts); };
-    sc.add(flat(shape(2.4), 0xE3D9B4, LAYER.shore[0], null, LAYER.shore[1]));
+    sc.add(flat(outlineShape(poly, 2.4), 0xE3D9B4, LAYER.shore[0], null, LAYER.shore[1]));
     const lm = layered(M(new T3.MeshLambertMaterial({ color: 0x4E9ED6, emissive: 0x0E3550, emissiveIntensity: .35, side: DS })), LAYER.water[1]);
-    const lg = G(new T3.ShapeGeometry(shape(0))); lg.rotateX(Math.PI / 2);
+    const lg = G(new T3.ShapeGeometry(outlineShape(poly))); lg.rotateX(Math.PI / 2);
     const lake = new T3.Mesh(lg, lm); lake.position.y = LAYER.water[0]; lake.renderOrder = LAYER.water[1]; lake.receiveShadow = true; sc.add(lake);
   });
 
   const tex = stripes();
-  if (m.lakes && m.lakes.length) fairwayRuns(m.fw.t0, m.fw.t1).forEach(sh => sc.add(flat(sh, 0xffffff, LAYER.fairway[0], tex, LAYER.fairway[1])));
+  if (m.fairways && m.fairways.length) m.fairways.forEach(p => sc.add(flat(outlineShape(p), 0xffffff, LAYER.fairway[0], tex, LAYER.fairway[1])));
+  else if (m.lakes && m.lakes.length) fairwayRuns(m.fw.t0, m.fw.t1).forEach(sh => sc.add(flat(sh, 0xffffff, LAYER.fairway[0], tex, LAYER.fairway[1])));
   else sc.add(flat(ribbon(m.fw.w0, m.fw.w1, m.fw.t0, m.fw.t1), 0xffffff, LAYER.fairway[0], tex, LAYER.fairway[1]));
-  { const tee = pad(0.025, 0, 15, 26, 5, 0xB9E67A, LAYER.tee[0]); layered(tee.material, LAYER.tee[1]); tee.renderOrder = LAYER.tee[1]; sc.add(tee); }
+  /* the cart paths, pale, as the drawing runs them */
+  (m.paths || []).forEach(p => sc.add(flat(outlineShape(p), 0xD8D2C0, LAYER.path[0], null, LAYER.path[1])));
+  { const tee = pad(0.025, 0, 15 * kS, 26 * kS, 5 * kS, 0xB9E67A, LAYER.tee[0]); layered(tee.material, LAYER.tee[1]); tee.renderOrder = LAYER.tee[1]; sc.add(tee); }
   const tp = side(0.012, 0);
   { const coin = new T3.Group();
     const ring = new T3.Mesh(G(new T3.CylinderGeometry(2.8, 2.8, .5, 28)), M(new T3.MeshLambertMaterial({ color: 0xF6F6F3 }))); ring.position.y = 1.6; coin.add(ring);
     const disc = new T3.Mesh(G(new T3.CylinderGeometry(2.0, 2.0, .3, 28)), M(new T3.MeshLambertMaterial({ color: 0x8E949A }))); disc.position.y = 1.9; coin.add(disc);
     coin.position.set(tp.x, 0, tp.z); sc.add(coin); }
 
-  const gC = at(m.green.t), gr = tan(m.green.t), ga = Math.atan2(gr.x, gr.z);
-  const fringe = new T3.Mesh(ellipse(gC.x, gC.z, m.green.rx + 4, m.green.rz + 3.5, ga), layered(M(new T3.MeshLambertMaterial({ color: 0x8CD14A, side: DS })), LAYER.fringe[1])); fringe.position.y = LAYER.fringe[0]; fringe.renderOrder = LAYER.fringe[1]; fringe.receiveShadow = true; sc.add(fringe);
-  const green = new T3.Mesh(ellipse(gC.x, gC.z, m.green.rx, m.green.rz, ga), layered(M(new T3.MeshLambertMaterial({ color: 0xB2E86F, side: DS })), LAYER.green[1])); green.position.y = LAYER.green[0]; green.renderOrder = LAYER.green[1]; green.receiveShadow = true; sc.add(green);
+  const gC = side(m.green.t, m.green.d || 0), gr = tan(m.green.t), ga = Math.atan2(gr.x, gr.z);
+  const gMat = layered(M(new T3.MeshLambertMaterial({ color: 0xB2E86F, side: DS })), LAYER.green[1]);
+  const fMat = layered(M(new T3.MeshLambertMaterial({ color: 0x8CD14A, side: DS })), LAYER.fringe[1]);
+  let gFront, gBack;
+  if (m.green.poly) {
+    /* the green the drawing draws, with a collar of fringe round it */
+    sc.add(flat(outlineShape(m.green.poly, 2.5), 0x8CD14A, LAYER.fringe[0], null, LAYER.fringe[1]));
+    sc.add(flat(outlineShape(m.green.poly), 0xB2E86F, LAYER.green[0], null, LAYER.green[1]));
+    const { ring } = outlineRing(m.green.poly);
+    const along = ring.map(p => (p.x - gC.x) * gr.x + (p.z - gC.z) * gr.z);
+    gFront = gC.clone().add(gr.clone().multiplyScalar(Math.min(...along)));
+    gBack = gC.clone().add(gr.clone().multiplyScalar(Math.max(...along)));
+  } else {
+    const fringe = new T3.Mesh(ellipse(gC.x, gC.z, m.green.rx + 4, m.green.rz + 3.5, ga), fMat); fringe.position.y = LAYER.fringe[0]; fringe.renderOrder = LAYER.fringe[1]; fringe.receiveShadow = true; sc.add(fringe);
+    const green = new T3.Mesh(ellipse(gC.x, gC.z, m.green.rx, m.green.rz, ga), gMat); green.position.y = LAYER.green[0]; green.renderOrder = LAYER.green[1]; green.receiveShadow = true; sc.add(green);
+    gFront = gC.clone().sub(gr.clone().multiplyScalar(m.green.rz)); gBack = gC.clone().add(gr.clone().multiplyScalar(m.green.rz));
+  }
   { const pole = new T3.Mesh(G(new T3.CylinderGeometry(.25, .25, 7, 6)), M(new T3.MeshLambertMaterial({ color: 0xf4f4f4 }))); pole.position.set(gC.x + 2, 3.5, gC.z); sc.add(pole);
     const flag = new T3.Mesh(G(new T3.PlaneGeometry(4, 2.4)), M(new T3.MeshLambertMaterial({ color: 0xD9342B, side: DS }))); flag.position.set(gC.x + 4, 6, gC.z); flag.castShadow = true; sc.add(flag);
     const cup = new T3.Mesh(G(new T3.CircleGeometry(.8, 12)), M(new T3.MeshBasicMaterial({ color: 0x1D2E21 }))); cup.rotation.x = -Math.PI / 2; cup.position.set(gC.x + 2, LAYER.green[0] + .08, gC.z); cup.renderOrder = 9; sc.add(cup); }
 
   const sand = layered(M(new T3.MeshLambertMaterial({ color: 0xEBDDB3, side: DS })), LAYER.sand[1]);
   const lipM = layered(M(new T3.MeshLambertMaterial({ color: 0x5E9A33, side: DS })), LAYER.lip[1]);
-  const bunkerPts = m.bunkers.map(b => { const p = side(b.t, b.d);
+  const bunkerPts = m.bunkers.map(b => { const p = side(b.t, b.d), spin = rnd() * 1.2;
+    if (b.poly) {
+      /* the bunker the drawing draws, with its lip of rough */
+      const lg = G(new T3.ShapeGeometry(outlineShape(b.poly, 1.2))); lg.rotateX(Math.PI / 2);
+      const lip = new T3.Mesh(lg, lipM); lip.position.y = LAYER.lip[0]; lip.renderOrder = LAYER.lip[1]; sc.add(lip);
+      const sg = G(new T3.ShapeGeometry(outlineShape(b.poly))); sg.rotateX(Math.PI / 2);
+      const mesh = new T3.Mesh(sg, sand); mesh.position.y = LAYER.sand[0]; mesh.renderOrder = LAYER.sand[1]; mesh.receiveShadow = true; sc.add(mesh);
+      return p;
+    }
     const lip = new T3.Mesh(ellipse(p.x, p.z, b.rx + 1.2, b.rz + 1.2, 0), lipM); lip.position.y = LAYER.lip[0]; lip.renderOrder = LAYER.lip[1]; sc.add(lip);
-    const mesh = new T3.Mesh(ellipse(p.x, p.z, b.rx, b.rz, rnd() * 1.2), sand); mesh.position.y = LAYER.sand[0]; mesh.renderOrder = LAYER.sand[1]; mesh.receiveShadow = true; sc.add(mesh); return p; });
+    const mesh = new T3.Mesh(ellipse(p.x, p.z, b.rx, b.rz, spin), sand); mesh.position.y = LAYER.sand[0]; mesh.renderOrder = LAYER.sand[1]; mesh.receiveShadow = true; sc.add(mesh); return p; });
 
   const greens = [0x3F7D2B, 0x4E9A33, 0x5FAE3F, 0x2F6A24];
   const trunkM = M(new T3.MeshLambertMaterial({ color: 0x6E4B2A }));
   const canopyM = greens.map(c => M(new T3.MeshLambertMaterial({ color: c, flatShading: true })));
   const canopyG = [4.6, 3.7, 2.8].map(r => G(new T3.IcosahedronGeometry(r, 1)));
   const trunkG = G(new T3.CylinderGeometry(.5, .7, 5, 6));
-  function tree(x, z, s) {
+  function tree(x, z, s0) {
+    const s = s0 * (.45 + .55 * kS);
     const g = new T3.Group();
     const trunk = new T3.Mesh(trunkG, trunkM); trunk.position.y = 2.5 * s; trunk.scale.setScalar(s); trunk.castShadow = true; g.add(trunk);
     const mat = canopyM[Math.floor(rnd() * canopyM.length)];
@@ -211,7 +261,10 @@ function buildScene(m) {
      off the fairway, and never in the water */
   const pickSide = () => (rnd() < (m.treeR != null ? m.treeR : .5) ? 1 : -1);
   const edgeAt = (t, d) => m.islandL ? along(d < 0 ? m.islandL : m.islandR, Math.max(0, Math.min(1, t))) : m.islandW ? along(m.islandW, t) : 999;
-  const clear = (t, d) => !(m.wet && m.wet(t, d)) && (!m.fwHalf || Math.abs(d) > along(m.fwHalf, t) + 5) && Math.abs(d) < edgeAt(t, d) - 2;
+  const clear = (t, d) => !(m.wet && m.wet(t, d))
+    && (m.onFairway ? !m.onFairway(t, d, 4) && !(m.fairways && m.fairways.length === 0 && m.fwHalf && Math.abs(d) < along(m.fwHalf, t) + 5)
+                    : (!m.fwHalf || Math.abs(d) > along(m.fwHalf, t) + 5))
+    && (m.onGround ? m.onGround(t, d) : Math.abs(d) < edgeAt(t, d) - 2);
   const span = t => m.islandW ? Math.max(8, along(m.islandW, t) - (m.fwHalf ? along(m.fwHalf, t) : 20) - 8) : 36;
   if (m.stands && m.stands.length >= 5) {
     /* where the drawing stands them: a tree to each clump it draws */
@@ -223,7 +276,7 @@ function buildScene(m) {
   if (!(m.stands && m.stands.length >= 5)) for (let i = 0, tries = 0; i < nTrees * .25 && tries < nTrees * 3; tries++) { const t = .72 + rnd() * .25; const d = pickSide() * (14 + rnd() * 28);
     if (!clear(t, d)) continue; const p = side(t, d); tree(p.x, p.z, .8 + rnd() * .5); i++; }
 
-  const points = { tee: tp, gMid: gC, gFront: gC.clone().sub(gr.clone().multiplyScalar(m.green.rz)), gBack: gC.clone().add(gr.clone().multiplyScalar(m.green.rz)), bunkers: bunkerPts };
+  const points = { tee: tp, gMid: gC, gFront, gBack, bunkers: bunkerPts };
   /* where the camera stands for a focus along the line, a zoom and a tilt */
   function aim(cam, focus, ox, zoom, flatView) {
     const f = at(focus).add(nrm(focus).multiplyScalar(ox)), g = tan(focus);
@@ -255,7 +308,7 @@ export function snapshot(m, w = 520, h = 650, across = false) {
   if (across) {
     /* the same stand behind the tee, the camera rolled a quarter turn so the
        hole runs along the long side of the picture */
-    const z = Math.max(1, Math.min(3.6, S.LEN / 230 * 1.08 * (h / w) * 0.92));
+    const z = Math.max(.62, Math.min(3.6, S.LEN / 230 * 1.08 * (h / w) * 0.92));
     const f = S.at(0.5), g = S.tan(0.5), n = S.nrm(0.5);
     cam.position.set(f.x - g.x * 200 * z, 300 * z, f.z - g.z * 200 * z);
     cam.up.copy(n).negate(); cam.lookAt(f.x + g.x * 50, -20, f.z + g.z * 50);

@@ -3664,3 +3664,100 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
   .navbtn:hover{color:var(--page);background:rgba(255,255,255,.06)}
 }
 .navbtn:focus-visible{outline:2px solid var(--gold-up);outline-offset:-3px}
+
+/* ---------------- the pickers ----------------
+   A choice is made in one of the book's own windows (see pickWrap in
+   app.js). The real select stays in the page under the field, unseen and
+   untouchable; the field is what a finger meets. */
+.pk{position:relative;display:block;min-width:0}
+.pk.sm{display:inline-block}
+.pk-sel{position:absolute!important;inset:0;width:100%!important;height:100%!important;min-height:0!important;
+  opacity:0;pointer-events:none;margin:0;padding:0;border:0}
+.pkf{position:relative;z-index:1;width:100%;min-height:46px;display:flex;align-items:center;gap:10px;
+  padding:9px 14px;border:1px solid var(--rule);border-radius:12px;background:var(--page);color:var(--ink);
+  font-size:16px;line-height:1.25;text-align:left;transition:background .15s ease,border-color .15s ease}
+@media (hover:hover) and (pointer:fine){ .pkf:not(:disabled):hover{border-color:var(--gold)} }
+.pkf:not(:disabled):active{background:var(--sunk)}
+.pkf:disabled{cursor:default;background:transparent;border-style:dashed;opacity:.75}
+.pkf:disabled .pk-chev,.pkf:disabled .pk-clock,.pkf:disabled .pk-ed{display:none}
+.pk-v{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pk-v small{display:block;font-size:12.5px;color:var(--turf);letter-spacing:.02em}
+.pk-v.none{color:var(--turf);font-style:italic}
+.pk-chev{flex:0 0 auto;width:9px;height:9px;border-right:2px solid var(--gold);border-bottom:2px solid var(--gold);
+  transform:rotate(45deg) translateY(-3px);margin-right:3px}
+.pk-clock{flex:0 0 auto;width:16px;height:16px;border:2px solid var(--gold);border-radius:50%;position:relative}
+.pk-clock::before{content:"";position:absolute;left:5px;top:2px;width:2px;height:5px;background:var(--gold)}
+.pk-clock::after{content:"";position:absolute;left:5px;top:6px;width:4px;height:2px;background:var(--gold)}
+.pk.sm .pkf{min-height:38px;padding:6px 10px;font-size:14.5px;border-radius:10px;gap:8px}
+.pk.sm .pk-chev{width:7px;height:7px}
+.pk-time{display:inline-block;min-width:150px}
+.pk-time .pkf{font-variant-numeric:tabular-nums}
+/* C: the hole as a coin */
+.pk-hole .pkf{min-height:58px;padding:8px 12px;border-radius:14px}
+.pk-hole .pkf.unset{border-style:dashed;background:transparent}
+.pk-coin{flex:0 0 auto;display:inline-grid;place-items:center;width:40px;height:40px;border-radius:50%;
+  background:var(--ink);color:var(--gold-up);font-weight:700;font-size:17px}
+.pk-coin.none{background:var(--sunk);color:var(--turf)}
+.pk-ed{flex:0 0 auto;font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
+/* fields that sit in tight places */
+.cardpk .pkf{min-height:34px;padding:4px 8px;font-size:14px;border-radius:8px}
+.recedit-pk{min-width:150px}
+
+/* ---- the window, the sheet and the tiles ---- */
+.pkscrim.over{background:rgba(16,22,17,.30)}
+.modal.pickm{padding:0;gap:0;display:flex;flex-direction:column;max-height:calc(100dvh - 48px)}
+.pickm .mbanner{margin:0;padding:15px 20px 14px}
+.pk-body{overflow:auto;overscroll-behavior:contain;flex:1 1 auto;min-height:0}
+.pickm .acts{padding:12px 16px 16px;border-top:1px solid var(--hair);margin:0}
+.pk-list{display:grid}
+.pk-li{width:100%;min-height:50px;display:flex;align-items:center;gap:12px;padding:10px 20px;font-size:16px;
+  border-top:1px solid var(--hair);text-align:left;transition:background .12s ease,color .12s ease}
+.pk-li:first-child{border-top:0}
+.pk-li .tick{width:16px;flex:0 0 auto;color:var(--gold);font-weight:700}
+.pk-li .t{flex:1 1 auto;min-width:0}
+.pk-li .s{font-size:13px;color:var(--turf);font-variant-numeric:tabular-nums}
+.pk-li.on{background:var(--leadtint)}
+.pk-li.none{color:var(--turf);font-style:italic}
+.pk-li:active{background:var(--sunk)}
+.pk-li.flash,.pk-li.flash:active{background:var(--ink);color:var(--page)}
+.pk-li.flash .tick,.pk-li.flash .s{color:var(--gold-up)}
+.pk-empty{margin:0;padding:18px 20px;color:var(--turf);font-size:15px}
+/* C */
+.pk-coins{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:18px}
+.pk-hc{aspect-ratio:1;border-radius:50%;background:var(--paper);box-shadow:inset 0 0 0 1px var(--rule);
+  display:grid;place-content:center;text-align:center;gap:2px;transition:transform .12s ease,background .12s ease}
+.pk-hc:active{transform:scale(.95)}
+.pk-hc b{font-size:28px;line-height:1}
+.pk-hc small{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--turf)}
+.pk-hc.on{background:var(--ink);color:var(--page);box-shadow:0 0 0 3px var(--gold-up)}
+.pk-hc.on small{color:var(--sage-up)}
+.pk-clear{justify-content:center;border-top:1px solid var(--hair)}
+/* B: the sheet */
+.pkscrim.bottom{align-items:flex-end;padding:0}
+.modal.pk-b{max-width:520px;margin:0 auto;border-radius:22px 22px 0 0;max-height:86dvh;
+  box-shadow:0 -10px 40px rgba(16,22,17,.25)}
+.pk-b .acts{padding-bottom:max(16px,calc(env(safe-area-inset-bottom,0px) + 10px))}
+.pk-grab{flex-wrap:wrap;cursor:grab;touch-action:none;padding-top:9px!important}
+.pk-handle{flex:0 0 100%;display:flex;justify-content:center;padding-bottom:6px}
+.pk-handle i{width:40px;height:5px;border-radius:3px;background:var(--sage-up);opacity:.75}
+.pk-wheels{position:relative;display:grid;height:220px;margin:10px 14px}
+.pk-wheels.n1{grid-template-columns:1fr}
+.pk-wheels.n3{grid-template-columns:1fr 1fr 1fr}
+.pk-wheels::before{content:"";position:absolute;left:0;right:0;top:88px;height:44px;border-radius:12px;
+  background:var(--leadtint);box-shadow:inset 0 0 0 1px var(--hair);pointer-events:none}
+.pk-wheel{position:relative;overflow-y:auto;scroll-snap-type:y mandatory;scrollbar-width:none;padding:88px 0;
+  -webkit-mask-image:linear-gradient(transparent,#000 30%,#000 70%,transparent);mask-image:linear-gradient(transparent,#000 30%,#000 70%,transparent)}
+.pk-wheel::-webkit-scrollbar{display:none}
+.pk-wi{display:grid;place-items:center;width:100%;height:44px;scroll-snap-align:center;font-size:21px;font-variant-numeric:tabular-nums;color:var(--turf)}
+.pk-wi.on{color:var(--ink);font-weight:600}
+/* coming and going */
+@keyframes pkSheetIn{from{transform:translateY(100%)}to{transform:none}}
+@keyframes pkSheetOut{to{transform:translateY(100%)}}
+@keyframes pkCardOut{to{opacity:0;transform:scale(.97)}}
+@keyframes pkScrimOut{to{opacity:0}}
+.scrim[data-in] > .modal.pk-b{animation:pkSheetIn .34s cubic-bezier(.2,.9,.28,1) both}
+.pkscrim.out{animation:pkScrimOut .18s ease both}
+.pkscrim.out > .modal{animation:pkCardOut .16s ease both}
+.pkscrim.out > .modal.pk-b{animation:pkSheetOut .2s ease-in both}
+@media (prefers-reduced-motion:reduce){ .pkscrim,.pkscrim > .modal{animation:none!important} }
+.pickm .acts .btn{text-align:center;justify-content:center}

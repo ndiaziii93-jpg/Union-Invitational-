@@ -107,6 +107,21 @@ def simplify(pts, eps):
     if d[i] <= eps: return np.array([a, b])
     return np.vstack([simplify(pts[:i + 1], eps)[:-1], simplify(pts[i:], eps)])
 
+def boxblur(x, k):
+    c = np.cumsum(np.cumsum(np.pad(x, ((k + 1, k), (k + 1, k))), 0), 1)
+    return (c[2*k+1:, 2*k+1:] - c[:-2*k-1, 2*k+1:] - c[2*k+1:, :-2*k-1] + c[:-2*k-1, :-2*k-1]) / ((2 * k + 1) ** 2)
+
+def otsu(v):
+    h, e = np.histogram(v, 64); c = (e[:-1] + e[1:]) / 2
+    best, thr = -1, c[len(c) // 2]
+    for i in range(1, 63):
+        w0, w1 = h[:i].sum(), h[i:].sum()
+        if not w0 or not w1: continue
+        m0, m1 = (h[:i] * c[:i]).sum() / w0, (h[i:] * c[i:]).sum() / w1
+        b = w0 * w1 * (m0 - m1) ** 2
+        if b > best: best, thr = b, c[i]
+    return thr
+
 def trace(path):
     a = np.array(Image.open(path).convert('RGBA')).astype(int)
     r, g, b, al = a[..., 0], a[..., 1], a[..., 2], a[..., 3]
@@ -152,19 +167,75 @@ def trace(path):
     # THE WATER, AS THE DRAWING HAS IT: each lake's own outline, walked round
     # its edge and written as [t, d] from the hole's line. A lake that crosses
     # the hole in front of the tee is one lake, not a strip down each side.
+    def rings(mask, min_px, eps=1.2, keep=None):
+        """Each blob's outer edge, walked and simplified, as [t, d] from the line."""
+        out = []
+        for pts in comps(mask):
+            if len(pts) < min_px: continue
+            ys = np.array([p[0] for p in pts]); xs = np.array([p[1] for p in pts])
+            if keep and not keep(ys, xs): continue
+            blob = np.zeros_like(mask); blob[ys, xs] = True
+            ring = outline(blob)
+            if len(ring) < 8: continue
+            j = len(ring) // 2                         # simplify as two halves, so the ends stay put
+            poly = np.vstack([simplify(ring[:j + 1], eps)[:-1], simplify(ring[j:] + ring[:1], eps)[:-1]])
+            pt, pd = tv(poly[:, 0].astype(float), poly[:, 1].astype(float))
+            out.append((len(pts), [[round(float(a), 4), round(float(b - cenAt(a)), 4)] for a, b in zip(pt, pd)]))
+        out.sort(key=lambda x: -x[0])
+        return [q for _, q in out]
     wmask = close(water)
-    lakes = []
-    for pts in comps(wmask):
-        if len(pts) < 120: continue
-        blob = np.zeros_like(wmask)
-        ys = np.array([p[0] for p in pts]); xs = np.array([p[1] for p in pts]); blob[ys, xs] = True
-        ring = outline(blob)
-        if len(ring) < 12: continue
-        j = len(ring) // 2                             # simplify as two halves, so the ends stay put
-        poly = np.vstack([simplify(ring[:j + 1], 1.2)[:-1], simplify(ring[j:] + ring[:1], 1.2)[:-1]])
-        pt, pd = tv(poly[:, 0], poly[:, 1])
-        lakes.append([[round(float(a), 4), round(float(b - cenAt(a)), 4)] for a, b in zip(pt, pd)])
-    lakes.sort(key=len, reverse=True)
+    lakes = rings(wmask, 120)
+    # EVERY SURFACE AS ITS OWN OUTLINE. The fairway is the lighter turf: the
+    # stripes make single pixels useless, so it is read off a blurred
+    # brightness, cut where that drawing's own two greens part (each drawing
+    # is painted a little lighter or darker than the next).
+    gb = boxblur(np.where(turf, g, 0).astype(float), 5) / np.maximum(boxblur(turf.astype(float), 5), 1e-6)
+    cut = otsu(gb[turf]) if turf.any() else 160
+    fmask = close(turf & (gb > cut), 2)
+    fmask = ~grow(~fmask) ; fmask = grow(fmask)       # open: no specks
+    fairways = rings(fmask & close(turf, 2), 160, 1.4)
+    # the green: the lightest turf round the foot of the flag
+    yy0, xx0 = np.mgrid[0:a.shape[0], 0:a.shape[1]]
+    # THE GREEN is drawn as a checked patch inside a thin darker line, the
+    # same colour as the fairway round it. So it is found by filling out from
+    # the foot of the flag over the light turf until that line stops it,
+    # kept to a ring round the flag in case the line has a gap.
+    rad = np.hypot(xx0 - F[0], yy0 / SQUASH - F[1])
+    near = rad < .085 * AX
+    rim = near & (rad > .075 * AX)
+    fy0, fx0 = int(round(F[1] * SQUASH)), int(round(F[0]))
+    green = None
+    for lim in (156, 162, 168, 174, 180):             # stricter until the line holds
+        light = near & solid & (g >= lim) & (g > r + 25) & (g > b + 40)
+        best = None
+        for pts in comps(light):
+            if len(pts) < 40: continue
+            ys = np.array([q[0] for q in pts]); xs = np.array([q[1] for q in pts])
+            dmin = np.min(np.hypot(xs - fx0, ys - fy0))
+            if best is None or dmin < best[0]: best = (dmin, ys, xs)
+        if best is None or best[0] > 14: break
+        if rim[best[1], best[2]].sum() > 12: continue  # it ran out to the edge of the search: leaked
+        gm = np.zeros_like(light); gm[best[1], best[2]] = True
+        gr = rings(close(gm, 2), 40, 1.0)
+        green = gr[0] if gr else None
+        break
+    # the cart paths: long grey ribbons
+    grey = solid & (np.abs(r - g) < 16) & (np.abs(g - b) < 18) & (r > 140)      # paths are grey or near white
+    paths = rings(close(grey, 1), 60, 1.2, keep=lambda ys, xs: max(np.ptp(ys), np.ptp(xs)) > 30)
+    # the ground: turf, water, sand, paths, and the trees standing on it
+    base = turf | water | sand | grey
+    for _ in range(6): base = base | (grow(base) & tree)
+    # every piece of it: a path across the hole can part the turf in two
+    # A path across the hole is drawn as a gap in the turf; bridging the gaps
+    # keeps the hole in one piece, and what was bridged, long and thin, is the
+    # path. Tree clumps standing off on their own are not ground.
+    G6 = close(base, 6)
+    gap = G6 & ~close(base, 1)
+    paths = paths + rings(gap, 60, 1.2, keep=lambda ys, xs: max(np.ptp(ys), np.ptp(xs)) > 30
+                          and len(ys) / max(1, max(np.ptp(ys), np.ptp(xs))) < 9
+                          and turf[np.clip(ys + 6, 0, turf.shape[0] - 1), xs].mean() > .3
+                          and turf[np.clip(ys - 6, 0, turf.shape[0] - 1), xs].mean() > .3)
+    ground = rings(G6, 400, 1.6, keep=lambda ys, xs: turf[ys, xs].mean() > .3 and turf[ys, xs].sum() > 800)
     # THE GROUND: how far the turf and the water reach on each side, slice by
     # slice, so the island is the shape of the hole on the page and holds its
     # lakes, instead of the same width both ways.
@@ -192,7 +263,10 @@ def trace(path):
         bt, bd = tv(ys.astype(float), xs.astype(float))
         t = float(bt.mean()); dn = float(bd.mean() - cenAt(t))
         if t < .2 or t > 1.05: continue                 # nothing near the tee: that is paths and trunks
-        bunk.append({'t': round(t, 3), 'd': round(dn, 4), 'rx': round(float(w / AX / 2), 4), 'rz': round(float(h / SQUASH / AX / 2), 4)})
+        blob = np.zeros_like(sand); blob[ys, xs] = True
+        poly = rings(blob, 14, .8)
+        bunk.append({'t': round(t, 3), 'd': round(dn, 4), 'rx': round(float(w / AX / 2), 4), 'rz': round(float(h / SQUASH / AX / 2), 4),
+                     'poly': poly[0] if poly else None})
     # the trees: how they split, left and right, and where they stand
     yy, xx = np.nonzero(tree)
     tl = tr = 0; stands = []
@@ -211,7 +285,8 @@ def trace(path):
     tot = max(1, tl + tr)
     widths = [round(float(x), 4) for x in half]
     r4 = lambda v: [round(float(x), 4) for x in v]
-    return {'cl': cl, 'half': widths, 'edgeL': r4(edgeL), 'edgeR': r4(edgeR), 'lakes': lakes, 'stands': stands, 'bunkers': bunk[:8],
+    return {'cl': cl, 'half': widths, 'edgeL': r4(edgeL), 'edgeR': r4(edgeR), 'lakes': lakes, 'stands': stands, 'bunkers': bunk[:10],
+            'ground': ground, 'fairways': fairways[:6], 'green': green, 'paths': paths[:6],
             'treesL': round(tl / tot, 2), 'treesR': round(tr / tot, 2), 'treeAmt': round(min(1.0, (tl + tr) / max(1, int(turf.sum()))), 3)}
 
 def main():
