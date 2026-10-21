@@ -3761,3 +3761,29 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
 .pkscrim.out > .modal.pk-b{animation:pkSheetOut .2s ease-in both}
 @media (prefers-reduced-motion:reduce){ .pkscrim,.pkscrim > .modal{animation:none!important} }
 .pickm .acts .btn{text-align:center;justify-content:center}
+
+/* ---------------- photos from the course ----------------
+   A golfer gets the big button — the shot is the thing — and the library
+   beside it; a ref gets a small camera in the hole's heading. */
+.snaprow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:10px 0 14px}
+.snaprow .btn{border-radius:999px;min-height:48px;display:inline-flex;align-items:center;justify-content:center;gap:9px;font-weight:600}
+.snaprow .snap{flex:1 1 220px;background:var(--ink);border-color:var(--ink);color:var(--page);font-size:16.5px}
+.snaprow .snap svg{color:var(--gold-up)}
+.snaprow .choose{flex:0 1 auto;background:var(--page);border-color:var(--rule);color:var(--ink);font-size:14.5px;padding:10px 16px}
+.snaprow.ref{margin:6px 0 10px}
+.phq{flex:1 0 100%;font-size:13px;color:var(--turf)}
+.phq.wait{color:var(--gold)}
+.camicon{margin-left:auto;display:inline-grid;place-items:center;width:40px;height:40px;border-radius:50%;
+  border:1px solid var(--rule);background:var(--page);color:var(--ink);flex:0 0 auto}
+.camicon:active{background:var(--sunk)}
+.holehead .camicon{align-self:center}
+.camopts{display:grid;gap:10px;padding:18px 18px 8px}
+.camopts .btn{border-radius:999px;min-height:52px;display:flex;align-items:center;justify-content:center;gap:10px;font-weight:600;font-size:16.5px}
+.camopts .snap{background:var(--ink);border-color:var(--ink);color:var(--page)}
+.camopts .snap svg{color:var(--gold-up)}
+.camopts .choose{background:var(--page);border-color:var(--rule);color:var(--ink)}
+.camsheet .acts .btn{text-align:center;justify-content:center}
+.phh{font-weight:600;color:var(--ink)}
+/* in the pine hole band the camera is drawn light */
+.entryhd .camicon{background:transparent;border-color:rgba(238,232,213,.4);color:var(--page);width:38px;height:38px}
+.entryhd .camicon:active{background:rgba(238,232,213,.12)}

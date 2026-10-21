@@ -3766,6 +3766,32 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
 @media (prefers-reduced-motion:reduce){ .pkscrim,.pkscrim > .modal{animation:none!important} }
 .pickm .acts .btn{text-align:center;justify-content:center}
 
+/* ---------------- photos from the course ----------------
+   A golfer gets the big button — the shot is the thing — and the library
+   beside it; a ref gets a small camera in the hole's heading. */
+.snaprow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:10px 0 14px}
+.snaprow .btn{border-radius:999px;min-height:48px;display:inline-flex;align-items:center;justify-content:center;gap:9px;font-weight:600}
+.snaprow .snap{flex:1 1 220px;background:var(--ink);border-color:var(--ink);color:var(--page);font-size:16.5px}
+.snaprow .snap svg{color:var(--gold-up)}
+.snaprow .choose{flex:0 1 auto;background:var(--page);border-color:var(--rule);color:var(--ink);font-size:14.5px;padding:10px 16px}
+.snaprow.ref{margin:6px 0 10px}
+.phq{flex:1 0 100%;font-size:13px;color:var(--turf)}
+.phq.wait{color:var(--gold)}
+.camicon{margin-left:auto;display:inline-grid;place-items:center;width:40px;height:40px;border-radius:50%;
+  border:1px solid var(--rule);background:var(--page);color:var(--ink);flex:0 0 auto}
+.camicon:active{background:var(--sunk)}
+.holehead .camicon{align-self:center}
+.camopts{display:grid;gap:10px;padding:18px 18px 8px}
+.camopts .btn{border-radius:999px;min-height:52px;display:flex;align-items:center;justify-content:center;gap:10px;font-weight:600;font-size:16.5px}
+.camopts .snap{background:var(--ink);border-color:var(--ink);color:var(--page)}
+.camopts .snap svg{color:var(--gold-up)}
+.camopts .choose{background:var(--page);border-color:var(--rule);color:var(--ink)}
+.camsheet .acts .btn{text-align:center;justify-content:center}
+.phh{font-weight:600;color:var(--ink)}
+/* in the pine hole band the camera is drawn light */
+.entryhd .camicon{background:transparent;border-color:rgba(238,232,213,.4);color:var(--page);width:38px;height:38px}
+.entryhd .camicon:active{background:rgba(238,232,213,.12)}
+
 </style>
 <div id="app"></div>
 <!-- The crest, and the opening it pays for, ahead of everything else. A few
@@ -3892,7 +3918,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261021-1128';
+const BUILD = '20261021-2117';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -8684,7 +8710,8 @@ const BOARDS = [['pairs',    'Team Competition',                   'Team'],
                 ['bbb',      'Bingo Bango Bongo',                  'Bingo'],
                 ['ryder',    'Ryder Cup',                          'Cup'],
                 ['prizes',   'Longest Drive & Closest to the Pin', 'Prizes'],
-                ['practice', 'Practice Day',                       'Practice']];
+                ['practice', 'Practice Day',                       'Practice'],
+                ['photos',   'Photos from the week',               'Photos']];
 
 function scrBoards() {
   /* The strip carries the long name for anything that reads the page and the
@@ -8702,7 +8729,7 @@ function scrBoards() {
         aria-label="${esc(long)}"><span class="lg">${esc(long)}</span>${esc(short)}</button>`).join('')}
   </div></div>`;
   const body = { home: boardsHome, pairs: boardPairs, mvp: boardMvp, bbb: boardBbb, ryder: scrRyder,
-                 prizes: boardPrizes, practice: boardPractice }[UI.boardTab] || boardsHome;
+                 prizes: boardPrizes, practice: boardPractice, photos: gallery1 }[UI.boardTab] || boardsHome;
   return strip + body();
 }
 
@@ -9685,7 +9712,7 @@ function phFig(ph) {
     <a href="${esc(ph.url)}" target="_blank" rel="noopener" aria-label="Open this photo full size">
       <img src="${esc(ph.thumb || ph.url)}" alt="${esc(ph.caption || 'From the round')}" loading="lazy"
         onerror="this.closest('figure').classList.add('broken')"></a>
-    <figcaption>${esc(ph.byName || 'Someone')}${canAdmin() || ph.mine ? `
+    <figcaption>${ph.hole != null ? `<b class="phh">Hole ${ph.hole + 1}</b> ` : ''}${esc(ph.byName || 'Someone')}${canAdmin() || ph.mine ? `
       <button class="rm" data-act="photoDrop1" data-a="${esc(ph.id)}">Remove</button>` : ''}</figcaption>
   </figure>`;
 }
@@ -9750,28 +9777,35 @@ function shrink(file, max = 1600, quality = 0.82) {
  * a native control destroyed while somebody is still using it. The answer
  * there was to defer the redraw. Here it is simpler to keep the one element
  * that matters out of the way of the redraw entirely. */
+/* TWO WAYS IN. The camera opens straight onto the viewfinder (`capture`) —
+   one tap, one shot; the library opens the phone's photos, where several can
+   be picked at once. Both inputs live outside #app, made once, for the
+   reason above. The hole the reader is standing on goes with the picture. */
 let picker = null;
+let camPicker = null;
 let pickerRid = null;
+let pickerHole = null;
 
-function makePicker() {
-  if (picker || typeof document === 'undefined') return picker;
-  picker = document.createElement('input');
-  picker.type = 'file';
-  picker.accept = 'image/*';
-  picker.multiple = true;
-  picker.style.display = 'none';
-  picker.setAttribute('aria-hidden', 'true');
-  picker.addEventListener('change', () => {
-    const files = picker.files;
-    const rid = pickerRid;
-    // read them out before clearing, and clear before any await
-    const taken = Array.from(files || []);
-    picker.value = '';
-    if (rid) addPhotos(rid, taken);
+function pickerFor(kind) {
+  if (typeof document === 'undefined') return null;
+  if (kind === 'camera' ? camPicker : picker) return kind === 'camera' ? camPicker : picker;
+  const el = document.createElement('input');
+  el.type = 'file';
+  el.accept = 'image/*';
+  if (kind === 'camera') el.setAttribute('capture', 'environment'); else el.multiple = true;
+  el.style.display = 'none';
+  el.setAttribute('aria-hidden', 'true');
+  el.addEventListener('change', () => {
+    const taken = Array.from(el.files || []);
+    const rid = pickerRid, hole = pickerHole;
+    el.value = '';                                   // read them out before clearing, and clear before any await
+    if (rid) addPhotos(rid, taken, hole);
   });
-  document.body.appendChild(picker);
-  return picker;
+  document.body.appendChild(el);
+  if (kind === 'camera') camPicker = el; else picker = el;
+  return el;
 }
+function makePicker() { return pickerFor('library'); }
 
 let upSeq = 0;
 
@@ -9791,7 +9825,43 @@ function looksLikeAPicture(f) {
   return true;                                              // no type at all: try it
 }
 
-async function addPhotos(rid, files) {
+/* A PHOTO IS NEVER LOST TO A BAD SIGNAL. Out on the course there may be no
+   connection at all. Each picture is shrunk on the phone at once — that needs
+   no signal — and parked on the phone itself, then sent whenever the phone
+   can reach the book: straight away when it can, otherwise the moment it is
+   back online, and again whenever the app is opened. Closing the app in
+   between loses nothing. */
+const PHOTO_DB = 'union-photos', PHOTO_OS = 'pending';
+let photoDb = null;
+function openPhotoDb() {
+  if (photoDb) return photoDb;
+  photoDb = new Promise(resolve => {
+    try {
+      const rq = indexedDB.open(PHOTO_DB, 1);
+      rq.onupgradeneeded = () => rq.result.createObjectStore(PHOTO_OS, { keyPath: 'id' });
+      rq.onsuccess = () => resolve(rq.result);
+      rq.onerror = () => resolve(null);
+    } catch (e) { resolve(null); }
+  });
+  return photoDb;
+}
+async function photoDbDo(mode, fn) {
+  const db = await openPhotoDb();
+  if (!db) return null;
+  return new Promise(resolve => {
+    try {
+      const tx = db.transaction(PHOTO_OS, mode); const os = tx.objectStore(PHOTO_OS);
+      const rq = fn(os);
+      tx.oncomplete = () => resolve(rq && 'result' in rq ? rq.result : true);
+      tx.onerror = () => resolve(null);
+    } catch (e) { resolve(null); }
+  });
+}
+const parkPhoto = item => photoDbDo('readwrite', os => os.put(item));
+const unparkPhoto = id => photoDbDo('readwrite', os => os.delete(id));
+const parkedPhotos = () => photoDbDo('readonly', os => os.getAll()).then(r => r || []);
+
+async function addPhotos(rid, files, hole) {
   const all = Array.from(files || []);
   if (store && store.note) {
     store.note('photo picked', all.length + ' file(s): '
@@ -9807,47 +9877,116 @@ async function addPhotos(rid, files) {
   }
   if (!store4) { UI.upload.err = 'This copy of the book cannot store photos.'; render(); return; }
   const supa = store4.kind === 'supabase';
-  const who = (E.person(T, UI.role) || {}).display || 'Someone';
+  const me = UI.me && E.person(T, UI.me);
+  const who = (me || E.person(T, UI.role) || {}).display || 'Someone';
   UI.upload.err = '';
-  if (store && store.note) store.note('photo start', list.length + ' file(s), store=' + store4.kind);
   for (const f of list) {
-    const u = { id: 'u' + (++upSeq), rid, name: f.name, pct: 5, err: '' };
+    const u = { id: 'u' + Date.now().toString(36) + (++upSeq), rid, hole: hole == null ? null : +hole, name: f.name || 'Photo', pct: 5, err: '', waiting: false };
     UI.upload.queue.push(u);
     render();
     try {
       const small = await shrink(f, CFG.PHOTO_MAX);
-      u.pct = 40; render();
       const thumb = supa ? await shrink(f, CFG.THUMB_MAX, 0.7).catch(() => null) : null;
-      u.pct = 60; render();
-      const up = supa ? await store4.upload(small, thumb) : await store4.upload(small);
-      u.pct = 90; render();
-      const id = 'ph' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-      /* The file is in the bucket by now. The row that points at it is a
-         separate write, and it can be refused — the store turns a write away
-         while the book is still loading — so the answer is checked rather
-         than assumed. A photograph uploaded and then not recorded is the
-         worst of both: the allowance is spent and nobody can see it. */
-      const kept = await store.writePhoto(id, {
-        rid, url: up.url, thumb: up.thumbUrl || null, at: Date.now(),
-        assetId: up.id || null, key: up.key || null, thumbKey: up.thumbKey || null,
-        by: UI.role, byName: who, mine: true, bytes: up.sizeBytes || small.size,
-      });
-      if (kept === false) throw new Error('uploaded, but the book would not record it yet');
-      if (store && store.note) store.note('photo ok', id + ' rid=' + rid + ' url=' + String(up.url).slice(-28));
-      u.pct = 100;
-      UI.upload.queue = UI.upload.queue.filter(x => x !== u);   // one at a time, so one failure stays put
+      u.pct = 30;
+      await parkPhoto({ id: u.id, rid, hole: u.hole, name: u.name, by: UI.role, byName: who, at: Date.now(), small, thumb });
     } catch (e) {
-      const why = (e && (e.message || e.code)) ? String(e.message || e.code) : 'did not upload';
-      u.err = why.slice(0, 60);
-      /* Loud, and at the top of the window where it cannot be scrolled past,
-         because the last one of these was invisible. And into the diagnostic
-         log, so the reason survives the page being closed. */
-      UI.upload.err = 'That photo did not go up: ' + why.slice(0, 120);
-      if (store && store.note) store.note('photo FAILED', f.name + ' — ' + why);
-      u.pct = 100;
+      const why = (e && (e.message || e.code)) ? String(e.message || e.code) : 'could not be read';
+      u.err = why.slice(0, 60); u.pct = 100;
+      UI.upload.err = 'That photo could not be read: ' + why.slice(0, 120);
+      if (store && store.note) store.note('photo FAILED', (f.name || '?') + ' — ' + why);
+      render();
+      continue;
     }
     render();
   }
+  sendParked();
+}
+
+/* Send whatever is parked, one at a time, oldest first. A send that fails for
+   want of a signal stays parked and says it is waiting; it goes the next time
+   the phone comes online, the app comes back to the front, or a minute
+   passes. */
+let sending = false;
+async function sendParked() {
+  if (sending || !store4) return;
+  sending = true;
+  try {
+    const parked = (await parkedPhotos()).sort((a, b) => (a.at || 0) - (b.at || 0));
+    for (const item of parked) {
+      let u = UI.upload.queue.find(x => x.id === item.id);
+      if (!u) { u = { id: item.id, rid: item.rid, hole: item.hole, name: item.name, pct: 30, err: '', waiting: false }; UI.upload.queue.push(u); }
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) { u.waiting = true; continue; }
+      if (!loaded()) { u.waiting = true; continue; }                   // the book is still opening
+      u.waiting = false; u.err = ''; u.pct = 45; render();
+      try {
+        const supa = store4.kind === 'supabase';
+        const up = supa ? await store4.upload(item.small, item.thumb) : await store4.upload(item.small);
+        u.pct = 85; render();
+        const id = 'ph' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+        /* The file is in the bucket by now. The row that points at it is a
+           separate write, and it can be refused while the book is still
+           loading, so the answer is checked rather than assumed. */
+        const kept = await store.writePhoto(id, {
+          rid: item.rid, hole: item.hole == null ? null : item.hole, url: up.url, thumb: up.thumbUrl || null, at: item.at || Date.now(),
+          assetId: up.id || null, key: up.key || null, thumbKey: up.thumbKey || null,
+          by: item.by, byName: item.byName, mine: true, bytes: up.sizeBytes || (item.small && item.small.size) || 0,
+        });
+        if (kept === false) throw new Error('uploaded, but the book would not record it yet');
+        await unparkPhoto(item.id);
+        if (store && store.note) store.note('photo ok', id + ' rid=' + item.rid + ' hole=' + item.hole);
+        UI.upload.queue = UI.upload.queue.filter(x => x !== u);
+      } catch (e) {
+        const why = (e && (e.message || e.code)) ? String(e.message || e.code) : 'did not upload';
+        const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
+        u.waiting = true;                                // kept on the phone; tried again later
+        u.err = offline ? '' : why.slice(0, 60);
+        if (store && store.note) store.note('photo waiting', item.name + ' — ' + why);
+      }
+      render();
+    }
+  } finally { sending = false; render(); }      // a photo left waiting says so at once
+}
+if (typeof window !== 'undefined') {
+  addEventListener('online', () => sendParked());
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') sendParked(); });
+  setInterval(() => { if (UI.upload.queue.some(u => u.waiting)) sendParked(); }, 60000);
+}
+
+/* The camera row on Score Entry. A golfer gets the big button — the shot
+   is the thing — and the library beside it; a ref, whose screen is the
+   card, gets a small camera in the hole's own heading that offers both. */
+function photoWaiting(rid) {
+  const q = UI.upload.queue.filter(u => u.rid === rid);
+  if (!q.length) return '';
+  const waiting = q.filter(u => u.waiting).length, going = q.length - waiting;
+  return `<span class="phq${waiting ? ' wait' : ''}">${going ? `Sending ${going} photo${going === 1 ? '' : 's'}…` : ''}${going && waiting ? ' · ' : ''}${
+    waiting ? `${waiting} waiting for signal — they go up by themselves` : ''}</span>`;
+}
+const CAM_SVG = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l1.6-2.4h6.8L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.6"/></svg>';
+function photoRow(rid, h, hole) {
+  if (!store4) return '';
+  return `<div class="snaprow">
+    <button class="btn snap" data-act="photoSnap" data-a="${rid}" data-b="${h}">${CAM_SVG}<span>Snap hole ${hole.n}</span></button>
+    <button class="btn ghost choose" data-act="photoPick" data-a="${rid}" data-b="${h}">Choose from library</button>
+    ${photoWaiting(rid)}
+  </div>`;
+}
+function photoIcon(rid, h) {
+  if (!store4) return '';
+  return `<button class="camicon" data-act="photoSheet" data-a="${rid}" data-b="${h}" aria-label="Add a photo of this hole">${CAM_SVG}</button>`;
+}
+function cameraSheetHtml() {
+  const m = UI.modal;
+  const hole = (E.courseOf(T, m.rid).holes[m.h] || {}).n;
+  return `<div class="scrim pkscrim bottom" data-act="modalScrim">
+    <div class="modal pickm pk-b camsheet" role="dialog" aria-modal="true" aria-label="Add a photo">
+      <div class="mbanner pk-grab"><span class="pk-handle" aria-hidden="true"><i></i></span><span class="mb-w"><span class="mb-t">A photo of hole ${hole}</span><span class="mb-s">Everyone on the trip sees it</span></span>${IMG.crest ? `<img class="mb-c" src="${IMG.crest}" alt="">` : ''}</div>
+      <div class="pk-body camopts">
+        <button class="btn snap" data-act="photoSnap" data-a="${m.rid}" data-b="${m.h}">${CAM_SVG}<span>Take a photo</span></button>
+        <button class="btn ghost choose" data-act="photoPick" data-a="${m.rid}" data-b="${m.h}">Choose from library</button>
+      </div>
+      <div class="acts"><button class="btn ghost" data-act="modalCancel">Cancel</button></div>
+    </div></div>`;
 }
 
 /* THE REPORT, AS A MESSAGE. The recap is written to be read in the book,
@@ -10642,6 +10781,7 @@ function scrMine(rid) {
     ${played != null ? `<span class="num">You wrote ${played}</span>`
       : '<span class="m">Not scored yet</span>'}
   </div>
+  ${photoRow(rid, h, hole)}
 
   ${/* NOT the ref's four. They can settle where the ball went; these are the
         things nobody watching could know — whether it deserved better, or a
@@ -10934,6 +11074,7 @@ function scrEntry() {
         <span class="ehd-n num">${hole.n}</span>
         <span class="ehd-l">Hole</span>
         <span class="ehd-m">Par ${hole.par} \u00B7 Index ${hole.si}<b>Picks up at ${cap}</b></span>
+        ${/* the ref's camera rides in the hole band, which never leaves the glass */ isRef() ? photoIcon(rid, h) : ''}
       </div>
     <div class="rcards">
       ${D.ROUNDS.map(x => {
@@ -10981,6 +11122,7 @@ function scrEntry() {
     <span class="m num">Stroke index ${hole.si}</span>
     <span class="r num">Picks up at ${cap}</span>
   </div>
+  ${isRef() ? (photoWaiting(rid) ? `<div class="snaprow ref">${photoWaiting(rid)}</div>` : '') : photoRow(rid, h, hole)}
 
   ${/* THE HOLE BESIDE THE ROWS. On a phone the plate comes first and the
         rows follow; on anything wider the rows take the page and the hole
@@ -14023,6 +14165,7 @@ function modalHtml() {
        : UI.modal.kind === 'setup' ? setupModalHtml()
        : UI.modal.kind === 'add' ? addModalHtml()
        : UI.modal.kind === 'confirm' ? confirmModalHtml()
+       : UI.modal.kind === 'camera' ? cameraSheetHtml()
        : pinModalHtml();
 }
 
@@ -14239,8 +14382,18 @@ function onClick(e) {
       if (!T.recaps[a] || !T.recaps[a].body) writeRecap(a, false);
       return;
     case 'photoPick':
+    case 'photoSnap':
       pickerRid = a;
-      makePicker().click();
+      pickerHole = b == null || b === '' ? null : +b;
+      if (UI.modal && UI.modal.kind === 'camera') UI.modal = null;
+      /* the click has to happen inside the tap itself, or the phone refuses
+         to open its camera or its photos */
+      pickerFor(act === 'photoSnap' ? 'camera' : 'library').click();
+      render();
+      return;
+    case 'photoSheet':
+      UI.modal = { kind: 'camera', rid: a, h: +b };
+      render();
       return;
     case 'photoDrop1': {
       const ph = T.photos[a] || {};
@@ -14265,7 +14418,8 @@ function onClick(e) {
       return;
     case 'uploadClear':
       UI.upload.err = '';
-      UI.upload.queue = UI.upload.queue.filter(u => !u.err);
+      UI.upload.queue.filter(u => u.err && !u.waiting).forEach(u => unparkPhoto(u.id));
+      UI.upload.queue = UI.upload.queue.filter(u => !u.err || u.waiting);
       render();
       return;
     case 'recapGallery':
@@ -15344,6 +15498,8 @@ function boot() {
       catch (e) { store4 = null; }
     }
     render();
+    /* anything parked on this phone from a round with no signal goes now */
+    if (store4) setTimeout(sendParked, 2500);
   })();
   /* The store redraws whenever it hears anything; this is the same redraw,
      on demand, so a test can land one in the middle of a sentence. */
