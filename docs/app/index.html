@@ -3959,7 +3959,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261018-1637';
+const BUILD = '20261021-1128';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -12148,7 +12148,7 @@ function resortPlan() {
   </div>` : ''}
   <div class="planwrap${art ? ' art nos' : ''}${art && z > 1 ? ' zoomed' : ''}"${art ? ` style="--z:${z}"` : ''}>
     <div class="planstage"${art ? '' : ` style="aspect-ratio:${B.w}/${B.h}"`}>
-      ${art ? `<img class="planimg" src="${art}" alt="An illustrated plan of the resort, the sea along one side and the river along the other">` : ''}
+      ${art ? `<img class="planimg" src="${art}" width="2000" height="552" alt=""An illustrated plan of the resort, the sea along one side and the river along the other">` : ''}
       ${art ? '' : `<svg class="plan" viewBox="${B.x} ${B.y} ${B.w} ${B.h}" font-size="${FS}"
         preserveAspectRatio="none" role="img" aria-label="Schematic plan of the resort">${dots}</svg>`}
       <div class="pins">${pins}</div>
@@ -12527,6 +12527,8 @@ function restoreFocus(f) {
    replacing the button between the finger going down and coming up.
    So while a control is genuinely in use, the redraw waits. */
 let renderPending = false;
+let paintedHTML = '';    // the page as last drawn: a redraw that would draw the same is skipped
+let heightHold = 0;      // which rebuild is holding the page's height
 let pinShown = null;     // the point the site plan was last scrolled to
 let zoomShown = 1;       // and how far in it was when that happened
 /* A select that has just fired `change`. Its wheel is SHUT — that is what
@@ -12539,6 +12541,7 @@ let wheelDone = null;
 function inUse() {
   if (pinch) return true;              // never redraw under a moving finger
   if (Date.now() - pkTurning < 600) return true;   // nor under a picker's wheel still turning
+  if (!readerTurn && (fingerOnGlass || Date.now() < glidingUntil)) return true;   // nor under a page still moving
   if (tapping) return true;            // nor between a press and its release
   const el = document.activeElement;
   if (!el || !document.getElementById('app')) return false;
@@ -12734,6 +12737,30 @@ function flushRender() {
  * A press now holds the redraw and lets it go the moment the tap is over. */
 let tapping = false;
 let tapGuard = null;
+/* A PAGE IN MOTION IS NOT REBUILT UNDER THE THUMB. A swipe on a phone is a
+   press the browser cancels the moment it decides the finger is scrolling —
+   and that cancel used to release whatever redraw the press had been holding,
+   so the page was rebuilt just as it began to move. Rebuilt mid-flight, the
+   page is a moment shorter than it was, the phone clamps the scroll, the
+   momentum carries on from wherever it was clamped to, and the reader lands
+   near the top of the Resort or the Rules having to find their place again.
+   So nothing the reader did not ask for redraws while a finger is on the
+   glass or the page is still gliding; it waits for the page to come to rest.
+   A tap, a pick or a keystroke — the reader's own turn — is never held. */
+let fingerOnGlass = false;
+let glidingUntil = 0;
+let restTimer = null;
+let readerTurn = false;
+const restSoon = () => { clearTimeout(restTimer); restTimer = setTimeout(() => { if (!fingerOnGlass) flushRender(); }, 260); };
+addEventListener('touchstart', () => { fingerOnGlass = true; }, { passive: true, capture: true });
+addEventListener('touchend', () => { fingerOnGlass = false; restSoon(); }, { passive: true, capture: true });
+addEventListener('touchcancel', () => { fingerOnGlass = false; restSoon(); }, { passive: true, capture: true });
+addEventListener('scroll', () => { glidingUntil = Date.now() + 220; restSoon(); }, { passive: true });
+['click', 'change', 'input', 'keydown'].forEach(t => document.addEventListener(t, () => { readerTurn = true; setTimeout(() => { readerTurn = false; }, 0); }, true));
+/* What a field shows once the reader has typed or chosen in it is no longer
+   what was drawn, so the next redraw must rebuild it even if the page it
+   would draw is the same as last time: the book's value goes back in. */
+['change', 'input'].forEach(t => document.addEventListener(t, () => { paintedHTML = ''; }, true));
 function tapDone() {
   if (!tapping) return;
   tapping = false;
@@ -12857,7 +12884,7 @@ function paint() {
     : meta.status === 'local' ? 'This device only — shared storage unavailable'
     : 'Connecting…';
 
-  app.innerHTML = `
+  const html = `
   <div class="wrap${UI.screen === 'today' ? ' cover' : ''}">
     <header class="masthead">
       ${IMG.crest ? `<button class="crestbtn" data-act="askOpen" title="Ask the Union a question"
@@ -12904,6 +12931,30 @@ function paint() {
   ${askPanel()}
   ${recapPanel()}
   ${UI.modal && UI.modal.kind === 'pick' ? pickHtml(UI.modal) : ''}`;
+
+  /* NOTHING CHANGED, NOTHING IS TOUCHED. Most redraws are the book hearing
+     that nothing happened — a quiet poll, a forecast already shown. Building
+     the same page again still threw the old one away, re-decoded its
+     pictures and asked the scroll to find its feet. An identical page is
+     left exactly as it stands. */
+  if (html === paintedHTML && UI.landAt == null && !UI.liftTo && !UI.reveal && !UI.resortJump) { persistDraft(); setTimeout(recapWatch, 0); return; }
+  paintedHTML = html;
+  /* THE PAGE HOLDS ITS HEIGHT WHILE IT IS REBUILT. For the moment between the
+     old page going and the new one laying out — pictures still decoding —
+     the document is shorter, and the phone clamps the scroll to fit it: the
+     reader is thrown up the page. Same screen, same height, until the new
+     page has settled and its pictures are in. */
+  const holdId = ++heightHold;
+  if (!turning) app.style.minHeight = app.offsetHeight + 'px';
+  else app.style.minHeight = '';
+  app.innerHTML = html;
+  if (!turning) {
+    const imgs = [...app.querySelectorAll('img')].filter(i => !i.complete);
+    const release = () => { if (holdId === heightHold) app.style.minHeight = ''; };
+    if (!imgs.length) setTimeout(release, 250);
+    else Promise.all(imgs.map(i => (i.decode ? i.decode().catch(() => {}) : Promise.resolve()))).then(() => setTimeout(release, 120));
+    setTimeout(release, 1500);       // a picture that never arrives must not pin the page for good
+  }
 
   // the page behind a window does not scroll with it
   /* THE PAGE BEHIND A WINDOW MUST NOT MOVE.
@@ -15257,6 +15308,9 @@ function boot() {
   store = S.createStore((state, m) => {
     T = state; meta = m;
     window.__T = T; window.__UI = UI;        // read by the tests, written by nobody
+    /* the tests' way to make the book redraw as a poll would: `true` makes it
+       redraw even when nothing changed, the way a real change would */
+    window.__render = force => { if (force) paintedHTML = ''; render(); };
     /* `ready` means the subscriptions are registered, which happens almost
        at once and well before any tournament has arrived. */
     if (m.ready && !UI.setupSeen) {
@@ -15360,7 +15414,7 @@ function boot() {
   })();
   /* The store redraws whenever it hears anything; this is the same redraw,
      on demand, so a test can land one in the middle of a sentence. */
-  window.__forceRender = render;
+  window.__forceRender = () => { paintedHTML = ''; render(); };   // a real rebuild, as a change from another phone causes
   /* The clock on the page reads in minutes, so a minute is often enough,
      and nobody is reading it from a pocket. Nothing here touches the
      network. */
@@ -15398,7 +15452,7 @@ if ('serviceWorker' in navigator) {
    So every return reads the build stamp off the server and, when it has
    moved on, the page reloads itself — unless a hole is half entered, in
    which case it waits for the save. */
-var BOOK_BUILD = '20261018-1637';
+var BOOK_BUILD = '20261021-1128';
 function checkBuild() {
   if (document.hidden || navigator.onLine === false) return;
   fetch('sw.js', { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (t) {
