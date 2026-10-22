@@ -178,6 +178,7 @@ ok('and where it is, from the air', await pg.locator('.venuemodal [data-act="res
    resort's footpaths. */
 ok('and offers to show it on the plan', await pg.locator('[data-act="resortShowOnMap"]').count(), 1);
 ok('and does not send you to Google instead', await pg.locator('.venuemodal a[href*="google"]').count(), 0);
+ok('no close buttons: the card goes by a tap off it, or a swipe', await pg.locator('.venuemodal .ps-x, .venuemodal [data-act="modalCancel"]').count(), 0);
 await pg.click('[data-act="resortShowOnMap"]');
 await pg.waitForTimeout(500);
 ok('which goes to the plan', await pg.locator('.planimg').count(), 1);
@@ -204,7 +205,7 @@ ok('and says why', (await pg.locator('.venuemodal').innerText()).includes('Not m
 ok('falling back to Google, which is what it is for',
   await pg.locator('.venuemodal a[href*="google.com/maps"]').count(), 1);
 ok('with no photograph of its own, it shows its area from the air', await pg.locator('.venuemodal .ps-air').count(), 1);
-await pg.click('.venuemodal [data-act="modalCancel"] >> nth=-1');
+await pg.mouse.click(12, 12);                         // a tap off the card puts it away
 await pg.waitForTimeout(200);
 ok('and it closes', await pg.locator('.venuemodal').count(), 0);
 ok('nothing matching says so', await pg.evaluate(() => {
@@ -236,7 +237,8 @@ ok('a place from the area', await pg.locator('.venuemodal .mb-t').innerText(), '
 ok('two photographs of it, to swipe between', await pg.locator('.venuemodal .ps-slides img').count(), 2);
 await pg.click('[data-act="resortBack"]'); await pg.waitForTimeout(250);
 ok('and back to the area it came from', await pg.locator('.areamodal').count(), 1);
-await pg.click('.areamodal .ps-x'); await pg.waitForTimeout(200);
+await pg.mouse.click(12, 12); await pg.waitForTimeout(200);
+ok('a tap off the card puts it away', await pg.locator('.areamodal').count(), 0);
 
 /* The season sets the one timetable shown. Unasked, the book reads winter. */
 await pg.click('[data-act="resortGuide"][data-a="search"]'); await pg.waitForTimeout(250);
@@ -261,10 +263,10 @@ ok('a note survives leaving the guide',
 await pg.evaluate(() => document.activeElement && document.activeElement.blur());
 await pg.locator('.tc-results .tc-row', { hasText: 'Beef Grill' }).first().click(); await pg.waitForTimeout(300);
 await pg.fill('.venuemodal #resortNote', 'Ask for the window table.');
-await pg.locator('.venuemodal .ps-x').click(); await pg.waitForTimeout(200);
+await pg.mouse.click(12, 12); await pg.waitForTimeout(200);
 await pg.locator('.tc-results .tc-row', { hasText: 'Beef Grill' }).first().click(); await pg.waitForTimeout(300);
 ok('a place keeps its own note', await pg.locator('.venuemodal #resortNote').inputValue(), 'Ask for the window table.');
-await pg.locator('.venuemodal .ps-x').click(); await pg.waitForTimeout(200);
+await pg.mouse.click(12, 12); await pg.waitForTimeout(200);
 
 /* ---- 4. the plan ---- */
 await pg.click('[data-act="resortTab"][data-a="plan"]');
@@ -507,6 +509,58 @@ await ph0.close();
     await tp.locator('[data-act="resortZoom"]').count() >= 2, true);
   await tp.close();
   await tctx.close();
+}
+
+/* ---- 4c. a card on a phone: three quarters of the glass, pulled down to go ---- */
+{
+  const sctx = await b.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+  const sp = await sctx.newPage();
+  sp.on('pageerror', e => errs.push(String(e).slice(0, 200)));
+  await sp.addInitScript(() => {
+    const fixed = Date.UTC(2026, 9, 28, 10, 0);
+    const D = Date;
+    window.Date = class extends D {
+      constructor(...a) { super(...(a.length ? a : [fixed])); }
+      static now() { return fixed; }
+    };
+  });
+  await sp.goto('file://' + S + '/rt.html');
+  await sp.waitForTimeout(4200);
+  for (let i = 0; i < 6; i++) { const d = sp.locator('[data-act="modalCancel"]');
+    if (await d.count()) { await d.first().click({ force: true }); await sp.waitForTimeout(150); } else break; }
+  await sp.click('[data-act="go"][data-a="resort"]:visible'); await sp.waitForTimeout(400);
+  const openCard = async () => { await sp.locator('.tc-top .tc-row').first().tap(); await sp.waitForTimeout(600); };
+  await openCard();
+  const top = await sp.evaluate(() => Math.round(document.querySelector('.psheet').getBoundingClientRect().top));
+  ok('a card rises three quarters of the way up the glass', Math.abs(top - 844 / 4) <= 12, true);
+  ok('with a handle that says it can be pulled', await sp.locator('.psheet .ps-grab').count(), 1);
+  const cdp = await sctx.newCDPSession(sp);
+  const pt = (x, y) => [{ x, y, radiusX: 5, radiusY: 5, force: 1 }];
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: pt(200, top + 300) });
+  for (let k = 1; k <= 10; k++) {
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: pt(200, top + 300 + k * 20) });
+    await sp.waitForTimeout(16);
+  }
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await sp.waitForTimeout(500);
+  ok('pulled down, it goes', await sp.locator('.psheet').count(), 0);
+  await openCard();
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: pt(200, top + 300) });
+  for (let k = 1; k <= 3; k++) {
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: pt(200, top + 300 + k * 10) });
+    await sp.waitForTimeout(60);
+  }
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await sp.waitForTimeout(500);
+  ok('a little nudge and it settles back', await sp.locator('.psheet').count(), 1);
+  await sp.touchscreen.tap(200, 60); await sp.waitForTimeout(400);
+  ok('a tap on the quarter above puts it away', await sp.locator('.psheet').count(), 0);
+  ok('the Resort tab is drawn in gold, open or not', await sp.evaluate(() => {
+    const r = getComputedStyle(document.querySelector('.navbtn[data-a="resort"]')).color;
+    const t = getComputedStyle(document.querySelector('.navbtn[data-a="today"]')).color;
+    return r !== t && /^rgb\((2[0-2]\d), (1[6-9]\d), (8\d|9\d|1[01]\d)\)$/.test(r);
+  }), true);
+  await sp.close(); await sctx.close();
 }
 
 /* ---- 5. the drawing the book falls back to, with no artwork ---- */

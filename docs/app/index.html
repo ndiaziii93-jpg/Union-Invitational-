@@ -3867,7 +3867,7 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
   text-shadow:0 1px 2px rgba(0,0,0,.6)}
 .setline.hours .unc{font-weight:400;color:var(--turf);font-size:.92em}
 .tc-top{display:grid;gap:12px;margin-top:12px}
-.tc-backbar{display:inline-flex;align-items:center;gap:6px;margin:12px 0 0;padding:8px 2px;background:none;border:0;
+.tc-backbar{display:inline-flex;align-items:center;gap:6px;margin:6px 0 -4px;padding:8px 2px;background:none;border:0;
   font:inherit;font-size:15px;color:var(--green);cursor:pointer;min-height:44px}
 .tc-search{display:flex;align-items:center;gap:9px;width:100%;min-height:48px;padding:0 14px;border-radius:12px;
   background:var(--page);border:0;box-shadow:inset 0 0 0 1px var(--rule);font:inherit;font-size:16px;color:#7F8673;
@@ -3875,6 +3875,8 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
 .tc-search svg{flex:0 0 auto;color:var(--turf)}
 .tc-search input{flex:1;min-width:0;border:0;background:transparent;outline:0;font:inherit;font-size:16px;color:var(--ink);
   padding:12px 0;-webkit-appearance:none;appearance:none}
+.tc-search input::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none;width:18px;height:18px;border-radius:50%;
+  background:var(--rule) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'%3E%3Cpath d='M6 6l6 6M12 6l-6 6' stroke='%23EEE8D5' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") center/18px no-repeat;cursor:pointer}
 .tc-search.live:focus-within{box-shadow:inset 0 0 0 2px var(--green)}
 .tc-nudge{display:flex;align-items:stretch;background:var(--ink);color:var(--page);border-radius:14px;
   border-bottom:2px solid var(--gold-up);overflow:hidden}
@@ -3918,7 +3920,7 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
 .tc-pill.ext{background:#F3E6CF;color:var(--gold);box-shadow:inset 0 0 0 1px #E3CFA4}
 .tc-more{justify-self:start;background:none;border:0;padding:6px 2px;font:inherit;font-size:14px;color:var(--gold);font-weight:600;cursor:pointer}
 .tc-empty{margin:0;padding:14px;color:var(--turf);font-size:14px}
-.tc-air{position:relative;height:clamp(240px,40vw,420px);overflow-x:auto;overflow-y:hidden;border-radius:14px;
+.tc-air{position:relative;height:clamp(300px,40vw,440px);overflow-x:auto;overflow-y:hidden;border-radius:14px;
   box-shadow:0 0 0 .5px var(--shadow);background:#8fb3bf;overscroll-behavior-x:contain}
 .tc-air .in{position:relative;height:100%;aspect-ratio:1700/1132;min-width:100%}
 .tc-air img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
@@ -3930,6 +3932,8 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
 .tc-tag b em{font-style:normal;color:#3F8A4A;margin-left:5px}
 .tc-tag i{width:2px;height:8px;background:rgba(238,232,213,.96)}
 .tc-tag s{width:9px;height:9px;border-radius:50%;background:var(--gold-up);box-shadow:0 0 0 2px #fff}
+.tc-tag.below{transform:translate(-50%,0);flex-direction:column-reverse}
+@media (max-width:560px){ .tc-tag b{font-size:11.5px;padding:4px 9px} }
 .tc-chips{display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;padding:2px 0}
 .tc-chips::-webkit-scrollbar{display:none}
 .tc-chip{flex:0 0 auto;border-radius:999px;padding:8px 13px;min-height:38px;font:inherit;font-size:14px;color:var(--ink);
@@ -3947,9 +3951,10 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
 .scrim.tcscrim{align-items:flex-end;padding:0}
 @media (min-width:760px){ .scrim.tcscrim{align-items:center;padding:24px} }
 .modal.psheet{--mpad-x:18px;--mpad-y:0px;padding:0;gap:0;max-width:540px;margin:0 auto;border-radius:22px 22px 0 0;
-  max-height:92dvh;overflow:auto;overscroll-behavior:contain;display:block;scrollbar-width:none}
+  height:75vh;height:75dvh;overflow:auto;overscroll-behavior:contain;display:block;scrollbar-width:none;
+  box-shadow:0 -10px 40px rgba(16,22,17,.25)}
 .modal.psheet::-webkit-scrollbar{display:none}
-@media (min-width:760px){ .modal.psheet{border-radius:22px;max-height:88dvh} }
+@media (min-width:760px){ .modal.psheet{border-radius:22px;height:auto;max-height:88dvh} }
 .scrim[data-in] > .modal.psheet{animation:pkSheetIn .34s cubic-bezier(.2,.9,.28,1) both}
 @media (min-width:760px){ .scrim[data-in] > .modal.psheet{animation:cardIn .26s cubic-bezier(.2,.9,.28,1) both} }
 .ps-hero{position:relative;height:250px;background:var(--ink);overflow:hidden}
@@ -3961,11 +3966,15 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
 .ps-air{position:absolute;inset:0;background-size:300% auto;background-repeat:no-repeat;animation:psKb 9s ease-out both}
 @keyframes psKb{from{transform:scale(1.1)}to{transform:none}}
 @media (prefers-reduced-motion:reduce){ .ps-air{animation:none} }
-.ps-cr{position:absolute;right:14px;top:50px;z-index:2;font-size:9.5px;color:rgba(255,255,255,.85);text-shadow:0 1px 2px rgba(0,0,0,.6)}
-.ps-x,.ps-back{position:absolute;top:12px;z-index:3;height:32px;border:0;border-radius:999px;background:rgba(16,22,17,.6);
-  color:#fff;font:inherit;cursor:pointer}
-.ps-x{right:12px;width:32px;font-size:15px}
-.ps-back{left:12px;padding:0 13px;font-size:13.5px}
+.ps-cr{position:absolute;right:14px;top:22px;z-index:2;font-size:9.5px;color:rgba(255,255,255,.85);text-shadow:0 1px 2px rgba(0,0,0,.6)}
+.ps-back{position:absolute;top:18px;left:12px;z-index:3;height:32px;padding:0 13px;border:0;border-radius:999px;
+  background:rgba(16,22,17,.6);color:#fff;font:inherit;font-size:13.5px;cursor:pointer}
+/* the handle says the card can be pulled down; on a wide screen it is a window, and there is none */
+.ps-grab{position:absolute;top:0;left:0;right:0;z-index:3;display:flex;justify-content:center;padding:8px 0;pointer-events:none}
+.ps-grab i{width:40px;height:5px;border-radius:3px;background:rgba(255,255,255,.8);box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.ps-grab.dark{position:relative;background:var(--ink)}
+.ps-grab.dark i{background:var(--sage-up);box-shadow:none}
+@media (min-width:760px){ .ps-grab{display:none} }
 .ps-ttl{position:absolute;left:18px;right:18px;bottom:14px;z-index:2;color:#fff}
 .ps-ttl .mb-s{color:#E8E1C9;margin:0 0 3px}
 .ps-ttl .mb-t{font-size:25px;line-height:1.1;text-shadow:0 1px 6px rgba(0,0,0,.35)}
@@ -3990,6 +3999,22 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
 .infomodal.plain .ps-body{padding-top:16px}
 .infomodal.plain .mbanner{margin:0}
 .psheet .rnote{margin:4px 0 0}
+
+/* The Titanic is the one tab that names a place, and on the bar it is drawn
+   in gold whether or not it is the one open. */
+.navbtn[data-a="resort"]{color:var(--gold-up)}
+.navbtn[data-a="resort"][aria-current="page"]{color:#E2C277}
+@media (hover:hover) and (pointer:fine){ .navbtn[data-a="resort"]:hover{color:#E2C277} }
+
+/* The camera on the hole's plate: gold, on the left, under the strokes the
+   hole gives — or in their place when it gives none. */
+.hp-cam{position:absolute;left:9px;top:36px;z-index:4;display:grid;place-items:center;width:44px;height:44px;padding:0;
+  border-radius:50%;border:1.5px solid rgba(226,194,119,.7);background:rgba(16,22,17,.55);color:#E2C277;cursor:pointer;
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.hp-cam.top{top:9px}
+.hp-cam svg{width:22px;height:22px}
+.hp-cam:active{background:rgba(16,22,17,.8)}
+.hp-cam:focus-visible{outline:2px solid #E2C277;outline-offset:2px}
 
 </style>
 <div id="app"></div>
@@ -4117,7 +4142,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261022-0739';
+const BUILD = '20261022-0843';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -4854,16 +4879,17 @@ const DOING_PHOTOS = {
 /* The six parts of the grounds as the hotel's aerial shows them. The aerial
    looks from the main building towards the sea, the river down its right
    side — a different angle from the drawn plan — so it marks areas, not
-   doors. `tag` is where the label sits on the aerial and `at` the point a
+   doors. `tag` is the point a label marks on the aerial (`below` hangs the
+   label under it, for the points near the top edge), and `at` the point a
    card zooms to, both as percentages of that photograph; `photo` is the
    area's own picture, and `night` the one shown after dark. */
 const AREAS = [
-  { id: 'main', name: 'Main building', sub: 'The lobby, the buffet, the bars', tag: [24, 27], at: [17, 32], photo: null },
-  { id: 'sport', name: 'Sport & golf', sub: 'Cullinan Links, the courts and pitches', tag: [40, 15], at: [36, 18], photo: 'golf' },
+  { id: 'main', name: 'Main building', sub: 'The lobby, the buffet, the bars', tag: [17, 32], at: [17, 32], photo: null },
+  { id: 'sport', name: 'Sport & golf', sub: 'Cullinan Links, the courts and pitches', tag: [42, 15], at: [36, 18], photo: 'golf', below: true },
   { id: 'pools', name: 'Pools & spa', sub: 'The lagoon pool, the Olympic pool, BeFine Spa', tag: [52, 45], at: [54, 42], photo: 'poolsair' },
-  { id: 'aqua', name: 'Aquapark', sub: 'The slides, the kids’ pools, Aqua Snack', tag: [67, 24], at: [72, 21], photo: 'aquapark' },
-  { id: 'beach', name: 'The beach', sub: 'The sand, the pier, the beach bars', tag: [79, 13], at: [75, 17], photo: 'beach' },
-  { id: 'river', name: 'Along the river', sub: 'The à la carte restaurants on the Beşgöz', tag: [82, 31], at: [84, 30], photo: 'riverair', night: 'rivernight' },
+  { id: 'aqua', name: 'Aquapark', sub: 'The slides, the kids’ pools, Aqua Snack', tag: [69, 21], at: [72, 21], photo: 'aquapark' },
+  { id: 'beach', name: 'The beach', sub: 'The sand, the pier, the beach bars', tag: [88, 16], at: [75, 17], photo: 'beach', below: true },
+  { id: 'river', name: 'Along the river', sub: 'The à la carte restaurants on the Beşgöz', tag: [86, 50], at: [84, 30], photo: 'riverair', night: 'rivernight' },
 ];
 /* Which area each place is in. Where the hotel's plan and its own words
    disagree — Pascarella is pinned by the main building on the plan, and is
@@ -10053,17 +10079,16 @@ function shrink(file, max = 1600, quality = 0.82) {
    be picked at once. Both inputs live outside #app, made once, for the
    reason above. The hole the reader is standing on goes with the picture. */
 let picker = null;
-let camPicker = null;
 let pickerRid = null;
 let pickerHole = null;
 
-function pickerFor(kind) {
+function pickerFor() {
   if (typeof document === 'undefined') return null;
-  if (kind === 'camera' ? camPicker : picker) return kind === 'camera' ? camPicker : picker;
+  if (picker) return picker;
   const el = document.createElement('input');
   el.type = 'file';
   el.accept = 'image/*';
-  if (kind === 'camera') el.setAttribute('capture', 'environment'); else el.multiple = true;
+  el.multiple = true;              // no `capture`: the phone asks, camera or library
   el.style.display = 'none';
   el.setAttribute('aria-hidden', 'true');
   el.addEventListener('change', () => {
@@ -10073,7 +10098,7 @@ function pickerFor(kind) {
     if (rid) addPhotos(rid, taken, hole);
   });
   document.body.appendChild(el);
-  if (kind === 'camera') camPicker = el; else picker = el;
+  picker = el;
   return el;
 }
 function makePicker() { return pickerFor('library'); }
@@ -10223,9 +10248,10 @@ if (typeof window !== 'undefined') {
   setInterval(() => { if (UI.upload.queue.some(u => u.waiting)) sendParked(); }, 60000);
 }
 
-/* The camera row on Score Entry. A golfer gets the big button — the shot
-   is the thing — and the library beside it; a ref, whose screen is the
-   card, gets a small camera in the hole's own heading that offers both. */
+/* The camera on Score Entry is a gold one on the hole's own plate, under
+   the strokes it gives. One tap hands straight to the phone, whose own
+   chooser offers the camera or the photo library — there is no sheet of
+   ours in between. */
 function photoWaiting(rid) {
   const q = UI.upload.queue.filter(u => u.rid === rid);
   if (!q.length) return '';
@@ -10234,30 +10260,10 @@ function photoWaiting(rid) {
     waiting ? `${waiting} waiting for signal — they go up by themselves` : ''}</span>`;
 }
 const CAM_SVG = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l1.6-2.4h6.8L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.6"/></svg>';
-function photoRow(rid, h, hole) {
-  if (!store4) return '';
-  return `<div class="snaprow">
-    <button class="btn snap" data-act="photoSnap" data-a="${rid}" data-b="${h}">${CAM_SVG}<span>Snap hole ${hole.n}</span></button>
-    <button class="btn ghost choose" data-act="photoPick" data-a="${rid}" data-b="${h}">Choose from library</button>
-    ${photoWaiting(rid)}
-  </div>`;
-}
-function photoIcon(rid, h) {
-  if (!store4) return '';
-  return `<button class="camicon" data-act="photoSheet" data-a="${rid}" data-b="${h}" aria-label="Add a photo of this hole">${CAM_SVG}</button>`;
-}
-function cameraSheetHtml() {
-  const m = UI.modal;
-  const hole = (E.courseOf(T, m.rid).holes[m.h] || {}).n;
-  return `<div class="scrim pkscrim bottom" data-act="modalScrim">
-    <div class="modal pickm pk-b camsheet" role="dialog" aria-modal="true" aria-label="Add a photo">
-      <div class="mbanner pk-grab"><span class="pk-handle" aria-hidden="true"><i></i></span><span class="mb-w"><span class="mb-t">A photo of hole ${hole}</span><span class="mb-s">Everyone on the trip sees it</span></span>${IMG.crest ? `<img class="mb-c" src="${IMG.crest}" alt="">` : ''}</div>
-      <div class="pk-body camopts">
-        <button class="btn snap" data-act="photoSnap" data-a="${m.rid}" data-b="${m.h}">${CAM_SVG}<span>Take a photo</span></button>
-        <button class="btn ghost choose" data-act="photoPick" data-a="${m.rid}" data-b="${m.h}">Choose from library</button>
-      </div>
-      <div class="acts"><button class="btn ghost" data-act="modalCancel">Cancel</button></div>
-    </div></div>`;
+/** The waiting line, under the plate, only while something is waiting. */
+function photoNote(rid) {
+  const w = store4 ? photoWaiting(rid) : '';
+  return w ? `<div class="snaprow">${w}</div>` : '';
 }
 
 /* THE REPORT, AS A MESSAGE. The recap is written to be read in the book,
@@ -10669,6 +10675,8 @@ function holePlate(rid, h, hole, course, cap, list, slotPlayers, opts) {
     <span class="hp-course">${esc(course.name)}</span>
     <span class="hp-ghost num" aria-hidden="true">${hole.n}</span>
     ${opts.tee ? `<span class="hp-tee">${opts.tee}</span>` : gets.length ? `<span class="hp-tee">Tee <b>${esc(gets.join(' \u00B7 '))}</b></span>` : ''}
+    ${opts.cam && store4 ? `<button class="hp-cam${opts.tee || gets.length ? '' : ' top'}" data-act="photoPick" data-a="${esc(rid)}" data-b="${h}"
+      aria-label="Add a photo of hole ${hole.n}: take one or choose one">${CAM_SVG}</button>` : ''}
     <span class="hp-pick">Picks up at ${cap}</span>
     ${show.length ? `<span class="hp-in">${show.map(x => `<span class="hp-pill">
       <span class="n num${x.raw < hole.par ? ' u' : x.raw > hole.par ? ' o' : ''}">${x.raw}</span>${esc(x.g.display)}
@@ -11052,7 +11060,7 @@ function scrMine(rid) {
     ${played != null ? `<span class="num">You wrote ${played}</span>`
       : '<span class="m">Not scored yet</span>'}
   </div>
-  ${photoRow(rid, h, hole)}
+  ${photoNote(rid)}
 
   ${/* NOT the ref's four. They can settle where the ball went; these are the
         things nobody watching could know — whether it deserved better, or a
@@ -11103,7 +11111,7 @@ function scrMine(rid) {
 
   </div>
   <div class="egr">
-  ${mine ? holePlate(rid, h, hole, course, cap, [mine], [me]) : ''}
+  ${mine ? holePlate(rid, h, hole, course, cap, [mine], [me], { cam: true }) : ''}
   ${kept.length ? `<h3 class="sub">Your round so far</h3>
     <div class="rows" style="margin-top:8px;border-top:1px solid var(--rule)">
       ${kept.map(k => `<div class="row minerow">
@@ -11345,7 +11353,6 @@ function scrEntry() {
         <span class="ehd-n num">${hole.n}</span>
         <span class="ehd-l">Hole</span>
         <span class="ehd-m">Par ${hole.par} \u00B7 Index ${hole.si}<b>Picks up at ${cap}</b></span>
-        ${/* the ref's camera rides in the hole band, which never leaves the glass */ isRef() ? photoIcon(rid, h) : ''}
       </div>
     <div class="rcards">
       ${D.ROUNDS.map(x => {
@@ -11393,7 +11400,7 @@ function scrEntry() {
     <span class="m num">Stroke index ${hole.si}</span>
     <span class="r num">Picks up at ${cap}</span>
   </div>
-  ${isRef() ? (photoWaiting(rid) ? `<div class="snaprow ref">${photoWaiting(rid)}</div>` : '') : photoRow(rid, h, hole)}
+  ${photoNote(rid)}
 
   ${/* THE HOLE BESIDE THE ROWS. On a phone the plate comes first and the
         rows follow; on anything wider the rows take the page and the hole
@@ -11403,7 +11410,7 @@ function scrEntry() {
   <div class="entrygrid">
     <div class="egl">${rows || `<p class="empty">No golfers in this group.</p>`}</div>
     <div class="egr">
-      ${holePlate(rid, h, hole, course, cap, list, slotPlayers)}
+      ${holePlate(rid, h, hole, course, cap, list, slotPlayers, { cam: true })}
       <div class="side-b" data-reveal="bbb">
         <h3>Bingo Bango Bongo — hole ${hole.n}</h3>
         <p class="sublede">First on the green, closest once all are on, first to hole out.</p>
@@ -11653,6 +11660,46 @@ document.addEventListener('scroll', e => {
   };
   document.addEventListener('pointerup', end);
   document.addEventListener('pointercancel', end);
+})();
+
+/* A card from the resort goes the way a sheet does: pulled down, from
+   anywhere on it once it is scrolled to its top, or a tap on the quarter of
+   the glass above it. A drag that starts sideways is left to the row of
+   photographs it began in; one that starts upwards is the card's own scroll. */
+(() => {
+  let y0 = null, x0 = 0, dy = 0, t0 = 0, sheet = null, live = false;
+  const reset = () => { y0 = null; sheet = null; live = false; dy = 0; };
+  document.addEventListener('touchstart', e => {
+    const s = e.target.closest && e.target.closest('.psheet');
+    if (!s || e.touches.length !== 1 || s.scrollTop > 0) return;
+    sheet = s; y0 = e.touches[0].clientY; x0 = e.touches[0].clientX; dy = 0; t0 = Date.now(); live = false;
+  }, { passive: true });
+  document.addEventListener('touchmove', e => {
+    if (y0 == null || !sheet) return;
+    const t = e.touches[0], d = t.clientY - y0, dx = Math.abs(t.clientX - x0);
+    if (!live) {
+      if (Math.max(Math.abs(d), dx) < 8) return;              // not yet a direction
+      if (d <= 0 || dx > d || sheet.scrollTop > 0) { reset(); return; }
+      live = true; sheet.style.transition = 'none';
+    }
+    e.preventDefault();
+    dy = Math.max(0, d); pkTurning = Date.now();              // no redraw under the finger
+    sheet.style.transform = `translateY(${dy}px)`;
+  }, { passive: false });
+  const end = () => {
+    if (!sheet) return reset();
+    const s = sheet, was = live, d = dy, fast = d / Math.max(1, Date.now() - t0) > 0.5;
+    reset(); pkTurning = 0;
+    if (!was) return;
+    s.style.transition = 'transform .22s ease';
+    if (d > 110 || (fast && d > 40)) {
+      s.style.transform = 'translateY(110%)';
+      /* the reader's own gesture, like a tap: it is not held for the page to settle */
+      setTimeout(() => { if (UI.modal && /^(venue|area|rinfo)$/.test(UI.modal.kind)) { readerTurn = true; closeModal(); render(); readerTurn = false; } }, 200);
+    } else s.style.transform = '';
+  };
+  document.addEventListener('touchend', end);
+  document.addEventListener('touchcancel', end);
 })();
 
 /* Typing "7:40 AM" on a phone keyboard is a chore and every mistyping was a
@@ -12447,7 +12494,7 @@ function resortHome() {
   }
 
   const tags = R.AREAS.map(a => { const n = areaOpen(a);
-    return `<button class="tc-tag" data-act="resortArea" data-a="${a.id}" style="left:${a.tag[0]}%;top:${a.tag[1]}%"><b>${esc(a.name)}${n ? `<em>● ${n}</em>` : ''}</b><i></i><s></s></button>`; }).join('');
+    return `<button class="tc-tag${a.below ? ' below' : ''}" data-act="resortArea" data-a="${a.id}" style="left:${a.tag[0]}%;top:${a.tag[1]}%"><b>${esc(a.name)}${n ? `<em>● ${n}</em>` : ''}</b><i></i><s></s></button>`; }).join('');
 
   return `<button class="tc-search" data-act="resortGuide" data-a="search">${SEARCH_SVG}<span>Search places, pools, answers</span></button>
     ${nudgeHidden() ? '' : `<div class="tc-nudge"><button class="go" data-act="resortVenue" data-a="pascarella">
@@ -12535,9 +12582,8 @@ function cardHero(keys, kicker, title, opt = {}) {
        ${pics.length > 1 ? `<span class="ps-dots" aria-hidden="true">${pics.map((_, i) => `<i${i ? '' : ' class="on"'}></i>`).join('')}</span>` : ''}`
     : `<div class="ps-air" role="img" aria-label="${esc(area ? area.name : 'The resort')}, from the hotel's aerial photograph"
          style="background-image:url(${photo('aerial')});background-position:${area ? area.at[0] + '% ' + area.at[1] + '%' : '50% 40%'}"></div>`;
-  return `<div class="ps-hero">${media}<span class="ps-cr">${CREDIT}</span>
+  return `<div class="ps-hero">${media}<span class="ps-grab" aria-hidden="true"><i></i></span><span class="ps-cr">${CREDIT}</span>
     ${opt.back ? `<button class="ps-back" data-act="resortBack">‹ ${esc(opt.back)}</button>` : ''}
-    <button class="ps-x" data-act="modalCancel" aria-label="Close">✕</button>
     <div class="ps-ttl"><span class="mb-s">${esc(kicker)}</span><span class="mb-t">${esc(title)}</span></div></div>`;
 }
 function venueModalHtml() {
@@ -12561,9 +12607,8 @@ function venueModalHtml() {
       ${v.note ? `<p class="vb warn">${esc(v.note)}</p>` : ''}
       <h4 class="minihead">${season === 'winter' ? 'Winter' : 'Summer'} hours${resortSeason() ? '' : ' <small>· until somebody checks</small>'}</h4>
       ${hoursCell(v)}
-      ${v.cost === 'cover' ? `<h4 class="minihead">Booking</h4><p>${v.id === 'pascarella'
-        ? 'Your one included à la carte dinner. It needs a reservation and tables go, so book at reception early in the week.'
-        : 'Reservation needed, and the hotel’s site says a charge applies. Book at reception or guest relations.'}</p>` : ''}
+      ${v.cost === 'cover' && !v.note ? `<h4 class="minihead">Booking</h4>
+        <p>Reservation needed, and the hotel’s site says a charge applies. Book at reception or guest relations.</p>` : ''}
       ${area ? `<h4 class="minihead">Where it is</h4>
         <button class="ps-where" data-act="resortArea" data-a="${area.id}" style="background-image:url(${photo('aerial')});background-position:${area.at[0]}% ${area.at[1]}%">
           <span>${esc(area.name)} · see the area ›</span></button>` : ''}
@@ -12572,7 +12617,6 @@ function venueModalHtml() {
         ${i >= 0 ? `<button class="btn" data-act="resortShowOnMap" data-a="${i}">Show on the hotel’s plan</button>`
           : `<a class="btn" href="${esc(R.findUrl(v.name))}" target="_blank" rel="noopener noreferrer">Try it on Google Maps</a>`}
         ${v.cost === 'cover' ? `<a class="btn ghost" href="tel:${esc(R.RESORT.phone.replace(/\s/g, ''))}">Call reception</a>` : ''}
-        <button class="btn ghost" data-act="modalCancel">Close</button>
       </div>
       ${i < 0 ? '<p class="tiny">Not marked on the hotel’s plan — it names forty-nine places and this is not one of them.</p>' : ''}
     </div>
@@ -12589,8 +12633,7 @@ function areaModalHtml() {
     role="dialog" aria-modal="true" aria-label="${esc(a.name)}">
     ${cardHero(pic ? [pic] : null, n ? n + ' open now' : 'Nothing open this minute', a.name, { area: a.id })}
     <div class="ps-body"><p>${esc(a.sub)}.</p>
-      ${list.length ? `<div class="tc-card">${list.map(tcRow).join('')}</div>` : '<p class="tiny">No bars or restaurants here.</p>'}
-      <div class="acts"><button class="btn ghost" data-act="modalCancel">Close</button></div></div>
+      ${list.length ? `<div class="tc-card">${list.map(tcRow).join('')}</div>` : '<p class="tiny">No bars or restaurants here.</p>'}</div>
   </div></div>`;
 }
 function infoModalHtml() {
@@ -12617,8 +12660,8 @@ function infoModalHtml() {
   }
   return `<div class="scrim tcscrim" data-act="modalScrim"><div class="modal psheet infomodal${keys ? '' : ' plain'}"
     role="dialog" aria-modal="true" aria-label="${esc(title)}">
-    ${keys ? cardHero(keys, kicker, title) : modalBanner(title, kicker)}
-    <div class="ps-body">${body}<div class="acts"><button class="btn ghost" data-act="modalCancel">Close</button></div></div>
+    ${keys ? cardHero(keys, kicker, title) : `<span class="ps-grab dark" aria-hidden="true"><i></i></span>${modalBanner(title, kicker)}`}
+    <div class="ps-body">${body}</div>
   </div></div>`;
 }
 
@@ -14492,7 +14535,6 @@ function modalHtml() {
        : UI.modal.kind === 'setup' ? setupModalHtml()
        : UI.modal.kind === 'add' ? addModalHtml()
        : UI.modal.kind === 'confirm' ? confirmModalHtml()
-       : UI.modal.kind === 'camera' ? cameraSheetHtml()
        : pinModalHtml();
 }
 
@@ -14707,17 +14749,11 @@ function onClick(e) {
       if (!T.recaps[a] || !T.recaps[a].body) writeRecap(a, false);
       return;
     case 'photoPick':
-    case 'photoSnap':
       pickerRid = a;
       pickerHole = b == null || b === '' ? null : +b;
-      if (UI.modal && UI.modal.kind === 'camera') UI.modal = null;
       /* the click has to happen inside the tap itself, or the phone refuses
          to open its camera or its photos */
-      pickerFor(act === 'photoSnap' ? 'camera' : 'library').click();
-      render();
-      return;
-    case 'photoSheet':
-      UI.modal = { kind: 'camera', rid: a, h: +b };
+      pickerFor().click();
       render();
       return;
     case 'photoDrop1': {
@@ -15885,7 +15921,7 @@ if ('serviceWorker' in navigator) {
    So every return reads the build stamp off the server and, when it has
    moved on, the page reloads itself — unless a hole is half entered, in
    which case it waits for the save. */
-var BOOK_BUILD = '20261022-0739';
+var BOOK_BUILD = '20261022-0843';
 function checkBuild() {
   if (document.hidden || navigator.onLine === false) return;
   fetch('sw.js', { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (t) {

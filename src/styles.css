@@ -3880,9 +3880,10 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
 .scrim.tcscrim{align-items:flex-end;padding:0}
 @media (min-width:760px){ .scrim.tcscrim{align-items:center;padding:24px} }
 .modal.psheet{--mpad-x:18px;--mpad-y:0px;padding:0;gap:0;max-width:540px;margin:0 auto;border-radius:22px 22px 0 0;
-  max-height:92dvh;overflow:auto;overscroll-behavior:contain;display:block;scrollbar-width:none}
+  height:75vh;height:75dvh;overflow:auto;overscroll-behavior:contain;display:block;scrollbar-width:none;
+  box-shadow:0 -10px 40px rgba(16,22,17,.25)}
 .modal.psheet::-webkit-scrollbar{display:none}
-@media (min-width:760px){ .modal.psheet{border-radius:22px;max-height:88dvh} }
+@media (min-width:760px){ .modal.psheet{border-radius:22px;height:auto;max-height:88dvh} }
 .scrim[data-in] > .modal.psheet{animation:pkSheetIn .34s cubic-bezier(.2,.9,.28,1) both}
 @media (min-width:760px){ .scrim[data-in] > .modal.psheet{animation:cardIn .26s cubic-bezier(.2,.9,.28,1) both} }
 .ps-hero{position:relative;height:250px;background:var(--ink);overflow:hidden}
@@ -3894,11 +3895,15 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
 .ps-air{position:absolute;inset:0;background-size:300% auto;background-repeat:no-repeat;animation:psKb 9s ease-out both}
 @keyframes psKb{from{transform:scale(1.1)}to{transform:none}}
 @media (prefers-reduced-motion:reduce){ .ps-air{animation:none} }
-.ps-cr{position:absolute;right:14px;top:50px;z-index:2;font-size:9.5px;color:rgba(255,255,255,.85);text-shadow:0 1px 2px rgba(0,0,0,.6)}
-.ps-x,.ps-back{position:absolute;top:12px;z-index:3;height:32px;border:0;border-radius:999px;background:rgba(16,22,17,.6);
-  color:#fff;font:inherit;cursor:pointer}
-.ps-x{right:12px;width:32px;font-size:15px}
-.ps-back{left:12px;padding:0 13px;font-size:13.5px}
+.ps-cr{position:absolute;right:14px;top:22px;z-index:2;font-size:9.5px;color:rgba(255,255,255,.85);text-shadow:0 1px 2px rgba(0,0,0,.6)}
+.ps-back{position:absolute;top:18px;left:12px;z-index:3;height:32px;padding:0 13px;border:0;border-radius:999px;
+  background:rgba(16,22,17,.6);color:#fff;font:inherit;font-size:13.5px;cursor:pointer}
+/* the handle says the card can be pulled down; on a wide screen it is a window, and there is none */
+.ps-grab{position:absolute;top:0;left:0;right:0;z-index:3;display:flex;justify-content:center;padding:8px 0;pointer-events:none}
+.ps-grab i{width:40px;height:5px;border-radius:3px;background:rgba(255,255,255,.8);box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.ps-grab.dark{position:relative;background:var(--ink)}
+.ps-grab.dark i{background:var(--sage-up);box-shadow:none}
+@media (min-width:760px){ .ps-grab{display:none} }
 .ps-ttl{position:absolute;left:18px;right:18px;bottom:14px;z-index:2;color:#fff}
 .ps-ttl .mb-s{color:#E8E1C9;margin:0 0 3px}
 .ps-ttl .mb-t{font-size:25px;line-height:1.1;text-shadow:0 1px 6px rgba(0,0,0,.35)}
@@ -3923,3 +3928,19 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
 .infomodal.plain .ps-body{padding-top:16px}
 .infomodal.plain .mbanner{margin:0}
 .psheet .rnote{margin:4px 0 0}
+
+/* The Titanic is the one tab that names a place, and on the bar it is drawn
+   in gold whether or not it is the one open. */
+.navbtn[data-a="resort"]{color:var(--gold-up)}
+.navbtn[data-a="resort"][aria-current="page"]{color:#E2C277}
+@media (hover:hover) and (pointer:fine){ .navbtn[data-a="resort"]:hover{color:#E2C277} }
+
+/* The camera on the hole's plate: gold, on the left, under the strokes the
+   hole gives — or in their place when it gives none. */
+.hp-cam{position:absolute;left:9px;top:36px;z-index:4;display:grid;place-items:center;width:44px;height:44px;padding:0;
+  border-radius:50%;border:1.5px solid rgba(226,194,119,.7);background:rgba(16,22,17,.55);color:#E2C277;cursor:pointer;
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.hp-cam.top{top:9px}
+.hp-cam svg{width:22px;height:22px}
+.hp-cam:active{background:rgba(16,22,17,.8)}
+.hp-cam:focus-visible{outline:2px solid #E2C277;outline-offset:2px}

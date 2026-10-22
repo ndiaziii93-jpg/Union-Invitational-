@@ -1429,17 +1429,16 @@ function shrink(file, max = 1600, quality = 0.82) {
    be picked at once. Both inputs live outside #app, made once, for the
    reason above. The hole the reader is standing on goes with the picture. */
 let picker = null;
-let camPicker = null;
 let pickerRid = null;
 let pickerHole = null;
 
-function pickerFor(kind) {
+function pickerFor() {
   if (typeof document === 'undefined') return null;
-  if (kind === 'camera' ? camPicker : picker) return kind === 'camera' ? camPicker : picker;
+  if (picker) return picker;
   const el = document.createElement('input');
   el.type = 'file';
   el.accept = 'image/*';
-  if (kind === 'camera') el.setAttribute('capture', 'environment'); else el.multiple = true;
+  el.multiple = true;              // no `capture`: the phone asks, camera or library
   el.style.display = 'none';
   el.setAttribute('aria-hidden', 'true');
   el.addEventListener('change', () => {
@@ -1449,7 +1448,7 @@ function pickerFor(kind) {
     if (rid) addPhotos(rid, taken, hole);
   });
   document.body.appendChild(el);
-  if (kind === 'camera') camPicker = el; else picker = el;
+  picker = el;
   return el;
 }
 function makePicker() { return pickerFor('library'); }
@@ -1599,9 +1598,10 @@ if (typeof window !== 'undefined') {
   setInterval(() => { if (UI.upload.queue.some(u => u.waiting)) sendParked(); }, 60000);
 }
 
-/* The camera row on Score Entry. A golfer gets the big button — the shot
-   is the thing — and the library beside it; a ref, whose screen is the
-   card, gets a small camera in the hole's own heading that offers both. */
+/* The camera on Score Entry is a gold one on the hole's own plate, under
+   the strokes it gives. One tap hands straight to the phone, whose own
+   chooser offers the camera or the photo library — there is no sheet of
+   ours in between. */
 function photoWaiting(rid) {
   const q = UI.upload.queue.filter(u => u.rid === rid);
   if (!q.length) return '';
@@ -1610,30 +1610,10 @@ function photoWaiting(rid) {
     waiting ? `${waiting} waiting for signal — they go up by themselves` : ''}</span>`;
 }
 const CAM_SVG = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l1.6-2.4h6.8L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.6"/></svg>';
-function photoRow(rid, h, hole) {
-  if (!store4) return '';
-  return `<div class="snaprow">
-    <button class="btn snap" data-act="photoSnap" data-a="${rid}" data-b="${h}">${CAM_SVG}<span>Snap hole ${hole.n}</span></button>
-    <button class="btn ghost choose" data-act="photoPick" data-a="${rid}" data-b="${h}">Choose from library</button>
-    ${photoWaiting(rid)}
-  </div>`;
-}
-function photoIcon(rid, h) {
-  if (!store4) return '';
-  return `<button class="camicon" data-act="photoSheet" data-a="${rid}" data-b="${h}" aria-label="Add a photo of this hole">${CAM_SVG}</button>`;
-}
-function cameraSheetHtml() {
-  const m = UI.modal;
-  const hole = (E.courseOf(T, m.rid).holes[m.h] || {}).n;
-  return `<div class="scrim pkscrim bottom" data-act="modalScrim">
-    <div class="modal pickm pk-b camsheet" role="dialog" aria-modal="true" aria-label="Add a photo">
-      <div class="mbanner pk-grab"><span class="pk-handle" aria-hidden="true"><i></i></span><span class="mb-w"><span class="mb-t">A photo of hole ${hole}</span><span class="mb-s">Everyone on the trip sees it</span></span>${IMG.crest ? `<img class="mb-c" src="${IMG.crest}" alt="">` : ''}</div>
-      <div class="pk-body camopts">
-        <button class="btn snap" data-act="photoSnap" data-a="${m.rid}" data-b="${m.h}">${CAM_SVG}<span>Take a photo</span></button>
-        <button class="btn ghost choose" data-act="photoPick" data-a="${m.rid}" data-b="${m.h}">Choose from library</button>
-      </div>
-      <div class="acts"><button class="btn ghost" data-act="modalCancel">Cancel</button></div>
-    </div></div>`;
+/** The waiting line, under the plate, only while something is waiting. */
+function photoNote(rid) {
+  const w = store4 ? photoWaiting(rid) : '';
+  return w ? `<div class="snaprow">${w}</div>` : '';
 }
 
 /* THE REPORT, AS A MESSAGE. The recap is written to be read in the book,
@@ -2045,6 +2025,8 @@ function holePlate(rid, h, hole, course, cap, list, slotPlayers, opts) {
     <span class="hp-course">${esc(course.name)}</span>
     <span class="hp-ghost num" aria-hidden="true">${hole.n}</span>
     ${opts.tee ? `<span class="hp-tee">${opts.tee}</span>` : gets.length ? `<span class="hp-tee">Tee <b>${esc(gets.join(' \u00B7 '))}</b></span>` : ''}
+    ${opts.cam && store4 ? `<button class="hp-cam${opts.tee || gets.length ? '' : ' top'}" data-act="photoPick" data-a="${esc(rid)}" data-b="${h}"
+      aria-label="Add a photo of hole ${hole.n}: take one or choose one">${CAM_SVG}</button>` : ''}
     <span class="hp-pick">Picks up at ${cap}</span>
     ${show.length ? `<span class="hp-in">${show.map(x => `<span class="hp-pill">
       <span class="n num${x.raw < hole.par ? ' u' : x.raw > hole.par ? ' o' : ''}">${x.raw}</span>${esc(x.g.display)}
@@ -2428,7 +2410,7 @@ function scrMine(rid) {
     ${played != null ? `<span class="num">You wrote ${played}</span>`
       : '<span class="m">Not scored yet</span>'}
   </div>
-  ${photoRow(rid, h, hole)}
+  ${photoNote(rid)}
 
   ${/* NOT the ref's four. They can settle where the ball went; these are the
         things nobody watching could know — whether it deserved better, or a
@@ -2479,7 +2461,7 @@ function scrMine(rid) {
 
   </div>
   <div class="egr">
-  ${mine ? holePlate(rid, h, hole, course, cap, [mine], [me]) : ''}
+  ${mine ? holePlate(rid, h, hole, course, cap, [mine], [me], { cam: true }) : ''}
   ${kept.length ? `<h3 class="sub">Your round so far</h3>
     <div class="rows" style="margin-top:8px;border-top:1px solid var(--rule)">
       ${kept.map(k => `<div class="row minerow">
@@ -2721,7 +2703,6 @@ function scrEntry() {
         <span class="ehd-n num">${hole.n}</span>
         <span class="ehd-l">Hole</span>
         <span class="ehd-m">Par ${hole.par} \u00B7 Index ${hole.si}<b>Picks up at ${cap}</b></span>
-        ${/* the ref's camera rides in the hole band, which never leaves the glass */ isRef() ? photoIcon(rid, h) : ''}
       </div>
     <div class="rcards">
       ${D.ROUNDS.map(x => {
@@ -2769,7 +2750,7 @@ function scrEntry() {
     <span class="m num">Stroke index ${hole.si}</span>
     <span class="r num">Picks up at ${cap}</span>
   </div>
-  ${isRef() ? (photoWaiting(rid) ? `<div class="snaprow ref">${photoWaiting(rid)}</div>` : '') : photoRow(rid, h, hole)}
+  ${photoNote(rid)}
 
   ${/* THE HOLE BESIDE THE ROWS. On a phone the plate comes first and the
         rows follow; on anything wider the rows take the page and the hole
@@ -2779,7 +2760,7 @@ function scrEntry() {
   <div class="entrygrid">
     <div class="egl">${rows || `<p class="empty">No golfers in this group.</p>`}</div>
     <div class="egr">
-      ${holePlate(rid, h, hole, course, cap, list, slotPlayers)}
+      ${holePlate(rid, h, hole, course, cap, list, slotPlayers, { cam: true })}
       <div class="side-b" data-reveal="bbb">
         <h3>Bingo Bango Bongo — hole ${hole.n}</h3>
         <p class="sublede">First on the green, closest once all are on, first to hole out.</p>
@@ -3029,6 +3010,46 @@ document.addEventListener('scroll', e => {
   };
   document.addEventListener('pointerup', end);
   document.addEventListener('pointercancel', end);
+})();
+
+/* A card from the resort goes the way a sheet does: pulled down, from
+   anywhere on it once it is scrolled to its top, or a tap on the quarter of
+   the glass above it. A drag that starts sideways is left to the row of
+   photographs it began in; one that starts upwards is the card's own scroll. */
+(() => {
+  let y0 = null, x0 = 0, dy = 0, t0 = 0, sheet = null, live = false;
+  const reset = () => { y0 = null; sheet = null; live = false; dy = 0; };
+  document.addEventListener('touchstart', e => {
+    const s = e.target.closest && e.target.closest('.psheet');
+    if (!s || e.touches.length !== 1 || s.scrollTop > 0) return;
+    sheet = s; y0 = e.touches[0].clientY; x0 = e.touches[0].clientX; dy = 0; t0 = Date.now(); live = false;
+  }, { passive: true });
+  document.addEventListener('touchmove', e => {
+    if (y0 == null || !sheet) return;
+    const t = e.touches[0], d = t.clientY - y0, dx = Math.abs(t.clientX - x0);
+    if (!live) {
+      if (Math.max(Math.abs(d), dx) < 8) return;              // not yet a direction
+      if (d <= 0 || dx > d || sheet.scrollTop > 0) { reset(); return; }
+      live = true; sheet.style.transition = 'none';
+    }
+    e.preventDefault();
+    dy = Math.max(0, d); pkTurning = Date.now();              // no redraw under the finger
+    sheet.style.transform = `translateY(${dy}px)`;
+  }, { passive: false });
+  const end = () => {
+    if (!sheet) return reset();
+    const s = sheet, was = live, d = dy, fast = d / Math.max(1, Date.now() - t0) > 0.5;
+    reset(); pkTurning = 0;
+    if (!was) return;
+    s.style.transition = 'transform .22s ease';
+    if (d > 110 || (fast && d > 40)) {
+      s.style.transform = 'translateY(110%)';
+      /* the reader's own gesture, like a tap: it is not held for the page to settle */
+      setTimeout(() => { if (UI.modal && /^(venue|area|rinfo)$/.test(UI.modal.kind)) { readerTurn = true; closeModal(); render(); readerTurn = false; } }, 200);
+    } else s.style.transform = '';
+  };
+  document.addEventListener('touchend', end);
+  document.addEventListener('touchcancel', end);
 })();
 
 /* Typing "7:40 AM" on a phone keyboard is a chore and every mistyping was a
@@ -3911,9 +3932,8 @@ function cardHero(keys, kicker, title, opt = {}) {
        ${pics.length > 1 ? `<span class="ps-dots" aria-hidden="true">${pics.map((_, i) => `<i${i ? '' : ' class="on"'}></i>`).join('')}</span>` : ''}`
     : `<div class="ps-air" role="img" aria-label="${esc(area ? area.name : 'The resort')}, from the hotel's aerial photograph"
          style="background-image:url(${photo('aerial')});background-position:${area ? area.at[0] + '% ' + area.at[1] + '%' : '50% 40%'}"></div>`;
-  return `<div class="ps-hero">${media}<span class="ps-cr">${CREDIT}</span>
+  return `<div class="ps-hero">${media}<span class="ps-grab" aria-hidden="true"><i></i></span><span class="ps-cr">${CREDIT}</span>
     ${opt.back ? `<button class="ps-back" data-act="resortBack">‹ ${esc(opt.back)}</button>` : ''}
-    <button class="ps-x" data-act="modalCancel" aria-label="Close">✕</button>
     <div class="ps-ttl"><span class="mb-s">${esc(kicker)}</span><span class="mb-t">${esc(title)}</span></div></div>`;
 }
 function venueModalHtml() {
@@ -3947,7 +3967,6 @@ function venueModalHtml() {
         ${i >= 0 ? `<button class="btn" data-act="resortShowOnMap" data-a="${i}">Show on the hotel’s plan</button>`
           : `<a class="btn" href="${esc(R.findUrl(v.name))}" target="_blank" rel="noopener noreferrer">Try it on Google Maps</a>`}
         ${v.cost === 'cover' ? `<a class="btn ghost" href="tel:${esc(R.RESORT.phone.replace(/\s/g, ''))}">Call reception</a>` : ''}
-        <button class="btn ghost" data-act="modalCancel">Close</button>
       </div>
       ${i < 0 ? '<p class="tiny">Not marked on the hotel’s plan — it names forty-nine places and this is not one of them.</p>' : ''}
     </div>
@@ -3964,8 +3983,7 @@ function areaModalHtml() {
     role="dialog" aria-modal="true" aria-label="${esc(a.name)}">
     ${cardHero(pic ? [pic] : null, n ? n + ' open now' : 'Nothing open this minute', a.name, { area: a.id })}
     <div class="ps-body"><p>${esc(a.sub)}.</p>
-      ${list.length ? `<div class="tc-card">${list.map(tcRow).join('')}</div>` : '<p class="tiny">No bars or restaurants here.</p>'}
-      <div class="acts"><button class="btn ghost" data-act="modalCancel">Close</button></div></div>
+      ${list.length ? `<div class="tc-card">${list.map(tcRow).join('')}</div>` : '<p class="tiny">No bars or restaurants here.</p>'}</div>
   </div></div>`;
 }
 function infoModalHtml() {
@@ -3992,8 +4010,8 @@ function infoModalHtml() {
   }
   return `<div class="scrim tcscrim" data-act="modalScrim"><div class="modal psheet infomodal${keys ? '' : ' plain'}"
     role="dialog" aria-modal="true" aria-label="${esc(title)}">
-    ${keys ? cardHero(keys, kicker, title) : modalBanner(title, kicker)}
-    <div class="ps-body">${body}<div class="acts"><button class="btn ghost" data-act="modalCancel">Close</button></div></div>
+    ${keys ? cardHero(keys, kicker, title) : `<span class="ps-grab dark" aria-hidden="true"><i></i></span>${modalBanner(title, kicker)}`}
+    <div class="ps-body">${body}</div>
   </div></div>`;
 }
 
@@ -5867,7 +5885,6 @@ function modalHtml() {
        : UI.modal.kind === 'setup' ? setupModalHtml()
        : UI.modal.kind === 'add' ? addModalHtml()
        : UI.modal.kind === 'confirm' ? confirmModalHtml()
-       : UI.modal.kind === 'camera' ? cameraSheetHtml()
        : pinModalHtml();
 }
 
@@ -6082,17 +6099,11 @@ function onClick(e) {
       if (!T.recaps[a] || !T.recaps[a].body) writeRecap(a, false);
       return;
     case 'photoPick':
-    case 'photoSnap':
       pickerRid = a;
       pickerHole = b == null || b === '' ? null : +b;
-      if (UI.modal && UI.modal.kind === 'camera') UI.modal = null;
       /* the click has to happen inside the tap itself, or the phone refuses
          to open its camera or its photos */
-      pickerFor(act === 'photoSnap' ? 'camera' : 'library').click();
-      render();
-      return;
-    case 'photoSheet':
-      UI.modal = { kind: 'camera', rid: a, h: +b };
+      pickerFor().click();
       render();
       return;
     case 'photoDrop1': {

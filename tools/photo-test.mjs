@@ -1,7 +1,6 @@
-/* PHOTOS FROM THE COURSE. Score Entry carries the camera now: a golfer gets
-   a big Snap button that opens the phone's camera and a Choose button that
-   opens its photos; a ref gets a small camera in the hole's heading that
-   offers both. Every picture is tagged with the hole it was taken on, and a
+/* PHOTOS FROM THE COURSE. Score Entry carries the camera: a gold one on the
+   hole's own plate, for golfer and ref alike, that hands straight to the
+   phone — whose own chooser offers the camera or the photo library. Every picture is tagged with the hole it was taken on, and a
    picture taken with no signal waits on the phone — through a reload — and
    goes up by itself the moment the phone is back online.
    Run: node tools/photo-test.mjs */
@@ -40,24 +39,27 @@ const toEntry = async () => { await shut(); await p.locator('.navbtn[data-a="ent
 await p.goto('file://' + S + '/photo.html'); await p.waitForTimeout(3500);
 await toEntry();
 
+const cam = () => p.locator('.holeplate .hp-cam').first();
+const snap = async () => { await cam().scrollIntoViewIfNeeded(); await p.evaluate(() => scrollBy(0, -120)); await p.waitForTimeout(200);
+  return (await Promise.all([p.waitForEvent('filechooser'), cam().click()]))[0]; };
 console.log('\na golfer on Score Entry');
-ok('the big Snap button names the hole', (await p.locator('.snaprow .snap').innerText()).trim(), 'Snap hole 1');
-ok('with Choose from library beside it', await p.locator('.snaprow .choose').count(), 1);
-let [chooser] = await Promise.all([p.waitForEvent('filechooser'), p.locator('.snaprow .snap').click()]);
-ok('Snap opens the camera itself', await chooser.element().getAttribute('capture'), 'environment');
-ok('one shot at a time', chooser.isMultiple(), false);
+ok('the gold camera is on the hole’s plate', await p.locator('.holeplate .hp-cam').count(), 1);
+ok('and says which hole', await cam().getAttribute('aria-label'), 'Add a photo of hole 1: take one or choose one');
+ok('the old row of buttons is gone', await p.locator('.snaprow .snap, .snaprow .choose').count(), 0);
+let chooser = await snap();
+ok('one tap hands to the phone, which offers camera or library', await chooser.element().getAttribute('capture'), null);
+ok('and several can be chosen at once', chooser.isMultiple(), true);
 await chooser.setFiles(pic('shot.png')); await p.waitForTimeout(1500);
 ok('the shot is in the book, tagged with the hole', await photos(), [{ hole: 0, rid: await p.evaluate(() => window.__UI.entryRound) }]);
 
 await p.locator('[data-act="entryHole"][data-a="6"]').first().dispatchEvent('click'); await p.waitForTimeout(500); await shut();
-[chooser] = await Promise.all([p.waitForEvent('filechooser'), p.locator('.snaprow .choose').click()]);
-ok('Choose opens the photos, several at once', [chooser.isMultiple(), await chooser.element().getAttribute('capture')], [true, null]);
+chooser = await snap();
 await chooser.setFiles([pic('a.png'), pic('b.png')]); await p.waitForTimeout(2000);
 ok('both go up, on the 7th', (await photos()).filter(x => x.hole === 6).length, 2);
 
 console.log('\nno signal on the course');
 await ctx.setOffline(true);
-[chooser] = await Promise.all([p.waitForEvent('filechooser'), p.locator('.snaprow .snap').click()]);
+chooser = await snap();
 await chooser.setFiles(pic('nosignal.png')); await p.waitForTimeout(1500);
 ok('it is not lost: it waits', (await photos()).length, 3);
 ok('and says so', /waiting for signal/.test(await p.locator('.snaprow .phq').innerText().catch(() => '')), true);
@@ -77,16 +79,11 @@ ok('nothing is left waiting', await p.locator('.snaprow .phq').count(), 0);
 ok('and nothing is left on the phone', await p.evaluate(() => new Promise(r => { const q = indexedDB.open('union-photos', 1);
   q.onsuccess = () => { const t = q.result.transaction('pending', 'readonly').objectStore('pending').count(); t.onsuccess = () => r(t.result); }; })), 0);
 
-console.log('\na ref gets the small camera, offering both');
-await p.evaluate(() => { const rid = window.__UI.entryRound; window.__UI.modal = { kind: 'camera', rid, h: 2 }; window.__forceRender(); });
-await p.waitForTimeout(400);
-ok('the sheet rises from the foot', await p.locator('.camsheet').count(), 1);
-ok('named for the hole', (await p.locator('.camsheet .mb-t').innerText()).trim(), 'A photo of hole 3');
-ok('with Take a photo and Choose from library', await p.locator('.camsheet .camopts .btn').allInnerTexts().then(t => t.map(x => x.trim())), ['Take a photo', 'Choose from library']);
-[chooser] = await Promise.all([p.waitForEvent('filechooser'), p.locator('.camsheet .snap').click()]);
-ok('Take a photo opens the camera', await chooser.element().getAttribute('capture'), 'environment');
+console.log('\nanother hole, another photo');
+await p.locator('[data-act="entryHole"][data-a="2"]').first().dispatchEvent('click'); await p.waitForTimeout(500); await shut();
+ok('the camera moves with the hole', await cam().getAttribute('aria-label'), 'Add a photo of hole 3: take one or choose one');
+chooser = await snap();
 await chooser.setFiles(pic('ref.png')); await p.waitForTimeout(1500);
-ok('the sheet is gone', await p.locator('.camsheet').count(), 0);
 ok('and the photo is on hole 3', (await photos()).filter(x => x.hole === 2).length, 1);
 
 console.log('\nthe week\'s photos have their own tab');
@@ -106,10 +103,11 @@ await r.evaluate(() => { window.__T.config.pins = { master: '9991', s1: '9992', 
   window.__UI.role = 's1'; window.__UI.screen = 'entry'; window.__UI.modal = null; window.__forceRender(); });
 await r.waitForTimeout(600);
 for (let i = 0; i < 6; i++) { const d = r.locator('.scrim [data-act="modalCancel"]'); if (await d.count()) { await d.first().click({ force: true }); await r.waitForTimeout(200); } else break; }
-ok('a ref gets the small camera in the hole band', await r.locator('.entryhd .camicon').count(), 1);
-ok('and not the big buttons', await r.locator('.snaprow .snap').count(), 0);
-await r.locator('.entryhd .camicon').click(); await r.waitForTimeout(400);
-ok('which opens the sheet with both ways in', await r.locator('.camsheet .camopts .btn').count(), 2);
+ok('a ref gets the same gold camera on the plate', await r.locator('.holeplate .hp-cam').count(), 1);
+ok('and no sheet of ours in between', await r.locator('.camicon, .camsheet').count(), 0);
+await r.locator('.holeplate .hp-cam').scrollIntoViewIfNeeded(); await r.evaluate(() => scrollBy(0, -120));
+const [rc] = await Promise.all([r.waitForEvent('filechooser'), r.locator('.holeplate .hp-cam').click()]);
+ok('which goes straight to the phone', await rc.element().getAttribute('capture'), null);
 
 ok('no errors on the way', errs, []);
 await b.close();
