@@ -2019,7 +2019,7 @@ function holePlate(rid, h, hole, course, cap, list, slotPlayers, opts) {
   return `<div class="holeplate">
     <div class="hp-stage nos" data-act="holeArt" data-a="${h}"${opts.ckey ? ` data-b="${esc(opts.ckey)}"` : ''}
       role="img" aria-label="Hole ${hole.n} at ${esc(course.name)}, par ${hole.par}, stroke index ${hole.si}, ${hole.mW} metres. Tap to see the whole hole.">
-      <div class="hp-sheet"><img decoding="sync" src="${art}" alt="">${hull.map(([x, y]) => `<i class="hp-k" style="left:${(x * 100).toFixed(1)}%;top:${(y * 100).toFixed(1)}%"></i>`).join('')}</div>
+      <div class="hp-lift"><div class="hp-sheet"><img decoding="sync" src="${art}" alt="">${hull.map(([x, y]) => `<i class="hp-k" style="left:${(x * 100).toFixed(1)}%;top:${(y * 100).toFixed(1)}%"></i>`).join('')}</div></div>
     </div>
     <button class="hp-open" data-act="holeArt" data-a="${h}"${opts.ckey ? ` data-b="${esc(opts.ckey)}"` : ''} aria-label="See the whole of hole ${hole.n}">⤢</button>
     <span class="hp-course">${esc(course.name)}</span>
@@ -4419,23 +4419,56 @@ function markDocEnd() {
    plate's open middle — the pills along the top and the foot kept clear —
    and go round again, because under perspective a bigger sheet does not
    grow evenly. Six passes settle it to under a pixel. */
-function fitPlates() {
+/* THE FIT HAS TO KNOW WHAT IT IS LOOKING AT. Measured while the plate was
+   still settling — no height yet, or a height smaller than its own margins —
+   the sums came out negative or enormous, and the drawing was thrown off
+   the plate or blown up past it: a dark plate with no hole on it, now and
+   then, on some phones. So a plate too small to fit is left for the next
+   pass, a fit that does not land the hole on the plate is undone, and every
+   plate is fitted again once the page has settled. */
+const FIT_OK = (sc, R, x0, x1, y0, y1) => sc > 0.15 && sc < 8
+  && x0 >= R.left - 4 && x1 <= R.right + 4 && y0 >= R.top - 4 && y1 <= R.bottom + 4;
+let fitTimer = null;
+function fitPlates(pass) {
+  pass = typeof pass === 'number' ? pass : 0;
+  let unsure = false;
   document.querySelectorAll('.hp-stage').forEach(st => {
     const sh = st.querySelector('.hp-sheet'); if (!sh) return;
-    const R = st.getBoundingClientRect(); if (!R.width || !R.height) return;
+    if (!st.getClientRects().length) return;                    // not on this layout at all
+    const R = st.getBoundingClientRect();
     const M = 8, top = 58, bot = 24, aw = R.width - 2 * M, ah = R.height - top - bot;
+    if (aw < 60 || ah < 60) { unsure = true; return; }          // not laid out yet
     const ks = sh.querySelectorAll('.hp-k');
+    const set = (s, x, y) => { sh.style.setProperty('--s', s); sh.style.setProperty('--tx', x + 'px'); sh.style.setProperty('--ty', y + 'px'); };
+    const box = () => { let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+      ks.forEach(k => { const b = k.getBoundingClientRect(); x0 = Math.min(x0, b.left); x1 = Math.max(x1, b.right); y0 = Math.min(y0, b.top); y1 = Math.max(y1, b.bottom); });
+      return [x0, x1, y0, y1]; };
     let sc = 1, tx = 0, ty = 0;
     for (let i = 0; i < 6; i++) {
-      sh.style.setProperty('--s', sc); sh.style.setProperty('--tx', tx + 'px'); sh.style.setProperty('--ty', ty + 'px');
-      let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
-      ks.forEach(k => { const b = k.getBoundingClientRect(); x0 = Math.min(x0, b.left); x1 = Math.max(x1, b.right); y0 = Math.min(y0, b.top); y1 = Math.max(y1, b.bottom); });
-      if (!(x1 > x0 && y1 > y0)) return;
-      sc *= Math.min(aw / (x1 - x0), ah / (y1 - y0));
+      set(sc, tx, ty);
+      const [x0, x1, y0, y1] = box();
+      if (!(x1 - x0 > 2 && y1 - y0 > 2)) { set(1, 0, 0); unsure = true; return; }
+      const k = Math.min(aw / (x1 - x0), ah / (y1 - y0));
+      if (!(k > 0 && k < 20)) { set(1, 0, 0); unsure = true; return; }
+      sc *= k;
       tx += (R.left + M + aw / 2) - (x0 + x1) / 2;
       ty += (R.top + top + ah / 2) - (y0 + y1) / 2;
     }
+    set(sc, tx, ty);
+    const [x0, x1, y0, y1] = box();
+    if (!FIT_OK(sc, R, x0, x1, y0, y1)) { set(1, 0, 0); unsure = true; }
   });
+  /* once more when the page has come to rest, and a few times more while a
+     plate is still too unsettled to fit */
+  clearTimeout(fitTimer);
+  if (pass === 0) fitTimer = setTimeout(() => fitPlates(1), 600);
+  else if (unsure && pass < 6) fitTimer = setTimeout(() => fitPlates(pass + 1), 250);
+}
+/* a phone brought back from the background, or a picture finishing late */
+if (typeof window !== 'undefined') {
+  addEventListener('pageshow', () => fitPlates());
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') fitPlates(); });
+  document.addEventListener('load', e => { if (e.target && e.target.closest && e.target.closest('.hp-sheet')) fitPlates(); }, true);
 }
 let plateH = 0;
 function measurePlate() {
