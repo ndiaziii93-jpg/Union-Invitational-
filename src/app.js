@@ -68,8 +68,12 @@ const UI = {
   mineDraft: null,      // {rid, h, v} — a line being typed, held here so a
                         // redraw arriving mid-sentence does not take it back
   sayDraft: null,       // {rid, v} — the same, for the line about the round
-  resortTab: 'now',     // The Titanic: which part of the resort is on screen
-  resortMore: '',       // which folded list of maybes is open: 'summer', 'winter' or neither
+  resortTab: 'home',    // The Titanic: 'home', the full 'guide', or the hotel's 'plan'
+  resortIntent: 'eat',  // which of the six "what do you want" tiles is lit
+  resortCat: 'all',     // the full guide's category
+  resortOpen: false,    // the full guide shows only what is open now
+  resortQ: '',          // what is typed in the full guide's search
+  resortFocusQ: false,  // put the caret in the search once it is drawn
   resortNote: null,     // {k, v} — a note being typed, held out of the DOM
   resortPlanCat: 'all', // which part of the site plan is labelled
   resortPin: null,      // which point on the plan is selected, by index
@@ -3527,15 +3531,11 @@ function hoursLine(v, season) {
     R.isAllDay(s) ? 'Around the clock' : esc(R.fmt(s.from)) + '–' + esc(R.fmt(s.to))}</span>`).join('');
 }
 
-/** The hours cell: one season if the group has settled it, otherwise both. */
+/** The hours cell: one timetable. Until somebody has asked at reception the
+ *  book reads winter, the season the trip falls in — two columns of hours on
+ *  every place was the single thing that made the guide hardest to read. */
 function hoursCell(v) {
-  const season = resortSeason();
-  if (season) return `<div class="hrs">${hoursLine(v, season)}</div>`;
-  const same = JSON.stringify(v.s || null) === JSON.stringify(v.w || null);
-  if (same) return `<div class="hrs">${hoursLine(v, 'summer')}</div>`;
-  return `<div class="hrs two">
-    <div><b>Summer</b>${hoursLine(v, 'summer')}</div>
-    <div><b>Winter</b>${hoursLine(v, 'winter')}</div></div>`;
+  return `<div class="hrs">${hoursLine(v, tcSeason())}</div>`;
 }
 
 /** The note box that closes every sub-tab. Anyone who can score can write it. */
@@ -3559,177 +3559,12 @@ function resortNote(key, title, prompt) {
 function hoursLineBar() {
   const season = resortSeason();
   return `<button class="setline hours" data-act="hoursSheet"
-    aria-label="Hotel hours: ${season === 'winter' ? 'winter' : season === 'summer' ? 'summer' : 'not asked yet'}. Change">
-    Hotel hours <span class="dot">·</span> <b>${season === 'winter' ? 'Winter' : season === 'summer' ? 'Summer' : 'Not asked yet'}</b>
+    aria-label="Hotel hours: ${season === 'summer' ? 'summer' : 'winter'}${season ? '' : ', until somebody checks'}. Change">
+    Hotel hours <span class="dot">·</span> <b>${season === 'winter' ? 'Winter' : season === 'summer' ? 'Summer' : 'Winter'}</b>${season ? '' : ' <span class="unc">until somebody checks</span>'}
     <span class="ch" aria-hidden="true">›</span></button>`;
 }
 
-/* ---- what is open, right now ---- */
-
-function resortNow() {
-  const min = now.minutes;
-  const season = resortSeason();
-  const clock = E.to12(String(now.hh).padStart(2, '0') + ':' + String(now.mm).padStart(2, '0'));
-
-  /* One line a place: the name on the left, when it shuts on the right. */
-  const card = (v, extra) => `<button class="vcard${v.cost === 'cover' ? ' cover' : ''}"
-    data-act="resortVenue" data-a="${esc(v.id)}">
-    <span class="vtop"><span class="vn">${esc(v.name)}</span>${v.cuisine ? `<span class="vc">${esc(v.cuisine)}</span>` : ''}${
-      v.cost === 'cover' ? `<span class="vtag">Cover charge · book ahead</span>` : ''}</span>
-    <span class="vwhen">${extra}</span>
-    <span class="vgo" aria-hidden="true">›</span>
-  </button>`;
-  /* The places that are only open on one of the two timetables are a maybe
-     until somebody asks at reception. Two of them show, and the rest fold
-     behind one line, so a dozen summer snack bars do not bury the page. */
-  const FOLD = 2;
-  const fold = (key, list, draw) => {
-    const open = UI.resortMore === key;
-    const shown = open ? list : list.slice(0, FOLD);
-    return `<div class="vgrid dim">${shown.map(draw).join('')}</div>${list.length > FOLD
-      ? `<button class="vmore" data-act="resortMore" data-a="${open ? '' : key}">${open
-          ? 'Show fewer' : 'Show the other ' + (list.length - FOLD)}<span class="ch" aria-hidden="true">›</span></button>` : ''}`;
-  };
-
-  const openNow = (s) => R.whatsOn(s, min);
-  /* When it shuts — except for the bar that never does, where "until 12am"
-     was both wrong and the opposite of the useful thing to say. */
-  const til = s => (s.what ? esc(s.what) + ' — ' : '')
-    + (R.isAllDay(s) ? 'open around the clock' : 'until ' + esc(R.fmt(s.to)));
-
-  let sections;
-  if (season) {
-    const { open, soon } = openNow(season);
-    sections = `
-      <h3 class="sub">Open now</h3>
-      ${open.length ? `<div class="vgrid">${open.map(o => card(o.v,
-        o.slots.map(til).join('<br>'))).join('')}</div>`
-        : `<p class="lede">Nothing is serving at ${esc(clock)}. The Caprice bar runs around the clock.</p>`}
-      ${soon.length ? `<h3 class="sub">Opening soon</h3><div class="vgrid">${soon.map(o =>
-        card(o.v, `${esc(R.fmt(o.slot.from))} — in ${o.in < 60 ? o.in + ' min' : Math.round(o.in / 60) + ' hr'}`)).join('')}</div>` : ''}`;
-  } else {
-    /* Season unknown, so say what is certain and what is only a maybe rather
-       than picking one and sounding sure. */
-    const S1 = openNow('summer'), W1 = openNow('winter');
-    const win = new Set(W1.open.map(o => o.v.id));
-    const sum = new Set(S1.open.map(o => o.v.id));
-    const both = W1.open.filter(o => sum.has(o.v.id));
-    const onlyS = S1.open.filter(o => !win.has(o.v.id));
-    const onlyW = W1.open.filter(o => !sum.has(o.v.id));
-    sections = `
-      <h3 class="sub">Open now, whichever season it is</h3>
-      ${both.length ? `<div class="vgrid">${both.map(o => card(o.v,
-        o.slots.map(til).join('<br>'))).join('')}</div>`
-        : `<p class="lede">Nothing is certain to be serving at ${esc(clock)}.</p>`}
-      ${onlyS.length ? `<h3 class="sub">Only if the resort is still on summer hours<span class="subn">${onlyS.length} ${onlyS.length === 1 ? 'place' : 'places'}</span></h3>
-        ${fold('summer', onlyS, o => card(o.v, o.slots.map(til).join('<br>')))}` : ''}
-      ${onlyW.length ? `<h3 class="sub">Only once it has turned over to winter<span class="subn">${onlyW.length} ${onlyW.length === 1 ? 'place' : 'places'}</span></h3>
-        ${fold('winter', onlyW, o => card(o.v, o.slots.map(til).join('<br>')))}` : ''}`;
-  }
-
-  return `<p class="clock">It is <b class="num">${esc(clock)}</b> at the resort.</p>${sections}
-  ${resortNote('now', 'What we have found out', 'Anything the book has wrong — a place that was shut, a time that had moved.')}`;
-}
-
-/* ---- the whole list ---- */
-
-function resortEat() {
-  const season = resortSeason();
-  const shutNow = v => season ? !R.slots(v, season) : false;
-
-  /* Three kinds of place, and the difference between them is the whole
-     point of the page — one of them will put a charge on the room. So each
-     is a block of its own with a banded head, rather than three lists in a
-     row separated by nothing but a heading. The charged block is tinted the
-     banner green, faintly: enough to be a different thing on the page,
-     not so much that the type has to fight it. */
-  const group = (key, title, lead, list) => !list.length ? '' : `
-    <section class="vgroup vg-${key}">
-      <header class="vghead">
-        <h3>${esc(title)}</h3>
-        <span class="vgn">${list.length} ${list.length === 1 ? 'place' : 'places'}</span>
-      </header>
-      ${lead ? `<p class="vglead">${lead}</p>` : ''}
-      <div class="vlist">${list.map(v => `<div class="vrow${shutNow(v) ? ' out' : ''}">
-        <button class="vmain plink" data-act="resortVenue" data-a="${esc(v.id)}">
-          <span class="vtop"><span class="vn">${esc(v.name)}</span>
-            ${v.cuisine ? `<span class="vc">${esc(v.cuisine)}</span>` : ''}
-            ${v.tag ? `<span class="vtag">${esc(v.tag)}</span>` : ''}</span>
-          ${v.blurb ? `<span class="vb">${esc(v.blurb)}</span>` : ''}
-          ${v.note ? `<span class="vb warn">${esc(v.note)}</span>` : ''}
-        </button>
-        ${hoursCell(v)}
-      </div>`).join('')}</div>
-    </section>`;
-
-  const inc = R.VENUES.filter(v => v.cost === 'inc' && ['buffet', 'alacarte', 'snack'].includes(v.kind));
-  const cov = R.VENUES.filter(v => v.cost === 'cover' && v.kind === 'alacarte');
-  const bar = R.VENUES.filter(v => ['bar', 'cafe'].includes(v.kind));
-
-  /* THE PACKAGE COMES FIRST. Everything under it is a reading of the
-     hotel's website; this is the hotel's own word on what the week buys,
-     so it is set apart and quoted rather than paraphrased into the lists. */
-  const pkg = `<section class="pkg">
-    <header class="pkghead">
-      <h3>${esc(R.PACKAGE.title)}</h3>
-      <span class="pkgsrc">${esc(R.PACKAGE.source)}</span>
-    </header>
-    <div class="pkglist">${R.PACKAGE.items.map(i => `<div class="pkgrow">
-      <span class="pkgt">${esc(i.t)}</span>
-      <span class="pkgd">${esc(i.d)}</span></div>`).join('')}</div>
-    <p class="pkgcav">${esc(R.PACKAGE.caveat)}</p>
-  </section>`;
-
-  return `<p class="lede">Thirty-two places to eat and drink. What is included, what is not, and when each of them is actually open.</p>
-  ${pkg}
-  ${group('inc', 'Included', 'Walk in, sit down, no bill. Nothing here needs booking.', inc)}
-  ${group('cover', 'Charged extra', 'Charged, every one of them — with the single exception of <b>one dinner at Pascarella per seven-night stay</b>, which the package covers. All of them need a reservation.', cov)}
-  ${group('bar', 'Bars & cafés', 'All included.', bar)}
-  ${resortNote('eat', 'Bookings and verdicts', 'Who booked what, what it cost, and whether it was worth it.')}`;
-}
-
 /* ---- the plan ---- */
-
-/** The window a place opens when it is tapped, wherever it was tapped. */
-function venueModalHtml() {
-  const v = R.VENUES.find(x => x.id === UI.modal.vid);
-  if (!v) return '';
-  const i = R.planAt(v);
-  const p = i >= 0 ? R.PLAN[i] : null;
-  const eyebrow = v.cost === 'cover' ? 'Charged extra'
-    : ['bar', 'cafe'].includes(v.kind) ? 'Bar or café' : 'Included';
-  const season = resortSeason();
-  const shut = season && !R.slots(v, season);
-  return `<div class="scrim" data-act="modalScrim"><div class="modal venuemodal"
-    role="dialog" aria-modal="true" aria-label="${esc(v.name)}">
-    ${modalBanner(v.name, [eyebrow, v.cuisine].filter(Boolean).join(' · '))}
-    ${v.cost === 'cover'
-      ? `<p class="vb warn">Reservation required, and the hotel’s site says a cover charge applies.</p>` : ''}
-    ${v.blurb ? `<p>${esc(v.blurb)}</p>` : ''}
-    ${v.note ? `<p class="vb warn">${esc(v.note)}</p>` : ''}
-    ${shut ? `<p class="vb warn">Closed for the ${season}.</p>` : ''}
-    <h4 class="minihead">Hours</h4>
-    ${hoursCell(v)}
-    <h4 class="minihead">Where it is</h4>
-    <p class="tiny">${p
-      ? (p.t === v.name || p.now === v.name
-          ? 'Marked on the hotel’s plan.'
-          : `The plan marks this as <b>${esc(p.now || p.t)}</b>.`)
-        + ' Opening it puts the plan beside the lobby, so you can see how far it is.'
-      : 'Not marked on the hotel’s plan — it names forty-nine places and this is not one of them.'}</p>
-    <div class="acts">
-      ${p
-        /* Our own plan first and alone. Somebody asking where the Noble Irish
-           is wants to see it on the resort, not be thrown out to a street map
-           that does not know the resort's paths. Google is offered on the
-           plan itself, once you are looking at the right place — and here
-           only for the fourteen the hotel never marked. */
-        ? `<button class="btn" data-act="resortShowOnMap" data-a="${i}">Show me on the plan</button>`
-        : `<a class="btn" href="${esc(R.findUrl(v.name))}" target="_blank" rel="noopener noreferrer">Try it on Google Maps</a>`}
-      <button class="btn ghost" data-act="modalCancel">Close</button>
-    </div>
-  </div></div>`;
-}
 
 /** The card that opens under the plan when a point is tapped. */
 function pinCard(i) {
@@ -3886,81 +3721,299 @@ function resortPlan() {
   ${resortNote('plan', 'Getting about', 'How long things actually take on foot, where the buggies run, which way out to the course.')}`;
 }
 
-/* ---- spa, and water generally ---- */
+/* ---- the photographs ----
+   The hotel's pictures travel in the book as data, which is how they work on
+   a course with no signal. Handed to the page as they are, every redraw
+   would carry a third of a megabyte of text per photograph; turned once into
+   a blob each, the page carries a short address and the browser keeps the
+   decoded picture. */
+const photoUrls = Object.create(null);
+function photo(key, small) {
+  const k = (small ? 'rt_' : 'rp_') + key;
+  if (photoUrls[k]) return photoUrls[k];
+  const d = IMG[k];
+  if (!d) return '';
+  try {
+    const i = d.indexOf(','), bin = atob(d.slice(i + 1)), u = new Uint8Array(bin.length);
+    for (let j = 0; j < bin.length; j++) u[j] = bin.charCodeAt(j);
+    photoUrls[k] = URL.createObjectURL(new Blob([u], { type: d.slice(5, d.indexOf(';')) }));
+  } catch (e) { photoUrls[k] = d; }
+  return photoUrls[k];
+}
+const CREDIT = 'Photo: Titanic Hotels';
 
-function resortSpa() {
-  const heated = R.POOLS.filter(p => p.heated), cold = R.POOLS.filter(p => !p.heated);
-  const pool = p => `<div class="vrow"><div class="vmain"><div class="vtop">
-      <span class="vn">${esc(p.name)}</span>
-      ${p.indoor ? `<span class="vc">indoor</span>` : ''}
-      ${p.heated ? `<span class="vtag warmtag">heated</span>` : ''}</div>
-      ${p.note ? `<p class="vb">${esc(p.note)}</p>` : ''}</div></div>`;
+/* ---- open or shut, in a word ---- */
+const tcSeason = () => resortSeason() || 'winter';
+const tcState = v => R.stateAt(v, tcSeason(), now.minutes);
+const isFood = v => ['buffet', 'alacarte', 'snack'].includes(v.kind);
+const isDrink = v => ['bar', 'cafe'].includes(v.kind);
+const VKIND = { buffet: 'Restaurant', alacarte: 'À la carte', snack: 'Snack bar', bar: 'Bar', cafe: 'Café' };
+/** Open first, then what opens soonest; somewhere to walk into before somewhere to book. */
+function tcRank(v) {
+  const s = tcState(v);
+  const base = s.k === 'open' || s.k === 'closing' ? 0 : s.k === 'shut' ? (s.today ? 2 : 4) + s.in / 2000 : 6;
+  return base + (v.cost === 'inc' ? 0 : 0.5);
+}
+const isOpen = v => { const k = tcState(v).k; return k === 'open' || k === 'closing'; };
+function tcStatus(v) {
+  const s = tcState(v);
+  if (s.k === 'open') return `<span class="tc-st"><b class="o">Open</b>${s.allDay ? 'round the clock' : 'until ' + esc(R.fmt(s.to))}</span>`;
+  if (s.k === 'closing') return `<span class="tc-st"><b class="so">Closing</b>at ${esc(R.fmt(s.to))}</span>`;
+  if (s.k === 'shut') return `<span class="tc-st"><b class="s">${s.today ? 'Shut' : 'Done today'}</b>opens ${esc(R.fmt(s.from))}${s.today ? '' : ' tmrw'}</span>`;
+  return `<span class="tc-st"><b class="s">Closed</b>for the ${tcSeason()}</span>`;
+}
+const costPill = v => v.cost === 'inc' ? '<span class="tc-pill inc">Incl.</span>'
+  : `<span class="tc-pill ext">${v.id === 'pascarella' ? '1 free' : 'Extra'}</span>`;
+function tcThumb(keys, word) {
+  const k = keys && keys[0];
+  return k && IMG['rt_' + k] ? `<img class="tc-th" src="${photo(k, true)}" alt="" width="50" height="50">`
+    : `<span class="tc-th none" aria-hidden="true">${esc(word || '')}</span>`;
+}
+/** One row: picture, name, what it is, and open or shut. Every row opens its card. */
+function tcRow(v) {
+  return `<button class="tc-row" data-act="resortVenue" data-a="${esc(v.id)}" data-s="${esc([v.name, v.cuisine, VKIND[v.kind], v.tag, v.blurb].join(' ').toLowerCase())}">
+    ${tcThumb(R.VENUE_PHOTOS[v.id], VKIND[v.kind])}
+    <span class="tc-nm">${esc(v.name)}${costPill(v)}<span class="tc-sub">${esc([v.cuisine || VKIND[v.kind], v.tag].filter(Boolean).join(' · '))}</span></span>
+    ${tcStatus(v)}</button>`;
+}
+const tcClock = () => E.to12(String(now.hh).padStart(2, '0') + ':' + String(now.mm).padStart(2, '0'));
+const areaOpen = a => R.VENUES.filter(v => R.VENUE_AREA[v.id] === a.id && isOpen(v)).length;
+const NUDGE_KEY = 'union-invitational:pascarella-nudge';
+const nudgeHidden = () => { try { return localStorage.getItem(NUDGE_KEY) === 'hidden'; } catch (e) { return false; } };
 
-  return `<h3 class="sub">${esc(R.SPA.name)}</h3>
-  <p class="lede">${esc(R.SPA.blurb)}</p>
-  <div class="twocol">
-    <div><h4 class="minihead">Included</h4><ul class="ticks">${R.SPA.free.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>
-    <div><h4 class="minihead">Charged</h4><ul class="ticks paid">${R.SPA.paid.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>
-  </div>
-  <div class="vlist">${R.SPA.detail.map(([t, b]) => `<div class="vrow"><div class="vmain">
-    <div class="vtop"><span class="vn">${esc(t)}</span></div><p class="vb">${esc(b)}</p></div></div>`).join('')}</div>
+/* ---- the front of the tab: what do you want? ---- */
+const INTENTS = [
+  ['eat', 'Hungry', 'Eat', isFood],
+  ['drink', 'A drink', 'Drink', isDrink],
+  ['late', 'Late bite', 'After 10', v => (isFood(v) || isDrink(v)) && (R.slots(v, tcSeason()) || [])
+    .some(s => R.isAllDay(s) || R.toMin(s.to) <= R.toMin(s.from) || R.toMin(s.to) >= 22 * 60 + 30)],
+  ['pools', 'Pools', 'Swim', null], ['spa', 'Spa', 'Unwind', null], ['help', 'Help', 'Ask', null],
+];
+function resortHome() {
+  const pick = INTENTS.find(x => x[0] === UI.resortIntent) || INTENTS[0];
+  const tiles = INTENTS.map(([id, label, ic, f]) => {
+    const n = f ? R.VENUES.filter(f).filter(isOpen).length : null;
+    const ct = n == null ? (id === 'pools' ? R.POOLS.filter(p => p.heated).length + ' heated' : id === 'spa' ? 'Free to use' : 'Reception')
+      : n ? n + ' open now' : 'None open';
+    return `<button class="tc-tile${pick[0] === id ? ' on' : ''}" data-act="resortIntent" data-a="${id}" aria-pressed="${pick[0] === id}">
+      <span class="ic">${ic}</span><b>${label}</b><span class="ct${n === 0 ? ' z' : ''}">${ct}</span></button>`;
+  }).join('');
 
-  <h3 class="sub">Twelve pools</h3>
-  <p class="lede">In late October the only question that matters is which of them are heated.</p>
-  <h4 class="minihead">Heated</h4><div class="vlist">${heated.map(pool).join('')}</div>
-  <h4 class="minihead">Not heated</h4><div class="vlist">${cold.map(pool).join('')}</div>
-  ${resortNote('spa', 'Treatments and bookings', 'Prices, how far ahead to book, which therapist to ask for.')}`;
+  let body;
+  if (pick[3]) {
+    const list = R.VENUES.filter(pick[3]).sort((a, b) => tcRank(a) - tcRank(b));
+    const open = list.filter(isOpen), later = list.filter(v => tcState(v).k === 'shut' && tcState(v).today);
+    body = (open.length ? `<h3 class="tc-h">Open now · ${esc(tcClock())}</h3><div class="tc-card">${open.slice(0, 6).map(tcRow).join('')}</div>
+        ${open.length > 6 ? `<button class="tc-more" data-act="resortGuide" data-a="${pick[0] === 'drink' ? 'drink' : 'eat'}">${open.length - 6} more open in the full guide ›</button>` : ''}` : '')
+      + (later.length ? `<h3 class="tc-h">Opening later today</h3><div class="tc-card">${later.slice(0, open.length ? 3 : 6).map(tcRow).join('')}</div>` : '')
+      + (open.length + later.length ? '' : `<p class="tc-empty">Nothing for this opens again today. The Caprice bar never shuts.</p>`);
+  } else if (pick[0] === 'pools') {
+    body = `<h3 class="tc-h">Heated, for late October</h3><div class="tc-card">${R.POOLS.filter(p => p.heated).map(tcPoolRow).join('')}</div>
+      <button class="tc-more" data-act="resortGuide" data-a="pools">All twelve pools ›</button>`;
+  } else if (pick[0] === 'spa') {
+    body = `<h3 class="tc-h">${esc(R.SPA.name)}</h3><div class="tc-card">
+      <button class="tc-row" data-act="resortInfo" data-a="do:spa">${tcThumb(['spa'])}<span class="tc-nm">Free to use<span class="tc-sub">${esc(R.SPA.free.slice(0, 3).join(', '))}…</span></span><span class="tc-st"><span class="tc-pill inc">Incl.</span></span></button>
+      <button class="tc-row" data-act="resortInfo" data-a="do:spa">${tcThumb(['hamam'])}<span class="tc-nm">Treatments<span class="tc-sub">${esc(R.SPA.paid.slice(0, 3).join(', '))}…</span></span><span class="tc-st"><span class="tc-pill ext">Extra</span></span></button></div>`;
+  } else {
+    body = `<h3 class="tc-h">Reception, any hour</h3><div class="tc-card">${tcContactRows()}</div>
+      <h3 class="tc-h">Quick answers</h3><div class="tc-card">
+      <button class="tc-row" data-act="resortInfo" data-a="pkg"><span class="tc-th none">Incl.</span><span class="tc-nm">What the package includes<span class="tc-sub">From the hotel, October 2026</span></span><span class="tc-st">›</span></button>
+      ${R.PRACTICAL.slice(0, 5).map((p, i) => tcHelpRow(p, i)).join('')}</div>
+      <button class="tc-more" data-act="resortGuide" data-a="help">Everything worth knowing ›</button>`;
+  }
+
+  const tags = R.AREAS.map(a => { const n = areaOpen(a);
+    return `<button class="tc-tag${a.below ? ' below' : ''}" data-act="resortArea" data-a="${a.id}" style="left:${a.tag[0]}%;top:${a.tag[1]}%"><b>${esc(a.name)}${n ? `<em>● ${n}</em>` : ''}</b><i></i><s></s></button>`; }).join('');
+
+  return `<button class="tc-search" data-act="resortGuide" data-a="search">${SEARCH_SVG}<span>Search places, pools, answers</span></button>
+    ${nudgeHidden() ? '' : `<div class="tc-nudge"><button class="go" data-act="resortVenue" data-a="pascarella">
+        <b>Book your free dinner at Pascarella</b><span>One à la carte dinner each, this week. Tables go, so book at reception early.</span></button>
+      <button class="x" data-act="resortNudge" aria-label="Hide this reminder">Hide</button></div>`}
+    <div class="tc-tiles">${tiles}</div>
+    ${body}
+    <h3 class="tc-h">The grounds<span class="tc-links"><button data-act="resortTab" data-a="plan">The hotel’s plan</button><button data-act="resortGuide" data-a="all">Full guide ›</button></span></h3>
+    <div class="tc-air nos"><div class="in"><img src="${photo('aerial')}" width="1700" height="1132"
+      alt="The hotel's aerial photograph: the main building on the left, the pools in the middle, the Beşgöz river down the right and the sea beyond">${tags}<span class="tc-cr">${CREDIT}</span></div></div>
+    <p class="tiny">Drag the photograph sideways. Tap an area to see what is there, and what is open.</p>`;
+}
+const SEARCH_SVG = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>';
+function tcPoolRow(p) {
+  return `<button class="tc-row" data-act="resortInfo" data-a="pool:${esc(p.name)}" data-s="${esc((p.name + (p.heated ? ' heated warm' : ' cold') + (p.indoor ? ' indoor' : ' outdoor') + ' pool swim').toLowerCase())}">
+    ${tcThumb(R.POOL_PHOTOS[p.name], p.indoor ? 'Indoor' : 'Pool')}<span class="tc-nm">${esc(p.name)}<span class="tc-sub">${p.indoor ? 'Indoor' : 'Outdoor'}</span></span>
+    <span class="tc-st">${p.heated ? '<b class="o">Heated</b>' : 'Not heated'}</span></button>`;
+}
+function tcHelpRow(p, i) {
+  return `<button class="tc-row" data-act="resortInfo" data-a="help:${i}" data-s="${esc((p.q + ' ' + p.a).toLowerCase())}"><span class="tc-th none">Q</span>
+    <span class="tc-nm">${esc(p.q)}<span class="tc-sub">Worth knowing</span></span><span class="tc-st">›</span></button>`;
+}
+function tcContactRows() {
+  return `<a class="tc-row" href="tel:${esc(R.RESORT.phone.replace(/\s/g, ''))}" data-s="reception phone call hotel number"><span class="tc-th none">Call</span>
+      <span class="tc-nm">${esc(R.RESORT.phone)}<span class="tc-sub">Reception · tap to call</span></span><span class="tc-st">›</span></a>
+    <a class="tc-row" href="mailto:${esc(R.RESORT.email)}" data-s="email reception hotel"><span class="tc-th none">Mail</span>
+      <span class="tc-nm">Email the hotel<span class="tc-sub">${esc(R.RESORT.email)}</span></span><span class="tc-st">›</span></a>`;
 }
 
-/* ---- everything else ---- */
+/* ---- the full guide: search, a category, open now ---- */
+const CATS = [['all', 'All'], ['eat', 'Restaurants'], ['drink', 'Bars & cafés'], ['pools', 'Pools'], ['do', 'Things to do'], ['help', 'Help']];
+function resortGuide() {
+  const cat = UI.resortCat || 'all';
+  const openOnly = !!UI.resortOpen;
+  const season = tcSeason();
+  let venues = R.VENUES.filter(v => cat === 'all' || (cat === 'eat' && isFood(v)) || (cat === 'drink' && isDrink(v)));
+  if (cat === 'pools' || cat === 'do' || cat === 'help') venues = [];
+  if (openOnly) venues = venues.filter(isOpen);
+  venues.sort((a, b) => tcRank(a) - tcRank(b));
+  const pools = cat === 'all' || cat === 'pools' ? R.POOLS : [];
+  const doing = cat === 'all' || cat === 'do' ? R.DOING.filter(d => d.season === 'all' || season !== 'winter') : [];
+  const help = cat === 'all' || cat === 'help';
+  const rows = venues.map(tcRow).join('') + pools.map(tcPoolRow).join('')
+    + doing.map(d => `<button class="tc-row" data-act="resortInfo" data-a="do:${esc(d.id)}" data-s="${esc((d.name + ' ' + d.body).toLowerCase())}">
+        ${tcThumb(R.DOING_PHOTOS[d.id], 'Do')}<span class="tc-nm">${esc(d.name)}<span class="tc-sub">${esc(d.body.length > 60 ? d.body.slice(0, 58) + '…' : d.body)}</span></span><span class="tc-st">›</span></button>`).join('')
+    + (help ? `<button class="tc-row" data-act="resortInfo" data-a="pkg" data-s="package all inclusive included what is included breakfast lunch dinner"><span class="tc-th none">Incl.</span>
+        <span class="tc-nm">What the package includes<span class="tc-sub">From the hotel, October 2026</span></span><span class="tc-st">›</span></button>`
+      + R.PRACTICAL.map(tcHelpRow).join('') + tcContactRows() : '');
+  const notes = ['now', 'eat', 'plan', 'spa', 'prac'].filter(k => k === 'now' || (resortCfg().notes || {})[k]);
+  return `<div class="tc-guide">
+    <label class="tc-search live">${SEARCH_SVG}<input id="resortQ" type="search" data-act="resortQ" value="${esc(UI.resortQ || '')}"
+      placeholder="Search places, pools, answers" autocomplete="off" enterkeyhint="search" aria-label="Search the resort"></label>
+    <div class="tc-chips nos">${CATS.map(([id, l]) => `<button class="tc-chip${cat === id ? ' on' : ''}" data-act="resortCat" data-a="${id}" aria-pressed="${cat === id}">${esc(l)}</button>`).join('')}</div>
+    <div class="tc-toggle">Open now only<button class="tc-sw${openOnly ? ' on' : ''}" data-act="resortOpen" role="switch" aria-checked="${openOnly}" aria-label="Open now only"></button></div>
+    <div class="tc-card tc-results">${rows || ''}<p class="tc-empty" hidden>Nothing matches. Try “pizza”, “heated” or “late”.</p></div>
+    <button class="tc-more" data-act="resortTab" data-a="plan">The hotel’s own plan of the grounds ›</button>
+    <h3 class="tc-h">Group notes</h3>
+    ${notes.map(k => resortNote(k, { now: 'What we have found out', eat: 'Bookings and verdicts', plan: 'Getting about', spa: 'Treatments and bookings', prac: 'Anything else' }[k],
+      'Anything the book has wrong, or anything worth passing on.')).join('')}
+  </div>`;
+}
+/** The search narrows the rows already drawn. A field being typed in holds
+ *  the page's redraws back (see inUse), so the list cannot be rebuilt under
+ *  the typing — and has no need to be. */
+function filterGuide() {
+  const q = String(UI.resortQ || '').trim().toLowerCase();
+  const box = document.querySelector('.tc-results');
+  if (!box) return;
+  let shown = 0;
+  box.querySelectorAll('.tc-row').forEach(r => {
+    const hit = !q || (r.dataset.s || r.textContent.toLowerCase()).includes(q);
+    r.hidden = !hit; if (hit) shown++;
+  });
+  const e = box.querySelector('.tc-empty');
+  if (e) e.hidden = shown > 0;
+}
 
-function resortPractical() {
-  const season = resortSeason();
-  const doing = R.DOING.filter(d => d.season === 'all' || season !== 'winter');
-  return `<h3 class="sub">On the grounds</h3>
-  <div class="vlist">${doing.map(d => `<div class="vrow"><div class="vmain">
-    <div class="vtop"><span class="vn">${esc(d.name)}</span>
-      ${d.season === 'summer' ? `<span class="vtag">summer only</span>` : ''}</div>
-    <p class="vb">${esc(d.body)}</p></div></div>`).join('')}</div>
-
-  <h3 class="sub">Worth knowing</h3>
-  <div class="vlist">${R.PRACTICAL.map(x => `<div class="vrow"><div class="vmain">
-    <div class="vtop"><span class="vn">${esc(x.q)}</span></div>
-    <p class="vb">${esc(x.a)}</p></div></div>`).join('')}</div>
-
-  <h3 class="sub">The hotel</h3>
-  <div class="addr">
-    <p>${R.RESORT.address.map(esc).join('<br>')}</p>
-    <p><a href="tel:${esc(R.RESORT.phone.replace(/\s/g, ''))}">${esc(R.RESORT.phone)}</a><br>
-       <a href="mailto:${esc(R.RESORT.email)}">${esc(R.RESORT.email)}</a></p>
-    <p class="tiny num">${R.RESORT.lat.toFixed(5)}, ${R.RESORT.lng.toFixed(5)}</p>
-  </div>
-  ${resortNote('prac', 'Anything else', 'Numbers worth having, the name of the person who sorted something out, what the taxi cost.')}`;
+/* ---- the cards ---- */
+/** The head of a card: the hotel's photograph(s), or the area from the air. */
+function cardHero(keys, kicker, title, opt = {}) {
+  const pics = (keys || []).filter(k => IMG['rp_' + k]);
+  const area = opt.area && R.AREAS.find(a => a.id === opt.area);
+  const media = pics.length
+    ? `<div class="ps-slides nos">${pics.map(k => `<img src="${photo(k)}" alt="${esc(title)}, photographed by the hotel">`).join('')}</div>
+       ${pics.length > 1 ? `<span class="ps-dots" aria-hidden="true">${pics.map((_, i) => `<i${i ? '' : ' class="on"'}></i>`).join('')}</span>` : ''}`
+    : `<div class="ps-air" role="img" aria-label="${esc(area ? area.name : 'The resort')}, from the hotel's aerial photograph"
+         style="background-image:url(${photo('aerial')});background-position:${area ? area.at[0] + '% ' + area.at[1] + '%' : '50% 40%'}"></div>`;
+  return `<div class="ps-hero">${media}<span class="ps-cr">${CREDIT}</span>
+    ${opt.back ? `<button class="ps-back" data-act="resortBack">‹ ${esc(opt.back)}</button>` : ''}
+    <button class="ps-x" data-act="modalCancel" aria-label="Close">✕</button>
+    <div class="ps-ttl"><span class="mb-s">${esc(kicker)}</span><span class="mb-t">${esc(title)}</span></div></div>`;
+}
+function venueModalHtml() {
+  const m = UI.modal;
+  const v = R.VENUES.find(x => x.id === m.vid);
+  if (!v) return '';
+  const s = tcState(v), season = tcSeason();
+  const area = R.AREAS.find(a => a.id === R.VENUE_AREA[v.id]);
+  const parent = m.parent && m.parent.kind === 'area' ? R.AREAS.find(a => a.id === m.parent.id) : null;
+  const i = R.planAt(v);
+  const fact = (k, b) => `<div class="ps-fact">${esc(k)}<b>${esc(b)}</b></div>`;
+  const now1 = s.k === 'open' ? 'Open' : s.k === 'closing' ? 'Closing' : s.k === 'shut' ? (s.today ? 'Shut' : 'Done today') : 'Closed';
+  const now2 = s.k === 'open' ? (s.allDay ? ['Hours', 'All night'] : ['Until', R.fmt(s.to)]) : s.k === 'closing' ? ['At', R.fmt(s.to)]
+    : s.k === 'shut' ? ['Opens', R.fmt(s.from) + (s.today ? '' : ' tmrw')] : ['Season', 'Winter'];
+  return `<div class="scrim tcscrim" data-act="modalScrim"><div class="modal venuemodal psheet"
+    role="dialog" aria-modal="true" aria-label="${esc(v.name)}">
+    ${cardHero(R.VENUE_PHOTOS[v.id], [v.cuisine, VKIND[v.kind]].filter(Boolean).join(' · '), v.name, { area: area && area.id, back: parent && parent.name })}
+    <div class="ps-body">
+      <div class="ps-facts">${fact('Right now', now1)}${fact(now2[0], now2[1])}${fact('Cost', v.cost === 'inc' ? 'Included' : v.id === 'pascarella' ? '1 dinner free' : 'Charged')}</div>
+      ${v.blurb ? `<p>${esc(v.blurb)}</p>` : ''}
+      ${v.note ? `<p class="vb warn">${esc(v.note)}</p>` : ''}
+      <h4 class="minihead">${season === 'winter' ? 'Winter' : 'Summer'} hours${resortSeason() ? '' : ' <small>· until somebody checks</small>'}</h4>
+      ${hoursCell(v)}
+      ${v.cost === 'cover' && !v.note ? `<h4 class="minihead">Booking</h4>
+        <p>Reservation needed, and the hotel’s site says a charge applies. Book at reception or guest relations.</p>` : ''}
+      ${area ? `<h4 class="minihead">Where it is</h4>
+        <button class="ps-where" data-act="resortArea" data-a="${area.id}" style="background-image:url(${photo('aerial')});background-position:${area.at[0]}% ${area.at[1]}%">
+          <span>${esc(area.name)} · see the area ›</span></button>` : ''}
+      ${resortNote('v:' + v.id, 'Group notes', 'Been? Tell the group what it was like, what it cost, what to order.')}
+      <div class="acts">
+        ${i >= 0 ? `<button class="btn" data-act="resortShowOnMap" data-a="${i}">Show on the hotel’s plan</button>`
+          : `<a class="btn" href="${esc(R.findUrl(v.name))}" target="_blank" rel="noopener noreferrer">Try it on Google Maps</a>`}
+        ${v.cost === 'cover' ? `<a class="btn ghost" href="tel:${esc(R.RESORT.phone.replace(/\s/g, ''))}">Call reception</a>` : ''}
+        <button class="btn ghost" data-act="modalCancel">Close</button>
+      </div>
+      ${i < 0 ? '<p class="tiny">Not marked on the hotel’s plan — it names forty-nine places and this is not one of them.</p>' : ''}
+    </div>
+  </div></div>`;
+}
+function areaModalHtml() {
+  const a = R.AREAS.find(x => x.id === UI.modal.id);
+  if (!a) return '';
+  const dark = now.minutes >= 19 * 60 || now.minutes < 6 * 60;
+  const pic = a.night && dark ? a.night : a.photo;
+  const list = R.VENUES.filter(v => R.VENUE_AREA[v.id] === a.id).sort((x, y) => tcRank(x) - tcRank(y));
+  const n = list.filter(isOpen).length;
+  return `<div class="scrim tcscrim" data-act="modalScrim"><div class="modal psheet areamodal"
+    role="dialog" aria-modal="true" aria-label="${esc(a.name)}">
+    ${cardHero(pic ? [pic] : null, n ? n + ' open now' : 'Nothing open this minute', a.name, { area: a.id })}
+    <div class="ps-body"><p>${esc(a.sub)}.</p>
+      ${list.length ? `<div class="tc-card">${list.map(tcRow).join('')}</div>` : '<p class="tiny">No bars or restaurants here.</p>'}
+      <div class="acts"><button class="btn ghost" data-act="modalCancel">Close</button></div></div>
+  </div></div>`;
+}
+function infoModalHtml() {
+  const [t, id] = String(UI.modal.id).split(/:(.*)/s);
+  let keys = null, kicker = '', title = '', body = '';
+  if (t === 'pool') {
+    const p = R.POOLS.find(x => x.name === id); if (!p) return '';
+    keys = R.POOL_PHOTOS[p.name]; kicker = p.indoor ? 'Indoor pool' : 'Outdoor pool'; title = p.name;
+    body = `<p>${p.heated ? 'Heated, so it is warm enough for late October.' : 'Not heated. In late October, that means bracing.'}</p>${p.note ? `<p>${esc(p.note)}</p>` : ''}`;
+  } else if (t === 'do') {
+    const d = R.DOING.find(x => x.id === id); if (!d) return '';
+    keys = R.DOING_PHOTOS[d.id]; kicker = d.season === 'summer' ? 'Summer only' : 'On the grounds'; title = d.name;
+    body = `<p>${esc(d.body)}</p>${d.id === 'spa' ? `<p class="lede">${esc(R.SPA.blurb)}</p>
+      <div class="twocol"><div><h4 class="minihead">Included</h4><ul class="ticks">${R.SPA.free.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>
+      <div><h4 class="minihead">Charged</h4><ul class="ticks paid">${R.SPA.paid.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div></div>
+      ${R.SPA.detail.map(([h, b]) => `<h4 class="minihead">${esc(h)}</h4><p>${esc(b)}</p>`).join('')}` : ''}`;
+  } else if (t === 'help') {
+    const h = R.PRACTICAL[+id]; if (!h) return '';
+    kicker = 'Worth knowing'; title = h.q; body = `<p>${esc(h.a)}</p>`;
+  } else {
+    kicker = R.PACKAGE.source; title = 'What the package includes';
+    body = `<div class="pkglist">${R.PACKAGE.items.map(i => `<div class="pkgrow"><span class="pkgt">${esc(i.t)}</span><span class="pkgd">${esc(i.d)}</span></div>`).join('')}</div>
+      <p class="tiny">${esc(R.PACKAGE.caveat)}</p>`;
+  }
+  return `<div class="scrim tcscrim" data-act="modalScrim"><div class="modal psheet infomodal${keys ? '' : ' plain'}"
+    role="dialog" aria-modal="true" aria-label="${esc(title)}">
+    ${keys ? cardHero(keys, kicker, title) : modalBanner(title, kicker)}
+    <div class="ps-body">${body}<div class="acts"><button class="btn ghost" data-act="modalCancel">Close</button></div></div>
+  </div></div>`;
 }
 
 function scrResort() {
-  const tabs = [['now', 'Right now', 'Now'], ['eat', 'Eat &amp; drink', 'Eat'], ['plan', 'The grounds', 'Grounds'],
-                ['spa', 'Spa &amp; pools', 'Spa'], ['prac', 'Practical', 'Practical']];
-  const body = { now: resortNow, eat: resortEat, plan: resortPlan, spa: resortSpa, prac: resortPractical }[UI.resortTab] || resortNow;
-  /* THE PLATE IS A BAND. The photograph used to sit above a caption, a
-     heading and a paragraph, with the weather in a box under those and the
-     parts of the guide under that: nine hundred points of a phone before
-     the first bar. The name is set on the photograph now, with the hotel's
-     name small above it, and the reading in the opposite corner. The parts
-     of the guide are the same index the boards use, pine on a phone, a
-     hairline on anything wider — one piece of furniture, not two. */
+  const view = UI.resortTab === 'guide' || UI.resortTab === 'plan' ? UI.resortTab : 'home';
+  /* THE PLATE IS A BAND: the hotel's own aerial, the name set on it and the
+     weather in the opposite corner. Under it, the front of the tab, or the
+     full guide, or the hotel's drawn plan — the last two with a way back. */
   return `<figure class="rhero band">
-    ${IMG.resorthero ? `<img src="${IMG.resorthero}" alt="The resort at dusk, seen across the Beşgöz river: the hotel lit up, the riverside restaurants strung along the water, pine forest in the foreground">` : ''}
+    ${IMG.rp_aerial ? `<img src="${photo('aerial')}" alt="The hotel's aerial photograph of the resort: the main building, the pools, the Beşgöz river and the sea beyond">` : ''}
+    <span class="tc-cr">${CREDIT}</span>
     <div class="rt-words">
       <figcaption>Titanic Deluxe Golf Belek<span class="pl"> · Antalya</span></figcaption>
       <h2 class="head">The Titanic</h2>
     </div>
     <div class="rt-wx">${weatherStrip()}</div>
   </figure>
-  <div class="gamesbar"><div class="btabs games rt nos">${tabs.map(([id, l, short]) =>
-    `<button class="btab${UI.resortTab === id ? ' on' : ''}" data-act="resortTab" data-a="${id}"><span class="lg">${l}</span><span class="sm">${short}</span></button>`).join('')}</div></div>
+  ${view === 'home' ? '' : `<button class="tc-backbar" data-act="resortTab" data-a="home">‹ The Titanic</button>`}
   ${hoursLineBar()}
-  ${body()}`;
+  <div class="tc-top">${view === 'guide' ? resortGuide() : view === 'plan' ? resortPlan() : resortHome()}</div>`;
 }
 
 
@@ -4666,6 +4719,10 @@ function paint() {
   if (!turning) app.style.minHeight = app.offsetHeight + 'px';
   else app.style.minHeight = '';
   app.innerHTML = html;
+  if (UI.screen === 'resort' && UI.resortTab === 'guide') {
+    filterGuide();
+    if (UI.resortFocusQ) { UI.resortFocusQ = false; const q = document.getElementById('resortQ'); if (q) q.focus({ preventScroll: true }); }
+  }
   if (!turning) {
     const imgs = [...app.querySelectorAll('img')].filter(i => !i.complete);
     const release = () => { if (holdId === heightHold) app.style.minHeight = ''; };
@@ -5036,7 +5093,7 @@ function hoursSheetHtml() {
     <div class="shlist">
       ${row('summer', 'Summer hours', 'Everything is running — all ' + toll.total + ' places to eat and drink.')}
       ${row('winter', 'Winter hours', toll.shut + ' of the ' + toll.total + ' are shut for the season; ' + toll.open + ' stay open.')}
-      ${row('', 'Not asked yet', 'Both timetables are shown until somebody finds out.')}
+      ${row('', 'Not asked yet', 'The book reads winter, the season of the trip, until somebody finds out.')}
     </div>
     <p class="sh-why">Our week — 26 October to 2 November — lands on the changeover. The hotel runs two
       timetables and does not publish the date it switches. Everything in the guide was read off the
@@ -5803,6 +5860,8 @@ function modalHtml() {
        : UI.modal.kind === 'finish' ? finishModalHtml()
        : UI.modal.kind === 'bbbmiss' ? bbbModalHtml()
        : UI.modal.kind === 'venue' ? venueModalHtml()
+       : UI.modal.kind === 'area' ? areaModalHtml()
+       : UI.modal.kind === 'rinfo' ? infoModalHtml()
        : UI.modal.kind === 'marks' ? markSheet(UI.modal.rid, UI.modal.hole, UI.modal.who)
        : UI.modal.kind === 'hole' ? holeModalHtml()
        : UI.modal.kind === 'setup' ? setupModalHtml()
@@ -5839,6 +5898,7 @@ function closeModal() {
   const m = UI.modal;
   if (m && m.kind === 'pick') { UI.modal = m.parent || null; return; }   // back to the window it was opened from
   if (m && m.kind === 'art') dropHole3D();
+  if (m && m.kind === 'venue') commitResortNote();    // a note half written on a place is kept
   UI.modal = null; UI.modalErr = ''; UI.pinTyped = '';
   if (m && m.kind === 'bbbmiss') raiseNext(m.next);
   /* An event opened from a day goes back to that day when it is done with,
@@ -5974,9 +6034,6 @@ function onClick(e) {
     case 'hoursSheet':
       UI.modal = { kind: 'hours' };
       break;
-    /* The places that are only open on one of the two timetables are folded
-       behind one line until somebody wants them. */
-    case 'resortMore': UI.resortMore = a; break;
     case 'go':
       /* A tab tapped from inside Manage closes it on the way through: the
          door is how you got there, not somewhere to come back to. */
@@ -6122,7 +6179,22 @@ function onClick(e) {
     case 'boardTab': UI.boardTab = a; UI.liftTo = '.btabs'; break;
     /* A card on the front page is a door to its board. */
     case 'todayCard': goTo('boards'); UI.boardTab = a; break;
-    case 'resortTab': commitResortNote(); UI.resortTab = a; UI.liftTo = '.btabs'; break;
+    case 'resortTab': commitResortNote(); UI.resortTab = a; UI.landAt = 0; break;
+    /* The Titanic's front: the tile lit says what the list under it is for. */
+    case 'resortIntent': UI.resortIntent = a; break;
+    case 'resortNudge': try { localStorage.setItem('union-invitational:pascarella-nudge', 'hidden'); } catch (e) { /* not kept */ } break;
+    /* Into the full guide, at a category; from the search box, with the caret in it. */
+    case 'resortGuide':
+      commitResortNote();
+      UI.resortTab = 'guide'; UI.resortCat = a === 'search' ? 'all' : (a || 'all'); UI.resortQ = '';
+      UI.resortOpen = false; UI.resortFocusQ = a === 'search'; UI.landAt = 0;
+      break;
+    case 'resortCat': UI.resortCat = a; break;
+    case 'resortOpen': UI.resortOpen = !UI.resortOpen; break;
+    /* An area of the grounds, a place in it, and back to the area. */
+    case 'resortArea': commitResortNote(); UI.modal = { kind: 'area', id: a }; break;
+    case 'resortBack': commitResortNote(); UI.modal = UI.modal && UI.modal.parent ? UI.modal.parent : null; break;
+    case 'resortInfo': UI.modal = { kind: 'rinfo', id: a }; break;
     case 'resortPlanCat': UI.resortPlanCat = a; UI.resortPin = null; break;
     /* Choosing a point is a request to look at it closely. From the whole
        plan that means going in; from a level somebody has already chosen it
@@ -6132,7 +6204,10 @@ function onClick(e) {
       else { UI.resortPin = +a; if (UI.resortZoom < 2) UI.resortZoom = 2.4; }
       break;
     case 'wxUnit': setUnit(a); break;
-    case 'resortVenue': UI.modal = { kind: 'venue', vid: a }; break;
+    case 'resortVenue':
+      commitResortNote();
+      UI.modal = { kind: 'venue', vid: a, parent: UI.modal && UI.modal.kind === 'area' ? UI.modal : null };
+      break;
     /* Straight from the window to the ground: the plan, opened at that point,
        far enough in to read it but not so far that the lobby is off screen —
        the question being asked is "how far is that from me", and the only
@@ -7113,6 +7188,7 @@ export function boot() {
     if (e.target && e.target.id === 'mineSay') {
       UI.sayDraft = { rid: UI.entryRound, v: e.target.value };
     }
+    if (e.target && e.target.id === 'resortQ') { UI.resortQ = e.target.value; filterGuide(); }
     if (e.target && e.target.id === 'resortNote') {
       UI.resortNote = { k: e.target.dataset.a, v: e.target.value };
     }

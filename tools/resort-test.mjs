@@ -112,14 +112,14 @@ ok('The Titanic is the last of the five', order,
   ['today', 'entry', 'boards', 'calendar', 'resort']);
 
 await pg.click('[data-act="go"][data-a="resort"]:visible');
-/* The index is set in capitals by the stylesheet; innerText gives what is
-   drawn, so the name is read without caring about case. */
-ok('and opens on what is serving now',
-  (await pg.locator('.btab.on').innerText()).toLowerCase(), 'right now');
+await pg.waitForTimeout(300);
+/* The tab opens on its front: a search, six "what do you want" tiles, and
+   what is open now for the one lit. */
+ok('and opens on its front, hungry lit', await pg.locator('.tc-tile.on b').innerText(), 'Hungry');
+ok('six tiles, each a question', await pg.locator('.tc-tile').count(), 6);
 
-/* The plate at the head of the guide: a photograph with a line of type under
-   it, above the heading — set the way the Today page sets its own, not as a
-   heading dropped on a picture. */
+/* The plate at the head of the guide: the hotel's aerial with the name set
+   on it, credited to the hotel. */
 const plate = await pg.evaluate(() => {
   const f = document.querySelector('.rhero');
   if (!f) return null;
@@ -128,199 +128,143 @@ const plate = await pg.evaluate(() => {
   return { h: Math.round(img.getBoundingClientRect().height),
            described: (img.alt || '').length > 40,
            captioned: !!cap && cap.innerText.length > 20,
+           credited: /Titanic Hotels/.test(f.innerText),
            beforeHeading: f.compareDocumentPosition(h) & Node.DOCUMENT_POSITION_FOLLOWING ? 1 : 0,
            loaded: img.naturalWidth > 600 };
 });
 ok('the guide opens on a plate', !!plate, true);
-
 ok('and it meets the paper as a clean edge', await pg.evaluate(() => {
   const c = getComputedStyle(document.querySelector('.rhero img'));
   const m = String(c.maskImage || c.webkitMaskImage || 'none');
   return m === 'none' || m === '';
 }), true);
-
-/* The five parts of the guide have to be on screen when the tab opens. Below
-   the weather and the season switch they were off the bottom of a phone, and
-   a tab nobody scrolls to is a tab nobody knows is there. */
 const firstScreen = await pg.evaluate(() => {
-  const strip = document.querySelector('.btabs').getBoundingClientRect();
+  const tiles = document.querySelector('.tc-tiles').getBoundingClientRect();
   const title = document.querySelector('.rt-words .head').getBoundingClientRect();
   const wx = document.querySelector('.wx');
   const w = wx ? wx.getBoundingClientRect() : null;
-  return { tabsBottom: Math.round(strip.bottom), view: window.innerHeight,
+  return { tilesTop: Math.round(tiles.top), view: window.innerHeight,
            beside: !!w && w.left > title.right - 2 && w.top < title.bottom && w.bottom > title.top };
 });
-ok('the parts of the guide are on the first screen',
-  firstScreen.tabsBottom < firstScreen.view, true);
-/* On a screen with room, the reading sits beside the title rather than
-   taking a band of its own. */
+ok('the tiles start on the first screen', firstScreen.tilesTop < firstScreen.view, true);
 ok('and on a wide screen the weather is beside the title', firstScreen.beside, true);
 ok('the photograph actually loaded', plate && plate.loaded, true);
 ok('it is a band, not a page', plate && plate.h > 150 && plate.h < 320, true);
 ok('it sits above the heading', plate && plate.beforeHeading, 1);
 ok('it says what it is, for a reader who cannot see it', plate && plate.described, true);
 ok('and carries a caption', plate && plate.captioned, true);
+ok('and the hotel’s credit', plate && plate.credited, true);
 
-/* Every square on Right now is a way in to the place it names. */
-const squares = await pg.evaluate(() => {
-  const c = [...document.querySelectorAll('.vcard')];
-  return { n: c.length, allButtons: c.every(e => e.tagName === 'BUTTON' && e.dataset.act === 'resortVenue') };
+/* Every row is a way in to the place it names, with the hotel's photograph
+   where there is one. */
+const rows = await pg.evaluate(() => {
+  const c = [...document.querySelectorAll('.tc-top .tc-row')];
+  return { n: c.length, allButtons: c.every(e => e.tagName === 'BUTTON' && e.dataset.act === 'resortVenue'),
+           photos: c.filter(e => e.querySelector('img.tc-th')).length };
 });
-ok('what is serving now is a row of squares', squares.n > 3, true);
-ok('and every one of them opens', squares.allButtons, true);
+ok('one o’clock: lunch is on, and listed', rows.n > 3, true);
+ok('and every row opens', rows.allButtons, true);
+ok('most of them with the hotel’s photograph', rows.photos >= Math.ceil(rows.n / 2), true);
 
-await pg.locator('.vcard').first().click();
-await pg.waitForTimeout(250);
-ok('a square opens a window on the place', await pg.locator('.venuemodal').count(), 1);
-ok('with its hours in it', await pg.locator('.venuemodal .hrs').count(), 1);
-/* The way in is our own plan, not a street map that has never heard of the
-   resort's footpaths. Google is offered on the plan itself, once you are
-   looking at the right place. */
-ok('and exactly one way on from it',
-  await pg.locator('.venuemodal .acts .btn:not(.ghost)').count(), 1);
-await pg.click('.venuemodal [data-act="modalCancel"]');
-await pg.waitForTimeout(200);
-ok('and it closes', await pg.locator('.venuemodal').count(), 0);
-
-/* From the window to the ground. Not every place is on the hotel's plan, so
-   the one used here is one that is. */
-await pg.click('[data-act="resortTab"][data-a="eat"]');
-await pg.waitForTimeout(250);
-await pg.locator('.plink', { hasText: 'Main Restaurant' }).first().click();
-await pg.waitForTimeout(250);
-ok('a row in the full list opens the same window',
-  await pg.locator('.venuemodal .mb-t').innerText(), 'Main Restaurant');
-ok('and offers to show it on the plan',
-  await pg.locator('[data-act="resortShowOnMap"]').count(), 1);
-ok('and does not send you to Google instead',
-  await pg.locator('.venuemodal a[href*="google"]').count(), 0);
+await pg.locator('.tc-top .tc-row', { hasText: 'Main Restaurant' }).first().click();
+await pg.waitForTimeout(300);
+ok('a row opens the place’s card', await pg.locator('.venuemodal').count(), 1);
+ok('named', await pg.locator('.venuemodal .mb-t').innerText(), 'Main Restaurant');
+ok('led by the hotel’s photograph', await pg.locator('.venuemodal .ps-slides img').count() >= 1, true);
+ok('with one timetable in it', [await pg.locator('.venuemodal .hrs').count(), await pg.locator('.venuemodal .hrs.two').count()], [1, 0]);
+ok('open or shut, at a glance', (await pg.locator('.venuemodal .ps-fact').first().innerText()).includes('Open'), true);
+ok('and where it is, from the air', await pg.locator('.venuemodal [data-act="resortArea"][data-a="main"]').count(), 1);
+/* The way on is our own plan, not a street map that has never heard of the
+   resort's footpaths. */
+ok('and offers to show it on the plan', await pg.locator('[data-act="resortShowOnMap"]').count(), 1);
+ok('and does not send you to Google instead', await pg.locator('.venuemodal a[href*="google"]').count(), 0);
 await pg.click('[data-act="resortShowOnMap"]');
 await pg.waitForTimeout(500);
-ok('which goes to the plan', (await pg.locator('.btab.on').innerText()).toLowerCase(), 'the grounds');
+ok('which goes to the plan', await pg.locator('.planimg').count(), 1);
 ok('closing the window behind it', await pg.locator('.venuemodal').count(), 0);
 ok('with that place named on it', await pg.locator('.pin.on .pinlabel').innerText(), 'Main Restaurant');
 ok('and the card on the plan is where Google is offered',
   await pg.locator('#pinCard a[href*="google.com/maps"]').count(), 1);
-/* "How far is that from me" cannot be answered without something known to
-   measure against, so the landmarks keep their names too. */
 ok('and the landmarks named beside it, to judge the distance by',
   await pg.locator('.pin.mark .pinlabel').count(), 2);
+ok('with a way back to the front', await pg.locator('.tc-backbar').count(), 1);
+await pg.click('[data-act="resortZoom"][data-a="fit"]');
 
 /* A place the hotel does not mark says so rather than dropping a pin on a guess. */
-await pg.click('[data-act="resortZoom"][data-a="fit"]');
-await pg.click('[data-act="resortTab"][data-a="eat"]');
-await pg.waitForTimeout(250);
-await pg.locator('.plink', { hasText: 'Bistro' }).first().click();
-await pg.waitForTimeout(250);
-ok('a place the plan does not mark offers no pin',
-  await pg.locator('[data-act="resortShowOnMap"]').count(), 0);
+await pg.click('.tc-backbar'); await pg.waitForTimeout(250);
+await pg.click('.tc-search'); await pg.waitForTimeout(300);
+ok('the search opens the full guide, ready to type', await pg.evaluate(() => document.activeElement && document.activeElement.id), 'resortQ');
+await pg.keyboard.type('bistro'); await pg.waitForTimeout(200);
+{ const hits = await pg.locator('.tc-results .tc-row:not([hidden]) .tc-nm').allInnerTexts();
+  ok('typing narrows it to what matches', hits.length >= 1 && hits.length < 4 && /^Bistro/.test(hits[0]), true); }
+await pg.locator('.tc-results .tc-row:not([hidden])').first().click();
+await pg.waitForTimeout(300);
+ok('a place the plan does not mark offers no pin', await pg.locator('[data-act="resortShowOnMap"]').count(), 0);
 ok('and says why', (await pg.locator('.venuemodal').innerText()).includes('Not marked'), true);
-/* Only then is Google any use, and only then is it offered. */
 ok('falling back to Google, which is what it is for',
   await pg.locator('.venuemodal a[href*="google.com/maps"]').count(), 1);
-await pg.click('.venuemodal [data-act="modalCancel"]');
+ok('with no photograph of its own, it shows its area from the air', await pg.locator('.venuemodal .ps-air').count(), 1);
+await pg.click('.venuemodal [data-act="modalCancel"] >> nth=-1');
 await pg.waitForTimeout(200);
+ok('and it closes', await pg.locator('.venuemodal').count(), 0);
+ok('nothing matching says so', await pg.evaluate(() => {
+  const q = document.getElementById('resortQ'); q.value = 'zzzz'; q.dispatchEvent(new Event('input', { bubbles: true }));
+  return !document.querySelector('.tc-results .tc-empty').hidden; }), true);
+await pg.evaluate(() => { const q = document.getElementById('resortQ'); q.value = ''; q.dispatchEvent(new Event('input', { bubbles: true })); q.blur(); });
 
-/* The Floating Disco's tag reads "Cover charge · book ahead", which is wider
-   than a card in a two-column grid on a phone. Set not to wrap, it did not
-   overflow the card so much as shove the whole grid past the side of the
-   page. Checked at the hour that venue is the one serving. */
-{
-  const wee = await b.newPage({ viewport: { width: 440, height: 900 } });
-  await wee.addInitScript(() => {
-    const fixed = Date.UTC(2026, 9, 28, 20, 40);        // 23:40 at the resort
-    const D = Date;
-    window.Date = class extends D {
-      constructor(...a) { super(...(a.length ? a : [fixed])); }
-      static now() { return fixed; }
-    };
-  });
-  await wee.goto('file://' + S + '/rt.html');
-  await wee.waitForTimeout(4200);
-  for (let i = 0; i < 6; i++) { const d = wee.locator('[data-act="modalCancel"]');
-    if (await d.count()) { await d.first().click({ force: true }); await wee.waitForTimeout(150); } else break; }
-  await wee.click('[data-act="go"][data-a="resort"]:visible');
-  await season(wee, 'summer');
-  await wee.waitForTimeout(400);
-  const names = await wee.locator('.vcard .vn').allInnerTexts();
-  ok('the late-night card is the one on test', names.includes('Floating Disco'), true);
-  const over = await wee.evaluate(() => {
-    const e = document.documentElement;
-    const tag = [...document.querySelectorAll('.vcard')]
-      .find(c => c.innerText.includes('Floating Disco'));
-    const cs = getComputedStyle(tag), r = tag.getBoundingClientRect();
-    const inner = r.width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
-    const t = tag.querySelector('.vtag').getBoundingClientRect();
-    return { page: Math.round(e.scrollWidth - e.clientWidth), spill: Math.round(t.width - inner) };
-  });
-  ok('its tag stays inside the card', over.spill <= 0, true);
-  ok('and nothing is pushed off the side of the page', over.page, 0);
-
-  /* It fits in THIS engine, at this size, in this font. It was reported not
-     fitting in Safari, which cannot be run here and whose metrics are its
-     own. So the thing tested is not that it happens to fit — it is that it
-     CANNOT do anything else: the tag is allowed to wrap and is bounded by
-     its card. Made a third again as wide, which is more than any font
-     substitution would do, it still has to stay in the box. */
-  const stress = await wee.evaluate(() => {
-    const st = document.createElement('style');
-    st.textContent = '.vtag{font-size:15px!important;letter-spacing:.14em!important}';
-    document.head.appendChild(st);
-    const c = [...document.querySelectorAll('.vcard')].find(x => x.innerText.includes('Floating Disco'));
-    const cs = getComputedStyle(c), r = c.getBoundingClientRect();
-    const inner = r.width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
-    const t = c.querySelector('.vtag');
-    const e = document.documentElement;
-    return { canWrap: getComputedStyle(t).whiteSpace !== 'nowrap',
-             spill: Math.round(t.getBoundingClientRect().width - inner),
-             page: Math.round(e.scrollWidth - e.clientWidth) };
-  });
-  ok('the tag is allowed to wrap rather than run on', stress.canWrap, true);
-  ok('so a wider font still cannot burst the card', stress.spill <= 0, true);
-  ok('nor push the page sideways', stress.page, 0);
-  await wee.close();
-}
-
-/* Nothing on the page should show its own markup. An ampersand handed to a
-   function that escapes its argument comes out as "Bars &amp;amp; cafes". */
-await pg.click('[data-act="resortTab"][data-a="eat"]');
+/* Nothing on the page should show its own markup. */
 const raw = await pg.evaluate(() => document.getElementById('app').innerText);
 ok('no escaped markup leaks into the type', /&(amp|lt|gt|quot|#39);/.test(raw), false);
 
-/* Three blocks, and the one that will put a charge on the room has to be
-   visibly a different thing on the page rather than another heading. */
-const blocks = await pg.evaluate(() => {
-  const g = [...document.querySelectorAll('.vgroup')];
-  const bg = e => getComputedStyle(e).backgroundColor;
-  const cover = document.querySelector('.vg-cover');
-  return { n: g.length, heads: g.map(e => e.querySelector('.vghead h3').innerText),
-           tinted: cover ? bg(cover) !== bg(document.querySelector('.vg-inc')) : false,
-           counted: g.every(e => /\d+ place/i.test(e.querySelector('.vgn').innerText)) };
-});
-ok('eating and drinking comes in three blocks', blocks.n, 3);
-ok('named for what they cost', blocks.heads, ['Included', 'Charged extra', 'Bars & cafés']);
-ok('the charged one is tinted apart from the rest', blocks.tinted, true);
-ok('and each says how many places are in it', blocks.counted, true);
+/* The categories, and open now. */
+await pg.click('[data-act="resortCat"][data-a="pools"]'); await pg.waitForTimeout(200);
+ok('the pools category lists the twelve pools', await pg.locator('.tc-results .tc-row').count(), 12);
+await pg.click('[data-act="resortCat"][data-a="eat"]'); await pg.waitForTimeout(200);
+const allEat = await pg.locator('.tc-results .tc-row').count();
+await pg.click('[data-act="resortOpen"]'); await pg.waitForTimeout(200);
+const openEat = await pg.locator('.tc-results .tc-row').count();
+ok('open now only takes the shut ones away', openEat > 0 && openEat < allEat, true);
+await pg.click('[data-act="resortOpen"]');
 
-/* The season switch re-times everything under it. */
-await season(pg, 'winter');
-await pg.click('[data-act="resortTab"][data-a="eat"]');
-const shutRows = await pg.locator('.vrow.out').count();
-ok('winter greys out every closed room', shutRows, 21);
+/* An area of the grounds, a place in it, and back. */
+await pg.click('.tc-backbar'); await pg.waitForTimeout(250);
+await pg.locator('.tc-tag[data-a="river"]').click(); await pg.waitForTimeout(300);
+ok('an area on the aerial opens', await pg.locator('.areamodal .mb-t').innerText(), 'Along the river');
+ok('with its own photograph', await pg.locator('.areamodal .ps-slides img').count(), 1);
+await pg.locator('.areamodal [data-act="resortVenue"][data-a="pascarella"]').click(); await pg.waitForTimeout(300);
+ok('a place from the area', await pg.locator('.venuemodal .mb-t').innerText(), 'Pascarella');
+ok('two photographs of it, to swipe between', await pg.locator('.venuemodal .ps-slides img').count(), 2);
+await pg.click('[data-act="resortBack"]'); await pg.waitForTimeout(250);
+ok('and back to the area it came from', await pg.locator('.areamodal').count(), 1);
+await pg.click('.areamodal .ps-x'); await pg.waitForTimeout(200);
+
+/* The season sets the one timetable shown. Unasked, the book reads winter. */
+await pg.click('[data-act="resortGuide"][data-a="search"]'); await pg.waitForTimeout(250);
+await pg.evaluate(() => document.activeElement && document.activeElement.blur());
+const closed = () => pg.evaluate(() => [...document.querySelectorAll('.tc-results .tc-row')].filter(r => /Closed/.test(r.innerText)).length);
+ok('unasked, the book reads winter: every room shut for it says so', await closed(), 21);
 await season(pg, 'summer');
-ok('summer brings them all back', await pg.locator('.vrow.out').count(), 0);
+ok('summer brings them all back', await closed(), 0);
+await season(pg, 'winter');
+ok('and winter shuts them again', await closed(), 21);
 await season(pg, '');
-ok('and unset shows both timetables side by side',
-  (await pg.locator('.hrs.two').count()) > 10, true);
 
 /* Anything the group writes is kept, and is there on the next visit. */
 await pg.fill('#resortNote', 'Beef Grill was 25 euros a head and worth it.');
 await pg.locator('#resortNote').blur();
 await pg.waitForTimeout(150);
-await pg.click('[data-act="resortTab"][data-a="now"]');
-await pg.click('[data-act="resortTab"][data-a="eat"]');
-ok('a note survives leaving the tab',
+await pg.click('.tc-backbar'); await pg.waitForTimeout(150);
+await pg.click('[data-act="resortGuide"][data-a="search"]'); await pg.waitForTimeout(250);
+ok('a note survives leaving the guide',
   await pg.locator('#resortNote').inputValue(), 'Beef Grill was 25 euros a head and worth it.');
+/* And a place has notes of its own. */
+await pg.evaluate(() => document.activeElement && document.activeElement.blur());
+await pg.locator('.tc-results .tc-row', { hasText: 'Beef Grill' }).first().click(); await pg.waitForTimeout(300);
+await pg.fill('.venuemodal #resortNote', 'Ask for the window table.');
+await pg.locator('.venuemodal .ps-x').click(); await pg.waitForTimeout(200);
+await pg.locator('.tc-results .tc-row', { hasText: 'Beef Grill' }).first().click(); await pg.waitForTimeout(300);
+ok('a place keeps its own note', await pg.locator('.venuemodal #resortNote').inputValue(), 'Ask for the window table.');
+await pg.locator('.venuemodal .ps-x').click(); await pg.waitForTimeout(200);
 
 /* ---- 4. the plan ---- */
 await pg.click('[data-act="resortTab"][data-a="plan"]');
@@ -411,6 +355,12 @@ await pg.close();
 
 const ph0 = await open(390, 844);
 await ph0.click('[data-act="go"][data-a="resort"]:visible');
+/* On a phone, the long names and their pills stay inside their rows. */
+await ph0.waitForTimeout(300);
+ok('on a phone nothing on the front pushes the page sideways', await ph0.evaluate(() => {
+  const e = document.documentElement; return e.scrollWidth - e.clientWidth; }), 0);
+ok('and every row fits the width of the glass', await ph0.evaluate(() =>
+  [...document.querySelectorAll('.tc-row')].filter(r => r.scrollWidth > r.clientWidth + 1).length), 0);
 await ph0.click('[data-act="resortTab"][data-a="plan"]');
 await ph0.waitForTimeout(400);
 const off = await ph0.evaluate(() => {

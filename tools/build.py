@@ -93,15 +93,25 @@ def build_images(force=False):
         open(os.path.join(WEB, 'resortmap.webp'), 'wb').write(d)
         table['resortmap'] = 'data:image/webp;base64,' + base64.b64encode(d).decode()
 
-    # The photograph at the head of The Titanic tab. Optional, like the plan.
-    rhero = os.path.join(SRC, 'assets', 'brand', 'resort-hero.jpg')
-    if os.path.exists(rhero):
-        im = Image.open(rhero).convert('RGB')
-        im.thumbnail((1600, 1600), Image.LANCZOS)
-        buf = io.BytesIO(); im.save(buf, 'WEBP', quality=80, method=6)
-        d = buf.getvalue()
-        open(os.path.join(WEB, 'resorthero.webp'), 'wb').write(d)
-        table['resorthero'] = 'data:image/webp;base64,' + base64.b64encode(d).decode()
+    # The head of The Titanic tab is the hotel's aerial now (rp_aerial, below);
+    # the dusk photograph that used to sit there is no longer shipped.
+    # The hotel's own photographs, for the Titanic tab: the aerial that is its
+    # map, an area shot for each part of the grounds, and a picture of most of
+    # the places to eat and drink. Credited to the hotel wherever they show
+    # (see assets/resort/CREDITS.md). Each comes in twice: a card-sized copy,
+    # and a thumbnail so a list of thirty rows is not decoding thirty photos.
+    for f in sorted(glob.glob(os.path.join(SRC, 'assets', 'resort', '*.jpg'))):
+        key = os.path.basename(f)[:-4]
+        im = Image.open(f).convert('RGB')
+        big = im.copy()
+        big.thumbnail((1700 if key == 'aerial' else 900, 1700), Image.LANCZOS)
+        buf = io.BytesIO(); big.save(buf, 'WEBP', quality=72, method=6)
+        table['rp_' + key] = 'data:image/webp;base64,' + base64.b64encode(buf.getvalue()).decode()
+        sm = im.copy()
+        w, h = sm.size; c = min(w, h)
+        sm = sm.crop(((w - c) // 2, (h - c) // 2, (w - c) // 2 + c, (h - c) // 2 + c)).resize((128, 128), Image.LANCZOS)
+        buf = io.BytesIO(); sm.save(buf, 'WEBP', quality=70, method=6)
+        table['rt_' + key] = 'data:image/webp;base64,' + base64.b64encode(buf.getvalue()).decode()
 
     crest = os.path.join(SRC, 'assets', 'brand', 'efed30fc-173f-48a7-b168-923ebf5d103f.png')
     im = Image.open(crest).convert('RGBA')

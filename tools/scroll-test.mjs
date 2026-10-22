@@ -31,9 +31,9 @@ for (const [tab, label] of [['resort', 'the Resort'], ['rules', 'the Rules']]) {
   console.log('\nreading ' + label);
   if (tab === 'resort') {
     await p.click('[data-act="go"][data-a="resort"]:visible');
-    /* "Right now" is as long as the hour makes it; Eat & drink is always long */
+    /* the front is as long as the hour makes it; the full guide is always long */
     await p.waitForTimeout(400);
-    await p.locator('[data-act="resortTab"][data-a="eat"]').first().dispatchEvent('click');
+    await p.locator('[data-act="resortGuide"][data-a="all"]').first().dispatchEvent('click');
   }
   else await p.evaluate(() => { window.__UI.screen = 'rules'; window.__render(true); });
   await p.waitForTimeout(600);

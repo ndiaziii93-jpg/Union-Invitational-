@@ -479,3 +479,72 @@ export function seasonToll() {
   for (const v of VENUES) if (!v.w) shut++;
   return { total: VENUES.length, shut, open: VENUES.length - shut };
 }
+
+/* ---------------- the photographs and the areas ----------------
+   The hotel's own pictures (assets/resort, credited "Photo: Titanic Hotels"),
+   matched to the places by eye from its website. A place with no picture of
+   its own simply has none: the card falls back to its area, seen from the
+   air, rather than borrowing a photograph of somewhere else. */
+
+/** Venue id → its photographs, first one leads. */
+export const VENUE_PHOTOS = {
+  main: ['main'], cordelia: ['cordelia'], caprice: ['caprice'], pascarella: ['pascarella', 'pascarella2'],
+  yamas: ['yamas'], nori: ['nori'], teppan: ['teppan'], beef: ['beef'], 'hasir-a': ['hasir-a'], boat: ['boat'],
+  sapore: ['sapore'], noble: ['noble'], bebek: ['bebek'], dalia: ['dalia'], olimpic: ['olimpic'], 'kikoa-r': ['kikoa-r'],
+};
+/** Pool name → photographs. */
+export const POOL_PHOTOS = {
+  'Indoor pool': ['indoor'], 'Olympic pool': ['olimpic'], 'Main outdoor pool': ['mainpool', 'poolsair'],
+  'Lion’s Mouth hamam pool': ['hamam'],
+};
+/** Things to do (DOING id) → photographs. */
+export const DOING_PHOTOS = {
+  beach: ['beach', 'pier'], spa: ['spa', 'hamam'], fitness: ['fitness'], tennis: ['tennis', 'sport'],
+  river: ['river', 'riverair'], golf: ['golf'], kids: ['kikoa-r'], aquapark: ['aquapark'], sports: ['sport'],
+};
+
+/* The six parts of the grounds as the hotel's aerial shows them. The aerial
+   looks from the main building towards the sea, the river down its right
+   side — a different angle from the drawn plan — so it marks areas, not
+   doors. `tag` is the point a label marks on the aerial (`below` hangs the
+   label under it, for the points near the top edge), and `at` the point a
+   card zooms to, both as percentages of that photograph; `photo` is the
+   area's own picture, and `night` the one shown after dark. */
+export const AREAS = [
+  { id: 'main', name: 'Main building', sub: 'The lobby, the buffet, the bars', tag: [17, 32], at: [17, 32], photo: null },
+  { id: 'sport', name: 'Sport & golf', sub: 'Cullinan Links, the courts and pitches', tag: [42, 15], at: [36, 18], photo: 'golf', below: true },
+  { id: 'pools', name: 'Pools & spa', sub: 'The lagoon pool, the Olympic pool, BeFine Spa', tag: [52, 45], at: [54, 42], photo: 'poolsair' },
+  { id: 'aqua', name: 'Aquapark', sub: 'The slides, the kids’ pools, Aqua Snack', tag: [69, 21], at: [72, 21], photo: 'aquapark' },
+  { id: 'beach', name: 'The beach', sub: 'The sand, the pier, the beach bars', tag: [88, 16], at: [75, 17], photo: 'beach', below: true },
+  { id: 'river', name: 'Along the river', sub: 'The à la carte restaurants on the Beşgöz', tag: [86, 50], at: [84, 30], photo: 'riverair', night: 'rivernight' },
+];
+/* Which area each place is in. Where the hotel's plan and its own words
+   disagree — Pascarella is pinned by the main building on the plan, and is
+   "a trattoria by the river" with a river terrace in its photograph — the
+   words and the photograph win. Places the hotel never located are put by
+   what their descriptions say, and corrected by whoever gets there first. */
+export const VENUE_AREA = {
+  main: 'main', 'kikoa-r': 'main', cordelia: 'main', caprice: 'main', bistro: 'main', 'club-bk': 'main',
+  noble: 'main', bebek: 'main', schiller: 'main', teppan: 'main',
+  'hasir-s': 'pools', olimpic: 'pools', citrus: 'pools', jacaranda: 'pools', dalia: 'pools',
+  'aqua-s': 'aqua', 'aqua-bar': 'aqua',
+  riva: 'beach', sapore: 'beach', waffle: 'beach', 'pier-bar': 'beach', 'beach-bar': 'beach', sunset1: 'beach', sunset2: 'beach',
+  pascarella: 'river', nori: 'river', beef: 'river', 'hasir-a': 'river', yamas: 'river', boat: 'river', rivershow: 'river', disco: 'river',
+};
+
+/** What a place is doing at `min` minutes past midnight on `season`'s
+ *  timetable: open (and until when), about to shut, or shut (and when it
+ *  next opens, today or tomorrow). */
+export function stateAt(v, season, min) {
+  const ss = slots(v, season);
+  if (!ss) return { k: 'closed' };
+  for (const s of ss) {
+    if (!inSlot(s, min)) continue;
+    if (isAllDay(s)) return { k: 'open', allDay: true, what: s.what };
+    const left = (toMin(s.to) - min + 1440) % 1440 || 1440;
+    return { k: left <= 45 ? 'closing' : 'open', to: s.to, what: s.what };
+  }
+  let best = null;
+  for (const s of ss) { const d = untilOpen(s, min); if (best == null || d < best.in) best = { s, in: d }; }
+  return { k: 'shut', from: best.s.from, in: best.in, today: min + best.in < 1440 };
+}
