@@ -1739,7 +1739,7 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
   /* Four tabs share the width evenly. Below 700px there is no strip at all —
      the bar is along the bottom — so this is the tablet-and-narrow-laptop
      shape only. */
-  .tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;
+  .tabs{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;
     overflow-x:visible;touch-action:auto}
   .tab{padding:9px 10px;font-size:16px;min-height:44px;text-align:center}
   .tab .lg{display:none}
@@ -3369,7 +3369,7 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
 @media (max-width:699px){
   .tabs{display:none}
   .tabbar{
-    display:grid;grid-template-columns:repeat(5,1fr);
+    display:grid;grid-template-columns:repeat(6,1fr);
     position:fixed;left:0;right:0;bottom:0;z-index:40;
     background:var(--page);border-top:1px solid var(--rule);
     box-shadow:0 -6px 20px rgba(29,46,33,.07);
@@ -3968,11 +3968,11 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
   html.tablet{--barh:calc(70px + env(safe-area-inset-bottom,0px))}
   html.tablet .tabs{display:none}
   html.tablet .tabbar{
-    display:grid;grid-template-columns:repeat(5,1fr);
+    display:grid;grid-template-columns:repeat(6,1fr);
     position:fixed;left:0;right:0;bottom:0;z-index:40;
     background:var(--ink);border-top:3px solid var(--gold-up);
     box-shadow:0 -8px 24px rgba(29,46,33,.22);
-    /* five tabs across a phone's width, centred, not spread over a tablet's */
+    /* six tabs across a phone's width, centred, not spread over a tablet's */
     padding:8px max(12px,env(safe-area-inset-right,0px),calc(50% - 330px)) calc(8px + env(safe-area-inset-bottom,0px))
             max(12px,env(safe-area-inset-left,0px),calc(50% - 330px));
   }
@@ -4231,11 +4231,9 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
   padding:12px 15px;font-size:15px;border-left:4px solid #E2C277;box-shadow:0 8px 22px rgba(16,22,17,.35);animation:fadeIn .2s ease both;max-width:560px;margin:0 auto}
 @media (min-width:700px){ .xm-flash{bottom:28px} }
 @media (min-width:700px) and (max-width:1400px){ html.tablet .xm-flash{bottom:calc(var(--barh) + 22px)} }
-/* the two doors on the Boards front page */
-.club.soc{margin-top:10px}
-.soc-c .soc-l{display:block;margin-top:4px;font-size:14.5px;color:var(--turf);line-height:1.35;text-align:left}
-.soc-c{border-left:4px solid var(--ink);padding-left:11px}
 .soc-c .soc-l b{color:var(--ink)}
 .xm-seg button,.xm-q button,.xm-yn button,.xm-stp .ctl button,.xm-new,.ch-rx button{text-align:center}
 .xm-stp .ctl button{padding:0}
 .xm-page,.xm-c,.xm-how,.xm-new,.xm-sec,.ch-post,.ch-feed,.ch-plate{max-width:720px}
+.xm-yn button small{font-size:13.5px;font-weight:600;opacity:.85;margin-left:3px}
+.xm-anchor{display:block;height:0}

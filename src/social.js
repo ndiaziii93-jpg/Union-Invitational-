@@ -7,9 +7,11 @@
  *   a birdie, a ball in the water, a group making the turn. Nobody writes
  *   them; they are read off the cards as the refs save them.
  *
- *   THE EXCHANGE — yes/no markets priced in cents of a beer, the way Kalshi
- *   prices them: Yes at 62¢ means the group thinks it is 62% likely, and a
- *   contract pays a whole beer if it comes true. Twenty-three people are too
+ *   THE EXCHANGE — yes/no markets, the way Kalshi runs them, in beers: the
+ *   price is the chance, so Yes at 62% means the group thinks it is 62%
+ *   likely, and a bet on it pays more the less likely it was. Everything is
+ *   counted in quarter beers: what you put on, what you cash out, what a bet
+ *   pays and what you hold. Twenty-three people are too
  *   few for two of them to want the opposite side of the same trade at the
  *   same moment, so the book always takes the other side (a market maker,
  *   the standard logarithmic one). Every trade fills at once, every buy
@@ -72,8 +74,12 @@ export function moments(T, rid) {
  *  money moves the price from 50¢ to about 62¢: enough that a bet is felt,
  *  not so much that one person can own a market. */
 export const LIQ = 10;
-/** Beers to trade with, given each day of the trip. */
-export const DAILY = 10;
+/** Beers to bet with, given each day of the trip. */
+export const DAILY = 20;
+/** The smallest amount anything moves in: a quarter of a beer. */
+export const STEP = 0.25;
+/** Down to the quarter beer — what a payout or a sale actually comes to. */
+export const floor4 = x => Math.floor(x * 4 + 1e-9) / 4;
 
 const lse = (a, b) => { const m = Math.max(a, b); return m + Math.log(Math.exp(a - m) + Math.exp(b - m)); };
 const C = (y, n) => LIQ * lse(y / LIQ, n / LIQ);
@@ -93,11 +99,21 @@ export const chance = q => 1 / (1 + Math.exp((q.n - q.y) / LIQ));
 export function quote(q, side, k) {
   return side === 'yes' ? C(q.y + k, q.n) - C(q.y, q.n) : C(q.y, q.n + k) - C(q.y, q.n);
 }
-/** The most whole contracts a stake buys. */
-export function contractsFor(q, side, beers) {
-  let k = 0;
-  while (k < 999 && quote(q, side, k + 1) <= beers + 1e-9) k++;
-  return k;
+/** What a stake buys: the share of the pot it pays if it is right. */
+export function sharesFor(q, side, beers) {
+  let lo = 0, hi = 1;
+  while (quote(q, side, hi) < beers && hi < 1e6) hi *= 2;
+  for (let i = 0; i < 60; i++) { const mid = (lo + hi) / 2; if (quote(q, side, mid) < beers) lo = mid; else hi = mid; }
+  return lo;
+}
+/** What selling k shares of a side would bring back now. */
+export const saleOf = (q, side, k) => -quote(q, side, -k);
+/** How many shares to sell to get a given amount back. */
+export function sharesToRaise(q, side, beers, held) {
+  if (saleOf(q, side, held) <= beers) return held;
+  let lo = 0, hi = held;
+  for (let i = 0; i < 60; i++) { const mid = (lo + hi) / 2; if (saleOf(q, side, mid) < beers) lo = mid; else hi = mid; }
+  return hi;
 }
 /** Cents, the way the exchange shows a price: 1–99. */
 export const cents = p => Math.min(99, Math.max(1, Math.round(p * 100)));
@@ -216,11 +232,11 @@ export function positions(T, pid) {
   return P;
 }
 
-/** What a settled market paid one holder. */
+/** What a settled market paid one holder, to the quarter beer. */
 function payout(p, result) {
-  if (result === 'yes') return p.yes;
-  if (result === 'no') return p.no;
-  if (result === 'void') return p.spent;
+  if (result === 'yes') return floor4(p.yes);
+  if (result === 'no') return floor4(p.no);
+  if (result === 'void') return Math.max(0, p.spent);
   return 0;
 }
 
@@ -237,11 +253,12 @@ export function account(T, pid, now, all) {
     if (!m) continue;
     if (m.result) { cash += payout(p, m.result); rowsOut.push({ ...p, m: m, settled: true, paid: payout(p, m.result) }); continue; }
     const pr = chance(book(m, tr));
-    const value = p.yes * pr + p.no * (1 - pr);
+    const value = floor4(saleOf(book(m, tr), 'yes', p.yes) + saleOf(book(m, tr), 'no', p.no));
     open += value;
     if (p.yes > 0.0001 || p.no > 0.0001) rowsOut.push({ ...p, m, settled: false, value, price: pr });
   }
-  return { cash: r3(cash), open: r3(open), worth: r3(cash + open), profit: r3(cash + open - granted(now)), rows: rowsOut };
+  cash = floor4(cash + 1e-6);
+  return { cash, open: r3(open), worth: r3(cash + open), profit: r3(cash + open - granted(now)), rows: rowsOut };
 }
 
 /** Everyone who has traded, best first. */
@@ -251,27 +268,34 @@ export function standings(T, now) {
   return ids.map(pid => ({ pid, ...account(T, pid, now, all) })).sort((a, b) => b.profit - a.profit);
 }
 
-/** A trade, priced against the book as this phone sees it. Returns the
- *  document to write, or the reason it cannot be made. */
-export function makeTrade(T, now, { m, pid, side, act, k }) {
-  if (!m || m.result) return { err: 'This market has settled.' };
+/** A bet or a cash-out, priced against the book as this phone sees it.
+ *  `beers` is what goes on (a buy) or what comes back (a sale), in quarter
+ *  beers; `all` sells everything held on that side. Returns the document to
+ *  write, or the reason it cannot be made. */
+export function makeTrade(T, now, { m, pid, side, act, beers, all }) {
+  if (!m || m.result) return { err: 'This bet has settled.' };
   if (!pid) return { err: 'Choose your name first.' };
-  k = Math.floor(k);
-  if (!(k > 0)) return { err: 'Choose how many.' };
   const q = book(m, trades(T));
-  const acc = account(T, pid, now);
+  const word = side === 'yes' ? 'Yes' : 'No';
   if (act === 'sell') {
     const held = (positions(T, pid)[m.id] || {})[side] || 0;
-    if (k > held + 1e-9) return { err: `You hold ${Math.floor(held)} ${side === 'yes' ? 'Yes' : 'No'}.` };
-    const back = -quote(q, side, -k);
-    return { doc: { k: 't', m: m.id, pid, side, n: -k, cost: r3(-back), px: cents(back / k) } };
+    if (held < 1e-6) return { err: `You have nothing on ${word} here.` };
+    const most = floor4(saleOf(q, side, held));
+    let back = all ? most : floor4(beers || 0);
+    if (!(back > 0)) return { err: most > 0 ? 'Choose how much to cash out.' : `Your ${word} is worth less than a quarter beer right now.` };
+    if (back > most + 1e-9) return { err: `Your ${word} is worth ${most} 🍺 right now.` };
+    const k = all ? held : sharesToRaise(q, side, back, held);
+    return { doc: { k: 't', m: m.id, pid, side, n: -k, cost: -back, px: cents(back / k) } };
   }
-  const cost = quote(q, side, k);
-  if (cost > acc.cash + 1e-9) return { err: `That costs ${cost.toFixed(2)} 🍺; you have ${acc.cash.toFixed(2)}.` };
-  return { doc: { k: 't', m: m.id, pid, side, n: k, cost: r3(cost), px: cents(cost / k) } };
+  const stake = floor4(beers || 0);
+  if (!(stake >= STEP)) return { err: 'The smallest bet is a quarter beer.' };
+  const acc = account(T, pid, now);
+  if (stake > acc.cash + 1e-9) return { err: `You have ${acc.cash} 🍺 to bet with.` };
+  const k = sharesFor(q, side, stake);
+  return { doc: { k: 't', m: m.id, pid, side, n: k, cost: stake, px: cents(stake / k) } };
 }
 
-/** The price one more contract of a side would cost, in cents. */
+/** The chance a side stands at now, 1–99. */
 export function sidePrice(q, side) { const p = chance(q); return cents(side === 'yes' ? p : 1 - p); }
 
 /** Resting limit orders in a market, as an order book: the best bid first,
@@ -280,7 +304,7 @@ export function depth(T, mid) {
   const open = orders(T).filter(o => o.m === mid && o.state === 'open');
   const side = s => {
     const lv = {};
-    for (const o of open.filter(o => o.side === s)) lv[o.lim] = (lv[o.lim] || 0) + o.n;
+    for (const o of open.filter(o => o.side === s)) lv[o.lim] = (lv[o.lim] || 0) + (o.stake || 0);
     return Object.entries(lv).map(([p, n]) => ({ p: +p, n })).sort((a, b) => b.p - a.p);
   };
   return { yes: side('yes'), no: side('no') };

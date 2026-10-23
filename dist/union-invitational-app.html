@@ -1743,7 +1743,7 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
   /* Four tabs share the width evenly. Below 700px there is no strip at all —
      the bar is along the bottom — so this is the tablet-and-narrow-laptop
      shape only. */
-  .tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;
+  .tabs{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;
     overflow-x:visible;touch-action:auto}
   .tab{padding:9px 10px;font-size:16px;min-height:44px;text-align:center}
   .tab .lg{display:none}
@@ -3373,7 +3373,7 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
 @media (max-width:699px){
   .tabs{display:none}
   .tabbar{
-    display:grid;grid-template-columns:repeat(5,1fr);
+    display:grid;grid-template-columns:repeat(6,1fr);
     position:fixed;left:0;right:0;bottom:0;z-index:40;
     background:var(--page);border-top:1px solid var(--rule);
     box-shadow:0 -6px 20px rgba(29,46,33,.07);
@@ -3972,11 +3972,11 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
   html.tablet{--barh:calc(70px + env(safe-area-inset-bottom,0px))}
   html.tablet .tabs{display:none}
   html.tablet .tabbar{
-    display:grid;grid-template-columns:repeat(5,1fr);
+    display:grid;grid-template-columns:repeat(6,1fr);
     position:fixed;left:0;right:0;bottom:0;z-index:40;
     background:var(--ink);border-top:3px solid var(--gold-up);
     box-shadow:0 -8px 24px rgba(29,46,33,.22);
-    /* five tabs across a phone's width, centred, not spread over a tablet's */
+    /* six tabs across a phone's width, centred, not spread over a tablet's */
     padding:8px max(12px,env(safe-area-inset-right,0px),calc(50% - 330px)) calc(8px + env(safe-area-inset-bottom,0px))
             max(12px,env(safe-area-inset-left,0px),calc(50% - 330px));
   }
@@ -4235,14 +4235,12 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
   padding:12px 15px;font-size:15px;border-left:4px solid #E2C277;box-shadow:0 8px 22px rgba(16,22,17,.35);animation:fadeIn .2s ease both;max-width:560px;margin:0 auto}
 @media (min-width:700px){ .xm-flash{bottom:28px} }
 @media (min-width:700px) and (max-width:1400px){ html.tablet .xm-flash{bottom:calc(var(--barh) + 22px)} }
-/* the two doors on the Boards front page */
-.club.soc{margin-top:10px}
-.soc-c .soc-l{display:block;margin-top:4px;font-size:14.5px;color:var(--turf);line-height:1.35;text-align:left}
-.soc-c{border-left:4px solid var(--ink);padding-left:11px}
 .soc-c .soc-l b{color:var(--ink)}
 .xm-seg button,.xm-q button,.xm-yn button,.xm-stp .ctl button,.xm-new,.ch-rx button{text-align:center}
 .xm-stp .ctl button{padding:0}
 .xm-page,.xm-c,.xm-how,.xm-new,.xm-sec,.ch-post,.ch-feed,.ch-plate{max-width:720px}
+.xm-yn button small{font-size:13.5px;font-weight:600;opacity:.85;margin-left:3px}
+.xm-anchor{display:block;height:0}
 
 </style>
 <div id="app"></div>
@@ -4370,7 +4368,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261023-0913';
+const BUILD = '20261023-0929';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -6839,9 +6837,11 @@ const { DAYS, ROUNDS } = __m_data;
  *   a birdie, a ball in the water, a group making the turn. Nobody writes
  *   them; they are read off the cards as the refs save them.
  *
- *   THE EXCHANGE — yes/no markets priced in cents of a beer, the way Kalshi
- *   prices them: Yes at 62¢ means the group thinks it is 62% likely, and a
- *   contract pays a whole beer if it comes true. Twenty-three people are too
+ *   THE EXCHANGE — yes/no markets, the way Kalshi runs them, in beers: the
+ *   price is the chance, so Yes at 62% means the group thinks it is 62%
+ *   likely, and a bet on it pays more the less likely it was. Everything is
+ *   counted in quarter beers: what you put on, what you cash out, what a bet
+ *   pays and what you hold. Twenty-three people are too
  *   few for two of them to want the opposite side of the same trade at the
  *   same moment, so the book always takes the other side (a market maker,
  *   the standard logarithmic one). Every trade fills at once, every buy
@@ -6903,8 +6903,12 @@ function moments(T, rid) {
  *  money moves the price from 50¢ to about 62¢: enough that a bet is felt,
  *  not so much that one person can own a market. */
 const LIQ = 10;
-/** Beers to trade with, given each day of the trip. */
-const DAILY = 10;
+/** Beers to bet with, given each day of the trip. */
+const DAILY = 20;
+/** The smallest amount anything moves in: a quarter of a beer. */
+const STEP = 0.25;
+/** Down to the quarter beer — what a payout or a sale actually comes to. */
+const floor4 = x => Math.floor(x * 4 + 1e-9) / 4;
 
 const lse = (a, b) => { const m = Math.max(a, b); return m + Math.log(Math.exp(a - m) + Math.exp(b - m)); };
 const C = (y, n) => LIQ * lse(y / LIQ, n / LIQ);
@@ -6924,11 +6928,21 @@ const chance = q => 1 / (1 + Math.exp((q.n - q.y) / LIQ));
 function quote(q, side, k) {
   return side === 'yes' ? C(q.y + k, q.n) - C(q.y, q.n) : C(q.y, q.n + k) - C(q.y, q.n);
 }
-/** The most whole contracts a stake buys. */
-function contractsFor(q, side, beers) {
-  let k = 0;
-  while (k < 999 && quote(q, side, k + 1) <= beers + 1e-9) k++;
-  return k;
+/** What a stake buys: the share of the pot it pays if it is right. */
+function sharesFor(q, side, beers) {
+  let lo = 0, hi = 1;
+  while (quote(q, side, hi) < beers && hi < 1e6) hi *= 2;
+  for (let i = 0; i < 60; i++) { const mid = (lo + hi) / 2; if (quote(q, side, mid) < beers) lo = mid; else hi = mid; }
+  return lo;
+}
+/** What selling k shares of a side would bring back now. */
+const saleOf = (q, side, k) => -quote(q, side, -k);
+/** How many shares to sell to get a given amount back. */
+function sharesToRaise(q, side, beers, held) {
+  if (saleOf(q, side, held) <= beers) return held;
+  let lo = 0, hi = held;
+  for (let i = 0; i < 60; i++) { const mid = (lo + hi) / 2; if (saleOf(q, side, mid) < beers) lo = mid; else hi = mid; }
+  return hi;
 }
 /** Cents, the way the exchange shows a price: 1–99. */
 const cents = p => Math.min(99, Math.max(1, Math.round(p * 100)));
@@ -7047,11 +7061,11 @@ function positions(T, pid) {
   return P;
 }
 
-/** What a settled market paid one holder. */
+/** What a settled market paid one holder, to the quarter beer. */
 function payout(p, result) {
-  if (result === 'yes') return p.yes;
-  if (result === 'no') return p.no;
-  if (result === 'void') return p.spent;
+  if (result === 'yes') return floor4(p.yes);
+  if (result === 'no') return floor4(p.no);
+  if (result === 'void') return Math.max(0, p.spent);
   return 0;
 }
 
@@ -7068,11 +7082,12 @@ function account(T, pid, now, all) {
     if (!m) continue;
     if (m.result) { cash += payout(p, m.result); rowsOut.push({ ...p, m: m, settled: true, paid: payout(p, m.result) }); continue; }
     const pr = chance(book(m, tr));
-    const value = p.yes * pr + p.no * (1 - pr);
+    const value = floor4(saleOf(book(m, tr), 'yes', p.yes) + saleOf(book(m, tr), 'no', p.no));
     open += value;
     if (p.yes > 0.0001 || p.no > 0.0001) rowsOut.push({ ...p, m, settled: false, value, price: pr });
   }
-  return { cash: r3(cash), open: r3(open), worth: r3(cash + open), profit: r3(cash + open - granted(now)), rows: rowsOut };
+  cash = floor4(cash + 1e-6);
+  return { cash, open: r3(open), worth: r3(cash + open), profit: r3(cash + open - granted(now)), rows: rowsOut };
 }
 
 /** Everyone who has traded, best first. */
@@ -7082,27 +7097,34 @@ function standings(T, now) {
   return ids.map(pid => ({ pid, ...account(T, pid, now, all) })).sort((a, b) => b.profit - a.profit);
 }
 
-/** A trade, priced against the book as this phone sees it. Returns the
- *  document to write, or the reason it cannot be made. */
-function makeTrade(T, now, { m, pid, side, act, k }) {
-  if (!m || m.result) return { err: 'This market has settled.' };
+/** A bet or a cash-out, priced against the book as this phone sees it.
+ *  `beers` is what goes on (a buy) or what comes back (a sale), in quarter
+ *  beers; `all` sells everything held on that side. Returns the document to
+ *  write, or the reason it cannot be made. */
+function makeTrade(T, now, { m, pid, side, act, beers, all }) {
+  if (!m || m.result) return { err: 'This bet has settled.' };
   if (!pid) return { err: 'Choose your name first.' };
-  k = Math.floor(k);
-  if (!(k > 0)) return { err: 'Choose how many.' };
   const q = book(m, trades(T));
-  const acc = account(T, pid, now);
+  const word = side === 'yes' ? 'Yes' : 'No';
   if (act === 'sell') {
     const held = (positions(T, pid)[m.id] || {})[side] || 0;
-    if (k > held + 1e-9) return { err: `You hold ${Math.floor(held)} ${side === 'yes' ? 'Yes' : 'No'}.` };
-    const back = -quote(q, side, -k);
-    return { doc: { k: 't', m: m.id, pid, side, n: -k, cost: r3(-back), px: cents(back / k) } };
+    if (held < 1e-6) return { err: `You have nothing on ${word} here.` };
+    const most = floor4(saleOf(q, side, held));
+    let back = all ? most : floor4(beers || 0);
+    if (!(back > 0)) return { err: most > 0 ? 'Choose how much to cash out.' : `Your ${word} is worth less than a quarter beer right now.` };
+    if (back > most + 1e-9) return { err: `Your ${word} is worth ${most} 🍺 right now.` };
+    const k = all ? held : sharesToRaise(q, side, back, held);
+    return { doc: { k: 't', m: m.id, pid, side, n: -k, cost: -back, px: cents(back / k) } };
   }
-  const cost = quote(q, side, k);
-  if (cost > acc.cash + 1e-9) return { err: `That costs ${cost.toFixed(2)} 🍺; you have ${acc.cash.toFixed(2)}.` };
-  return { doc: { k: 't', m: m.id, pid, side, n: k, cost: r3(cost), px: cents(cost / k) } };
+  const stake = floor4(beers || 0);
+  if (!(stake >= STEP)) return { err: 'The smallest bet is a quarter beer.' };
+  const acc = account(T, pid, now);
+  if (stake > acc.cash + 1e-9) return { err: `You have ${acc.cash} 🍺 to bet with.` };
+  const k = sharesFor(q, side, stake);
+  return { doc: { k: 't', m: m.id, pid, side, n: k, cost: stake, px: cents(stake / k) } };
 }
 
-/** The price one more contract of a side would cost, in cents. */
+/** The chance a side stands at now, 1–99. */
 function sidePrice(q, side) { const p = chance(q); return cents(side === 'yes' ? p : 1 - p); }
 
 /** Resting limit orders in a market, as an order book: the best bid first,
@@ -7111,7 +7133,7 @@ function depth(T, mid) {
   const open = orders(T).filter(o => o.m === mid && o.state === 'open');
   const side = s => {
     const lv = {};
-    for (const o of open.filter(o => o.side === s)) lv[o.lim] = (lv[o.lim] || 0) + o.n;
+    for (const o of open.filter(o => o.side === s)) lv[o.lim] = (lv[o.lim] || 0) + (o.stake || 0);
     return Object.entries(lv).map(([p, n]) => ({ p: +p, n })).sort((a, b) => b.p - a.p);
   };
   return { yes: side('yes'), no: side('no') };
@@ -7125,7 +7147,7 @@ function history(m, tr) {
   return pts;
 }
 
-return {moments, LIQ, DAILY, book, chance, quote, contractsFor, cents, trades, orders, suggested, markets, granted, positions, account, standings, makeTrade, sidePrice, depth, history};
+return {moments, LIQ, DAILY, STEP, floor4, book, chance, quote, sharesFor, saleOf, sharesToRaise, cents, trades, orders, suggested, markets, granted, positions, account, standings, makeTrade, sidePrice, depth, history};
 })();
 
 const __m_holes3d = (function(){
@@ -9656,8 +9678,7 @@ const BOARDS = [['pairs',    'Team Competition',                   'Team'],
                 ['prizes',   'Longest Drive & Closest to the Pin', 'Prizes'],
                 ['practice', 'Practice Day',                       'Practice'],
                 ['photos',   'Photos from the week',               'Photos'],
-                ['chat',     'Chat',                               'Chat'],
-                ['bets',     'Bets: the exchange',                 'Bets']];
+                ['chat',     'Chat',                               'Chat']];
 
 function scrBoards() {
   /* The strip carries the long name for anything that reads the page and the
@@ -9676,7 +9697,7 @@ function scrBoards() {
   </div></div>`;
   const body = { home: boardsHome, pairs: boardPairs, mvp: boardMvp, bbb: boardBbb, ryder: scrRyder,
                  prizes: boardPrizes, practice: boardPractice, photos: gallery1,
-                 chat: boardChat, bets: boardBets }[UI.boardTab] || boardsHome;
+                 chat: boardChat }[UI.boardTab] || boardsHome;
   return strip + body();
 }
 
@@ -9690,26 +9711,7 @@ function boardsHome() {
   return `<h2 class="head bh">Boards${live
     ? ` <span class="bh-s">— ${esc(live.short === 'Practice' ? 'Practice' : 'Round ' + live.short.slice(1))} is live</span>`
     : ''}</h2>
-  <div class="club">${cards.map(c => c.kind === 'cup' ? cupCard(c) : gameCard(c)).join('')}</div>
-  ${socialCards()}`;
-}
-/* The gallery's two doors, under the games: the last thing said, and the
-   market moving most. */
-function socialCards() {
-  const last = chatRows().sort((a, b) => (b.at || 0) - (a.at || 0))[0];
-  const tr = X.trades(T), all = xAll().filter(m => !m.result);
-  const hot = all.map(m => ({ m, v: volumeOf(m.id, tr) })).sort((a, b) => b.v - a.v)[0];
-  const hm = hot && hot.v > 0 ? hot.m : null;
-  return `<div class="club soc">
-    <button class="cc soc-c" data-act="boardTab" data-a="chat" aria-label="Chat">
-      <span class="cc-t">Chat<span class="cc-st">${last ? esc(roomName(last.rid)) + ' · ' + esc(sinceOf(last.at)) : 'Every round, and the trip'}</span></span>
-      <span class="soc-l">${last ? `<b>${esc(last.name || nameOf(last.pid))}</b> ${esc(last.text.length > 70 ? last.text.slice(0, 68) + '…' : last.text)}` : 'Birdies, balls in the water and the turn post themselves. React, heckle, join in.'}</span>
-      <span class="cc-go" aria-hidden="true">\u203A</span></button>
-    <button class="cc soc-c" data-act="boardTab" data-a="bets" aria-label="Bets">
-      <span class="cc-t">Bets<span class="cc-st">${new Set(all.map(m => m.group || m.id)).size} open · beers, not money</span></span>
-      <span class="soc-l">${hm ? `<b>${X.cents(X.chance(X.book(hm, tr)))}%</b> ${esc(hm.group ? hm.groupQ.replace(/\?$/, '') + ': ' + hm.label : hm.q)}` : 'Yes or no on the week, priced like Kalshi. Make your own bet too.'}</span>
-      <span class="cc-go" aria-hidden="true">\u203A</span></button>
-  </div>`;
+  <div class="club">${cards.map(c => c.kind === 'cup' ? cupCard(c) : gameCard(c)).join('')}</div>`;
 }
 
 /* `plain` draws it on the paper like any other game — the front page keeps
@@ -10884,24 +10886,31 @@ function socialRefused() {
     The commissioner pastes <b>supabase-chat-bets.sql</b> into Supabase once, and everything after that goes through.</p>`;
 }
 
-/* ---------------- the exchange ----------------
-   Kalshi's way of betting, in beers. Every market is a yes/no question with
-   a price between 1¢ and 99¢; the price is the chance, and a contract pays a
-   whole beer if it comes true. Buy, sell before it settles, or leave a limit
-   order to be filled if the price comes to you. The book's own markets
-   settle themselves from the scores; anyone can make their own, and they or
-   the commissioner settle it. */
+/* ---------------- Bets ----------------
+   Kalshi's way of betting, in beers. Every bet is a yes/no question; the
+   price is the chance, and the less likely the side you back, the more a
+   beer on it pays. Everything moves in quarter beers — what goes on, what
+   comes back, what is held — because nobody has ever ordered 0.37 of a
+   pint. Back a side, cash out before it settles, or leave an order to be
+   filled if the chance comes to you. The book's own bets settle themselves
+   from the scores; anyone can make their own, and they or the commissioner
+   settle it. */
 const XCATS = [['all', 'All'], ['golf', 'Golf'], ['trip', 'The trip'], ['ours', 'Made by us'], ['done', 'Settled']];
-const beer = n => (Math.round(n * 100) / 100).toFixed(Math.abs(n) >= 10 ? 1 : 2).replace(/\.?0+$/, '') || '0';
+/** Beers to the quarter, the way they are poured: ¼, 1½, 12¾. */
+function beer(n) {
+  const q = Math.round(Math.abs(n) * 4), w = Math.floor(q / 4), f = ['', '¼', '½', '¾'][q % 4];
+  return (n < 0 && q ? '−' : '') + (w || !f ? String(w) : '') + f;
+}
+const signed = n => (n >= 0 ? '+' : '−') + beer(Math.abs(n));
 const xAll = () => X.markets(T, now);
 const xFind = id => xAll().find(m => m.id === id) || null;
 const canSettle = m => !!m && (canAdmin() || (m.custom && (m.dev === myDev() || (whoAmI() && m.pid === whoAmI()))));
 const settlerLine = m => m.settler === 'book' ? 'Settles itself from the scores. The commissioner can void it if something goes wrong.'
   : m.settler === 'commish' ? 'Settled by the commissioner.'
   : `Settled by ${esc(m.byName || 'whoever made it')} or the commissioner. Everyone sees who settled it and when.`;
-function volumeOf(id, tr) { return tr.filter(t => t.m === id).reduce((a, t) => a + Math.abs(t.cost), 0); }
+const mName = m => m.group ? m.groupQ.replace(/\?$/, '') + ': ' + m.label : m.q;
+function volumeOf(id, tr) { return tr.filter(t => t.m === id && t.cost > 0).reduce((a, t) => a + t.cost, 0); }
 function spark(pts, h = 40) {
-  if (pts.length < 2) pts = pts.concat([{ p: pts[0] ? pts[0].p : 0.5 }]);
   const w = 300, ps = pts.map(x => x.p), mx = Math.min(1, Math.max(...ps) + 0.04), mn = Math.max(0, Math.min(...ps) - 0.04);
   const xy = ps.map((v, i) => [i * w / (ps.length - 1), h - 3 - (v - mn) / ((mx - mn) || 1) * (h - 6)]);
   const up = ps[ps.length - 1] >= ps[0];
@@ -10913,15 +10922,18 @@ function resultTag(m) {
   const t = m.result === 'yes' ? 'Yes' : m.result === 'no' ? 'No' : 'Void';
   return `<span class="xm-res ${esc(m.result)}">Settled ${t}</span>`;
 }
+/** What a quarter beer on a side pays at today's chance — the number that
+ *  makes a chance mean something at the bar. */
+const quarterPays = pct => beer(X.floor4(0.25 * 100 / Math.max(1, pct)));
 function xCard(m, tr) {
   const q = X.book(m, tr), p = X.chance(q), pts = X.history(m, tr), d = Math.round((p - pts[0].p) * 100);
   return `<article class="xm-c">
     <button class="xm-ct" data-act="xOpen" data-a="${esc(m.id)}"><b>${esc(m.q)}</b>
       <span class="xm-ch"><strong>${m.result ? (m.result === 'void' ? '—' : m.result === 'yes' ? '100%' : '0%') : X.cents(p) + '%'}</strong><small>chance</small></span></button>
     ${m.result ? resultTag(m) : (pts.length > 1 ? spark(pts, 34) : '') + `<div class="xm-yn">
-      <button class="y" data-act="xOpen" data-a="${esc(m.id)}" data-b="yes">Yes ${X.sidePrice(q, 'yes')}¢</button>
-      <button class="n" data-act="xOpen" data-a="${esc(m.id)}" data-b="no">No ${X.sidePrice(q, 'no')}¢</button></div>`}
-    <div class="xm-v"><span>${beer(volumeOf(m.id, tr))} 🍺 traded${m.custom ? ' · by ' + esc(m.byName || 'someone') : ''}</span>
+      <button class="y" data-act="xOpen" data-a="${esc(m.id)}" data-b="yes">Yes <small>${X.sidePrice(q, 'yes')}%</small></button>
+      <button class="n" data-act="xOpen" data-a="${esc(m.id)}" data-b="no">No <small>${X.sidePrice(q, 'no')}%</small></button></div>`}
+    <div class="xm-v"><span>${beer(volumeOf(m.id, tr))} 🍺 bet${m.custom ? ' · by ' + esc(m.byName || 'someone') : ''}</span>
       ${m.result || !d ? '' : `<span class="xm-d ${d > 0 ? 'up' : 'dn'}">${d > 0 ? '▲' : '▼'} ${Math.abs(d)} since open</span>`}</div>
   </article>`;
 }
@@ -10933,26 +10945,29 @@ function xGroupCard(list, tr) {
   return `<article class="xm-c">
     <div class="xm-ct"><b>${esc(g.groupQ)}</b></div>
     ${show.map(({ m, p }) => `<div class="xm-mo"><span>${esc(m.label)}</span>${m.result ? resultTag(m)
-      : `<em>${X.cents(p)}%</em><button data-act="xOpen" data-a="${esc(m.id)}" data-b="yes">Yes ${X.cents(p)}¢</button>`}</div>`).join('')}
+      : `<em>${X.cents(p)}%</em><button data-act="xOpen" data-a="${esc(m.id)}" data-b="yes">Yes</button>`}</div>`).join('')}
     ${rows.length > 4 ? `<button class="xm-more" data-act="xMore" data-a="${UI.xMore === g.group ? '' : esc(g.group)}">${UI.xMore === g.group ? 'Show fewer' : 'All ' + rows.length}</button>` : ''}
-    <div class="xm-v"><span>${beer(vol)} 🍺 traded</span><span>Each name is its own yes/no</span></div>
+    <div class="xm-v"><span>${beer(vol)} 🍺 bet</span><span>Each name is its own yes/no</span></div>
   </article>`;
 }
 function xBar() {
   const me = whoAmI();
   const acc = me ? X.account(T, me, now) : null;
   return `<div class="xm-top"><h2 class="head" style="margin:0">Bets</h2>
-    ${me ? `<button class="xm-bal" data-act="xView" data-a="pf">🍺 ${beer(acc.cash)} · Portfolio</button>`
+    ${me ? `<button class="xm-bal" data-act="xView" data-a="pf">🍺 ${beer(acc.cash)} · My bets</button>`
       : `<button class="xm-bal" data-act="whoOpen">Choose your name</button>`}</div>`;
 }
-function boardBets() {
+/** The Bets screen: its own tab on the bar, beside Scores and Boards. */
+function scrBets() {
   const say = UI.xFlash ? `<div class="xm-flash" role="status">${esc(UI.xFlash)}</div>` : '';
-  if (UI.xView === 'pf') return xPortfolio() + say;
-  if (UI.xView === 'new') return xNewHtml() + say;
-  if (UI.xView && xFind(UI.xView)) return xMarketHtml(xFind(UI.xView)) + say;
+  const inner = UI.xView === 'pf' ? xPortfolio() : UI.xView === 'new' ? xNewHtml()
+    : UI.xView && xFind(UI.xView) ? xMarketHtml(xFind(UI.xView)) : xList();
+  return `<span class="xm-anchor"></span>${inner}${say}`;
+}
+function xList() {
   const tr = X.trades(T), all = xAll(), cat = UI.xCat || 'all';
-  /* Open markets only, except under Settled; everybody's own bets first,
-     newest at the top, because those are the ones the group is talking about. */
+  /* Open bets only, except under Settled; everybody's own first, newest at
+     the top, because those are the ones the group is talking about. */
   const pick = all.filter(m => (cat === 'done' ? !!m.result : !m.result) &&
     (cat === 'all' || cat === 'done' || (cat === 'ours' ? m.custom : m.cat === cat)))
     .sort((a, b) => (b.custom ? 1 : 0) - (a.custom ? 1 : 0) || (b.custom ? (b.at || 0) - (a.at || 0) : 0));
@@ -10963,43 +10978,47 @@ function boardBets() {
   }
   const st = X.standings(T, now).slice(0, 5);
   return `${xBar()}
-  <p class="xm-how">Yes/no on the week, priced like Kalshi. <b>The price is the chance</b>: Yes at 62¢ means the group thinks 62%. A contract pays a whole 🍺 if you’re right. Everyone gets ${X.DAILY} 🍺 a day to play with. Nothing here is money.</p>
+  <p class="xm-how">Everything here is in beers. Everyone gets <b>${X.DAILY} 🍺 a day</b>, and bets go on in quarters. <b>The chance is the price</b>:
+    the less likely the side you back, the more it pays. A ¼ 🍺 on a 25% Yes pays 1 🍺 if it happens.</p>
   ${socialRefused()}
   <div class="xm-cats nos">${XCATS.map(([k, l]) => `<button class="${cat === k ? 'on' : ''}" data-act="xCat" data-a="${k}">${l}</button>`).join('')}</div>
   <button class="xm-new" data-act="xView" data-a="new"><span aria-hidden="true">＋</span> Make your own bet</button>
   ${cards.join('') || `<p class="pg-empty">${cat === 'ours' ? 'Nobody has made one yet. Make the first.' : cat === 'done' ? 'Nothing has settled yet.' : 'Nothing here.'}</p>`}
-  ${st.length ? `<section class="xm-sec"><div class="pg-h"><b>Sharpest on the exchange</b><span>profit so far</span></div>
-    ${st.map((s, i) => `<div class="xm-st"><span class="num">${i + 1}</span><b>${esc(nameOf(s.pid))}</b><em class="num ${s.profit >= 0 ? 'up' : 'dn'}">${s.profit >= 0 ? '+' : '−'}${beer(Math.abs(s.profit))} 🍺</em></div>`).join('')}</section>` : ''}
-  <p class="pg-note">Prices move as people buy: the book always takes the other side, so every order fills straight away.</p>${say}`;
+  ${st.length ? `<section class="xm-sec"><div class="pg-h"><b>Sharpest in the group</b><span>beers up or down</span></div>
+    ${st.map((s, i) => `<div class="xm-st"><span class="num">${i + 1}</span><b>${esc(nameOf(s.pid))}</b><em class="num ${s.profit >= 0 ? 'up' : 'dn'}">${signed(s.profit)} 🍺</em></div>`).join('')}</section>` : ''}
+  <p class="pg-note">The chance moves as people bet: the book always takes the other side, so every bet goes on straight away.</p>`;
 }
 function xTicket(m, q) {
-  const t = UI.xTicket || (UI.xTicket = { side: 'yes', act: 'buy', type: 'market', k: 1, lim: null, m: m.id });
-  if (t.m !== m.id) Object.assign(t, { m: m.id, k: 1, lim: null });
+  const t = UI.xTicket || (UI.xTicket = { m: m.id, side: 'yes', act: 'buy', type: 'market', beers: 1, lim: null });
+  if (t.m !== m.id) Object.assign(t, { m: m.id, beers: 1, lim: null });
   const me = whoAmI();
-  const held = me ? (X.positions(T, me)[m.id] || { yes: 0, no: 0 }) : { yes: 0, no: 0 };
+  const held = me ? ((X.positions(T, me)[m.id] || {})[t.side] || 0) : 0;
+  const worth = X.floor4(X.saleOf(q, t.side, held));
   const sp = X.sidePrice(q, t.side);
   const lim = t.lim || sp;
-  const cost = t.act === 'buy' ? X.quote(q, t.side, t.k) : -X.quote(q, t.side, -t.k);
+  const word = t.side === 'yes' ? 'Yes' : 'No';
   const resting = t.type === 'limit' && t.act === 'buy' && lim < sp;
-  const label = t.side === 'yes' ? (m.label || 'Yes') : 'No';
+  const pays = t.act === 'buy' ? (resting ? X.floor4(t.beers * 100 / lim) : X.floor4(X.sharesFor(q, t.side, t.beers))) : 0;
+  const stepper = (label, v) => `<div class="xm-stp"><span>${label}</span><span class="ctl"><button data-act="xT" data-a="beers" data-b="-1" aria-label="A quarter less">−</button><b class="num">${beer(v)} 🍺</b><button data-act="xT" data-a="beers" data-b="1" aria-label="A quarter more">+</button></span></div>`;
   return `<div class="xm-tk">
-    <div class="xm-seg"><button class="${t.act === 'buy' ? 'on' : ''}" data-act="xT" data-a="act" data-b="buy">Buy</button><button class="${t.act === 'sell' ? 'on' : ''}" data-act="xT" data-a="act" data-b="sell">Sell</button></div>
-    <div class="xm-seg"><button class="y${t.side === 'yes' ? ' on' : ''}" data-act="xT" data-a="side" data-b="yes">Yes ${X.sidePrice(q, 'yes')}¢</button><button class="n${t.side === 'no' ? ' on' : ''}" data-act="xT" data-a="side" data-b="no">No ${X.sidePrice(q, 'no')}¢</button></div>
-    ${t.act === 'buy' ? `<div class="xm-seg"><button class="${t.type === 'market' ? 'on' : ''}" data-act="xT" data-a="type" data-b="market">Market</button><button class="${t.type === 'limit' ? 'on' : ''}" data-act="xT" data-a="type" data-b="limit">Limit</button></div>` : ''}
-    ${t.type === 'limit' && t.act === 'buy' ? `<div class="xm-stp"><span>Limit price</span><span class="ctl"><button data-act="xT" data-a="lim" data-b="-1" aria-label="Lower">−</button><b class="num">${lim}¢</b><button data-act="xT" data-a="lim" data-b="1" aria-label="Higher">+</button></span></div>` : ''}
-    <div class="xm-stp"><span>Contracts</span><span class="ctl"><button data-act="xT" data-a="k" data-b="-1" aria-label="Fewer">−</button><b class="num">${t.k}</b><button data-act="xT" data-a="k" data-b="1" aria-label="More">+</button></span></div>
-    ${t.act === 'buy' ? `<div class="xm-q">${[1, 2, 5].map(b => `<button data-act="xT" data-a="stake" data-b="${b}">${b} 🍺 worth</button>`).join('')}</div>`
-      : `<p class="xm-note">You hold ${Math.floor(held[t.side] || 0)} ${t.side === 'yes' ? 'Yes' : 'No'}.</p>`}
-    ${t.act === 'buy' ? `<div class="xm-kv"><span>${resting ? 'Most it can cost' : 'Cost'}</span><b>${beer(resting ? lim * t.k / 100 : cost)} 🍺</b></div>
-      <div class="xm-kv"><span>Average price</span><b>${resting ? lim : X.cents(cost / t.k)}¢</b></div>
-      <div class="xm-kv"><span>Pays if ${esc(label)}</span><b class="up">${t.k} 🍺</b></div>`
-    : `<div class="xm-kv"><span>You get back</span><b class="up">${beer(cost)} 🍺</b></div>`}
+    <div class="xm-seg"><button class="${t.act === 'buy' ? 'on' : ''}" data-act="xT" data-a="act" data-b="buy">Bet</button><button class="${t.act === 'sell' ? 'on' : ''}" data-act="xT" data-a="act" data-b="sell">Cash out</button></div>
+    <div class="xm-seg"><button class="y${t.side === 'yes' ? ' on' : ''}" data-act="xT" data-a="side" data-b="yes">Yes · ${X.sidePrice(q, 'yes')}%</button><button class="n${t.side === 'no' ? ' on' : ''}" data-act="xT" data-a="side" data-b="no">No · ${X.sidePrice(q, 'no')}%</button></div>
+    ${t.act === 'buy' ? `
+      <div class="xm-seg"><button class="${t.type === 'market' ? 'on' : ''}" data-act="xT" data-a="type" data-b="market">Now</button><button class="${t.type === 'limit' ? 'on' : ''}" data-act="xT" data-a="type" data-b="limit">At a chance I set</button></div>
+      ${t.type === 'limit' ? `<div class="xm-stp"><span>When ${word} is at or under</span><span class="ctl"><button data-act="xT" data-a="lim" data-b="-1" aria-label="Lower">−</button><b class="num">${lim}%</b><button data-act="xT" data-a="lim" data-b="1" aria-label="Higher">+</button></span></div>` : ''}
+      ${stepper('Your bet', t.beers)}
+      <div class="xm-q">${[0.25, 0.5, 1, 2].map(b => `<button class="${t.beers === b ? 'on' : ''}" data-act="xT" data-a="set" data-b="${b}">${beer(b)} 🍺</button>`).join('')}</div>
+      <div class="xm-kv"><span>Pays if ${esc(t.side === 'yes' ? (m.label || 'Yes') : 'No')}</span><b class="up">${beer(pays)} 🍺</b></div>
+      <div class="xm-kv"><span>That’s</span><b>${signed(pays - t.beers)} 🍺 on your ${beer(t.beers)}</b></div>`
+    : `
+      <p class="xm-note">${held > 1e-6 ? `Your ${word} is worth <b>${beer(worth)} 🍺</b> right now.` : `You have nothing on ${word} here.`}</p>
+      ${worth > 0 ? stepper('Cash out', Math.min(t.beers, worth)) + `<div class="xm-q"><button data-act="xT" data-a="set" data-b="${worth}">All of it · ${beer(worth)} 🍺</button></div>` : ''}`}
     ${UI.xErr ? `<p class="xm-err">${esc(UI.xErr)}</p>` : ''}
-    ${me ? `<button class="btn xm-go" data-act="xSubmit">${t.act === 'buy' ? 'Buy' : 'Sell'} ${t.k} ${t.side === 'yes' ? 'Yes' : 'No'}${t.type === 'limit' && t.act === 'buy' ? ' at ' + lim + '¢' : ''}</button>`
+    ${me ? `<button class="btn xm-go" data-act="xSubmit">${t.act === 'buy' ? `Bet ${beer(t.beers)} 🍺 on ${word}${resting ? ' at ' + lim + '%' : ''}` : `Cash out ${beer(Math.min(t.beers, worth))} 🍺`}</button>`
       : `<button class="btn xm-go" data-act="whoOpen">Choose your name to bet</button>`}
-    <p class="xm-note">${t.act === 'sell' ? 'Selling before it settles locks in whatever the price is now.'
-      : resting ? 'Below the market: it waits in the order book and fills if the price comes down to yours.'
-      : 'Fills now, at the book’s price. Each contract bought nudges the price up.'}</p>
+    <p class="xm-note">${t.act === 'sell' ? 'Cashing out before it settles locks in whatever your bet is worth now.'
+      : resting ? `Waits until ${word} comes down to ${lim}%, then goes on by itself.`
+      : 'Goes on now. Each bet nudges the chance its way.'}</p>
   </div>`;
 }
 function xMarketHtml(m) {
@@ -11009,32 +11028,34 @@ function xMarketHtml(m) {
   const pos = me ? X.positions(T, me)[m.id] : null;
   const dp = X.depth(T, m.id);
   const lv = (list, cls, head) => `<div class="col ${cls}"><span class="hd">${head}</span>${list.length ? list.map(x =>
-    `<span class="lvl"><i style="width:${Math.min(100, x.n * 10)}%"></i><span>${x.p}¢</span><span>${x.n}</span></span>`).join('') : '<span class="xm-none">None waiting</span>'}</div>`;
+    `<span class="lvl"><i style="width:${Math.min(100, x.n * 25)}%"></i><span>${x.p}%</span><span>${beer(x.n)} 🍺</span></span>`).join('') : '<span class="xm-none">Nobody waiting</span>'}</div>`;
   const recent = tr.filter(t => t.m === m.id).slice(-6).reverse();
+  const yes = pos ? X.floor4(pos.yes) : 0, no = pos ? X.floor4(pos.no) : 0;
   return `<button class="xm-back" data-act="xView" data-a="">‹ Bets</button>
   <div class="xm-page">
-    <span class="xm-eye">${m.cat === 'trip' ? 'The trip' : 'Golf'} · ${beer(volumeOf(m.id, tr))} 🍺 traded${m.custom ? ' · made by ' + esc(m.byName || 'someone') : ''}</span>
+    <span class="xm-eye">${m.cat === 'trip' ? 'The trip' : 'Golf'} · ${beer(volumeOf(m.id, tr))} 🍺 bet${m.custom ? ' · made by ' + esc(m.byName || 'someone') : ''}</span>
     <h2 class="xm-h">${esc(m.group ? m.groupQ : m.q)}</h2>
     ${m.group ? `<div class="xm-tk xm-sibs">${sibs.map(x => { const px = X.chance(X.book(x, tr));
-      return `<button class="xm-mo${x.id === m.id ? ' on' : ''}" data-act="xOpen" data-a="${esc(x.id)}"><span>${esc(x.label)}</span>${x.result ? resultTag(x) : `<em>${X.cents(px)}%</em>`}<i>${x.id === m.id ? 'Trading' : 'Trade'}</i></button>`; }).join('')}</div>
+      return `<button class="xm-mo${x.id === m.id ? ' on' : ''}" data-act="xOpen" data-a="${esc(x.id)}"><span>${esc(x.label)}</span>${x.result ? resultTag(x) : `<em>${X.cents(px)}%</em>`}<i>${x.id === m.id ? 'Betting' : 'Bet'}</i></button>`; }).join('')}</div>
       <h3 class="xm-h3">${esc(m.q)}</h3>` : ''}
     ${m.result ? `<div class="xm-done">${resultTag(m)}<span>${m.settledBy ? 'by ' + esc(m.settledBy) : ''}${m.settledAt ? ' · ' + esc(clockOf(m.settledAt)) : ''}</span></div>`
-      : `<div class="xm-big"><strong class="num">${X.cents(p)}%</strong>${d ? `<span class="xm-d ${d > 0 ? 'up' : 'dn'}">${d > 0 ? '▲' : '▼'} ${Math.abs(d)} since open</span>` : '<span class="xm-d">chance · no trades yet</span>'}</div>
+      : `<div class="xm-big"><strong class="num">${X.cents(p)}%</strong>${d ? `<span class="xm-d ${d > 0 ? 'up' : 'dn'}">${d > 0 ? '▲' : '▼'} ${Math.abs(d)} since open</span>` : '<span class="xm-d">chance of Yes · nothing bet yet</span>'}</div>
+         <p class="xm-note">A ¼ 🍺 on Yes pays ${quarterPays(X.sidePrice(q, 'yes'))} 🍺; on No, ${quarterPays(X.sidePrice(q, 'no'))} 🍺.</p>
          ${pts.length > 1 ? spark(pts, 70) : ''}`}
-    ${pos && (pos.yes > 0 || pos.no > 0) ? `<div class="xm-mine">You hold ${[pos.yes > 0 ? Math.floor(pos.yes) + ' Yes' : '', pos.no > 0 ? Math.floor(pos.no) + ' No' : ''].filter(Boolean).join(' and ')}
-      · cost ${beer(pos.spent)} 🍺${m.result ? '' : ` · worth ${beer(pos.yes * p + pos.no * (1 - p))} 🍺 now`}</div>` : ''}
+    ${pos && (pos.spent > 0 || yes || no) ? `<div class="xm-mine">Your bets: ${[yes ? 'pays ' + beer(yes) + ' 🍺 if Yes' : '', no ? 'pays ' + beer(no) + ' 🍺 if No' : ''].filter(Boolean).join(', ') || 'cashed out'}
+      · put on ${beer(Math.max(0, pos.spent))} 🍺${m.result ? '' : ` · worth ${beer(X.floor4(X.saleOf(q, 'yes', pos.yes) + X.saleOf(q, 'no', pos.no)))} 🍺 now`}</div>` : ''}
     ${m.result ? '' : xTicket(m, q)}
-    <span class="xm-eye">Order book</span>
-    <div class="xm-ob">${lv(dp.yes, 'y', 'Yes bids · qty')}${lv(dp.no, 'n', 'No bids · qty')}</div>
-    ${recent.length ? `<span class="xm-eye">Latest trades</span><div class="xm-tk xm-trades">${recent.map(t =>
-      `<div class="xm-kv"><span>${esc(nameOf(t.pid))} ${t.n > 0 ? 'bought' : 'sold'} ${Math.abs(t.n)} ${t.side === 'yes' ? 'Yes' : 'No'}</span><b>${t.px}¢ · ${esc(sinceOf(t.at))}</b></div>`).join('')}</div>` : ''}
+    <span class="xm-eye">Waiting to go on</span>
+    <div class="xm-ob">${lv(dp.yes, 'y', 'On Yes, at')}${lv(dp.no, 'n', 'On No, at')}</div>
+    ${recent.length ? `<span class="xm-eye">Latest bets</span><div class="xm-tk xm-trades">${recent.map(t =>
+      `<div class="xm-kv"><span>${esc(nameOf(t.pid))} ${t.cost > 0 ? 'put ' + beer(t.cost) + ' 🍺 on' : 'cashed out ' + beer(-t.cost) + ' 🍺 of'} ${t.side === 'yes' ? 'Yes' : 'No'}</span><b>${t.px}% · ${esc(sinceOf(t.at))}</b></div>`).join('')}</div>` : ''}
     <span class="xm-eye">Rules</span>
-    <div class="xm-rules">${m.rules ? esc(m.rules) + ' ' : ''}Each contract pays 1 🍺 if right and nothing if wrong. ${settlerLine(m)}</div>
+    <div class="xm-rules">${m.rules ? esc(m.rules) + ' ' : ''}A bet that comes true pays out in beers, to the quarter; one that doesn’t pays nothing. ${settlerLine(m)}</div>
     ${canSettle(m) && !m.result ? `<div class="xm-settle"><span class="xm-eye">Settle it</span><div class="xm-q">
         <button data-act="xSettle" data-a="${esc(m.id)}" data-b="yes">It happened: Yes</button>
         <button data-act="xSettle" data-a="${esc(m.id)}" data-b="no">It didn’t: No</button>
-        <button data-act="xSettle" data-a="${esc(m.id)}" data-b="void">Void, refund all</button></div></div>` : ''}
-    ${canSettle(m) && m.result && (m.custom || m.settler === 'commish' || canAdmin()) && (T.market || {})[m.id] && (T.market || {})[m.id].result
+        <button data-act="xSettle" data-a="${esc(m.id)}" data-b="void">Void, give it all back</button></div></div>` : ''}
+    ${canSettle(m) && m.result && (T.market || {})[m.id] && (T.market || {})[m.id].result
       ? `<button class="xm-link" data-act="xSettle" data-a="${esc(m.id)}" data-b="">Undo the settlement</button>` : ''}
     ${m.custom && canSettle(m) && !tr.some(t => t.m === m.id) ? `<button class="xm-link danger" data-act="xDelete" data-a="${esc(m.id)}">Delete this bet</button>` : ''}
   </div>`;
@@ -11046,24 +11067,24 @@ function xPortfolio() {
   const open = acc.rows.filter(r => !r.settled), done = acc.rows.filter(r => r.settled);
   const ords = X.orders(T).filter(o => o.pid === me && o.state === 'open');
   const all = xAll();
-  const mname = m => m.group ? m.groupQ.replace(/\?$/, '') + ': ' + m.label : m.q;
+  const paysLine = r => [r.yes > 1e-6 ? 'pays ' + beer(X.floor4(r.yes)) + ' if Yes' : '', r.no > 1e-6 ? 'pays ' + beer(X.floor4(r.no)) + ' if No' : ''].filter(Boolean).join(' · ');
   return `<button class="xm-back" data-act="xView" data-a="">‹ Bets</button>
-  <div class="xm-page"><h2 class="xm-h">${esc(nameOf(me))}’s portfolio</h2>
+  <div class="xm-page"><h2 class="xm-h">${esc(nameOf(me))}’s bets</h2>
     <div class="xm-tk">
       <div class="xm-kv"><span>Beers to bet with</span><b>🍺 ${beer(acc.cash)}</b></div>
       <div class="xm-kv"><span>Open bets, worth now</span><b>🍺 ${beer(acc.open)}</b></div>
-      <div class="xm-kv"><span>Up or down on the week</span><b class="${acc.profit >= 0 ? 'up' : 'dn'}">${acc.profit >= 0 ? '+' : '−'}${beer(Math.abs(acc.profit))} 🍺</b></div>
-      <p class="xm-note">${X.DAILY} 🍺 are added each day of the trip. Settled bets pay into your beers straight away.</p>
+      <div class="xm-kv"><span>Up or down on the week</span><b class="${acc.profit >= 0 ? 'up' : 'dn'}">${signed(acc.profit)} 🍺</b></div>
+      <p class="xm-note">${X.DAILY} 🍺 go in each day of the trip. A bet that comes true pays into your beers straight away.</p>
     </div>
     <span class="xm-eye">Open</span>
     <div class="xm-tk xm-pos">${open.length ? open.map(r => { const pl = r.value - r.spent;
-      return `<div class="xm-p"><b>${esc(mname(r.m))}</b><span class="xm-pl ${pl >= 0 ? 'up' : 'dn'}">${pl >= 0 ? '+' : '−'}${beer(Math.abs(pl))} 🍺</span>
-        <span class="xm-note">${[r.yes > 0 ? Math.floor(r.yes) + ' Yes' : '', r.no > 0 ? Math.floor(r.no) + ' No' : ''].filter(Boolean).join(' · ')} · cost ${beer(r.spent)} · worth ${beer(r.value)}</span>
-        <button data-act="xSellFrom" data-a="${esc(r.m.id)}" data-b="${r.yes > 0 ? 'yes' : 'no'}">Sell</button></div>`; }).join('') : '<p class="xm-note">Nothing open.</p>'}</div>
-    ${ords.length ? `<span class="xm-eye">Waiting to fill</span><div class="xm-tk">${ords.map(o => { const m = all.find(x => x.id === o.m);
-      return `<div class="xm-kv"><span>Buy ${o.n} ${o.side === 'yes' ? 'Yes' : 'No'} · ${esc(m ? mname(m) : 'a market')} · at ${o.lim}¢</span><button class="xm-x" data-act="xCancel" data-a="${esc(o.id)}">Cancel</button></div>`; }).join('')}</div>` : ''}
+      return `<div class="xm-p"><b>${esc(mName(r.m))}</b><span class="xm-pl ${pl >= 0 ? 'up' : 'dn'}">${signed(pl)} 🍺</span>
+        <span class="xm-note">${paysLine(r)} · put on ${beer(r.spent)} · worth ${beer(r.value)}</span>
+        <button data-act="xSellFrom" data-a="${esc(r.m.id)}" data-b="${r.yes > 1e-6 ? 'yes' : 'no'}">Cash out</button></div>`; }).join('') : '<p class="xm-note">Nothing open.</p>'}</div>
+    ${ords.length ? `<span class="xm-eye">Waiting to go on</span><div class="xm-tk">${ords.map(o => { const m = all.find(x => x.id === o.m);
+      return `<div class="xm-kv"><span>${beer(o.stake || 0)} 🍺 on ${o.side === 'yes' ? 'Yes' : 'No'} · ${esc(m ? mName(m) : 'a bet')} · at ${o.lim}%</span><button class="xm-x" data-act="xCancel" data-a="${esc(o.id)}">Cancel</button></div>`; }).join('')}</div>` : ''}
     ${done.length ? `<span class="xm-eye">Settled</span><div class="xm-tk">${done.map(r => { const pl = r.paid - r.spent;
-      return `<div class="xm-kv"><span>${esc(mname(r.m))} ${resultTag(r.m)}</span><b class="${pl >= 0 ? 'up' : 'dn'}">${pl >= 0 ? '+' : '−'}${beer(Math.abs(pl))} 🍺</b></div>`; }).join('')}</div>` : ''}
+      return `<div class="xm-kv"><span>${esc(mName(r.m))} ${resultTag(r.m)}</span><b class="${pl >= 0 ? 'up' : 'dn'}">${signed(pl)} 🍺</b></div>`; }).join('')}</div>` : ''}
     <button class="xm-link" data-act="whoOpen">Not ${esc(nameOf(me))}? Change name</button>
   </div>`;
 }
@@ -11071,16 +11092,16 @@ function xNewHtml() {
   const n = UI.xNew || (UI.xNew = { q: '', rules: '', cat: 'trip', p0: 50 });
   return `<button class="xm-back" data-act="xView" data-a="">‹ Bets</button>
   <div class="xm-page"><h2 class="xm-h">Make your own bet</h2>
-    <p class="xm-note">Ask a yes/no question about the week. Everyone can trade it; you or the commissioner settle it, and everyone sees who did and when.</p>
+    <p class="xm-note">Ask a yes/no question about the week. Everyone can bet on it; you or the commissioner settle it, and everyone sees who did and when.</p>
     <label class="xm-f"><span>The question</span>
       <input id="xQ" type="text" maxlength="120" autocomplete="off" placeholder="Will Ray V wear the pink trousers on Sunday?" value="${esc(n.q)}"></label>
     <label class="xm-f"><span>How it’s settled <small>(optional)</small></span>
       <input id="xRules" type="text" maxlength="200" autocomplete="off" placeholder="Yes if he’s wearing them on the first tee." value="${esc(n.rules)}"></label>
     <div class="xm-f"><span>About</span><div class="xm-seg"><button class="${n.cat === 'golf' ? 'on' : ''}" data-act="xN" data-a="cat" data-b="golf">The golf</button><button class="${n.cat === 'trip' ? 'on' : ''}" data-act="xN" data-a="cat" data-b="trip">The trip</button></div></div>
     <div class="xm-f"><span>How likely, to start</span><div class="xm-q">${[10, 25, 50, 75, 90].map(v => `<button class="${n.p0 === v ? 'on' : ''}" data-act="xN" data-a="p0" data-b="${v}">${v}%</button>`).join('')}</div>
-      <small class="xm-note">Your best guess. Opens with Yes at ${n.p0}¢; the group moves it from there.</small></div>
+      <small class="xm-note">Your best guess. It opens with Yes at ${n.p0}%; the group’s bets move it from there.</small></div>
     ${UI.xErr ? `<p class="xm-err">${esc(UI.xErr)}</p>` : ''}
-    ${whoAmI() ? `<button class="btn xm-go" data-act="xCreate">Open the market</button><p class="xm-note">Made by ${esc(nameOf(whoAmI()))}.</p>`
+    ${whoAmI() ? `<button class="btn xm-go" data-act="xCreate">Open the bet</button><p class="xm-note">Made by ${esc(nameOf(whoAmI()))}.</p>`
       : `<button class="btn xm-go" data-act="whoOpen">Choose your name first</button>`}
   </div>`;
 }
@@ -11090,20 +11111,25 @@ function xSubmit() {
   UI.xErr = '';
   const q = X.book(m, X.trades(T));
   if (t.act === 'buy' && t.type === 'limit' && (t.lim || X.sidePrice(q, t.side)) < X.sidePrice(q, t.side)) {
+    if (t.beers > X.account(T, me, now).cash + 1e-9) { UI.xErr = `You have ${beer(X.account(T, me, now).cash)} 🍺 to bet with.`; render(); return; }
     const id = 'o' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
-    store.putSocial('market', id, { k: 'o', m: m.id, pid: me, dev: myDev(), side: t.side, n: t.k, lim: t.lim, at: Date.now(), state: 'open' });
-    flash('Limit order placed. It fills if the price comes down to ' + t.lim + '¢.');
+    store.putSocial('market', id, { k: 'o', m: m.id, pid: me, dev: myDev(), side: t.side, stake: t.beers, lim: t.lim, at: Date.now(), state: 'open' });
+    flash(`Waiting: ${beer(t.beers)} 🍺 goes on ${t.side === 'yes' ? 'Yes' : 'No'} if it comes down to ${t.lim}%.`);
     return;
   }
-  const r = X.makeTrade(T, now, { m, pid: me, side: t.side, act: t.act, k: t.k });
+  const held = (X.positions(T, me)[m.id] || {})[t.side] || 0;
+  const worth = X.floor4(X.saleOf(q, t.side, held));
+  const r = X.makeTrade(T, now, { m, pid: me, side: t.side, act: t.act, beers: t.act === 'sell' ? Math.min(t.beers, worth) : t.beers,
+    all: t.act === 'sell' && t.beers >= worth });
   if (r.err) { UI.xErr = r.err; render(); return; }
   const id = 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
   store.putSocial('market', id, { ...r.doc, dev: myDev(), at: Date.now() });
-  t.k = 1; t.lim = null;
-  flash(t.act === 'buy' ? `Bought at ${r.doc.px}¢. It’s in your portfolio.` : `Sold at ${r.doc.px}¢.`);
+  t.lim = null;
+  flash(t.act === 'buy' ? `${beer(r.doc.cost)} 🍺 on ${t.side === 'yes' ? 'Yes' : 'No'}. It pays ${beer(X.floor4(r.doc.n))} 🍺 if it comes in.`
+    : `Cashed out ${beer(-r.doc.cost)} 🍺.`);
 }
-/* A limit order is filled by the phone that placed it, the moment that phone
-   sees the price come to it, so one order can never be filled twice. */
+/* An order is filled by the phone that placed it, the moment that phone
+   sees the chance come to it, so one order can never go on twice. */
 const filling = new Set();
 function fillMyOrders() {
   if (!store || !store.settled) return;
@@ -11116,7 +11142,7 @@ function fillMyOrders() {
     const q = X.book(m, X.trades(T));
     if (X.sidePrice(q, o.side) > o.lim) continue;
     filling.add(o.id);
-    const r = X.makeTrade(T, now, { m, pid: o.pid, side: o.side, act: 'buy', k: o.n });
+    const r = X.makeTrade(T, now, { m, pid: o.pid, side: o.side, act: 'buy', beers: o.stake });
     if (r.err) { store.patchSocial('market', o.id, { state: 'cancelled', why: r.err }).finally(() => filling.delete(o.id)); continue; }
     const id = 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
     store.putSocial('market', id, { ...r.doc, dev: myDev(), at: Date.now(), order: o.id })
@@ -13972,6 +13998,7 @@ function onMapDouble(e) {
 const NAV = [
   ['today',    'Today',        'Today'],
   ['entry',    'Score Entry',  'Scores'],
+  ['bets',     'Bets',         'Bets'],
   ['boards',   'Leaderboards', 'Boards'],
   ['calendar', 'Calendar',     'Calendar'],
   ['resort',   'The Titanic',  'Resort'],
@@ -13996,6 +14023,8 @@ const NAVICON = {
   today:  '<path d="M4 10.5 12 4l8 6.5"/><path d="M6 10v9.5h12V10"/><path d="M10 19.5v-5h4v5"/>',
   entry:  '<path d="M7 3.5h10a1.5 1.5 0 0 1 1.5 1.5v15l-6.5-3-6.5 3V5A1.5 1.5 0 0 1 7 3.5Z"/><path d="M9 8.5h6M9 12h6"/>',
   boards: '<path d="M5 20V12M12 20V5M19 20v-6"/><path d="M3 20h18"/>',
+  bets:   '<path d="M6 7.5h9.5v11a1.5 1.5 0 0 1-1.5 1.5H7.5A1.5 1.5 0 0 1 6 18.5v-11Z"/><path d="M15.5 10h1.8a1.7 1.7 0 0 1 1.7 1.7v2.6a1.7 1.7 0 0 1-1.7 1.7h-1.8"/>'
+        + '<path d="M6 7.5c0-1.7 1.3-3 3-3 .6-.9 1.6-1.5 2.8-1.5 1.9 0 3.4 1.4 3.7 3.2"/><path d="M9.5 11v5.5M12.5 11v5.5"/>',
   resort: '<path d="M3 20h18"/><path d="M5 20v-8l7-4.5 7 4.5v8"/><path d="M10 20v-4h4v4"/><path d="M12 7.5V4.5"/>',
   calendar: '<rect x="3.5" y="5" width="17" height="15.5" rx="1.6"/><path d="M3.5 9.5h17"/>'
     + '<path d="M8 3.5v3M16 3.5v3"/><path d="M7.5 13h3M13.5 13h3M7.5 16.8h3"/>',
@@ -14485,7 +14514,7 @@ function paint() {
      the <details> open with it. Which ones were open is remembered by id. */
   const opened = [...document.querySelectorAll('details[id][open]')].map(el => el.id);
   if (UI.screen !== 'entry' || UI.entryMode === 'mine') UI.pad = null;
-  const body = { today: scrToday, resort: scrResort, boards: scrBoards, ryder: scrRyder,
+  const body = { today: scrToday, resort: scrResort, boards: scrBoards, ryder: scrRyder, bets: scrBets,
                  calendar: scrCalendar, entry: scrEntry, roster: scrRoster, rules: scrRules,
                  tees: scrTees,
                  courses: scrCourses, setup: scrSetup }[UI.screen]();
@@ -15969,31 +15998,32 @@ function onClick(e) {
     case 'whoOpen': UI.modal = { kind: 'who' }; render(); return;
     case 'whoPick': UI.who = a; saveWho(a); UI.modal = null; render(); return;
     /* ---- the exchange ---- */
-    case 'xView': UI.xView = a || null; UI.xErr = ''; UI.xTicket = null; UI.liftTo = '.gamesbar'; render(); return;
+    case 'xView': UI.xView = a || null; UI.xErr = ''; UI.xTicket = null; UI.liftTo = '.xm-anchor'; render(); return;
     case 'xCat': UI.xCat = a; render(); return;
     case 'xMore': UI.xMore = a || null; render(); return;
     case 'xOpen':
-      UI.xView = a; UI.xErr = ''; UI.liftTo = '.gamesbar';
-      UI.xTicket = { m: a, side: b === 'no' ? 'no' : 'yes', act: 'buy', type: 'market', k: 1, lim: null };
+      UI.xView = a; UI.xErr = ''; UI.liftTo = '.xm-anchor';
+      UI.xTicket = { m: a, side: b === 'no' ? 'no' : 'yes', act: 'buy', type: 'market', beers: 1, lim: null };
       render(); return;
     case 'xT': {
       const t = UI.xTicket; if (!t) return;
       const m = xFind(t.m), q = m ? X.book(m, X.trades(T)) : null;
-      const held = () => { const me = whoAmI(); return me ? ((X.positions(T, me)[t.m] || {})[t.side] || 0) : 0; };
+      const worth = () => { const me = whoAmI(), h = me ? ((X.positions(T, me)[t.m] || {})[t.side] || 0) : 0; return q ? X.floor4(X.saleOf(q, t.side, h)) : 0; };
       UI.xErr = '';
-      if (a === 'act') { t.act = b; t.type = 'market'; t.lim = null; t.k = b === 'sell' ? Math.max(1, Math.floor(held())) : 1; }
-      else if (a === 'side') { t.side = b; t.lim = null; if (t.act === 'sell') t.k = Math.max(1, Math.floor(held())); }
+      if (a === 'act') { t.act = b; t.type = 'market'; t.lim = null; t.beers = b === 'sell' ? Math.max(X.STEP, worth()) : 1; }
+      else if (a === 'side') { t.side = b; t.lim = null; if (t.act === 'sell') t.beers = Math.max(X.STEP, worth()); }
       else if (a === 'type') { t.type = b; t.lim = null; }
       else if (a === 'lim') { const base = t.lim || (q ? X.sidePrice(q, t.side) : 50); t.lim = Math.min(99, Math.max(1, base + +b)); }
-      else if (a === 'k') t.k = Math.max(1, Math.min(999, t.k + +b));
-      else if (a === 'stake' && q) t.k = Math.max(1, X.contractsFor(q, t.side, +b));
+      else if (a === 'beers') t.beers = Math.max(X.STEP, Math.min(t.act === 'sell' ? Math.max(X.STEP, worth()) : 99, t.beers + X.STEP * +b));
+      else if (a === 'set') t.beers = Math.max(X.STEP, X.floor4(+b));
       render(); return;
     }
     case 'xSubmit': xSubmit(); return;
     case 'xSellFrom': {
       const me = whoAmI(), h = me ? ((X.positions(T, me)[a] || {})[b] || 0) : 0;
-      UI.xView = a; UI.xErr = ''; UI.liftTo = '.gamesbar';
-      UI.xTicket = { m: a, side: b, act: 'sell', type: 'market', k: Math.max(1, Math.floor(h)), lim: null };
+      const mk = xFind(a), w = mk ? X.floor4(X.saleOf(X.book(mk, X.trades(T)), b, h)) : 0;
+      UI.xView = a; UI.xErr = ''; UI.liftTo = '.xm-anchor';
+      UI.xTicket = { m: a, side: b, act: 'sell', type: 'market', beers: Math.max(X.STEP, w), lim: null };
       render(); return;
     }
     case 'xCancel': {
@@ -16015,8 +16045,8 @@ function onClick(e) {
       store.putSocial('market', id, { k: 'q', q, rules: String(n.rules || '').trim().slice(0, 200), cat: n.cat === 'golf' ? 'golf' : 'trip',
         p0: n.p0 || 50, pid: me, byName: nameOf(me), dev: myDev(), at: Date.now(), result: null });
       UI.xNew = null; UI.xView = id; UI.xErr = '';
-      UI.xTicket = { m: id, side: 'yes', act: 'buy', type: 'market', k: 1, lim: null };
-      flash('Your market is open. Everyone can trade it now.');
+      UI.xTicket = { m: id, side: 'yes', act: 'buy', type: 'market', beers: 1, lim: null };
+      flash('Your bet is open. Everyone can bet on it now.');
       return;
     }
     case 'xSettle': {
@@ -16027,7 +16057,7 @@ function onClick(e) {
       const word = b === 'yes' ? 'Yes' : b === 'no' ? 'No' : 'void';
       UI.modal = { kind: 'confirm', eyebrow: 'Settle a bet', title: b === 'void' ? 'Void this bet?' : 'Settle it ' + word + '?',
         note: (m.group ? m.groupQ + ' ' + m.label : m.q) + ' ' + (b === 'void' ? 'Everyone gets back what they paid.'
-          : 'Everyone holding ' + word + ' is paid 1 🍺 a contract; nobody else is paid.')
+          : 'Everyone who backed ' + word + ' is paid what their bet pays; everyone else loses theirs.')
           + ' Everyone will see that ' + who + ' settled it.',
         ok: b === 'void' ? 'Void it' : 'Settle ' + word,
         onOk: () => { store.patchSocial('market', a, { result: b, settledName: who, settledAt: Date.now() }); flash('Settled. Payouts are in everyone’s beers.'); } };
