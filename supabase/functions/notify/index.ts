@@ -1,10 +1,14 @@
-/* Chat notifications — a buzz on everyone's phone when somebody posts.
+/* Notifications — a buzz when somebody posts in the chat, or puts a bet on you.
  *
  * A phone that turns notifications on leaves its push address in the book,
  * at push/<its device id>. When someone posts in the chat, their phone asks
  * this function to pass the message on, and it sends it to every other phone
  * that asked — in their own words, under their name, from the chat it was
  * posted in. Tapping the notification opens the book on that chat.
+ *
+ * A bet made about people — tagged on it, or named as its answers — is
+ * passed on the same way, but only to the phones of the people on it.
+ * Tapping that one opens the bet.
  *
  * Deploy: Supabase dashboard -> Edge Functions -> Deploy a new function ->
  * name it `notify` -> paste this file -> Deploy.
@@ -103,7 +107,8 @@ async function handler(req: Request): Promise<Response> {
 
   let path = '';
   try { path = String((await req.json())?.path || ''); } catch { /* falls through */ }
-  if (!/^chat\/m[a-z0-9]{4,40}$/.test(path)) return json({ error: 'bad_request', message: 'Send {"path": "chat/m…"}' }, 400);
+  if (!/^(chat\/m|market\/q)[a-z0-9]{4,40}$/.test(path)) return json({ error: 'bad_request', message: 'Send {"path": "chat/m…"} or {"path": "market/q…"}' }, 400);
+  const isBet = path.startsWith('market/');
 
   const apikey = req.headers.get('apikey') || '';
   const db = createClient(Deno.env.get('SUPABASE_URL') || '', apikey, { auth: { persistSession: false } });
@@ -113,18 +118,27 @@ async function handler(req: Request): Promise<Response> {
   const { data: rows, error } = await db.from('docs').select('doc').eq('path', path).limit(1);
   if (error) return json({ error: 'upstream_error', message: error.message }, 502);
   const m = rows && rows[0] && rows[0].doc;
-  if (!m || m.k !== 'm' || !m.text) return json({ error: 'not_found' }, 404);
+  if (!m || (isBet ? m.k !== 'q' || !m.q : m.k !== 'm' || !m.text)) return json({ error: 'not_found' }, 404);
+  /* a bet goes only to the people it is about */
+  const onIt: string[] = isBet ? [].concat(m.tags || [], m.opts || []).map(String) : [];
+  if (isBet && !onIt.length) return json({ sent: 0, nobody: true });
   if (m.notified) return json({ sent: 0, already: true });
   if (Date.now() - (m.at || 0) > FRESH_MS) return json({ sent: 0, stale: true });
   await db.rpc('merge_doc', { p: path, patch: { notified: Date.now() }, who: 'notify' });
 
   const room = String(m.rid || 'trip');
   const where = room === 'trip' ? 'The trip' : room === 'practice' ? 'Practice' : 'Round ' + room.replace(/^r/, '');
-  const payload = JSON.stringify({
-    title: (m.name || 'Someone') + (m.re ? ' heckled' : '') + ' · ' + where,
-    body: String(m.text).slice(0, 240),
-    room, tag: 'chat-' + room,
-  });
+  const payload = isBet
+    ? JSON.stringify({
+        title: (m.byName || 'Someone') + (m.opts && m.opts.length ? ' put you in a bet' : ' put a bet on you'),
+        body: String(m.q).slice(0, 240),
+        bet: path.slice('market/'.length), tag: 'bet-' + path.slice('market/'.length),
+      })
+    : JSON.stringify({
+        title: (m.name || 'Someone') + (m.re ? ' heckled' : '') + ' · ' + where,
+        body: String(m.text).slice(0, 240),
+        room, tag: 'chat-' + room,
+      });
 
   const { data: subs } = await db.from('docs').select('path,doc').like('path', 'push/%');
   let sent = 0, gone = 0;
@@ -132,6 +146,7 @@ async function handler(req: Request): Promise<Response> {
     const s = r.doc;
     if (!s || !s.on || !s.sub || !s.sub.endpoint) return;
     if (s.dev === m.dev || (m.pid && s.pid === m.pid)) return;    // not back to whoever posted it
+    if (isBet && !onIt.includes(String(s.pid))) return;          // a bet, only to the people on it
     try {
       const status = await sendPush(s.sub, payload, keys);
       if (status === 404 || status === 410) { gone++; await db.from('docs').delete().eq('path', r.path); }

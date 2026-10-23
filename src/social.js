@@ -78,26 +78,37 @@ export const LIQ = 10;
 export const DAILY = 20;
 /** The smallest amount anything moves in: a quarter of a beer. */
 export const STEP = 0.25;
-/** Down to the quarter beer — what a payout or a sale actually comes to. */
+/** Down to the quarter beer: what a bet costs and what a balance holds. */
 export const floor4 = x => Math.floor(x * 4 + 1e-9) / 4;
+/** To the nearest quarter beer: what a bet pays, and what it is worth.
+ *  Down, it took most of a quarter off a small bet: a ¼ on an even Yes,
+ *  worth just under a half, paid a quarter. */
+export const round4 = x => Math.round(x * 4 + 1e-9) / 4;
 
+/* A long shot gets a deeper book: at the depth of an even-money market a
+   quarter beer on a 1% golfer would push him to 3½% and pay half what the
+   odds say. Three times the depth keeps a small stake on a long shot close
+   to the price it was offered. */
+export const LONG_LIQ = 30;
+const liqOf = m => m.liq || ((m.p0 || 50) <= 15 ? LONG_LIQ : LIQ);
 const lse = (a, b) => { const m = Math.max(a, b); return m + Math.log(Math.exp(a - m) + Math.exp(b - m)); };
-const C = (y, n) => LIQ * lse(y / LIQ, n / LIQ);
+const C = (y, n, b) => b * lse(y / b, n / b);
 const r3 = x => Math.round(x * 1000) / 1000;
 
 /** The book's position in one market, from its opening price and every trade. */
 export function book(m, trades) {
-  const p = Math.min(0.99, Math.max(0.01, (m.p0 || 50) / 100));
-  let y = LIQ * Math.log(p), n = LIQ * Math.log(1 - p);
+  const p = Math.min(0.99, Math.max(0.01, (m.p0 || 50) / 100)), b = liqOf(m);
+  let y = b * Math.log(p), n = b * Math.log(1 - p);
   for (const t of trades) if (t.m === m.id) { if (t.side === 'yes') y += t.n; else n += t.n; }
-  return { y, n };
+  return { y, n, b };
 }
 /** The chance of Yes, 0–1. */
-export const chance = q => 1 / (1 + Math.exp((q.n - q.y) / LIQ));
+export const chance = q => 1 / (1 + Math.exp((q.n - q.y) / (q.b || LIQ)));
 /** What k contracts of one side cost now, in beers. Negative k is a sale,
  *  and comes back negative: money in. */
 export function quote(q, side, k) {
-  return side === 'yes' ? C(q.y + k, q.n) - C(q.y, q.n) : C(q.y, q.n + k) - C(q.y, q.n);
+  const b = q.b || LIQ;
+  return side === 'yes' ? C(q.y + k, q.n, b) - C(q.y, q.n, b) : C(q.y, q.n + k, b) - C(q.y, q.n, b);
 }
 /** What a stake buys: the share of the pot it pays if it is right. */
 export function sharesFor(q, side, beers) {
@@ -121,35 +132,68 @@ export const cents = p => Math.min(99, Math.max(1, Math.round(p * 100)));
 /* ---- what is in the book ---- */
 
 const rows = T => Object.values(T.market || {}).filter(Boolean);
-export const trades = T => rows(T).filter(r => r.k === 't').sort((a, b) => (a.at || 0) - (b.at || 0));
+/* Worked out once a screen draw, not once a question: with a bet on every
+   golfer for every round there are some two hundred markets, and the page
+   asks after them dozens of times while it is drawn. The book calls
+   invalidate() at the top of every draw and after every write. */
+let memoTrades = null, memoMarkets = null;
+export function invalidate() { memoTrades = null; memoMarkets = null; }
+export const trades = T => memoTrades || (memoTrades = rows(T).filter(r => r.k === 't').sort((a, b) => (a.at || 0) - (b.at || 0)));
 export const orders = T => rows(T).filter(r => r.k === 'o').sort((a, b) => (a.at || 0) - (b.at || 0));
 
 const final = (T, rid, now) => E.phaseOf(T, rid, now) === 'final';
 const roundName = r => r.short === 'Practice' ? 'Practice day' : 'Round ' + r.short.slice(1);
 
-/** Did anyone, in any round so far, make a score that passes `test`? */
-function anyScore(T, test, rid) {
+/** Every golfer's week, read once: per round, what their card and the
+ *  refs' marks say — the facts every who-bet settles from. */
+function facts(T) {
+  const F = {};
   for (const r of ROUNDS) {
-    if (rid && r.id !== rid) continue;
     const holes = E.courseOf(T, r.id).holes;
+    F[r.id] = {};
     for (const g of E.golfers(T)) {
       const c = E.card(T, r.id, g.id);
-      if (c && Array.isArray(c.raw) && c.raw.some((v, h) => v != null && test(v, holes[h].par))) return true;
+      const f = { hio: false, eagle: false, b3: false, water: false, putt3: false, shots: 0 };
+      if (c && Array.isArray(c.raw)) c.raw.forEach((v, h) => {
+        if (v == null) return;
+        const par = holes[h].par;
+        if (v === 1) f.hio = true;
+        if (v <= par - 2) f.eagle = true;
+        if (par === 3 && v <= 2) f.b3 = true;
+      });
+      for (let h = 0; h < 18; h++) for (const k of E.holeMarks(T, r.id, g.id, h)) {
+        if (k === 'water') f.water = true;
+        if (k === 'putt3') f.putt3 = true;
+        if (k === 'shot') f.shots++;
+      }
+      F[r.id][g.id] = f;
     }
   }
-  return false;
+  return F;
 }
 
-/** The markets the book opens with. They settle themselves from the scores,
- *  except the two about the trip, which the commissioner settles. */
+/** The markets the book opens with. Each "anyone" question is also asked of
+ *  every golfer, one card with Anyone first; all of them settle themselves
+ *  from the scores and the refs' marks, except the two about the trip, which
+ *  the commissioner settles. */
 export function suggested(T, now) {
   const L = [];
   const done = final(T, 'r3', now);
   const gs = E.golfers(T);
+  const F = facts(T);
+  const any = (key, rid) => gs.some(g => (rid ? [rid] : ROUNDS.map(r => r.id)).some(id => F[id][g.id][key]));
+  const his = (key, pid, rid) => (rid ? [rid] : ROUNDS.map(r => r.id)).some(id => F[id][pid][key]);
+  /* One who-card: Anyone (when there is one), then every golfer. */
+  const who = o => {
+    if (o.anyId) L.push({ id: o.anyId, cat: 'golf', group: o.group, groupQ: o.groupQ, label: 'Anyone', any: true, round: o.round,
+      q: o.anyQ, p0: o.anyP0, settler: 'book', rules: o.anyRules, result: o.settle(null) });
+    for (const g of gs) L.push({ id: o.each + '_' + g.id, cat: 'golf', group: o.group, groupQ: o.groupQ, label: g.display, who: g.id, round: o.round,
+      q: o.q(g.display), p0: o.p0, settler: 'book', rules: o.rules(g.display), result: o.settle(g.id) });
+  };
 
   const mvp = done ? E.mvpBoard(T, now) : null;
   for (const g of gs) {
-    L.push({ id: 's_mvp_' + g.id, cat: 'golf', group: 'mvp', groupQ: 'Who wins MVP?', label: g.display,
+    L.push({ id: 's_mvp_' + g.id, cat: 'golf', group: 'mvp', groupQ: 'Who wins MVP?', label: g.display, who: g.id,
       q: `Will ${g.display} win MVP?`, p0: Math.max(3, Math.round(100 / Math.max(1, gs.length))), settler: 'book',
       rules: 'Settles from the MVP board once Round 3 is locked. Yes if he is top; a tie at the top pays everyone tied.',
       result: done ? (mvp.some(r => r.id === g.id && r.gap === 0) ? 'yes' : 'no') : null });
@@ -158,7 +202,7 @@ export function suggested(T, now) {
   for (const p of (T.config.pairs || [])) {
     if (!(p.members || []).length) continue;
     const nm = E.pairName(T, p);
-    L.push({ id: 's_team_' + p.id, cat: 'golf', group: 'team', groupQ: 'Who wins the Team Competition?', label: nm,
+    L.push({ id: 's_team_' + p.id, cat: 'golf', group: 'team', groupQ: 'Who wins the Team Competition?', label: nm, tags: p.members.slice(),
       q: `Will ${nm} win the Team Competition?`, p0: Math.max(3, Math.round(100 / Math.max(1, (T.config.pairs || []).length))), settler: 'book',
       rules: 'Settles from the Team board once Round 3 is locked. Yes if they are top; a tie at the top pays every team tied.',
       result: done ? (pb.some(r => r.id === p.id && r.gap === 0) ? 'yes' : 'no') : null });
@@ -167,25 +211,54 @@ export function suggested(T, now) {
   L.push({ id: 's_cup', cat: 'golf', q: 'Will the United Kingdom win the Ryder Cup?', p0: 50, settler: 'book',
     rules: 'Settles from the Ryder Cup board once Round 3 is locked. A tied cup settles No.',
     result: done ? (cup.ukTotal > cup.usaTotal ? 'yes' : 'no') : null });
-  const hio = anyScore(T, v => v === 1);
-  L.push({ id: 's_hio', cat: 'golf', q: 'Will anyone make a hole in one this week?', p0: 6, settler: 'book',
-    rules: 'Settles Yes the moment a ref saves a 1 on any card, practice day included. No once Round 3 is locked.',
-    result: hio ? 'yes' : done ? 'no' : null });
-  const eagle = anyScore(T, (v, par) => v <= par - 2);
-  L.push({ id: 's_eagle', cat: 'golf', q: 'Will anyone make an eagle or better this week?', p0: 35, settler: 'book',
-    rules: 'Settles Yes the moment a ref saves two under par or better on any hole, any round. No once Round 3 is locked.',
-    result: eagle ? 'yes' : done ? 'no' : null });
+
+  who({ group: 'hio', groupQ: 'Who makes a hole in one this week?', anyId: 's_hio', anyQ: 'Will anyone make a hole in one this week?', anyP0: 6, each: 's_hio', p0: 1,
+    anyRules: 'Settles Yes the moment a ref saves a 1 on any card, practice day included. No once Round 3 is locked.',
+    q: n => `Will ${n} make a hole in one this week?`,
+    rules: n => `Settles Yes the moment a ref saves a 1 on ${n}’s card, practice day included. No once Round 3 is locked.`,
+    settle: pid => (pid ? his('hio', pid) : any('hio')) ? 'yes' : done ? 'no' : null });
+  who({ group: 'eagle', groupQ: 'Who makes an eagle this week?', anyId: 's_eagle', anyQ: 'Will anyone make an eagle or better this week?', anyP0: 35, each: 's_eagle', p0: 4,
+    anyRules: 'Settles Yes the moment a ref saves two under par or better on any hole, any round. No once Round 3 is locked.',
+    q: n => `Will ${n} make an eagle this week?`,
+    rules: n => `Settles Yes the moment a ref saves two under par or better on any hole for ${n}, any round. No once Round 3 is locked.`,
+    settle: pid => (pid ? his('eagle', pid) : any('eagle')) ? 'yes' : done ? 'no' : null });
+
   for (const r of ROUNDS.filter(x => x.counts)) {
-    const fin = final(T, r.id, now);
-    const under = fin && E.golfers(T).some(g => { const x = E.roundToPar(T, r.id, g.id); return x.thru === 18 && x.tp < 0; });
-    L.push({ id: `s_${r.id}_under`, cat: 'golf', round: r.id, q: `${roundName(r)}: will anyone finish under par, net?`, p0: 60, settler: 'book',
-      rules: `Settles once ${roundName(r)} is locked: Yes if any golfer’s net score for the round is under par.`,
-      result: fin ? (under ? 'yes' : 'no') : null });
-    const b3 = anyScore(T, (v, par) => par === 3 && v <= 2, r.id);
-    L.push({ id: `s_${r.id}_b3`, cat: 'golf', round: r.id, q: `${roundName(r)}: will anyone birdie a par 3?`, p0: 55, settler: 'book',
-      rules: `Settles Yes the moment a ref saves a 2 or better on a par 3 in ${roundName(r)}. No once it is locked.`,
-      result: b3 ? 'yes' : fin ? 'no' : null });
+    const fin = final(T, r.id, now), R = roundName(r);
+    const under = pid => { const x = E.roundToPar(T, r.id, pid); return x.thru === 18 && x.tp < 0; };
+    who({ group: 'under_' + r.id, groupQ: `${R}: who finishes under par, net?`, round: r.id, anyId: `s_${r.id}_under`, anyQ: `${R}: will anyone finish under par, net?`, anyP0: 60,
+      each: `s_${r.id}_under`, p0: 10,
+      anyRules: `Settles once ${R} is locked: Yes if any golfer’s net score for the round is under par.`,
+      q: n => `${R}: will ${n} finish under par, net?`,
+      rules: n => `Settles once ${R} is locked: Yes if ${n}’s net score for the round is under par.`,
+      settle: pid => fin ? ((pid ? under(pid) : gs.some(g => under(g.id))) ? 'yes' : 'no') : null });
+    who({ group: 'b3_' + r.id, groupQ: `${R}: who birdies a par 3?`, round: r.id, anyId: `s_${r.id}_b3`, anyQ: `${R}: will anyone birdie a par 3?`, anyP0: 55,
+      each: `s_${r.id}_b3`, p0: 8,
+      anyRules: `Settles Yes the moment a ref saves a 2 or better on a par 3 in ${R}. No once it is locked.`,
+      q: n => `${R}: will ${n} birdie a par 3?`,
+      rules: n => `Settles Yes the moment a ref saves a 2 or better on a par 3 for ${n} in ${R}. No once it is locked.`,
+      settle: pid => (pid ? his('b3', pid, r.id) : any('b3', r.id)) ? 'yes' : fin ? 'no' : null });
+    who({ group: 'water_' + r.id, groupQ: `${R}: who finds the water?`, mark: 'water', round: r.id, anyId: `s_${r.id}_water`, anyQ: `${R}: will anyone find the water?`, anyP0: 70,
+      each: `s_${r.id}_water`, p0: 15,
+      anyRules: `Settles Yes the moment a ref marks anyone in the water in ${R}. No once it is locked. Only what the refs mark counts.`,
+      q: n => `${R}: will ${n} find the water?`,
+      rules: n => `Settles Yes the moment a ref marks ${n} in the water in ${R}. No once it is locked. Only what the refs mark counts.`,
+      settle: pid => (pid ? his('water', pid, r.id) : any('water', r.id)) ? 'yes' : fin ? 'no' : null });
+    who({ group: 'putt3_' + r.id, groupQ: `${R}: who three-putts?`, mark: 'putt3', round: r.id, anyId: `s_${r.id}_putt3`, anyQ: `${R}: will anyone three-putt?`, anyP0: 95,
+      each: `s_${r.id}_putt3`, p0: 45,
+      anyRules: `Settles Yes the moment a ref marks a three-putt in ${R}. No once it is locked. Only what the refs mark counts.`,
+      q: n => `${R}: will ${n} three-putt?`,
+      rules: n => `Settles Yes the moment a ref marks ${n} for a three-putt in ${R}. No once it is locked. Only what the refs mark counts.`,
+      settle: pid => (pid ? his('putt3', pid, r.id) : any('putt3', r.id)) ? 'yes' : fin ? 'no' : null });
   }
+  /* most shots of the hole, across the week: settles once it is all over */
+  const shots = Object.fromEntries(gs.map(g => [g.id, ROUNDS.reduce((n, r) => n + F[r.id][g.id].shots, 0)]));
+  const most = Math.max(0, ...Object.values(shots));
+  who({ group: 'shots', groupQ: 'Who plays the most shots of the hole this week?', each: 's_shots', p0: Math.max(3, Math.round(100 / Math.max(1, gs.length))),
+    q: n => `Will ${n} play the most shots of the hole this week?`,
+    rules: n => `Settles once Round 3 is locked, from the refs’ “shot of the hole” marks: Yes if ${n} has the most. A tie pays everyone tied; if nobody was marked, it is void.`,
+    settle: pid => !done ? null : most === 0 ? 'void' : shots[pid] === most ? 'yes' : 'no' });
+
   L.push({ id: 's_dinner', cat: 'trip', q: 'Will the closing dinner run past midnight?', p0: 60, settler: 'commish',
     rules: 'Settled by the commissioner: Yes if anyone from the group is still at the table after 12:00 am on Monday 2 November.' });
   L.push({ id: 's_pool', cat: 'trip', q: 'Will anyone end up in a pool with their clothes on?', p0: 25, settler: 'commish',
@@ -196,21 +269,38 @@ export function suggested(T, now) {
 /** Every market: the book's, then everybody's own. A settlement written to
  *  the book (by the commissioner, or by whoever made a market) wins over
  *  the automatic one, so a commissioner can always void a market gone
- *  wrong. */
+ *  wrong. A who-bet of somebody's own is one document with its answers in
+ *  it; each answer is its own yes/no, settled together by naming who it was. */
 export function markets(T, now) {
+  if (memoMarkets) return memoMarkets;
   const held = T.market || {};
   const out = suggested(T, now).map(m => {
     const s = held[m.id];
     return { ...m, mine: false, result: (s && s.result) || m.result || null,
       settledBy: s && s.result ? s.settledName : (m.result ? 'the book' : null), settledAt: s && s.result ? s.settledAt : null };
   });
+  const nm = pid => (E.person(T, pid) || {}).display || 'Someone';
   for (const r of rows(T).filter(r => r.k === 'q')) {
-    out.push({ id: r.id, cat: r.cat === 'trip' ? 'trip' : 'golf', custom: true, q: r.q, rules: r.rules || '', p0: r.p0 || 50,
-      settler: 'creator', pid: r.pid, byName: r.byName, dev: r.dev, at: r.at,
+    const base = { cat: r.cat === 'trip' ? 'trip' : 'golf', custom: true, rules: r.rules || '', settler: 'creator',
+      pid: r.pid, byName: r.byName, dev: r.dev, at: r.at };
+    if (Array.isArray(r.opts) && r.opts.length) {
+      const settled = r.void || (Array.isArray(r.winners) && r.winners.length);
+      for (const w of r.opts) {
+        out.push({ ...base, id: r.id + '__' + w, qid: r.id, whoCustom: true, group: r.id, groupQ: r.q, label: nm(w), who: w, tags: r.opts.slice(),
+          q: `Will it be ${nm(w)}?`, p0: Math.max(3, Math.round(100 / r.opts.length)),
+          result: r.void ? 'void' : settled ? (r.winners.includes(w) ? 'yes' : 'no') : null,
+          settledBy: settled ? r.settledName : null, settledAt: settled ? r.settledAt || null : null });
+      }
+      continue;
+    }
+    out.push({ ...base, id: r.id, qid: r.id, q: r.q, p0: r.p0 || 50, tags: Array.isArray(r.tags) ? r.tags.slice() : [],
       result: r.result || null, settledBy: r.result ? r.settledName : null, settledAt: r.settledAt || null });
   }
-  return out;
+  return (memoMarkets = out);
 }
+
+/** Is this market about this person: on it, tagged on it, or made by them? */
+export const about = (m, pid) => m.who === pid || m.pid === pid || (m.tags || []).includes(pid);
 
 /* ---- people ---- */
 
@@ -234,8 +324,8 @@ export function positions(T, pid) {
 
 /** What a settled market paid one holder, to the quarter beer. */
 function payout(p, result) {
-  if (result === 'yes') return floor4(p.yes);
-  if (result === 'no') return floor4(p.no);
+  if (result === 'yes') return round4(p.yes);
+  if (result === 'no') return round4(p.no);
   if (result === 'void') return Math.max(0, p.spent);
   return 0;
 }
@@ -253,7 +343,7 @@ export function account(T, pid, now, all) {
     if (!m) continue;
     if (m.result) { cash += payout(p, m.result); rowsOut.push({ ...p, m: m, settled: true, paid: payout(p, m.result) }); continue; }
     const pr = chance(book(m, tr));
-    const value = floor4(saleOf(book(m, tr), 'yes', p.yes) + saleOf(book(m, tr), 'no', p.no));
+    const value = round4(saleOf(book(m, tr), 'yes', p.yes) + saleOf(book(m, tr), 'no', p.no));
     open += value;
     if (p.yes > 0.0001 || p.no > 0.0001) rowsOut.push({ ...p, m, settled: false, value, price: pr });
   }
@@ -280,8 +370,8 @@ export function makeTrade(T, now, { m, pid, side, act, beers, all }) {
   if (act === 'sell') {
     const held = (positions(T, pid)[m.id] || {})[side] || 0;
     if (held < 1e-6) return { err: `You have nothing on ${word} here.` };
-    const most = floor4(saleOf(q, side, held));
-    let back = all ? most : floor4(beers || 0);
+    const most = round4(saleOf(q, side, held));
+    let back = all ? most : round4(beers || 0);
     if (!(back > 0)) return { err: most > 0 ? 'Choose how much to cash out.' : `Your ${word} is worth less than a quarter beer right now.` };
     if (back > most + 1e-9) return { err: `Your ${word} is worth ${most} 🍺 right now.` };
     const k = all ? held : sharesToRaise(q, side, back, held);

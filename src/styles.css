@@ -4319,3 +4319,32 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 .modal.whomodal{grid-template-columns:minmax(0,1fr)}
 .whomodal > *,.who-guest,.who-gr{min-width:0}
 .who-gr input{width:100%}
+
+/* ---- betting on people ---- */
+.xm-about{display:flex;gap:6px;align-items:center;overflow-x:auto;scrollbar-width:none;margin-top:12px;padding-bottom:2px}
+.xm-about::-webkit-scrollbar{display:none}
+.xm-about .lbl{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--turf);font-weight:700;flex:0 0 auto;margin-right:2px}
+.xm-about button{flex:0 0 auto;font:inherit;font-size:14px;font-weight:600;border:0;border-radius:999px;padding:6px 12px;background:var(--page);
+  box-shadow:inset 0 0 0 1px var(--rule);color:var(--ink);min-height:36px;cursor:pointer;text-align:center}
+.xm-about button.on{background:#E2C277;box-shadow:none}
+.xm-tags{display:flex;gap:6px;flex-wrap:wrap}
+.xm-tag{font-size:12.5px;font-weight:700;border-radius:999px;padding:3px 10px 3px 8px;background:#F3E6CF;color:var(--gold)}
+.xm-tag::before{content:"@";opacity:.6;margin-right:1px}
+.xm-mo.any span{font-style:italic}
+.xm-mo.hit{background:#F3E6CF;margin-left:-8px;margin-right:-8px;padding-left:8px;padding-right:8px;border-radius:8px}
+.xm-mk{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:6px;background:#F2DDD6;color:var(--flag);font-size:13px;margin-right:7px;vertical-align:2px}
+.xm-pick{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.xm-pick::-webkit-scrollbar{display:none}
+.xm-pick button{flex:0 0 auto;display:grid;gap:1px;text-align:center;font:inherit;border:0;border-radius:12px;padding:7px 12px;min-width:78px;
+  background:var(--page);box-shadow:inset 0 0 0 1px var(--rule);color:var(--ink);cursor:pointer}
+.xm-pick button b{font-size:14.5px}
+.xm-pick button small{font-size:12.5px;font-weight:700;color:var(--turf)}
+.xm-pick button.on{background:var(--ink);color:var(--page);box-shadow:none}
+.xm-pick button.on small{color:#E2C277}
+.xm-pick button.done.yes small{color:#2F7A4A} .xm-pick button.done.no small{color:var(--flag)}
+.xm-ppl{display:flex;flex-wrap:wrap;gap:6px}
+.xm-ppl button{font:inherit;font-size:14px;border:0;border-radius:999px;padding:6px 12px;background:var(--page);box-shadow:inset 0 0 0 1px var(--rule);color:var(--ink);min-height:36px;cursor:pointer}
+.xm-ppl button.on{background:var(--ink);color:var(--page);box-shadow:none}
+.xm-ppl button.on::before{content:"✓ ";color:#E2C277}
+/* room under a bet for the chat bubble, so it never sits on the Bet button */
+.xm-page{padding-bottom:96px}

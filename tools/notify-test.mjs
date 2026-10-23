@@ -107,6 +107,18 @@ const msg = [...rows.keys()].find(k => k.startsWith('chat/m'));
 ok('the message is in the book', !!msg, true);
 ok('and the notify function is asked to pass it on', notified, [msg]);
 
+console.log('\na bet with people on it');
+await p.evaluate(() => document.activeElement && document.activeElement.blur());
+await p.locator('.scrim.tcscrim').click({ position: { x: 20, y: 20 } }); await p.waitForTimeout(300);
+await p.locator('.navbtn[data-a="bets"]').click(); await p.waitForTimeout(500);
+await p.locator('.xm-new').click(); await p.waitForTimeout(300);
+await p.locator('#xQ').fill('Will Ray V wear the pink trousers on Sunday');
+await p.locator('[data-act="xN"][data-a="ppl"][data-b="g6"]').click(); await p.waitForTimeout(200);
+await p.locator('[data-act="xCreate"]').click(); await p.waitForTimeout(1500);
+const bet = [...rows.keys()].find(k => k.startsWith('market/q'));
+ok('the bet is in the book, Ray V tagged on it', ((rows.get(bet) || {}).doc || {}).tags, ['g6']);
+ok('and the notify function is asked to tell him', notified.includes(bet), true);
+
 console.log('\na notification arriving');
 const cdp = await ctx.newCDPSession(p);
 await cdp.send('ServiceWorker.enable');
@@ -125,6 +137,14 @@ ok('the book opens on the chat', await q.locator('.chatsheet').count(), 1);
 ok('on the round it came from', await q.locator('.chatsheet .ch-rooms button.on').getAttribute('data-a'), 'r2');
 ok('and the address is tidied, so a reload does not reopen it', new URL(q.url()).search, '');
 await q.close();
+
+console.log('\ntapping one about a bet');
+const r2 = await ctx.newPage(); r2.on('pageerror', e => errs.push(String(e)));
+await r2.goto(ORIGIN + '/?bet=' + bet.slice('market/'.length)); await r2.waitForTimeout(5000);
+ok('the book opens on that bet', await r2.locator('.xm-h').innerText(), 'Will Ray V wear the pink trousers on Sunday?');
+await r2.close();
+await p.locator('.navbtn[data-a="today"]').click(); await p.waitForTimeout(300);
+await p.locator('.chatfab').click(); await p.waitForTimeout(400);
 
 console.log('\nturning them off');
 await p.locator('.chatsheet [data-act="pushOff"]').click(); await p.waitForTimeout(1200);

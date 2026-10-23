@@ -92,10 +92,11 @@ ok('it opens on the bets', await p.locator('.xm-top .head').innerText(), 'Bets')
 console.log('\nall in beers');
 ok('everyone starts on twenty beers', (await p.locator('.xm-bal').innerText()).trim(), '🍺 20 · My bets');
 const qs = await p.locator('.xm-c .xm-ct b').allInnerTexts();
-ok('the book opens with its own bets', ['Who wins MVP?', 'Who wins the Team Competition?', 'Will the United Kingdom win the Ryder Cup?',
-  'Will anyone make a hole in one this week?'].every(q => qs.includes(q)), true);
+ok('the book opens with its own bets, a who-card for each anyone question', ['Who wins MVP?', 'Who wins the Team Competition?', 'Will the United Kingdom win the Ryder Cup?',
+  'Who makes a hole in one this week?', 'Who makes an eagle this week?', 'Round 2: who finds the water?', 'Round 2: who three-putts?', 'Who plays the most shots of the hole this week?'].every(q => qs.includes(q)), true);
 ok('no money anywhere: chances, not cents', (await p.locator('#app').innerText()).includes('¢'), false);
-ok('the hole in one opens at 6%', (await p.locator('.xm-c:has-text("hole in one") .xm-yn .y').innerText()).replace(/\s+/g, ' ').trim(), 'Yes 6%');
+const hio = p.locator('.xm-c:has-text("Who makes a hole in one")');
+ok('Anyone first at 6%, then each golfer at 1%', [await hio.locator('.xm-mo').first().innerText().then(t => t.replace(/\s+/g, ' ').trim()), await hio.locator('.xm-mo').nth(1).locator('em').innerText()], ['Anyone 6% Yes', '1%']);
 await shot('bets-list');
 
 console.log('\nbetting in quarters');
@@ -109,7 +110,7 @@ ok('and down', await p.locator('.xm-stp b').innerText(), '¾ 🍺');
 await tap('[data-act="xT"][data-a="set"][data-b="2"]');
 const want = await p.evaluate(() => { const L = 10, C = (y, n) => L * Math.log(Math.exp(y / L) + Math.exp(n / L)), y0 = L * Math.log(.5);
   let lo = 0, hi = 50; for (let i = 0; i < 80; i++) { const m = (lo + hi) / 2; if (C(y0 + m, y0) - C(y0, y0) < 2) lo = m; else hi = m; }
-  return Math.floor(lo * 4 + 1e-9) / 4; });
+  return Math.round(lo * 4 + 1e-9) / 4; });
 ok('2 🍺 on an even Yes pays to the quarter', (await p.locator('.xm-kv:has-text("Pays") b').innerText()).trim(), (Math.floor(want) || '') + ['', '¼', '½', '¾'][Math.round((want % 1) * 4)] + ' 🍺');
 await shot('market-ticket');
 await tap('[data-act="xSubmit"]');
@@ -142,11 +143,13 @@ await tap('.xm-new');
 await p.locator('#xQ').fill('Will Ray V wear the pink trousers on Sunday');
 await p.locator('#xRules').fill('Yes if he is wearing them on the first tee.');
 await tap('[data-act="xN"][data-a="p0"][data-b="25"]');
+await tap('[data-act="xN"][data-a="ppl"][data-b="g6"]');
 await shot('new-bet');
 await tap('[data-act="xCreate"]');
 ok('it opens straight away, a question mark added', await p.locator('.xm-h').innerText(), 'Will Ray V wear the pink trousers on Sunday?');
 ok('at the chance it was given', await p.locator('.xm-big strong').innerText(), '25%');
-ok('a quarter on Yes pays a whole beer', /A ¼ 🍺 on Yes pays 1 🍺/.test(await p.locator('.xm-page').innerText()), true);
+ok('a quarter on Yes at 25% pays about a beer, to the nearest quarter', /A ¼ 🍺 on Yes pays 1 🍺/.test(await p.locator('.xm-page').innerText()), true);
+ok('Ray V is tagged on it', await p.locator('.xm-page .xm-tags .xm-tag').allInnerTexts(), ['Ray V']);
 ok('and says who settles it', /Settled by Jennifer D or the commissioner/.test(await p.locator('.xm-rules').innerText()), true);
 await tap('[data-act="xT"][data-a="set"][data-b="0.25"]');
 await tap('[data-act="xSubmit"]');
@@ -157,8 +160,9 @@ ok('then it is settled, by name', (await p.locator('.xm-done').innerText()).repl
 await tap('.xm-back');
 ok('a settled bet leaves the main list', (await p.locator('.xm-c .xm-ct b').allInnerTexts()).includes('Will Ray V wear the pink trousers on Sunday?'), false);
 await tap('[data-act="xCat"][data-a="done"]');
-ok('Settled shows it, beside the par-3 bet the book settled itself off Robby B’s birdie on the 4th',
-  (await p.locator('.xm-c .xm-ct b').allInnerTexts()).sort(), ['Round 1: will anyone birdie a par 3?', 'Will Ray V wear the pink trousers on Sunday?']);
+ok('Settled shows it, beside what the book settled itself: Robby B’s birdie on the 4th and Ray V’s ball in the water',
+  (await p.locator('.xm-c .xm-ct b').allInnerTexts()).sort(), ['Round 1: who birdies a par 3?', 'Round 1: who finds the water?', 'Will Ray V wear the pink trousers on Sunday?']);
+ok('for Anyone and for the golfer who did it', (await p.locator('.xm-c:has-text("who finds the water") .xm-mo').allInnerTexts()).map(t => t.replace(/\s+/g, ' ').trim()).sort(), ['Anyone Settled Yes', 'Ray V Settled Yes']);
 
 console.log('\nmy bets');
 await tap('.xm-bal');
@@ -181,7 +185,35 @@ console.log('\nthe book settles its own');
 await p.evaluate(() => { const T = window.__T; T.scores['r1__g8'] = { raw: [4, 4, 1].concat(Array(15).fill(null)), by: { 0: 's1', 1: 's1', 2: 's1' }, at: { 0: Date.now(), 1: Date.now(), 2: Date.now() }, marks: {}, mF: false, mB: false, bb: false }; window.__forceRender(); });
 await tap('.xm-back');
 await tap('[data-act="xCat"][data-a="done"]');
-ok('a hole in one settles that bet Yes at once', await p.locator('.xm-c:has-text("hole in one") .xm-res').innerText(), 'Settled Yes');
+ok('a hole in one settles Yes at once, for Anyone and for Dan A', (await p.locator('.xm-c:has-text("hole in one") .xm-mo').allInnerTexts()).map(t => t.replace(/\s+/g, ' ').trim()).sort(), ['Anyone Settled Yes', 'Dan A Settled Yes']);
+
+console.log('\nbetting on people');
+await tap('[data-act="xCat"][data-a="all"]');
+await tap('[data-act="xAbout"][data-a="g7"]');
+const aboutRobby = await p.locator('.xm-c .xm-ct b').allInnerTexts();
+ok('filtering by Robby B keeps only bets about him', [aboutRobby.includes('Who wins MVP?'), aboutRobby.includes('Will the United Kingdom win the Ryder Cup?')], [true, false]);
+ok('with his row lit on each card', await p.locator('.xm-c:has-text("Who wins MVP?") .xm-mo.hit span').first().innerText(), 'Robby B');
+await p.locator('.xm-c:has-text("Who makes an eagle") .xm-mo.hit button').click(); await p.waitForTimeout(400);
+ok('tapping it opens his bet', await p.locator('.xm-h3').innerText(), 'Will Robby B make an eagle this week?');
+ok('with every name along the top, Anyone first', [await p.locator('.xm-pick button').count(), (await p.locator('.xm-pick button').first().innerText()).split('\n')[0]], [12, 'Anyone']);
+await tap('[data-act="xT"][data-a="set"][data-b="0.25"]');
+ok('a quarter on a 4% long shot pays over five', +(await p.locator('.xm-kv:has-text("Pays if Robby B") b').innerText()).replace(/[^\d.]/g, '') >= 5, true);
+await tap('.xm-pick button:has-text("Ray V")');
+ok('and another name is one tap away', await p.locator('.xm-h3').innerText(), 'Will Ray V make an eagle this week?');
+await tap('.xm-back');
+await tap('[data-act="xAbout"][data-a="all"]');
+
+console.log('\na who-bet of our own');
+await tap('.xm-new');
+await tap('[data-act="xN"][data-a="kind"][data-b="who"]');
+await p.locator('#xQ').fill('Who is last to breakfast on Friday');
+for (const id of ['g6', 'g9', 'g10']) await tap(`[data-act="xN"][data-a="ppl"][data-b="${id}"]`);
+ok('three people, a third each to start', /3 people, 33% each/.test(await p.locator('.xm-page').innerText()), true);
+await tap('[data-act="xCreate"]');
+ok('it opens as a who-card', [await p.locator('.xm-h').innerText(), await p.locator('.xm-pick button').count()], ['Who is last to breakfast on Friday?', 3]);
+await tap('[data-act="xSettleWho"][data-b="g6"]');
+await tap('.scrim [data-act="confirmOk"]');
+ok('settled by naming who it was: Ray V Yes, the others No', (await p.locator('.xm-pick button small').allInnerTexts()).sort(), ['No', 'No', 'Yes']);
 await tap('.navbtn[data-a="boards"]'); await tap('.btab[data-a="chat"]'); await tap('.ch-rooms button[data-a="r1"]');
 ok('and the chat says so', (await p.locator('.ch-ev .ch-evw b').allInnerTexts()).some(t => /HOLE IN ONE/.test(t)), true);
 
