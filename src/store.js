@@ -91,7 +91,7 @@ export function defaultConfig() {
  *  created — so it can never leak back in and resurrect somebody. */
 export function emptyState() {
   const cfg = defaultConfig();
-  return { config: { ...cfg, people: [], pairs: [] }, scores: {}, bbb: {}, recaps: {}, photos: {}, notes: {} };
+  return { config: { ...cfg, people: [], pairs: [] }, scores: {}, bbb: {}, recaps: {}, photos: {}, notes: {}, chat: {}, market: {} };
 }
 
 /** Everything written to config/tournament. The roster is ALSO kept here as a
@@ -141,7 +141,7 @@ export function createStore(onChange) {
   let peopleLoaded = false, pairsLoaded = false, splitDone = false;
   let rosterInDocs = false;     // the roster lives in its own documents
   let peopleSeen = false;       // the people collection has reported at least once
-  const emptySeq = { people: 0, pairs: 0, scores: 0, bbb: 0, recaps: 0, photos: 0, notes: 0 };  // guards a confirmation against a newer snapshot
+  const emptySeq = { people: 0, pairs: 0, scores: 0, bbb: 0, recaps: 0, photos: 0, notes: 0, chat: 0, market: 0 };  // guards a confirmation against a newer snapshot
   let sawConfig = false;
   let legacy = null;            // a roster still stored as lists inside the config
   let settled = false;          // the first load has resolved; until then, no writes
@@ -151,6 +151,7 @@ export function createStore(onChange) {
   let status = 'connecting';    // connecting | live | local | error
   let saveState = 'idle';       // idle | saving | saved | queued | error — the last write's fate
   let lastSavedAt = null;
+  let refusedAt = 0;            // the database last turned a write down on principle
   // Our revision per document. A snapshot older than what we last wrote is an
   // echo of a version we have already moved past, and applying it would undo
   // the change the user just made — so it is ignored.
@@ -200,7 +201,8 @@ export function createStore(onChange) {
       if (raw) {
         const s = JSON.parse(raw);
         if (s && s.config && s.config.v === 3) { T.config = s.config; T.scores = s.scores || {}; T.bbb = s.bbb || {};
-          T.recaps = s.recaps || {}; T.photos = s.photos || {}; T.notes = s.notes || {}; return; }
+          T.recaps = s.recaps || {}; T.photos = s.photos || {}; T.notes = s.notes || {};
+          T.chat = s.chat || {}; T.market = s.market || {}; return; }
       }
     } catch (e) { /* first run, or storage blocked */ }
     T.config = defaultConfig();   // no database and nothing stored: start from the factory book
@@ -229,6 +231,7 @@ export function createStore(onChange) {
           if (s2 === 'offline' || s2 === 'queued') { saveState = 'queued'; }
           else if (s2 === 'saved' || s2 === 'flushed') { saveState = 'saved'; lastSavedAt = Date.now(); }
           if (s2 === 'live' || s2 === 'polling') status = 'live';
+          if (s2 === 'refused') { refusedAt = Date.now(); note('refused', 'a path the database rules do not allow'); }
           notify();
         },
       }) : null;
@@ -394,6 +397,20 @@ export function createStore(onChange) {
       },
       () => { status = 'error'; notify(); }
     ));
+    /* The gallery's side of the week: what people said, and what they bet.
+       Each message, trade and market is its own document, so two people
+       posting at once are two documents and both land. */
+    for (const coll of ['chat', 'market']) {
+      unsubs.push(db.collection(coll).onSnapshot(
+        s => {
+          if (!s.docs.length) { confirmEmpty(coll); notify(); return; }
+          emptySeq[coll]++;
+          T[coll] = mergeDocs(coll, T[coll], s.docs);
+          notify();
+        },
+        () => { status = 'error'; notify(); }
+      ));
+    }
     ready = true; notify();
     if (db.start) db.start();          // the live socket, the poll behind it, the outbox
     confirmRoster();
@@ -414,6 +431,7 @@ export function createStore(onChange) {
         if (coll === 'photos') { T.photos = mergeDocs('photos', T.photos, have.docs); notify(); return; }
         if (coll === 'bbb') { T.bbb = mergeDocs('bbb', T.bbb, have.docs); notify(); return; }
         if (coll === 'notes') { T.notes = mergeDocs('notes', T.notes, have.docs); notify(); return; }
+        if (coll === 'chat' || coll === 'market') { T[coll] = mergeDocs(coll, T[coll], have.docs); notify(); return; }
         /* A read that finds documents is the answer. A read that finds none
            is only the answer once the config has said documents are where
            the roster lives — otherwise it is a collection that has not
@@ -945,6 +963,41 @@ export function createStore(onChange) {
     catch (e) { status = 'error'; saveState = 'error'; notify(); return false; }
   }
 
+  /* ---- the chat and the exchange ----
+     A new message, trade, order or market is written whole, once, under an
+     id nobody else will ever use. Anything added to one afterwards — a
+     reaction, a settlement, an order filled — is a top-level field merged
+     in, so two phones touching the same document at once both land, the
+     same way hearts on a photo do. */
+  const SOCIAL = ['chat', 'market'];
+  async function putSocial(coll, id, row) {
+    if (tooEarly() || !SOCIAL.includes(coll)) return false;
+    const r = { ...row, id };
+    bump(coll + '/' + id, r);
+    T[coll][id] = r;
+    notify();
+    if (mode === 'local') { saveLocal(); return true; }
+    try { await db.doc(coll + '/' + id).set(r); saveState = 'saved'; lastSavedAt = Date.now(); notify(); return true; }
+    catch (e) { status = 'error'; saveState = 'error'; notify(); return false; }
+  }
+  async function patchSocial(coll, id, fields) {
+    if (tooEarly() || !SOCIAL.includes(coll)) return false;
+    const path = coll + '/' + id, r = Math.max(Date.now(), (rev[path] || 0) + 1);
+    const patch = { ...fields, id, rev: r };
+    rev[path] = r;
+    T[coll][id] = { ...(T[coll][id] || {}), ...patch };
+    notify();
+    if (mode === 'local') { saveLocal(); return true; }
+    try { await db.doc(path).update(patch); saveState = 'saved'; lastSavedAt = Date.now(); notify(); return true; }
+    catch (e) { status = 'error'; saveState = 'error'; notify(); return false; }
+  }
+  async function dropSocial(coll, id) {
+    if (tooEarly() || !SOCIAL.includes(coll)) return false;
+    delete T[coll][id];
+    notify();
+    return dropDoc(coll, id);
+  }
+
   async function dropPhoto(id) {
     if (tooEarly()) return false;
     delete T.photos[id];
@@ -988,7 +1041,8 @@ export function createStore(onChange) {
    *  and report for every round goes, and each round goes back to closed
    *  with nothing nominated — but the people, their bands and squads, the
    *  pairs, the tee times and groups, the calendar, the courses and the
-   *  PINs all stay exactly as they are. The photo rows go too; the files
+   *  PINs all stay exactly as they are. The chat and every bet go, and
+   *  the photo rows go too; the files
    *  behind them stay in the bucket, unreferenced. This is what is pressed
    *  the night before the trip to wipe the practice scores. */
   async function resetScores() {
@@ -999,14 +1053,14 @@ export function createStore(onChange) {
       const was = c.rounds[rid] || {};
       c.rounds[rid] = { ...(fresh.rounds[rid] || {}), tees: was.tees || (fresh.rounds[rid] || {}).tees || [] };
     }
-    T.config = c; T.scores = {}; T.bbb = {}; T.notes = {}; T.recaps = {}; T.photos = {};
-    for (const k of Object.keys(rev)) if (/^(scores|bbb|notes|recaps|photos)\//.test(k)) delete rev[k];
+    T.config = c; T.scores = {}; T.bbb = {}; T.notes = {}; T.recaps = {}; T.photos = {}; T.chat = {}; T.market = {};
+    for (const k of Object.keys(rev)) if (/^(scores|bbb|notes|recaps|photos|chat|market)\//.test(k)) delete rev[k];
     bump('config', T.config);
     notify();
     if (mode === 'local') { saveLocal(); return true; }
     try {
       await db.doc('config/tournament').set(T.config);
-      for (const coll of ['scores', 'bbb', 'notes', 'recaps', 'photos']) {
+      for (const coll of ['scores', 'bbb', 'notes', 'recaps', 'photos', 'chat', 'market']) {
         const got = await db.collection(coll).get();
         for (const d of got.docs) await db.doc(coll + '/' + d.id).delete();
       }
@@ -1015,12 +1069,13 @@ export function createStore(onChange) {
     } catch (e) { status = 'error'; saveState = 'error'; notify(); return false; }
   }
 
-  return { T, connect, writeConfig, writeCard, writeBbb, writeNote, writeRecap, writePhoto, heartPhoto, dropPhoto, resetScores, resave, note,
+  return { T, connect, writeConfig, writeCard, writeBbb, writeNote, writeRecap, writePhoto, heartPhoto, dropPhoto, putSocial, patchSocial, dropSocial, resetScores, resave, note,
            get deviceId() { return deviceId; },
            writePerson, writeAllPeople, addPerson, removePerson,
            writePair, addPair, removePair, movePlayer, movePairBy,
            get mode() { return mode; }, get status() { return status; }, get ready() { return ready; },
            get settled() { return settled; },
+           get refusedAt() { return refusedAt; },
            get backend() { return backend; },
            /* Writes waiting for a signal. The status bar says so, because a
               ref who has just walked off the 9th needs to know the card in

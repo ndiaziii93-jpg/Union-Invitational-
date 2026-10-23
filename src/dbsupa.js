@@ -34,7 +34,7 @@
 
 /* Every collection the book keeps. A path outside this list is not polled,
    so adding one here is part of adding one at all. */
-const PREFIXES = ['config', 'people', 'pairs', 'scores', 'bbb', 'notes', 'recaps', 'photos', 'diag'];
+const PREFIXES = ['config', 'people', 'pairs', 'scores', 'bbb', 'notes', 'recaps', 'photos', 'chat', 'market', 'diag'];
 const POLL_LIVE_MS = 60000;   // the net under a live socket: once a minute
 const POLL_DOWN_MS = 15000;   // the socket is down, so the poll is the update
 const hidden = () => typeof document !== 'undefined' && document.visibilityState === 'hidden';
@@ -151,6 +151,15 @@ export function createSupabaseDb(opts) {
   }
   function pending() { return Object.keys(readOutbox()).length; }
 
+  /* REFUSED IS NOT OFFLINE. A write the database turns down on principle —
+     its rules do not allow that path — will be turned down again on every
+     retry, for ever. Queued like a write with no signal, it sat at the head
+     of the outbox and every score saved after it waited behind it. So a
+     refusal is dropped, said so in the phone's log, and never queued: the
+     outbox only ever holds writes that a signal will deliver. */
+  const refused = e => !!e && (e.code === '42501' || e.code === 'PGRST301'
+    || /row-level security|violates|permission denied/i.test(String(e.message || '')));
+
   function armRetry() {
     if (closed || retryTimer) return;
     retryTimer = setTimeout(async () => {
@@ -163,7 +172,7 @@ export function createSupabaseDb(opts) {
         const job = q[path];
         const done = job.op === 'delete' ? await rawDelete(path, true)
                                          : await rawWrite(path, job.doc, job.op === 'merge', true);
-        if (done) unqueue(path, job.at); else { stuck = true; break; }
+        if (done || done === null) unqueue(path, job.at); else { stuck = true; break; }
       }
       if (stuck) armRetry(); else say('flushed');
     }, RETRY_MS);
@@ -188,6 +197,7 @@ export function createSupabaseDb(opts) {
       say('saved');
       return true;
     } catch (e) {
+      if (refused(e)) { say('refused'); return fromOutbox ? null : false; }
       if (!fromOutbox) queue(path, merge ? 'merge' : 'set', doc);
       say('offline');
       return false;
@@ -202,6 +212,7 @@ export function createSupabaseDb(opts) {
       say('saved');
       return true;
     } catch (e) {
+      if (refused(e)) { say('refused'); return fromOutbox ? null : false; }
       if (!fromOutbox) queue(path, 'delete');
       say('offline');
       return false;

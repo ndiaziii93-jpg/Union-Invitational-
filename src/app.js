@@ -9,6 +9,7 @@ import * as CFG from './config.js';
 import { createSupabaseFiles } from './dbsupa.js';
 import { RULES, RELIEF } from './rules.js';
 import * as R from './resort.js';
+import * as X from './social.js';
 import * as W from './weather.js';
 import * as H3D from './hole3d.js';
 import * as HOLES from './holes3d.js';
@@ -91,6 +92,17 @@ const UI = {
   resortQ: '',          // what is typed in the full guide's search
   resortFocusQ: false,  // put the caret in the search once it is drawn
   photoAlbum: 'course', // the Photos page: 'course' or 'trip'
+  who: undefined,       // the name this phone chats and bets as; read from the device on first use
+  chatRoom: null,       // which chat is open: a round, or 'trip'; null follows the day
+  chatRe: null,         // the book's moment being heckled, by key
+  chatDraft: '',        // a message half typed, held out of the DOM
+  xView: null,          // the exchange: null the list, a market id, 'pf' the portfolio, 'new' to make one
+  xCat: 'all',
+  xMore: null,          // a many-name market opened out in full
+  xTicket: null,        // the order being put together: {m, side, act, type, k, lim}
+  xNew: null,           // a bet being made: {q, rules, cat, p0}
+  xErr: '',
+  xFlash: '',           // what just happened, for a moment
   resortNote: null,     // {k, v} — a note being typed, held out of the DOM
   resortPlanCat: 'all', // which part of the site plan is labelled
   resortPin: null,      // which point on the plan is selected, by index
@@ -375,7 +387,9 @@ const BOARDS = [['pairs',    'Team Competition',                   'Team'],
                 ['ryder',    'Ryder Cup',                          'Cup'],
                 ['prizes',   'Longest Drive & Closest to the Pin', 'Prizes'],
                 ['practice', 'Practice Day',                       'Practice'],
-                ['photos',   'Photos from the week',               'Photos']];
+                ['photos',   'Photos from the week',               'Photos'],
+                ['chat',     'Chat',                               'Chat'],
+                ['bets',     'Bets: the exchange',                 'Bets']];
 
 function scrBoards() {
   /* The strip carries the long name for anything that reads the page and the
@@ -393,7 +407,8 @@ function scrBoards() {
         aria-label="${esc(long)}"><span class="lg">${esc(long)}</span>${esc(short)}</button>`).join('')}
   </div></div>`;
   const body = { home: boardsHome, pairs: boardPairs, mvp: boardMvp, bbb: boardBbb, ryder: scrRyder,
-                 prizes: boardPrizes, practice: boardPractice, photos: gallery1 }[UI.boardTab] || boardsHome;
+                 prizes: boardPrizes, practice: boardPractice, photos: gallery1,
+                 chat: boardChat, bets: boardBets }[UI.boardTab] || boardsHome;
   return strip + body();
 }
 
@@ -407,7 +422,26 @@ function boardsHome() {
   return `<h2 class="head bh">Boards${live
     ? ` <span class="bh-s">— ${esc(live.short === 'Practice' ? 'Practice' : 'Round ' + live.short.slice(1))} is live</span>`
     : ''}</h2>
-  <div class="club">${cards.map(c => c.kind === 'cup' ? cupCard(c) : gameCard(c)).join('')}</div>`;
+  <div class="club">${cards.map(c => c.kind === 'cup' ? cupCard(c) : gameCard(c)).join('')}</div>
+  ${socialCards()}`;
+}
+/* The gallery's two doors, under the games: the last thing said, and the
+   market moving most. */
+function socialCards() {
+  const last = chatRows().sort((a, b) => (b.at || 0) - (a.at || 0))[0];
+  const tr = X.trades(T), all = xAll().filter(m => !m.result);
+  const hot = all.map(m => ({ m, v: volumeOf(m.id, tr) })).sort((a, b) => b.v - a.v)[0];
+  const hm = hot && hot.v > 0 ? hot.m : null;
+  return `<div class="club soc">
+    <button class="cc soc-c" data-act="boardTab" data-a="chat" aria-label="Chat">
+      <span class="cc-t">Chat<span class="cc-st">${last ? esc(roomName(last.rid)) + ' · ' + esc(sinceOf(last.at)) : 'Every round, and the trip'}</span></span>
+      <span class="soc-l">${last ? `<b>${esc(last.name || nameOf(last.pid))}</b> ${esc(last.text.length > 70 ? last.text.slice(0, 68) + '…' : last.text)}` : 'Birdies, balls in the water and the turn post themselves. React, heckle, join in.'}</span>
+      <span class="cc-go" aria-hidden="true">\u203A</span></button>
+    <button class="cc soc-c" data-act="boardTab" data-a="bets" aria-label="Bets">
+      <span class="cc-t">Bets<span class="cc-st">${new Set(all.map(m => m.group || m.id)).size} open · beers, not money</span></span>
+      <span class="soc-l">${hm ? `<b>${X.cents(X.chance(X.book(hm, tr)))}%</b> ${esc(hm.group ? hm.groupQ.replace(/\?$/, '') + ': ' + hm.label : hm.q)}` : 'Yes or no on the week, priced like Kalshi. Make your own bet too.'}</span>
+      <span class="cc-go" aria-hidden="true">\u203A</span></button>
+  </div>`;
 }
 
 /* `plain` draws it on the paper like any other game — the front page keeps
@@ -1444,6 +1478,385 @@ function photoViewHtml() {
     ${ownsPhoto(ph) ? `<button class="pv-rm" data-act="photoDrop1" data-a="${esc(ph.id)}">Remove this photo</button>` : ''}
   </div></div>`;
 }
+
+/* ---------------- the chat ----------------
+   One conversation per round, and one for the trip. The book posts into a
+   round's chat by itself — a birdie, a ball in the water, a group making the
+   turn — and everyone can react to those and heckle under them, the way the
+   gallery would if it were standing on the tee. Newest at the top, the box
+   to post with just under the score, so nobody has to scroll to join in. */
+const WHO_KEY = 'union-invitational:who';
+function loadWho() { try { return localStorage.getItem(WHO_KEY) || null; } catch (e) { return null; } }
+function saveWho(pid) { try { localStorage.setItem(WHO_KEY, pid || ''); } catch (e) { /* storage blocked */ } }
+/** Who this phone talks and bets as. Any of the twenty-three, chosen once;
+ *  a golfer who has already said who they are on My round is not asked. */
+function whoAmI() {
+  if (UI.who === undefined) UI.who = loadWho() || loadMe() || null;
+  return UI.who && E.person(T, UI.who) ? UI.who : null;
+}
+const nameOf = pid => ((E.person(T, pid) || {}).display) || 'Someone';
+const initialsOf = s => String(s || '?').split(/\s+/).filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase();
+const localOf = ms => new Date(ms + D.TZ_OFFSET_MIN * 60000);
+function clockOf(ms) {
+  if (!ms) return '';
+  const d = localOf(ms), t = E.to12(d.getUTCHours() + ':' + String(d.getUTCMinutes()).padStart(2, '0')).toLowerCase().replace(' ', '');
+  const iso = d.toISOString().slice(0, 10);
+  return iso === now.iso ? t : (dayName(iso).dow || '').slice(0, 3) + ' ' + t;
+}
+function sinceOf(ms) {
+  if (!ms) return '';
+  const m = Math.floor((Date.now() - ms) / 60000);
+  return m < 1 ? 'just now' : m < 60 ? m + ' min ago' : clockOf(ms);
+}
+const RX = ['🔥', '👏', '😬', '🍺'];
+const rxCount = (doc, e) => Object.keys(doc || {}).filter(k => k.startsWith('rx_') && doc[k] === e).length;
+const myRx = doc => (doc || {})['rx_' + myDev()] || '';
+const chatRows = () => Object.values(T.chat || {}).filter(r => r && r.k === 'm');
+const ownsMsg = r => !!r && (canAdmin() || (!!r.dev && r.dev === myDev()));
+
+/** The chat a phone opens on: today's round if there is one, else the trip. */
+function chatRoomNow() {
+  if (UI.chatRoom) return UI.chatRoom;
+  const today = D.ROUNDS.find(r => E.dayOf(r.dayIdx).iso === now.iso);
+  return today ? today.id : TRIP;
+}
+const roomName = id => { const r = D.ROUNDS.find(x => x.id === id); return !r ? 'The trip' : r.short === 'Practice' ? 'Practice' : 'Round ' + r.short.slice(1); };
+
+function rxRow(target, doc) {
+  const mine = myRx(doc);
+  return `<div class="ch-rx">${RX.map(e => { const n = rxCount(doc, e);
+    return `<button class="${mine === e ? 'on' : ''}" data-act="chatReact" data-a="${esc(target)}" data-b="${e}"
+      aria-pressed="${mine === e}" aria-label="${e} ${n}">${e}${n ? ` <b>${n}</b>` : ''}</button>`; }).join('')}</div>`;
+}
+function msgHtml(r, small) {
+  const nm = r.name || nameOf(r.pid);
+  return `<div class="ch-msg${small ? ' hk' : ''}">
+    <span class="ch-av${E.person(T, r.pid) && E.person(T, r.pid).role === 'golfer' ? ' g' : ''}" aria-hidden="true">${esc(initialsOf(nm))}</span>
+    <div class="ch-bub"><span class="ch-n">${esc(nm)}<small>${esc(sinceOf(r.at))}</small>${ownsMsg(r)
+      ? `<button class="ch-rm" data-act="chatDrop" data-a="${esc(r.id)}" aria-label="Remove this message">Remove</button>` : ''}</span>
+      <p>${esc(r.text)}</p>${small ? '' : rxRow(r.id, r)}</div></div>`;
+}
+function momentHtml(m, heckles) {
+  const doc = (T.chat || {})['x_' + m.key];
+  return `<article class="ch-ev ${esc(m.tone)}">
+    <div class="ch-evt"><span class="ch-big ${esc(m.kind)}" aria-hidden="true">${esc(m.big)}</span>
+      <span class="ch-evw"><span class="ch-k">The book · ${esc(sinceOf(m.at))}</span><b>${esc(m.title)}</b><span>${esc(m.sub || '')}</span></span></div>
+    ${rxRow('x_' + m.key, doc)}
+    ${heckles.length ? `<div class="ch-hks">${heckles.map(h => msgHtml(h, true)).join('')}</div>` : ''}
+    <button class="ch-hb${UI.chatRe === m.key ? ' on' : ''}" data-act="chatHeckle" data-a="${esc(m.key)}">${UI.chatRe === m.key ? 'Heckling this ↑' : 'Heckle'}</button>
+  </article>`;
+}
+function boardChat() {
+  const room = chatRoomNow(), me = whoAmI();
+  const isRound = !!D.ROUNDS.find(r => r.id === room);
+  const msgs = chatRows().filter(r => r.rid === room);
+  const top = msgs.filter(r => !r.re);
+  const ms = isRound ? X.moments(T, room) : [];
+  const keyed = new Set(ms.map(m => m.key));
+  const items = top.map(r => ({ at: r.at || 0, html: () => msgHtml(r) }))
+    .concat(ms.map(m => ({ at: m.at || 0, html: () => momentHtml(m, msgs.filter(r => r.re === m.key).sort((a, b) => a.at - b.at)) })))
+    .concat(msgs.filter(r => r.re && !keyed.has(r.re)).map(r => ({ at: r.at || 0, html: () => msgHtml(r) })))
+    .sort((a, b) => b.at - a.at);
+  const rooms = D.ROUNDS.map(r => r.id).concat(TRIP);
+  const lead = isRound ? E.pairRoundBoard(T, room)[0] : null;
+  const ph = isRound ? E.phaseOf(T, room, now) : null;
+  const reMoment = UI.chatRe && ms.find(m => m.key === UI.chatRe);
+  return `<h2 class="head" style="margin-top:14px">Chat</h2>
+  <div class="ch-rooms nos" role="tablist" aria-label="Which chat">${rooms.map(id => {
+    const r = D.ROUNDS.find(x => x.id === id), d = r ? E.dayOf(r.dayIdx) : null;
+    const n = chatRows().filter(x => x.rid === id).length;
+    return `<button role="tab" aria-selected="${id === room}" class="${id === room ? 'on' : ''}" data-act="chatRoom" data-a="${id}">
+      ${esc(roomName(id))}<small>${d ? esc(d.dow.slice(0, 3) + ' ' + d.date) : 'Everything else'}${n ? ' · ' + n : ''}</small></button>`; }).join('')}</div>
+  ${isRound ? `<div class="ch-plate"><span><b>${esc(roomName(room))} · ${esc(E.phaseLabel(ph))}</b>
+      ${lead ? `${esc(lead.name)} lead${lead.thru < 18 ? ' · thru ' + lead.thru : ''}` : 'No scores in yet'}</span>
+      ${lead ? `<em class="num">${esc(E.fmtToPar(lead.today))}</em>` : ''}</div>` : ''}
+  <div class="ch-post">
+    ${reMoment ? `<div class="ch-re"><span>Heckling: <b>${esc(reMoment.title)}</b></span><button data-act="chatHeckle" data-a="" aria-label="Stop heckling">✕</button></div>` : ''}
+    ${me ? `<div class="ch-box"><span class="ch-av g" aria-hidden="true">${esc(initialsOf(nameOf(me)))}</span>
+        <input id="chatText" type="text" maxlength="280" autocomplete="off" enterkeyhint="send"
+          placeholder="${reMoment ? 'Heckle it…' : isRound ? 'Say something to the group…' : 'Anything from the trip…'}" value="${esc(UI.chatDraft || '')}" aria-label="Message">
+        <button class="btn sm" data-act="chatSend">Post</button></div>
+      <button class="ch-as" data-act="whoOpen">Posting as ${esc(nameOf(me))} · change</button>`
+    : `<button class="btn" data-act="whoOpen" style="width:100%">Choose your name to join in</button>`}
+  </div>
+  ${socialRefused()}
+  <div class="ch-feed">${items.map(x => x.html()).join('')
+    || `<p class="pg-empty">${isRound ? 'Nothing yet. Birdies, balls in the water and the turn appear here by themselves as the refs save holes.' : 'Nothing yet. Say something to start it off.'}</p>`}</div>
+  <p class="pg-note">Tap an emoji to react. Heckle puts your line under that moment. You can remove your own messages; the commissioner can remove any.</p>`;
+}
+function whoModalHtml() {
+  const ppl = T.config.people || [], cur = whoAmI();
+  const block = (label, role) => { const list = ppl.filter(p => p.role === role); if (!list.length) return '';
+    return `<div class="who-g"><span class="who-l">${esc(label)}</span><div class="who-c">${list.map(p =>
+      `<button class="${p.id === cur ? 'on' : ''}" data-act="whoPick" data-a="${esc(p.id)}">${esc(p.display)}</button>`).join('')}</div></div>`; };
+  return `<div class="scrim" data-act="modalScrim"><div class="modal" role="dialog" aria-modal="true" aria-label="Who are you?">
+    ${modalBanner('Who are you?', 'Chat and bets')}
+    <p>Your name goes on what you post and what you bet. This phone remembers it.</p>
+    ${block('Golfers', 'golfer')}${block('Refs', 'official')}${block('The gallery', 'spectator')}
+    <div class="acts"><button class="btn ghost" data-act="modalCancel">Cancel</button></div>
+  </div></div>`;
+}
+function chatSend() {
+  const me = whoAmI();
+  const f = document.getElementById('chatText');
+  const text = String(f ? f.value : UI.chatDraft || '').trim().slice(0, 280);
+  if (!me || !text || !store) return;
+  const id = 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+  store.putSocial('chat', id, { k: 'm', rid: chatRoomNow(), pid: me, name: nameOf(me), text, at: Date.now(), dev: myDev(), re: UI.chatRe || null });
+  UI.chatDraft = ''; UI.chatRe = null;
+  if (f) { f.value = ''; f.blur(); }
+  render();
+}
+
+/** Said plainly when the shared book has turned a post or a bet down: it is
+ *  on this phone only, and one step in Supabase switches the rest on. */
+function socialRefused() {
+  if (!store || !store.refusedAt) return '';
+  return `<p class="xm-err" role="status">Not reaching anyone else yet: chat and bets need switching on in the database first.
+    The commissioner pastes <b>supabase-chat-bets.sql</b> into Supabase once, and everything after that goes through.</p>`;
+}
+
+/* ---------------- the exchange ----------------
+   Kalshi's way of betting, in beers. Every market is a yes/no question with
+   a price between 1¢ and 99¢; the price is the chance, and a contract pays a
+   whole beer if it comes true. Buy, sell before it settles, or leave a limit
+   order to be filled if the price comes to you. The book's own markets
+   settle themselves from the scores; anyone can make their own, and they or
+   the commissioner settle it. */
+const XCATS = [['all', 'All'], ['golf', 'Golf'], ['trip', 'The trip'], ['ours', 'Made by us'], ['done', 'Settled']];
+const beer = n => (Math.round(n * 100) / 100).toFixed(Math.abs(n) >= 10 ? 1 : 2).replace(/\.?0+$/, '') || '0';
+const xAll = () => X.markets(T, now);
+const xFind = id => xAll().find(m => m.id === id) || null;
+const canSettle = m => !!m && (canAdmin() || (m.custom && (m.dev === myDev() || (whoAmI() && m.pid === whoAmI()))));
+const settlerLine = m => m.settler === 'book' ? 'Settles itself from the scores. The commissioner can void it if something goes wrong.'
+  : m.settler === 'commish' ? 'Settled by the commissioner.'
+  : `Settled by ${esc(m.byName || 'whoever made it')} or the commissioner. Everyone sees who settled it and when.`;
+function volumeOf(id, tr) { return tr.filter(t => t.m === id).reduce((a, t) => a + Math.abs(t.cost), 0); }
+function spark(pts, h = 40) {
+  if (pts.length < 2) pts = pts.concat([{ p: pts[0] ? pts[0].p : 0.5 }]);
+  const w = 300, ps = pts.map(x => x.p), mx = Math.min(1, Math.max(...ps) + 0.04), mn = Math.max(0, Math.min(...ps) - 0.04);
+  const xy = ps.map((v, i) => [i * w / (ps.length - 1), h - 3 - (v - mn) / ((mx - mn) || 1) * (h - 6)]);
+  const up = ps[ps.length - 1] >= ps[0];
+  return `<svg class="xm-sp ${up ? 'up' : 'dn'}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" style="height:${h}px" aria-hidden="true">
+    <polygon points="0,${h} ${xy.map(p => p.join(',')).join(' ')} ${w},${h}"/><polyline points="${xy.map(p => p.join(',')).join(' ')}"/></svg>`;
+}
+function resultTag(m) {
+  if (!m.result) return '';
+  const t = m.result === 'yes' ? 'Yes' : m.result === 'no' ? 'No' : 'Void';
+  return `<span class="xm-res ${esc(m.result)}">Settled ${t}</span>`;
+}
+function xCard(m, tr) {
+  const q = X.book(m, tr), p = X.chance(q), pts = X.history(m, tr), d = Math.round((p - pts[0].p) * 100);
+  return `<article class="xm-c">
+    <button class="xm-ct" data-act="xOpen" data-a="${esc(m.id)}"><b>${esc(m.q)}</b>
+      <span class="xm-ch"><strong>${m.result ? (m.result === 'void' ? '—' : m.result === 'yes' ? '100%' : '0%') : X.cents(p) + '%'}</strong><small>chance</small></span></button>
+    ${m.result ? resultTag(m) : (pts.length > 1 ? spark(pts, 34) : '') + `<div class="xm-yn">
+      <button class="y" data-act="xOpen" data-a="${esc(m.id)}" data-b="yes">Yes ${X.sidePrice(q, 'yes')}¢</button>
+      <button class="n" data-act="xOpen" data-a="${esc(m.id)}" data-b="no">No ${X.sidePrice(q, 'no')}¢</button></div>`}
+    <div class="xm-v"><span>${beer(volumeOf(m.id, tr))} 🍺 traded${m.custom ? ' · by ' + esc(m.byName || 'someone') : ''}</span>
+      ${m.result || !d ? '' : `<span class="xm-d ${d > 0 ? 'up' : 'dn'}">${d > 0 ? '▲' : '▼'} ${Math.abs(d)} since open</span>`}</div>
+  </article>`;
+}
+function xGroupCard(list, tr) {
+  const g = list[0];
+  const rows = list.map(m => ({ m, p: X.chance(X.book(m, tr)) })).sort((a, b) => b.p - a.p);
+  const show = UI.xMore === g.group ? rows : rows.slice(0, 4);
+  const vol = list.reduce((a, m) => a + volumeOf(m.id, tr), 0);
+  return `<article class="xm-c">
+    <div class="xm-ct"><b>${esc(g.groupQ)}</b></div>
+    ${show.map(({ m, p }) => `<div class="xm-mo"><span>${esc(m.label)}</span>${m.result ? resultTag(m)
+      : `<em>${X.cents(p)}%</em><button data-act="xOpen" data-a="${esc(m.id)}" data-b="yes">Yes ${X.cents(p)}¢</button>`}</div>`).join('')}
+    ${rows.length > 4 ? `<button class="xm-more" data-act="xMore" data-a="${UI.xMore === g.group ? '' : esc(g.group)}">${UI.xMore === g.group ? 'Show fewer' : 'All ' + rows.length}</button>` : ''}
+    <div class="xm-v"><span>${beer(vol)} 🍺 traded</span><span>Each name is its own yes/no</span></div>
+  </article>`;
+}
+function xBar() {
+  const me = whoAmI();
+  const acc = me ? X.account(T, me, now) : null;
+  return `<div class="xm-top"><h2 class="head" style="margin:0">Bets</h2>
+    ${me ? `<button class="xm-bal" data-act="xView" data-a="pf">🍺 ${beer(acc.cash)} · Portfolio</button>`
+      : `<button class="xm-bal" data-act="whoOpen">Choose your name</button>`}</div>`;
+}
+function boardBets() {
+  const say = UI.xFlash ? `<div class="xm-flash" role="status">${esc(UI.xFlash)}</div>` : '';
+  if (UI.xView === 'pf') return xPortfolio() + say;
+  if (UI.xView === 'new') return xNewHtml() + say;
+  if (UI.xView && xFind(UI.xView)) return xMarketHtml(xFind(UI.xView)) + say;
+  const tr = X.trades(T), all = xAll(), cat = UI.xCat || 'all';
+  /* Open markets only, except under Settled; everybody's own bets first,
+     newest at the top, because those are the ones the group is talking about. */
+  const pick = all.filter(m => (cat === 'done' ? !!m.result : !m.result) &&
+    (cat === 'all' || cat === 'done' || (cat === 'ours' ? m.custom : m.cat === cat)))
+    .sort((a, b) => (b.custom ? 1 : 0) - (a.custom ? 1 : 0) || (b.custom ? (b.at || 0) - (a.at || 0) : 0));
+  const seen = new Set(), cards = [];
+  for (const m of pick) {
+    if (m.group) { if (seen.has(m.group)) continue; seen.add(m.group); cards.push(xGroupCard(pick.filter(x => x.group === m.group), tr)); }
+    else cards.push(xCard(m, tr));
+  }
+  const st = X.standings(T, now).slice(0, 5);
+  return `${xBar()}
+  <p class="xm-how">Yes/no on the week, priced like Kalshi. <b>The price is the chance</b>: Yes at 62¢ means the group thinks 62%. A contract pays a whole 🍺 if you’re right. Everyone gets ${X.DAILY} 🍺 a day to play with. Nothing here is money.</p>
+  ${socialRefused()}
+  <div class="xm-cats nos">${XCATS.map(([k, l]) => `<button class="${cat === k ? 'on' : ''}" data-act="xCat" data-a="${k}">${l}</button>`).join('')}</div>
+  <button class="xm-new" data-act="xView" data-a="new"><span aria-hidden="true">＋</span> Make your own bet</button>
+  ${cards.join('') || `<p class="pg-empty">${cat === 'ours' ? 'Nobody has made one yet. Make the first.' : cat === 'done' ? 'Nothing has settled yet.' : 'Nothing here.'}</p>`}
+  ${st.length ? `<section class="xm-sec"><div class="pg-h"><b>Sharpest on the exchange</b><span>profit so far</span></div>
+    ${st.map((s, i) => `<div class="xm-st"><span class="num">${i + 1}</span><b>${esc(nameOf(s.pid))}</b><em class="num ${s.profit >= 0 ? 'up' : 'dn'}">${s.profit >= 0 ? '+' : '−'}${beer(Math.abs(s.profit))} 🍺</em></div>`).join('')}</section>` : ''}
+  <p class="pg-note">Prices move as people buy: the book always takes the other side, so every order fills straight away.</p>${say}`;
+}
+function xTicket(m, q) {
+  const t = UI.xTicket || (UI.xTicket = { side: 'yes', act: 'buy', type: 'market', k: 1, lim: null, m: m.id });
+  if (t.m !== m.id) Object.assign(t, { m: m.id, k: 1, lim: null });
+  const me = whoAmI();
+  const held = me ? (X.positions(T, me)[m.id] || { yes: 0, no: 0 }) : { yes: 0, no: 0 };
+  const sp = X.sidePrice(q, t.side);
+  const lim = t.lim || sp;
+  const cost = t.act === 'buy' ? X.quote(q, t.side, t.k) : -X.quote(q, t.side, -t.k);
+  const resting = t.type === 'limit' && t.act === 'buy' && lim < sp;
+  const label = t.side === 'yes' ? (m.label || 'Yes') : 'No';
+  return `<div class="xm-tk">
+    <div class="xm-seg"><button class="${t.act === 'buy' ? 'on' : ''}" data-act="xT" data-a="act" data-b="buy">Buy</button><button class="${t.act === 'sell' ? 'on' : ''}" data-act="xT" data-a="act" data-b="sell">Sell</button></div>
+    <div class="xm-seg"><button class="y${t.side === 'yes' ? ' on' : ''}" data-act="xT" data-a="side" data-b="yes">Yes ${X.sidePrice(q, 'yes')}¢</button><button class="n${t.side === 'no' ? ' on' : ''}" data-act="xT" data-a="side" data-b="no">No ${X.sidePrice(q, 'no')}¢</button></div>
+    ${t.act === 'buy' ? `<div class="xm-seg"><button class="${t.type === 'market' ? 'on' : ''}" data-act="xT" data-a="type" data-b="market">Market</button><button class="${t.type === 'limit' ? 'on' : ''}" data-act="xT" data-a="type" data-b="limit">Limit</button></div>` : ''}
+    ${t.type === 'limit' && t.act === 'buy' ? `<div class="xm-stp"><span>Limit price</span><span class="ctl"><button data-act="xT" data-a="lim" data-b="-1" aria-label="Lower">−</button><b class="num">${lim}¢</b><button data-act="xT" data-a="lim" data-b="1" aria-label="Higher">+</button></span></div>` : ''}
+    <div class="xm-stp"><span>Contracts</span><span class="ctl"><button data-act="xT" data-a="k" data-b="-1" aria-label="Fewer">−</button><b class="num">${t.k}</b><button data-act="xT" data-a="k" data-b="1" aria-label="More">+</button></span></div>
+    ${t.act === 'buy' ? `<div class="xm-q">${[1, 2, 5].map(b => `<button data-act="xT" data-a="stake" data-b="${b}">${b} 🍺 worth</button>`).join('')}</div>`
+      : `<p class="xm-note">You hold ${Math.floor(held[t.side] || 0)} ${t.side === 'yes' ? 'Yes' : 'No'}.</p>`}
+    ${t.act === 'buy' ? `<div class="xm-kv"><span>${resting ? 'Most it can cost' : 'Cost'}</span><b>${beer(resting ? lim * t.k / 100 : cost)} 🍺</b></div>
+      <div class="xm-kv"><span>Average price</span><b>${resting ? lim : X.cents(cost / t.k)}¢</b></div>
+      <div class="xm-kv"><span>Pays if ${esc(label)}</span><b class="up">${t.k} 🍺</b></div>`
+    : `<div class="xm-kv"><span>You get back</span><b class="up">${beer(cost)} 🍺</b></div>`}
+    ${UI.xErr ? `<p class="xm-err">${esc(UI.xErr)}</p>` : ''}
+    ${me ? `<button class="btn xm-go" data-act="xSubmit">${t.act === 'buy' ? 'Buy' : 'Sell'} ${t.k} ${t.side === 'yes' ? 'Yes' : 'No'}${t.type === 'limit' && t.act === 'buy' ? ' at ' + lim + '¢' : ''}</button>`
+      : `<button class="btn xm-go" data-act="whoOpen">Choose your name to bet</button>`}
+    <p class="xm-note">${t.act === 'sell' ? 'Selling before it settles locks in whatever the price is now.'
+      : resting ? 'Below the market: it waits in the order book and fills if the price comes down to yours.'
+      : 'Fills now, at the book’s price. Each contract bought nudges the price up.'}</p>
+  </div>`;
+}
+function xMarketHtml(m) {
+  const tr = X.trades(T), q = X.book(m, tr), p = X.chance(q), pts = X.history(m, tr), d = Math.round((p - pts[0].p) * 100);
+  const sibs = m.group ? xAll().filter(x => x.group === m.group) : [];
+  const me = whoAmI();
+  const pos = me ? X.positions(T, me)[m.id] : null;
+  const dp = X.depth(T, m.id);
+  const lv = (list, cls, head) => `<div class="col ${cls}"><span class="hd">${head}</span>${list.length ? list.map(x =>
+    `<span class="lvl"><i style="width:${Math.min(100, x.n * 10)}%"></i><span>${x.p}¢</span><span>${x.n}</span></span>`).join('') : '<span class="xm-none">None waiting</span>'}</div>`;
+  const recent = tr.filter(t => t.m === m.id).slice(-6).reverse();
+  return `<button class="xm-back" data-act="xView" data-a="">‹ Bets</button>
+  <div class="xm-page">
+    <span class="xm-eye">${m.cat === 'trip' ? 'The trip' : 'Golf'} · ${beer(volumeOf(m.id, tr))} 🍺 traded${m.custom ? ' · made by ' + esc(m.byName || 'someone') : ''}</span>
+    <h2 class="xm-h">${esc(m.group ? m.groupQ : m.q)}</h2>
+    ${m.group ? `<div class="xm-tk xm-sibs">${sibs.map(x => { const px = X.chance(X.book(x, tr));
+      return `<button class="xm-mo${x.id === m.id ? ' on' : ''}" data-act="xOpen" data-a="${esc(x.id)}"><span>${esc(x.label)}</span>${x.result ? resultTag(x) : `<em>${X.cents(px)}%</em>`}<i>${x.id === m.id ? 'Trading' : 'Trade'}</i></button>`; }).join('')}</div>
+      <h3 class="xm-h3">${esc(m.q)}</h3>` : ''}
+    ${m.result ? `<div class="xm-done">${resultTag(m)}<span>${m.settledBy ? 'by ' + esc(m.settledBy) : ''}${m.settledAt ? ' · ' + esc(clockOf(m.settledAt)) : ''}</span></div>`
+      : `<div class="xm-big"><strong class="num">${X.cents(p)}%</strong>${d ? `<span class="xm-d ${d > 0 ? 'up' : 'dn'}">${d > 0 ? '▲' : '▼'} ${Math.abs(d)} since open</span>` : '<span class="xm-d">chance · no trades yet</span>'}</div>
+         ${pts.length > 1 ? spark(pts, 70) : ''}`}
+    ${pos && (pos.yes > 0 || pos.no > 0) ? `<div class="xm-mine">You hold ${[pos.yes > 0 ? Math.floor(pos.yes) + ' Yes' : '', pos.no > 0 ? Math.floor(pos.no) + ' No' : ''].filter(Boolean).join(' and ')}
+      · cost ${beer(pos.spent)} 🍺${m.result ? '' : ` · worth ${beer(pos.yes * p + pos.no * (1 - p))} 🍺 now`}</div>` : ''}
+    ${m.result ? '' : xTicket(m, q)}
+    <span class="xm-eye">Order book</span>
+    <div class="xm-ob">${lv(dp.yes, 'y', 'Yes bids · qty')}${lv(dp.no, 'n', 'No bids · qty')}</div>
+    ${recent.length ? `<span class="xm-eye">Latest trades</span><div class="xm-tk xm-trades">${recent.map(t =>
+      `<div class="xm-kv"><span>${esc(nameOf(t.pid))} ${t.n > 0 ? 'bought' : 'sold'} ${Math.abs(t.n)} ${t.side === 'yes' ? 'Yes' : 'No'}</span><b>${t.px}¢ · ${esc(sinceOf(t.at))}</b></div>`).join('')}</div>` : ''}
+    <span class="xm-eye">Rules</span>
+    <div class="xm-rules">${m.rules ? esc(m.rules) + ' ' : ''}Each contract pays 1 🍺 if right and nothing if wrong. ${settlerLine(m)}</div>
+    ${canSettle(m) && !m.result ? `<div class="xm-settle"><span class="xm-eye">Settle it</span><div class="xm-q">
+        <button data-act="xSettle" data-a="${esc(m.id)}" data-b="yes">It happened: Yes</button>
+        <button data-act="xSettle" data-a="${esc(m.id)}" data-b="no">It didn’t: No</button>
+        <button data-act="xSettle" data-a="${esc(m.id)}" data-b="void">Void, refund all</button></div></div>` : ''}
+    ${canSettle(m) && m.result && (m.custom || m.settler === 'commish' || canAdmin()) && (T.market || {})[m.id] && (T.market || {})[m.id].result
+      ? `<button class="xm-link" data-act="xSettle" data-a="${esc(m.id)}" data-b="">Undo the settlement</button>` : ''}
+    ${m.custom && canSettle(m) && !tr.some(t => t.m === m.id) ? `<button class="xm-link danger" data-act="xDelete" data-a="${esc(m.id)}">Delete this bet</button>` : ''}
+  </div>`;
+}
+function xPortfolio() {
+  const me = whoAmI();
+  if (!me) return `<button class="xm-back" data-act="xView" data-a="">‹ Bets</button><div class="xm-page"><button class="btn" data-act="whoOpen">Choose your name</button></div>`;
+  const acc = X.account(T, me, now);
+  const open = acc.rows.filter(r => !r.settled), done = acc.rows.filter(r => r.settled);
+  const ords = X.orders(T).filter(o => o.pid === me && o.state === 'open');
+  const all = xAll();
+  const mname = m => m.group ? m.groupQ.replace(/\?$/, '') + ': ' + m.label : m.q;
+  return `<button class="xm-back" data-act="xView" data-a="">‹ Bets</button>
+  <div class="xm-page"><h2 class="xm-h">${esc(nameOf(me))}’s portfolio</h2>
+    <div class="xm-tk">
+      <div class="xm-kv"><span>Beers to bet with</span><b>🍺 ${beer(acc.cash)}</b></div>
+      <div class="xm-kv"><span>Open bets, worth now</span><b>🍺 ${beer(acc.open)}</b></div>
+      <div class="xm-kv"><span>Up or down on the week</span><b class="${acc.profit >= 0 ? 'up' : 'dn'}">${acc.profit >= 0 ? '+' : '−'}${beer(Math.abs(acc.profit))} 🍺</b></div>
+      <p class="xm-note">${X.DAILY} 🍺 are added each day of the trip. Settled bets pay into your beers straight away.</p>
+    </div>
+    <span class="xm-eye">Open</span>
+    <div class="xm-tk xm-pos">${open.length ? open.map(r => { const pl = r.value - r.spent;
+      return `<div class="xm-p"><b>${esc(mname(r.m))}</b><span class="xm-pl ${pl >= 0 ? 'up' : 'dn'}">${pl >= 0 ? '+' : '−'}${beer(Math.abs(pl))} 🍺</span>
+        <span class="xm-note">${[r.yes > 0 ? Math.floor(r.yes) + ' Yes' : '', r.no > 0 ? Math.floor(r.no) + ' No' : ''].filter(Boolean).join(' · ')} · cost ${beer(r.spent)} · worth ${beer(r.value)}</span>
+        <button data-act="xSellFrom" data-a="${esc(r.m.id)}" data-b="${r.yes > 0 ? 'yes' : 'no'}">Sell</button></div>`; }).join('') : '<p class="xm-note">Nothing open.</p>'}</div>
+    ${ords.length ? `<span class="xm-eye">Waiting to fill</span><div class="xm-tk">${ords.map(o => { const m = all.find(x => x.id === o.m);
+      return `<div class="xm-kv"><span>Buy ${o.n} ${o.side === 'yes' ? 'Yes' : 'No'} · ${esc(m ? mname(m) : 'a market')} · at ${o.lim}¢</span><button class="xm-x" data-act="xCancel" data-a="${esc(o.id)}">Cancel</button></div>`; }).join('')}</div>` : ''}
+    ${done.length ? `<span class="xm-eye">Settled</span><div class="xm-tk">${done.map(r => { const pl = r.paid - r.spent;
+      return `<div class="xm-kv"><span>${esc(mname(r.m))} ${resultTag(r.m)}</span><b class="${pl >= 0 ? 'up' : 'dn'}">${pl >= 0 ? '+' : '−'}${beer(Math.abs(pl))} 🍺</b></div>`; }).join('')}</div>` : ''}
+    <button class="xm-link" data-act="whoOpen">Not ${esc(nameOf(me))}? Change name</button>
+  </div>`;
+}
+function xNewHtml() {
+  const n = UI.xNew || (UI.xNew = { q: '', rules: '', cat: 'trip', p0: 50 });
+  return `<button class="xm-back" data-act="xView" data-a="">‹ Bets</button>
+  <div class="xm-page"><h2 class="xm-h">Make your own bet</h2>
+    <p class="xm-note">Ask a yes/no question about the week. Everyone can trade it; you or the commissioner settle it, and everyone sees who did and when.</p>
+    <label class="xm-f"><span>The question</span>
+      <input id="xQ" type="text" maxlength="120" autocomplete="off" placeholder="Will Ray V wear the pink trousers on Sunday?" value="${esc(n.q)}"></label>
+    <label class="xm-f"><span>How it’s settled <small>(optional)</small></span>
+      <input id="xRules" type="text" maxlength="200" autocomplete="off" placeholder="Yes if he’s wearing them on the first tee." value="${esc(n.rules)}"></label>
+    <div class="xm-f"><span>About</span><div class="xm-seg"><button class="${n.cat === 'golf' ? 'on' : ''}" data-act="xN" data-a="cat" data-b="golf">The golf</button><button class="${n.cat === 'trip' ? 'on' : ''}" data-act="xN" data-a="cat" data-b="trip">The trip</button></div></div>
+    <div class="xm-f"><span>How likely, to start</span><div class="xm-q">${[10, 25, 50, 75, 90].map(v => `<button class="${n.p0 === v ? 'on' : ''}" data-act="xN" data-a="p0" data-b="${v}">${v}%</button>`).join('')}</div>
+      <small class="xm-note">Your best guess. Opens with Yes at ${n.p0}¢; the group moves it from there.</small></div>
+    ${UI.xErr ? `<p class="xm-err">${esc(UI.xErr)}</p>` : ''}
+    ${whoAmI() ? `<button class="btn xm-go" data-act="xCreate">Open the market</button><p class="xm-note">Made by ${esc(nameOf(whoAmI()))}.</p>`
+      : `<button class="btn xm-go" data-act="whoOpen">Choose your name first</button>`}
+  </div>`;
+}
+function xSubmit() {
+  const m = xFind(UI.xView), t = UI.xTicket, me = whoAmI();
+  if (!m || !t || !me || !store) return;
+  UI.xErr = '';
+  const q = X.book(m, X.trades(T));
+  if (t.act === 'buy' && t.type === 'limit' && (t.lim || X.sidePrice(q, t.side)) < X.sidePrice(q, t.side)) {
+    const id = 'o' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+    store.putSocial('market', id, { k: 'o', m: m.id, pid: me, dev: myDev(), side: t.side, n: t.k, lim: t.lim, at: Date.now(), state: 'open' });
+    flash('Limit order placed. It fills if the price comes down to ' + t.lim + '¢.');
+    return;
+  }
+  const r = X.makeTrade(T, now, { m, pid: me, side: t.side, act: t.act, k: t.k });
+  if (r.err) { UI.xErr = r.err; render(); return; }
+  const id = 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+  store.putSocial('market', id, { ...r.doc, dev: myDev(), at: Date.now() });
+  t.k = 1; t.lim = null;
+  flash(t.act === 'buy' ? `Bought at ${r.doc.px}¢. It’s in your portfolio.` : `Sold at ${r.doc.px}¢.`);
+}
+/* A limit order is filled by the phone that placed it, the moment that phone
+   sees the price come to it, so one order can never be filled twice. */
+const filling = new Set();
+function fillMyOrders() {
+  if (!store || !store.settled) return;
+  const mine = X.orders(T).filter(o => o.state === 'open' && o.dev === myDev() && !filling.has(o.id));
+  if (!mine.length) return;
+  const all = xAll();
+  for (const o of mine) {
+    const m = all.find(x => x.id === o.m);
+    if (!m || m.result) { filling.add(o.id); store.patchSocial('market', o.id, { state: 'cancelled', why: 'settled' }).finally(() => filling.delete(o.id)); continue; }
+    const q = X.book(m, X.trades(T));
+    if (X.sidePrice(q, o.side) > o.lim) continue;
+    filling.add(o.id);
+    const r = X.makeTrade(T, now, { m, pid: o.pid, side: o.side, act: 'buy', k: o.n });
+    if (r.err) { store.patchSocial('market', o.id, { state: 'cancelled', why: r.err }).finally(() => filling.delete(o.id)); continue; }
+    const id = 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+    store.putSocial('market', id, { ...r.doc, dev: myDev(), at: Date.now(), order: o.id })
+      .then(() => store.patchSocial('market', o.id, { state: 'filled', fill: id }))
+      .finally(() => filling.delete(o.id));
+  }
+}
+function flash(t) { UI.xFlash = t; render(); setTimeout(() => { if (UI.xFlash === t) { UI.xFlash = ''; render(); } }, 2600); }
 
 /* ---------------- photos ----------------
    Anyone on the trip can add to a round. Phone photos are twelve megapixels
@@ -6041,6 +6454,7 @@ function modalHtml() {
        : UI.modal.kind === 'area' ? areaModalHtml()
        : UI.modal.kind === 'rinfo' ? infoModalHtml()
        : UI.modal.kind === 'photo' ? photoViewHtml()
+       : UI.modal.kind === 'who' ? whoModalHtml()
        : UI.modal.kind === 'marks' ? markSheet(UI.modal.rid, UI.modal.hole, UI.modal.who)
        : UI.modal.kind === 'hole' ? holeModalHtml()
        : UI.modal.kind === 'setup' ? setupModalHtml()
@@ -6268,6 +6682,96 @@ function onClick(e) {
       render();
       return;
     case 'photoAlbum': UI.photoAlbum = a; render(); return;
+    /* ---- the chat ---- */
+    case 'chatRoom': UI.chatRoom = a; UI.chatRe = null; render(); return;
+    case 'chatReact': {
+      if (!store) return;
+      const doc = (T.chat || {})[a];
+      store.patchSocial('chat', a, { ['rx_' + myDev()]: myRx(doc) === b ? '' : b });
+      render(); return;
+    }
+    case 'chatHeckle':
+      UI.chatRe = a || null;
+      if (a) UI.liftTo = '.ch-post';
+      render();
+      if (a) setTimeout(() => { const f = document.getElementById('chatText'); if (f) f.focus(); }, 80);
+      return;
+    case 'chatSend': chatSend(); return;
+    case 'chatDrop': { const r = (T.chat || {})[a]; if (!ownsMsg(r)) return; store.dropSocial('chat', a); render(); return; }
+    case 'whoOpen': UI.modal = { kind: 'who' }; render(); return;
+    case 'whoPick': UI.who = a; saveWho(a); UI.modal = null; render(); return;
+    /* ---- the exchange ---- */
+    case 'xView': UI.xView = a || null; UI.xErr = ''; UI.xTicket = null; UI.liftTo = '.gamesbar'; render(); return;
+    case 'xCat': UI.xCat = a; render(); return;
+    case 'xMore': UI.xMore = a || null; render(); return;
+    case 'xOpen':
+      UI.xView = a; UI.xErr = ''; UI.liftTo = '.gamesbar';
+      UI.xTicket = { m: a, side: b === 'no' ? 'no' : 'yes', act: 'buy', type: 'market', k: 1, lim: null };
+      render(); return;
+    case 'xT': {
+      const t = UI.xTicket; if (!t) return;
+      const m = xFind(t.m), q = m ? X.book(m, X.trades(T)) : null;
+      const held = () => { const me = whoAmI(); return me ? ((X.positions(T, me)[t.m] || {})[t.side] || 0) : 0; };
+      UI.xErr = '';
+      if (a === 'act') { t.act = b; t.type = 'market'; t.lim = null; t.k = b === 'sell' ? Math.max(1, Math.floor(held())) : 1; }
+      else if (a === 'side') { t.side = b; t.lim = null; if (t.act === 'sell') t.k = Math.max(1, Math.floor(held())); }
+      else if (a === 'type') { t.type = b; t.lim = null; }
+      else if (a === 'lim') { const base = t.lim || (q ? X.sidePrice(q, t.side) : 50); t.lim = Math.min(99, Math.max(1, base + +b)); }
+      else if (a === 'k') t.k = Math.max(1, Math.min(999, t.k + +b));
+      else if (a === 'stake' && q) t.k = Math.max(1, X.contractsFor(q, t.side, +b));
+      render(); return;
+    }
+    case 'xSubmit': xSubmit(); return;
+    case 'xSellFrom': {
+      const me = whoAmI(), h = me ? ((X.positions(T, me)[a] || {})[b] || 0) : 0;
+      UI.xView = a; UI.xErr = ''; UI.liftTo = '.gamesbar';
+      UI.xTicket = { m: a, side: b, act: 'sell', type: 'market', k: Math.max(1, Math.floor(h)), lim: null };
+      render(); return;
+    }
+    case 'xCancel': {
+      const o = (T.market || {})[a];
+      if (!o || (o.dev !== myDev() && !canAdmin())) return;
+      store.patchSocial('market', a, { state: 'cancelled', why: 'cancelled' });
+      render(); return;
+    }
+    case 'xN': if (!UI.xNew) return; UI.xNew[a] = a === 'p0' ? +b : b; UI.xErr = ''; render(); return;
+    case 'xCreate': {
+      const n = UI.xNew, me = whoAmI();
+      if (!n || !me || !store) return;
+      const fq = document.getElementById('xQ'), fr = document.getElementById('xRules');
+      if (fq) n.q = fq.value; if (fr) n.rules = fr.value;
+      let q = String(n.q || '').trim().replace(/\s+/g, ' ');
+      if (q.length < 8) { UI.xErr = 'Write the question out in full, so everyone knows what Yes means.'; render(); return; }
+      if (!/\?$/.test(q)) q += '?';
+      const id = 'q' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+      store.putSocial('market', id, { k: 'q', q, rules: String(n.rules || '').trim().slice(0, 200), cat: n.cat === 'golf' ? 'golf' : 'trip',
+        p0: n.p0 || 50, pid: me, byName: nameOf(me), dev: myDev(), at: Date.now(), result: null });
+      UI.xNew = null; UI.xView = id; UI.xErr = '';
+      UI.xTicket = { m: id, side: 'yes', act: 'buy', type: 'market', k: 1, lim: null };
+      flash('Your market is open. Everyone can trade it now.');
+      return;
+    }
+    case 'xSettle': {
+      const m = xFind(a);
+      if (!m || !canSettle(m) || !store) return;
+      if (!b) { store.patchSocial('market', a, { result: null, settledName: null, settledAt: null }); render(); return; }
+      const who = whoAmI() ? nameOf(whoAmI()) : 'the commissioner';
+      const word = b === 'yes' ? 'Yes' : b === 'no' ? 'No' : 'void';
+      UI.modal = { kind: 'confirm', eyebrow: 'Settle a bet', title: b === 'void' ? 'Void this bet?' : 'Settle it ' + word + '?',
+        note: (m.group ? m.groupQ + ' ' + m.label : m.q) + ' ' + (b === 'void' ? 'Everyone gets back what they paid.'
+          : 'Everyone holding ' + word + ' is paid 1 🍺 a contract; nobody else is paid.')
+          + ' Everyone will see that ' + who + ' settled it.',
+        ok: b === 'void' ? 'Void it' : 'Settle ' + word,
+        onOk: () => { store.patchSocial('market', a, { result: b, settledName: who, settledAt: Date.now() }); flash('Settled. Payouts are in everyone’s beers.'); } };
+      render(); return;
+    }
+    case 'xDelete': {
+      const m = xFind(a);
+      if (!m || !m.custom || !canSettle(m) || X.trades(T).some(t => t.m === a)) return;
+      UI.modal = { kind: 'confirm', eyebrow: 'Bets', title: 'Delete this bet?', note: m.q + ' Nobody has traded it yet, so nothing is lost.',
+        ok: 'Delete', onOk: () => { store.dropSocial('market', a); UI.xView = null; render(); } };
+      render(); return;
+    }
     case 'photoView': UI.modal = { kind: 'photo', id: a, list: b || 'course' }; render(); return;
     case 'photoHeart': { const ph = T.photos[a]; if (ph) store.heartPhoto(a, !iHeart(ph)); render(); return; }
     case 'photoDrop1': {
@@ -7059,6 +7563,8 @@ function onChange(e) {
 
 function onKey(e) {
   if (e.key === 'Enter' && UI.modal && e.target.id === 'pinField') { e.preventDefault(); submitPin(); }
+  if (e.key === 'Enter' && e.target.id === 'chatText') { e.preventDefault(); chatSend(); return; }
+  if (e.key === 'Enter' && (e.target.id === 'xQ' || e.target.id === 'xRules')) { e.preventDefault(); e.target.blur(); return; }
   if (e.key === 'Enter' && UI.modal && e.target.id === 'addName') { e.preventDefault(); onClick({ target: document.querySelector('[data-act="addSave"]') }); }
   if (e.key === 'Enter' && e.target.classList && e.target.classList.contains('nameedit')) { e.preventDefault(); e.target.blur(); }
   if (e.target && e.target.id === 'askField') {
@@ -7303,6 +7809,7 @@ export function boot() {
     }
     checkRole();
     render();
+    fillMyOrders();
   });
   const app = document.getElementById('app');
   app.addEventListener('click', onClick);
@@ -7366,6 +7873,9 @@ export function boot() {
       UI.sayDraft = { rid: UI.entryRound, v: e.target.value };
     }
     if (e.target && e.target.id === 'resortQ') { UI.resortQ = e.target.value; filterGuide(); }
+    if (e.target && e.target.id === 'chatText') UI.chatDraft = e.target.value;
+    if (e.target && e.target.id === 'xQ' && UI.xNew) UI.xNew.q = e.target.value;
+    if (e.target && e.target.id === 'xRules' && UI.xNew) UI.xNew.rules = e.target.value;
     if (e.target && e.target.id === 'resortNote') {
       UI.resortNote = { k: e.target.dataset.a, v: e.target.value };
     }

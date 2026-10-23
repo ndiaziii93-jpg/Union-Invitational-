@@ -34,11 +34,14 @@ global.localStorage = {
    test can push a change as the server would. */
 function fakeSupabase() {
   const rows = new Map();
-  const state = { offline: false, calls: 0, sweeps: 0, handler: null, onState: null, subscribed: false };
+  const state = { offline: false, calls: 0, sweeps: 0, handler: null, onState: null, subscribed: false, deny: [] };
   let clock = 1000;
   const stamp = () => new Date(clock++).toISOString();
 
   const guard = () => { if (state.offline) throw new Error('fetch failed'); state.calls++; };
+  /* the database's own rules, turning a path down the way Postgres does */
+  const denied = path => state.deny.some(pre => String(path).startsWith(pre))
+    ? { code: '42501', message: 'new row violates row-level security policy for table "docs"' } : null;
 
   function table() {
     const q = { _filters: [], _like: null, _gt: null };
@@ -60,6 +63,7 @@ function fakeSupabase() {
       upsert(row) {
         return (async () => {
           try { guard(); } catch (e) { return { error: e }; }
+          if (denied(row.path)) return { error: denied(row.path) };
           const r = { ...row, updated_at: stamp() };
           rows.set(row.path, r);
           return { error: null };
@@ -86,6 +90,7 @@ function fakeSupabase() {
         async rpc(name, args) {
           try { guard(); } catch (e) { return { error: e }; }
           if (name !== 'merge_doc') return { error: new Error('no such function') };
+          if (denied(args.p)) return { error: denied(args.p) };
           const held = rows.get(args.p);
           rows.set(args.p, { path: args.p, doc: { ...((held || {}).doc || {}), ...args.patch },
                              writer: args.who, updated_at: stamp() });
@@ -202,6 +207,31 @@ function open(fake) {
   ok('and the newest card is the one that landed', fake.rows.get('scores/r1__g1').doc.raw, [4, 5, 3]);
   ok('nothing else was lost', fake.rows.get('scores/r1__g2').doc.raw, [6]);
   ok('the book said it was holding writes', said.includes('queued'), true);
+  db.close();
+}
+
+/* ---- a write the rules refuse -------------------------------------------- */
+{
+  console.log('\na write the database rules refuse');
+  mem.clear();
+  const fake = fakeSupabase();
+  const db = open(fake);
+  fake.state.deny = ['chat/'];                     // the rule not yet widened for chat
+  const r = await db.doc('chat/m1').set({ text: 'hello' });
+  ok('it reports it did not land', r, false);
+  ok('and is not queued as if there were no signal', db.pending, 0);
+  ok('it is logged as refused', said.includes('refused'), true);
+
+  fake.state.offline = true;                       // no signal: both wait
+  await db.doc('chat/m2').set({ text: 'from the trees' });
+  await db.doc('scores/r1__g3').set({ raw: [5] });
+  ok('both wait for a signal', db.pending, 2);
+  fake.state.offline = false;
+  await wait(4600);
+  ok('the refused one does not hold up the card behind it', fake.rows.has('scores/r1__g3') && fake.rows.get('scores/r1__g3').doc.raw[0], 5);
+  ok('and the outbox is empty', db.pending, 0);
+  ok('a reaction merged into a refused path is dropped too', await db.doc('chat/x_1').update({ rx_d1: '🔥' }), false);
+  ok('nothing left waiting', db.pending, 0);
   db.close();
 }
 
