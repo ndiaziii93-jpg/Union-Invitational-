@@ -280,7 +280,11 @@ console.log('\na guest');
 await q.evaluate(() => { localStorage.removeItem('union-invitational:whoami'); window.__UI.who = undefined; window.__forceRender(); });
 await q.locator('.ch-post [data-act="whoOpen"]').click(); await q.waitForTimeout(300);
 await q.locator('#guestName').fill('robby b'); await q.locator('[data-act="guestJoin"]').click(); await q.waitForTimeout(300);
-ok('a guest cannot take a name from the trip', /on the trip/.test(await q.locator('.whomodal .xm-err').innerText()), true);
+ok('a bleacher name cannot be a name from the trip', /on the trip/.test(await q.locator('.whomodal .xm-err').innerText()), true);
+for (const near of ['Rosa', 'manuel', 'Ray V Jr']) {
+  await q.locator('#guestName').fill(near); await q.locator('[data-act="guestJoin"]').click(); await q.waitForTimeout(250);
+  ok(`nor pass for one: “${near}”`, /too close to/.test(await q.locator('.whomodal .xm-err').innerText()), true);
+}
 await q.locator('#guestName').fill('Uncle Bob'); await q.locator('[data-act="guestJoin"]').click(); await q.waitForTimeout(400);
 ok('a name of their own is a pass, straight back to the chat', [await q.locator('.chatsheet').count(), /Posting as Uncle Bob, in the bleachers/.test(await q.locator('.chatsheet .ch-as').innerText())], [1, true]);
 await q.locator('#chatText').fill('Watching from Leeds. Go UK!'); await q.locator('#chatText').press('Enter'); await q.waitForTimeout(400);

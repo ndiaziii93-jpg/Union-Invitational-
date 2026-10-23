@@ -1827,8 +1827,19 @@ function guestJoin() {
   const low = name.toLowerCase();
   UI.whoErr = '';
   if (name.length < 2) { UI.whoErr = 'Put in your name.'; redrawFrom('guestName'); return; }
-  if ((T.config.people || []).some(p => [p.display, p.name].some(x => String(x || '').toLowerCase() === low))) {
-    UI.whoErr = 'That name is on the trip. If it’s you, tap it above.'; redrawFrom('guestName'); return;
+  /* The trip's list is the trip: only the people on it are in it, and a
+     bleacher name cannot pass for one of them. Not the name as listed, not
+     a first name on its own ("Rosa", "Manuel"), and not one wrapped around
+     a listed name ("Ray V Jr"). A different surname is somebody else. */
+  const norm = x => String(x || '').toLowerCase().replace(/[^a-z0-9\u00c0-\u024f ]+/g, ' ').replace(/\s+/g, ' ').trim();
+  const typed = norm(name), words = ` ${typed} `;
+  const clash = (T.config.people || []).find(p => [p.display, p.name].some(x => {
+    const n = norm(x); if (!n) return false;
+    return typed === n || typed === n.split(' ')[0] || words.includes(` ${n} `);
+  }));
+  if (clash) {
+    UI.whoErr = `That’s too close to ${clash.display}, who is on the trip. If it’s you, tap your name above; if not, put your full name.`;
+    redrawFrom('guestName'); return;
   }
   const gid = myGuestId();
   if (allGuests().some(g => g.pid !== gid && !g.removed && String(g.name || '').toLowerCase() === low)) {
