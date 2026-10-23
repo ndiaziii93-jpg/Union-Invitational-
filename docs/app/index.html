@@ -4364,6 +4364,33 @@ html.kbd .chatsheet .ch-post{margin-top:0}
 html.kbd .chatsheet .ch-feed{gap:7px;margin-top:8px}
 html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 
+/* guests and PINs */
+.gtag{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);
+  background:#F3E6CF;border-radius:999px;padding:1px 7px;margin-left:6px;vertical-align:2px;font-family:inherit}
+.whomodal .who-guest{display:grid;gap:6px;margin-top:16px;padding-top:14px;border-top:1px solid var(--rule)}
+.who-gn{margin:0;font-size:14px;color:var(--turf)}
+.who-gr{display:flex;gap:8px;align-items:center}
+.who-gr input{flex:1;min-width:0;font:inherit;font-size:16px;color:var(--ink);background:var(--page);border:0;box-shadow:inset 0 0 0 1px var(--rule);border-radius:10px;padding:10px 12px;min-height:46px}
+.who-gr input:focus{outline:2px solid var(--ink);outline-offset:0}
+.who-pin{display:grid;gap:5px;font-size:14px;font-weight:600;margin-top:10px}
+.who-pin input{font:inherit;font-size:26px;letter-spacing:.4em;text-align:center;color:var(--ink);background:var(--page);border:0;box-shadow:inset 0 0 0 1px var(--rule);border-radius:12px;padding:10px;min-height:56px;max-width:220px}
+.who-pin input:focus{outline:2px solid var(--ink);outline-offset:0}
+.mg-row.mg-who{border-left:4px solid var(--gold-up);margin-bottom:8px}
+.pinlist{display:grid;gap:0;background:var(--page);border-radius:12px;box-shadow:0 0 0 .5px var(--shadow);margin-top:10px;max-width:560px}
+.pinrow{display:grid;grid-template-columns:1fr auto 90px;gap:12px;align-items:center;padding:9px 14px;border-top:1px solid var(--hair);font-size:15px}
+.pinrow:first-child{border-top:0}
+.pinrow .pv{font-size:17px;letter-spacing:.12em;text-align:right}
+.pinrow .pv i{font-size:13px;letter-spacing:0;color:var(--turf);font-weight:400}
+.pinrow span.pv{font-size:13px;letter-spacing:0;color:var(--turf)}
+.pinrow.gone .pn{color:var(--turf);text-decoration:line-through}
+.pinrow .rm{justify-self:end}
+.pinh{margin:20px 0 0;font-size:18px}
+.pinh span{font-size:13px;color:var(--turf);font-weight:400;margin-left:6px}
+/* the name box must not hold the window open wider than the phone */
+.modal.whomodal{grid-template-columns:minmax(0,1fr)}
+.whomodal > *,.who-guest,.who-gr{min-width:0}
+.who-gr input{width:100%}
+
 </style>
 <div id="app"></div>
 <!-- The crest, and the opening it pays for, ahead of everything else. A few
@@ -4490,7 +4517,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261023-1130';
+const BUILD = '20261023-1200';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -10885,16 +10912,35 @@ function photoViewHtml() {
    turn — and everyone can react to those and heckle under them, the way the
    gallery would if it were standing on the tee. Newest at the top, the box
    to post with just under the score, so nobody has to scroll to join in. */
-const WHO_KEY = 'union-invitational:who';
+/* WHO IS TALKING. Anyone on the trip chooses their name, and the first
+   time it is chosen they make a four-number PIN for it, so nobody else can
+   post or bet as them from another phone. The commissioner can read every
+   PIN on Roster when somebody forgets. Anyone not on the trip takes a guest
+   pass: a name of their own, marked as a guest wherever it shows. Viewing
+   is open to everyone already; this is only about whose name goes on what.
+   The key is new on purpose: a name chosen before PINs existed is asked
+   for again, once. */
+const WHO_KEY = 'union-invitational:whoami';
 function loadWho() { try { return localStorage.getItem(WHO_KEY) || null; } catch (e) { return null; } }
 function saveWho(pid) { try { localStorage.setItem(WHO_KEY, pid || ''); } catch (e) { /* storage blocked */ } }
-/** Who this phone talks and bets as. Any of the twenty-three, chosen once;
- *  a golfer who has already said who they are on My round is not asked. */
+/* the PIN for a name, and the guests, live beside the chat: chat/id_<pid>, chat/guest_<pid> */
+const pinOf = pid => (((T.chat || {})['id_' + pid]) || {}).pin || '';
+const guestOf = pid => ((T.chat || {})['guest_' + pid]) || null;
+const allGuests = () => Object.values(T.chat || {}).filter(r => r && r.k === 'g');
+const isGuest = pid => !!pid && !E.person(T, pid) && !!guestOf(pid);
+const guestGone = pid => { const g = guestOf(pid); return !!(g && g.removed); };
+/** Who this phone talks and bets as: a name from the trip, or its guest pass. */
 function whoAmI() {
-  if (UI.who === undefined) UI.who = loadWho() || loadMe() || null;
-  return UI.who && E.person(T, UI.who) ? UI.who : null;
+  if (UI.who === undefined) UI.who = loadWho();
+  const id = UI.who;
+  if (!id) return null;
+  if (E.person(T, id)) return id;
+  const g = guestOf(id);
+  return g && !g.removed ? id : null;
 }
-const nameOf = pid => ((E.person(T, pid) || {}).display) || 'Someone';
+const myGuestId = () => 'x' + myDev();
+const nameOf = pid => ((E.person(T, pid) || {}).display) || (guestOf(pid) || {}).name || 'Someone';
+const guestTag = pid => isGuest(pid) ? '<span class="gtag">Guest</span>' : '';
 const initialsOf = s => String(s || '?').split(/\s+/).filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase();
 const localOf = ms => new Date(ms + D.TZ_OFFSET_MIN * 60000);
 function clockOf(ms) {
@@ -10911,7 +10957,7 @@ function sinceOf(ms) {
 const RX = ['🔥', '👏', '😬', '🍺'];
 const rxCount = (doc, e) => Object.keys(doc || {}).filter(k => k.startsWith('rx_') && doc[k] === e).length;
 const myRx = doc => (doc || {})['rx_' + myDev()] || '';
-const chatRows = () => Object.values(T.chat || {}).filter(r => r && r.k === 'm');
+const chatRows = () => Object.values(T.chat || {}).filter(r => r && r.k === 'm' && !guestGone(r.pid));
 const ownsMsg = r => !!r && (canAdmin() || (!!r.dev && r.dev === myDev()));
 
 /** The chat a phone opens on: today's round if there is one, else the trip. */
@@ -10932,7 +10978,7 @@ function msgHtml(r, small) {
   const nm = r.name || nameOf(r.pid);
   return `<div class="ch-msg${small ? ' hk' : ''}">
     <span class="ch-av${E.person(T, r.pid) && E.person(T, r.pid).role === 'golfer' ? ' g' : ''}" aria-hidden="true">${esc(initialsOf(nm))}</span>
-    <div class="ch-bub"><span class="ch-n">${esc(nm)}<small>${esc(sinceOf(r.at))}</small>${ownsMsg(r)
+    <div class="ch-bub"><span class="ch-n">${esc(nm)}${guestTag(r.pid)}<small>${esc(sinceOf(r.at))}</small>${ownsMsg(r)
       ? `<button class="ch-rm" data-act="chatDrop" data-a="${esc(r.id)}" aria-label="Remove this message">Remove</button>` : ''}</span>
       <p>${esc(r.text)}</p>${small ? '' : rxRow(r.id, r)}</div></div>`;
 }
@@ -10976,7 +11022,7 @@ function boardChat(inSheet) {
         <input id="chatText" type="text" maxlength="280" autocomplete="off" enterkeyhint="send"
           placeholder="${reMoment ? 'Heckle it…' : isRound ? 'Say something to the group…' : 'Anything from the trip…'}" value="${esc(UI.chatDraft || '')}" aria-label="Message">
         <button class="btn sm" data-act="chatSend">Post</button></div>
-      <button class="ch-as" data-act="whoOpen">Posting as ${esc(nameOf(me))} · change</button>`
+      <button class="ch-as" data-act="whoOpen">Posting as ${esc(nameOf(me))}${isGuest(me) ? ', a guest' : ''} · change</button>`
     : `<button class="btn" data-act="whoOpen" style="width:100%">Choose your name to join in</button>`}
   </div>
   ${socialRefused()}
@@ -11137,12 +11183,86 @@ function whoModalHtml() {
   const block = (label, role) => { const list = ppl.filter(p => p.role === role); if (!list.length) return '';
     return `<div class="who-g"><span class="who-l">${esc(label)}</span><div class="who-c">${list.map(p =>
       `<button class="${p.id === cur ? 'on' : ''}" data-act="whoPick" data-a="${esc(p.id)}">${esc(p.display)}</button>`).join('')}</div></div>`; };
-  return `<div class="scrim" data-act="modalScrim"><div class="modal" role="dialog" aria-modal="true" aria-label="Who are you?">
+  const mine = guestOf(myGuestId());
+  const draft = UI.guestDraft != null ? UI.guestDraft : (mine && !mine.removed ? mine.name : '');
+  return `<div class="scrim" data-act="modalScrim"><div class="modal whomodal" role="dialog" aria-modal="true" aria-label="Who are you?">
     ${modalBanner('Who are you?', 'Chat and bets')}
-    <p>Your name goes on what you post and what you bet. This phone remembers it.</p>
+    <p>Your name goes on what you post and what you bet. On the trip? Tap your name. You’ll make a PIN the first time, so nobody else can be you.</p>
     ${block('Golfers', 'golfer')}${block('Refs', 'official')}${block('The gallery', 'spectator')}
+    <div class="who-guest">
+      <span class="who-l">Not on the trip? Get a guest pass</span>
+      <p class="who-gn">Watching from home: chat and bet under your own name. Everyone sees you’re a guest.</p>
+      ${mine && mine.removed ? `<p class="xm-err">The commissioner has taken this phone’s guest pass away.</p>` : `
+      <div class="who-gr"><input id="guestName" type="text" maxlength="24" autocomplete="off" autocapitalize="words" enterkeyhint="go"
+          placeholder="Your name" value="${esc(draft)}" aria-label="Your name, as a guest">
+        <button class="btn sm" data-act="guestJoin">${mine ? 'Use this name' : 'Join as a guest'}</button></div>`}
+      ${UI.whoErr ? `<p class="xm-err">${esc(UI.whoErr)}</p>` : ''}
+    </div>
     <div class="acts"><button class="btn ghost" data-act="modalCancel">Cancel</button></div>
   </div></div>`;
+}
+/** A name from the trip, unlocked with its PIN — or its PIN made, the first time. */
+function whoPinHtml() {
+  const m = UI.modal, nm = nameOf(m.pid), set = m.mode === 'set';
+  return `<div class="scrim" data-act="modalScrim"><div class="modal whomodal" role="dialog" aria-modal="true" aria-label="${set ? 'Make a PIN' : 'Enter your PIN'}">
+    ${modalBanner(set ? 'Make your PIN, ' + nm : 'Your PIN, ' + nm, 'Chat and bets')}
+    <p>${set ? `Four numbers you’ll remember. You’ll need them to be ${esc(nm)} on any other phone. The commissioner can look it up if you forget. Not your bank PIN.`
+      : `Enter the four numbers you chose for ${esc(nm)}. Forgotten them? The commissioner can tell you.`}</p>
+    <label class="who-pin"><span>${set ? 'Your PIN' : 'PIN'}</span>
+      <input id="whoPinA" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" value="${esc(m.a || '')}"></label>
+    ${set ? `<label class="who-pin"><span>Once more</span>
+      <input id="whoPinB" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" value="${esc(m.b || '')}"></label>` : ''}
+    ${m.err ? `<p class="xm-err">${esc(m.err)}</p>` : ''}
+    <div class="acts"><button class="btn ghost" data-act="whoOpen">Not ${esc(nm)}?</button>
+      <button class="btn" data-act="whoPinGo">${set ? 'Save my PIN' : 'That’s me'}</button></div>
+  </div></div>`;
+}
+/* A box being typed in holds every redraw back (see inUse), so a window that
+   answers Enter lets go of the box first — and puts the caret back in it
+   when the answer is "try again". */
+function redrawFrom(again) {
+  const f = document.activeElement;
+  if (f && f.tagName === 'INPUT') f.blur();
+  render();
+  if (again) { const g = document.getElementById(again); if (g) g.focus({ preventScroll: true }); }
+}
+function whoPinGo() {
+  const m = UI.modal; if (!m || m.kind !== 'whopin' || !store) return;
+  const fa = document.getElementById('whoPinA'), fb = document.getElementById('whoPinB');
+  if (fa) m.a = fa.value; if (fb) m.b = fb.value;
+  const a = String(m.a || '').trim(), b = String(m.b || '').trim();
+  m.err = '';
+  const held = pinOf(m.pid);
+  if (m.mode === 'set' && held) { m.mode = 'enter'; m.a = ''; m.err = 'Someone has already made a PIN for this name. Enter it, or ask the commissioner.'; redrawFrom('whoPinA'); return; }
+  if (!/^\d{4}$/.test(a)) { m.err = 'Four numbers, please.'; redrawFrom('whoPinA'); return; }
+  if (m.mode === 'set') {
+    if (a !== b) { m.err = 'Those two don’t match. Try again.'; m.b = ''; redrawFrom('whoPinB'); return; }
+    store.putSocial('chat', 'id_' + m.pid, { k: 'id', pid: m.pid, pin: a, at: Date.now(), dev: myDev() });
+  } else if (a !== held) { m.err = 'That isn’t it. The commissioner can tell you your PIN.'; m.a = ''; redrawFrom('whoPinA'); return; }
+  UI.who = m.pid; saveWho(m.pid);
+  const back = m.back;
+  UI.modal = back ? { kind: back } : null;
+  redrawFrom();
+}
+function guestJoin() {
+  const f = document.getElementById('guestName');
+  const name = String(f ? f.value : UI.guestDraft || '').trim().replace(/\s+/g, ' ');
+  const low = name.toLowerCase();
+  UI.whoErr = '';
+  if (name.length < 2) { UI.whoErr = 'Put in your name.'; redrawFrom('guestName'); return; }
+  if ((T.config.people || []).some(p => [p.display, p.name].some(x => String(x || '').toLowerCase() === low))) {
+    UI.whoErr = 'That name is on the trip. If it’s you, tap it above.'; redrawFrom('guestName'); return;
+  }
+  const gid = myGuestId();
+  if (allGuests().some(g => g.pid !== gid && !g.removed && String(g.name || '').toLowerCase() === low)) {
+    UI.whoErr = 'Another guest has that name. Add an initial or a nickname.'; redrawFrom('guestName'); return;
+  }
+  const had = guestOf(gid);
+  store.putSocial('chat', 'guest_' + gid, { k: 'g', pid: gid, name, at: (had && had.at) || Date.now(), dev: myDev() });
+  UI.who = gid; saveWho(gid); UI.guestDraft = null;
+  const back = UI.modal && UI.modal.back;
+  UI.modal = back ? { kind: back } : null;
+  redrawFrom();
 }
 function chatSend() {
   const me = whoAmI();
@@ -11185,9 +11305,12 @@ function beer(n) {
 const signed = n => (n >= 0 ? '+' : '−') + beer(Math.abs(n));
 const xAll = () => X.markets(T, now);
 const xFind = id => xAll().find(m => m.id === id) || null;
-const canSettle = m => !!m && (canAdmin() || (m.custom && (m.dev === myDev() || (whoAmI() && m.pid === whoAmI()))));
+/* A bet made by someone on the trip is theirs or the commissioner's to
+   settle; one made by a guest is the commissioner's alone. */
+const canSettle = m => !!m && (canAdmin() || (m.custom && !isGuest(m.pid) && (m.dev === myDev() || (whoAmI() && m.pid === whoAmI()))));
 const settlerLine = m => m.settler === 'book' ? 'Settles itself from the scores. The commissioner can void it if something goes wrong.'
   : m.settler === 'commish' ? 'Settled by the commissioner.'
+  : m.custom && isGuest(m.pid) ? `Made by ${esc(m.byName || 'a guest')}, a guest, so the commissioner settles it. Everyone sees when.`
   : `Settled by ${esc(m.byName || 'whoever made it')} or the commissioner. Everyone sees who settled it and when.`;
 const mName = m => m.group ? m.groupQ.replace(/\?$/, '') + ': ' + m.label : m.q;
 function volumeOf(id, tr) { return tr.filter(t => t.m === id && t.cost > 0).reduce((a, t) => a + t.cost, 0); }
@@ -11257,7 +11380,7 @@ function xList() {
     if (m.group) { if (seen.has(m.group)) continue; seen.add(m.group); cards.push(xGroupCard(pick.filter(x => x.group === m.group), tr)); }
     else cards.push(xCard(m, tr));
   }
-  const st = X.standings(T, now).slice(0, 5);
+  const st = X.standings(T, now).filter(x => !guestGone(x.pid)).slice(0, 5);
   return `${xBar()}
   <p class="xm-how">Everything here is in beers. Everyone gets <b>${X.DAILY} 🍺 a day</b>, and bets go on in quarters. <b>The chance is the price</b>:
     the less likely the side you back, the more it pays. A ¼ 🍺 on a 25% Yes pays 1 🍺 if it happens.</p>
@@ -11266,7 +11389,7 @@ function xList() {
   <button class="xm-new" data-act="xView" data-a="new"><span aria-hidden="true">＋</span> Make your own bet</button>
   ${cards.join('') || `<p class="pg-empty">${cat === 'ours' ? 'Nobody has made one yet. Make the first.' : cat === 'done' ? 'Nothing has settled yet.' : 'Nothing here.'}</p>`}
   ${st.length ? `<section class="xm-sec"><div class="pg-h"><b>Sharpest in the group</b><span>beers up or down</span></div>
-    ${st.map((s, i) => `<div class="xm-st"><span class="num">${i + 1}</span><b>${esc(nameOf(s.pid))}</b><em class="num ${s.profit >= 0 ? 'up' : 'dn'}">${signed(s.profit)} 🍺</em></div>`).join('')}</section>` : ''}
+    ${st.map((s, i) => `<div class="xm-st"><span class="num">${i + 1}</span><b>${esc(nameOf(s.pid))}${guestTag(s.pid)}</b><em class="num ${s.profit >= 0 ? 'up' : 'dn'}">${signed(s.profit)} 🍺</em></div>`).join('')}</section>` : ''}
   <p class="pg-note">The chance moves as people bet: the book always takes the other side, so every bet goes on straight away.</p>`;
 }
 function xTicket(m, q) {
@@ -11329,7 +11452,7 @@ function xMarketHtml(m) {
     <span class="xm-eye">Waiting to go on</span>
     <div class="xm-ob">${lv(dp.yes, 'y', 'On Yes, at')}${lv(dp.no, 'n', 'On No, at')}</div>
     ${recent.length ? `<span class="xm-eye">Latest bets</span><div class="xm-tk xm-trades">${recent.map(t =>
-      `<div class="xm-kv"><span>${esc(nameOf(t.pid))} ${t.cost > 0 ? 'put ' + beer(t.cost) + ' 🍺 on' : 'cashed out ' + beer(-t.cost) + ' 🍺 of'} ${t.side === 'yes' ? 'Yes' : 'No'}</span><b>${t.px}% · ${esc(sinceOf(t.at))}</b></div>`).join('')}</div>` : ''}
+      `<div class="xm-kv"><span>${esc(nameOf(t.pid))}${guestTag(t.pid)} ${t.cost > 0 ? 'put ' + beer(t.cost) + ' 🍺 on' : 'cashed out ' + beer(-t.cost) + ' 🍺 of'} ${t.side === 'yes' ? 'Yes' : 'No'}</span><b>${t.px}% · ${esc(sinceOf(t.at))}</b></div>`).join('')}</div>` : ''}
     <span class="xm-eye">Rules</span>
     <div class="xm-rules">${m.rules ? esc(m.rules) + ' ' : ''}A bet that comes true pays out in beers, to the quarter; one that doesn’t pays nothing. ${settlerLine(m)}</div>
     ${canSettle(m) && !m.result ? `<div class="xm-settle"><span class="xm-eye">Settle it</span><div class="xm-q">
@@ -13329,7 +13452,29 @@ function scrRoster() {
         </tr>`).join('')}
       </tbody>
     </table>
-  </div>`;
+  </div>
+  ${rosterPins()}`;
+}
+
+/* ---- PINs and guests: the master reviewer's eyes only ----
+   Everyone's chat-and-bets PIN, so one forgotten on the 9th tee is a word
+   with the commissioner rather than a lost name; and every guest pass, to
+   take away if one is ever misused. Drawn only for the master reviewer. */
+function rosterPins() {
+  if (!canAdmin()) return '';
+  const ppl = T.config.people || [], gs = allGuests().sort((a, b) => (a.at || 0) - (b.at || 0));
+  return `<div class="titlerow" style="margin-top:44px">
+    <h3 class="sub" style="font-size:28px;font-weight:700;margin:0">Chat &amp; bets</h3>
+    <span class="rnote">Only you can see this. Each person makes their PIN the first time they choose their name; tell them it if they forget. Clearing one lets them make a new one.</span>
+  </div>
+  <div class="pinlist">${ppl.map(p => { const pin = pinOf(p.id);
+    return `<div class="pinrow"><span class="pn">${esc(p.display)}</span><b class="pv num">${pin ? esc(pin) : '<i>not made yet</i>'}</b>
+      ${pin ? `<button class="rm" data-act="pinReset" data-a="${esc(p.id)}">Clear</button>` : '<span></span>'}</div>`; }).join('')}</div>
+  <h4 class="pinh">Guests <span>${gs.filter(g => !g.removed).length}</span></h4>
+  ${gs.length ? `<div class="pinlist">${gs.map(g => `<div class="pinrow${g.removed ? ' gone' : ''}"><span class="pn">${esc(g.name)}</span>
+      <span class="pv">${g.removed ? 'pass taken' : 'since ' + esc(clockOf(g.at))}</span>
+      <button class="rm" data-act="${g.removed ? 'guestRestore' : 'guestRemove'}" data-a="${esc(g.pid)}">${g.removed ? 'Give it back' : 'Take pass'}</button></div>`).join('')}</div>`
+    : '<p class="pnote">No guests yet. Anyone with the link can get a pass from the top-right button or the chat.</p>'}`;
 }
 
 function scrRules() {
@@ -14363,6 +14508,10 @@ function manageModalHtml() {
   return `<div class="scrim" data-act="modalScrim"><div class="modal mgmodal"
     role="dialog" aria-modal="true" aria-label="Manage">
     ${modalBanner('Manage', 'Set once, then read all week')}
+    <button class="mg-row mg-who" data-act="whoOpen">
+      <span class="mg-w"><span class="mg-t">${whoAmI() ? 'Chat and bets as ' + esc(nameOf(whoAmI())) : 'Guest pass'}</span>
+        <span class="mg-n">${whoAmI() ? (isGuest(whoAmI()) ? 'A guest · change your name' : 'Change who you are') : 'Not on the trip? Chat and bet under your own name'}</span></span>
+      <span class="mg-go" aria-hidden="true">&rsaquo;</span></button>
     <div class="mglist">
       ${manageRows().map(([id, label, note]) => {
         const n = id === 'setup' ? E.setupIssues(T).length : 0;
@@ -16034,6 +16183,7 @@ function modalHtml() {
        : UI.modal.kind === 'rinfo' ? infoModalHtml()
        : UI.modal.kind === 'photo' ? photoViewHtml()
        : UI.modal.kind === 'who' ? whoModalHtml()
+       : UI.modal.kind === 'whopin' ? whoPinHtml()
        : UI.modal.kind === 'chat' ? chatSheetHtml()
        : UI.modal.kind === 'marks' ? markSheet(UI.modal.rid, UI.modal.hole, UI.modal.who)
        : UI.modal.kind === 'hole' ? holeModalHtml()
@@ -16285,12 +16435,34 @@ function onClick(e) {
     case 'pushOn': if (!UI.pushBusy) pushOn(); return;
     case 'pushOff': pushOff(); return;
     case 'chatDrop': { const r = (T.chat || {})[a]; if (!ownsMsg(r)) return; store.dropSocial('chat', a); render(); return; }
-    case 'whoOpen': UI.modal = { kind: 'who', back: UI.modal && UI.modal.kind === 'chat' ? 'chat' : null }; render(); return;
+    case 'whoOpen': {
+      const back = UI.modal && (UI.modal.kind === 'chat' ? 'chat' : UI.modal.back) || null;
+      UI.whoErr = ''; UI.guestDraft = null;
+      UI.modal = { kind: 'who', back }; render(); return;
+    }
     case 'whoPick': {
       const back = UI.modal && UI.modal.back;
-      UI.who = a; saveWho(a); UI.modal = back ? { kind: back } : null; render();
-      return;
+      if (loadWho() === a) { UI.who = a; UI.modal = back ? { kind: back } : null; render(); return; }   // already this phone's
+      UI.modal = { kind: 'whopin', pid: a, back, mode: pinOf(a) ? 'enter' : 'set', a: '', b: '', err: '' };
+      render(); return;
     }
+    case 'whoPinGo': whoPinGo(); return;
+    case 'guestJoin': guestJoin(); return;
+    case 'pinReset': {
+      if (!canAdmin()) return;
+      UI.modal = { kind: 'confirm', eyebrow: 'Chat and bets', title: 'Clear ' + nameOf(a) + '’s PIN?',
+        note: 'They make a new one the next time they choose their name. Until then anyone could choose it, so tell them first.',
+        ok: 'Clear it', onOk: () => { store.dropSocial('chat', 'id_' + a); render(); } };
+      render(); return;
+    }
+    case 'guestRemove': {
+      if (!canAdmin()) return;
+      UI.modal = { kind: 'confirm', eyebrow: 'Guests', title: 'Take ' + nameOf(a) + '’s guest pass?',
+        note: 'Their messages leave the chat and they leave the bets table. They can still look at everything. You can give it back here.',
+        ok: 'Take it', onOk: () => { store.patchSocial('chat', 'guest_' + a, { removed: true }); render(); } };
+      render(); return;
+    }
+    case 'guestRestore': if (!canAdmin()) return; store.patchSocial('chat', 'guest_' + a, { removed: false }); render(); return;
     /* ---- the exchange ---- */
     case 'xView': UI.xView = a || null; UI.xErr = ''; UI.xTicket = null; UI.liftTo = '.xm-anchor'; render(); return;
     case 'xCat': UI.xCat = a; render(); return;
@@ -17156,6 +17328,8 @@ function onChange(e) {
 function onKey(e) {
   if (e.key === 'Enter' && UI.modal && e.target.id === 'pinField') { e.preventDefault(); submitPin(); }
   if (e.key === 'Enter' && e.target.id === 'chatText') { e.preventDefault(); chatSend(); return; }
+  if (e.key === 'Enter' && e.target.id === 'guestName') { e.preventDefault(); guestJoin(); return; }
+  if (e.key === 'Enter' && /^whoPin[AB]$/.test(e.target.id)) { e.preventDefault(); whoPinGo(); return; }
   if (e.key === 'Enter' && (e.target.id === 'xQ' || e.target.id === 'xRules')) { e.preventDefault(); e.target.blur(); return; }
   if (e.key === 'Enter' && UI.modal && e.target.id === 'addName') { e.preventDefault(); onClick({ target: document.querySelector('[data-act="addSave"]') }); }
   if (e.key === 'Enter' && e.target.classList && e.target.classList.contains('nameedit')) { e.preventDefault(); e.target.blur(); }
@@ -17481,6 +17655,8 @@ function boot() {
     }
     if (e.target && e.target.id === 'resortQ') { UI.resortQ = e.target.value; filterGuide(); }
     if (e.target && e.target.id === 'chatText') UI.chatDraft = e.target.value;
+    if (e.target && e.target.id === 'guestName') UI.guestDraft = e.target.value;
+    if (e.target && /^whoPin[AB]$/.test(e.target.id) && UI.modal && UI.modal.kind === 'whopin') UI.modal[e.target.id === 'whoPinA' ? 'a' : 'b'] = e.target.value;
     if (e.target && e.target.id === 'xQ' && UI.xNew) UI.xNew.q = e.target.value;
     if (e.target && e.target.id === 'xRules' && UI.xNew) UI.xNew.rules = e.target.value;
     if (e.target && e.target.id === 'resortNote') {
@@ -17554,7 +17730,7 @@ if ('serviceWorker' in navigator) {
    So every return reads the build stamp off the server and, when it has
    moved on, the page reloads itself — unless a hole is half entered, in
    which case it waits for the save. */
-var BOOK_BUILD = '20261023-1130';
+var BOOK_BUILD = '20261023-1200';
 function checkBuild() {
   if (document.hidden || navigator.onLine === false) return;
   fetch('sw.js', { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (t) {

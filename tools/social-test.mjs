@@ -54,8 +54,14 @@ ok('before a name is chosen, it asks', await p.locator('.ch-post [data-act="whoO
 await tap('.ch-post [data-act="whoOpen"]');
 ok('anyone on the trip can be chosen, gallery included', await p.locator('.who-c button').count(), 23);
 await shot('who');
+ok('and anyone not on the trip can get a guest pass', await p.locator('#guestName').count(), 1);
 await tap('.who-c button:has-text("Jennifer D")');
-ok('and the phone remembers it', await p.evaluate(() => localStorage.getItem('union-invitational:who')), 's1');
+ok('a name from the trip asks for a PIN to be made, the first time', await p.locator('.whomodal #whoPinB').count(), 1);
+await p.locator('#whoPinA').fill('4826'); await p.locator('#whoPinB').fill('4862'); await tap('[data-act="whoPinGo"]');
+ok('two that do not match are refused', /don’t match/.test(await p.locator('.whomodal .xm-err').innerText()), true);
+await p.locator('#whoPinB').fill('4826'); await tap('[data-act="whoPinGo"]');
+ok('and the phone remembers who it is', await p.evaluate(() => localStorage.getItem('union-invitational:whoami')), 's1');
+ok('the PIN is kept for the commissioner to look up', await p.evaluate(() => window.__T.chat.id_s1 && window.__T.chat.id_s1.pin), '4826');
 await p.locator('#chatText').fill('Come on Group 2!'); await p.locator('#chatText').press('Enter'); await p.waitForTimeout(400);
 ok('a message goes up, at the top', await p.locator('.ch-feed > .ch-msg .ch-bub p').first().innerText(), 'Come on Group 2!');
 await p.locator('.ch-ev:has-text("water") [data-act="chatHeckle"]').click(); await p.waitForTimeout(400);
@@ -67,7 +73,7 @@ ok('a reaction on the birdie counts', (await p.locator('.ch-ev:has-text("birdies
 await p.locator('.ch-ev:has-text("birdies") .ch-rx button').nth(1).click(); await p.waitForTimeout(300);
 ok('one reaction a phone: a second swaps it', await p.locator('.ch-ev:has-text("birdies") .ch-rx button.on').count(), 1);
 const stored = await p.evaluate(() => Object.values(window.__T.chat).map(r => r.k || 'x').sort());
-ok('two messages and one reaction document in the book', stored, ['m', 'm', 'x']);
+ok('two messages, one reaction and her PIN in the book', stored, ['id', 'm', 'm', 'x']);
 await shot('chat-round');
 await tap('.ch-rooms button[data-a="trip"]');
 ok('the trip room has no score and none of the round', [await p.locator('.ch-plate').count(), await p.locator('.ch-ev').count()], [0, 0]);
@@ -220,6 +226,69 @@ await tap('.navbtn[data-a="boards"]'); await tap('.btab[data-a="chat"]');
 ok('nor on the chat itself', await p.locator('.chatfab').count(), 0);
 await tap('.btab[data-a="photos"]');
 ok('on Photos it sits above the camera button', await p.locator('.chatfab.up').count(), 1);
+
+console.log('\nthe same name on another phone');
+const ctx2 = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+const q = await ctx2.newPage(); q.on('pageerror', e => errs.push(String(e)));
+await q.goto('file://' + S + '/social.html'); await q.waitForTimeout(3500);
+for (let i = 0; i < 6; i++) { const d = q.locator('.scrim [data-act="modalCancel"]'); if (await d.count()) { await d.first().click({ force: true }); await q.waitForTimeout(200); } else break; }
+/* the shared book, as the second phone would read it */
+await q.evaluate(pin => { window.__T.chat.id_s1 = { id: 'id_s1', k: 'id', pid: 's1', pin, at: Date.now(), dev: 'dOther' }; window.__forceRender(); }, '4826');
+await q.locator('.chatfab').click(); await q.waitForTimeout(400);
+await q.locator('.ch-post [data-act="whoOpen"]').click(); await q.waitForTimeout(300);
+await q.locator('.who-c button:has-text("Jennifer D")').click(); await q.waitForTimeout(300);
+ok('it asks for her PIN rather than a new one', [await q.locator('#whoPinA').count(), await q.locator('#whoPinB').count()], [1, 0]);
+await q.locator('#whoPinA').fill('1111'); await q.locator('[data-act="whoPinGo"]').click(); await q.waitForTimeout(300);
+ok('the wrong one is refused, and says who can help', /commissioner can tell you/.test(await q.locator('.whomodal .xm-err').innerText()), true);
+await q.locator('#whoPinA').fill('4826'); await q.locator('#whoPinA').press('Enter'); await q.waitForTimeout(400);
+ok('the right one lets her in, back in the chat', [await q.evaluate(() => localStorage.getItem('union-invitational:whoami')), await q.locator('.chatsheet').count()], ['s1', 1]);
+
+console.log('\na guest');
+await q.evaluate(() => { localStorage.removeItem('union-invitational:whoami'); window.__UI.who = undefined; window.__forceRender(); });
+await q.locator('.ch-post [data-act="whoOpen"]').click(); await q.waitForTimeout(300);
+await q.locator('#guestName').fill('robby b'); await q.locator('[data-act="guestJoin"]').click(); await q.waitForTimeout(300);
+ok('a guest cannot take a name from the trip', /on the trip/.test(await q.locator('.whomodal .xm-err').innerText()), true);
+await q.locator('#guestName').fill('Uncle Bob'); await q.locator('[data-act="guestJoin"]').click(); await q.waitForTimeout(400);
+ok('a name of their own is a pass, straight back to the chat', [await q.locator('.chatsheet').count(), /Posting as Uncle Bob, a guest/.test(await q.locator('.chatsheet .ch-as').innerText())], [1, true]);
+await q.locator('#chatText').fill('Watching from Leeds. Go UK!'); await q.locator('#chatText').press('Enter'); await q.waitForTimeout(400);
+const first = q.locator('.chatsheet .ch-feed > .ch-msg').first();
+ok('their line is marked as a guest’s', [(await first.locator('.ch-n').innerText()).startsWith('Uncle Bob'), await first.locator('.gtag').count()], [true, 1]);
+await q.evaluate(() => document.activeElement && document.activeElement.blur());
+await q.locator('.scrim.tcscrim').click({ position: { x: 20, y: 20 } }); await q.waitForTimeout(300);
+await q.locator('.navbtn[data-a="bets"]').click(); await q.waitForTimeout(400);
+ok('and they bet with the same twenty beers', (await q.locator('.xm-bal').innerText()).trim(), '🍺 20 · My bets');
+await q.close();
+
+console.log('\nwith the PINs on, as on the real app');
+writeFileSync(S + '/social-pins.html', readFileSync(S + '/social.html', 'utf8').replace('PINS_ENABLED = false', 'PINS_ENABLED = true'));
+const ctx3 = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+const r = await ctx3.newPage(); r.on('pageerror', e => errs.push(String(e)));
+await r.goto('file://' + S + '/social-pins.html'); await r.waitForTimeout(3500);
+for (let i = 0; i < 6; i++) { const d = r.locator('.scrim [data-act="modalCancel"]'); if (await d.count()) { await d.first().click({ force: true }); await r.waitForTimeout(200); } else break; }
+await r.evaluate(() => { const T = window.__T, at = Date.now();
+  T.config.pins = { master: '9991', s1: '9992', s2: '9993' };
+  T.chat.id_g7 = { id: 'id_g7', k: 'id', pid: 'g7', pin: '7070', at, dev: 'dA' };
+  T.chat.guest_xd1 = { id: 'guest_xd1', k: 'g', pid: 'xd1', name: 'Uncle Bob', at, dev: 'd1' };
+  T.market.qguest = { id: 'qguest', k: 'q', q: 'Will Uncle Bob fly out for Sunday?', rules: '', cat: 'trip', p0: 30, pid: 'xd1', byName: 'Uncle Bob', dev: 'd1', at, result: null };
+  localStorage.setItem('union-invitational:device', 'd1'); localStorage.setItem('union-invitational:whoami', 'xd1');
+  window.__UI.role = 'viewer'; window.__forceRender(); });
+await r.reload(); await r.waitForTimeout(3500);
+for (let i = 0; i < 6; i++) { const d = r.locator('.scrim [data-act="modalCancel"]'); if (await d.count()) { await d.first().click({ force: true }); await r.waitForTimeout(200); } else break; }
+await r.evaluate(() => { const T = window.__T, at = Date.now();
+  T.config.pins = { master: '9991', s1: '9992', s2: '9993' };
+  T.chat.id_g7 = { id: 'id_g7', k: 'id', pid: 'g7', pin: '7070', at, dev: 'dA' };
+  T.chat.guest_xd1 = { id: 'guest_xd1', k: 'g', pid: 'xd1', name: 'Uncle Bob', at, dev: 'd1' };
+  T.market.qguest = { id: 'qguest', k: 'q', q: 'Will Uncle Bob fly out for Sunday?', rules: '', cat: 'trip', p0: 30, pid: 'xd1', byName: 'Uncle Bob', dev: 'd1', at, result: null };
+  window.__UI.role = 'viewer'; window.__UI.screen = 'bets'; window.__UI.xView = 'qguest'; window.__forceRender(); });
+await r.waitForTimeout(400);
+ok('a guest who made a bet cannot settle it', await r.locator('[data-act="xSettle"]').count(), 0);
+ok('it says the commissioner does', /a guest, so the commissioner settles it/.test(await r.locator('.xm-rules').innerText()), true);
+await r.evaluate(() => { window.__UI.screen = 'roster'; window.__UI.xView = null; window.__forceRender(); }); await r.waitForTimeout(300);
+ok('nobody but the master reviewer sees the PINs', await r.locator('.pinlist').count(), 0);
+await r.evaluate(() => { window.__UI.role = 'master'; window.__forceRender(); }); await r.waitForTimeout(300);
+ok('the master reviewer sees them on Roster', (await r.locator('.pinrow:has-text("Robby B") .pv').innerText()).trim(), '7070');
+ok('and the guests, with a way to take a pass', [await r.locator('.pinrow:has-text("Uncle Bob")').count(), await r.locator('[data-act="guestRemove"]').count()], [1, 1]);
+await r.close();
 
 ok('no errors on the way', errs, []);
 await b.close();

@@ -88,7 +88,7 @@ const errs = []; p.on('pageerror', e => errs.push(String(e)));
 const shut = async () => { for (let i = 0; i < 6; i++) { const d = p.locator('.scrim [data-act="modalCancel"]'); if (await d.count()) { await d.first().click({ force: true }); await p.waitForTimeout(200); } else break; } };
 
 await p.goto(ORIGIN + '/'); await p.waitForTimeout(5000); await shut();
-await p.evaluate(() => localStorage.setItem('union-invitational:who', 's1'));
+await p.evaluate(() => localStorage.setItem('union-invitational:whoami', 's1'));
 
 console.log('\nturning them on');
 await p.locator('.chatfab').click(); await p.waitForTimeout(500);
