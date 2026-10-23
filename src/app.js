@@ -1526,7 +1526,7 @@ function momentHtml(m, heckles) {
     <button class="ch-hb${UI.chatRe === m.key ? ' on' : ''}" data-act="chatHeckle" data-a="${esc(m.key)}">${UI.chatRe === m.key ? 'Heckling this ↑' : 'Heckle'}</button>
   </article>`;
 }
-function boardChat() {
+function boardChat(inSheet) {
   const room = chatRoomNow(), me = whoAmI();
   const isRound = !!D.ROUNDS.find(r => r.id === room);
   const msgs = chatRows().filter(r => r.rid === room);
@@ -1541,7 +1541,7 @@ function boardChat() {
   const lead = isRound ? E.pairRoundBoard(T, room)[0] : null;
   const ph = isRound ? E.phaseOf(T, room, now) : null;
   const reMoment = UI.chatRe && ms.find(m => m.key === UI.chatRe);
-  return `<h2 class="head" style="margin-top:14px">Chat</h2>
+  return `${inSheet ? '' : '<h2 class="head" style="margin-top:14px">Chat</h2>'}
   <div class="ch-rooms nos" role="tablist" aria-label="Which chat">${rooms.map(id => {
     const r = D.ROUNDS.find(x => x.id === id), d = r ? E.dayOf(r.dayIdx) : null;
     const n = chatRows().filter(x => x.rid === id).length;
@@ -1562,7 +1562,57 @@ function boardChat() {
   ${socialRefused()}
   <div class="ch-feed">${items.map(x => x.html()).join('')
     || `<p class="pg-empty">${isRound ? 'Nothing yet. Birdies, balls in the water and the turn appear here by themselves as the refs save holes.' : 'Nothing yet. Say something to start it off.'}</p>`}</div>
-  <p class="pg-note">Tap an emoji to react. Heckle puts your line under that moment. You can remove your own messages; the commissioner can remove any.</p>`;
+  ${inSheet ? '' : '<p class="pg-note">Tap an emoji to react. Heckle puts your line under that moment. You can remove your own messages; the commissioner can remove any.</p>'}`;
+}
+
+/* ---- the bubble ----
+   The chat is one tap from every screen: a round button in the corner with
+   a red count of what this phone has not read, and the newest line sliding
+   out beside it for a few seconds when it lands. It stays off Score Entry,
+   where a ref with a putter in one hand must never hit it by mistake, and
+   off the chat itself. What has been read is kept on the phone and nowhere
+   else, so nobody can see what anybody else has not read. */
+const SEEN_KEY = 'union-invitational:chatSeen';
+let chatSeen = (() => {
+  try { const v = +localStorage.getItem(SEEN_KEY); if (v) return v; const n = Date.now(); localStorage.setItem(SEEN_KEY, String(n)); return n; }
+  catch (e) { return Date.now(); }
+})();
+function markChatSeen() { chatSeen = Date.now(); try { localStorage.setItem(SEEN_KEY, String(chatSeen)); } catch (e) { /* storage blocked */ } }
+let peekFrom = Date.now(), peekUntil = 0, peekItem = null;
+/** Everything said, and every moment the book posted, since this phone last looked. */
+function chatNews() {
+  const said = chatRows().filter(r => (r.at || 0) > chatSeen && r.dev !== myDev())
+    .map(r => ({ at: r.at, who: r.name || nameOf(r.pid), text: r.text }));
+  const live = D.ROUNDS.filter(r => E.phaseOf(T, r.id, now) === 'live' || E.dayOf(r.dayIdx).iso === now.iso);
+  const posted = live.flatMap(r => X.moments(T, r.id)).filter(m => (m.at || 0) > chatSeen)
+    .map(m => ({ at: m.at, who: 'The book', text: m.title }));
+  return said.concat(posted).sort((a, b) => b.at - a.at);
+}
+function chatFab() {
+  if (!loaded() || UI.screen === 'entry' || UI.modal || UI.recapOpen || UI.askOpen) return '';
+  if (UI.screen === 'boards' && UI.boardTab === 'chat') return '';
+  const news = chatNews(), n = news.length;
+  const fresh = news.find(x => x.at <= Date.now() + 60000);
+  /* Held to the phone's own clock: a time from a phone that runs fast would
+     otherwise sit in the future and keep every later line from sliding out. */
+  if (fresh && fresh.at > peekFrom) {
+    peekFrom = Math.min(fresh.at, Date.now()); peekItem = fresh; peekUntil = Date.now() + 4500;
+    setTimeout(() => render(), 4600);
+  }
+  const peek = peekItem && Date.now() < peekUntil ? peekItem : null;
+  const up = UI.screen === 'boards' && UI.boardTab === 'photos';
+  return `${peek ? `<button class="chatpeek${up ? ' up' : ''}" data-act="chatOpen"><b>${esc(peek.who)}</b>${esc(peek.text.length > 90 ? peek.text.slice(0, 88) + '…' : peek.text)}</button>` : ''}
+    <button class="chatfab${up ? ' up' : ''}${peek ? ' pulse' : ''}" data-act="chatOpen" aria-label="Chat${n ? ', ' + n + ' new' : ''}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11.5a7.5 7.5 0 0 1-11 6.6L4 19.5l1.4-4.3A7.5 7.5 0 1 1 20 11.5Z"/><path d="M8.5 11.5h.01M12 11.5h.01M15.5 11.5h.01"/></svg>
+      ${n ? `<span class="badge">${n > 99 ? '99+' : n}</span>` : ''}</button>`;
+}
+/** The chat, risen from the bottom over whatever screen it was opened on. */
+function chatSheetHtml() {
+  markChatSeen();
+  return `<div class="scrim tcscrim" data-act="modalScrim"><div class="modal psheet chatsheet" role="dialog" aria-modal="true" aria-label="Chat">
+    <span class="ps-grab dark" aria-hidden="true"><i></i></span>${modalBanner('Chat', 'The gallery and the golfers')}
+    <div class="ps-body">${boardChat(true)}</div>
+  </div></div>`;
 }
 function whoModalHtml() {
   const ppl = T.config.people || [], cur = whoAmI();
@@ -1586,6 +1636,8 @@ function chatSend() {
   UI.chatDraft = ''; UI.chatRe = null;
   if (f) { f.value = ''; f.blur(); }
   render();
+  /* in the chat that rose over a screen, the keyboard stays up for the next line */
+  if (UI.modal && UI.modal.kind === 'chat') { const g = document.getElementById('chatText'); if (g) g.focus({ preventScroll: true }); }
 }
 
 /** Said plainly when the shared book has turned a post or a bet down: it is
@@ -3570,7 +3622,7 @@ document.addEventListener('scroll', e => {
     if (d > 110 || (fast && d > 40)) {
       s.style.transform = 'translateY(110%)';
       /* the reader's own gesture, like a tap: it is not held for the page to settle */
-      setTimeout(() => { if (UI.modal && /^(venue|area|rinfo|photo)$/.test(UI.modal.kind)) { readerTurn = true; closeModal(); render(); readerTurn = false; } }, 200);
+      setTimeout(() => { if (UI.modal && /^(venue|area|rinfo|photo|chat)$/.test(UI.modal.kind)) { readerTurn = true; closeModal(); render(); readerTurn = false; } }, 200);
     } else s.style.transform = '';
   };
   document.addEventListener('touchend', end);
@@ -5292,6 +5344,7 @@ function paint() {
     </div>
   </div>
   ${feelBar()}
+  ${chatFab()}
   ${tabBar()}
   ${stickyTop(role)}
   ${UI.modal && UI.modal.kind !== 'pick' ? modalHtml() : ''}
@@ -6462,6 +6515,7 @@ function modalHtml() {
        : UI.modal.kind === 'rinfo' ? infoModalHtml()
        : UI.modal.kind === 'photo' ? photoViewHtml()
        : UI.modal.kind === 'who' ? whoModalHtml()
+       : UI.modal.kind === 'chat' ? chatSheetHtml()
        : UI.modal.kind === 'marks' ? markSheet(UI.modal.rid, UI.modal.hole, UI.modal.who)
        : UI.modal.kind === 'hole' ? holeModalHtml()
        : UI.modal.kind === 'setup' ? setupModalHtml()
@@ -6691,6 +6745,15 @@ function onClick(e) {
     case 'photoAlbum': UI.photoAlbum = a; render(); return;
     /* ---- the chat ---- */
     case 'chatRoom': UI.chatRoom = a; UI.chatRe = null; render(); return;
+    case 'chatOpen': {
+      UI.modal = { kind: 'chat' }; peekUntil = 0;
+      render();
+      /* the keyboard comes up with the chat, in the same tap, so it is a
+         box to type in rather than a page to find the box on */
+      const f = document.getElementById('chatText');
+      if (f) f.focus({ preventScroll: true });
+      return;
+    }
     case 'chatReact': {
       if (!store) return;
       const doc = (T.chat || {})[a];
@@ -6699,14 +6762,19 @@ function onClick(e) {
     }
     case 'chatHeckle':
       UI.chatRe = a || null;
-      if (a) UI.liftTo = '.ch-post';
+      if (a && !(UI.modal && UI.modal.kind === 'chat')) UI.liftTo = '.ch-post';
       render();
       if (a) setTimeout(() => { const f = document.getElementById('chatText'); if (f) f.focus(); }, 80);
       return;
     case 'chatSend': chatSend(); return;
     case 'chatDrop': { const r = (T.chat || {})[a]; if (!ownsMsg(r)) return; store.dropSocial('chat', a); render(); return; }
-    case 'whoOpen': UI.modal = { kind: 'who' }; render(); return;
-    case 'whoPick': UI.who = a; saveWho(a); UI.modal = null; render(); return;
+    case 'whoOpen': UI.modal = { kind: 'who', back: UI.modal && UI.modal.kind === 'chat' ? 'chat' : null }; render(); return;
+    case 'whoPick': {
+      const back = UI.modal && UI.modal.back;
+      UI.who = a; saveWho(a); UI.modal = back ? { kind: back } : null; render();
+      if (back === 'chat') { const f = document.getElementById('chatText'); if (f) f.focus({ preventScroll: true }); }
+      return;
+    }
     /* ---- the exchange ---- */
     case 'xView': UI.xView = a || null; UI.xErr = ''; UI.xTicket = null; UI.liftTo = '.xm-anchor'; render(); return;
     case 'xCat': UI.xCat = a; render(); return;

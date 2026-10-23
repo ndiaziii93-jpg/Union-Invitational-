@@ -4237,3 +4237,35 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
 .xm-page,.xm-c,.xm-how,.xm-new,.xm-sec,.ch-post,.ch-feed,.ch-plate{max-width:720px}
 .xm-yn button small{font-size:13.5px;font-weight:600;opacity:.85;margin-left:3px}
 .xm-anchor{display:block;height:0}
+
+/* ---------------- the chat bubble ----------------
+   One tap to the chat from every screen but Score Entry: a round button in
+   the corner, a red count of what this phone has not read, and the newest
+   line sliding out beside it when it lands. */
+.chatfab{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(92px + env(safe-area-inset-bottom,0px));z-index:36;
+  width:60px;height:60px;border-radius:50%;border:0;padding:0;background:var(--ink);color:#E2C277;display:grid;place-items:center;cursor:pointer;
+  box-shadow:0 0 0 2px var(--gold-up),0 10px 24px rgba(16,22,17,.4)}
+.chatfab svg{width:28px;height:28px}
+.chatfab .badge{position:absolute;top:-4px;right:-4px;min-width:22px;height:22px;border-radius:11px;background:var(--flag);color:#fff;
+  font-size:12px;font-weight:800;display:grid;place-items:center;padding:0 6px;box-shadow:0 0 0 2px var(--paper);line-height:1}
+.chatfab.pulse{animation:chatPulse 1.2s ease 2}
+@keyframes chatPulse{50%{box-shadow:0 0 0 9px rgba(226,194,119,.45),0 10px 24px rgba(16,22,17,.4)}}
+.chatpeek{position:fixed;right:calc(max(16px,env(safe-area-inset-right,0px)) + 70px);bottom:calc(98px + env(safe-area-inset-bottom,0px));z-index:36;
+  max-width:min(260px,calc(100vw - 110px));text-align:left;font:inherit;font-size:14px;line-height:1.3;color:var(--ink);cursor:pointer;
+  background:var(--page);border:0;border-radius:16px 16px 4px 16px;padding:9px 12px;box-shadow:0 10px 24px rgba(16,22,17,.25),0 0 0 .5px rgba(29,46,33,.2);
+  animation:chatPeek .35s cubic-bezier(.2,.9,.3,1.2) both}
+.chatpeek b{display:block;font-size:12.5px;color:var(--gold)}
+@keyframes chatPeek{from{opacity:0;transform:translateX(16px) scale(.9)}to{opacity:1;transform:none}}
+/* over the Photos page's own button, not on top of it */
+.chatfab.up{bottom:calc(160px + env(safe-area-inset-bottom,0px))}
+.chatpeek.up{bottom:calc(166px + env(safe-area-inset-bottom,0px))}
+@media (min-width:700px){ .chatfab{bottom:28px} .chatpeek{bottom:34px} .chatfab.up{bottom:96px} .chatpeek.up{bottom:102px} }
+@media (min-width:700px) and (max-width:1400px){
+  html.tablet .chatfab{bottom:calc(var(--barh) + 22px)} html.tablet .chatpeek{bottom:calc(var(--barh) + 28px)}
+  html.tablet .chatfab.up{bottom:calc(var(--barh) + 90px)} html.tablet .chatpeek.up{bottom:calc(var(--barh) + 96px)}
+}
+@media (prefers-reduced-motion:reduce){ .chatfab.pulse,.chatpeek{animation:none} }
+/* the chat as a sheet */
+.chatsheet .ps-body{padding:6px 14px 30px}
+.chatsheet .ch-rooms{margin-top:6px}
+.chatsheet .mbanner{margin:0}

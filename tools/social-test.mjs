@@ -29,7 +29,7 @@ await p.goto('file://' + S + '/social.html'); await p.waitForTimeout(3500);
 await shut();
 /* a round under way: Round 1 open, Robby B birdies the 3rd, Ray V in the water on the 7th, Group 1 at the turn */
 await p.evaluate(() => {
-  const T = window.__T, t0 = Date.now() - 50 * 60000;
+  const T = window.__T, t0 = Date.now() - 120 * 60000;
   T.config.rounds.r1.state = 'open';
   const card = (raw, marks = {}) => ({ raw: raw.concat(Array(18 - raw.length).fill(null)), by: Object.fromEntries(raw.map((_, i) => [i, 's1'])),
     at: Object.fromEntries(raw.map((_, i) => [i, t0 + i * 600000])), marks, mF: false, mB: false, bb: false });
@@ -178,6 +178,39 @@ await tap('[data-act="xCat"][data-a="done"]');
 ok('a hole in one settles that bet Yes at once', await p.locator('.xm-c:has-text("hole in one") .xm-res').innerText(), 'Settled Yes');
 await tap('.navbtn[data-a="boards"]'); await tap('.btab[data-a="chat"]'); await tap('.ch-rooms button[data-a="r1"]');
 ok('and the chat says so', (await p.locator('.ch-ev .ch-evw b').allInnerTexts()).some(t => /HOLE IN ONE/.test(t)), true);
+
+console.log('\nthe chat bubble');
+await tap('.navbtn[data-a="today"]'); await shut();
+ok('the bubble is on Today', await p.locator('.chatfab').count(), 1);
+const had = +((await p.locator('.chatfab .badge').count()) ? await p.locator('.chatfab .badge').innerText() : 0);
+await p.waitForTimeout(4900);
+await p.evaluate(() => { window.__T.chat['mzz1'] = { id: 'mzz1', k: 'm', rid: 'r1', pid: 's2', name: 'Aimee K', text: 'Who had Norberto Jr. in the water?', at: Date.now(), dev: 'dOther', re: null }; window.__forceRender(); });
+await p.waitForTimeout(400);
+ok('a message from another phone adds one to the red count', +(await p.locator('.chatfab .badge').innerText()), had + 1);
+ok('and slides out beside it', (await p.locator('.chatpeek').innerText()).replace(/\s+/g, ' ').trim(), 'Aimee K Who had Norberto Jr. in the water?');
+await shot('bubble');
+await p.waitForTimeout(4900);
+ok('the slide-out goes by itself', await p.locator('.chatpeek').count(), 0);
+await tap('.chatfab');
+ok('one tap: the chat rises over the screen', await p.locator('.chatsheet').count(), 1);
+ok('with the box ready to type in', await p.evaluate(() => document.activeElement && document.activeElement.id), 'chatText');
+ok('the bubble steps aside while it is open', await p.locator('.chatfab').count(), 0);
+await p.keyboard.type('On my way to the 9th green');
+await p.keyboard.press('Enter'); await p.waitForTimeout(400);
+ok('posting keeps the chat open', await p.locator('.chatsheet').count(), 1);
+ok('and the keyboard up for the next line', await p.evaluate(() => document.activeElement && document.activeElement.id), 'chatText');
+ok('the line is in', (await p.locator('.chatsheet .ch-feed > .ch-msg p').first().innerText()), 'On my way to the 9th green');
+await shot('bubble-open');
+await p.evaluate(() => document.activeElement && document.activeElement.blur());
+await p.locator('.scrim.tcscrim').click({ position: { x: 20, y: 20 } }); await p.waitForTimeout(400);
+ok('a tap above closes it', await p.locator('.chatsheet').count(), 0);
+ok('and what was read is no longer counted', await p.locator('.chatfab .badge').count(), 0);
+await tap('.navbtn[data-a="entry"]'); await shut();
+ok('no bubble on Score Entry', await p.locator('.chatfab').count(), 0);
+await tap('.navbtn[data-a="boards"]'); await tap('.btab[data-a="chat"]');
+ok('nor on the chat itself', await p.locator('.chatfab').count(), 0);
+await tap('.btab[data-a="photos"]');
+ok('on Photos it sits above the camera button', await p.locator('.chatfab.up').count(), 1);
 
 ok('no errors on the way', errs, []);
 await b.close();
