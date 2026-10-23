@@ -332,8 +332,12 @@ if (!(await p.locator('.ph:not(.pending)').count())) {
 
 console.log('\nthe gallery');
 await p.locator('[data-act="recapGallery"]').click(); await p.waitForTimeout(600);
-ok('every round of the week has a section', await p.locator('.galsec').count(), 4);
-ok('it says so when there is nothing in it', (await p.locator('.galsec .phempty').first().innerText()).startsWith('No photos'), true);
+/* Two albums, the golf and the trip. An empty round is not a section of
+   empty boxes any more: the album says once how to add the first. */
+ok('the photos come in two albums', await p.locator('.pg-seg [data-act="photoAlbum"]').count(), 2);
+await p.locator('[data-act="photoAlbum"][data-a="trip"]').click(); await p.waitForTimeout(300);
+ok('an album with nothing in it says how to add the first', (await p.locator('.pg-empty').first().innerText()).startsWith('Nothing from the trip'), true);
+await p.locator('[data-act="photoAlbum"][data-a="course"]').click(); await p.waitForTimeout(300);
 ok('the writing controls step aside', await p.locator('[data-act="recapGen"]').count(), 0);
 await p.locator('.recaparch .chip').first().click(); await p.waitForTimeout(600);
 ok('and a round chip brings the report back', await p.locator('.rechead').count(), 1);

@@ -91,7 +91,35 @@ await shut();
 await p.locator('[data-act="go"][data-a="boards"]:visible').first().click(); await p.waitForTimeout(500);
 await p.locator('.btab[data-a="photos"]').click(); await p.waitForTimeout(500);
 ok('Photos is a tab on Boards', await p.locator('.btab[data-a="photos"].on').count(), 1);
-ok('every photo shows the hole it was taken on', (await p.locator('.galsec .ph .phh').allInnerTexts()).sort(), ['Hole 1', 'Hole 3', 'Hole 7', 'Hole 7', 'Hole 7']);
+ok('the course album opens first, every photo marked with its hole',
+  (await p.locator('.pg-t .pg-hb').allInnerTexts()).sort(), ['HOLE 1', 'HOLE 3', 'HOLE 7', 'HOLE 7', 'HOLE 7']);
+
+console.log('\nthe trip, apart from the golf');
+await p.locator('[data-act="photoAlbum"][data-a="trip"]').click(); await p.waitForTimeout(400);
+ok('the trip album starts empty, and says how to add', await p.locator('.pg-empty').count(), 1);
+let [tc] = await Promise.all([p.waitForEvent('filechooser'), p.locator('.pg-fab').click()]);
+ok('its camera hands to the phone too', await tc.element().getAttribute('capture'), null);
+await tc.setFiles(pic('dinner.png')); await p.waitForTimeout(1500);
+const tripRows = await p.evaluate(() => Object.values(window.__T.photos).filter(x => x && x.rid === 'trip').map(x => ({ hole: x.hole, day: x.day })));
+const resortToday = new Date(Date.now() + 3 * 3600e3).toISOString().slice(0, 10);
+ok('a trip photo is kept apart, by the day at the resort, with no hole', tripRows, [{ hole: null, day: resortToday }]);
+ok('and shows in the trip album only', [await p.locator('.pg-t').count(), await p.locator('.pg-t .pg-hb').count()], [1, 0]);
+await p.locator('[data-act="photoAlbum"][data-a="course"]').click(); await p.waitForTimeout(300);
+ok('the course album still has only the golf', await p.locator('.pg-t').count(), 5);
+
+console.log('\nhearts');
+await p.locator('[data-act="photoAlbum"][data-a="trip"]').click(); await p.waitForTimeout(300);
+await p.locator('.pg-t').first().click(); await p.waitForTimeout(400);
+ok('a photo opens full screen', await p.locator('.pviewer img').count(), 1);
+await p.locator('.pv-heart').click(); await p.waitForTimeout(300);
+ok('one tap hearts it', [await p.locator('.pv-heart').getAttribute('aria-pressed'), (await p.locator('.pv-heart').innerText()).replace(/\s+/g, '')], ['true', '♥1']);
+await p.locator('.pv-heart').click(); await p.waitForTimeout(300);
+ok('a second takes it back: one heart a phone', (await p.locator('.pv-heart').innerText()).replace(/\s+/g, ''), '♡0');
+await p.locator('.pv-heart').click(); await p.waitForTimeout(300);
+const field = await p.evaluate(() => { const ph = Object.values(window.__T.photos).find(x => x.rid === 'trip'); return Object.keys(ph).filter(k => k.startsWith('hv_')).length; });
+ok('the heart is this phone’s own field on the photo, so two at once both land', field, 1);
+await p.locator('.pv-top [data-act="modalCancel"]').click(); await p.waitForTimeout(300);
+ok('the most-hearted today is the photo of the day', await p.locator('.pg-potd').count(), 1);
 
 console.log('\na ref, signed in with PINs on');
 writeFileSync(S + '/photo-ref.html', '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head><body>'

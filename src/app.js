@@ -90,6 +90,7 @@ const UI = {
   resortOpen: false,    // the full guide shows only what is open now
   resortQ: '',          // what is typed in the full guide's search
   resortFocusQ: false,  // put the caret in the search once it is drawn
+  photoAlbum: 'course', // the Photos page: 'course' or 'trip'
   resortNote: null,     // {k, v} — a note being typed, held out of the DOM
   resortPlanCat: 'all', // which part of the site plan is labelled
   resortPin: null,      // which point on the plan is selected, by index
@@ -1333,24 +1334,115 @@ function recapPanel() {
    Every photo of the week in one place, the rounds in the order they are
    played, so a picture taken on the practice day is still one tap away in the
    last week of November. */
+/* ---------------- the photos of the week ----------------
+   Two albums, kept apart: ON THE COURSE, by round and hole, from the gold
+   camera on the hole; and THE TRIP, by day, for everything else — dinners,
+   the beach, the group. Anyone can heart a photo, one heart a phone, and the
+   one with the most hearts yesterday is the photo of the day at the top. */
+const TRIP = 'trip';
+const isTrip = ph => ph && ph.rid === TRIP;
+const myDev = () => (store && store.deviceId) || '';
+/** Photos are the taker's to remove: the phone that sent one, or a commissioner. */
+const ownsPhoto = ph => !!ph && (canAdmin() || (!!ph.dev && ph.dev === myDev()));
+const hearts = ph => Object.keys(ph || {}).filter(k => k.startsWith('hv_') && ph[k] === true).length;
+const iHeart = ph => !!ph && ph['hv_' + myDev()] === true;
+/** The trip day a photo belongs to, as an ISO date at the resort. */
+function photoDay(ph) {
+  if (!ph) return '';
+  if (!isTrip(ph)) { const r = D.ROUNDS.find(x => x.id === ph.rid); if (r) return E.dayOf(r.dayIdx).iso; }
+  if (ph.day) return ph.day;
+  return ph.at ? new Date(ph.at + 3 * 3600e3).toISOString().slice(0, 10) : '';
+}
+const allPhotos = () => Object.values(T.photos || {}).filter(p => p && p.url);
+/** Most hearts yesterday; failing that, today so far. Never a photo nobody hearted. */
+function photoOfTheDay() {
+  const iso = n => { const d = new Date(now.iso + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+  for (const day of [iso(-1), now.iso]) {
+    const best = allPhotos().filter(p => photoDay(p) === day && hearts(p) > 0)
+      .sort((a, b) => hearts(b) - hearts(a) || (a.at || 0) - (b.at || 0))[0];
+    if (best) return { ph: best, yesterday: day !== now.iso };
+  }
+  return null;
+}
+/** The round a photo from the course goes to now, and the hole it is tagged with. */
+function courseTarget() {
+  const today = D.ROUNDS.find(r => E.dayOf(r.dayIdx).iso === now.iso);
+  const rid = today ? today.id : UI.entryRound;
+  return { rid, hole: rid === UI.entryRound ? UI.entryHole : null };
+}
+const dayName = iso => { const d = D.DAYS.find(x => x.iso === iso); return d ? d : { dow: iso, date: '' }; };
+function pgTile(ph, list) {
+  const n = hearts(ph);
+  return `<button class="pg-t" data-act="photoView" data-a="${esc(ph.id)}" data-b="${esc(list)}"
+      aria-label="${esc(isTrip(ph) ? 'Photo' : 'Hole ' + (ph.hole + 1))} by ${esc(ph.byName || 'someone')}${n ? ', ' + n + ' heart' + (n === 1 ? '' : 's') : ''}">
+    <img src="${esc(ph.thumb || ph.url)}" alt="" loading="lazy" onerror="this.closest('.pg-t').classList.add('broken')">
+    ${!isTrip(ph) && ph.hole != null ? `<span class="pg-hb">HOLE ${ph.hole + 1}</span>` : ''}
+    ${n ? `<span class="pg-hc${iHeart(ph) ? ' mine' : ''}">♥ ${n}</span>` : ''}
+    <span class="pg-by">${esc(ph.byName || 'Someone')}</span></button>`;
+}
 function gallery1() {
-  const all = Object.values(T.photos || {}).filter(Boolean);
-  const byRound = D.ROUNDS.map(r => ({ r, list: all.filter(p => p.rid === r.id) }));
-  const loose = all.filter(p => !D.ROUNDS.some(r => r.id === p.rid));
-  return `<h2 class="head" style="margin-top:14px">The Gallery</h2>
-  <p class="lede">Every photo from the week, by the round it was taken on. Anyone on the trip can add;
-  you can remove your own${canAdmin() ? ', and a commissioner can remove any' : ''}.</p>
-  ${all.length ? '' : '<p class="empty">No photos yet. Open a round below and add the first.</p>'}
-  ${byRound.map(({ r, list }) => `<div class="galsec">
-    <div class="titlerow">
-      <h3 class="sub" style="margin:0">${esc(r.short === 'Practice' ? 'Practice day' : r.full)}</h3>
-      <span class="rnote">${esc(E.dayOf(r.dayIdx).dow)} ${esc(E.dayOf(r.dayIdx).date)} · ${
-        list.length ? list.length + ' photo' + (list.length === 1 ? '' : 's') : 'nothing yet'}</span>
+  const album = UI.photoAlbum === TRIP ? TRIP : 'course';
+  const all = allPhotos();
+  const course = all.filter(p => !isTrip(p)), trip = all.filter(isTrip);
+  const newest = (a, b) => (b.at || 0) - (a.at || 0);
+  const potd = photoOfTheDay();
+  let body;
+  if (album === 'course') {
+    const rounds = D.ROUNDS.slice().reverse().map(r => ({ r, list: course.filter(p => p.rid === r.id).sort(newest) })).filter(x => x.list.length);
+    body = rounds.map(({ r, list }) => { const d = E.dayOf(r.dayIdx);
+      return `<section class="pg-sec"><div class="pg-h"><b>${esc(r.short === 'Practice' ? 'Practice day' : 'Round ' + r.short.slice(1))}</b>
+        <span>${esc(d.dow.slice(0, 3))} ${esc(d.date)} · ${esc(E.courseOf(T, r.id).name.replace('Cullinan ', ''))} · ${list.length}</span></div>
+        <div class="pg-grid">${list.map(p => pgTile(p, 'course')).join('')}</div></section>`; }).join('')
+      || '<p class="pg-empty">No photos from the course yet. The gold camera on each hole adds one, tagged with the hole.</p>';
+  } else {
+    const days = [...new Set(trip.map(photoDay))].sort().reverse();
+    body = days.map(iso => { const list = trip.filter(p => photoDay(p) === iso).sort(newest), d = dayName(iso);
+      return `<section class="pg-sec"><div class="pg-h"><b>${esc(d.dow)}</b><span>${esc(d.date)} · ${list.length}</span></div>
+        <div class="pg-grid two${list.length % 2 ? ' odd' : ''}">${list.map(p => pgTile(p, TRIP)).join('')}</div></section>`; }).join('')
+      || '<p class="pg-empty">Nothing from the trip yet. Dinners, the beach, the pool, the group: tap the camera to add the first.</p>';
+  }
+  const ct = courseTarget();
+  const fab = store4 ? `<button class="pg-fab" data-act="photoPick" data-a="${album === TRIP ? TRIP : esc(ct.rid)}" data-b="${album === TRIP || ct.hole == null ? '' : ct.hole}">
+      ${CAM_SVG}<span>${album === TRIP ? 'Add from the trip' : 'Add from the round'}</span></button>` : '';
+  return `<h2 class="head" style="margin-top:14px">Photos</h2>
+  ${potd ? `<button class="pg-potd" data-act="photoView" data-a="${esc(potd.ph.id)}" data-b="day">
+      <img src="${esc(potd.ph.url)}" alt="">
+      <span class="pg-pw"><span class="k">Photo of the day · ${esc(dayName(photoDay(potd.ph)).dow)}</span>
+        <b>${isTrip(potd.ph) ? 'From the trip' : 'Hole ' + (potd.ph.hole + 1) + ', ' + esc(D.ROUNDS.find(r => r.id === potd.ph.rid).short === 'Practice' ? 'practice' : 'Round ' + D.ROUNDS.find(r => r.id === potd.ph.rid).short.slice(1))}</b>
+        <small>Taken by ${esc(potd.ph.byName || 'someone')} · ♥ ${hearts(potd.ph)}, the most ${potd.yesterday ? 'yesterday' : 'today'}</small></span></button>` : ''}
+  <div class="pg-seg" role="tablist">
+    <button role="tab" aria-selected="${album === 'course'}" class="${album === 'course' ? 'on' : ''}" data-act="photoAlbum" data-a="course">On the course<small>${course.length} photo${course.length === 1 ? '' : 's'} · by round</small></button>
+    <button role="tab" aria-selected="${album === TRIP}" class="${album === TRIP ? 'on' : ''}" data-act="photoAlbum" data-a="${TRIP}">The trip<small>${trip.length} photo${trip.length === 1 ? '' : 's'} · by day</small></button>
+  </div>
+  ${photoWaiting(album === TRIP ? TRIP : ct.rid) ? `<div class="snaprow">${photoWaiting(album === TRIP ? TRIP : ct.rid)}</div>` : ''}
+  ${body}
+  <p class="pg-note">Tap a photo to see it full size, and tap the heart if you like it: the most-hearted each day becomes the photo of the day.</p>
+  ${fab}`;
+}
+/** The photo, full screen: who took it, the hearts, and the next one along. */
+function photoViewHtml() {
+  const m = UI.modal, ph = T.photos[m.id];
+  if (!ph) return '';
+  const list = m.list === 'day' ? [ph.id] : allPhotos().filter(p => (m.list === TRIP) === isTrip(p))
+    .sort((a, b) => (photoDay(b) > photoDay(a) ? 1 : photoDay(b) < photoDay(a) ? -1 : (b.at || 0) - (a.at || 0))).map(p => p.id);
+  const i = list.indexOf(ph.id), prev = list[i - 1], next = list[i + 1];
+  const r = D.ROUNDS.find(x => x.id === ph.rid), n = hearts(ph), mine = iHeart(ph);
+  const where = isTrip(ph) ? 'The trip · ' + dayName(photoDay(ph)).dow
+    : (r ? (r.short === 'Practice' ? 'Practice' : 'Round ' + r.short.slice(1)) : '') + (ph.hole != null ? ' · hole ' + (ph.hole + 1) : '');
+  return `<div class="scrim pvscrim" data-act="modalScrim"><div class="pviewer" role="dialog" aria-modal="true" aria-label="Photo by ${esc(ph.byName || 'someone')}">
+    <div class="pv-top"><span>${list.length > 1 ? (i + 1) + ' of ' + list.length : ''}</span><button data-act="modalCancel">Done</button></div>
+    <div class="pv-img" data-swipe="${esc(prev || '')}|${esc(next || '')}|${esc(m.list)}">
+      ${prev ? `<button class="pv-nav l" data-act="photoView" data-a="${esc(prev)}" data-b="${esc(m.list)}" aria-label="Previous photo">‹</button>` : ''}
+      <img src="${esc(ph.url)}" alt="${esc(where)}, taken by ${esc(ph.byName || 'someone')}">
+      ${next ? `<button class="pv-nav r" data-act="photoView" data-a="${esc(next)}" data-b="${esc(m.list)}" aria-label="Next photo">›</button>` : ''}
     </div>
-    ${photoStrip(r.id, true)}
-  </div>`).join('')}
-  ${loose.length ? `<div class="galsec"><h3 class="sub">Elsewhere on the trip</h3>
-    <div class="phstrip">${loose.map(ph => phFig(ph)).join('')}</div></div>` : ''}`;
+    <div class="pv-foot">
+      <div class="pv-cap"><span class="k">${esc(where)}</span><b>Taken by ${esc(ph.byName || 'someone')}</b></div>
+      <button class="pv-heart${mine ? ' on' : ''}" data-act="photoHeart" data-a="${esc(ph.id)}" aria-pressed="${mine}" aria-label="${mine ? 'Take your heart back' : 'Heart this photo'}">
+        <span>${mine ? '♥' : '♡'}</span>${n}</button>
+    </div>
+    ${ownsPhoto(ph) ? `<button class="pv-rm" data-act="photoDrop1" data-a="${esc(ph.id)}">Remove this photo</button>` : ''}
+  </div></div>`;
 }
 
 /* ---------------- photos ----------------
@@ -1375,7 +1467,7 @@ function phFig(ph) {
     <a href="${esc(ph.url)}" target="_blank" rel="noopener" aria-label="Open this photo full size">
       <img src="${esc(ph.thumb || ph.url)}" alt="${esc(ph.caption || 'From the round')}" loading="lazy"
         onerror="this.closest('figure').classList.add('broken')"></a>
-    <figcaption>${ph.hole != null ? `<b class="phh">Hole ${ph.hole + 1}</b> ` : ''}${esc(ph.byName || 'Someone')}${canAdmin() || ph.mine ? `
+    <figcaption>${ph.hole != null ? `<b class="phh">Hole ${ph.hole + 1}</b> ` : ''}${esc(ph.byName || 'Someone')}${ownsPhoto(ph) ? `
       <button class="rm" data-act="photoDrop1" data-a="${esc(ph.id)}">Remove</button>` : ''}</figcaption>
   </figure>`;
 }
@@ -1550,7 +1642,7 @@ async function addPhotos(rid, files, hole) {
       const small = await shrink(f, CFG.PHOTO_MAX);
       const thumb = supa ? await shrink(f, CFG.THUMB_MAX, 0.7).catch(() => null) : null;
       u.pct = 30;
-      await parkPhoto({ id: u.id, rid, hole: u.hole, name: u.name, by: UI.role, byName: who, at: Date.now(), small, thumb });
+      await parkPhoto({ id: u.id, rid, hole: u.hole, name: u.name, by: UI.role, byName: who, at: Date.now(), day: now.iso, small, thumb });
     } catch (e) {
       const why = (e && (e.message || e.code)) ? String(e.message || e.code) : 'could not be read';
       u.err = why.slice(0, 60); u.pct = 100;
@@ -1591,7 +1683,7 @@ async function sendParked() {
         const kept = await store.writePhoto(id, {
           rid: item.rid, hole: item.hole == null ? null : item.hole, url: up.url, thumb: up.thumbUrl || null, at: item.at || Date.now(),
           assetId: up.id || null, key: up.key || null, thumbKey: up.thumbKey || null,
-          by: item.by, byName: item.byName, mine: true, bytes: up.sizeBytes || (item.small && item.small.size) || 0,
+          by: item.by, byName: item.byName, dev: myDev(), day: item.day || null, bytes: up.sizeBytes || (item.small && item.small.size) || 0,
         });
         if (kept === false) throw new Error('uploaded, but the book would not record it yet');
         await unparkPhoto(item.id);
@@ -3036,7 +3128,7 @@ document.addEventListener('scroll', e => {
   let y0 = null, x0 = 0, dy = 0, t0 = 0, sheet = null, live = false;
   const reset = () => { y0 = null; sheet = null; live = false; dy = 0; };
   document.addEventListener('touchstart', e => {
-    const s = e.target.closest && e.target.closest('.psheet');
+    const s = e.target.closest && e.target.closest('.psheet, .pviewer');
     if (!s || e.touches.length !== 1 || s.scrollTop > 0) return;
     sheet = s; y0 = e.touches[0].clientY; x0 = e.touches[0].clientX; dy = 0; t0 = Date.now(); live = false;
   }, { passive: true });
@@ -3061,11 +3153,30 @@ document.addEventListener('scroll', e => {
     if (d > 110 || (fast && d > 40)) {
       s.style.transform = 'translateY(110%)';
       /* the reader's own gesture, like a tap: it is not held for the page to settle */
-      setTimeout(() => { if (UI.modal && /^(venue|area|rinfo)$/.test(UI.modal.kind)) { readerTurn = true; closeModal(); render(); readerTurn = false; } }, 200);
+      setTimeout(() => { if (UI.modal && /^(venue|area|rinfo|photo)$/.test(UI.modal.kind)) { readerTurn = true; closeModal(); render(); readerTurn = false; } }, 200);
     } else s.style.transform = '';
   };
   document.addEventListener('touchend', end);
   document.addEventListener('touchcancel', end);
+})();
+
+/* A photo, full screen: a swipe sideways goes to the next one along. */
+(() => {
+  let x0 = null, y0 = 0;
+  document.addEventListener('touchstart', e => {
+    const v = e.target.closest && e.target.closest('.pv-img');
+    if (!v || e.touches.length !== 1) { x0 = null; return; }
+    x0 = e.touches[0].clientX; y0 = e.touches[0].clientY;
+  }, { passive: true });
+  document.addEventListener('touchend', e => {
+    if (x0 == null) return;
+    const t = e.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0; x0 = null;
+    if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.4) return;
+    const v = document.querySelector('.pv-img'); if (!v || !UI.modal || UI.modal.kind !== 'photo') return;
+    const [prev, next, list] = (v.dataset.swipe || '').split('|');
+    const to = dx < 0 ? next : prev;
+    if (to) { readerTurn = true; UI.modal = { kind: 'photo', id: to, list }; render(); readerTurn = false; }
+  }, { passive: true });
 })();
 
 /* Typing "7:40 AM" on a phone keyboard is a chore and every mistyping was a
@@ -5929,6 +6040,7 @@ function modalHtml() {
        : UI.modal.kind === 'venue' ? venueModalHtml()
        : UI.modal.kind === 'area' ? areaModalHtml()
        : UI.modal.kind === 'rinfo' ? infoModalHtml()
+       : UI.modal.kind === 'photo' ? photoViewHtml()
        : UI.modal.kind === 'marks' ? markSheet(UI.modal.rid, UI.modal.hole, UI.modal.who)
        : UI.modal.kind === 'hole' ? holeModalHtml()
        : UI.modal.kind === 'setup' ? setupModalHtml()
@@ -6155,15 +6267,20 @@ function onClick(e) {
       pickerFor().click();
       render();
       return;
+    case 'photoAlbum': UI.photoAlbum = a; render(); return;
+    case 'photoView': UI.modal = { kind: 'photo', id: a, list: b || 'course' }; render(); return;
+    case 'photoHeart': { const ph = T.photos[a]; if (ph) store.heartPhoto(a, !iHeart(ph)); render(); return; }
     case 'photoDrop1': {
       const ph = T.photos[a] || {};
-      if (!canAdmin() && !ph.mine) return;
+      if (!ownsPhoto(ph)) return;
       /* Take the files too. A row removed on its own leaves the picture
          sitting in a one-gigabyte allowance with nothing pointing at it. */
       if (store4 && store4.remove && (ph.key || ph.thumbKey)) {
         store4.remove([ph.key, ph.thumbKey]).catch(() => {});
       }
       store.dropPhoto(a);
+      if (UI.modal && UI.modal.kind === 'photo') UI.modal = null;
+      render();
       return;
     }
     case 'recapPick':

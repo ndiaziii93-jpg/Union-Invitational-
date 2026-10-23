@@ -924,6 +924,27 @@ export function createStore(onChange) {
     catch (e) { status = 'error'; saveState = 'error'; notify(); return false; }
   }
 
+  /* A HEART IS THIS PHONE'S OWN FIELD ON THE PHOTO. Photos are written whole,
+     so a heart written as "the photo, with one more heart" from two phones
+     at once would lose one of them. Each phone writes only `hv_<its id>`,
+     merged into the document at the top level, so two hearts at once are
+     two different fields and both land. A heart taken back is the same
+     field set false. The revision is the time, so whichever phone hearted
+     last is the copy every phone keeps. */
+  async function heartPhoto(id, on) {
+    if (tooEarly()) return false;
+    const prev = T.photos[id];
+    if (!prev) return false;
+    const key = 'hv_' + deviceId, r = Math.max(Date.now(), (rev['photos/' + id] || 0) + 1);
+    const patch = { [key]: !!on, rev: r };
+    rev['photos/' + id] = r;
+    T.photos[id] = { ...prev, ...patch };
+    notify();
+    if (mode === 'local') { saveLocal(); return true; }
+    try { await db.doc('photos/' + id).update(patch); saveState = 'saved'; lastSavedAt = Date.now(); notify(); return true; }
+    catch (e) { status = 'error'; saveState = 'error'; notify(); return false; }
+  }
+
   async function dropPhoto(id) {
     if (tooEarly()) return false;
     delete T.photos[id];
@@ -994,7 +1015,8 @@ export function createStore(onChange) {
     } catch (e) { status = 'error'; saveState = 'error'; notify(); return false; }
   }
 
-  return { T, connect, writeConfig, writeCard, writeBbb, writeNote, writeRecap, writePhoto, dropPhoto, resetScores, resave, note,
+  return { T, connect, writeConfig, writeCard, writeBbb, writeNote, writeRecap, writePhoto, heartPhoto, dropPhoto, resetScores, resave, note,
+           get deviceId() { return deviceId; },
            writePerson, writeAllPeople, addPerson, removePerson,
            writePair, addPair, removePair, movePlayer, movePairBy,
            get mode() { return mode; }, get status() { return status; }, get ready() { return ready; },
