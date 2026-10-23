@@ -34,7 +34,7 @@ const ORIGIN = 'http://127.0.0.1:' + site.address().port;
 const rows = new Map();
 let clock = Date.parse('2026-10-23T09:00:00Z');
 const stamp = () => new Date(clock += 7).toISOString();
-const notified = [];
+const notified = [], reacted = [];
 const PUBLIC_KEY = 'BOrgVLcDzyfIySbuNUuAXqfZKA7prk4rZNqAH0cyOKKFDHtOmS6vtGsy1bmxiO8M3t6ISvx9pTSsVFBrw4TIPxo';
 async function supabase(route) {
   const req = route.request(), url = new URL(req.url()), method = req.method();
@@ -42,7 +42,9 @@ async function supabase(route) {
   if (method === 'OPTIONS') return route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' } });
   if (url.pathname === '/functions/v1/notify') {
     if (method === 'GET') return send({ publicKey: PUBLIC_KEY });
-    notified.push(JSON.parse(req.postData() || '{}').path); return send({ sent: 1 });
+    const body = JSON.parse(req.postData() || '{}');
+    if (body.rx) reacted.push(body); else notified.push(body.path);
+    return send({ sent: 1 });
   }
   if (url.pathname === '/rest/v1/rpc/merge_doc') {
     const { p, patch } = JSON.parse(req.postData());
@@ -125,6 +127,17 @@ await p.waitForTimeout(1500);
 const msg = [...rows.keys()].find(k => k.startsWith('chat/m'));
 ok('the message is in the book', !!msg, true);
 ok('and the notify function is asked to pass it on', notified, [msg]);
+
+console.log('\na reaction');
+const room = rows.get(msg).doc.rid;
+rows.set('chat/mray1', { path: 'chat/mray1', doc: { id: 'mray1', k: 'm', rid: room, pid: 'g6', name: 'Ray V', text: 'Pool bar in 10', at: Date.now(), dev: 'dray', re: null }, updated_at: stamp() });
+await p.evaluate(() => document.activeElement && document.activeElement.blur());     // the keyboard down, as when reading
+await p.waitForSelector('.chatsheet .ch-msg:has-text("Pool bar in 10")', { timeout: 15000 });
+await p.locator('.chatsheet .ch-msg:has-text("Pool bar in 10") .ch-rx button').first().click(); await p.waitForTimeout(1500);
+ok('reacting to Ray V’s message asks to tell him, once', reacted, [{ path: 'chat/mray1', rx: dev }]);
+ok('with her name on the reaction', ((rows.get('chat/mray1') || {}).doc || {})['rxby_' + dev], 'Jennifer D');
+await p.locator('.chatsheet .ch-msg:has-text("Anyone for the pool bar") .ch-rx button').first().click(); await p.waitForTimeout(1200);
+ok('reacting to her own message tells nobody', reacted.length, 1);
 
 console.log('\na bet with people on it');
 await p.evaluate(() => document.activeElement && document.activeElement.blur());

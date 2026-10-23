@@ -1731,9 +1731,9 @@ async function pushOff() {
   render();
 }
 /** Ask the notify function to pass a message on. Nothing waits on it. */
-function notifyOthers(path) {
+function notifyOthers(path, extra) {
   if (!store || store.backend !== 'supabase' || !CFG.SUPABASE_URL) return;
-  fetch(fnUrl('notify'), { method: 'POST', headers: { 'content-type': 'application/json', apikey: CFG.SUPABASE_KEY }, body: JSON.stringify({ path }) })
+  fetch(fnUrl('notify'), { method: 'POST', headers: { 'content-type': 'application/json', apikey: CFG.SUPABASE_KEY }, body: JSON.stringify({ path, ...(extra || {}) }) })
     .catch(() => { /* a missed buzz is not worth a retry storm */ });
 }
 /** Opened from a notification about a bet: straight to that bet. */
@@ -7209,8 +7209,12 @@ function onClick(e) {
       return;
     case 'chatReact': {
       if (!store) return;
-      const doc = (T.chat || {})[a];
-      store.patchSocial('chat', a, { ['rx_' + myDev()]: myRx(doc) === b ? '' : b });
+      const doc = (T.chat || {})[a], v = myRx(doc) === b ? '' : b, me = whoAmI(), dv = myDev();
+      const fields = { ['rx_' + dv]: v };
+      if (v && me) fields['rxby_' + dv] = nameOf(me);
+      /* a reaction to somebody's message buzzes them, once per person per message */
+      const buzz = !!v && /^m/.test(a) && !!doc && doc.dev !== dv && (!me || doc.pid !== me) && !doc['rxsent_' + dv];
+      store.patchSocial('chat', a, fields).then(ok => { if (ok && buzz) notifyOthers('chat/' + a, { rx: dv }); });
       render(); return;
     }
     case 'chatHeckle':

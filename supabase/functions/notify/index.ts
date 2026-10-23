@@ -10,6 +10,10 @@
  * passed on the same way, but only to the phones of the people on it.
  * Tapping that one opens the bet.
  *
+ * Someone called out by name with @ gets the message as their own
+ * ("called you out"). A reaction to a message goes only to whoever wrote it,
+ * once per person reacting, however often they change their mind.
+ *
  * Deploy: Supabase dashboard -> Edge Functions -> Deploy a new function ->
  * name it `notify` -> paste this file -> Deploy.
  * Then Edge Functions -> Secrets, and add the two keys made on the book's
@@ -105,8 +109,8 @@ async function handler(req: Request): Promise<Response> {
   if (req.method === 'GET') return json({ publicKey: keys.publicKey });
   if (req.method !== 'POST') return json({ error: 'bad_request' }, 405);
 
-  let path = '';
-  try { path = String((await req.json())?.path || ''); } catch { /* falls through */ }
+  let path = '', rx = '';
+  try { const b = await req.json(); path = String(b?.path || ''); rx = String(b?.rx || ''); } catch { /* falls through */ }
   if (!/^(chat\/m|market\/q)[a-z0-9]{4,40}$/.test(path)) return json({ error: 'bad_request', message: 'Send {"path": "chat/m…"} or {"path": "market/q…"}' }, 400);
   const isBet = path.startsWith('market/');
 
@@ -119,6 +123,34 @@ async function handler(req: Request): Promise<Response> {
   if (error) return json({ error: 'upstream_error', message: error.message }, 502);
   const m = rows && rows[0] && rows[0].doc;
   if (!m || (isBet ? m.k !== 'q' || !m.q : m.k !== 'm' || !m.text)) return json({ error: 'not_found' }, 404);
+  /* A reaction: to whoever wrote the message, once per person reacting. */
+  if (rx) {
+    if (isBet || !/^[A-Za-z0-9_-]{1,64}$/.test(rx)) return json({ error: 'bad_request' }, 400);
+    const emoji = String(m['rx_' + rx] || '');
+    if (!emoji) return json({ sent: 0, none: true });
+    if (m['rxsent_' + rx]) return json({ sent: 0, already: true });
+    await db.rpc('merge_doc', { p: path, patch: { ['rxsent_' + rx]: Date.now() }, who: 'notify' });
+    const rroom = String(m.rid || 'trip');
+    const said = String(m.text);
+    const rxPayload = JSON.stringify({
+      title: emoji + ' ' + String(m['rxby_' + rx] || 'Someone').slice(0, 40) + ' reacted to your message',
+      body: '“' + (said.length > 120 ? said.slice(0, 118) + '…' : said) + '”',
+      room: rroom, tag: 'rx-' + path.slice('chat/'.length),
+    });
+    const { data: rsubs } = await db.from('docs').select('path,doc').like('path', 'push/%');
+    let rsent = 0;
+    await Promise.all((rsubs || []).map(async (r: { path: string; doc: any }) => {
+      const s = r.doc;
+      if (!s || !s.on || !s.sub || !s.sub.endpoint || s.dev === rx) return;
+      if (!(m.pid && s.pid === m.pid) && !(m.dev && s.dev === m.dev)) return;    // only the one who wrote it
+      try {
+        const status = await sendPush(s.sub, rxPayload, keys);
+        if (status === 404 || status === 410) await db.from('docs').delete().eq('path', r.path);
+        else if (status < 300) rsent++;
+      } catch (e) { console.error('push', String(e).slice(0, 200)); }
+    }));
+    return json({ sent: rsent });
+  }
   /* a bet goes only to the people it is about */
   const onIt: string[] = isBet ? [].concat(m.tags || [], m.opts || []).map(String) : [];
   if (isBet && !onIt.length) return json({ sent: 0, nobody: true });
