@@ -14,6 +14,22 @@ import * as H3D from './hole3d.js';
 import * as HOLES from './holes3d.js';
 
 const IMG = window.UI_IMAGES || {};
+
+/* A TABLET IS MARKED ONCE, BY WHAT IT IS. The stylesheet puts the tabs along
+   the bottom on a tablet (see "the bar, on an iPad"). Asking the pointer is
+   not enough: an iPad with a trackpad or a Magic Keyboard reports a fine
+   pointer, like a laptop, and in "desktop site" mode its browser calls
+   itself a Mac. A Mac has no touch screen; an iPad always has one. */
+(function markTablet() {
+  if (typeof navigator === 'undefined' || typeof document === 'undefined') return;
+  const ua = navigator.userAgent || '', touch = navigator.maxTouchPoints || 0;
+  const coarse = typeof matchMedia === 'function' && matchMedia('(any-pointer:coarse)').matches;
+  const tablet = /iPad/.test(ua)
+    || (/Macintosh/.test(ua) && touch > 1)                    // iPadOS asking for the desktop site
+    || (/Android/.test(ua) && !/Mobile/.test(ua))             // an Android tablet
+    || (coarse && touch > 0 && !/Windows|Macintosh/.test(ua) && !/Mobile|iPhone/.test(ua));
+  document.documentElement.classList.toggle('tablet', tablet);
+})();
 /* Where the hole actually is on each render: the outline round its drawn
    pixels, as fractions of the sheet. Measured at build time. */
 const HULL = window.UI_ART_HULL || {};
