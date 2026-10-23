@@ -1763,7 +1763,8 @@ function whoModalHtml() {
   const forced = !!(UI.modal && UI.modal.forced);
   return `<div class="scrim" data-act="modalScrim"><div class="modal whomodal" role="dialog" aria-modal="true" aria-label="Who are you?">
     ${modalBanner('Who are you?', forced ? 'Once, before anything else' : 'Chat and bets')}
-    <p>${forced ? 'Everyone says who they are, once. It goes on what you post in the chat and what you bet. ' : 'Your name goes on what you post and what you bet. '}On the trip? Tap your name. You’ll make a PIN the first time, so nobody else can be you.</p>
+    <p>${forced ? 'Everyone says who they are, once. It goes on what you post in the chat and what you bet. ' : 'Your name goes on what you post and what you bet. '}${D.PINS_ENABLED && UI.role && UI.role !== 'viewer' ? (canAdmin() ? 'You’re signed in as the commissioner: tap your name, no PIN needed.' : 'You’re signed in as a ref: tap your name, no second PIN needed.')
+      : 'On the trip? Tap your name. You’ll make a PIN the first time, so nobody else can be you.'}</p>
     ${block('⛳ Players', 'golfer')}${block('Refs', 'official')}${block('🍹 The gallery · here at the resort', 'spectator')}
     <div class="who-guest">
       <span class="who-l">🏟️ Not on the trip? Take a seat in the bleachers</span>
@@ -1777,6 +1778,15 @@ function whoModalHtml() {
     ${forced ? `<p class="who-ref">A ref, or the commissioner? <button data-act="signIn">Enter your PIN instead</button></p>`
       : `<div class="acts"><button class="btn ghost" data-act="modalCancel">Cancel</button></div>`}
   </div></div>`;
+}
+/** Signed in already, with the commissioner's or a ref's PIN, so no second
+ *  PIN: the commissioner can be anyone, a ref can be a ref. A ref's phone
+ *  still needs a golfer's own PIN to be that golfer. */
+function noPinFor(pid) {
+  if (!D.PINS_ENABLED || !UI.role || UI.role === 'viewer') return false;
+  if (canAdmin()) return true;
+  const p = E.person(T, pid);
+  return !!p && p.role === 'official';
 }
 /** A name from the trip, unlocked with its PIN — or its PIN made, the first time. */
 function whoPinHtml() {
@@ -4103,7 +4113,7 @@ function rosterPins() {
     <span class="rnote">Only you can see this. Each person makes their PIN the first time they choose their name; tell them it if they forget. Clearing one lets them make a new one.</span>
   </div>
   <div class="pinlist">${ppl.map(p => { const pin = pinOf(p.id);
-    return `<div class="pinrow"><span class="pn">${esc(p.display)}</span><b class="pv num">${pin ? esc(pin) : '<i>not made yet</i>'}</b>
+    return `<div class="pinrow"><span class="pn">${esc(p.display)}</span><b class="pv num">${pin ? esc(pin) : p.role === 'official' ? '<i>uses the ref PIN</i>' : '<i>not made yet</i>'}</b>
       ${pin ? `<button class="rm" data-act="pinReset" data-a="${esc(p.id)}">Clear</button>` : '<span></span>'}</div>`; }).join('')}</div>
   <h4 class="pinh">🏟️ The bleachers <span>${gs.filter(g => !g.removed).length}</span></h4>
   ${gs.length ? `<div class="pinlist">${gs.map(g => `<div class="pinrow${g.removed ? ' gone' : ''}"><span class="pn">${esc(g.name)}</span>
@@ -7092,7 +7102,7 @@ function onClick(e) {
     }
     case 'whoPick': {
       const back = UI.modal && UI.modal.back;
-      if (loadWho() === a) { UI.who = a; UI.modal = back ? { kind: back } : null; render(); return; }   // already this phone's
+      if (loadWho() === a || noPinFor(a)) { UI.who = a; saveWho(a); UI.modal = back ? { kind: back } : null; render(); return; }   // already this phone's, or signed in
       UI.modal = { kind: 'whopin', pid: a, back, mode: pinOf(a) ? 'enter' : 'set', a: '', b: '', err: '' };
       render(); return;
     }

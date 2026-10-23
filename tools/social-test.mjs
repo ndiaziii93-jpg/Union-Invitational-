@@ -343,6 +343,16 @@ ok('nobody but the master reviewer sees the PINs', await r.locator('.pinlist').c
 await r.evaluate(() => { window.__UI.role = 'master'; window.__forceRender(); }); await r.waitForTimeout(300);
 ok('the master reviewer sees them on Roster', (await r.locator('.pinrow:has-text("Robby B") .pv').innerText()).trim(), '7070');
 ok('and the guests, with a way to take a pass', [await r.locator('.pinrow:has-text("Uncle Bob")').count(), await r.locator('[data-act="guestRemove"]').count()], [1, 1]);
+ok('a ref’s name says it uses the ref PIN', (await r.locator('.pinrow:has-text("Justin P") .pv').innerText()).trim(), 'uses the ref PIN');
+const pickAs = async (role, pid) => { await r.evaluate(([role]) => { localStorage.removeItem('union-invitational:whoami'); window.__UI.who = undefined;
+  window.__UI.role = role; window.__UI.modal = { kind: 'who' }; window.__forceRender(); }, [role]); await r.waitForTimeout(200);
+  await r.locator(`[data-act="whoPick"][data-a="${pid}"]`).click(); await r.waitForTimeout(300);
+  return [await r.evaluate(() => localStorage.getItem('union-invitational:whoami')), await r.locator('#whoPinA').count()]; };
+ok('the commissioner picks a name with no second PIN', await pickAs('master', 'g1'), ['g1', 0]);
+ok('and could pick anyone', await pickAs('master', 'g7'), ['g7', 0]);
+ok('a ref picks a ref’s name with no second PIN', await pickAs('s1', 'o1'), ['o1', 0]);
+ok('but a ref’s phone still needs a golfer’s own PIN', await pickAs('s1', 'g7'), [null, 1]);
+ok('anyone else still makes a PIN', await pickAs('viewer', 'o3'), [null, 1]);
 await r.close();
 
 ok('no errors on the way', errs, []);
