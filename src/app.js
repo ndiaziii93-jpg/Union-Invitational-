@@ -1929,13 +1929,14 @@ function resultTag(m) {
 const quarterPays = (q, side) => beer(X.round4(X.sharesFor(q, side, 0.25)));
 function xCard(m, tr) {
   const q = X.book(m, tr), p = X.chance(q), pts = X.history(m, tr), d = Math.round((p - pts[0].p) * 100);
-  return `<article class="xm-c">
+  return `<article class="xm-c${UI.xLand === m.id ? ' land' : ''}" id="xc-${esc(m.id)}">
     <button class="xm-ct" data-act="xOpen" data-a="${esc(m.id)}"><b>${esc(m.q)}</b>
       <span class="xm-ch"><strong>${m.result ? (m.result === 'void' ? '—' : m.result === 'yes' ? '100%' : '0%') : X.cents(p) + '%'}</strong><small>chance</small></span></button>
     ${tagChips(m)}
     ${m.result ? resultTag(m) : (pts.length > 1 ? spark(pts, 34) : '') + `<div class="xm-yn">
       <button class="y" data-act="xOpen" data-a="${esc(m.id)}" data-b="yes">Yes <small>${X.sidePrice(q, 'yes')}%</small></button>
       <button class="n" data-act="xOpen" data-a="${esc(m.id)}" data-b="no">No <small>${X.sidePrice(q, 'no')}%</small></button></div>`}
+    ${backLine(m.id)}
     <div class="xm-v"><span>${beer(volumeOf(m.id, tr))} 🍺 bet${m.custom ? ' · by ' + esc(m.byName || 'someone') : ''}</span>
       ${m.result || !d ? '' : `<span class="xm-d ${d > 0 ? 'up' : 'dn'}">${d > 0 ? '▲' : '▼'} ${Math.abs(d)} since open</span>`}</div>
   </article>`;
@@ -1950,14 +1951,43 @@ function xGroupCard(list, tr) {
   const how = g.whoCustom ? 'by ' + esc(g.byName || 'someone') + guestTag(g.pid)
     : g.group === 'mvp' || g.group === 'team' ? 'Each name is its own yes/no'
     : /^(water|putt3)_/.test(g.group) || g.group === 'shots' ? 'Settles from the refs’ marks' : 'Settles from the scores';
-  return `<article class="xm-c">
+  return `<article class="xm-c${list.some(m => m.id === UI.xLand) ? ' land' : ''}" id="xg-${esc(g.group)}">
     <button class="xm-ct" data-act="xOpen" data-a="${esc((rows.find(r => r.m.who === who) || rows[0]).m.id)}">${/^water_/.test(g.group) ? '<span class="xm-mk w" aria-hidden="true">≈</span>' : /^putt3_/.test(g.group) ? '<span class="xm-mk" aria-hidden="true">3</span>' : ''}<b>${esc(g.groupQ)}</b></button>
-    ${show.map(({ m, p }) => `<div class="xm-mo${m.who && m.who === who ? ' hit' : ''}${m.any ? ' any' : ''}"><span>${esc(m.label)}</span>${m.result ? resultTag(m)
+    ${show.map(({ m, p }) => `<div class="xm-mo${m.who && m.who === who ? ' hit' : ''}${m.any ? ' any' : ''}"><span>${esc(m.label)}${(() => { const y = backers(m.id, 'yes'), n = backers(m.id, 'no');
+      return y || n ? `<small class="xm-bk">${y ? '🍺 ' + y : ''}${y && n ? ' · ' : ''}${n ? 'against: ' + n : ''}</small>` : ''; })()}</span>${m.result ? resultTag(m)
       : `<em>${X.cents(p)}%</em><button data-act="xOpen" data-a="${esc(m.id)}" data-b="yes">Yes</button>`}</div>`).join('')}
     ${rows.length > 4 ? `<button class="xm-more" data-act="xMore" data-a="${UI.xMore === g.group ? '' : esc(g.group)}">${UI.xMore === g.group ? 'Show fewer' : 'All ' + rows.length}</button>` : ''}
     <div class="xm-v"><span>${beer(vol)} 🍺 bet</span><span>${how}</span></div>
   </article>`;
 }
+/** Who is on a bet, by name: three a side, then how many more. */
+function backers(id, side) {
+  const hs = (X.holders(T)[id] || []).filter(h => side === 'yes' ? h.yes > h.no : h.no >= h.yes);
+  if (!hs.length) return '';
+  const names = hs.slice(0, 3).map(h => esc(nameOf(h.pid))).join(', ');
+  return names + (hs.length > 3 ? ` +${hs.length - 3}` : '');
+}
+function backLine(id) {
+  const y = backers(id, 'yes'), n = backers(id, 'no');
+  return y || n ? `<div class="xm-bk">${y ? `<span><b class="y">Yes</b> ${y}</span>` : ''}${n ? `<span><b class="n">No</b> ${n}</span>` : ''}</div>` : '';
+}
+/** One line of the table, and under it, once tapped, what they have on. */
+function xStRow(s, i) {
+  const open = UI.xWho === s.pid;
+  const live = s.rows.filter(r => !r.settled), done = s.rows.filter(r => r.settled);
+  const side = r => r.yes >= r.no ? 'Yes' : 'No';
+  const item = r => `<button class="xm-pb" data-act="xOpen" data-a="${esc(r.m.id)}"><span>${esc(mName(r.m))}</span>
+      <em><b class="${side(r) === 'Yes' ? 'y' : 'n'}">${side(r)}</b> ${beer(Math.max(0, r.spent))} 🍺 in · ${r.settled
+        ? (r.paid > 0 ? `<i class="up">won ${beer(r.paid)}</i>` : '<i class="dn">lost</i>')
+        : `worth ${beer(r.value)}`}</em></button>`;
+  return `<button class="xm-st${open ? ' on' : ''}" data-act="xWho" data-a="${esc(s.pid)}" aria-expanded="${open}">
+      <span class="num">${i + 1}</span><b>${esc(nameOf(s.pid))}${guestTag(s.pid)}</b>
+      <em class="num ${s.profit >= 0 ? 'up' : 'dn'}">${signed(s.profit)} 🍺</em><i class="xm-car" aria-hidden="true">${open ? '▴' : '▾'}</i></button>
+    ${open ? `<div class="xm-pbs">${live.concat(done).map(item).join('') || '<p class="xm-note">Cashed out of everything.</p>'}</div>` : ''}`;
+}
+/** Back to the list: at the top, and a pill that stays by your thumb. */
+const xBack = () => `<button class="xm-back" data-act="xView" data-a=""><span aria-hidden="true">‹</span> All bets</button>
+  <button class="xm-backfab" data-act="xView" data-a="" aria-label="Back to all bets"><span aria-hidden="true">‹</span> All bets</button>`;
 /** The people a card is about, as tags. */
 const tagChips = m => (m.tags || []).length && !m.group ? `<div class="xm-tags">${m.tags.map(t => `<span class="xm-tag">${esc(nameOf(t))}</span>`).join('')}</div>` : '';
 function xBar() {
@@ -1969,7 +1999,7 @@ function xBar() {
 }
 /** The Bets screen: its own tab on the bar, beside Scores and Boards. */
 function scrBets() {
-  const say = UI.xFlash ? `<div class="xm-flash" role="status">${esc(UI.xFlash)}</div>` : '';
+  const f = UI.xFlash, say = f ? `<div class="xm-flash" role="status">${typeof f === 'object' ? `<b>${esc(f.head)}</b><span>${esc(f.body)}</span>${f.foot ? `<small>${esc(f.foot)}</small>` : ''}` : esc(f)}</div>` : '';
   const inner = UI.xView === 'pf' ? xPortfolio() : UI.xView === 'new' ? xNewHtml()
     : UI.xView && xFind(UI.xView) ? xMarketHtml(xFind(UI.xView)) : xList();
   return `<span class="xm-anchor"></span>${inner}${say}`;
@@ -1990,7 +2020,7 @@ function xList() {
     if (m.group) { if (seen.has(m.group)) continue; seen.add(m.group); cards.push(xGroupCard(pick.filter(x => x.group === m.group), tr)); }
     else cards.push(xCard(m, tr));
   }
-  const st = X.standings(T, now).filter(x => !guestGone(x.pid)).slice(0, 5);
+  const st = X.standings(T, now).filter(x => !guestGone(x.pid));
   return `${xBar()}
   <p class="xm-how">Everything here is in beers. Everyone gets <b>${X.DAILY} 🍺 a day</b>, and bets go on in quarters. <b>The chance is the price</b>:
     the less likely the side you back, the more it pays. A ¼ 🍺 on a 1% long shot pays 18 🍺 if it comes in.</p>
@@ -1999,8 +2029,8 @@ function xList() {
   <div class="xm-cats nos">${XCATS.map(([k, l]) => `<button class="${cat === k ? 'on' : ''}" data-act="xCat" data-a="${k}">${l}</button>`).join('')}</div>
   <button class="xm-new" data-act="xView" data-a="new"><span aria-hidden="true">＋</span> Make your own bet</button>
   ${cards.join('') || `<p class="pg-empty">${who ? 'No bets about ' + esc(nameOf(who)) + ' here yet. Make one.' : cat === 'ours' ? 'Nobody has made one yet. Make the first.' : cat === 'done' ? 'Nothing has settled yet.' : 'Nothing here.'}</p>`}
-  ${st.length ? `<section class="xm-sec"><div class="pg-h"><b>Sharpest in the group</b><span>beers up or down</span></div>
-    ${st.map((s, i) => `<div class="xm-st"><span class="num">${i + 1}</span><b>${esc(nameOf(s.pid))}${guestTag(s.pid)}</b><em class="num ${s.profit >= 0 ? 'up' : 'dn'}">${signed(s.profit)} 🍺</em></div>`).join('')}</section>` : ''}
+  ${st.length ? `<section class="xm-sec"><div class="pg-h"><b>Sharpest in the group</b><span>tap a name for their bets</span></div>
+    ${st.map((s, i) => xStRow(s, i)).join('')}</section>` : ''}
   <p class="pg-note">The chance moves as people bet: the book always takes the other side, so every bet goes on straight away.</p>`;
 }
 /** Filter by person: everyone on the trip, then the bleachers. */
@@ -2054,7 +2084,7 @@ function xMarketHtml(m) {
     `<span class="lvl"><i style="width:${Math.min(100, x.n * 25)}%"></i><span>${x.p}%</span><span>${beer(x.n)} 🍺</span></span>`).join('') : '<span class="xm-none">Nobody waiting</span>'}</div>`;
   const recent = tr.filter(t => t.m === m.id).slice(-6).reverse();
   const yes = pos ? X.round4(pos.yes) : 0, no = pos ? X.round4(pos.no) : 0;
-  return `<button class="xm-back" data-act="xView" data-a="">‹ Bets</button>
+  return `${xBack()}
   <div class="xm-page">
     <span class="xm-eye">${m.cat === 'trip' ? 'The trip' : 'Golf'} · ${beer(volumeOf(m.id, tr))} 🍺 bet${m.custom ? ' · made by ' + esc(m.byName || 'someone') : ''}</span>
     <h2 class="xm-h">${esc(m.group ? m.groupQ : m.q)}</h2>
@@ -2104,13 +2134,13 @@ function xSettleWhoHtml(m, sibs) {
 }
 function xPortfolio() {
   const me = whoAmI();
-  if (!me) return `<button class="xm-back" data-act="xView" data-a="">‹ Bets</button><div class="xm-page"><button class="btn" data-act="whoOpen">Choose your name</button></div>`;
+  if (!me) return `${xBack()}<div class="xm-page"><button class="btn" data-act="whoOpen">Choose your name</button></div>`;
   const acc = X.account(T, me, now);
   const open = acc.rows.filter(r => !r.settled), done = acc.rows.filter(r => r.settled);
   const ords = X.orders(T).filter(o => o.pid === me && o.state === 'open');
   const all = xAll();
   const paysLine = r => [r.yes > 1e-6 ? 'pays ' + beer(X.round4(r.yes)) + ' if Yes' : '', r.no > 1e-6 ? 'pays ' + beer(X.round4(r.no)) + ' if No' : ''].filter(Boolean).join(' · ');
-  return `<button class="xm-back" data-act="xView" data-a="">‹ Bets</button>
+  return `${xBack()}
   <div class="xm-page"><h2 class="xm-h">${esc(nameOf(me))}’s bets</h2>
     <div class="xm-tk">
       <div class="xm-kv"><span>Beers to bet with</span><b>🍺 ${beer(acc.cash)}</b></div>
@@ -2134,7 +2164,7 @@ function xNewHtml() {
   const n = UI.xNew || (UI.xNew = { q: '', rules: '', cat: 'trip', p0: 50, kind: 'yn', ppl: [] });
   const who = n.kind === 'who';
   const ppl = X.tripPeople(T).concat(allGuests().filter(g => !g.removed).sort((a, b) => (a.at || 0) - (b.at || 0)).map(g => ({ id: g.pid, display: g.name })));
-  return `<button class="xm-back" data-act="xView" data-a="">‹ Bets</button>
+  return `${xBack()}
   <div class="xm-page"><h2 class="xm-h">Make your own bet</h2>
     <p class="xm-note">Everyone can bet on it; you or the commissioner settle it, and everyone sees who did and when.</p>
     <div class="xm-f"><span>What kind</span><div class="xm-seg"><button class="${who ? '' : 'on'}" data-act="xN" data-a="kind" data-b="yn">Yes or no</button><button class="${who ? 'on' : ''}" data-act="xN" data-a="kind" data-b="who">Who will it be?</button></div></div>
@@ -2163,7 +2193,7 @@ function xSubmit() {
     if (t.beers > X.account(T, me, now).cash + 1e-9) { UI.xErr = `You have ${beer(X.account(T, me, now).cash)} 🍺 to bet with.`; render(); return; }
     const id = 'o' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
     store.putSocial('market', id, { k: 'o', m: m.id, pid: me, dev: myDev(), side: t.side, stake: t.beers, lim: t.lim, at: Date.now(), state: 'open' });
-    flash(`Waiting: ${beer(t.beers)} 🍺 goes on ${t.side === 'yes' ? 'Yes' : 'No'} if it comes down to ${t.lim}%.`);
+    landed(m, '✓ Waiting to go on', `${beer(t.beers)} 🍺 on ${t.side === 'yes' ? 'Yes' : 'No'} · ${mName(m)}`, `Goes on by itself once it comes down to ${t.lim}%.`);
     return;
   }
   const held = (X.positions(T, me)[m.id] || {})[t.side] || 0;
@@ -2174,8 +2204,16 @@ function xSubmit() {
   const id = 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
   store.putSocial('market', id, { ...r.doc, dev: myDev(), at: Date.now() });
   t.lim = null;
-  flash(t.act === 'buy' ? `${beer(r.doc.cost)} 🍺 on ${t.side === 'yes' ? 'Yes' : 'No'}. It pays ${beer(X.round4(r.doc.n))} 🍺 if it comes in.`
-    : `Cashed out ${beer(-r.doc.cost)} 🍺.`);
+  landed(m, t.act === 'buy' ? '✓ Bet placed' : '✓ Cashed out', t.act === 'buy'
+    ? `${beer(r.doc.cost)} 🍺 on ${t.side === 'yes' ? 'Yes' : 'No'} · ${mName(m)}` : `${beer(-r.doc.cost)} 🍺 back · ${mName(m)}`,
+    t.act === 'buy' ? `Pays ${beer(X.round4(r.doc.n))} 🍺 if it comes in.` : 'Back in your beers now.');
+}
+/** Done on a bet's page: back to the list, at that bet, with word of it. */
+function landed(m, head, body, foot) {
+  UI.xView = null; UI.xTicket = null; UI.xErr = ''; UI.xLand = m.id;
+  UI.landOn = m.group ? '#xg-' + m.group : '#xc-' + m.id;
+  flash({ head, body, foot }, 4200);
+  setTimeout(() => { if (UI.xLand === m.id) { UI.xLand = null; render(); } }, 4200);
 }
 /* An order is filled by the phone that placed it, the moment that phone
    sees the chance come to it, so one order can never go on twice. */
@@ -2199,7 +2237,7 @@ function fillMyOrders() {
       .finally(() => filling.delete(o.id));
   }
 }
-function flash(t) { UI.xFlash = t; render(); setTimeout(() => { if (UI.xFlash === t) { UI.xFlash = ''; render(); } }, 2600); }
+function flash(t, ms = 2600) { UI.xFlash = t; render(); setTimeout(() => { if (UI.xFlash === t) { UI.xFlash = ''; render(); } }, ms); }
 
 /* ---------------- photos ----------------
    Anyone on the trip can add to a round. Phone photos are twelve megapixels
@@ -5746,6 +5784,15 @@ function paint() {
       if (want != null && want > at) scrollSettled(at);
     }
   }
+  /* A bet just placed: down or up the list to its card, a little below the top. */
+  if (UI.landOn) {
+    const el = document.querySelector(UI.landOn);
+    UI.landOn = null;
+    if (el) {
+      const pad = parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop) || 0;
+      scrollSettled(Math.max(0, el.getBoundingClientRect().top + window.scrollY - pad - 16));
+    }
+  }
   measurePlate();
   onScroll();
   measureCover();
@@ -7127,6 +7174,7 @@ function onClick(e) {
     case 'xView': UI.xView = a || null; UI.xErr = ''; UI.xTicket = null; UI.liftTo = '.xm-anchor'; render(); return;
     case 'xCat': UI.xCat = a; render(); return;
     case 'xMore': UI.xMore = a || null; render(); return;
+    case 'xWho': UI.xWho = UI.xWho === a ? null : a; render(); return;
     case 'xOpen':
       UI.xView = a; UI.xErr = ''; UI.liftTo = '.xm-anchor';
       UI.xTicket = { m: a, side: b === 'no' ? 'no' : 'yes', act: 'buy', type: 'market', beers: 1, lim: null };

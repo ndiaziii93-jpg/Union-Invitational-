@@ -136,8 +136,8 @@ const rows = T => Object.values(T.market || {}).filter(Boolean);
    golfer for every round there are some two hundred markets, and the page
    asks after them dozens of times while it is drawn. The book calls
    invalidate() at the top of every draw and after every write. */
-let memoTrades = null, memoMarkets = null;
-export function invalidate() { memoTrades = null; memoMarkets = null; }
+let memoTrades = null, memoMarkets = null, memoHolders = null;
+export function invalidate() { memoTrades = null; memoMarkets = null; memoHolders = null; }
 export const trades = T => memoTrades || (memoTrades = rows(T).filter(r => r.k === 't').sort((a, b) => (a.at || 0) - (b.at || 0)));
 export const orders = T => rows(T).filter(r => r.k === 'o').sort((a, b) => (a.at || 0) - (b.at || 0));
 
@@ -346,6 +346,20 @@ export function positions(T, pid) {
     p.spent += t.cost;
   }
   return P;
+}
+
+/** Who holds what on every market, first in first: { market: [{ pid, yes, no }] }.
+ *  Anyone who has cashed all of it out is left off. */
+export function holders(T) {
+  if (memoHolders) return memoHolders;
+  const H = {}, at = {};
+  for (const t of trades(T)) {
+    const by = H[t.m] || (H[t.m] = {});
+    const h = by[t.pid] || (by[t.pid] = { pid: t.pid, yes: 0, no: 0 });
+    h[t.side] += t.n;
+  }
+  for (const [m, by] of Object.entries(H)) at[m] = Object.values(by).filter(h => h.yes > 1e-4 || h.no > 1e-4);
+  return (memoHolders = at);
 }
 
 /** What a settled market paid one holder, to the quarter beer. */
