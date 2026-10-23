@@ -108,8 +108,8 @@ ok('and in an ink of its own', named.sameAsOthers, false);
 const order = await pg.$$eval('.tabs .tab', els => els.map(e => e.dataset.a));
 /* Four tabs, in the order of the week: where you are, what you are writing
    down, what it adds up to, and the hotel you go back to. */
-ok('The Titanic is the last of the five', order,
-  ['today', 'entry', 'boards', 'calendar', 'resort']);
+ok('The Titanic is the last of the six', order,
+  ['today', 'entry', 'bets', 'boards', 'calendar', 'resort']);
 
 await pg.click('[data-act="go"][data-a="resort"]:visible');
 await pg.waitForTimeout(300);
