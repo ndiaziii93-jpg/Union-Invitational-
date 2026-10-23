@@ -1,5 +1,5 @@
 /* The Union Invitational — offline shell.
-   Build 20261023-1048.
+   Build 20261023-1056.
 
    The book is one file, so there is little to cache and no dependency graph
    to get wrong. The page itself is served network-first, so a phone picks up
@@ -10,7 +10,7 @@
    Anything that is not a GET — every score, every photo — is left entirely
    alone. Writes are the store's business, and it queues them itself. */
 
-const CACHE = 'union-20261023-1048';
+const CACHE = 'union-20261023-1056';
 const SHELL = ['./', './index.html', './manifest.webmanifest',
                './icon-192.png', './icon-512.png', './apple-touch-icon.png',
                './fonts/source-serif-latin-normal.woff2',
@@ -54,4 +54,30 @@ self.addEventListener('fetch', e => {
     }
     return res;
   }).catch(() => caches.match(req).then(hit => hit || caches.match('./index.html'))));
+});
+
+/* A chat message from someone else, while the book is closed or in a pocket.
+   Every push shows a notification — a phone that is sent one and shows
+   nothing loses the right to be sent any. One a chat at a time: a busy chat
+   updates the one on the lock screen rather than stacking twenty. */
+self.addEventListener('push', e => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch (x) { d = { body: e.data ? e.data.text() : '' }; }
+  const shown = self.registration.showNotification(d.title || 'The Union Invitational', {
+    body: d.body || 'New in the chat', tag: d.tag || 'chat', renotify: true,
+    icon: './icon-192.png', badge: './icon-192.png', data: { room: d.room || '' },
+  });
+  const badge = self.navigator && self.navigator.setAppBadge ? self.navigator.setAppBadge().catch(() => {}) : null;
+  e.waitUntil(Promise.all([shown, badge]));
+});
+
+/* Tapped: back into the book, on the chat it came from — the open one if
+   there is one, a new one if not. */
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const room = (e.notification.data || {}).room || '';
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(cs => {
+    for (const c of cs) { if ('focus' in c) { c.postMessage({ chat: room }); return c.focus(); } }
+    return self.clients.openWindow('./?chat=' + encodeURIComponent(room));
+  }));
 });

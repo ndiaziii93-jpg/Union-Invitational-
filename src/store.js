@@ -998,6 +998,14 @@ export function createStore(onChange) {
     return dropDoc(coll, id);
   }
 
+  /** This phone's address for chat notifications: one document per phone,
+   *  written only by that phone, read only by the notify function. */
+  async function writePush(fields) {
+    if (mode !== 'db' || backend !== 'supabase' || !db) return false;
+    try { return !!(await db.doc('push/' + deviceId).set({ ...fields, dev: deviceId, at: Date.now() })); }
+    catch (e) { return false; }
+  }
+
   async function dropPhoto(id) {
     if (tooEarly()) return false;
     delete T.photos[id];
@@ -1069,7 +1077,7 @@ export function createStore(onChange) {
     } catch (e) { status = 'error'; saveState = 'error'; notify(); return false; }
   }
 
-  return { T, connect, writeConfig, writeCard, writeBbb, writeNote, writeRecap, writePhoto, heartPhoto, dropPhoto, putSocial, patchSocial, dropSocial, resetScores, resave, note,
+  return { T, connect, writeConfig, writeCard, writeBbb, writeNote, writeRecap, writePhoto, heartPhoto, dropPhoto, putSocial, patchSocial, dropSocial, writePush, resetScores, resave, note,
            get deviceId() { return deviceId; },
            writePerson, writeAllPeople, addPerson, removePerson,
            writePair, addPair, removePair, movePlayer, movePairBy,

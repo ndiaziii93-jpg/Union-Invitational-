@@ -4269,3 +4269,12 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
 .chatsheet .ps-body{padding:6px 14px 30px}
 .chatsheet .ch-rooms{margin-top:6px}
 .chatsheet .mbanner{margin:0}
+/* the invitation to be buzzed */
+.ch-push{display:flex;align-items:center;gap:10px;margin-top:10px;background:#F3E6CF;border:1.5px solid var(--gold-up);border-radius:14px;padding:10px 10px 10px 12px;font-size:14px;line-height:1.35}
+.ch-push b{color:var(--ink)}
+.ch-pi{font-size:22px;flex:0 0 auto}
+.ch-push > span:nth-child(2){flex:1;min-width:0;color:var(--turf)}
+.ch-push .btn{flex:0 0 auto}
+.ch-perr{display:block;font-style:normal;color:var(--flag);font-weight:600;margin-top:3px}
+.ch-pushnote{margin:8px 0 0;font-size:13px;color:var(--turf)}
+.ch-pushnote button{background:none;border:0;font:inherit;color:var(--green);text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:4px 0}

@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1D2E21">
+<meta name="robots" content="noindex">
+<link rel="icon" href="../../app/icon-192.png">
+<title>Notification Keys</title>
+<style>
+/* one card: make the pair here, copy both into Supabase, done */
+:root{
+  color-scheme:light;
+  --paper:#E3DBCB; --page:#EEE8D5; --ink:#1D2E21; --turf:#5C6B55; --rule:#C4B896; --gold:#8C6B2F; --gold-up:#C9A253; --gold-hi:#E2C277; --flag:#9E3B2E; --yes:#2F7A4A;
+  --serif:'Iowan Old Style',Georgia,'Times New Roman',serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:17px;line-height:1.5;
+  padding:28px max(16px,env(safe-area-inset-right,0px)) 60px max(16px,env(safe-area-inset-left,0px))}
+main{max-width:640px;margin:0 auto;display:grid;gap:16px}
+h1{margin:0;font-size:clamp(26px,5vw,32px);line-height:1.15}
+p{margin:0}
+.lede{color:var(--turf)}
+ol{margin:0;padding-left:22px;display:grid;gap:8px}
+.card{background:var(--page);border-radius:16px;padding:16px 18px;box-shadow:0 0 0 .5px rgba(29,46,33,.18);display:grid;gap:12px}
+.safe{border-left:4px solid var(--yes)}
+button{font:inherit;cursor:pointer;border:0}
+.go{background:var(--ink);color:var(--page);border-radius:999px;padding:13px 20px;font-weight:700;min-height:48px;border-bottom:2px solid var(--gold-up)}
+.key{display:grid;gap:6px}
+.key b{font-size:14px;letter-spacing:.06em;text-transform:uppercase;color:var(--gold)}
+.key code{display:block;font-family:var(--mono);font-size:13.5px;background:#fff8;border-radius:10px;padding:10px 12px;word-break:break-all;box-shadow:inset 0 0 0 1px var(--rule)}
+.copy{justify-self:start;background:var(--gold-hi);color:var(--ink);border-radius:999px;padding:8px 15px;font-weight:700;font-size:15px;min-height:40px}
+.copy.done{background:var(--yes);color:#fff}
+.warn{color:var(--flag);font-weight:600}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main>
+  <h1>Notification keys</h1>
+  <p class="lede">For the commissioner, once. This makes the pair of keys that lets the book send chat notifications. They are made here, in this browser, and go nowhere else until you paste them into Supabase.</p>
+
+  <div class="card safe"><p><b>Nothing leaves this page.</b> There is no server behind it: the keys are made by your browser’s own cryptography and shown below. Don’t send the private key to anyone, including in a chat.</p></div>
+
+  <div class="card">
+    <button class="go" id="make">Make the keys</button>
+    <p class="warn" id="nope" hidden>This browser can’t make them. Try Safari or Chrome.</p>
+    <div id="out" hidden>
+      <div class="key"><b>VAPID_PUBLIC_KEY</b><code id="pub"></code><button class="copy" data-for="pub">Copy</button></div>
+      <div class="key" style="margin-top:12px"><b>VAPID_PRIVATE_KEY</b><code id="priv"></code><button class="copy" data-for="priv">Copy</button></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <p><b>Then, in Supabase</b></p>
+    <ol>
+      <li>Open your project → <b>Edge Functions</b> → <b>Secrets</b>.</li>
+      <li>Add a secret named <b>VAPID_PUBLIC_KEY</b> and paste the first key.</li>
+      <li>Add a secret named <b>VAPID_PRIVATE_KEY</b> and paste the second.</li>
+      <li>Save. Once they are saved, close this page; making new keys later would switch everybody’s notifications off until they turn them on again.</li>
+    </ol>
+  </div>
+</main>
+<script>
+const b64u = b => btoa(String.fromCharCode(...new Uint8Array(b))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+document.getElementById('make').addEventListener('click', async () => {
+  try {
+    const kp = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify']);
+    const jwk = await crypto.subtle.exportKey('jwk', kp.privateKey);
+    document.getElementById('pub').textContent = b64u(await crypto.subtle.exportKey('raw', kp.publicKey));
+    document.getElementById('priv').textContent = jwk.d;
+    document.getElementById('out').hidden = false;
+    document.getElementById('make').textContent = 'Make a different pair';
+  } catch (e) { document.getElementById('nope').hidden = false; }
+});
+document.addEventListener('click', async e => {
+  const b = e.target.closest('.copy'); if (!b) return;
+  const t = document.getElementById(b.dataset.for).textContent;
+  try { await navigator.clipboard.writeText(t); b.textContent = 'Copied'; b.classList.add('done'); }
+  catch (err) { const r = document.createRange(); r.selectNodeContents(document.getElementById(b.dataset.for)); const s = getSelection(); s.removeAllRanges(); s.addRange(r); b.textContent = 'Selected: copy it'; }
+  setTimeout(() => { b.textContent = 'Copy'; b.classList.remove('done'); }, 2500);
+});
+</script>
+</body>
+</html>

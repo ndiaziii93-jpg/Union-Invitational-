@@ -1560,9 +1560,85 @@ function boardChat(inSheet) {
     : `<button class="btn" data-act="whoOpen" style="width:100%">Choose your name to join in</button>`}
   </div>
   ${socialRefused()}
+  ${pushCard()}
   <div class="ch-feed">${items.map(x => x.html()).join('')
     || `<p class="pg-empty">${isRound ? 'Nothing yet. Birdies, balls in the water and the turn appear here by themselves as the refs save holes.' : 'Nothing yet. Say something to start it off.'}</p>`}</div>
   ${inSheet ? '' : '<p class="pg-note">Tap an emoji to react. Heckle puts your line under that moment. You can remove your own messages; the commissioner can remove any.</p>'}`;
+}
+
+/* ---- notifications ----
+   A buzz on the phone when somebody posts, with the book closed. The phone
+   asks once, on a tap — the only time a phone will ask — and leaves its push
+   address in the book; whoever posts asks the notify function to pass the
+   line on to everyone else. An iPhone only allows it for the book added to
+   the Home Screen, so there the card says how, and asks after. */
+const PUSH_KEY = 'union-invitational:push';
+const pushPref = () => { try { return localStorage.getItem(PUSH_KEY) || ''; } catch (e) { return ''; } };
+const setPushPref = v => { try { localStorage.setItem(PUSH_KEY, v); } catch (e) { /* storage blocked */ } };
+const onIOS = () => /iP(hone|ad|od)/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+const homeScreen = () => !!(navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches));
+const fnUrl = name => String(CFG.SUPABASE_URL || '').replace(/\/+$/, '') + '/functions/v1/' + name;
+const pushable = () => !!(store && store.backend === 'supabase' && CFG.SUPABASE_URL && 'serviceWorker' in navigator
+  && 'PushManager' in window && 'Notification' in window);
+function pushCard() {
+  if (!store || store.backend !== 'supabase') return '';
+  if (!pushable()) {
+    return onIOS() && !homeScreen() ? `<div class="ch-push"><span class="ch-pi" aria-hidden="true">🔔</span><span><b>Get a buzz when someone posts.</b>
+      On an iPhone, add the book to your Home Screen first (Share, then Add to Home Screen), open it from there, and turn notifications on here.</span></div>` : '';
+  }
+  if (Notification.permission === 'denied') return `<p class="ch-pushnote">Notifications are switched off for the book in this phone’s settings.</p>`;
+  if (Notification.permission === 'granted' && pushPref() === 'on') {
+    return `<p class="ch-pushnote">🔔 You’ll get a buzz when someone posts · <button data-act="pushOff">Turn off</button></p>`;
+  }
+  return `<div class="ch-push"><span class="ch-pi" aria-hidden="true">🔔</span><span><b>Get a buzz when someone posts.</b> Heckles, birdie talk, who’s at the bar.
+      ${UI.pushErr ? `<em class="ch-perr">${esc(UI.pushErr)}</em>` : ''}</span>
+    <button class="btn sm" data-act="pushOn"${UI.pushBusy ? ' disabled' : ''}>${UI.pushBusy ? 'Turning on…' : 'Turn on'}</button></div>`;
+}
+async function pushOn() {
+  /* asked first, in the tap itself: a phone asks only from inside a tap */
+  const asked = Notification.requestPermission();
+  UI.pushBusy = true; UI.pushErr = ''; render();
+  try {
+    if (await asked !== 'granted') throw new Error('Allow notifications when the phone asks, and they will come.');
+    const reg = await navigator.serviceWorker.ready;
+    const r = await fetch(fnUrl('notify'), { headers: { apikey: CFG.SUPABASE_KEY } });
+    const got = await r.json().catch(() => ({}));
+    if (!got.publicKey) throw new Error('Notifications are not switched on for the book yet. Tell the commissioner.');
+    const raw = atob(got.publicKey.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((got.publicKey.length + 3) % 4));
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: Uint8Array.from(raw, c => c.charCodeAt(0)) });
+    const j = sub.toJSON();
+    if (!(await store.writePush({ k: 'push', on: true, pid: whoAmI(), sub: { endpoint: j.endpoint, keys: j.keys } }))) {
+      throw new Error('That did not save. Try again with signal.');
+    }
+    setPushPref('on');
+  } catch (e) { UI.pushErr = String((e && e.message) || 'That did not work. Try again.'); }
+  UI.pushBusy = false; render();
+}
+async function pushOff() {
+  setPushPref('off');
+  try { const reg = await navigator.serviceWorker.ready; const sub = await reg.pushManager.getSubscription(); if (sub) await sub.unsubscribe(); } catch (e) { /* already gone */ }
+  if (store) store.writePush({ k: 'push', on: false, pid: whoAmI(), sub: null });
+  render();
+}
+/** Ask the notify function to pass a message on. Nothing waits on it. */
+function notifyOthers(path) {
+  if (!store || store.backend !== 'supabase' || !CFG.SUPABASE_URL) return;
+  fetch(fnUrl('notify'), { method: 'POST', headers: { 'content-type': 'application/json', apikey: CFG.SUPABASE_KEY }, body: JSON.stringify({ path }) })
+    .catch(() => { /* a missed buzz is not worth a retry storm */ });
+}
+/** Opened from a notification: straight into the chat it came from. */
+function openChatFrom(room) {
+  UI.chatRoom = room && (room === TRIP || D.ROUNDS.some(r => r.id === room)) ? room : null;
+  UI.modal = { kind: 'chat' };
+  render();
+}
+/* The red count on the book's own icon, where the phone allows one. */
+let badgeWas = -1;
+function syncIconBadge(n) {
+  if (n === badgeWas || !('setAppBadge' in navigator)) return;
+  badgeWas = n;
+  (n ? navigator.setAppBadge(n) : navigator.clearAppBadge()).catch(() => {});
 }
 
 /* ---- the bubble ----
@@ -1589,6 +1665,7 @@ function chatNews() {
   return said.concat(posted).sort((a, b) => b.at - a.at);
 }
 function chatFab() {
+  if (loaded()) syncIconBadge(UI.modal && UI.modal.kind === 'chat' ? 0 : chatNews().length);
   if (!loaded() || UI.screen === 'entry' || UI.modal || UI.recapOpen || UI.askOpen) return '';
   if (UI.screen === 'boards' && UI.boardTab === 'chat') return '';
   const news = chatNews(), n = news.length;
@@ -1632,7 +1709,8 @@ function chatSend() {
   const text = String(f ? f.value : UI.chatDraft || '').trim().slice(0, 280);
   if (!me || !text || !store) return;
   const id = 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
-  store.putSocial('chat', id, { k: 'm', rid: chatRoomNow(), pid: me, name: nameOf(me), text, at: Date.now(), dev: myDev(), re: UI.chatRe || null });
+  store.putSocial('chat', id, { k: 'm', rid: chatRoomNow(), pid: me, name: nameOf(me), text, at: Date.now(), dev: myDev(), re: UI.chatRe || null })
+    .then(landed => { if (landed) notifyOthers('chat/' + id); });
   UI.chatDraft = ''; UI.chatRe = null;
   if (f) { f.value = ''; f.blur(); }
   render();
@@ -6767,6 +6845,8 @@ function onClick(e) {
       if (a) setTimeout(() => { const f = document.getElementById('chatText'); if (f) f.focus(); }, 80);
       return;
     case 'chatSend': chatSend(); return;
+    case 'pushOn': if (!UI.pushBusy) pushOn(); return;
+    case 'pushOff': pushOff(); return;
     case 'chatDrop': { const r = (T.chat || {})[a]; if (!ownsMsg(r)) return; store.dropSocial('chat', a); render(); return; }
     case 'whoOpen': UI.modal = { kind: 'who', back: UI.modal && UI.modal.kind === 'chat' ? 'chat' : null }; render(); return;
     case 'whoPick': {
@@ -7869,8 +7949,23 @@ export function boot() {
   UI.boardRound = (upcoming.counts ? upcoming : D.ROUNDS.find(r => r.counts)).id;
   restoreDraft();          // a hole left part-entered last time comes back with them
 
+  /* Opened by tapping a chat notification: the address says which chat. It
+     is read once and taken off the address, so a reload does not reopen it. */
+  let fromPush = null;
+  try {
+    const q = new URLSearchParams(location.search);
+    if (q.has('chat')) { fromPush = q.get('chat') || ''; history.replaceState(null, '', location.pathname + location.hash); }
+  } catch (e) { /* an address the browser will not parse */ }
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', e => { if (e.data && 'chat' in e.data) openChatFrom(String(e.data.chat || '')); });
+  }
   store = S.createStore((state, m) => {
     T = state; meta = m;
+    if (fromPush !== null && m.ready && m.settled !== false) {
+      const room = fromPush; fromPush = null;
+      UI.chatRoom = room && (room === TRIP || D.ROUNDS.some(r => r.id === room)) ? room : null;
+      UI.modal = { kind: 'chat' };
+    }
     window.__T = T; window.__UI = UI;        // read by the tests, written by nobody
     /* the tests' way to make the book redraw as a poll would: `true` makes it
        redraw even when nothing changed, the way a real change would */

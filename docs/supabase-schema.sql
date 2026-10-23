@@ -70,7 +70,7 @@ drop policy if exists docs_insert on public.docs;
 create policy docs_insert on public.docs
   for insert with check (
     jsonb_typeof(doc) = 'object'
-    and path ~ '^(config|people|pairs|scores|bbb|notes|recaps|photos|chat|market|diag)/[A-Za-z0-9_.-]{1,80}$'
+    and path ~ '^(config|people|pairs|scores|bbb|notes|recaps|photos|chat|market|push|diag)/[A-Za-z0-9_.-]{1,80}$'
   );
 
 drop policy if exists docs_update on public.docs;
