@@ -343,9 +343,9 @@ console.log('\nthe shape of the book');
    tournament, in the order you meet them; everything set up once sits behind
    Manage, deepest-first — Setup, then the roster, the tee times, the courses
    and the rules. The Calendar tab shows the week; it never edits it. */
-ok('five tabs, and these five', await p.evaluate(
+ok('six tabs, and these six — Bets beside Scores and Boards', await p.evaluate(
   () => [...document.querySelectorAll('.tab')].map(x => x.dataset.a)),
-  ['today', 'entry', 'boards', 'calendar', 'resort']);
+  ['today', 'entry', 'bets', 'boards', 'calendar', 'resort']);
 ok('the cup is not one of them — it is a board',
   await p.locator('.tab[data-a="ryder"]').count(), 0);
 await p.locator('.masthead [data-act="manageOpen"]').click(); await p.waitForTimeout(500);
