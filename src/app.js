@@ -1540,13 +1540,89 @@ function rxRow(target, doc) {
     return `<button class="${mine === e ? 'on' : ''}" data-act="chatReact" data-a="${esc(target)}" data-b="${e}"
       aria-pressed="${mine === e}" aria-label="${e} ${n}">${e}${n ? ` <b>${n}</b>` : ''}</button>`; }).join('')}</div>`;
 }
+/* ---- @ someone ----
+   Anyone on the roster or in the bleachers can be called out by name. The
+   names are found when the message is sent and kept on it, so a name
+   changed later still lights up the right person. */
+function atPeople() {
+  return (T.config.people || []).map(p => ({ id: p.id, name: p.display }))
+    .concat(allGuests().filter(g => !g.removed && g.name).map(g => ({ id: g.pid, name: g.name })));
+}
+const reEsc = x => String(x).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+/** The people a message calls out: longest names first, so "@Norberto Jr."
+ *  is never read as someone shorter. */
+function mentionsIn(text) {
+  let rest = String(text || '');
+  const out = [];
+  for (const p of atPeople().sort((a, b) => b.name.length - a.name.length)) {
+    const re = new RegExp('@' + reEsc(p.name) + '(?![\\w])', 'gi');
+    if (re.test(rest)) { out.push(p.id); rest = rest.replace(re, ' '); }
+  }
+  return [...new Set(out)];
+}
+/** A message's words, with the names it calls out picked out in gold. */
+function atText(text, ment) {
+  const ids = (ment || []).filter(Boolean);
+  if (!ids.length) return esc(text);
+  const names = ids.map(id => ({ id, name: nameOf(id) })).filter(x => x.name).sort((a, b) => b.name.length - a.name.length);
+  if (!names.length) return esc(text);
+  const re = new RegExp('@(' + names.map(x => reEsc(x.name)).join('|') + ')(?![\\w])', 'gi');
+  const me = whoAmI();
+  let html = '', i = 0, m;
+  while ((m = re.exec(text))) {
+    const who = names.find(x => x.name.toLowerCase() === m[1].toLowerCase());
+    html += esc(text.slice(i, m.index)) + `<b class="ch-atn${who && who.id === me ? ' me' : ''}">@${esc(m[1])}</b>`;
+    i = m.index + m[0].length;
+  }
+  return html + esc(text.slice(i));
+}
+/** Names offered under the box while "@…" is being typed. Drawn straight
+ *  into the page: the box being typed in holds redraws back. */
+function atSuggest(f) {
+  const box = document.getElementById('chatAt');
+  if (!box || !f) return;
+  const before = f.value.slice(0, f.selectionStart == null ? f.value.length : f.selectionStart);
+  const m = before.match(/(?:^|\s)@([^@\n]{0,24})$/);
+  const q = m ? m[1].toLowerCase() : null;
+  const me = whoAmI();
+  const list = q == null ? [] : atPeople().filter(p => p.id !== me && (p.name.toLowerCase() + ' ') !== q
+    && (p.name.toLowerCase().startsWith(q) || p.name.toLowerCase().split(/\s+/).some(w => w.startsWith(q))))
+    .sort((a, b) => (b.name.toLowerCase().startsWith(q) ? 1 : 0) - (a.name.toLowerCase().startsWith(q) ? 1 : 0)).slice(0, 8);
+  box.innerHTML = list.map(p => `<button type="button" data-pid="${esc(p.id)}">@${esc(p.name)}${p.id.startsWith('x') ? whoTag(p.id) : ''}</button>`).join('');
+  box.hidden = !list.length;
+}
+/** A name tapped: the "@…" typed so far becomes the whole name. */
+function atPick(pid) {
+  const f = document.getElementById('chatText'), p = atPeople().find(x => x.id === pid);
+  if (!f || !p) return;
+  const at = f.selectionStart == null ? f.value.length : f.selectionStart;
+  const before = f.value.slice(0, at).replace(/@([^@\n]{0,24})$/, '@' + p.name + ' ');
+  f.value = (before + f.value.slice(at)).slice(0, 280);
+  UI.chatDraft = f.value;
+  f.focus({ preventScroll: true });
+  f.setSelectionRange(before.length, before.length);
+  atSuggest(f);
+}
+/** The @ button: starts a name where the caret is. */
+function atStart() {
+  const f = document.getElementById('chatText');
+  if (!f) return;
+  const at = f.selectionStart == null ? f.value.length : f.selectionStart;
+  const pre = f.value.slice(0, at), lead = pre && !/\s$/.test(pre) ? ' @' : '@';
+  f.value = (pre + lead + f.value.slice(at)).slice(0, 280);
+  UI.chatDraft = f.value;
+  f.focus({ preventScroll: true });
+  f.setSelectionRange(pre.length + lead.length, pre.length + lead.length);
+  atSuggest(f);
+}
 function msgHtml(r, small) {
   const nm = r.name || nameOf(r.pid);
-  return `<div class="ch-msg${small ? ' hk' : ''}">
+  const me = whoAmI(), forMe = !!me && (r.ment || []).includes(me) && r.pid !== me;
+  return `<div class="ch-msg${small ? ' hk' : ''}${forMe ? ' ment' : ''}">
     <span class="ch-av${E.person(T, r.pid) && E.person(T, r.pid).role === 'golfer' ? ' g' : ''}" aria-hidden="true">${esc(initialsOf(nm))}</span>
     <div class="ch-bub"><span class="ch-n">${esc(nm)}${guestTag(r.pid)}<small>${esc(sinceOf(r.at))}</small>${ownsMsg(r)
       ? `<button class="ch-rm" data-act="chatDrop" data-a="${esc(r.id)}" aria-label="Remove this message">Remove</button>` : ''}</span>
-      <p>${esc(r.text)}</p>${small ? '' : rxRow(r.id, r)}</div></div>`;
+      ${forMe ? '<span class="ch-callout">📣 Calling you out</span>' : ''}<p>${atText(r.text, r.ment)}</p>${small ? '' : rxRow(r.id, r)}</div></div>`;
 }
 function momentHtml(m, heckles) {
   const doc = (T.chat || {})['x_' + m.key];
@@ -1584,7 +1660,8 @@ function boardChat(inSheet) {
       ${lead ? `<em class="num">${esc(E.fmtToPar(lead.today))}</em>` : ''}</div>` : ''}
   <div class="ch-post">
     ${reMoment ? `<div class="ch-re"><span>Heckling: <b>${esc(reMoment.title)}</b></span><button data-act="chatHeckle" data-a="" aria-label="Stop heckling">✕</button></div>` : ''}
-    ${me ? `<div class="ch-box"><span class="ch-av g" aria-hidden="true">${esc(initialsOf(nameOf(me)))}</span>
+    ${me ? `<div class="ch-at" id="chatAt" role="listbox" aria-label="Call someone out" hidden></div>
+      <div class="ch-box"><button type="button" class="ch-atb" aria-label="Call someone out by name">@</button>
         <input id="chatText" type="text" maxlength="280" autocomplete="off" enterkeyhint="send"
           placeholder="${reMoment ? 'Heckle it…' : isRound ? 'Say something to the group…' : 'Anything from the trip…'}" value="${esc(UI.chatDraft || '')}" aria-label="Message">
         <button class="btn sm" data-act="chatSend">Post</button></div>
@@ -1719,8 +1796,9 @@ function markChatSeen() { chatSeen = Date.now(); try { localStorage.setItem(SEEN
 let peekFrom = Date.now(), peekUntil = 0, peekItem = null;
 /** Everything said, and every moment the book posted, since this phone last looked. */
 function chatNews() {
+  const me = whoAmI();
   const said = chatRows().filter(r => (r.at || 0) > chatSeen && r.dev !== myDev())
-    .map(r => ({ at: r.at, who: r.name || nameOf(r.pid), text: r.text }));
+    .map(r => ({ at: r.at, who: (me && (r.ment || []).includes(me) ? '📣 ' : '') + (r.name || nameOf(r.pid)), text: r.text }));
   const live = D.ROUNDS.filter(r => E.phaseOf(T, r.id, now) === 'live' || E.dayOf(r.dayIdx).iso === now.iso);
   const posted = live.flatMap(r => X.moments(T, r.id)).filter(m => (m.at || 0) > chatSeen)
     .map(m => ({ at: m.at, who: 'The book', text: m.title }));
@@ -1868,10 +1946,12 @@ function chatSend() {
   const text = String(f ? f.value : UI.chatDraft || '').trim().slice(0, 280);
   if (!me || !text || !store) return;
   const id = 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
-  store.putSocial('chat', id, { k: 'm', rid: chatRoomNow(), pid: me, name: nameOf(me), text, at: Date.now(), dev: myDev(), re: UI.chatRe || null })
+  const ment = mentionsIn(text).filter(x => x !== me);
+  store.putSocial('chat', id, { k: 'm', rid: chatRoomNow(), pid: me, name: nameOf(me), text, at: Date.now(), dev: myDev(), re: UI.chatRe || null, ...(ment.length ? { ment } : {}) })
     .then(landed => { if (landed) notifyOthers('chat/' + id); });
   UI.chatDraft = ''; UI.chatRe = null;
   if (f) { f.value = ''; f.blur(); }
+  const ab = document.getElementById('chatAt'); if (ab) { ab.hidden = true; ab.innerHTML = ''; }
   render();
   /* in the chat that rose over a screen, the keyboard stays up for the next line */
   if (UI.modal && UI.modal.kind === 'chat') { const g = document.getElementById('chatText'); if (g) g.focus({ preventScroll: true }); }
@@ -8378,6 +8458,17 @@ export function boot() {
      redraw arriving mid-sentence then rendered the box without the last
      letter in it. With the store polling every few seconds, redraws arrive
      mid-sentence often. */
+  /* A name under the chat box, or the @ beside it: taken on the press and
+     the press kept from the page, so the box keeps its caret and the
+     keyboard stays up. */
+  const atPress = e => {
+    const b = e.target.closest && e.target.closest('.ch-at button, .ch-atb');
+    if (!b) return;
+    e.preventDefault();
+    if (b.classList.contains('ch-atb')) atStart(); else atPick(b.dataset.pid);
+  };
+  app.addEventListener('touchstart', atPress, { passive: false });
+  app.addEventListener('mousedown', atPress);
   app.addEventListener('input', e => {
     if (e.target && e.target.id === 'askField') UI.askText = e.target.value;
     /* a PIN half typed outlives the redraws the shared book lands */
@@ -8398,7 +8489,7 @@ export function boot() {
       UI.sayDraft = { rid: UI.entryRound, v: e.target.value };
     }
     if (e.target && e.target.id === 'resortQ') { UI.resortQ = e.target.value; filterGuide(); }
-    if (e.target && e.target.id === 'chatText') UI.chatDraft = e.target.value;
+    if (e.target && e.target.id === 'chatText') { UI.chatDraft = e.target.value; atSuggest(e.target); }
     if (e.target && e.target.id === 'guestName') UI.guestDraft = e.target.value;
     if (e.target && /^whoPin[AB]$/.test(e.target.id) && UI.modal && UI.modal.kind === 'whopin') UI.modal[e.target.id === 'whoPinA' ? 'a' : 'b'] = e.target.value;
     if (e.target && e.target.id === 'xQ' && UI.xNew) UI.xNew.q = e.target.value;

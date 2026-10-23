@@ -4382,3 +4382,15 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 .gtag.t-ref{background:#F2DDD6;color:var(--flag)}
 .gtag.t-gallery{background:#DDEBDD;color:#2F7A4A}
 .gtag.t-bleach{background:#E4E1F0;color:#4B3F7A}
+
+/* ---- @ someone in the chat ---- */
+.ch-atb{flex:none;width:40px;height:40px;border-radius:50%;border:1px solid var(--rule);background:var(--page);color:var(--gold);
+  font:inherit;font-size:19px;font-weight:700;cursor:pointer;display:grid;place-items:center;padding:0}
+.ch-at{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}
+.ch-at[hidden]{display:none}
+.ch-at button{font:inherit;font-size:14.5px;font-weight:600;border:0;border-radius:999px;padding:8px 13px;min-height:38px;
+  background:var(--ink);color:var(--page);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.ch-atn{color:var(--gold);font-weight:700}
+.ch-atn.me{background:#E2C277;color:var(--ink);border-radius:6px;padding:0 4px}
+.ch-msg.ment .ch-bub{box-shadow:inset 3px 0 0 #E2C277,0 0 0 1px rgba(201,162,83,.45);background:color-mix(in srgb,#E2C277 20%,var(--page))}
+.ch-callout{display:block;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#8C6B2F;margin:2px 0 1px}

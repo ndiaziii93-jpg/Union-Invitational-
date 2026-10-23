@@ -140,6 +140,15 @@ async function handler(req: Request): Promise<Response> {
         room, tag: 'chat-' + room,
       });
 
+  /* someone called out by name gets it as theirs, and it stays on their screen
+     beside the room's own line rather than replacing it */
+  const ment: string[] = !isBet && Array.isArray(m.ment) ? m.ment.map(String) : [];
+  const calledOut = ment.length ? JSON.stringify({
+    title: '📣 ' + (m.name || 'Someone') + ' called you out · ' + where,
+    body: String(m.text).slice(0, 240),
+    room, tag: 'ment-' + path.slice('chat/'.length),
+  }) : payload;
+
   const { data: subs } = await db.from('docs').select('path,doc').like('path', 'push/%');
   let sent = 0, gone = 0;
   await Promise.all((subs || []).map(async (r: { path: string; doc: any }) => {
@@ -148,7 +157,7 @@ async function handler(req: Request): Promise<Response> {
     if (s.dev === m.dev || (m.pid && s.pid === m.pid)) return;    // not back to whoever posted it
     if (isBet && !onIt.includes(String(s.pid))) return;          // a bet, only to the people on it
     try {
-      const status = await sendPush(s.sub, payload, keys);
+      const status = await sendPush(s.sub, ment.includes(String(s.pid)) ? calledOut : payload, keys);
       if (status === 404 || status === 410) { gone++; await db.from('docs').delete().eq('path', r.path); }
       else if (status < 300) sent++;
       else console.error('push', status, new URL(s.sub.endpoint).host);

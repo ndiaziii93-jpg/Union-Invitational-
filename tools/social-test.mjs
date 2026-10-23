@@ -75,6 +75,26 @@ await p.locator('.ch-ev:has-text("birdies") .ch-rx button').nth(1).click(); awai
 ok('one reaction a phone: a second swaps it', await p.locator('.ch-ev:has-text("birdies") .ch-rx button.on').count(), 1);
 const stored = await p.evaluate(() => Object.values(window.__T.chat).map(r => r.k || 'x').sort());
 ok('two messages, one reaction and her PIN in the book', stored, ['id', 'm', 'm', 'x']);
+
+console.log('\ncalling someone out');
+await p.locator('#chatText').click(); await p.keyboard.type('Big day @ra'); await p.waitForTimeout(150);
+ok('typing @ and a few letters offers the names', await p.locator('#chatAt button').allInnerTexts(), ['@Ray V']);
+await p.locator('#chatAt button').first().click(); await p.waitForTimeout(150);
+ok('tapping one fills in the whole name, keyboard still up', [await p.locator('#chatText').inputValue(), await p.evaluate(() => document.activeElement && document.activeElement.id)], ['Big day @Ray V ', 'chatText']);
+ok('and the names go away', await p.locator('#chatAt').isHidden(), true);
+await p.keyboard.type('bring your A game'); await p.keyboard.press('Enter'); await p.waitForTimeout(400);
+ok('the message keeps who it calls out', await p.evaluate(() => Object.values(window.__T.chat).filter(r => r.k === 'm' && r.ment).map(r => r.ment)), [['g6']]);
+ok('and shows the name picked out', await p.locator('.ch-feed > .ch-msg').first().locator('.ch-atn').innerText(), '@Ray V');
+await p.locator('.ch-atb').click(); await p.waitForTimeout(150);
+ok('the @ button starts a name and offers everyone', [await p.locator('#chatText').inputValue(), await p.locator('#chatAt button').count()], ['@', 8]);
+await p.keyboard.type('norberto j'); await p.waitForTimeout(100);
+ok('a second word narrows it', await p.locator('#chatAt button').allInnerTexts(), ['@Norberto Jr.']);
+await p.locator('#chatText').fill(''); await p.evaluate(() => document.activeElement.blur());
+await p.evaluate(() => { localStorage.setItem('union-invitational:whoami', 'g6'); window.__UI.who = undefined; window.__forceRender(); }); await p.waitForTimeout(300);
+ok('Ray V sees it called out to him', [await p.locator('.ch-msg.ment').count(), await p.locator('.ch-msg.ment .ch-callout').textContent(), await p.locator('.ch-msg.ment .ch-atn.me').count()], [1, '📣 Calling you out', 1]);
+await shot('called-out');
+await p.evaluate(() => { localStorage.setItem('union-invitational:whoami', 's1'); window.__UI.who = undefined; window.__forceRender(); }); await p.waitForTimeout(300);
+ok('nobody else sees it as theirs', await p.locator('.ch-msg.ment').count(), 0);
 await shot('chat-round');
 await tap('.ch-rooms button[data-a="trip"]');
 ok('the trip room has no score and none of the round', [await p.locator('.ch-plate').count(), await p.locator('.ch-ev').count()], [0, 0]);
