@@ -218,6 +218,24 @@ ok('settled by naming who it was: Ray V Yes, the others No', (await p.locator('.
 await tap('.navbtn[data-a="boards"]'); await tap('.btab[data-a="chat"]'); await tap('.ch-rooms button[data-a="r1"]');
 ok('and the chat says so', (await p.locator('.ch-ev .ch-evw b').allInnerTexts()).some(t => /HOLE IN ONE/.test(t)), true);
 
+console.log('\neveryone bets, and off the course everyone can be bet on');
+ok('Jennifer D, in the gallery, has been betting all along', await p.evaluate(() => [...new Set(Object.values(window.__T.market).filter(r => r.k === 't').map(t => t.pid))]), ['s1']);
+await p.evaluate(() => { localStorage.setItem('union-invitational:whoami', 'o1'); window.__UI.who = undefined; window.__forceRender(); });
+await tap('.navbtn[data-a="bets"]'); await tap('.xm-back'); await tap('[data-act="xCat"][data-a="all"]');
+await p.locator('.xm-c:has-text("Who wins MVP?") .xm-mo').nth(1).locator('button').first().click(); await p.waitForTimeout(400);
+await tap('[data-act="xT"][data-a="set"][data-b="1"]'); await tap('[data-act="xSubmit"]');
+ok('and a ref can bet on who plays well', await p.evaluate(() => Object.values(window.__T.market).filter(r => r.k === 't' && r.pid === 'o1').map(t => [t.m.slice(0, 6), t.cost])), [['s_mvp_', 1]]);
+await tap('.xm-back'); await tap('[data-act="xCat"][data-a="trip"]');
+await tap('.xm-c:has-text("Who ends up in a pool") .xm-more');
+const pool = await p.locator('.xm-c:has-text("Who ends up in a pool") .xm-mo span').allInnerTexts();
+ok('the pool bet names golfers, the gallery and the refs', ['Anyone', 'Ray V', 'Jennifer D', 'Justin P'].map(n => pool.some(t => t.startsWith(n))), [true, true, true, true]);
+await tap('[data-act="xAbout"][data-a="s2"]');
+ok('and the gallery has its own place in the About row', (await p.locator('.xm-c .xm-ct b').allInnerTexts()).sort(), ['Who ends up in a pool with their clothes on?', 'Who’s the last one standing on the final night?']);
+await tap('[data-act="xAbout"][data-a="all"]');
+await tap('.xm-new');
+ok('a bet of our own can be about anyone on the trip', await p.locator('.xm-ppl button').evaluateAll(b => ['g1', 's2', 'o1'].map(id => b.some(x => x.dataset.b === id))), [true, true, true]);
+await tap('.xm-back');
+
 console.log('\nthe chat bubble');
 await tap('.navbtn[data-a="today"]'); await shut();
 ok('the bubble is on Today', await p.locator('.chatfab').count(), 1);

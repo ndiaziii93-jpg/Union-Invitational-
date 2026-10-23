@@ -180,6 +180,13 @@ export function teamGolfers(T) {
   return on.size ? gs.filter(g => on.has(g.id)) : gs;
 }
 
+/** Everyone on the trip a bet can be about: the golfers on a team, then
+ *  the gallery and the refs. */
+export function tripPeople(T) {
+  const others = (T.config.people || []).filter(p => p.role !== 'golfer');
+  return teamGolfers(T).concat(others.filter(p => p.role === 'spectator'), others.filter(p => p.role === 'official'));
+}
+
 /** The markets the book opens with. Each "anyone" question is also asked of
  *  every golfer, one card with Anyone first; all of them settle themselves
  *  from the scores and the refs' marks, except the two about the trip, which
@@ -191,12 +198,14 @@ export function suggested(T, now) {
   const F = facts(T);
   const any = (key, rid) => gs.some(g => (rid ? [rid] : ROUNDS.map(r => r.id)).some(id => F[id][g.id][key]));
   const his = (key, pid, rid) => (rid ? [rid] : ROUNDS.map(r => r.id)).some(id => F[id][pid][key]);
-  /* One who-card: Anyone (when there is one), then every golfer. */
+  /* One who-card: Anyone (when there is one), then every golfer, or
+   *  everyone on the trip for the ones off the course. */
   const who = o => {
-    if (o.anyId) L.push({ id: o.anyId, cat: 'golf', group: o.group, groupQ: o.groupQ, label: 'Anyone', any: true, round: o.round,
-      q: o.anyQ, p0: o.anyP0, settler: 'book', rules: o.anyRules, result: o.settle(null) });
-    for (const g of gs) L.push({ id: o.each + '_' + g.id, cat: 'golf', group: o.group, groupQ: o.groupQ, label: g.display, who: g.id, round: o.round,
-      q: o.q(g.display), p0: o.p0, settler: 'book', rules: o.rules(g.display), result: o.settle(g.id) });
+    const cat = o.cat || 'golf', settler = o.settler || 'book', settle = o.settle || (() => null);
+    if (o.anyId) L.push({ id: o.anyId, cat, group: o.group, groupQ: o.groupQ, label: 'Anyone', any: true, round: o.round,
+      q: o.anyQ, p0: o.anyP0, settler, rules: o.anyRules, result: settle(null) });
+    for (const g of o.people || gs) L.push({ id: o.each + '_' + g.id, cat, group: o.group, groupQ: o.groupQ, label: g.display, who: g.id, round: o.round,
+      q: o.q(g.display), p0: o.p0, settler, rules: o.rules(g.display), result: settle(g.id) });
   };
 
   const mvp = done ? E.mvpBoard(T, now) : null;
@@ -269,8 +278,17 @@ export function suggested(T, now) {
 
   L.push({ id: 's_dinner', cat: 'trip', q: 'Will the closing dinner run past midnight?', p0: 60, settler: 'commish',
     rules: 'Settled by the commissioner: Yes if anyone from the group is still at the table after 12:00 am on Monday 2 November.' });
-  L.push({ id: 's_pool', cat: 'trip', q: 'Will anyone end up in a pool with their clothes on?', p0: 25, settler: 'commish',
-    rules: 'Settled by the commissioner on the last morning. Yes needs a witness, or better, a photo.' });
+  /* off the course, everyone on the trip is fair game */
+  const all = tripPeople(T);
+  who({ group: 'pool', groupQ: 'Who ends up in a pool with their clothes on?', cat: 'trip', people: all, settler: 'commish',
+    anyId: 's_pool', anyQ: 'Will anyone end up in a pool with their clothes on?', anyP0: 25, each: 's_pool', p0: 4,
+    anyRules: 'Settled by the commissioner on the last morning. Yes needs a witness, or better, a photo.',
+    q: n => `Will ${n} end up in a pool with their clothes on?`,
+    rules: n => `Settled by the commissioner on the last morning: Yes if ${n} goes in clothed. Yes needs a witness, or better, a photo.` });
+  who({ group: 'late', groupQ: 'Who’s the last one standing on the final night?', cat: 'trip', people: all, settler: 'commish',
+    each: 's_late', p0: Math.max(3, Math.round(100 / Math.max(1, all.length))),
+    q: n => `Will ${n} be the last one standing on the final night?`,
+    rules: n => `Settled by the commissioner on the last morning: Yes if ${n} is the last of the group to call it a night. If two go to bed together, both pay.` });
   return L;
 }
 

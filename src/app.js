@@ -1993,9 +1993,9 @@ function xList() {
     ${st.map((s, i) => `<div class="xm-st"><span class="num">${i + 1}</span><b>${esc(nameOf(s.pid))}${guestTag(s.pid)}</b><em class="num ${s.profit >= 0 ? 'up' : 'dn'}">${signed(s.profit)} 🍺</em></div>`).join('')}</section>` : ''}
   <p class="pg-note">The chance moves as people bet: the book always takes the other side, so every bet goes on straight away.</p>`;
 }
-/** Filter by person: every golfer, then anyone else a bet is about or was made by. */
+/** Filter by person: everyone on the trip, then the bleachers. */
 function xAboutRow(all) {
-  const ids = X.teamGolfers(T).map(g => g.id);
+  const ids = X.tripPeople(T).map(g => g.id).concat(allGuests().filter(g => !g.removed).map(g => g.pid));
   for (const m of all) for (const p of [m.pid].concat(m.tags || [])) if (p && !ids.includes(p) && (E.person(T, p) || isGuest(p))) ids.push(p);
   const cur = UI.xAbout || 'all';
   return `<div class="xm-about nos" role="tablist" aria-label="Bets about"><span class="lbl">About</span>
@@ -2123,7 +2123,7 @@ function xPortfolio() {
 function xNewHtml() {
   const n = UI.xNew || (UI.xNew = { q: '', rules: '', cat: 'trip', p0: 50, kind: 'yn', ppl: [] });
   const who = n.kind === 'who';
-  const ppl = T.config.people || [];
+  const ppl = X.tripPeople(T).concat(allGuests().filter(g => !g.removed).sort((a, b) => (a.at || 0) - (b.at || 0)).map(g => ({ id: g.pid, display: g.name })));
   return `<button class="xm-back" data-act="xView" data-a="">‹ Bets</button>
   <div class="xm-page"><h2 class="xm-h">Make your own bet</h2>
     <p class="xm-note">Everyone can bet on it; you or the commissioner settle it, and everyone sees who did and when.</p>
@@ -2131,7 +2131,7 @@ function xNewHtml() {
     <label class="xm-f"><span>The question</span>
       <input id="xQ" type="text" maxlength="120" autocomplete="off" placeholder="${who ? 'Who’s last to breakfast on Friday?' : 'Will Ray V wear the pink trousers on Sunday?'}" value="${esc(n.q)}"></label>
     <div class="xm-f"><span>${who ? 'The answers: pick the people' : 'Who’s it about? <small>(tag them; optional)</small>'}</span>
-      <div class="xm-ppl">${ppl.map(p => `<button class="${n.ppl.includes(p.id) ? 'on' : ''}" data-act="xN" data-a="ppl" data-b="${esc(p.id)}" aria-pressed="${n.ppl.includes(p.id)}">${esc(p.display)}</button>`).join('')}</div>
+      <div class="xm-ppl">${ppl.map(p => `<button class="${n.ppl.includes(p.id) ? 'on' : ''}" data-act="xN" data-a="ppl" data-b="${esc(p.id)}" aria-pressed="${n.ppl.includes(p.id)}">${esc(p.display)}${p.role === 'golfer' ? '' : whoTag(p.id)}</button>`).join('')}</div>
       <small class="xm-note">${who ? (n.ppl.length >= 2 ? `${n.ppl.length} people, ${Math.round(100 / n.ppl.length)}% each to start. The group’s bets move them from there.` : 'Pick two or more.')
         : 'Anyone tagged gets a buzz, and it shows when someone filters the bets by them.'}</small></div>
     <label class="xm-f"><span>How it’s settled <small>(optional)</small></span>
