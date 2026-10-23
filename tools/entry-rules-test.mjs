@@ -350,10 +350,12 @@ ok('the cup is not one of them — it is a board',
   await p.locator('.tab[data-a="ryder"]').count(), 0);
 await p.locator('.masthead [data-act="manageOpen"]').click(); await p.waitForTimeout(500);
 ok('and the rest are behind Manage', await p.evaluate(
-  () => [...document.querySelectorAll('.mg-row')].map(x => x.dataset.a)),
+  () => [...document.querySelectorAll('.mglist .mg-row')].map(x => x.dataset.a)),
   ['setup', 'roster', 'tees', 'courses', 'rules']);
+ok('with the guest pass above them, for anyone not on the trip', await p.evaluate(
+  () => { const g = document.querySelector('.mg-row.mg-who'); return g ? [g.dataset.act, /Guest pass/.test(g.innerText)] : null; }), ['whoOpen', true]);
 ok('Rules comes after Course Setup', await p.evaluate(() => {
-  const t = [...document.querySelectorAll('.mg-row')].map(x => x.dataset.a);
+  const t = [...document.querySelectorAll('.mglist .mg-row')].map(x => x.dataset.a);
   return t.indexOf('rules') > t.indexOf('courses');
 }), true);
 await p.locator('.mgmodal [data-act="modalCancel"]').click(); await p.waitForTimeout(400);
