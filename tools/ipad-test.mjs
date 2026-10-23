@@ -1,5 +1,5 @@
 /* THE BAR ON AN iPAD. A tablet is held like a big phone, so on a touch
-   screen of an iPad's size the five tabs sit along the bottom in the same
+   screen of an iPad's size the six tabs sit along the bottom in the same
    dark bar a phone has, and the strip at the head goes. A laptop window of
    the same size keeps the strip. Whatever stands at the foot of the screen
    — Save, the keypad — stands on the bar, not behind it.
@@ -35,7 +35,7 @@ for (const [w, h, name] of [[820, 1180, 'an iPad upright'], [1180, 820, 'an iPad
   console.log('\n' + name);
   const p = await open(w, h, true, IPAD, 5);
   const s = await bars(p);
-  ok('the five tabs are along the bottom', [s.bar, s.atFoot, s.n, s.rows], [true, true, 5, 1]);
+  ok('the six tabs are along the bottom, in one row', [s.bar, s.atFoot, s.n, s.rows], [true, true, 6, 1]);
   ok('and the strip at the head is gone', s.strip, false);
   await p.locator('.navbtn[data-a="entry"]').click(); await p.waitForTimeout(700);
   for (let i = 0; i < 4; i++) { const d = p.locator('.scrim [data-act="modalCancel"]'); if (await d.count()) { await d.first().click({ force: true }); await p.waitForTimeout(150); } }

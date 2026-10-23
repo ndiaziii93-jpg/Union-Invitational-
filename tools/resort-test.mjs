@@ -641,7 +641,7 @@ const bar = await ph.evaluate(() => {
   };
 });
 ok('the strip at the top is gone on a phone', bar.stripHidden, true);
-ok('five tabs along the bottom', bar.n, 5);
+ok('six tabs along the bottom', bar.n, 6);
 ok('all on one line', bar.rows, 1);
 ok('sitting on the bottom edge', bar.atBottom, true);
 ok('the full width of the screen', bar.fullWidth, true);
