@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1D2E21">
+<link rel="icon" href="../../app/icon-192.png">
+<link rel="apple-touch-icon" href="../../app/apple-touch-icon.png">
+<title>Chat, PINs and Bets</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap">
+<style>
+/* one long page: a step, its screenshot with what to tap ringed in gold, the next step */
+:root{color-scheme:light;--pine:#1D2E21;--cream:#EEE8D5;--paper:#E3DBCB;--turf:#5C6B55;--gold:#8C6B2F;--gold-up:#C9A253;--gold-hi:#E2C277;--sage:#9FB3A3;--flag:#9E3B2E;--yes:#2F7A4A;
+  --serif:'Source Serif 4','Iowan Old Style',Georgia,'Times New Roman',serif;
+  --ui:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--pine);font-family:var(--serif);font-size:17px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-bottom:60px}
+a{color:var(--gold)}
+:focus-visible{outline:2px solid var(--flag);outline-offset:2px}
+.hero{background:var(--pine);color:var(--cream);margin:0 calc(-1 * max(16px,env(safe-area-inset-left,0px)));padding:44px max(16px,env(safe-area-inset-left,0px)) 30px;border-bottom:3px solid var(--gold-up)}
+.in{max-width:680px;margin:0 auto}
+.k{font-family:var(--ui);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--sage);font-weight:600}
+h1{margin:6px 0 10px;font-size:clamp(32px,7vw,46px);line-height:1.08;text-wrap:balance}
+h1 em{font-style:italic;font-weight:400;color:var(--gold-hi)}
+.hero p{margin:0;color:#D9DFD3;max-width:60ch}
+.now{margin-top:18px;background:var(--gold-hi);color:var(--pine);border-radius:14px;padding:14px 16px;font-weight:600}
+.now b{display:block;font-size:19px}
+.jump{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.jump a{font-family:var(--ui);font-size:14px;font-weight:600;color:var(--cream);text-decoration:none;border:1px solid rgba(238,232,213,.35);border-radius:999px;padding:7px 13px}
+h2{font-size:clamp(25px,5vw,32px);line-height:1.15;margin:44px 0 6px;scroll-margin-top:16px}
+h2 .n{display:inline-grid;place-items:center;width:36px;height:36px;border-radius:50%;background:var(--pine);color:var(--gold-hi);font-size:18px;margin-right:10px;vertical-align:4px}
+.lede{margin:0 0 10px;color:var(--turf)}
+.step{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:22px;align-items:start;margin-top:18px;background:var(--cream);border-radius:18px;padding:18px;box-shadow:0 0 0 .5px rgba(29,46,33,.16)}
+@media (max-width:640px){ .step{grid-template-columns:1fr} .step figure{max-width:300px;margin:0 auto} }
+.step h3{margin:0 0 6px;font-size:20px}
+.step p{margin:0 0 8px}
+.step ul{margin:0;padding-left:20px;display:grid;gap:4px}
+figure{margin:0}
+figure img{display:block;width:100%;height:auto;border-radius:22px;box-shadow:0 0 0 6px #17211A,0 14px 30px rgba(16,22,17,.28)}
+figcaption{font-family:var(--ui);font-size:12.5px;color:var(--turf);text-align:center;margin-top:12px}
+.ring{display:inline-block;border:3px solid var(--gold-hi);border-radius:8px;padding:0 5px;font-weight:700}
+.tags{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));gap:10px;margin-top:14px}
+.tag{background:var(--cream);border-radius:14px;padding:12px 14px;box-shadow:0 0 0 .5px rgba(29,46,33,.16)}
+.tag span{display:inline-block;font-family:var(--ui);font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;border-radius:999px;padding:2px 9px;margin-bottom:6px}
+.tag p{margin:0;font-size:15px;color:var(--turf)}
+.t-player{background:var(--pine);color:var(--gold-hi)} .t-ref{background:#F2DDD6;color:var(--flag)}
+.t-gallery{background:#DDEBDD;color:var(--yes)} .t-bleach{background:#E4E1F0;color:#4B3F7A}
+.house{background:var(--pine);color:var(--cream);border-radius:18px;padding:18px 20px;margin-top:18px;border-bottom:3px solid var(--gold-up)}
+.house h3{margin:0 0 8px;color:var(--gold-hi);font-size:20px}
+.house ul{margin:0;padding-left:20px;display:grid;gap:6px;color:#D9DFD3}
+.house b{color:var(--cream)}
+.mock{font-family:var(--serif);display:flex;align-items:center;gap:10px;background:#F3E6CF;border:1.5px solid var(--gold-up);border-radius:14px;padding:10px 10px 10px 12px;font-size:14px;line-height:1.35;margin:10px 0}
+.mock .bt{margin-left:auto;background:var(--pine);color:var(--cream);font-size:13px;font-weight:600;padding:7px 12px;border-radius:2px;white-space:nowrap}
+details{background:var(--cream);border-radius:14px;padding:12px 16px;margin-top:10px;box-shadow:0 0 0 .5px rgba(29,46,33,.16)}
+summary{font-weight:700;cursor:pointer}
+details p{margin:8px 0 0;color:var(--turf)}
+.foot{margin-top:40px;text-align:center;color:var(--turf);font-size:15px}
+</style>
+</head>
+<body>
+<header class="hero"><div class="in">
+  <span class="k">The Union Invitational · for everyone</span>
+  <h1>Chat, PINs <em>and</em> bets</h1>
+  <p>The book now has a group chat for every round, and betting in beers. Five minutes, once: say who you are, make your PIN, and you’re in.</p>
+  <div class="now"><b>Do this today: open the book and pick your name.</b>The book asks you as soon as it opens. Make your PIN straight away, before the trip starts.</div>
+  <nav class="jump" aria-label="On this page"><a href="#install">Install</a><a href="#who">Your name &amp; PIN</a><a href="#home">At home?</a><a href="#tags">Who’s who</a><a href="#chat">The chat</a><a href="#buzz">Notifications</a><a href="#bets">Bets</a><a href="#own">Your own bets</a><a href="#help">Help</a></nav>
+</div></header>
+
+<main class="in">
+  <h2 id="install"><span class="n">1</span>Put the book on your Home Screen</h2>
+  <p class="lede">If you already have the book’s icon on your phone, skip this.</p>
+  <div class="step" style="grid-template-columns:1fr"><div>
+    <h3>iPhone</h3>
+    <ul><li>Open <a href="../../app/">the book’s link</a> in <b>Safari</b>.</li><li>Tap <b>Share</b> (the square with the arrow), then <b>Add to Home Screen</b>, then <b>Add</b>.</li><li>From now on, open it from that icon. That’s also the only way an iPhone will let it send you notifications.</li></ul>
+    <h3 style="margin-top:14px">Android</h3>
+    <ul><li>Open the link in Chrome and tap <b>Install</b> when it offers, or ⋮ then <b>Add to Home screen</b>.</li></ul>
+  </div></div>
+
+  <h2 id="who"><span class="n">2</span>Say who you are, and make your PIN</h2>
+  <p class="lede">The book asks everyone this the first time it opens. Refs and the commissioner sign in with their PIN instead.</p>
+  <div class="step"><div>
+    <h3>Tap your name</h3>
+    <p>Players are at the top, refs next, then <b>the gallery</b>: everyone here at the resort who isn’t playing.</p>
+    <p>Your name goes on everything you post and bet. The phone remembers it, so you only do this once.</p>
+  </div><figure><img src="img/1-who.jpg" alt="The Who are you? window, listing players, refs and the gallery, with Becky ringed" loading="lazy"><figcaption>Tap your own name, like <span class="ring">Becky</span> here</figcaption></figure></div>
+  <div class="step"><div>
+    <h3>Make a four-number PIN</h3>
+    <ul><li>Type it, then type it again, and tap <b>Save my PIN</b>.</li>
+      <li>It stops anyone else posting or betting as you. On a new phone, you’ll type it to be you there too.</li>
+      <li>Pick numbers you’ll remember, and <b>not your bank PIN</b>.</li>
+      <li>Forgotten it? The commissioner can look it up for you.</li></ul>
+  </div><figure><img src="img/2-pin.jpg" alt="The Make your PIN window, with two boxes for the PIN" loading="lazy"><figcaption>Type it in both boxes</figcaption></figure></div>
+
+  <h2 id="home"><span class="n">3</span>Following from home? Grab a bleacher pass</h2>
+  <div class="step"><div>
+    <p>Not on the trip, but want in on the fun? At the bottom of the same window, type your name and tap <b>Get a bleacher pass</b>.</p>
+    <ul><li>You can see every score, photo and board, chat, react, heckle, and bet with the same beers as everyone else.</li>
+      <li>Scores stay with the refs, as always.</li>
+      <li>Names already on the trip are taken. Add an initial if yours is too.</li></ul>
+  </div><figure><img src="img/3-bleachers.jpg" alt="The bottom of the Who are you? window: a name box and the Get a bleacher pass button" loading="lazy"><figcaption>Type your name, then <span class="ring">Get a bleacher pass</span></figcaption></figure></div>
+
+  <h2 id="tags"><span class="n">4</span>Who’s who</h2>
+  <p class="lede">A small tag after every name in the chat and the bets says who you’re talking to.</p>
+  <div class="tags">
+    <div class="tag"><span class="t-player">⛳ Player</span><p>The golfers.</p></div>
+    <div class="tag"><span class="t-gallery">🍹 Gallery</span><p>Here at the resort, not playing.</p></div>
+    <div class="tag"><span class="t-bleach">🏟️ Bleachers</span><p>Following from home on a bleacher pass.</p></div>
+    <div class="tag"><span class="t-ref">Ref</span><p>The refs.</p></div>
+  </div>
+
+  <h2 id="chat"><span class="n">5</span>The chat</h2>
+  <div class="step"><div>
+    <h3>The round button, on every screen</h3>
+    <p>The gold-ringed chat button sits in the corner of every screen except Scores. A red number means there’s something you haven’t read, and new lines slide out beside it.</p>
+  </div><figure><img src="img/4-bubble.jpg" alt="Today screen with the chat button ringed, a red 1 on it and a new message sliding out" loading="lazy"><figcaption>Tap the <span class="ring">chat button</span></figcaption></figure></div>
+  <div class="step"><div>
+    <h3>Say something</h3>
+    <ul><li>There’s one chat per round, and one for the trip. It opens on today’s.</li>
+      <li>Tap the box to type, then <b>Post</b>. The keyboard only comes up when you tap the box.</li>
+      <li>Swipe the chat down, or tap above it, to close it.</li></ul>
+  </div><figure><img src="img/5-chat.jpg" alt="The chat open over the screen: the round buttons, the score, the message box and messages with Player and Gallery tags" loading="lazy"><figcaption>Tap the <span class="ring">box</span> to type</figcaption></figure></div>
+  <div class="step"><div>
+    <h3>React and heckle</h3>
+    <ul><li>The book posts by itself as the refs save holes: birdies, balls in the water, three-putts, the turn.</li>
+      <li>Tap an emoji to react: 🔥 👏 😬 🍺.</li>
+      <li>Tap <b>Heckle</b> to put your line under that moment.</li></ul>
+  </div><figure><img src="img/6-heckle.jpg" alt="A book moment: Ray V found the water on the 7th, with reactions and Becky's heckle under it" loading="lazy"><figcaption>Tap <span class="ring">Heckle</span> under a moment</figcaption></figure></div>
+
+  <h2 id="buzz"><span class="n">6</span>Get a buzz when someone posts</h2>
+  <div class="step" style="grid-template-columns:1fr"><div>
+    <p>At the top of the chat you’ll see this. Tap <b>Turn on</b>, then <b>Allow</b> when your phone asks:</p>
+    <div class="mock"><span style="font-size:22px">🔔</span><span><b>Get a buzz when someone posts.</b> Heckles, birdie talk, who’s at the bar.</span><span class="bt">Turn on</span></div>
+    <ul><li>You also get one when someone puts a bet on you.</li>
+      <li>Tapping a notification opens the book on that chat or bet.</li>
+      <li>iPhone: this only shows when the book is opened from its Home Screen icon (step 1).</li>
+      <li>Too much? Turn it off in the same place.</li></ul>
+  </div></div>
+
+  <h2 id="bets"><span class="n">7</span>Bets, all in beers</h2>
+  <div class="house"><h3>House rules</h3><ul>
+    <li><b>Nothing here is money.</b> Everyone gets <b>20 🍺 a day</b> to bet with.</li>
+    <li><b>The chance is the price.</b> The less likely the thing you back, the more it pays. A ¼ 🍺 on a 1% long shot pays about 18 🍺.</li>
+    <li>Bets go on in <b>quarter beers</b>: ¼, ½, ¾, 1…</li>
+    <li>The book’s bets settle themselves from the scores and the refs’ marks. Bets you make, you or the commissioner settle. Everyone sees who and when.</li>
+    <li>“Sharpest in the group” shows who’s up on the week. Settle up at the bar.</li></ul></div>
+  <div class="step"><div>
+    <h3>The Bets tab</h3>
+    <p>It’s on the bar along the bottom, between Scores and Boards. Each card is a question. The “Who” cards list everyone: <b>Anyone</b> first, then each golfer with his own chance.</p>
+    <p>Tap a name in the <b>About</b> row to see only the bets about that person.</p>
+  </div><figure><img src="img/7-bets.jpg" alt="The Bets tab: your beers, the About row of names and the first cards" loading="lazy"><figcaption>Tap a name in <span class="ring">About</span></figcaption></figure></div>
+  <div class="step"><div>
+    <h3>Back someone</h3>
+    <p>Ray V for the water in Round 2 at 17%? Tap <b>Yes</b> on his row.</p>
+  </div><figure><img src="img/8-about.jpg" alt="Round 2: who finds the water? card with Ray V's row ringed at 17%" loading="lazy"><figcaption>Tap <span class="ring">Yes</span> on his row</figcaption></figure></div>
+  <div class="step"><div>
+    <h3>Pick your stake</h3>
+    <ul><li>The names run along the top. Tap another to switch.</li>
+      <li>Choose <b>Yes</b> or <b>No</b>, then your stake: − and + move a quarter at a time, or tap ¼, ½, 1 or 2.</li>
+      <li>It shows what it pays if you’re right.</li></ul>
+  </div><figure><img src="img/9-bet.jpg" alt="A who bet open: the row of names with Ray V chosen, his chance and the ticket" loading="lazy"><figcaption>The name you’re betting on, <span class="ring">ringed</span></figcaption></figure></div>
+  <div class="step"><div>
+    <h3>Place it</h3>
+    <p>Tap the big button. Changed your mind later? Under <b>Cash out</b>, sell part or all of it for what it’s worth right then.</p>
+  </div><figure><img src="img/10-place.jpg" alt="The stake, what it pays, and the Bet button ringed" loading="lazy"><figcaption>Tap <span class="ring">Bet ½ 🍺 on Yes</span></figcaption></figure></div>
+
+  <h2 id="own"><span class="n">8</span>Make your own bets</h2>
+  <div class="step"><div>
+    <h3>Yes or no, with people tagged</h3>
+    <ul><li>In Bets, tap <b>＋ Make your own bet</b>.</li><li>Write the question, then tap who it’s about. They get a buzz.</li><li>Pick how likely you think it is to start, then tap <b>Open the bet</b>.</li></ul>
+  </div><figure><img src="img/11-own.jpg" alt="Make your own bet: the question and a row of people with Matt D ticked" loading="lazy"><figcaption>Tap who it’s <span class="ring">about</span></figcaption></figure></div>
+  <div class="step"><div>
+    <h3>Or ask “who will it be?”</h3>
+    <p>“Who sings first on karaoke night?” Pick the people as the answers. Each starts at an even chance, and the group’s bets move them. When it’s happened, you tap who it was.</p>
+  </div><figure><img src="img/12-who.jpg" alt="Make your own bet set to Who will it be?, with four people picked as answers" loading="lazy"><figcaption>Choose <span class="ring">Who will it be?</span></figcaption></figure></div>
+  <div class="step"><div>
+    <h3>Your bets</h3>
+    <p>Tap <b>🍺 · My bets</b> at the top of Bets to see your beers, what’s open, what’s settled, and <b>Cash out</b>.</p>
+  </div><figure><img src="img/13-mine.jpg" alt="Becky's bets: beers to bet with, open bets with Cash out" loading="lazy"><figcaption>Your bets, and <span class="ring">Cash out</span></figcaption></figure></div>
+
+  <h2 id="help"><span class="n">?</span>Help</h2>
+  <details><summary>I forgot my PIN</summary><p>Ask the commissioner. They can see everyone’s PIN, and can clear it so you can make a new one.</p></details>
+  <details><summary>I picked the wrong name</summary><p>Tap the top-right button, then <b>Chat and bets as…</b>, and choose again. A name that isn’t yours needs its owner’s PIN.</p></details>
+  <details><summary>New phone, or I deleted the app</summary><p>Open the book, tap your name and type your PIN. You’re back, with all your bets.</p></details>
+  <details><summary>I’m a ref, or the commissioner</summary><p>On the Who are you? window, tap <b>Enter your PIN instead</b> and use your scoring PIN, as before.</p></details>
+  <details><summary>I didn’t get a notification</summary><p>Turn it on in the chat (step 6). On an iPhone, open the book from its Home Screen icon, not Safari.</p></details>
+
+  <p class="foot"><a href="../../app/">Open the book</a> · <a href="../">All the briefings</a></p>
+</main>
+</body>
+</html>
