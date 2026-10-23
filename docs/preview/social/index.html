@@ -35,6 +35,10 @@ button{background:none;border:0;padding:0;cursor:pointer;text-align:inherit}
 @media (max-width:1150px){.row{grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr))}}
 .opt{display:grid;gap:14px;justify-items:center;min-width:0}
 .cap{width:100%;max-width:390px}
+.olabel{width:100%;max-width:390px;display:flex;align-items:center;gap:12px;background:var(--ink);color:var(--page);border-radius:16px;padding:10px 14px;border-bottom:3px solid var(--gold-up);position:sticky;top:8px;z-index:5}
+.olabel b{display:inline-grid;place-items:center;width:40px;height:40px;border-radius:50%;background:var(--gold-hi);color:var(--ink);font-size:22px;font-weight:800;flex:0 0 auto}
+.olabel strong{display:block;font-family:var(--serif);font-size:20px;line-height:1.1}
+.olabel small{display:block;font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--gold-hi);margin-top:2px}
 .tag{display:flex;align-items:baseline;gap:10px}
 .tag b{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--ink);color:var(--gold-up);font-size:15px;flex:0 0 auto}
 .cap h3{margin:0;font-size:21px}
@@ -286,17 +290,17 @@ button{background:none;border:0;padding:0;cursor:pointer;text-align:inherit}
 
 <div class="part"><h2>Comments</h2><span>Three ways in</span></div>
 <div class="row">
-  <section class="opt"><div class="phone" id="cA"></div>
+  <section class="opt"><div class="olabel"><b>1</b><span><strong>The Round Chat</strong><small>Comments</small></span></div><div class="phone" id="cA"></div>
     <div class="cap"><div class="tag"><b>1</b><h3>The Round Chat</h3></div>
       <p class="what">One running conversation per round, like a group chat with the score pinned above it.</p>
       <ul><li>Anyone can post: pick your name once, as in My round.</li><li>Reactions on every message.</li><li>The book drops in a line when something happens: a birdie, the turn, a group finishing.</li></ul>
       <div class="dn"><b>Developer’s take</b>The easiest to understand and to build. Can get busy, but the score at the top keeps it on the golf.</div></div></section>
-  <section class="opt"><div class="phone" id="cB"></div>
+  <section class="opt"><div class="olabel"><b>2</b><span><strong>Hole by Hole</strong><small>Comments</small></span></div><div class="phone" id="cB"></div>
     <div class="cap"><div class="tag"><b>2</b><h3>Hole by Hole</h3></div>
       <p class="what">Comments pinned to a hole, beside that hole’s scores.</p>
       <ul><li>Red counts on the hole numbers show where the talk is.</li><li>Each hole shows who made what, then the comments on it.</li><li>The golfers see the count on Score Entry, and can read it after.</li></ul>
       <div class="dn"><b>Developer’s take</b>The most golf-shaped, and makes a great record of the round. A little more to learn for a non-golfer.</div></div></section>
-  <section class="opt"><div class="phone" id="cC"></div>
+  <section class="opt"><div class="olabel"><b>3</b><span><strong>The Heckle Feed</strong><small>Comments</small></span></div><div class="phone" id="cC"></div>
     <div class="cap"><div class="tag"><b>3</b><h3>The Heckle Feed</h3></div>
       <p class="what">A live feed the book writes itself from the scores, which people react to and heckle.</p>
       <ul><li>Every birdie, double, pin and drive becomes a card.</li><li>One tap to react: 🔥 👏 😬 🍺.</li><li>A short heckle under any card.</li></ul>
@@ -305,21 +309,21 @@ button{background:none;border:0;padding:0;cursor:pointer;text-align:inherit}
 
 <div class="part"><h2>Bets</h2><span>Built the way FanDuel and Kalshi work · beers and shots, never money</span></div>
 <div class="row">
-  <section class="opt"><div class="phone" id="bA"></div>
+  <section class="opt"><div class="olabel"><b>A</b><span><strong>The Book</strong><small>Bets · like FanDuel</small></span></div><div class="phone" id="bA"></div>
     <div class="cap"><div class="tag"><b>A</b><h3>The Book</h3></div>
       <p class="what">Works like FanDuel: a board of golf markets with American odds, a bet slip, parlays, cash out.</p>
       <ul><li>Golf’s real markets: round winner, MVP outright and top 3, matchups with a stroke handicap, three-balls, hole props, hole in one.</li>
         <li>Tap odds to add them to the <b>Betslip</b>. <b>Singles</b> or <b>Parlay</b>, a stake in 🍺, “to win” shown before you place it.</li>
         <li>A <b>profit boost</b> each day, live odds that move with the scores, and <b>My Bets</b> with each leg ticking off and a <b>Cash out</b> offer.</li></ul>
       <div class="dn"><b>Developer’s take</b>The book is the house: it sets the odds from the live standings and pays out, so every bet is accepted at once. Closest to FanDuel, and the one golfers will know.</div></div></section>
-  <section class="opt"><div class="phone" id="bB"></div>
+  <section class="opt"><div class="olabel"><b>B</b><span><strong>The Exchange</strong><small>Bets · like Kalshi</small></span></div><div class="phone" id="bB"></div>
     <div class="cap"><div class="tag"><b>B</b><h3>The Exchange</h3></div>
       <p class="what">Works like Kalshi: yes/no questions, each priced 1–99¢, paying a full 🍺 a contract if you’re right.</p>
       <ul><li>The price is the chance: Yes at 62¢ means the group thinks 62%. Yes and No always add up to a dollar of beer.</li>
         <li>Tap a market for its chart, <b>order book</b>, and an order ticket: Buy or Sell, Yes or No, <b>Market</b> or <b>Limit</b>.</li>
         <li>Sell any time before it settles to lock in a gain. Every market states its <b>rules</b>: what counts, and when it closes.</li></ul>
       <div class="dn"><b>Developer’s take</b>People trade with each other, so prices are the group’s real view. With 23 people the book quietly offers both sides too, so an order never sits unfilled.</div></div></section>
-  <section class="opt"><div class="phone" id="bC"></div>
+  <section class="opt"><div class="olabel"><b>C</b><span><strong>The Union Book</strong><small>Bets · both in one</small></span></div><div class="phone" id="bC"></div>
     <div class="cap"><div class="tag"><b>C</b><h3>The Union Book</h3></div>
       <p class="what">Both in one tab: the book for the golf, the exchange for everything else, and challenges between friends.</p>
       <ul><li><b>Board</b>: FanDuel-style odds on the rounds.</li>
