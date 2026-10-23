@@ -3950,3 +3950,47 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
 .hp-cam svg{width:22px;height:22px}
 .hp-cam:active{background:rgba(16,22,17,.8)}
 .hp-cam:focus-visible{outline:2px solid #E2C277;outline-offset:2px}
+
+/* ---------------- the bar, on an iPad ----------------
+
+   A tablet is held like a big phone, and a thumb finds the foot of the glass
+   long before it reaches a strip at the top. So on a touch screen the size
+   of an iPad the five tabs move to the same dark bar a phone has, along the
+   bottom, and the strip at the head goes. The page above them is the
+   tablet's own layout, unchanged.
+
+   Touch, not width, is what decides it: a laptop window the same size keeps
+   the strip, which is where a mouse goes looking. Everything that sits at
+   the foot of a tablet's screen — Save, the keypad, the how'd-it-feel card —
+   stands on the bar rather than behind it. */
+@media (min-width:700px) and (max-width:1400px) and (pointer:coarse){
+  :root{--barh:calc(70px + env(safe-area-inset-bottom,0px))}
+  .tabs{display:none}
+  .tabbar{
+    display:grid;grid-template-columns:repeat(5,1fr);
+    position:fixed;left:0;right:0;bottom:0;z-index:40;
+    background:var(--ink);border-top:3px solid var(--gold-up);
+    box-shadow:0 -8px 24px rgba(29,46,33,.22);
+    /* five tabs across a phone's width, centred, not spread over a tablet's */
+    padding:8px max(12px,env(safe-area-inset-right,0px),calc(50% - 330px)) calc(8px + env(safe-area-inset-bottom,0px))
+            max(12px,env(safe-area-inset-left,0px),calc(50% - 330px));
+  }
+  .navbtn{min-height:52px}
+  .navbtn .ic{width:26px;height:26px}
+  .navbtn .lb{font-size:12.5px}
+  .tabbar::before{content:"";position:absolute;left:0;right:0;bottom:100%;height:28px;
+    pointer-events:none;background:linear-gradient(to top,var(--paper),rgba(227,219,203,0));
+    opacity:1;transition:opacity .18s ease}
+  html.docend .tabbar::before{opacity:0}
+  html.docend .tabbar{box-shadow:0 -2px 8px rgba(29,46,33,.10)}
+  /* the page ends above the bar, and nothing scrolled into reach stops under it */
+  .wrap{padding-bottom:calc(var(--barh) + 30px)}
+  html{scroll-padding-bottom:calc(var(--barh) + 16px)}
+  html:has(.page.scoring){scroll-padding-bottom:calc(var(--barh) + 110px)}
+  /* standing on the bar */
+  .savebar{bottom:var(--barh)}
+  .keypad{bottom:calc(var(--barh) + 118px)}
+  .feelbar,html:has(.page.scoring) .feelbar{bottom:calc(var(--barh) + 22px)}
+  html:has(.page.scoring) .feelbar{bottom:calc(var(--barh) + 96px)}
+  .scrim{z-index:60}
+}
