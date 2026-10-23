@@ -1995,7 +1995,7 @@ function xList() {
 }
 /** Filter by person: every golfer, then anyone else a bet is about or was made by. */
 function xAboutRow(all) {
-  const ids = E.golfers(T).map(g => g.id);
+  const ids = X.teamGolfers(T).map(g => g.id);
   for (const m of all) for (const p of [m.pid].concat(m.tags || [])) if (p && !ids.includes(p) && (E.person(T, p) || isGuest(p))) ids.push(p);
   const cur = UI.xAbout || 'all';
   return `<div class="xm-about nos" role="tablist" aria-label="Bets about"><span class="lbl">About</span>

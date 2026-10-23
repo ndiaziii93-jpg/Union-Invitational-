@@ -172,6 +172,14 @@ function facts(T) {
   return F;
 }
 
+/** The golfers the bets are about: those on a team, once the teams are
+ *  set. A golfer left off every team is not playing, and gets no bets. */
+export function teamGolfers(T) {
+  const on = new Set((T.config.pairs || []).flatMap(p => p.members || []));
+  const gs = E.golfers(T);
+  return on.size ? gs.filter(g => on.has(g.id)) : gs;
+}
+
 /** The markets the book opens with. Each "anyone" question is also asked of
  *  every golfer, one card with Anyone first; all of them settle themselves
  *  from the scores and the refs' marks, except the two about the trip, which
@@ -179,7 +187,7 @@ function facts(T) {
 export function suggested(T, now) {
   const L = [];
   const done = final(T, 'r3', now);
-  const gs = E.golfers(T);
+  const gs = teamGolfers(T);
   const F = facts(T);
   const any = (key, rid) => gs.some(g => (rid ? [rid] : ROUNDS.map(r => r.id)).some(id => F[id][g.id][key]));
   const his = (key, pid, rid) => (rid ? [rid] : ROUNDS.map(r => r.id)).some(id => F[id][pid][key]);

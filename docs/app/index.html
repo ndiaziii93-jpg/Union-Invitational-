@@ -4553,7 +4553,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261023-1322';
+const BUILD = '20261023-1333';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -7186,6 +7186,14 @@ function facts(T) {
   return F;
 }
 
+/** The golfers the bets are about: those on a team, once the teams are
+ *  set. A golfer left off every team is not playing, and gets no bets. */
+function teamGolfers(T) {
+  const on = new Set((T.config.pairs || []).flatMap(p => p.members || []));
+  const gs = E.golfers(T);
+  return on.size ? gs.filter(g => on.has(g.id)) : gs;
+}
+
 /** The markets the book opens with. Each "anyone" question is also asked of
  *  every golfer, one card with Anyone first; all of them settle themselves
  *  from the scores and the refs' marks, except the two about the trip, which
@@ -7193,7 +7201,7 @@ function facts(T) {
 function suggested(T, now) {
   const L = [];
   const done = final(T, 'r3', now);
-  const gs = E.golfers(T);
+  const gs = teamGolfers(T);
   const F = facts(T);
   const any = (key, rid) => gs.some(g => (rid ? [rid] : ROUNDS.map(r => r.id)).some(id => F[id][g.id][key]));
   const his = (key, pid, rid) => (rid ? [rid] : ROUNDS.map(r => r.id)).some(id => F[id][pid][key]);
@@ -7422,7 +7430,7 @@ function history(m, tr) {
   return pts;
 }
 
-return {moments, LIQ, DAILY, STEP, floor4, round4, LONG_LIQ, book, chance, quote, sharesFor, saleOf, sharesToRaise, cents, invalidate, trades, orders, suggested, markets, about, granted, positions, account, standings, makeTrade, sidePrice, depth, history};
+return {moments, LIQ, DAILY, STEP, floor4, round4, LONG_LIQ, book, chance, quote, sharesFor, saleOf, sharesToRaise, cents, invalidate, trades, orders, teamGolfers, suggested, markets, about, granted, positions, account, standings, makeTrade, sidePrice, depth, history};
 })();
 
 const __m_holes3d = (function(){
@@ -11568,7 +11576,7 @@ function xList() {
 }
 /** Filter by person: every golfer, then anyone else a bet is about or was made by. */
 function xAboutRow(all) {
-  const ids = E.golfers(T).map(g => g.id);
+  const ids = X.teamGolfers(T).map(g => g.id);
   for (const m of all) for (const p of [m.pid].concat(m.tags || [])) if (p && !ids.includes(p) && (E.person(T, p) || isGuest(p))) ids.push(p);
   const cur = UI.xAbout || 'all';
   return `<div class="xm-about nos" role="tablist" aria-label="Bets about"><span class="lbl">About</span>
@@ -17989,7 +17997,7 @@ if ('serviceWorker' in navigator) {
    So every return reads the build stamp off the server and, when it has
    moved on, the page reloads itself — unless a hole is half entered, in
    which case it waits for the save. */
-var BOOK_BUILD = '20261023-1322';
+var BOOK_BUILD = '20261023-1333';
 function checkBuild() {
   if (document.hidden || navigator.onLine === false) return;
   fetch('sw.js', { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (t) {

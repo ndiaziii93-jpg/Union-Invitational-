@@ -196,7 +196,7 @@ ok('filtering by Robby B keeps only bets about him', [aboutRobby.includes('Who w
 ok('with his row lit on each card', await p.locator('.xm-c:has-text("Who wins MVP?") .xm-mo.hit span').first().innerText(), 'Robby B');
 await p.locator('.xm-c:has-text("Who makes an eagle") .xm-mo.hit button').click(); await p.waitForTimeout(400);
 ok('tapping it opens his bet', await p.locator('.xm-h3').innerText(), 'Will Robby B make an eagle this week?');
-ok('with every name along the top, Anyone first', [await p.locator('.xm-pick button').count(), (await p.locator('.xm-pick button').first().innerText()).split('\n')[0]], [12, 'Anyone']);
+ok('with every team golfer along the top (Devin O, on no team, left off), Anyone first', [await p.locator('.xm-pick button').count(), (await p.locator('.xm-pick button').first().innerText()).split('\n')[0]], [11, 'Anyone']);
 await tap('[data-act="xT"][data-a="set"][data-b="0.25"]');
 ok('a quarter on a 4% long shot pays over five', +(await p.locator('.xm-kv:has-text("Pays if Robby B") b').innerText()).replace(/[^\d.]/g, '') >= 5, true);
 await tap('.xm-pick button:has-text("Ray V")');
