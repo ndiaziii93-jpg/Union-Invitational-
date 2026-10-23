@@ -116,50 +116,6 @@ button{background:none;border:0;padding:0;cursor:pointer;text-align:inherit}
 .ev .heck{border-top:1px solid var(--hair);padding:8px 12px;font-size:13.5px;display:grid;gap:4px}
 .ev .heck b{font-size:12.5px}
 
-/* bets A: the sportsbook */
-.dark .scr{background:#111814}
-.sbhead{background:#0B110D;padding:44px 14px 10px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #22302A}
-.sbhead b{font-family:var(--ui);font-weight:800;font-size:18px;letter-spacing:-.01em;color:#fff}
-.sbhead b span{color:var(--gold-hi)}
-.bal{font-family:var(--ui);font-size:13px;background:#1C2A22;border-radius:999px;padding:5px 11px;color:var(--gold-hi);font-weight:700}
-.sbtabs{display:flex;gap:6px;padding:10px 12px;overflow:hidden}
-.sbtabs span{font-family:var(--ui);font-size:13px;font-weight:700;border-radius:999px;padding:6px 12px;background:#1C2A22;color:#B8C4BC;white-space:nowrap}
-.sbtabs span.on{background:#EEF2EC;color:#0B110D}
-.mkt{background:#18221C;border-radius:14px;margin:0 12px 10px;padding:12px;font-family:var(--ui)}
-.mkt .mh{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
-.mkt .mh b{font-size:15px;color:#fff} .mkt .mh span{font-size:11.5px;color:#8FA197}
-.mkt .live{font-size:10.5px;font-weight:800;color:#fff;background:var(--no);border-radius:4px;padding:2px 5px;margin-right:6px}
-.sel{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:6px 0;border-top:1px solid #24312A}
-.sel:first-of-type{border-top:0}
-.sel .nm{font-size:14px;color:#E3E9E5}
-.sel .nm small{display:block;font-size:11.5px;color:#8FA197}
-.odds{min-width:74px;text-align:center;border-radius:9px;padding:8px 6px;background:#24342B;color:#9FE0B6;font-weight:800;font-size:14.5px}
-.odds.on{background:var(--gold-hi);color:#0B110D}
-.slip{position:absolute;left:10px;right:10px;bottom:82px;z-index:20;background:#EEF2EC;color:#0B110D;border-radius:16px;font-family:var(--ui);box-shadow:0 -8px 30px rgba(0,0,0,.5);overflow:hidden;animation:rise .25s ease both}
-.slip .s1{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--gold-hi);font-weight:800}
-.slip .s2{padding:10px 14px;display:grid;gap:6px;font-size:13.5px}
-.slip .stake{display:flex;gap:6px}
-.slip .stake button{flex:1;border-radius:9px;padding:8px 4px;background:#DDE4DF;font-weight:700;font-size:13px;text-align:center}
-.slip .stake button.on{background:#0B110D;color:#fff}
-.slip .go{display:block;width:100%;background:#0B110D;color:#fff;border-radius:11px;padding:11px;font-weight:800;text-align:center}
-
-/* bets B: prediction market */
-.kh{padding:44px 14px 10px;background:var(--page);border-bottom:1px solid var(--rule);display:flex;justify-content:space-between;align-items:center}
-.kh b{font-size:20px}
-.km{background:var(--page);border-radius:14px;box-shadow:0 0 0 .5px rgba(29,46,33,.16);padding:12px 14px;display:grid;gap:8px}
-.km .q{display:flex;gap:10px;align-items:flex-start}
-.km .q b{font-size:15.5px;line-height:1.25}
-.km .pct{margin-left:auto;text-align:right;font-family:var(--ui)}
-.km .pct strong{display:block;font-size:22px;font-weight:800;color:var(--ink)}
-.km .pct small{font-size:11px;color:var(--turf)}
-.km svg{width:100%;height:42px}
-.yn{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.yn button{border-radius:10px;padding:9px;text-align:center;font-family:var(--ui);font-weight:800;font-size:14px}
-.yn .y{background:#DDEBDD;color:var(--yes)} .yn .n{background:#F2DDD6;color:var(--no)}
-.yn .y.on{background:var(--yes);color:#fff} .yn .n.on{background:var(--no);color:#fff}
-.km .vol{font-size:11.5px;color:var(--turf);font-family:var(--ui)}
-.tick{font-family:var(--ui);font-size:12px;color:var(--yes);font-weight:700}
-
 /* bets C: the challenge */
 .chal{background:var(--ink);color:var(--page);border-radius:16px;padding:14px;display:grid;gap:10px;border-bottom:3px solid var(--gold-up)}
 .chal .vs{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;text-align:center;gap:8px}
@@ -183,6 +139,143 @@ button{background:none;border:0;padding:0;cursor:pointer;text-align:inherit}
 .toast{position:absolute;left:14px;right:14px;bottom:92px;z-index:30;background:var(--ink);color:var(--page);border-radius:12px;padding:11px 14px;font-size:14px;border-left:3px solid var(--gold-hi);animation:rise .2s ease both}
 @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important}}
+/* ===== bets, redone: the book (FanDuel's functions), the exchange (Kalshi's), and both ===== */
+.bk{font-family:var(--ui)}
+.bkh{background:var(--ink);color:var(--page);padding:44px 14px 10px;display:flex;justify-content:space-between;align-items:center}
+.bkh b{font-family:var(--serif);font-size:20px}
+.bkh b span{color:var(--gold-hi);font-style:italic;font-weight:400}
+.bkbal{font-size:13px;font-weight:700;background:rgba(238,232,213,.12);color:var(--gold-hi);border-radius:999px;padding:5px 11px}
+.bknav{display:flex;gap:6px;padding:10px 12px;overflow-x:auto;scrollbar-width:none;background:var(--ink);border-bottom:2px solid var(--gold-up)}
+.bknav::-webkit-scrollbar{display:none}
+.bknav button{flex:0 0 auto;font-size:13px;font-weight:700;border-radius:999px;padding:6px 12px;background:rgba(238,232,213,.1);color:var(--sage)}
+.bknav button.on{background:var(--page);color:var(--ink)}
+.bknav button .c{display:inline-grid;place-items:center;min-width:17px;height:17px;border-radius:9px;background:var(--gold-hi);color:var(--ink);font-size:10.5px;margin-left:5px;padding:0 4px}
+.boost{margin:12px 12px 4px;border-radius:14px;background:linear-gradient(120deg,var(--ink) 0,#2E4A35 100%);color:var(--page);padding:12px 14px;display:grid;grid-template-columns:1fr auto;gap:4px 10px;align-items:center;border:1.5px solid var(--gold-up)}
+.boost .k{font-size:10.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--gold-hi)}
+.boost b{font-size:14.5px;grid-column:1}
+.boost s{color:var(--sage);font-size:12px;margin-right:6px}
+.boost .ob{grid-row:1/span 3;grid-column:2}
+.mg{margin:10px 12px 0;background:var(--page);border-radius:14px;box-shadow:0 0 0 .5px rgba(29,46,33,.16);overflow:hidden}
+.mg .mgh{display:flex;justify-content:space-between;align-items:center;padding:11px 13px;border-bottom:1px solid var(--hair)}
+.mg .mgh b{font-size:14.5px;color:var(--ink)}
+.mg .mgh span{font-size:11.5px;color:var(--turf)}
+.lv,.mg .mgh .lv{font-size:10px;font-weight:800;color:#fff;background:var(--no);border-radius:4px;padding:2px 5px;margin-right:6px;vertical-align:1px}
+.mr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;padding:8px 13px;border-top:1px solid var(--hair)}
+.mr:first-of-type{border-top:0}
+.mr .nm{font-size:14px;color:var(--ink);font-weight:600}
+.mr .nm small{display:block;font-size:11.5px;color:var(--turf);font-weight:400}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:8px 13px;border-top:1px solid var(--hair)}
+.two .lbl{grid-column:1/-1;font-size:11.5px;color:var(--turf)}
+.three{grid-template-columns:1fr 1fr 1fr}
+.ob{min-width:72px;border-radius:9px;padding:7px 6px;background:var(--paper);box-shadow:inset 0 0 0 1px var(--rule);text-align:center;color:var(--green);font-weight:800;font-size:14px;line-height:1.15;position:relative}
+.ob small{display:block;font-weight:600;font-size:11px;color:var(--ink)}
+.ob.on{background:var(--ink);color:var(--gold-hi);box-shadow:none}
+.ob.on small{color:var(--page)}
+.ob .mv{position:absolute;right:4px;top:3px;font-size:8px}
+.ob .mv.up{color:var(--yes)} .ob .mv.dn{color:var(--no)}
+.rules{font-size:11.5px;color:var(--turf);padding:8px 13px;border-top:1px solid var(--hair)}
+/* the bet slip */
+.slipbar,.slipwrap{font-family:var(--ui)}
+.slipbar{position:absolute;left:10px;right:10px;bottom:86px;z-index:20;display:flex;justify-content:space-between;align-items:center;background:var(--gold-hi);color:var(--ink);border-radius:12px;padding:11px 14px;font-weight:800;font-size:14.5px;box-shadow:0 8px 22px rgba(16,22,17,.35)}
+.slipbar .ct{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--ink);color:var(--gold-hi);font-size:12px;margin-right:8px}
+.slipwrap{position:absolute;inset:0;z-index:25;background:rgba(16,22,17,.45);display:flex;align-items:flex-end;animation:fade .2s ease both}
+.slip2{width:100%;max-height:86%;overflow:auto;background:var(--page);border-radius:20px 20px 0 0;animation:rise .28s cubic-bezier(.2,.9,.28,1) both;padding-bottom:88px}
+.slip2 .sh{display:flex;justify-content:space-between;align-items:center;background:var(--ink);color:var(--page);padding:12px 16px;border-bottom:2px solid var(--gold-up)}
+.slip2 .sh b{font-family:var(--serif);font-size:18px}
+.slip2 .sh button{color:var(--gold-hi);font-weight:700;font-size:13.5px}
+.stabs{display:grid;grid-template-columns:1fr 1fr;margin:12px 14px 4px;background:var(--paper);border-radius:10px;padding:3px}
+.stabs button{border-radius:8px;padding:7px;text-align:center;font-weight:700;font-size:13.5px;color:var(--turf)}
+.stabs button.on{background:var(--page);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.leg{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--hair);font-size:13.5px}
+.leg .x{color:var(--turf);font-size:16px}
+.leg b{display:block;font-size:14px}
+.leg small{color:var(--turf)}
+.leg .o{font-weight:800;color:var(--green)}
+.wager{display:grid;gap:8px;padding:12px 16px}
+.chipsr{display:flex;gap:6px}
+.chipsr button{flex:1;border-radius:9px;padding:9px 4px;background:var(--paper);box-shadow:inset 0 0 0 1px var(--rule);font-weight:700;font-size:13.5px;text-align:center}
+.chipsr button.on{background:var(--ink);color:var(--page);box-shadow:none}
+.sum{display:flex;justify-content:space-between;font-size:13.5px}
+.sum b{font-size:15px}
+.cta{display:block;width:100%;border-radius:12px;padding:13px;text-align:center;font-weight:800;font-size:15px;background:var(--ink);color:var(--page);border-bottom:2px solid var(--gold-up)}
+.cta.gold{background:var(--gold-hi);color:var(--ink);border:0}
+.note{font-size:12px;color:var(--turf)}
+.oddschg{background:#F3E6CF;color:var(--gold);border-radius:9px;padding:8px 10px;font-size:12.5px;font-weight:600}
+/* my bets */
+.mb{margin:10px 12px 0;background:var(--page);border-radius:14px;box-shadow:0 0 0 .5px rgba(29,46,33,.16);overflow:hidden}
+.mb .mbh{display:flex;justify-content:space-between;padding:10px 13px;border-bottom:1px solid var(--hair);font-size:13px}
+.mb .mbh b{font-size:14.5px}
+.mb .mbh .w{color:var(--yes);font-weight:800}
+.mb .mbh .l{color:var(--no);font-weight:800}
+.mb .lg{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;padding:8px 13px;font-size:13px;border-bottom:1px solid var(--hair)}
+.mb .dot{width:16px;height:16px;border-radius:50%;display:grid;place-items:center;font-size:10px;color:#fff;background:var(--rule)}
+.mb .dot.w{background:var(--yes)} .mb .dot.l{background:var(--no)} .mb .dot.live{background:var(--gold-up)}
+.mb .ft{display:flex;justify-content:space-between;align-items:center;padding:10px 13px;font-size:13px}
+.mb .co{border-radius:999px;padding:8px 14px;background:var(--ink);color:var(--gold-hi);font-weight:800;font-size:13px}
+/* the exchange */
+.xh{background:var(--page);padding:44px 14px 8px;border-bottom:1px solid var(--rule)}
+.xh .r{display:flex;justify-content:space-between;align-items:center}
+.xh b{font-family:var(--serif);font-size:21px}
+.xh .pf{font-size:12.5px;font-weight:700;color:var(--ink);background:var(--paper);border-radius:999px;padding:5px 11px;box-shadow:inset 0 0 0 1px var(--rule)}
+.xcats{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-top:9px}
+.xcats::-webkit-scrollbar{display:none}
+.xcats button{flex:0 0 auto;font-size:13px;font-weight:700;padding:6px 11px;border-radius:999px;color:var(--turf)}
+.xcats button.on{background:var(--ink);color:var(--page)}
+.xc{margin:10px 12px 0;background:var(--page);border-radius:14px;box-shadow:0 0 0 .5px rgba(29,46,33,.16);padding:12px 13px;display:grid;gap:9px;text-align:left;width:calc(100% - 24px)}
+.xc .t{display:flex;gap:10px;align-items:flex-start}
+.xc .t b{font-family:var(--serif);font-size:15.5px;line-height:1.25;color:var(--ink)}
+.xc .t .ch{margin-left:auto;text-align:right;flex:0 0 auto}
+.xc .t .ch strong{display:block;font-size:20px;font-weight:800;color:var(--ink)}
+.xc .t .ch small{font-size:11px;color:var(--turf)}
+.dlt{font-size:11.5px;font-weight:700}
+.dlt.up{color:var(--yes)} .dlt.dn{color:var(--no)}
+.ynb{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ynb button{border-radius:10px;padding:9px;text-align:center;font-weight:800;font-size:14px}
+.ynb .y{background:#DDEBDD;color:var(--yes)} .ynb .n{background:#F2DDD6;color:var(--no)}
+.ynb .y.on{background:var(--yes);color:#fff} .ynb .n.on{background:var(--no);color:#fff}
+.xc .v{font-size:11.5px;color:var(--turf);display:flex;justify-content:space-between}
+.mo{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:6px;align-items:center;padding:6px 0;border-top:1px solid var(--hair)}
+.mo span{font-size:14px;font-weight:600;color:var(--ink)}
+.mo em{font-style:normal;font-weight:800;font-size:14px;width:44px;text-align:right}
+.mo button{border-radius:8px;padding:6px 8px;font-weight:800;font-size:12.5px;min-width:58px;text-align:center}
+.back{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:700;color:var(--green);padding:44px 14px 8px;background:var(--page);width:100%;text-align:left;border-bottom:1px solid var(--rule)}
+.xm{padding:12px 14px 120px;display:grid;gap:12px}
+.xm h2{margin:0;font-family:var(--serif);font-size:20px;line-height:1.2}
+.big{display:flex;align-items:baseline;gap:10px}
+.big strong{font-size:34px;font-weight:800;color:var(--ink)}
+.rng{display:flex;gap:4px}
+.rng button{font-size:12px;font-weight:700;border-radius:7px;padding:4px 9px;color:var(--turf)}
+.rng button.on{background:var(--ink);color:var(--page)}
+.tk{background:var(--page);border-radius:14px;box-shadow:0 0 0 .5px rgba(29,46,33,.16);padding:12px;display:grid;gap:10px}
+.seg2{display:grid;grid-template-columns:1fr 1fr;background:var(--paper);border-radius:10px;padding:3px}
+.seg2 button{border-radius:8px;padding:7px;text-align:center;font-weight:700;font-size:13.5px;color:var(--turf)}
+.seg2 button.on{background:var(--page);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.seg2 button.y.on{background:var(--yes);color:#fff} .seg2 button.n.on{background:var(--no);color:#fff}
+.stp{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13.5px}
+.stp .ctl{display:flex;align-items:center;gap:8px}
+.stp .ctl button{width:32px;height:32px;border-radius:9px;background:var(--paper);box-shadow:inset 0 0 0 1px var(--rule);font-weight:800;font-size:16px;text-align:center}
+.stp .ctl b{min-width:56px;text-align:center;font-size:16px}
+.kv{display:flex;justify-content:space-between;font-size:13.5px;color:var(--turf)}
+.kv b{color:var(--ink)}
+.ob2{display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12.5px}
+.ob2 .col{display:grid;gap:3px}
+.ob2 .hd{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--turf)}
+.ob2 .lvl{position:relative;display:flex;justify-content:space-between;padding:3px 6px;border-radius:5px;overflow:hidden}
+.ob2 .lvl i{position:absolute;inset:0 auto 0 0;opacity:.18}
+.ob2 .y .lvl i{background:var(--yes)} .ob2 .n .lvl i{background:var(--no)}
+.ob2 .lvl span{position:relative}
+.rulebox{font-size:12.5px;color:var(--turf);background:var(--paper);border-radius:12px;padding:10px 12px}
+.rulebox b{color:var(--ink)}
+.pos{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:10px 13px;border-top:1px solid var(--hair);font-size:13px}
+.pos:first-child{border-top:0}
+.pos b{font-size:14px}
+.pos .pl{font-weight:800;text-align:right}
+.pos .pl.up{color:var(--yes)} .pos .pl.dn{color:var(--no)}
+.pos button{grid-column:2;justify-self:end;border-radius:999px;padding:6px 12px;background:var(--ink);color:var(--page);font-weight:700;font-size:12.5px}
+.hy{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin:10px 12px 0;background:var(--page);border-radius:12px;padding:3px;box-shadow:inset 0 0 0 1px var(--rule)}
+.hy button{border-radius:9px;padding:8px 2px;text-align:center;font-weight:700;font-size:12.5px;color:var(--turf)}
+.hy button.on{background:var(--ink);color:var(--page)}
+@keyframes fade{from{opacity:0}to{opacity:1}}
 </style>
 </head>
 <body>
@@ -210,23 +303,29 @@ button{background:none;border:0;padding:0;cursor:pointer;text-align:inherit}
       <div class="dn"><b>Developer’s take</b>The most fun for people who don’t follow the golf closely: the book tells them what to react to. Fed by the scores already being saved, so no extra work for the refs.</div></div></section>
 </div>
 
-<div class="part"><h2>Bets</h2><span>For beers and shots, never money</span></div>
+<div class="part"><h2>Bets</h2><span>Built the way FanDuel and Kalshi work · beers and shots, never money</span></div>
 <div class="row">
-  <section class="opt"><div class="phone dark" id="bA"></div>
-    <div class="cap"><div class="tag"><b>A</b><h3>The Sportsbook</h3></div>
-      <p class="what">In the style of FanDuel: markets with odds, tap to add to a bet slip, stake in beers.</p>
-      <ul><li>Markets: round winner, MVP, Ryder Cup, closest to the pin, holes to watch.</li><li>Odds move with the live scores.</li><li>A same-round parlay for the brave.</li></ul>
-      <div class="dn"><b>Developer’s take</b>Looks the most like the real thing, and odds are fun to read. The odds are worked out from the standings with a simple formula, not set by anyone.</div></div></section>
+  <section class="opt"><div class="phone" id="bA"></div>
+    <div class="cap"><div class="tag"><b>A</b><h3>The Book</h3></div>
+      <p class="what">Works like FanDuel: a board of golf markets with American odds, a bet slip, parlays, cash out.</p>
+      <ul><li>Golf’s real markets: round winner, MVP outright and top 3, matchups with a stroke handicap, three-balls, hole props, hole in one.</li>
+        <li>Tap odds to add them to the <b>Betslip</b>. <b>Singles</b> or <b>Parlay</b>, a stake in 🍺, “to win” shown before you place it.</li>
+        <li>A <b>profit boost</b> each day, live odds that move with the scores, and <b>My Bets</b> with each leg ticking off and a <b>Cash out</b> offer.</li></ul>
+      <div class="dn"><b>Developer’s take</b>The book is the house: it sets the odds from the live standings and pays out, so every bet is accepted at once. Closest to FanDuel, and the one golfers will know.</div></div></section>
   <section class="opt"><div class="phone" id="bB"></div>
-    <div class="cap"><div class="tag"><b>B</b><h3>The Market</h3></div>
-      <p class="what">In the style of Kalshi: yes-or-no questions with a live chance, set by how the group bets.</p>
-      <ul><li>“Will Robby B win MVP?” 62% chance.</li><li>Buy Yes or No with beers; the price is the crowd’s view.</li><li>A small line shows how the chance moved through the round.</li></ul>
-      <div class="dn"><b>Developer’s take</b>The simplest to settle: every question resolves Yes or No from the book’s own results. Percentages are easier than odds for people who don’t bet.</div></div></section>
+    <div class="cap"><div class="tag"><b>B</b><h3>The Exchange</h3></div>
+      <p class="what">Works like Kalshi: yes/no questions, each priced 1–99¢, paying a full 🍺 a contract if you’re right.</p>
+      <ul><li>The price is the chance: Yes at 62¢ means the group thinks 62%. Yes and No always add up to a dollar of beer.</li>
+        <li>Tap a market for its chart, <b>order book</b>, and an order ticket: Buy or Sell, Yes or No, <b>Market</b> or <b>Limit</b>.</li>
+        <li>Sell any time before it settles to lock in a gain. Every market states its <b>rules</b>: what counts, and when it closes.</li></ul>
+      <div class="dn"><b>Developer’s take</b>People trade with each other, so prices are the group’s real view. With 23 people the book quietly offers both sides too, so an order never sits unfilled.</div></div></section>
   <section class="opt"><div class="phone" id="bC"></div>
-    <div class="cap"><div class="tag"><b>C</b><h3>The Challenge</h3></div>
-      <p class="what">Friend-to-friend side bets: pick two players, a stretch of holes and the forfeit.</p>
-      <ul><li>“Matt D beats Ray V on the back nine. Loser buys a round of shots.”</li><li>The other person accepts or declines.</li><li>The book settles it from the scores, and keeps The Tab of who owes what.</li></ul>
-      <div class="dn"><b>Developer’s take</b>The most personal and the most likely to end at the bar. No odds to explain. Everything settles itself from the card.</div></div></section>
+    <div class="cap"><div class="tag"><b>C</b><h3>The Union Book</h3></div>
+      <p class="what">Both in one tab: the book for the golf, the exchange for everything else, and challenges between friends.</p>
+      <ul><li><b>Board</b>: FanDuel-style odds on the rounds.</li>
+        <li><b>Markets</b>: Kalshi-style yes/no on the week (“Will anyone hit the water on 17?”).</li>
+        <li><b>Challenges</b> and <b>My Bets</b>, with The Tab of who owes whom at the bar.</li></ul>
+      <div class="dn"><b>Developer’s take</b>The most complete, and the most to explain. Odds suit the golfers; percentages suit everyone else. One balance of 🍺 across all three.</div></div></section>
 </div>
 
 <div class="dev">
@@ -239,14 +338,18 @@ button{background:none;border:0;padding:0;cursor:pointer;text-align:inherit}
     <li>Bets settle themselves from the scores the refs already save. Nobody has to mark a bet won.</li>
     <li>Works with no signal: posts wait on the phone and go up when it’s back, like photos.</li>
     <li>One setup step for you: the database only accepts record types it already knows. Adding “comments” and “bets” is a one-line change I’d write for you to paste into Supabase’s SQL editor. No keys or passwords involved.</li></ul></div>
+  <div class="card"><h3>How FanDuel and Kalshi work, and what was kept</h3><ul>
+    <li><b>FanDuel</b> is a sportsbook: the house sets American odds (−250 favourite, +300 outsider), bets go on a <b>Betslip</b> as singles or a <b>parlay</b> (every leg must win), and open bets can be <b>cashed out</b> early for a smaller sum. Golf markets include outright winner, top-finish places with dead-heat rules, matchups with a stroke handicap, three-balls, first-round leader and hole props.</li>
+    <li><b>Kalshi</b> is an exchange: every market is a yes/no contract priced 1–99¢ that pays $1 if right; Yes and No add up to a dollar; people trade with each other on an <b>order book</b> with market or limit orders, and can sell before it settles. Each market publishes its settlement rules.</li>
+    <li>All of that is here, with 🍺 instead of dollars and the book’s own scores as the settlement source.</li></ul></div>
   <div class="card"><h3>Beers, not money</h3><ul>
-    <li>Everyone starts each day with 10 🍺 to bet. Shots are worth 2 🍺.</li>
+    <li>Everyone starts each day with 10 🍺 to bet. Shots are worth 2 🍺. On the exchange a contract costs 1–99¢ of a beer and pays a whole 🍺 if right.</li>
     <li>Winnings show on The Tab: who owes whom, settled at the bar.</li>
     <li>A leaderboard of the best tipster of the week, for the closing ceremony.</li>
     <li>Betting on a round closes when its first group tees off; hole bets close as that hole starts.</li></ul></div>
   <div class="card rec"><h3>My recommendation</h3><ul>
     <li><b>Comments: the Heckle Feed (3)</b>, with a chat box under it. The book does the work of telling non-golfers what just happened, and they react.</li>
-    <li><b>Bets: the Market (B)</b>, with Challenges (C) as a second tab. Yes/no with a percentage is the easiest to understand, settles itself, and challenges add the personal side.</li>
+    <li><b>Bets: the Union Book (C)</b>. FanDuel’s board for the golf, where the golfers already think in odds; Kalshi’s yes/no markets for everyone else, where a percentage needs no explaining; and challenges for the bar. One 🍺 balance, one My Bets.</li>
     <li>Both would live under Boards, as “Chat” and “Bets”, next to Photos.</li></ul></div>
 </div>
 
@@ -319,79 +422,219 @@ phone('cC', st => `<div class="scr">${games('Chat')}<div class="pad">
   ], post(t) { this.ev[0].h.push(['Jennifer D', t]); } },
   (e, st) => { const b = e.target.closest('[data-x]'); if (b) { const [i, r] = b.dataset.x.split('|'); const v = st.ev[+i]; v.me = v.me === r ? null : r; return true; } });
 
-/* ---- bets A: the sportsbook ---- */
-const MK = [
-  { live: true, t: 'Round 2 winner', s: 'Better ball · team', sel: [['Robby B & Dan A', 'leading −31 · thru 11', '-250'], ['Norberto III & Norberto Jr.', '−22 · thru 11', '+300'], ['Matt D & Manuel P', '−21 · thru 11', '+450']] },
-  { live: true, t: 'Tournament MVP', s: 'Net to par · after Round 3', sel: [['Robby B', '−15 · thru 8 today', '+120'], ['Dan A', '−12', '+260'], ['Ray V', '−9', '+700']] },
-  { t: 'Ryder Cup', s: 'UK vs USA · 2½–2½', sel: [['United Kingdom', '7½ to win', '-110'], ['United States', '7½ to win', '-110']] },
-  { t: 'Hole 13 · closest to the pin', s: 'Par 3 · nobody on it yet', sel: [['Ray V', 'won it Thursday', '+200'], ['Field', 'anyone else', '-280']] },
-];
-const dec = o => o.startsWith('-') ? 1 + 100 / +o.slice(1) : 1 + +o / 100;
-phone('bA', st => { const picks = Object.values(st.slip);
-  const mult = picks.reduce((a, p) => a * dec(p.o), 1), win = Math.round(st.stake * mult * 10) / 10;
-  return `<div class="scr"><div class="sbhead"><b>Union<span>Book</span></b><span class="bal">🍺 ${st.bal} to bet</span></div>
-    <div class="sbtabs"><span class="on">Popular</span><span>Round 2</span><span>MVP</span><span>Holes</span><span>Props</span></div>
-    ${MK.map((m, mi) => `<div class="mkt"><div class="mh"><b>${m.live ? '<span class="live">LIVE</span>' : ''}${m.t}</b><span>${m.s}</span></div>
-      ${m.sel.map(([n, d, o], si) => `<div class="sel"><span class="nm">${n}<small>${d}</small></span><button class="odds${st.slip[mi] && st.slip[mi].si === si ? ' on' : ''}" data-o="${mi}|${si}">${o}</button></div>`).join('')}</div>`).join('')}
-    <div style="height:${picks.length ? 230 : 20}px"></div></div>
-    ${picks.length ? `<div class="slip"><div class="s1"><span>Bet slip · ${picks.length} pick${picks.length > 1 ? 's' : ''}${picks.length > 1 ? ' · parlay' : ''}</span><span>${picks.length > 1 ? (mult >= 2 ? '+' + Math.round((mult - 1) * 100) : '-' + Math.round(100 / (mult - 1))) : picks[0].o}</span></div>
-      <div class="s2">${picks.map(p => `<span>${p.n} · <b>${p.o}</b></span>`).join('')}
-        <div class="stake">${[1, 2, 3, 5].map(n => `<button data-s="${n}" class="${st.stake === n ? 'on' : ''}">${n} 🍺</button>`).join('')}</div>
-        <span>Wins <b>${win} 🍺</b> back</span><button class="go" data-go="1">Place bet</button></div></div>` : ''}`; },
-  { bal: 10, slip: {}, stake: 2 },
-  (e, st) => { const o = e.target.closest('[data-o]'), s = e.target.closest('[data-s]'), g = e.target.closest('[data-go]');
-    if (o) { const [mi, si] = o.dataset.o.split('|').map(Number); if (st.slip[mi] && st.slip[mi].si === si) delete st.slip[mi]; else st.slip[mi] = { si, n: MK[mi].sel[si][0], o: MK[mi].sel[si][2] }; return true; }
-    if (s) { st.stake = +s.dataset.s; return true; }
-    if (g) { st.bal -= st.stake; st.slip = {}; st.flash('Bet placed. It settles itself from the scores.'); return false; } });
+/* ===================== bets, as the real things work ===================== */
+const am = d => d >= 2 ? '+' + Math.round((d - 1) * 100) : '-' + Math.round(100 / (d - 1));
+const dc = o => o.startsWith('-') ? 1 + 100 / +o.slice(1) : 1 + +o / 100;
+const r1 = n => Math.round(n * 10) / 10;
 
-/* ---- bets B: the market ---- */
-const Q = [
-  { q: 'Will Robby B win tournament MVP?', p: 62, v: '41 🍺 traded', pts: [30, 34, 33, 41, 45, 52, 58, 62] },
-  { q: 'Will anyone make a hole in one this week?', p: 7, v: '18 🍺 traded', pts: [9, 9, 8, 8, 7, 7, 7, 7] },
-  { q: 'Will the United Kingdom win the Ryder Cup?', p: 51, v: '63 🍺 traded', pts: [44, 47, 55, 49, 52, 50, 48, 51] },
-  { q: 'Will Ray V break 90 in Round 2?', p: 35, v: '22 🍺 traded', pts: [55, 52, 48, 46, 40, 38, 30, 35] },
-  { q: 'Will Group 1 finish before 5:30 pm?', p: 78, v: '9 🍺 traded', pts: [60, 64, 70, 72, 75, 77, 78, 78] },
+/* ---- A: the book (FanDuel's functions) ---- */
+const BOOK = [
+  { id: 'rw', tab: 'Round 2', t: 'Round 2 winner', s: 'Better ball · team · net', live: true, kind: 'list', sel: [
+    ['Robby B & Dan A', 'leading −31 · thru 11', '-250', 'up'], ['Norberto III & Norberto Jr.', '−22 · thru 11', '+330', 'dn'], ['Matt D & Manuel P', '−21 · thru 11', '+450', ''], ['Gabriel P & Ray V', '−19 · thru 8', '+900', 'dn']],
+    rules: 'Settles on the book’s Team board when Round 2 is locked. Ties: dead heat, stake split.' },
+  { id: 'mvp', tab: 'MVP', t: 'Tournament MVP · outright', s: 'Net to par · after Round 3', kind: 'list', sel: [
+    ['Robby B', '−15 · band 25', '+120', 'up'], ['Dan A', '−12', '+260', ''], ['Ray V', '−9', '+700', 'dn'], ['Manuel P', '−7', '+1200', '']] },
+  { id: 'top3', tab: 'MVP', t: 'MVP · top 3 finish', s: 'Dead heat rules apply', kind: 'list', sel: [
+    ['Ray V', 'currently 3rd', '-140', ''], ['Manuel P', 'currently 4th', '+150', 'up'], ['Devin O', 'currently 5th', '+220', '']] },
+  { id: 'mu', tab: 'Matchups', t: 'Round 2 matchups', s: 'Net strokes · back nine', kind: 'pairs', pairs: [
+    ['Matt D', '-1.5', '-110', 'Ray V', '+1.5', '-110'], ['Robby B', '-2.5', '+105', 'Dan A', '+2.5', '-125']] },
+  { id: 'tb', tab: 'Matchups', t: 'Three-balls · Group 3', s: 'Lowest net, holes 12–18', kind: 'three', sel: [['Duncan W', '+150'], ['DP', '+170'], ['Devin O', '+190']] },
+  { id: 'hp', tab: 'Holes', t: 'Hole 13 · par 3', s: 'Closest-to-the-pin hole', live: true, kind: 'yn', rows: [
+    ['Any birdie or better', '+180', '-240'], ['Hole in one', '+5000', '-10000'], ['Anyone in the water', '+120', '-150']] },
 ];
-const spark = (pts, up) => { const w = 300, h = 40, mx = Math.max(...pts) + 4, mn = Math.max(0, Math.min(...pts) - 4);
-  const xy = pts.map((v, i) => [i * w / (pts.length - 1), h - 3 - (v - mn) / (mx - mn) * (h - 6)]);
-  return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true"><polyline fill="none" stroke="${up ? '#2F7A4A' : '#A8452F'}" stroke-width="2.4" points="${xy.map(p => p.join(',')).join(' ')}"/><circle cx="${xy[xy.length - 1][0]}" cy="${xy[xy.length - 1][1]}" r="4" fill="${up ? '#2F7A4A' : '#A8452F'}"/></svg>`; };
-phone('bB', st => `<div class="scr"><div class="kh"><b>Markets</b><span class="bal" style="background:var(--ink)">🍺 ${st.bal}</span></div><div class="pad">
-    <span class="eyebrow">The chance, as the group sees it · settles from the book</span>
-    ${Q.map((m, i) => { const up = m.pts[m.pts.length - 1] >= m.pts[m.pts.length - 2]; return `<div class="km">
-      <div class="q"><b>${m.q}</b><span class="pct"><strong>${m.p}%</strong><small>chance</small></span></div>
-      ${spark(m.pts, up)}
-      <div class="yn"><button class="y${st.b[i] === 'y' ? ' on' : ''}" data-b="${i}|y">Yes ${m.p}¢</button><button class="n${st.b[i] === 'n' ? ' on' : ''}" data-b="${i}|n">No ${100 - m.p}¢</button></div>
-      <span class="vol">${m.v}${st.b[i] ? ` · <span class="tick">you: 1 🍺 on ${st.b[i] === 'y' ? 'Yes' : 'No'}, pays ${(100 / (st.b[i] === 'y' ? m.p : 100 - m.p)).toFixed(1)} 🍺</span>` : ''}</span></div>`; }).join('')}
-  </div></div>`,
-  { bal: 10, b: {} },
-  (e, st) => { const b = e.target.closest('[data-b]'); if (!b) return; const [i, s] = b.dataset.b.split('|');
-    if (st.b[i] === s) { delete st.b[i]; st.bal++; } else { if (!st.b[i]) st.bal--; st.b[i] = s; } return true; });
+const BOOST = { id: 'boost', t: 'Robby B · best net score in Round 2', was: '+150', now: '+188' };
+phone('bA', st => {
+  const picks = Object.values(st.slip), n = picks.length;
+  const sel = id => st.slip[id] ? ' on' : '';
+  const ob = (id, o, label, mv) => `<button class="ob${sel(id)}" data-pick="${id}|${o}|${esc(label)}">${label && label.length < 12 && !/^[A-Z][a-z]+ [A-Z]/.test(label) ? `<small>${label}</small>` : ''}${o}${mv ? `<i class="mv ${mv}">${mv === 'up' ? '▲' : '▼'}</i>` : ''}</button>`;
+  let body = '';
+  if (st.tab === 'My Bets') {
+    body = (st.placed.length ? st.placed.map((b, i) => `<div class="mb"><div class="mbh"><span><b>${b.legs.length > 1 ? b.legs.length + '-leg parlay' : 'Single'}</b> · ${b.odds}</span><span>${b.stake} 🍺 to win ${b.win} 🍺</span></div>
+        ${b.legs.map(l => `<div class="lg"><span class="dot live">•</span><span>${esc(l.label)}<br><small class="note">Open · Round 2 thru 11</small></span><b>${l.o}</b></div>`).join('')}
+        <div class="ft"><span class="note">Placed today</span><button class="co" data-co="${i}">Cash out ${r1(b.stake + b.win * .3)} 🍺</button></div></div>`).join('') : '')
+      + `<div class="mb"><div class="mbh"><span><b>Single</b> · +700 · Thursday</span><span class="l">Lost</span></div><div class="lg"><span class="dot l">✕</span><span>Ray V · closest to the pin, hole 7</span><b>+700</b></div></div>
+         <div class="mb"><div class="mbh"><span><b>Single</b> · −110 · Thursday</span><span class="w">Won +1.8 🍺</span></div><div class="lg"><span class="dot w">✓</span><span>United Kingdom · Ryder Cup session</span><b>-110</b></div></div>`;
+  } else {
+    const show = BOOK.filter(m => st.tab === 'Popular' ? ['rw', 'mvp', 'mu', 'hp'].includes(m.id) : m.tab === st.tab);
+    body = (st.tab === 'Popular' ? `<div class="boost"><span class="k">⚡ Profit boost · 25% · today only</span><b>${BOOST.t}</b><span class="note" style="color:var(--sage)"><s>${BOOST.was}</s>boosted</span>${ob('boost', BOOST.now, 'Robby B · best net, Round 2 (boosted)', '')}</div>` : '')
+      + show.map(m => `<div class="mg"><div class="mgh"><b>${m.live ? '<span class="lv">LIVE</span>' : ''}${m.t}</b><span>${m.s}</span></div>
+        ${m.kind === 'list' ? m.sel.map(([nm, d, o, mv], i) => `<div class="mr"><span class="nm">${nm}<small>${d}</small></span>${ob(m.id + i, o, nm + ' · ' + m.t, mv)}</div>`).join('') : ''}
+        ${m.kind === 'pairs' ? m.pairs.map(([a, ah, ao, b, bh, bo], i) => `<div class="two"><span class="lbl">${a} v ${b}</span>
+            <button class="ob${sel(m.id + i + 'a')}" data-pick="${m.id + i}a|${ao}|${a} ${ah} v ${b}"><small>${a} ${ah}</small>${ao}</button>
+            <button class="ob${sel(m.id + i + 'b')}" data-pick="${m.id + i}b|${bo}|${b} ${bh} v ${a}"><small>${b} ${bh}</small>${bo}</button></div>`).join('') : ''}
+        ${m.kind === 'three' ? `<div class="two three">${m.sel.map(([nm, o], i) => `<button class="ob${sel(m.id + i)}" data-pick="${m.id + i}|${o}|${nm} · three-ball"><small>${nm}</small>${o}</button>`).join('')}</div>` : ''}
+        ${m.kind === 'yn' ? m.rows.map(([q, y, n2], i) => `<div class="two"><span class="lbl">${q}</span>
+            <button class="ob${sel(m.id + i + 'y')}" data-pick="${m.id + i}y|${y}|${q}: Yes"><small>Yes</small>${y}</button>
+            <button class="ob${sel(m.id + i + 'n')}" data-pick="${m.id + i}n|${n2}|${q}: No"><small>No</small>${n2}</button></div>`).join('') : ''}
+        ${m.rules ? `<div class="rules">${m.rules}</div>` : ''}</div>`).join('') + '<div style="height:90px"></div>';
+  }
+  const parlay = picks.reduce((a, p) => a * dc(p.o), 1);
+  const slip = !st.open ? '' : `<div class="slipwrap" data-close="1"><div class="slip2">
+      <div class="sh"><b>Betslip · ${n}</b><button data-clear="1">Remove all</button></div>
+      ${n > 1 ? `<div class="stabs"><button class="${st.mode === 'single' ? 'on' : ''}" data-mode="single">Singles</button><button class="${st.mode === 'parlay' ? 'on' : ''}" data-mode="parlay">Parlay ${am(parlay)}</button></div>` : ''}
+      ${picks.map(p => `<div class="leg"><button class="x" data-rm="${p.id}" aria-label="Remove">✕</button><span><b>${esc(p.label)}</b><small>${p.id === 'boost' ? '⚡ Profit boost 25%' : 'Round 2 · Fri 30 Oct'}</small></span><span class="o">${p.o}</span></div>`).join('')}
+      <div class="wager">${st.chg ? `<div class="oddschg">Odds changed on Robby B & Dan A: −250 → −275. <button data-acc="1" style="text-decoration:underline">Accept</button></div>` : ''}
+        <div class="chipsr">${[1, 2, 3, 5].map(v => `<button class="${st.stake === v ? 'on' : ''}" data-stake="${v}">${v} 🍺</button>`).join('')}</div>
+        ${(() => { const single = n === 1 || st.mode === 'single'; const tot = single ? st.stake * n : st.stake;
+          const win = single ? picks.reduce((a, p) => a + st.stake * (dc(p.o) - 1), 0) : st.stake * (parlay - 1);
+          return `<div class="sum"><span>Total wager</span><b>${tot} 🍺</b></div><div class="sum"><span>To win</span><b style="color:var(--yes)">${r1(win)} 🍺</b></div>
+            <button class="cta gold" data-place="1">Place ${single && n > 1 ? n + ' bets' : 'bet'} · ${tot} 🍺</button>`; })()}
+        <span class="note">Bets on Round 2 close as its last group tees off on each hole they cover. Settled by the book from the saved scores.</span></div></div></div>`;
+  return `<div class="scr bk"><div class="bkh"><b>Union <span>Book</span></b><span class="bkbal">🍺 ${r1(st.bal)}</span></div>
+    <div class="bknav">${['Popular', 'Round 2', 'MVP', 'Matchups', 'Holes', 'My Bets'].map(t => `<button class="${st.tab === t ? 'on' : ''}" data-tab="${t}">${t}${t === 'My Bets' && st.placed.length ? `<span class="c">${st.placed.length}</span>` : ''}</button>`).join('')}</div>
+    ${body}</div>
+    ${n && !st.open ? `<button class="slipbar" data-openslip="1"><span><span class="ct">${n}</span>Betslip</span><span>${n > 1 ? 'Parlay ' + am(parlay) : picks[0].o} ▲</span></button>` : ''}${slip}`;
+}, { tab: 'Popular', slip: {}, open: false, mode: 'parlay', stake: 2, bal: 10, placed: [] },
+(e, st) => {
+  const t = e.target.closest('[data-pick],[data-tab],[data-openslip],[data-close],[data-mode],[data-stake],[data-rm],[data-clear],[data-place],[data-co],[data-acc]');
+  if (!t) return;
+  const d = t.dataset;
+  if (d.close && e.target !== t) return;
+  if (d.pick) { const [id, o, label] = d.pick.split('|'); if (st.slip[id]) delete st.slip[id]; else st.slip[id] = { id, o, label }; if (Object.keys(st.slip).length === 2 && id.startsWith('rw')) st.chg = true; }
+  else if (d.tab) st.tab = d.tab;
+  else if (d.openslip) st.open = true;
+  else if (d.close) st.open = false;
+  else if (d.mode) st.mode = d.mode;
+  else if (d.stake) st.stake = +d.stake;
+  else if (d.rm) { delete st.slip[d.rm]; if (!Object.keys(st.slip).length) st.open = false; }
+  else if (d.clear) { st.slip = {}; st.open = false; }
+  else if (d.acc) st.chg = false;
+  else if (d.place) { const picks = Object.values(st.slip), par = picks.length > 1 && st.mode === 'parlay';
+    const bets = par ? [{ legs: picks, odds: am(picks.reduce((a, p) => a * dc(p.o), 1)), stake: st.stake }] : picks.map(p => ({ legs: [p], odds: p.o, stake: st.stake }));
+    bets.forEach(b => { b.win = r1(b.stake * (dc(b.odds) - 1)); st.bal -= b.stake; });
+    st.placed = bets.concat(st.placed); st.slip = {}; st.open = false; st.chg = false; st.tab = 'My Bets';
+    st.flash('Bet placed. It settles itself from the scores.'); return false; }
+  else if (d.co) { const b = st.placed[+d.co]; st.bal += r1(b.stake + b.win * .3); st.placed.splice(+d.co, 1); st.flash('Cashed out. 🍺 back in your balance.'); return false; }
+  return true;
+});
 
-/* ---- bets C: the challenge ---- */
+/* ---- B: the exchange (Kalshi's functions) ---- */
+const XM = [
+  { id: 'mvp', cat: 'MVP', q: 'Who wins tournament MVP?', multi: [['Robby B', 62], ['Dan A', 21], ['Ray V', 9], ['Field', 8]], vol: 141, d: 4,
+    rule: 'Resolves to the golfer top of the book’s MVP board once Round 3 is locked. Closes Sun 1 Nov, 12:15 pm (first tee of Round 3).' },
+  { id: 'hio', cat: 'Golf', q: 'Will anyone make a hole in one this week?', p: 7, vol: 38, d: 0, pts: [9, 9, 8, 8, 8, 7, 7, 7],
+    rule: 'Resolves Yes if any saved score of 1 appears on any round’s card. Closes Sun 1 Nov, end of Round 3.' },
+  { id: 'cup', cat: 'Golf', q: 'Will the United Kingdom win the Ryder Cup?', p: 51, vol: 163, d: 3, pts: [44, 47, 55, 49, 52, 48, 48, 51],
+    rule: 'Resolves Yes if the UK finishes the week ahead on the book’s Ryder Cup board. A tie resolves No.' },
+  { id: 'ray', cat: 'Round 2', q: 'Will Ray V shoot net under par in Round 2?', p: 35, vol: 22, d: -12, pts: [55, 52, 48, 46, 40, 38, 47, 35],
+    rule: 'Resolves Yes if Ray V’s Round 2 net total on the book is below par once his card is finished.' },
+  { id: 'rain', cat: 'The trip', q: 'Will the closing dinner run past midnight?', p: 70, vol: 17, d: 5, pts: [50, 55, 60, 62, 66, 65, 68, 70],
+    rule: 'Resolves Yes if the commissioner confirms the last of the group left after 12:00 am on Mon 2 Nov.' },
+];
+const curve = (pts, up, h = 44) => { const w = 300, mx = Math.max(...pts) + 4, mn = Math.max(0, Math.min(...pts) - 4);
+  const xy = pts.map((v, i) => [i * w / (pts.length - 1), h - 3 - (v - mn) / (mx - mn || 1) * (h - 6)]);
+  const c = up ? '#2F7A4A' : '#A8452F';
+  return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" style="width:100%;height:${h}px" aria-hidden="true"><polygon fill="${c}" opacity=".08" points="0,${h} ${xy.map(p => p.join(',')).join(' ')} ${w},${h}"/><polyline fill="none" stroke="${c}" stroke-width="2.4" points="${xy.map(p => p.join(',')).join(' ')}"/><circle cx="${xy[xy.length - 1][0]}" cy="${xy[xy.length - 1][1]}" r="4" fill="${c}"/></svg>`; };
+const book = p => { const lv = [[p, 14], [p - 1, 22], [p - 2, 9], [p - 3, 30]], nv = [[100 - p + 1, 11], [100 - p, 18], [100 - p - 1, 25], [100 - p - 2, 8]];
+  const mx = 30; const col = (cls, h, rows) => `<div class="col ${cls}"><span class="hd">${h}</span>${rows.map(([pr, q]) => `<span class="lvl"><i style="width:${q / mx * 100}%"></i><span>${pr}¢</span><span>${q}</span></span>`).join('')}</div>`;
+  return `<div class="ob2">${col('y', 'Yes bids · qty', lv)}${col('n', 'No bids · qty', nv)}</div>`; };
+phone('bB', st => {
+  if (st.view === 'pf') {
+    return `<div class="scr bk"><button class="back" data-view="list">‹ Markets</button><div class="xm"><h2>Portfolio</h2>
+      <div class="kv"><span>Balance</span><b>🍺 ${r1(st.bal)}</b></div><div class="kv"><span>Positions value</span><b>🍺 ${r1(st.pos.reduce((a, p) => a + p.n * p.now / 100, 0))}</b></div>
+      <div class="tk" style="padding:0">${st.pos.length ? st.pos.map((p, i) => { const pl = p.n * (p.now - p.avg) / 100;
+        return `<div class="pos"><b>${esc(p.q)}</b><span class="pl ${pl >= 0 ? 'up' : 'dn'}">${pl >= 0 ? '+' : ''}${r1(pl)} 🍺</span>
+          <span class="note">${p.n} ${p.side} · avg ${p.avg}¢ · now ${p.now}¢</span><button data-sell="${i}">Sell</button></div>`; }).join('') : '<p class="note" style="padding:12px">No positions yet.</p>'}</div>
+      <span class="eyebrow">Resting orders</span>
+      <div class="tk"><div class="kv"><span>Buy 5 Yes · Ryder Cup · limit 45¢</span><button data-cancel="1" style="color:var(--no);font-weight:700">Cancel</button></div></div></div></div>`;
+  }
+  if (st.view) {
+    const m = XM.find(x => x.id === st.view), multi = !!m.multi;
+    const opt = multi ? m.multi[st.opt || 0] : null, p = multi ? opt[1] : m.p;
+    const price = st.side === 'yes' ? p : 100 - p, lim = st.lim || price;
+    const pay = st.side === 'yes' ? p : 100 - p, use = st.type === 'limit' ? lim : pay;
+    const n = Math.max(1, Math.floor(st.amt * 100 / use));
+    return `<div class="scr bk"><button class="back" data-view="list">‹ Markets</button><div class="xm">
+      <span class="eyebrow">${m.cat} · ${m.vol} 🍺 traded</span><h2>${m.q}</h2>
+      ${multi ? `<div class="tk" style="padding:4px 12px">${m.multi.map(([nm, c], i) => `<div class="mo"><span>${nm}</span><em>${c}%</em><button class="${(st.opt || 0) === i ? '' : ''}" data-opt="${i}" style="background:${(st.opt || 0) === i ? 'var(--ink)' : 'var(--paper)'};color:${(st.opt || 0) === i ? 'var(--page)' : 'var(--ink)'}">${(st.opt || 0) === i ? 'Trading' : 'Trade'}</button></div>`).join('')}</div>` : ''}
+      <div class="big"><strong>${p}%</strong><span class="dlt ${m.d >= 0 ? 'up' : 'dn'}">${m.d >= 0 ? '▲' : '▼'} ${Math.abs(m.d)} today</span></div>
+      ${curve(multi ? [30, 34, 33, 41, 45, 52, 58, opt[1]] : m.pts, m.d >= 0, 70)}
+      <div class="rng">${['1H', '6H', '1D', 'All'].map(r => `<button class="${st.rng === r ? 'on' : ''}" data-rng="${r}">${r}</button>`).join('')}</div>
+      <div class="tk">
+        <div class="seg2"><button class="${st.act === 'buy' ? 'on' : ''}" data-act="buy">Buy</button><button class="${st.act === 'sell' ? 'on' : ''}" data-act="sell">Sell</button></div>
+        <div class="seg2"><button class="y${st.side === 'yes' ? ' on' : ''}" data-side="yes">Yes ${p}¢</button><button class="n${st.side === 'no' ? ' on' : ''}" data-side="no">No ${100 - p}¢</button></div>
+        <div class="seg2"><button class="${st.type === 'market' ? 'on' : ''}" data-type="market">Market</button><button class="${st.type === 'limit' ? 'on' : ''}" data-type="limit">Limit</button></div>
+        ${st.type === 'limit' ? `<div class="stp"><span>Limit price</span><span class="ctl"><button data-lim="-1">−</button><b>${lim}¢</b><button data-lim="1">+</button></span></div>` : ''}
+        <div class="stp"><span>Amount</span><span class="ctl"><button data-amt="-1">−</button><b>${st.amt} 🍺</b><button data-amt="1">+</button></span></div>
+        <div class="kv"><span>Contracts</span><b>${n}</b></div>
+        <div class="kv"><span>Avg price</span><b>${use}¢</b></div>
+        <div class="kv"><span>Payout if ${st.side === 'yes' ? (multi ? opt[0] : 'Yes') : 'No'}</span><b style="color:var(--yes)">🍺 ${r1(n)}</b></div>
+        <button class="cta" data-submit="1">${st.act === 'buy' ? 'Buy' : 'Sell'} ${st.side === 'yes' ? 'Yes' : 'No'}${st.type === 'limit' ? ' at ' + lim + '¢' : ''}</button>
+        ${st.type === 'limit' && lim < price ? '<span class="note">Below the market: it rests in the order book until someone sells at your price.</span>' : '<span class="note">Fills now at the best price in the order book.</span>'}
+      </div>
+      <span class="eyebrow">Order book</span>${book(price)}
+      <span class="eyebrow">Rules</span><div class="rulebox"><b>Settles automatically from the book.</b> ${m.rule} Each contract pays 1 🍺 if right, nothing if wrong.</div>
+    </div></div>`;
+  }
+  const cats = ['All', 'Golf', 'MVP', 'Round 2', 'The trip'];
+  const list = XM.filter(m => st.cat === 'All' || m.cat === st.cat);
+  return `<div class="scr bk"><div class="xh"><div class="r"><b>Markets</b><button class="pf" data-view="pf">🍺 ${r1(st.bal)} · Portfolio</button></div>
+      <div class="xcats">${cats.map(c => `<button class="${st.cat === c ? 'on' : ''}" data-cat="${c}">${c}</button>`).join('')}</div></div>
+    ${list.map(m => m.multi ? `<div class="xc"><button class="t" data-view="${m.id}" style="text-align:left"><b>${m.q}</b></button>
+        ${m.multi.slice(0, 3).map(([nm, c]) => `<div class="mo"><span>${nm}</span><em>${c}%</em><button data-view="${m.id}" style="background:#DDEBDD;color:var(--yes)">Yes ${c}¢</button></div>`).join('')}
+        <div class="v"><span>${m.vol} 🍺 traded</span><span class="dlt up">▲ ${m.d} today</span></div></div>`
+      : `<div class="xc"><button class="t" data-view="${m.id}" style="text-align:left;width:100%"><b>${m.q}</b><span class="ch"><strong>${m.p}%</strong><small>chance</small></span></button>
+        ${curve(m.pts, m.d >= 0, 36)}
+        <div class="ynb"><button class="y" data-view="${m.id}" data-side="yes">Yes ${m.p}¢</button><button class="n" data-view="${m.id}" data-side="no">No ${100 - m.p}¢</button></div>
+        <div class="v"><span>${m.vol} 🍺 traded</span><span class="dlt ${m.d >= 0 ? 'up' : 'dn'}">${m.d >= 0 ? '▲' : '▼'} ${Math.abs(m.d)} today</span></div></div>`).join('')}
+    <div style="height:20px"></div></div>`;
+}, { view: null, cat: 'All', side: 'yes', act: 'buy', type: 'market', amt: 2, rng: '1D', bal: 10, pos: [{ q: 'Will the UK win the Ryder Cup?', n: 4, side: 'Yes', avg: 44, now: 51 }] },
+(e, st) => {
+  const t = e.target.closest('[data-view],[data-cat],[data-side],[data-act],[data-type],[data-lim],[data-amt],[data-submit],[data-rng],[data-opt],[data-sell],[data-cancel]');
+  if (!t) return;
+  const d = t.dataset;
+  if (d.view !== undefined) { st.view = d.view === 'list' ? null : d.view; st.opt = 0; st.lim = null; if (d.side) st.side = d.side; st.keep = false; return true; }
+  if (d.cat) st.cat = d.cat; else if (d.side) { st.side = d.side; st.lim = null; } else if (d.act) st.act = d.act; else if (d.type) st.type = d.type;
+  else if (d.rng) st.rng = d.rng; else if (d.opt) st.opt = +d.opt;
+  else if (d.lim) { const m = XM.find(x => x.id === st.view), p = m.multi ? m.multi[st.opt || 0][1] : m.p, base = st.side === 'yes' ? p : 100 - p; st.lim = Math.min(99, Math.max(1, (st.lim || base) + +d.lim)); }
+  else if (d.amt) st.amt = Math.max(1, Math.min(st.bal, st.amt + +d.amt));
+  else if (d.submit) { const m = XM.find(x => x.id === st.view), p = m.multi ? m.multi[st.opt || 0][1] : m.p, pr = st.side === 'yes' ? p : 100 - p;
+    const resting = st.type === 'limit' && (st.lim || pr) < pr;
+    if (!resting) { const use = st.type === 'limit' ? st.lim || pr : pr, n = Math.floor(st.amt * 100 / use); st.bal = r1(st.bal - n * use / 100);
+      st.pos.unshift({ q: m.multi ? m.q.replace('Who wins', m.multi[st.opt || 0][0] + ' wins') : m.q, n, side: st.side === 'yes' ? 'Yes' : 'No', avg: use, now: use }); }
+    st.flash(resting ? 'Limit order placed. It fills if someone meets your price.' : 'Order filled. See it in your Portfolio.'); return false; }
+  else if (d.sell) { const p = st.pos[+d.sell]; st.bal = r1(st.bal + p.n * p.now / 100); st.pos.splice(+d.sell, 1); st.flash('Sold at ' + p.now + '¢. Gain locked in.'); return false; }
+  else if (d.cancel) { st.flash('Order cancelled.'); return false; }
+  return true;
+});
+
+/* ---- C: the Union Book, both in one ---- */
 const PEOPLE = ['Matt D', 'Ray V', 'Robby B', 'Dan A', 'Duncan W'];
-phone('bC', st => `<div class="scr">${games('Bets')}<div class="pad">
-    <div><h2 class="h">Challenges</h2><span class="sub">Pick two, a stretch of holes, and the forfeit</span></div>
-    <div class="chal"><span class="eyebrow" style="color:var(--sage);text-align:center">Challenge from Jennifer D · waiting</span>
+phone('bC', st => {
+  const tabs = ['Board', 'Markets', 'Challenges', 'My Bets'];
+  let body = '';
+  if (st.t === 'Board') body = BOOK.filter(m => ['rw', 'mu', 'hp'].includes(m.id)).map(m => `<div class="mg"><div class="mgh"><b>${m.live ? '<span class="lv">LIVE</span>' : ''}${m.t}</b><span>${m.s}</span></div>
+      ${m.kind === 'list' ? m.sel.slice(0, 3).map(([nm, d, o]) => `<div class="mr"><span class="nm">${nm}<small>${d}</small></span><button class="ob${st.p === nm ? ' on' : ''}" data-p1="${nm}">${o}</button></div>`).join('') : ''}
+      ${m.kind === 'pairs' ? m.pairs.slice(0, 1).map(([a, ah, ao, b, bh, bo]) => `<div class="two"><span class="lbl">${a} v ${b}</span><button class="ob${st.p === a ? ' on' : ''}" data-p1="${a}"><small>${a} ${ah}</small>${ao}</button><button class="ob${st.p === b ? ' on' : ''}" data-p1="${b}"><small>${b} ${bh}</small>${bo}</button></div>`).join('') : ''}
+      ${m.kind === 'yn' ? m.rows.slice(0, 1).map(([q, y, n2]) => `<div class="two"><span class="lbl">${q}</span><button class="ob${st.p === 'y' ? ' on' : ''}" data-p1="y"><small>Yes</small>${y}</button><button class="ob${st.p === 'n' ? ' on' : ''}" data-p1="n"><small>No</small>${n2}</button></div>`).join('') : ''}</div>`).join('');
+  else if (st.t === 'Markets') body = [{ q: 'Will anyone hit the water on 17 today?', p: 64, d: 6, pts: [40, 45, 52, 50, 58, 61, 60, 64] }, { q: 'Will the closing dinner run past midnight?', p: 70, d: 5, pts: [50, 55, 60, 62, 66, 65, 68, 70] }, { q: 'Will Robby B buy a round tonight?', p: 83, d: 9, pts: [50, 60, 65, 70, 72, 78, 80, 83] }]
+    .map((m, i) => `<div class="xc"><div class="t"><b>${m.q}</b><span class="ch"><strong>${m.p}%</strong><small>chance</small></span></div>${curve(m.pts, true, 32)}
+      <div class="ynb"><button class="y${st.m[i] === 'y' ? ' on' : ''}" data-m="${i}|y">Yes ${m.p}¢</button><button class="n${st.m[i] === 'n' ? ' on' : ''}" data-m="${i}|n">No ${100 - m.p}¢</button></div></div>`).join('');
+  else if (st.t === 'Challenges') body = `<div class="pad"><div class="chal"><span class="eyebrow" style="color:var(--sage);text-align:center">New challenge</span>
       <div class="vs"><span><b>${st.a}</b><small>to win</small></span><span class="x">VS</span><span><b>${st.b}</b><small>net, ${st.span}</small></span></div>
       <p class="terms" style="margin:0">Loser’s backer buys <b>${st.stake}</b></p>
       <div class="btnrow"><button class="btn" data-send="1">Send to Gabriel P</button><button class="btn ghost" data-swap="1">Swap sides</button></div></div>
-    <div class="pick"><span class="eyebrow">Who</span><div class="seg">${PEOPLE.map(p => `<button data-p="${p}" class="${p === st.a || p === st.b ? 'on' : ''}">${p}</button>`).join('')}</div></div>
-    <div class="pick"><span class="eyebrow">Over</span><div class="seg">${['the front nine', 'the back nine', 'the whole round', 'the next hole'].map(p => `<button data-sp="${p}" class="${p === st.span ? 'on' : ''}">${p}</button>`).join('')}</div></div>
-    <div class="pick"><span class="eyebrow">Forfeit</span><div class="seg">${['a beer', 'a round of beers', 'a shot', 'a round of shots'].map(p => `<button data-f="${p}" class="${p === st.stake ? 'on' : ''}">${p}</button>`).join('')}</div></div>
-    <span class="eyebrow">The Tab</span>
-    <div class="tab">
-      <div class="tr"><span>Aimee K owes Letty D<small>Robby B beat Dan A, Thursday front nine</small></span><span class="owe">1 🥃</span></div>
-      <div class="tr"><span>You won from Becky<small>Ryder Cup, Thursday session</small></span><span class="won">2 🍺</span></div>
-      <div class="tr"><span>You vs Cary · Duncan W vs DP<small>Back nine today · thru 11</small></span><span class="open">Live</span></div>
-    </div>
-  </div></div>`,
-  { a: 'Matt D', b: 'Ray V', span: 'the back nine', stake: 'a round of shots' },
-  (e, st) => { const t = e.target.closest('[data-p],[data-sp],[data-f],[data-swap],[data-send]'); if (!t) return;
-    if (t.dataset.p) { const p = t.dataset.p; if (p !== st.a && p !== st.b) { st.b = st.a; st.a = p; } }
-    else if (t.dataset.sp) st.span = t.dataset.sp; else if (t.dataset.f) st.stake = t.dataset.f;
-    else if (t.dataset.swap) [st.a, st.b] = [st.b, st.a];
-    else if (t.dataset.send) { st.flash('Sent. Gabriel P can accept or decline.'); return false; }
-    return true; });
+      <div class="pick"><span class="eyebrow">Who</span><div class="seg">${PEOPLE.map(p => `<button data-pp="${p}" class="${p === st.a || p === st.b ? 'on' : ''}">${p}</button>`).join('')}</div></div>
+      <div class="pick"><span class="eyebrow">Over</span><div class="seg">${['the front nine', 'the back nine', 'the whole round'].map(p => `<button data-sp="${p}" class="${p === st.span ? 'on' : ''}">${p}</button>`).join('')}</div></div>
+      <div class="pick"><span class="eyebrow">Forfeit</span><div class="seg">${['a beer', 'a shot', 'a round of shots'].map(p => `<button data-f="${p}" class="${p === st.stake ? 'on' : ''}">${p}</button>`).join('')}</div></div></div>`;
+  else body = `<div class="pad"><span class="eyebrow">Open</span>
+      <div class="mb" style="margin:0"><div class="mbh"><span><b>Single</b> · −250</span><span>2 🍺 to win 0.8 🍺</span></div><div class="lg"><span class="dot live">•</span><span>Robby B &amp; Dan A · Round 2 winner<br><small class="note">Live · thru 11</small></span><b>-250</b></div><div class="ft"><span class="note">Book</span><button class="co">Cash out 2.4 🍺</button></div></div>
+      <div class="mb" style="margin:0"><div class="mbh"><span><b>4 Yes</b> · avg 44¢</span><span class="w">now 51¢</span></div><div class="lg"><span class="dot live">•</span><span>UK wins the Ryder Cup<br><small class="note">Market · pays 4 🍺 if Yes</small></span><b>+0.3</b></div><div class="ft"><span class="note">Market</span><button class="co">Sell 2.0 🍺</button></div></div>
+      <span class="eyebrow">The Tab</span>
+      <div class="tab"><div class="tr"><span>Aimee K owes Letty D<small>Challenge · Robby B beat Dan A, Thursday</small></span><span class="owe">1 🥃</span></div>
+        <div class="tr"><span>You won from Becky<small>Challenge · Ryder Cup, Thursday</small></span><span class="won">2 🍺</span></div></div></div>`;
+  return `<div class="scr bk"><div class="bkh"><b>Union <span>Book</span></b><span class="bkbal">🍺 ${r1(st.bal)}</span></div>
+    <div class="hy">${tabs.map(t => `<button class="${st.t === t ? 'on' : ''}" data-t="${t}">${t}</button>`).join('')}</div>${body}<div style="height:20px"></div></div>`;
+}, { t: 'Board', p: null, m: {}, bal: 10, a: 'Matt D', b: 'Ray V', span: 'the back nine', stake: 'a round of shots' },
+(e, st) => { const x = e.target.closest('[data-t],[data-p1],[data-m],[data-pp],[data-sp],[data-f],[data-swap],[data-send]'); if (!x) return; const d = x.dataset;
+  if (d.t) st.t = d.t; else if (d.p1) st.p = st.p === d.p1 ? null : d.p1;
+  else if (d.m) { const [i, s] = d.m.split('|'); st.m[i] = st.m[i] === s ? null : s; }
+  else if (d.pp) { if (d.pp !== st.a && d.pp !== st.b) { st.b = st.a; st.a = d.pp; } }
+  else if (d.sp) st.span = d.sp; else if (d.f) st.stake = d.f;
+  else if (d.swap) [st.a, st.b] = [st.b, st.a];
+  else if (d.send) { st.flash('Sent. Gabriel P can accept or decline.'); return false; }
+  return true; });
 </script>
+
 </body>
 </html>
