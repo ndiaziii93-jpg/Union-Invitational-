@@ -1633,6 +1633,27 @@ function openChatFrom(room) {
   UI.modal = { kind: 'chat' };
   render();
 }
+/* ROOM FOR THE KEYBOARD. A phone's keyboard slides up over the page rather
+   than shortening it, so a chat drawn to the bottom of the glass had its
+   newest lines under the keys. The part of the screen still showing is
+   read off the phone as the keyboard comes and goes, and the chat is fitted
+   into it: the box at the top, the newest lines straight under it, all of
+   it above the keys. */
+(() => {
+  const vv = typeof window !== 'undefined' && window.visualViewport;
+  if (!vv) return;
+  const fit = () => {
+    const root = document.documentElement;
+    const up = window.innerHeight - vv.height > 120;   // a keyboard, not a toolbar
+    root.style.setProperty('--vvh', vv.height + 'px');
+    root.style.setProperty('--vvt', vv.offsetTop + 'px');
+    root.classList.toggle('kbd', up);
+  };
+  vv.addEventListener('resize', fit);
+  vv.addEventListener('scroll', fit);
+  fit();
+})();
+
 /* The red count on the book's own icon, where the phone allows one. */
 let badgeWas = -1;
 function syncIconBadge(n) {
@@ -1686,7 +1707,7 @@ function chatFab() {
 /** The chat, risen from the bottom over whatever screen it was opened on. */
 function chatSheetHtml() {
   markChatSeen();
-  return `<div class="scrim tcscrim" data-act="modalScrim"><div class="modal psheet chatsheet" role="dialog" aria-modal="true" aria-label="Chat">
+  return `<div class="scrim tcscrim chatscrim" data-act="modalScrim"><div class="modal psheet chatsheet" role="dialog" aria-modal="true" aria-label="Chat">
     <span class="ps-grab dark" aria-hidden="true"><i></i></span>${modalBanner('Chat', 'The gallery and the golfers')}
     <div class="ps-body">${boardChat(true)}</div>
   </div></div>`;
@@ -6823,15 +6844,12 @@ function onClick(e) {
     case 'photoAlbum': UI.photoAlbum = a; render(); return;
     /* ---- the chat ---- */
     case 'chatRoom': UI.chatRoom = a; UI.chatRe = null; render(); return;
-    case 'chatOpen': {
+    case 'chatOpen':
+      /* The chat opens to be read. The keyboard waits for a tap in the box:
+         up straight away, it covered the very messages being opened to. */
       UI.modal = { kind: 'chat' }; peekUntil = 0;
       render();
-      /* the keyboard comes up with the chat, in the same tap, so it is a
-         box to type in rather than a page to find the box on */
-      const f = document.getElementById('chatText');
-      if (f) f.focus({ preventScroll: true });
       return;
-    }
     case 'chatReact': {
       if (!store) return;
       const doc = (T.chat || {})[a];
@@ -6842,7 +6860,6 @@ function onClick(e) {
       UI.chatRe = a || null;
       if (a && !(UI.modal && UI.modal.kind === 'chat')) UI.liftTo = '.ch-post';
       render();
-      if (a) setTimeout(() => { const f = document.getElementById('chatText'); if (f) f.focus(); }, 80);
       return;
     case 'chatSend': chatSend(); return;
     case 'pushOn': if (!UI.pushBusy) pushOn(); return;
@@ -6852,7 +6869,6 @@ function onClick(e) {
     case 'whoPick': {
       const back = UI.modal && UI.modal.back;
       UI.who = a; saveWho(a); UI.modal = back ? { kind: back } : null; render();
-      if (back === 'chat') { const f = document.getElementById('chatText'); if (f) f.focus({ preventScroll: true }); }
       return;
     }
     /* ---- the exchange ---- */

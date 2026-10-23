@@ -4278,3 +4278,17 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
 .ch-perr{display:block;font-style:normal;color:var(--flag);font-weight:600;margin-top:3px}
 .ch-pushnote{margin:8px 0 0;font-size:13px;color:var(--turf)}
 .ch-pushnote button{background:none;border:0;font:inherit;color:var(--green);text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:4px 0}
+/* the chat with the keyboard up: fitted to what is left of the screen */
+html.kbd .scrim.chatscrim{top:var(--vvt,0px);bottom:auto;height:var(--vvh,100%)}
+html.kbd .modal.psheet.chatsheet{height:calc(var(--vvh,75dvh) - 10px);max-height:none;border-radius:18px 18px 0 0}
+html.kbd .chatsheet .mbanner{padding-top:9px;padding-bottom:9px}
+html.kbd .chatsheet .mbanner .mb-s,html.kbd .chatsheet .mb-c{display:none}
+html.kbd .chatsheet .ps-grab{display:none}
+/* while typing, the conversation gets the room: the chat to post in is
+   already chosen, and reactions wait for the keyboard to go */
+html.kbd .chatsheet .ch-rooms,html.kbd .chatsheet .ch-as,html.kbd .chatsheet .ch-push,
+html.kbd .chatsheet .ch-pushnote,html.kbd .chatsheet .ch-plate,html.kbd .chatsheet .ch-rx,html.kbd .chatsheet .ch-hb{display:none}
+html.kbd .chatsheet .ps-body{padding-top:8px}
+html.kbd .chatsheet .ch-post{margin-top:0}
+html.kbd .chatsheet .ch-feed{gap:7px;margin-top:8px}
+html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}

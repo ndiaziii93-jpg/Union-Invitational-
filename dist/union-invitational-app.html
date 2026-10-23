@@ -4282,6 +4282,20 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
 .ch-perr{display:block;font-style:normal;color:var(--flag);font-weight:600;margin-top:3px}
 .ch-pushnote{margin:8px 0 0;font-size:13px;color:var(--turf)}
 .ch-pushnote button{background:none;border:0;font:inherit;color:var(--green);text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:4px 0}
+/* the chat with the keyboard up: fitted to what is left of the screen */
+html.kbd .scrim.chatscrim{top:var(--vvt,0px);bottom:auto;height:var(--vvh,100%)}
+html.kbd .modal.psheet.chatsheet{height:calc(var(--vvh,75dvh) - 10px);max-height:none;border-radius:18px 18px 0 0}
+html.kbd .chatsheet .mbanner{padding-top:9px;padding-bottom:9px}
+html.kbd .chatsheet .mbanner .mb-s,html.kbd .chatsheet .mb-c{display:none}
+html.kbd .chatsheet .ps-grab{display:none}
+/* while typing, the conversation gets the room: the chat to post in is
+   already chosen, and reactions wait for the keyboard to go */
+html.kbd .chatsheet .ch-rooms,html.kbd .chatsheet .ch-as,html.kbd .chatsheet .ch-push,
+html.kbd .chatsheet .ch-pushnote,html.kbd .chatsheet .ch-plate,html.kbd .chatsheet .ch-rx,html.kbd .chatsheet .ch-hb{display:none}
+html.kbd .chatsheet .ps-body{padding-top:8px}
+html.kbd .chatsheet .ch-post{margin-top:0}
+html.kbd .chatsheet .ch-feed{gap:7px;margin-top:8px}
+html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 
 </style>
 <div id="app"></div>
@@ -4409,7 +4423,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261023-1056';
+const BUILD = '20261023-1130';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -10972,6 +10986,27 @@ function openChatFrom(room) {
   UI.modal = { kind: 'chat' };
   render();
 }
+/* ROOM FOR THE KEYBOARD. A phone's keyboard slides up over the page rather
+   than shortening it, so a chat drawn to the bottom of the glass had its
+   newest lines under the keys. The part of the screen still showing is
+   read off the phone as the keyboard comes and goes, and the chat is fitted
+   into it: the box at the top, the newest lines straight under it, all of
+   it above the keys. */
+(() => {
+  const vv = typeof window !== 'undefined' && window.visualViewport;
+  if (!vv) return;
+  const fit = () => {
+    const root = document.documentElement;
+    const up = window.innerHeight - vv.height > 120;   // a keyboard, not a toolbar
+    root.style.setProperty('--vvh', vv.height + 'px');
+    root.style.setProperty('--vvt', vv.offsetTop + 'px');
+    root.classList.toggle('kbd', up);
+  };
+  vv.addEventListener('resize', fit);
+  vv.addEventListener('scroll', fit);
+  fit();
+})();
+
 /* The red count on the book's own icon, where the phone allows one. */
 let badgeWas = -1;
 function syncIconBadge(n) {
@@ -11025,7 +11060,7 @@ function chatFab() {
 /** The chat, risen from the bottom over whatever screen it was opened on. */
 function chatSheetHtml() {
   markChatSeen();
-  return `<div class="scrim tcscrim" data-act="modalScrim"><div class="modal psheet chatsheet" role="dialog" aria-modal="true" aria-label="Chat">
+  return `<div class="scrim tcscrim chatscrim" data-act="modalScrim"><div class="modal psheet chatsheet" role="dialog" aria-modal="true" aria-label="Chat">
     <span class="ps-grab dark" aria-hidden="true"><i></i></span>${modalBanner('Chat', 'The gallery and the golfers')}
     <div class="ps-body">${boardChat(true)}</div>
   </div></div>`;
@@ -16162,15 +16197,12 @@ function onClick(e) {
     case 'photoAlbum': UI.photoAlbum = a; render(); return;
     /* ---- the chat ---- */
     case 'chatRoom': UI.chatRoom = a; UI.chatRe = null; render(); return;
-    case 'chatOpen': {
+    case 'chatOpen':
+      /* The chat opens to be read. The keyboard waits for a tap in the box:
+         up straight away, it covered the very messages being opened to. */
       UI.modal = { kind: 'chat' }; peekUntil = 0;
       render();
-      /* the keyboard comes up with the chat, in the same tap, so it is a
-         box to type in rather than a page to find the box on */
-      const f = document.getElementById('chatText');
-      if (f) f.focus({ preventScroll: true });
       return;
-    }
     case 'chatReact': {
       if (!store) return;
       const doc = (T.chat || {})[a];
@@ -16181,7 +16213,6 @@ function onClick(e) {
       UI.chatRe = a || null;
       if (a && !(UI.modal && UI.modal.kind === 'chat')) UI.liftTo = '.ch-post';
       render();
-      if (a) setTimeout(() => { const f = document.getElementById('chatText'); if (f) f.focus(); }, 80);
       return;
     case 'chatSend': chatSend(); return;
     case 'pushOn': if (!UI.pushBusy) pushOn(); return;
@@ -16191,7 +16222,6 @@ function onClick(e) {
     case 'whoPick': {
       const back = UI.modal && UI.modal.back;
       UI.who = a; saveWho(a); UI.modal = back ? { kind: back } : null; render();
-      if (back === 'chat') { const f = document.getElementById('chatText'); if (f) f.focus({ preventScroll: true }); }
       return;
     }
     /* ---- the exchange ---- */
