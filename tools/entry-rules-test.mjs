@@ -352,8 +352,8 @@ await p.locator('.masthead [data-act="manageOpen"]').click(); await p.waitForTim
 ok('and the rest are behind Manage', await p.evaluate(
   () => [...document.querySelectorAll('.mglist .mg-row')].map(x => x.dataset.a)),
   ['setup', 'roster', 'tees', 'courses', 'rules']);
-ok('with the guest pass above them, for anyone not on the trip', await p.evaluate(
-  () => { const g = document.querySelector('.mg-row.mg-who'); return g ? [g.dataset.act, /Guest pass/.test(g.innerText)] : null; }), ['whoOpen', true]);
+ok('with the bleacher pass above them, for anyone not on the trip', await p.evaluate(
+  () => { const g = document.querySelector('.mg-row.mg-who'); return g ? [g.dataset.act, /Bleacher pass/.test(g.innerText)] : null; }), ['whoOpen', true]);
 ok('Rules comes after Course Setup', await p.evaluate(() => {
   const t = [...document.querySelectorAll('.mglist .mg-row')].map(x => x.dataset.a);
   return t.indexOf('rules') > t.indexOf('courses');

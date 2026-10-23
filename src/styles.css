@@ -4348,3 +4348,10 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 .xm-ppl button.on::before{content:"✓ ";color:#E2C277}
 /* room under a bet for the chat bubble, so it never sits on the Bet button */
 .xm-page{padding-bottom:96px}
+.who-ref{margin:14px 0 0;font-size:14px;color:var(--turf);text-align:center}
+.who-ref button{background:none;border:0;font:inherit;font-weight:700;color:var(--green);text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:6px 2px}
+/* who's who: a tag for each kind of person */
+.gtag.t-player{background:var(--ink);color:#E2C277}
+.gtag.t-ref{background:#F2DDD6;color:var(--flag)}
+.gtag.t-gallery{background:#DDEBDD;color:#2F7A4A}
+.gtag.t-bleach{background:#E4E1F0;color:#4B3F7A}

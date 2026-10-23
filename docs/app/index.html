@@ -4419,6 +4419,13 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 .xm-ppl button.on::before{content:"✓ ";color:#E2C277}
 /* room under a bet for the chat bubble, so it never sits on the Bet button */
 .xm-page{padding-bottom:96px}
+.who-ref{margin:14px 0 0;font-size:14px;color:var(--turf);text-align:center}
+.who-ref button{background:none;border:0;font:inherit;font-weight:700;color:var(--green);text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:6px 2px}
+/* who's who: a tag for each kind of person */
+.gtag.t-player{background:var(--ink);color:#E2C277}
+.gtag.t-ref{background:#F2DDD6;color:var(--flag)}
+.gtag.t-gallery{background:#DDEBDD;color:#2F7A4A}
+.gtag.t-bleach{background:#E4E1F0;color:#4B3F7A}
 
 </style>
 <div id="app"></div>
@@ -4546,7 +4553,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261023-1238';
+const BUILD = '20261023-1307';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -11059,7 +11066,20 @@ function whoAmI() {
 }
 const myGuestId = () => 'x' + myDev();
 const nameOf = pid => ((E.person(T, pid) || {}).display) || (guestOf(pid) || {}).name || 'Someone';
-const guestTag = pid => isGuest(pid) ? '<span class="gtag">Guest</span>' : '';
+/* THREE KINDS OF PEOPLE IN THE BOOK, and a word for each in golf's own
+   language: the players; the gallery, here at the resort and walking the
+   course; and the bleachers, everyone following from home on a bleacher
+   pass. The refs wear their own. One small tag after a name, wherever a
+   name is shown, says which. */
+const KINDS = {
+  golfer: { cls: 't-player', label: '⛳ Player' },
+  official: { cls: 't-ref', label: 'Ref' },
+  spectator: { cls: 't-gallery', label: '🍹 Gallery' },
+  bleachers: { cls: 't-bleach', label: '🏟️ Bleachers' },
+};
+const kindOf = pid => { const p = E.person(T, pid); return p ? KINDS[p.role] || null : isGuest(pid) ? KINDS.bleachers : null; };
+const whoTag = pid => { const k = kindOf(pid); return k ? `<span class="gtag ${k.cls}">${k.label}</span>` : ''; };
+const guestTag = whoTag;
 const initialsOf = s => String(s || '?').split(/\s+/).filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase();
 const localOf = ms => new Date(ms + D.TZ_OFFSET_MIN * 60000);
 function clockOf(ms) {
@@ -11141,7 +11161,7 @@ function boardChat(inSheet) {
         <input id="chatText" type="text" maxlength="280" autocomplete="off" enterkeyhint="send"
           placeholder="${reMoment ? 'Heckle it…' : isRound ? 'Say something to the group…' : 'Anything from the trip…'}" value="${esc(UI.chatDraft || '')}" aria-label="Message">
         <button class="btn sm" data-act="chatSend">Post</button></div>
-      <button class="ch-as" data-act="whoOpen">Posting as ${esc(nameOf(me))}${isGuest(me) ? ', a guest' : ''} · change</button>`
+      <button class="ch-as" data-act="whoOpen">Posting as ${esc(nameOf(me))}${isGuest(me) ? ', in the bleachers' : ''} · change</button>`
     : `<button class="btn" data-act="whoOpen" style="width:100%">Choose your name to join in</button>`}
   </div>
   ${socialRefused()}
@@ -11313,20 +11333,22 @@ function whoModalHtml() {
       `<button class="${p.id === cur ? 'on' : ''}" data-act="whoPick" data-a="${esc(p.id)}">${esc(p.display)}</button>`).join('')}</div></div>`; };
   const mine = guestOf(myGuestId());
   const draft = UI.guestDraft != null ? UI.guestDraft : (mine && !mine.removed ? mine.name : '');
+  const forced = !!(UI.modal && UI.modal.forced);
   return `<div class="scrim" data-act="modalScrim"><div class="modal whomodal" role="dialog" aria-modal="true" aria-label="Who are you?">
-    ${modalBanner('Who are you?', 'Chat and bets')}
-    <p>Your name goes on what you post and what you bet. On the trip? Tap your name. You’ll make a PIN the first time, so nobody else can be you.</p>
-    ${block('Golfers', 'golfer')}${block('Refs', 'official')}${block('The gallery', 'spectator')}
+    ${modalBanner('Who are you?', forced ? 'Once, before anything else' : 'Chat and bets')}
+    <p>${forced ? 'Everyone says who they are, once. It goes on what you post in the chat and what you bet. ' : 'Your name goes on what you post and what you bet. '}On the trip? Tap your name. You’ll make a PIN the first time, so nobody else can be you.</p>
+    ${block('⛳ Players', 'golfer')}${block('Refs', 'official')}${block('🍹 The gallery · here at the resort', 'spectator')}
     <div class="who-guest">
-      <span class="who-l">Not on the trip? Get a guest pass</span>
-      <p class="who-gn">Watching from home: chat and bet under your own name. Everyone sees you’re a guest.</p>
-      ${mine && mine.removed ? `<p class="xm-err">The commissioner has taken this phone’s guest pass away.</p>` : `
+      <span class="who-l">🏟️ Not on the trip? Take a seat in the bleachers</span>
+      <p class="who-gn">Following from home: chat and bet under your own name with a bleacher pass. Everyone sees you’re in the bleachers.</p>
+      ${mine && mine.removed ? `<p class="xm-err">The commissioner has taken this phone’s bleacher pass away.</p>` : `
       <div class="who-gr"><input id="guestName" type="text" maxlength="24" autocomplete="off" autocapitalize="words" enterkeyhint="go"
-          placeholder="Your name" value="${esc(draft)}" aria-label="Your name, as a guest">
-        <button class="btn sm" data-act="guestJoin">${mine ? 'Use this name' : 'Join as a guest'}</button></div>`}
+          placeholder="Your name" value="${esc(draft)}" aria-label="Your name, for the bleachers">
+        <button class="btn sm" data-act="guestJoin">${mine ? 'Use this name' : 'Get a bleacher pass'}</button></div>`}
       ${UI.whoErr ? `<p class="xm-err">${esc(UI.whoErr)}</p>` : ''}
     </div>
-    <div class="acts"><button class="btn ghost" data-act="modalCancel">Cancel</button></div>
+    ${forced ? `<p class="who-ref">A ref, or the commissioner? <button data-act="signIn">Enter your PIN instead</button></p>`
+      : `<div class="acts"><button class="btn ghost" data-act="modalCancel">Cancel</button></div>`}
   </div></div>`;
 }
 /** A name from the trip, unlocked with its PIN — or its PIN made, the first time. */
@@ -11383,7 +11405,7 @@ function guestJoin() {
   }
   const gid = myGuestId();
   if (allGuests().some(g => g.pid !== gid && !g.removed && String(g.name || '').toLowerCase() === low)) {
-    UI.whoErr = 'Another guest has that name. Add an initial or a nickname.'; redrawFrom('guestName'); return;
+    UI.whoErr = 'Someone in the bleachers has that name. Add an initial or a nickname.'; redrawFrom('guestName'); return;
   }
   const had = guestOf(gid);
   store.putSocial('chat', 'guest_' + gid, { k: 'g', pid: gid, name, at: (had && had.at) || Date.now(), dev: myDev() });
@@ -11438,7 +11460,7 @@ const xFind = id => xAll().find(m => m.id === id) || null;
 const canSettle = m => !!m && (canAdmin() || (m.custom && !isGuest(m.pid) && (m.dev === myDev() || (whoAmI() && m.pid === whoAmI()))));
 const settlerLine = m => m.settler === 'book' ? 'Settles itself from the scores. The commissioner can void it if something goes wrong.'
   : m.settler === 'commish' ? 'Settled by the commissioner.'
-  : m.custom && isGuest(m.pid) ? `Made by ${esc(m.byName || 'a guest')}, a guest, so the commissioner settles it. Everyone sees when.`
+  : m.custom && isGuest(m.pid) ? `Made by ${esc(m.byName || 'someone')} from the bleachers, so the commissioner settles it. Everyone sees when.`
   : `Settled by ${esc(m.byName || 'whoever made it')} or the commissioner. Everyone sees who settled it and when.`;
 const mName = m => m.group ? m.groupQ.replace(/\?$/, '') + ': ' + m.label : m.q;
 function volumeOf(id, tr) { return tr.filter(t => t.m === id && t.cost > 0).reduce((a, t) => a + t.cost, 0); }
@@ -11680,7 +11702,7 @@ function xNewHtml() {
     ${who ? '' : `<div class="xm-f"><span>How likely, to start</span><div class="xm-q">${[10, 25, 50, 75, 90].map(v => `<button class="${n.p0 === v ? 'on' : ''}" data-act="xN" data-a="p0" data-b="${v}">${v}%</button>`).join('')}</div>
       <small class="xm-note">Your best guess. It opens with Yes at ${n.p0}%; the group’s bets move it from there.</small></div>`}
     ${UI.xErr ? `<p class="xm-err">${esc(UI.xErr)}</p>` : ''}
-    ${whoAmI() ? `<button class="btn xm-go" data-act="xCreate">Open the bet</button><p class="xm-note">Made by ${esc(nameOf(whoAmI()))}${isGuest(whoAmI()) ? ', a guest, so the commissioner settles it' : ''}.</p>`
+    ${whoAmI() ? `<button class="btn xm-go" data-act="xCreate">Open the bet</button><p class="xm-note">Made by ${esc(nameOf(whoAmI()))}${isGuest(whoAmI()) ? ', from the bleachers, so the commissioner settles it' : ''}.</p>`
       : `<button class="btn xm-go" data-act="whoOpen">Choose your name first</button>`}
   </div>`;
 }
@@ -13645,11 +13667,11 @@ function rosterPins() {
   <div class="pinlist">${ppl.map(p => { const pin = pinOf(p.id);
     return `<div class="pinrow"><span class="pn">${esc(p.display)}</span><b class="pv num">${pin ? esc(pin) : '<i>not made yet</i>'}</b>
       ${pin ? `<button class="rm" data-act="pinReset" data-a="${esc(p.id)}">Clear</button>` : '<span></span>'}</div>`; }).join('')}</div>
-  <h4 class="pinh">Guests <span>${gs.filter(g => !g.removed).length}</span></h4>
+  <h4 class="pinh">🏟️ The bleachers <span>${gs.filter(g => !g.removed).length}</span></h4>
   ${gs.length ? `<div class="pinlist">${gs.map(g => `<div class="pinrow${g.removed ? ' gone' : ''}"><span class="pn">${esc(g.name)}</span>
       <span class="pv">${g.removed ? 'pass taken' : 'since ' + esc(clockOf(g.at))}</span>
       <button class="rm" data-act="${g.removed ? 'guestRestore' : 'guestRemove'}" data-a="${esc(g.pid)}">${g.removed ? 'Give it back' : 'Take pass'}</button></div>`).join('')}</div>`
-    : '<p class="pnote">No guests yet. Anyone with the link can get a pass from the top-right button or the chat.</p>'}`;
+    : '<p class="pnote">Nobody in the bleachers yet. Anyone with the link can get a bleacher pass from the top-right button or the chat.</p>'}`;
 }
 
 function scrRules() {
@@ -14684,8 +14706,8 @@ function manageModalHtml() {
     role="dialog" aria-modal="true" aria-label="Manage">
     ${modalBanner('Manage', 'Set once, then read all week')}
     <button class="mg-row mg-who" data-act="whoOpen">
-      <span class="mg-w"><span class="mg-t">${whoAmI() ? 'Chat and bets as ' + esc(nameOf(whoAmI())) : 'Guest pass'}</span>
-        <span class="mg-n">${whoAmI() ? (isGuest(whoAmI()) ? 'A guest · change your name' : 'Change who you are') : 'Not on the trip? Chat and bet under your own name'}</span></span>
+      <span class="mg-w"><span class="mg-t">${whoAmI() ? 'Chat and bets as ' + esc(nameOf(whoAmI())) : '🏟️ Bleacher pass'}</span>
+        <span class="mg-n">${whoAmI() ? (isGuest(whoAmI()) ? 'In the bleachers · change your name' : 'Change who you are') : 'Not on the trip? Chat and bet from the bleachers'}</span></span>
       <span class="mg-go" aria-hidden="true">&rsaquo;</span></button>
     <div class="mglist">
       ${manageRows().map(([id, label, note]) => {
@@ -15074,8 +15096,21 @@ document.addEventListener('change', e => {
   setTimeout(flushRender, 0);
 }, true);
 
+/* EVERYONE SAYS WHO THEY ARE, ONCE. On the installed book, a phone that has
+   not chosen a name — and is not signed in as a ref or the commissioner — is
+   asked as it opens, and asked again until it answers: a name from the trip
+   with its PIN, or a guest pass. A ref not yet signed in has a way straight
+   to the PIN instead. A guest whose pass was taken is left to look. */
+function mustChoose() {
+  if (!store || store.backend !== 'supabase' || !loaded() || UI.modal) return false;
+  if (D.PINS_ENABLED && UI.role !== 'viewer') return false;          // a ref or the commissioner
+  if (whoAmI()) return false;
+  const g = guestOf(myGuestId());
+  return !(g && g.removed);
+}
 function render() {
   X.invalidate();                       // every draw reckons the bets afresh, once
+  if (mustChoose()) UI.modal = { kind: 'who', forced: true };
   try { paint(); centrePick(); }
   catch (err) {
     // The screen is the least of it: a throw here used to abort whatever write
@@ -16634,7 +16669,7 @@ function onClick(e) {
     }
     case 'guestRemove': {
       if (!canAdmin()) return;
-      UI.modal = { kind: 'confirm', eyebrow: 'Guests', title: 'Take ' + nameOf(a) + '’s guest pass?',
+      UI.modal = { kind: 'confirm', eyebrow: 'The bleachers', title: 'Take ' + nameOf(a) + '’s bleacher pass?',
         note: 'Their messages leave the chat and they leave the bets table. They can still look at everything. You can give it back here.',
         ok: 'Take it', onOk: () => { store.patchSocial('chat', 'guest_' + a, { removed: true }); render(); } };
       render(); return;
@@ -17546,7 +17581,7 @@ function onKey(e) {
   }
   if (e.key === 'Escape' && UI.recapOpen) { if (recapCtl) recapCtl.abort(); UI.recapOpen = false; render(); return; }
   if (e.key === 'Escape' && UI.askOpen) { UI.askOpen = false; render(); return; }
-  if (e.key === 'Escape' && UI.modal) { UI.modal = null; UI.modalErr = ''; render(); }
+  if (e.key === 'Escape' && UI.modal && !UI.modal.forced) { UI.modal = null; UI.modalErr = ''; render(); }
 }
 
 /* ---------------- putting the questions ---------------- */
@@ -17943,7 +17978,7 @@ if ('serviceWorker' in navigator) {
    So every return reads the build stamp off the server and, when it has
    moved on, the page reloads itself — unless a hole is half entered, in
    which case it waits for the save. */
-var BOOK_BUILD = '20261023-1238';
+var BOOK_BUILD = '20261023-1307';
 function checkBuild() {
   if (document.hidden || navigator.onLine === false) return;
   fetch('sw.js', { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (t) {

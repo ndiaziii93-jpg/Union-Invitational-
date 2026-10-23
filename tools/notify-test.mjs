@@ -83,12 +83,31 @@ const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile
 await ctx.grantPermissions(['notifications'], { origin: ORIGIN });
 await ctx.route(/zolsghkbgceularukood\.supabase\.co/, supabase);
 await ctx.addInitScript(FAKE_PUSH);
+const errs = [];
+
+console.log('\na phone that has not said who it is');
+{
+  const fresh = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  await fresh.route(/zolsghkbgceularukood\.supabase\.co/, supabase);
+  const f = await fresh.newPage(); f.on('pageerror', e => errs.push(String(e)));
+  await f.goto(ORIGIN + '/'); await f.waitForTimeout(5000);
+  /* an empty test book opens on Setup's outstanding list first; the ask follows it */
+  for (let i = 0; i < 3; i++) { const d = f.locator('.scrim [data-act="modalCancel"]'); if (await d.count()) { await d.first().click({ force: true }); await f.waitForTimeout(300); } else break; }
+  ok('is asked, as it opens', await f.locator('.whomodal').count(), 1);
+  ok('with no way to wave it off, and a way in for the refs', [await f.locator('.whomodal [data-act="modalCancel"]').count(), await f.locator('.whomodal [data-act="signIn"]').count()], [0, 1]);
+  await f.locator('.scrim').first().click({ position: { x: 5, y: 5 } }); await f.waitForTimeout(400);
+  ok('and asked again if it taps away', await f.locator('.whomodal').count(), 1);
+  await f.locator('#guestName').fill('Uncle Bob'); await f.locator('[data-act="guestJoin"]').click(); await f.waitForTimeout(600);
+  ok('a guest pass answers it, for good', [await f.locator('.whomodal').count(), await f.locator('.chatfab').count()], [0, 1]);
+  await fresh.close();
+}
+
+await ctx.addInitScript(() => { try { if (!localStorage.getItem('union-invitational:whoami')) localStorage.setItem('union-invitational:whoami', 's1'); } catch (e) {} });
 const p = await ctx.newPage();
-const errs = []; p.on('pageerror', e => errs.push(String(e)));
+p.on('pageerror', e => errs.push(String(e)));
 const shut = async () => { for (let i = 0; i < 6; i++) { const d = p.locator('.scrim [data-act="modalCancel"]'); if (await d.count()) { await d.first().click({ force: true }); await p.waitForTimeout(200); } else break; } };
 
 await p.goto(ORIGIN + '/'); await p.waitForTimeout(5000); await shut();
-await p.evaluate(() => localStorage.setItem('union-invitational:whoami', 's1'));
 
 console.log('\nturning them on');
 await p.locator('.chatfab').click(); await p.waitForTimeout(500);
