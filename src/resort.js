@@ -392,7 +392,7 @@ export const PRACTICAL = [
   { q: 'Wi-Fi',
     a: 'Free, and in every room.' },
   { q: 'Which season are we in?',
-    a: 'Our week sits on the join. The hotel runs two timetables and does not publish the changeover date, so whoever asks at reception first should set the switch at the top of this tab — it re-times everything below.' },
+    a: 'Summer. The resort has confirmed it is keeping its summer timetable for our week, so every place in this guide is shown on its summer hours. If that changes on the ground, a scorer can switch it from the Hotel hours line at the top of this tab.' },
   { q: 'Do the à la carte restaurants cost extra?',
     a: 'Yes, with one exception. The hotel has since confirmed the package: one à la carte dinner per seven-night stay is included, at Pascarella, reservation required and subject to availability. Everything else à la carte is charged, as the hotel’s website always said.' },
   { q: 'What does All Inclusive actually cover?',

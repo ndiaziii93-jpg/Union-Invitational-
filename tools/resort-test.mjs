@@ -240,15 +240,17 @@ ok('and back to the area it came from', await pg.locator('.areamodal').count(), 
 await pg.mouse.click(12, 12); await pg.waitForTimeout(200);
 ok('a tap off the card puts it away', await pg.locator('.areamodal').count(), 0);
 
-/* The season sets the one timetable shown. Unasked, the book reads winter. */
+/* The season sets the one timetable shown. The resort has confirmed summer
+   hours for our week, so unset, the book reads summer and says so. */
 await pg.click('[data-act="resortGuide"][data-a="search"]'); await pg.waitForTimeout(250);
 await pg.evaluate(() => document.activeElement && document.activeElement.blur());
 const closed = () => pg.evaluate(() => [...document.querySelectorAll('.tc-results .tc-row')].filter(r => /Closed/.test(r.innerText)).length);
-ok('unasked, the book reads winter: every room shut for it says so', await closed(), 21);
-await season(pg, 'summer');
-ok('summer brings them all back', await closed(), 0);
+ok('unset, the book reads the confirmed summer hours: nothing shut for the season', await closed(), 0);
+ok('and the hours line says summer, confirmed', (await pg.locator('.setline.hours').innerText()).replace(/\s+/g, ' ').toLowerCase().includes('summer confirmed by the resort'), true);
 await season(pg, 'winter');
-ok('and winter shuts them again', await closed(), 21);
+ok('switched to winter, every room shut for it says so', await closed(), 21);
+await season(pg, 'summer');
+ok('and summer brings them all back', await closed(), 0);
 await season(pg, '');
 
 /* Anything the group writes is kept, and is there on the next visit. */

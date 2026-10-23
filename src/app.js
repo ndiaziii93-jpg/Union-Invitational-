@@ -3552,9 +3552,10 @@ function hoursLine(v, season) {
     R.isAllDay(s) ? 'Around the clock' : esc(R.fmt(s.from)) + '–' + esc(R.fmt(s.to))}</span>`).join('');
 }
 
-/** The hours cell: one timetable. Until somebody has asked at reception the
- *  book reads winter, the season the trip falls in — two columns of hours on
- *  every place was the single thing that made the guide hardest to read. */
+/** The hours cell: one timetable. The resort has confirmed it is keeping its
+ *  summer hours for our week, so unless a scorer switches it, that is the one
+ *  read — two columns of hours on every place was the single thing that made
+ *  the guide hardest to read. */
 function hoursCell(v) {
   return `<div class="hrs">${hoursLine(v, tcSeason())}</div>`;
 }
@@ -3580,8 +3581,8 @@ function resortNote(key, title, prompt) {
 function hoursLineBar() {
   const season = resortSeason();
   return `<button class="setline hours" data-act="hoursSheet"
-    aria-label="Hotel hours: ${season === 'summer' ? 'summer' : 'winter'}${season ? '' : ', until somebody checks'}. Change">
-    Hotel hours <span class="dot">·</span> <b>${season === 'winter' ? 'Winter' : season === 'summer' ? 'Summer' : 'Winter'}</b>${season ? '' : ' <span class="unc">until somebody checks</span>'}
+    aria-label="Hotel hours: ${season === 'winter' ? 'winter' : 'summer'}. Change">
+    Hotel hours <span class="dot">·</span> <b>${season === 'winter' ? 'Winter' : 'Summer'}</b>${season === 'winter' ? '' : ' <span class="unc">confirmed by the resort</span>'}
     <span class="ch" aria-hidden="true">›</span></button>`;
 }
 
@@ -3764,7 +3765,7 @@ function photo(key, small) {
 const CREDIT = 'Photo: Titanic Hotels';
 
 /* ---- open or shut, in a word ---- */
-const tcSeason = () => resortSeason() || 'winter';
+const tcSeason = () => resortSeason() || 'summer';     // the resort confirmed summer hours for our week
 const tcState = v => R.stateAt(v, tcSeason(), now.minutes);
 const isFood = v => ['buffet', 'alacarte', 'snack'].includes(v.kind);
 const isDrink = v => ['bar', 'cafe'].includes(v.kind);
@@ -3947,7 +3948,7 @@ function venueModalHtml() {
   const fact = (k, b) => `<div class="ps-fact">${esc(k)}<b>${esc(b)}</b></div>`;
   const now1 = s.k === 'open' ? 'Open' : s.k === 'closing' ? 'Closing' : s.k === 'shut' ? (s.today ? 'Shut' : 'Done today') : 'Closed';
   const now2 = s.k === 'open' ? (s.allDay ? ['Hours', 'All night'] : ['Until', R.fmt(s.to)]) : s.k === 'closing' ? ['At', R.fmt(s.to)]
-    : s.k === 'shut' ? ['Opens', R.fmt(s.from) + (s.today ? '' : ' tmrw')] : ['Season', 'Winter'];
+    : s.k === 'shut' ? ['Opens', R.fmt(s.from) + (s.today ? '' : ' tmrw')] : ['Season', tcSeason() === 'winter' ? 'Winter' : 'Summer'];
   return `<div class="scrim tcscrim" data-act="modalScrim"><div class="modal venuemodal psheet"
     role="dialog" aria-modal="true" aria-label="${esc(v.name)}">
     ${cardHero(R.VENUE_PHOTOS[v.id], [v.cuisine, VKIND[v.kind]].filter(Boolean).join(' · '), v.name, { area: area && area.id, back: parent && parent.name })}
@@ -3955,7 +3956,7 @@ function venueModalHtml() {
       <div class="ps-facts">${fact('Right now', now1)}${fact(now2[0], now2[1])}${fact('Cost', v.cost === 'inc' ? 'Included' : v.id === 'pascarella' ? '1 dinner free' : 'Charged')}</div>
       ${v.blurb ? `<p>${esc(v.blurb)}</p>` : ''}
       ${v.note ? `<p class="vb warn">${esc(v.note)}</p>` : ''}
-      <h4 class="minihead">${season === 'winter' ? 'Winter' : 'Summer'} hours${resortSeason() ? '' : ' <small>· until somebody checks</small>'}</h4>
+      <h4 class="minihead">${season === 'winter' ? 'Winter' : 'Summer'} hours</h4>
       ${hoursCell(v)}
       ${v.cost === 'cover' && !v.note ? `<h4 class="minihead">Booking</h4>
         <p>Reservation needed, and the hotel’s site says a charge applies. Book at reception or guest relations.</p>` : ''}
@@ -5126,10 +5127,9 @@ function daySheetHtml() {
 }
 
 /* ---------------- which hours the hotel is keeping ----------------
- * Our week lands on the changeover between the hotel's two timetables, and
- * it does not publish the date it switches. The line on the guide says
- * which one we have found it to be on; this is where it is set, with the
- * reason it matters. */
+ * Our week lands on the changeover between the hotel's two timetables. The
+ * resort has confirmed it is keeping summer hours for it, and that is what
+ * the book reads; winter stays here in case that changes. */
 function hoursSheetHtml() {
   const season = resortSeason();
   const toll = R.seasonToll();
@@ -5140,15 +5140,15 @@ function hoursSheetHtml() {
     <span class="w">${esc(label)}<small>${esc(note)}</small></span></button>`;
   return `<div class="scrim" data-act="modalScrim"><div class="modal shmodal"
     role="dialog" aria-modal="true" aria-label="Which hours the hotel is keeping">
-    ${modalBanner('Hotel hours', 'Ask at reception on the first evening')}
+    ${modalBanner('Hotel hours', 'Summer, confirmed by the resort')}
     <div class="shlist">
       ${row('summer', 'Summer hours', 'Everything is running — all ' + toll.total + ' places to eat and drink.')}
       ${row('winter', 'Winter hours', toll.shut + ' of the ' + toll.total + ' are shut for the season; ' + toll.open + ' stay open.')}
-      ${row('', 'Not asked yet', 'The book reads winter, the season of the trip, until somebody finds out.')}
+      ${row('', 'Not set', 'The book reads summer, the hours the resort has confirmed for our week.')}
     </div>
-    <p class="sh-why">Our week — 26 October to 2 November — lands on the changeover. The hotel runs two
-      timetables and does not publish the date it switches. Everything in the guide was read off the
-      hotel’s own book in September; it is corrected by whoever gets there first.${
+    <p class="sh-why">The resort has confirmed it is keeping its summer hours for our week, 26 October to
+      2 November. Winter is here only in case that changes on the ground. Everything in the guide was
+      read off the hotel’s own book in September; it is corrected by whoever gets there first.${
       ed ? '' : ' A scorer sets this.'}</p>
     <div class="acts"><button class="btn" data-act="modalCancel">Done</button></div>
   </div></div>`;
