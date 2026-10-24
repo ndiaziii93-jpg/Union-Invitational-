@@ -112,9 +112,17 @@ ok('it opens on the bets', await p.locator('.xm-top .head').innerText(), 'Bets')
 
 console.log('\nall in beers');
 ok('everyone starts on twenty beers', (await p.locator('.xm-bal').innerText()).trim(), '🍺 20 · My bets');
+ok('tabs: the week, a tab a round, off the course, ours', await p.locator('.xm-tabs button').evaluateAll(b => b.map(x => x.dataset.a)), ['week', 'r1', 'r2', 'r3', 'off', 'ours']);
+ok('it opens on the round being played, live', [await p.locator('.xm-tabs button.on').getAttribute('data-a'), await p.locator('.xm-plate b').innerText(), await p.locator('.xm-plate .k').textContent()], ['r1', 'Round 1 · Thu 29 Oct', '● Live now']);
+await tap('[data-act="xTab"][data-a="week"]');
 const qs = await p.locator('.xm-c .xm-ct b').allInnerTexts();
-ok('the book opens with its own bets, a who-card for each anyone question', ['Who wins MVP?', 'Who wins the Team Competition?', 'Will the United Kingdom win the Ryder Cup?',
-  'Who makes a hole in one this week?', 'Who makes an eagle this week?', 'Round 2: who finds the water?', 'Round 2: who three-putts?', 'Who plays the most shots of the hole this week?'].every(q => qs.includes(q)), true);
+ok('the week holds the bets that run all week, a who-card for each anyone question', ['Who wins MVP?', 'Who wins the Team Competition?', 'Will the United Kingdom win the Ryder Cup?',
+  'Who makes a hole in one this week?', 'Who makes an eagle this week?', 'Who plays the most shots of the hole this week?'].every(q => qs.includes(q)) && !qs.some(q => /Round|pool/.test(q)), true);
+await tap('[data-act="xTab"][data-a="r2"]');
+ok('a round’s tab says which round, and its bets drop the “Round 2:”', [await p.locator('.xm-plate b').innerText(), (await p.locator('.xm-c .xm-ct b').allInnerTexts()).sort()],
+  ['Round 2 · Fri 30 Oct', ['Who birdies a par 3?', 'Who finds the water?', 'Who finishes under par, net?', 'Who three-putts?']]);
+await shot('round-tab');
+await tap('[data-act="xTab"][data-a="week"]');
 ok('no money anywhere: chances, not cents', (await p.locator('#app').innerText()).includes('¢'), false);
 const hio = p.locator('.xm-c:has-text("Who makes a hole in one")');
 ok('Anyone first at 6%, then each golfer at 1%', [await hio.locator('.xm-mo').first().innerText().then(t => t.replace(/\s+/g, ' ').trim()), await hio.locator('.xm-mo').nth(1).locator('em').innerText()], ['Anyone 6% Yes', '1%']);
@@ -186,11 +194,12 @@ ok('settling asks first', await p.locator('.scrim [data-act="confirmOk"]').count
 await tap('.scrim [data-act="confirmOk"]');
 ok('then it is settled, by name', (await p.locator('.xm-done').innerText()).replace(/\s+/g, ' ').trim().startsWith('Settled Yes by Jennifer D'), true);
 await tap('.xm-back');
-ok('a settled bet leaves the main list', (await p.locator('.xm-c .xm-ct b').allInnerTexts()).includes('Will Ray V wear the pink trousers on Sunday?'), false);
-await tap('[data-act="xCat"][data-a="done"]');
-ok('Settled shows it, beside what the book settled itself: Robby B’s birdie on the 4th and Ray V’s ball in the water',
-  (await p.locator('.xm-c .xm-ct b').allInnerTexts()).sort(), ['Round 1: who birdies a par 3?', 'Round 1: who finds the water?', 'Will Ray V wear the pink trousers on Sunday?']);
-ok('for Anyone and for the golfer who did it', (await p.locator('.xm-c:has-text("who finds the water") .xm-mo').allInnerTexts()).map(t => t.replace(/\s+/g, ' ').trim()).sort(), ['Anyone Settled Yes', 'Ray V Settled Yes']);
+ok('a settled bet stays on its tab, under Settled', [await p.locator('.xm-tabs button.on').getAttribute('data-a'), await p.locator('.xm-subh').innerText(),
+  await p.locator('.xm-subh ~ .xm-c .xm-ct b').allInnerTexts()], ['ours', 'SETTLED', ['Will Ray V wear the pink trousers on Sunday?']]);
+await tap('[data-act="xTab"][data-a="r1"]');
+ok('Round 1 shows what the book settled itself as it happened: Robby B’s birdie on the 4th and Ray V’s ball in the water',
+  await p.locator('.xm-c:has(.xm-res.yes) .xm-ct b').allInnerTexts().then(x => x.sort()), ['Who birdies a par 3?', 'Who finds the water?']);
+ok('for Anyone and for the golfer who did it, the rest still open', (await p.locator('.xm-c:has-text("Who finds the water") .xm-mo:has(.xm-res)').allInnerTexts()).map(t => t.replace(/\s+/g, ' ').trim()).sort(), ['Anyone Settled Yes', 'Ray V Settled Yes']);
 
 console.log('\nmy bets');
 await tap('.xm-bal');
@@ -212,12 +221,12 @@ ok('and the balance is still whole quarters', /^🍺 \d+[¼½¾]?$/.test(fin), t
 console.log('\nthe book settles its own');
 await p.evaluate(() => { const T = window.__T; T.scores['r1__g8'] = { raw: [4, 4, 1].concat(Array(15).fill(null)), by: { 0: 's1', 1: 's1', 2: 's1' }, at: { 0: Date.now(), 1: Date.now(), 2: Date.now() }, marks: {}, mF: false, mB: false, bb: false }; window.__forceRender(); });
 await tap('.xm-back');
-await tap('[data-act="xCat"][data-a="done"]');
-ok('a hole in one settles Yes at once, for Anyone and for Dan A', (await p.locator('.xm-c:has-text("hole in one") .xm-mo').allInnerTexts()).map(t => t.replace(/\s+/g, ' ').trim()).sort(), ['Anyone Settled Yes', 'Dan A Settled Yes']);
+await tap('[data-act="xTab"][data-a="week"]');
+ok('a hole in one settles Yes at once, for Anyone and for Dan A', (await p.locator('.xm-c:has-text("hole in one") .xm-mo:has(.xm-res)').allInnerTexts()).map(t => t.replace(/\s+/g, ' ').trim()).sort(), ['Anyone Settled Yes', 'Dan A Settled Yes']);
 
 console.log('\nbetting on people');
-await tap('[data-act="xCat"][data-a="all"]');
 await tap('[data-act="xAbout"][data-a="g7"]');
+ok('one person’s bets come from every tab, under their own headings', [await p.locator('.xm-tabs button.on').count(), await p.locator('.xm-subh').allInnerTexts()].map(x => Array.isArray(x) ? x.includes('THE WEEK') && x.includes('ROUND 2') : x), [0, true]);
 const aboutRobby = await p.locator('.xm-c .xm-ct b').allInnerTexts();
 ok('filtering by Robby B keeps only bets about him', [aboutRobby.includes('Who wins MVP?'), aboutRobby.includes('Will the United Kingdom win the Ryder Cup?')], [true, false]);
 ok('with his row lit on each card', await p.locator('.xm-c:has-text("Who wins MVP?") .xm-mo.hit span').first().innerText(), 'Robby B');
@@ -248,7 +257,7 @@ ok('and the chat says so', (await p.locator('.ch-ev .ch-evw b').allInnerTexts())
 console.log('\neveryone bets, and off the course everyone can be bet on');
 ok('Jennifer D, in the gallery, has been betting all along', await p.evaluate(() => [...new Set(Object.values(window.__T.market).filter(r => r.k === 't').map(t => t.pid))]), ['s1']);
 await p.evaluate(() => { localStorage.setItem('union-invitational:whoami', 'o1'); window.__UI.who = undefined; window.__forceRender(); });
-await tap('.navbtn[data-a="bets"]'); await tap('.xm-back'); await tap('[data-act="xCat"][data-a="all"]');
+await tap('.navbtn[data-a="bets"]'); await tap('.xm-back'); await tap('[data-act="xTab"][data-a="week"]');
 await p.locator('.xm-c:has-text("Who wins MVP?") .xm-mo').nth(1).locator('button').first().click(); await p.waitForTimeout(400);
 await tap('[data-act="xT"][data-a="set"][data-b="1"]'); await tap('[data-act="xSubmit"]');
 ok('and a ref can bet on who plays well', await p.evaluate(() => Object.values(window.__T.market).filter(r => r.k === 't' && r.pid === 'o1').map(t => [t.m.slice(0, 6), t.cost])), [['s_mvp_', 1]]);
@@ -261,7 +270,7 @@ ok('and tapping a bet there opens it', /Who wins MVP/.test(await p.locator('.xm-
 ok('with a way back always in reach', await p.locator('.xm-backfab').isVisible(), true);
 await tap('.xm-backfab'); await tap('.xm-st[data-a="o1"]');
 ok('tapping him again folds them away', await p.locator('.xm-pbs').count(), 0);
-await tap('[data-act="xCat"][data-a="trip"]');
+await tap('[data-act="xTab"][data-a="off"]');
 await tap('.xm-c:has-text("Who ends up in a pool") .xm-more');
 const pool = await p.locator('.xm-c:has-text("Who ends up in a pool") .xm-mo span').allInnerTexts();
 ok('the pool bet names golfers, the gallery and the refs', ['Anyone', 'Ray V', 'Jennifer D', 'Justin P'].map(n => pool.some(t => t.startsWith(n))), [true, true, true, true]);

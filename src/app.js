@@ -97,7 +97,7 @@ const UI = {
   chatRe: null,         // the book's moment being heckled, by key
   chatDraft: '',        // a message half typed, held out of the DOM
   xView: null,          // the exchange: null the list, a market id, 'pf' the portfolio, 'new' to make one
-  xCat: 'all',
+  xTab: null,           // which tab of Bets: the week, a round, off the course, ours
   xMore: null,          // a many-name market opened out in full
   xTicket: null,        // the order being put together: {m, side, act, type, k, lim}
   xNew: null,           // a bet being made: {q, rules, cat, p0}
@@ -1742,6 +1742,7 @@ function openBetFrom(qid, quiet) {
   const m = xAll().find(x => x.qid === qid || x.id === qid);
   UI.screen = 'bets'; UI.modal = null;
   UI.xView = m ? m.id : null;
+  if (m) UI.xTab = xTabOf(m);
   UI.xTicket = m ? { m: m.id, side: 'yes', act: 'buy', type: 'market', beers: 1, lim: null } : null;
   if (!quiet) render();
 }
@@ -1974,7 +1975,39 @@ function socialRefused() {
    filled if the chance comes to you. The book's own bets settle themselves
    from the scores; anyone can make their own, and they or the commissioner
    settle it. */
-const XCATS = [['all', 'All'], ['golf', 'Golf'], ['trip', 'The trip'], ['ours', 'Made by us'], ['done', 'Settled']];
+/* The Bets screen in tabs, the way DraftKings lays out a tournament: the
+   week's bets, one tab a round, off the course, and the group's own. It
+   opens on today's round, and a bet never shows twice on one page. */
+const xRounds = () => D.ROUNDS.filter(r => r.counts);
+const xTabOf = m => m.custom ? 'ours' : m.round ? m.round : m.cat === 'trip' ? 'off' : 'week';
+function xTabNow() {
+  if (UI.xTab) return UI.xTab;
+  const r = xRounds().find(x => E.phaseOf(T, x.id, now) === 'live') || xRounds().find(x => E.dayOf(x.dayIdx).iso === now.iso);
+  return r ? r.id : 'week';
+}
+function xTabsHtml(all, on) {
+  const tabs = [['week', 'The week', 'MVP · teams · cup']]
+    .concat(xRounds().map(r => { const ph = E.phaseOf(T, r.id, now), d = E.dayOf(r.dayIdx);
+      return [r.id, roomName(r.id), ph === 'live' ? '<span class="live">Live</span>' : ph === 'final' ? 'Settled' : ph === 'today' ? 'Today' : esc(d.dow.slice(0, 3) + ' ' + d.date)]; }))
+    .concat([['off', 'Off the course', 'Pool · bar'], ['ours', 'Ours', (n => n ? n + ' made' : 'Make one')(new Set(all.filter(m => m.custom).map(m => m.qid || m.id)).size)]]);
+  return `<nav class="xm-tabs nos" role="tablist" aria-label="Which bets">${tabs.map(([k, l, sub]) =>
+    `<button role="tab" aria-selected="${on === k}" class="${on === k ? 'on' : ''}" data-act="xTab" data-a="${k}"><b>${esc(l)}</b><small>${sub}</small></button>`).join('')}</nav>`;
+}
+/** What the tab is, said once at its head, so nobody wonders where they are. */
+function xPlate(tab, n) {
+  const r = xRounds().find(x => x.id === tab);
+  if (r) {
+    const ph = E.phaseOf(T, r.id, now), d = E.dayOf(r.dayIdx), c = (D.COURSES || {})[r.course];
+    const lead = ph === 'live' || ph === 'final' || ph === 'closed' ? E.pairRoundBoard(T, r.id)[0] : null;
+    const k = ph === 'live' ? '● Live now' : ph === 'final' ? 'Settled' : ph === 'today' ? 'Today' : ph === 'closed' ? 'Settling' : 'Bet early · opens ' + d.dow;
+    return `<div class="xm-plate"><span class="k${ph === 'live' ? ' lv' : ''}">${esc(k)}</span><b>${esc(roomName(r.id))} · ${esc(d.dow.slice(0, 3) + ' ' + d.date)}</b>
+      <span>${c ? esc(c.name) + ' · ' : ''}${lead && lead.thru ? esc(lead.name) + (ph === 'final' ? ' won it' : ' lead' + (lead.thru < 18 ? ', thru ' + lead.thru : '')) + ' · ' : ''}${n} bet${n === 1 ? '' : 's'}</span></div>`;
+  }
+  const P = { week: ['All week · settles after Round 3', 'The week', 'MVP, the teams, the cup, the big shots'],
+    off: ['Settled by the commissioner', 'Off the course', 'Golfers, the gallery and the refs'],
+    ours: ['Made by the group', 'Ours', 'Settled by whoever made it, or the commissioner'] }[tab] || ['', '', ''];
+  return `<div class="xm-plate"><span class="k">${P[0]}</span><b>${P[1]}</b><span>${P[2]} · ${n} bet${n === 1 ? '' : 's'}</span></div>`;
+}
 /** Beers to the quarter, the way they are poured: ¼, 1½, 12¾. */
 function beer(n) {
   const q = Math.round(Math.abs(n) * 4), w = Math.floor(q / 4), f = ['', '¼', '½', '¾'][q % 4];
@@ -2024,7 +2057,7 @@ function xCard(m, tr) {
 function xGroupCard(list, tr) {
   const g = list[0], who = UI.xAbout && UI.xAbout !== 'all' ? UI.xAbout : null;
   const rows = list.map(m => ({ m, p: X.chance(X.book(m, tr)) }))
-    .sort((a, b) => (b.m.any ? 1 : 0) - (a.m.any ? 1 : 0) || b.p - a.p);
+    .sort((a, b) => (b.m.any ? 1 : 0) - (a.m.any ? 1 : 0) || (b.m.result === 'yes' ? 1 : 0) - (a.m.result === 'yes' ? 1 : 0) || b.p - a.p);   // whoever came in, straight after Anyone
   let show = UI.xMore === g.group ? rows : rows.slice(0, 4);
   if (who && !show.some(r => r.m.who === who)) show = show.slice(0, 3).concat(rows.filter(r => r.m.who === who));
   const vol = list.reduce((a, m) => a + volumeOf(m.id, tr), 0);
@@ -2032,7 +2065,7 @@ function xGroupCard(list, tr) {
     : g.group === 'mvp' || g.group === 'team' ? 'Each name is its own yes/no'
     : /^(water|putt3)_/.test(g.group) || g.group === 'shots' ? 'Settles from the refs’ marks' : 'Settles from the scores';
   return `<article class="xm-c${list.some(m => m.id === UI.xLand) ? ' land' : ''}" id="xg-${esc(g.group)}">
-    <button class="xm-ct" data-act="xOpen" data-a="${esc((rows.find(r => r.m.who === who) || rows[0]).m.id)}">${/^water_/.test(g.group) ? '<span class="xm-mk w" aria-hidden="true">≈</span>' : /^putt3_/.test(g.group) ? '<span class="xm-mk" aria-hidden="true">3</span>' : ''}<b>${esc(g.groupQ)}</b></button>
+    <button class="xm-ct" data-act="xOpen" data-a="${esc((rows.find(r => r.m.who === who) || rows[0]).m.id)}">${/^water_/.test(g.group) ? '<span class="xm-mk w" aria-hidden="true">≈</span>' : /^putt3_/.test(g.group) ? '<span class="xm-mk" aria-hidden="true">3</span>' : ''}<b>${esc(g.round && !(UI.xAbout && UI.xAbout !== 'all') ? g.groupQ.replace(/^[^:]+:\s*/, '').replace(/^./, c => c.toUpperCase()) : g.groupQ)}</b></button>
     ${show.map(({ m, p }) => `<div class="xm-mo${m.who && m.who === who ? ' hit' : ''}${m.any ? ' any' : ''}"><span>${esc(m.label)}${(() => { const y = backers(m.id, 'yes'), n = backers(m.id, 'no');
       return y || n ? `<small class="xm-bk">${y ? '🍺 ' + y : ''}${y && n ? ' · ' : ''}${n ? 'against: ' + n : ''}</small>` : ''; })()}</span>${m.result ? resultTag(m)
       : `<em>${X.cents(p)}%</em><button data-act="xOpen" data-a="${esc(m.id)}" data-b="yes">Yes</button>`}</div>`).join('')}
@@ -2085,20 +2118,40 @@ function scrBets() {
   return `<span class="xm-anchor"></span>${inner}${say}`;
 }
 function xList() {
-  const tr = X.trades(T), all = xAll(), cat = UI.xCat || 'all';
-  /* Open bets only, except under Settled; everybody's own first, newest at
-     the top, because those are the ones the group is talking about. */
+  const tr = X.trades(T), all = xAll(), tab = xTabNow();
   const who = UI.xAbout && UI.xAbout !== 'all' ? UI.xAbout : null;
   /* a who-card stays whole when filtered by person: it is shown if he is in it */
   const inGroup = new Set(who ? all.filter(m => m.group && X.about(m, who)).map(m => m.group) : []);
-  const pick = all.filter(m => (cat === 'done' ? !!m.result : !m.result) &&
-    (cat === 'all' || cat === 'done' || (cat === 'ours' ? m.custom : m.cat === cat)) &&
-    (!who || (m.group ? inGroup.has(m.group) : X.about(m, who))))
-    .sort((a, b) => (b.custom ? 1 : 0) - (a.custom ? 1 : 0) || (b.custom ? (b.at || 0) - (a.at || 0) : 0));
-  const seen = new Set(), cards = [];
-  for (const m of pick) {
-    if (m.group) { if (seen.has(m.group)) continue; seen.add(m.group); cards.push(xGroupCard(pick.filter(x => x.group === m.group), tr)); }
-    else cards.push(xCard(m, tr));
+  /* everybody's own newest first, because those are the ones the group is talking about */
+  const order = list => list.slice().sort((a, b) => (b.custom ? 1 : 0) - (a.custom ? 1 : 0) || (b.custom ? (b.at || 0) - (a.at || 0) : 0));
+  const cardsOf = list => { const seen = new Set(), out = [];
+    for (const m of order(list)) {
+      if (m.group) { if (seen.has(m.group)) continue; seen.add(m.group); out.push(xGroupCard(list.filter(x => x.group === m.group), tr)); }
+      else out.push(xCard(m, tr));
+    }
+    return out; };
+  /* a card counts once however many names are on it */
+  const count = list => new Set(list.map(m => m.group || m.id)).size;
+  let body;
+  if (who) {
+    /* one person: every bet about them, whichever tab it lives in */
+    const mine = all.filter(m => m.group ? inGroup.has(m.group) : X.about(m, who));
+    const keys = ['week'].concat(xRounds().map(r => r.id), ['off', 'ours']);
+    const name = k => ({ week: 'The week', off: 'Off the course', ours: 'Ours' })[k] || roomName(k);
+    body = `<div class="xm-plate"><span class="k">Every bet about</span><b>${esc(nameOf(who))}</b><span>${count(mine)} bet${count(mine) === 1 ? '' : 's'} · <button class="xm-clear" data-act="xAbout" data-a="all">Show everyone ✕</button></span></div>`
+      + (keys.map(k => { const here = mine.filter(m => xTabOf(m) === k); return here.length ? `<div class="xm-subh">${esc(name(k))}</div>` + cardsOf(here).join('') : ''; }).join('')
+        || `<p class="pg-empty">No bets about ${esc(nameOf(who))} yet. Make one.</p>`)
+      + `<button class="xm-new" data-act="xView" data-a="new"><span aria-hidden="true">＋</span> Make your own bet</button>`;
+  } else {
+    /* a who-card stays whole: it moves under Settled once every name on it has settled */
+    const here = all.filter(m => xTabOf(m) === tab);
+    const over = m => m.group ? here.every(x => x.group !== m.group || !!x.result) : !!m.result;
+    const open = here.filter(m => !over(m)), done = here.filter(over);
+    const make = `<button class="xm-new" data-act="xView" data-a="new"><span aria-hidden="true">＋</span> Make your own bet</button>`;
+    body = xPlate(tab, count(here)) + (tab === 'ours' ? make : '')
+      + (cardsOf(open).join('') || (done.length ? '' : `<p class="pg-empty">${tab === 'ours' ? 'Nobody has made one yet. Make the first.' : 'Nothing here yet.'}</p>`))
+      + (done.length ? `<div class="xm-subh">Settled</div>` + cardsOf(done).join('') : '')
+      + (tab === 'ours' ? '' : make);
   }
   const st = X.standings(T, now).filter(x => !guestGone(x.pid));
   return `${xBar()}
@@ -2106,9 +2159,8 @@ function xList() {
     the less likely the side you back, the more it pays. A ¼ 🍺 on a 1% long shot pays 18 🍺 if it comes in.</p>
   ${socialRefused()}
   ${xAboutRow(all)}
-  <div class="xm-cats nos">${XCATS.map(([k, l]) => `<button class="${cat === k ? 'on' : ''}" data-act="xCat" data-a="${k}">${l}</button>`).join('')}</div>
-  <button class="xm-new" data-act="xView" data-a="new"><span aria-hidden="true">＋</span> Make your own bet</button>
-  ${cards.join('') || `<p class="pg-empty">${who ? 'No bets about ' + esc(nameOf(who)) + ' here yet. Make one.' : cat === 'ours' ? 'Nobody has made one yet. Make the first.' : cat === 'done' ? 'Nothing has settled yet.' : 'Nothing here.'}</p>`}
+  ${xTabsHtml(all, who ? null : tab)}
+  ${body}
   ${st.length ? `<section class="xm-sec"><div class="pg-h"><b>Sharpest in the group</b><span>tap a name for their bets</span></div>
     ${st.map((s, i) => xStRow(s, i)).join('')}</section>` : ''}
   <p class="pg-note">The chance moves as people bet: the book always takes the other side, so every bet goes on straight away.</p>`;
@@ -2291,6 +2343,7 @@ function xSubmit() {
 /** Done on a bet's page: back to the list, at that bet, with word of it. */
 function landed(m, head, body, foot) {
   UI.xView = null; UI.xTicket = null; UI.xErr = ''; UI.xLand = m.id;
+  if (!(UI.xAbout && UI.xAbout !== 'all')) UI.xTab = xTabOf(m);
   UI.landOn = m.group ? '#xg-' + m.group : '#xc-' + m.id;
   flash({ head, body, foot }, 4200);
   setTimeout(() => { if (UI.xLand === m.id) { UI.xLand = null; render(); } }, 4200);
@@ -7256,7 +7309,7 @@ function onClick(e) {
     case 'guestRestore': if (!canAdmin()) return; store.patchSocial('chat', 'guest_' + a, { removed: false }); render(); return;
     /* ---- the exchange ---- */
     case 'xView': UI.xView = a || null; UI.xErr = ''; UI.xTicket = null; UI.liftTo = '.xm-anchor'; render(); return;
-    case 'xCat': UI.xCat = a; render(); return;
+    case 'xTab': UI.xTab = a; UI.xAbout = 'all'; UI.liftTo = '.xm-tabs'; render(); return;
     case 'xMore': UI.xMore = a || null; render(); return;
     case 'xWho': UI.xWho = UI.xWho === a ? null : a; render(); return;
     case 'xOpen':
