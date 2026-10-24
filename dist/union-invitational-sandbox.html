@@ -4082,8 +4082,8 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
 .ch-plate b{font-size:16px;color:var(--page)}
 .ch-plate em{font-style:normal;font-size:30px;font-weight:700;color:#E2C277;line-height:1}
 .ch-post{display:grid;gap:6px;margin:12px 0 4px}
-.ch-box{display:flex;align-items:center;gap:8px;background:var(--page);border-radius:999px;padding:5px 5px 5px 6px;box-shadow:inset 0 0 0 1px var(--rule)}
-.ch-box input{flex:1;min-width:0;border:0;background:none;font:inherit;font-size:16px;color:var(--ink);padding:8px 4px;outline:none}
+.ch-box{min-width:0;display:flex;align-items:center;gap:8px;background:var(--page);border-radius:999px;padding:5px 5px 5px 6px;box-shadow:inset 0 0 0 1px var(--rule)}
+.ch-box input{flex:1;min-width:0;width:0;border:0;background:none;font:inherit;font-size:16px;color:var(--ink);padding:8px 4px;outline:none}
 .ch-box .btn{border-radius:999px}
 .ch-as{justify-self:start;background:none;border:0;font:inherit;font-size:13px;color:var(--turf);padding:4px 6px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
 .ch-re{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#F3E6CF;border-radius:10px;padding:7px 8px 7px 12px;font-size:13.5px;color:var(--gold)}
@@ -4095,8 +4095,9 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
 .ch-av.g{background:var(--ink);color:#E2C277}
 .ch-msg{display:flex;gap:9px;align-items:flex-start}
 .ch-bub{flex:1;min-width:0;background:var(--page);border-radius:4px 14px 14px 14px;padding:8px 12px 9px;box-shadow:0 0 0 .5px var(--shadow)}
-.ch-n{display:flex;align-items:baseline;gap:8px;font-weight:700;font-size:14.5px}
-.ch-n small{font-weight:400;font-size:12px;color:var(--turf)}
+.ch-n{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;font-weight:700;font-size:14.5px}
+.ch-who{white-space:nowrap}
+.ch-n small{font-weight:400;font-size:12px;color:var(--turf);white-space:nowrap}
 .ch-rm{margin-left:auto;background:none;border:0;font:inherit;font-size:12px;color:var(--flag);cursor:pointer;padding:2px 0}
 .ch-bub p{margin:2px 0 0;font-size:15.5px;line-height:1.4;overflow-wrap:anywhere}
 .ch-rx{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}
@@ -4326,7 +4327,7 @@ html.kbd .chatsheet .ch-feed{gap:7px;margin-top:8px}
 html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 
 /* guests and PINs */
-.gtag{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);
+.gtag{display:inline-flex;align-items:center;gap:3px;white-space:nowrap;line-height:1.5;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);
   background:#F3E6CF;border-radius:999px;padding:1px 7px;margin-left:6px;vertical-align:2px;font-family:inherit}
 .whomodal .who-guest{display:grid;gap:6px;margin-top:16px;padding-top:14px;border-top:1px solid var(--rule)}
 .who-gn{margin:0;font-size:14px;color:var(--turf)}
@@ -4580,7 +4581,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261024-1149';
+const BUILD = '20261024-1211';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -11154,7 +11155,13 @@ function clockOf(ms) {
   if (!ms) return '';
   const d = localOf(ms), t = E.to12(d.getUTCHours() + ':' + String(d.getUTCMinutes()).padStart(2, '0')).toLowerCase().replace(' ', '');
   const iso = d.toISOString().slice(0, 10);
-  return iso === now.iso ? t : (dayName(iso).dow || '').slice(0, 3) + ' ' + t;
+  if (iso === now.iso) return t;
+  /* The weekday from the date itself: the trip's own days only cover the
+     week, and a message from before it once read "202 2:35pm". */
+  const ago = Math.round((Date.parse(now.iso) - Date.parse(iso)) / 86400000);
+  if (ago === 1) return 'yesterday ' + t;
+  const day = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.getUTCDay()];
+  return (ago > 0 && ago < 7 ? day : day + ' ' + d.getUTCDate() + ' ' + ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getUTCMonth()]) + ' ' + t;
 }
 function sinceOf(ms) {
   if (!ms) return '';
@@ -11261,7 +11268,7 @@ function msgHtml(r, small) {
   const me = whoAmI(), forMe = !!me && (r.ment || []).includes(me) && r.pid !== me;
   return `<div class="ch-msg${small ? ' hk' : ''}${forMe ? ' ment' : ''}">
     <span class="ch-av${E.person(T, r.pid) && E.person(T, r.pid).role === 'golfer' ? ' g' : ''}" aria-hidden="true">${esc(initialsOf(nm))}</span>
-    <div class="ch-bub"><span class="ch-n">${esc(nm)}${guestTag(r.pid)}<small>${esc(sinceOf(r.at))}</small>${ownsMsg(r)
+    <div class="ch-bub"><span class="ch-n"><span class="ch-who">${esc(nm)}${guestTag(r.pid)}</span><small>${esc(sinceOf(r.at))}</small>${ownsMsg(r)
       ? `<button class="ch-rm" data-act="chatDrop" data-a="${esc(r.id)}" aria-label="Remove this message">Remove</button>` : ''}</span>
       ${forMe ? '<span class="ch-callout">📣 Calling you out</span>' : ''}<p>${atText(r.text, r.ment)}</p>${small ? '' : rxRow(r.id, r)}</div></div>`;
 }

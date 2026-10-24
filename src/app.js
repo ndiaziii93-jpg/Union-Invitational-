@@ -1514,7 +1514,13 @@ function clockOf(ms) {
   if (!ms) return '';
   const d = localOf(ms), t = E.to12(d.getUTCHours() + ':' + String(d.getUTCMinutes()).padStart(2, '0')).toLowerCase().replace(' ', '');
   const iso = d.toISOString().slice(0, 10);
-  return iso === now.iso ? t : (dayName(iso).dow || '').slice(0, 3) + ' ' + t;
+  if (iso === now.iso) return t;
+  /* The weekday from the date itself: the trip's own days only cover the
+     week, and a message from before it once read "202 2:35pm". */
+  const ago = Math.round((Date.parse(now.iso) - Date.parse(iso)) / 86400000);
+  if (ago === 1) return 'yesterday ' + t;
+  const day = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.getUTCDay()];
+  return (ago > 0 && ago < 7 ? day : day + ' ' + d.getUTCDate() + ' ' + ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getUTCMonth()]) + ' ' + t;
 }
 function sinceOf(ms) {
   if (!ms) return '';
@@ -1621,7 +1627,7 @@ function msgHtml(r, small) {
   const me = whoAmI(), forMe = !!me && (r.ment || []).includes(me) && r.pid !== me;
   return `<div class="ch-msg${small ? ' hk' : ''}${forMe ? ' ment' : ''}">
     <span class="ch-av${E.person(T, r.pid) && E.person(T, r.pid).role === 'golfer' ? ' g' : ''}" aria-hidden="true">${esc(initialsOf(nm))}</span>
-    <div class="ch-bub"><span class="ch-n">${esc(nm)}${guestTag(r.pid)}<small>${esc(sinceOf(r.at))}</small>${ownsMsg(r)
+    <div class="ch-bub"><span class="ch-n"><span class="ch-who">${esc(nm)}${guestTag(r.pid)}</span><small>${esc(sinceOf(r.at))}</small>${ownsMsg(r)
       ? `<button class="ch-rm" data-act="chatDrop" data-a="${esc(r.id)}" aria-label="Remove this message">Remove</button>` : ''}</span>
       ${forMe ? '<span class="ch-callout">📣 Calling you out</span>' : ''}<p>${atText(r.text, r.ment)}</p>${small ? '' : rxRow(r.id, r)}</div></div>`;
 }
