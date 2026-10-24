@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1D2E21">
+<meta name="robots" content="noindex">
+<link rel="icon" href="../../app/icon-192.png">
+<title>Bet Sections</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap">
+<style>
+/* three live phones, one Bets screen each: the same cards, three ways to find them */
+:root{
+  color-scheme:light;
+  --paper:#E3DBCB; --page:#EEE8D5; --sunk:#DBD2BA; --ink:#1D2E21; --turf:#5C6B55; --green:#3E5C43;
+  --rule:#C4B896; --hair:#DCD1B4; --gold:#8C6B2F; --gold-up:#C9A253; --gold-hi:#E2C277; --sage:#9FB3A3; --flag:#9E3B2E; --yes:#2F7A4A;
+  --shadow:rgba(29,46,33,.16);
+  --serif:'Source Serif 4','Iowan Old Style',Georgia,'Times New Roman',serif;
+  --ui:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:16px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:26px 56px}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:inherit}
+:focus-visible{outline:2px solid var(--flag);outline-offset:2px}
+.top,.row,.dev{max-width:1260px;margin-left:auto;margin-right:auto}
+.top{display:grid;gap:10px;margin-bottom:22px}
+.top h1{margin:0;font-size:clamp(26px,4vw,34px);line-height:1.15}
+.top p{margin:0;color:var(--turf);max-width:82ch}
+.row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px;align-items:start}
+@media (max-width:1150px){.row{grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr))}}
+.opt{display:grid;gap:14px;justify-items:center;min-width:0}
+.olabel{width:100%;max-width:390px;display:flex;align-items:center;gap:12px;background:var(--ink);color:var(--page);border-radius:16px;padding:10px 14px;border-bottom:3px solid var(--gold-up);position:sticky;top:8px;z-index:50}
+.olabel b{display:inline-grid;place-items:center;width:40px;height:40px;border-radius:50%;background:var(--gold-hi);color:var(--ink);font-size:22px;font-weight:800;flex:0 0 auto}
+.olabel strong{display:block;font-size:20px;line-height:1.1}
+.olabel small{display:block;font-family:var(--ui);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--gold-hi);margin-top:2px}
+.cap{width:100%;max-width:390px}
+.cap .what{margin:0 0 8px;color:var(--turf);font-size:15px}
+.cap ul{margin:0;padding-left:18px;font-size:14.5px;display:grid;gap:3px}
+.cap .dn{margin-top:10px;font-size:13.5px;background:var(--page);border-radius:12px;padding:10px 12px;box-shadow:0 0 0 .5px var(--shadow)}
+.cap .dn b{display:block;font-family:var(--ui);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-bottom:3px}
+.dev{margin-top:34px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:14px}
+.dev .card{background:var(--page);border-radius:16px;padding:16px 18px;box-shadow:0 0 0 .5px var(--shadow)}
+.dev h3{margin:0 0 8px;font-size:18px}
+.dev ul{margin:0;padding-left:18px;font-size:14.5px;display:grid;gap:5px}
+.dev .rec{background:var(--ink);color:var(--page);border-bottom:3px solid var(--gold-up)}
+.dev .rec h3{color:var(--gold-hi)}
+
+/* ---- the phone ---- */
+.phone{position:relative;width:100%;max-width:390px;height:800px;border-radius:38px;overflow:hidden;background:var(--paper);
+  box-shadow:0 0 0 9px #17211A,0 0 0 10px #3A463D,0 30px 60px rgba(16,22,17,.28);isolation:isolate;display:flex;flex-direction:column}
+.scr{flex:1 1 auto;overflow:auto;scrollbar-width:none;min-height:0;position:relative;scroll-behavior:smooth}
+.scr::-webkit-scrollbar{display:none}
+.hdr{display:flex;align-items:center;gap:10px;padding:46px 16px 10px;border-bottom:2px solid var(--ink);margin:0 14px}
+.hdr img{width:40px;height:40px;border-radius:10px}
+.hdr b{font-size:18px;line-height:1.1;flex:1}
+.hdr .meta{display:block;font-family:var(--ui);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--turf);font-weight:700;margin-top:3px}
+.pad{padding:0 14px 120px}
+.tabbar{flex:0 0 auto;display:grid;grid-template-columns:repeat(6,1fr);background:var(--ink);border-top:3px solid var(--gold-up);color:var(--sage);
+  padding:8px 4px 18px;font-family:var(--ui);font-size:10.5px;text-align:center;position:relative;z-index:30}
+.tabbar span{display:grid;gap:3px;justify-items:center}
+.tabbar span.on{color:var(--page);font-weight:700} .tabbar span.gold{color:var(--gold-up)}
+.tabbar i{display:block;width:20px;height:16px;border:1.6px solid currentColor;border-radius:4px}
+
+/* ---- the Bets screen as it is today: unchanged in all three ---- */
+.xm-top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:14px}
+.xm-top h2{margin:0;font-size:26px}
+.xm-bal{font-size:14px;font-weight:700;background:var(--ink);color:var(--gold-hi);border-radius:999px;padding:8px 14px;min-height:40px;white-space:nowrap}
+.xm-new{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin:12px 0 2px;font-size:15px;font-weight:700;
+  background:#F3E6CF;border:1.5px dashed var(--gold-up);border-radius:14px;padding:11px;min-height:46px}
+.xm-new span{color:var(--gold);font-size:18px}
+.xm-c{display:grid;gap:9px;background:var(--page);border-radius:14px;padding:12px 13px;margin-top:10px;box-shadow:0 0 0 .5px var(--shadow)}
+.xm-ct{display:flex;gap:10px;align-items:flex-start}
+.xm-ct b{font-size:16.5px;line-height:1.25;flex:1}
+.xm-ch{text-align:right;flex:0 0 auto;display:grid}
+.xm-ch strong{font-size:22px;line-height:1}
+.xm-ch small{font-family:var(--ui);font-size:11px;color:var(--turf)}
+.xm-sp{display:block;width:100%;height:30px}
+.xm-sp polyline{fill:none;stroke-width:2.4;vector-effect:non-scaling-stroke;stroke:var(--yes)}
+.xm-sp polygon{fill:var(--yes);opacity:.08}
+.xm-yn{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.xm-yn button,.xm-mo button{font-weight:700;font-size:15px;border-radius:10px;padding:9px;min-height:42px;text-align:center}
+.xm-yn .y,.xm-mo button{background:#DDEBDD;color:var(--yes)}
+.xm-yn .n{background:#F2DDD6;color:var(--flag)}
+.xm-yn small{font-size:13.5px;font-weight:600;opacity:.85;margin-left:3px}
+.xm-v{display:flex;justify-content:space-between;gap:10px;font-family:var(--ui);font-size:12px;color:var(--turf)}
+.xm-d.up{color:var(--yes)} .xm-d.dn{color:var(--flag)}
+.xm-mo{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:center;padding:5px 0;border-top:1px solid var(--hair)}
+.xm-mo span{font-weight:600;font-size:15px}
+.xm-mo span small{display:block;font-weight:500;font-size:12px;color:var(--turf);font-family:var(--ui)}
+.xm-mo.any span{font-style:italic}
+.xm-mo em{font-style:normal;font-weight:700;font-size:15px;min-width:42px;text-align:right}
+.xm-mo button{padding:6px 10px;min-height:36px;font-size:13.5px}
+.xm-res{font-family:var(--ui);font-size:12px;font-weight:800;border-radius:999px;padding:4px 10px;grid-column:2/4;justify-self:end}
+.xm-res.yes{background:#DDEBDD;color:var(--yes)} .xm-res.no{background:#EADFD8;color:var(--flag)}
+.xm-more{justify-self:start;font-size:13.5px;font-weight:600;color:var(--green);padding:4px 0}
+.xm-bk{font-family:var(--ui);font-size:12.5px;color:var(--turf)}
+.xm-bk b.y{color:var(--yes)} .xm-bk b.n{color:var(--flag)}
+.xm-tag{font-family:var(--ui);font-size:12px;font-weight:700;border-radius:999px;padding:3px 10px;background:#F3E6CF;color:var(--gold);justify-self:start}
+.mk{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:7px;background:#DCE7EE;color:#2F5D7A;font-size:14px;font-weight:800;margin-right:6px;vertical-align:-3px}
+.mk.t{background:#F2DDD6;color:var(--flag)}
+
+/* ---- A: round tabs ---- */
+.a-tabs{position:sticky;top:0;z-index:20;background:var(--paper);margin:12px -14px 0;padding:8px 14px 9px;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;
+  border-bottom:1px solid var(--rule);box-shadow:0 8px 14px -12px rgba(16,22,17,.35)}
+.a-tabs::-webkit-scrollbar{display:none}
+.a-tabs button{flex:0 0 auto;display:grid;justify-items:center;gap:1px;border-radius:12px;padding:6px 12px 7px;background:var(--page);box-shadow:inset 0 0 0 1px var(--rule);min-width:70px}
+.a-tabs button b{font-size:14.5px;line-height:1.1}
+.a-tabs button small{font-family:var(--ui);font-size:10.5px;color:var(--turf);font-weight:600}
+.a-tabs button.on{background:var(--ink);color:var(--page);box-shadow:inset 0 -3px 0 var(--gold-up)}
+.a-tabs button.on small{color:var(--gold-hi)}
+.live{color:#E25A44!important;font-weight:800!important}
+.live::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:#E25A44;margin-right:4px;vertical-align:1px}
+.a-plate{margin-top:12px;background:var(--ink);color:var(--page);border-radius:14px;padding:12px 14px;border-bottom:3px solid var(--gold-up);display:grid;gap:3px}
+.a-plate .k{font-family:var(--ui);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-hi);font-weight:800}
+.a-plate b{font-size:20px;line-height:1.15}
+.a-plate span{font-family:var(--ui);font-size:12.5px;color:#C9D2C3}
+.a-sub{display:flex;gap:6px;margin-top:10px}
+.a-sub button{font-family:var(--ui);font-size:12.5px;font-weight:700;border-radius:999px;padding:6px 12px;color:var(--turf)}
+.a-sub button.on{background:var(--page);color:var(--ink);box-shadow:inset 0 0 0 1px var(--rule)}
+
+/* ---- B: shelves with pinned headers ---- */
+.b-jump{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin-top:12px}
+.b-jump::-webkit-scrollbar{display:none}
+.b-jump button{flex:0 0 auto;font-family:var(--ui);font-size:13px;font-weight:700;border-radius:999px;padding:7px 12px;background:var(--page);box-shadow:inset 0 0 0 1px var(--rule)}
+.b-sec{margin-top:16px}
+.b-h{position:sticky;top:0;z-index:20;margin:0 -14px;padding:9px 14px;background:var(--ink);color:var(--page);display:flex;align-items:center;gap:10px;border-bottom:3px solid var(--gold-up)}
+.b-h .ico{font-size:17px}
+.b-h b{font-size:16px;flex:1;line-height:1.15}
+.b-h b small{display:block;font-family:var(--ui);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold-hi);font-weight:700}
+.b-h em{font-style:normal;font-family:var(--ui);font-size:12px;color:var(--sage)}
+.b-shelf{display:flex;align-items:center;gap:10px;width:100%;background:var(--page);border-radius:14px;padding:12px 14px;margin-top:10px;box-shadow:0 0 0 .5px var(--shadow)}
+.b-shelf b{flex:1;font-size:16px;line-height:1.2}
+.b-shelf b small{display:block;font-family:var(--ui);font-size:12px;color:var(--turf);font-weight:600}
+.b-shelf i{font-style:normal;font-family:var(--ui);font-size:12px;font-weight:800;border-radius:999px;padding:4px 9px;background:var(--sunk)}
+.b-shelf .car{font-size:16px;color:var(--turf)}
+
+/* ---- C: one card per bet, rounds inside ---- */
+.c-cats{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin-top:12px}
+.c-cats::-webkit-scrollbar{display:none}
+.c-cats button{flex:0 0 auto;font-size:14px;font-weight:600;color:var(--turf);border-radius:999px;padding:7px 13px;min-height:38px}
+.c-cats button.on{background:var(--ink);color:var(--page)}
+.c-h{margin:18px 0 0;font-family:var(--ui);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);font-weight:800;display:flex;justify-content:space-between}
+.c-h span{color:var(--turf);letter-spacing:0;text-transform:none;font-weight:600}
+.c-seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:var(--sunk);border-radius:11px;padding:3px}
+.c-seg button{border-radius:8px;padding:6px 4px;text-align:center;font-family:var(--ui);font-size:12.5px;font-weight:700;color:var(--turf);display:grid;line-height:1.15}
+.c-seg button small{font-size:10.5px;font-weight:600}
+.c-seg button.on{background:var(--page);color:var(--ink);box-shadow:0 1px 3px rgba(16,22,17,.18)}
+.c-seg button.done small{color:var(--yes)}
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>Bets: three ways to find your way</h1>
+  <p>The bet cards stay exactly as they are now: the chance, Yes and No, who’s on it. What changes is how you get to them. Each phone below works: tap the tabs, the chips and the rounds. The day shown is <b>Friday, Round 2, live</b>, with the trip’s real teams.</p>
+  <p>The problem today: one long list, and “who finds the water?” shows up three times, once per round, with only “Round 1:” or “Round 2:” at the front to tell them apart.</p>
+</header>
+
+<div class="row">
+  <section class="opt">
+    <div class="olabel"><b>A</b><span><strong>Round tabs</strong><small>DraftKings and FanDuel event tabs</small></span></div>
+    <div class="phone" id="pA"></div>
+    <div class="cap"><p class="what">A row of tabs pinned to the top: <b>The week</b>, <b>Round 1</b>, <b>Round 2</b>, <b>Round 3</b>, <b>Off the course</b>, <b>Ours</b>. It opens on today’s round.</p>
+      <ul><li>You always know where you are: the tab stays lit as you scroll, and a plate says which round, which course, and whether it’s live.</li>
+        <li>The same bet never appears twice on a page. “Round 2:” disappears from every title, because the tab already says it.</li>
+        <li>Finished rounds keep their settled bets, so Round 1 is a record of who called it.</li></ul>
+      <div class="dn"><b>Best for</b>A trip that runs day by day. “What can I bet on today?” is one tap.</div></div>
+  </section>
+
+  <section class="opt">
+    <div class="olabel"><b>B</b><span><strong>Shelves</strong><small>FanDuel home, pinned headers</small></span></div>
+    <div class="phone" id="pB"></div>
+    <div class="cap"><p class="what">One page, but cut into shelves with dark headers that pin to the top as you scroll: <b>Today · Round 2</b>, <b>The week</b>, <b>Off the course</b>, <b>Made by us</b>, then <b>Other rounds</b> folded away.</p>
+      <ul><li>Scroll and the header always tells you which shelf you’re on.</li>
+        <li>Jump chips at the top take you straight to a shelf.</li>
+        <li>Rounds that aren’t today fold into one line each (“Round 3 · Sun · 4 bets”), so they can’t be mistaken for today’s.</li></ul>
+      <div class="dn"><b>Best for</b>People who like to scroll everything, without ever losing their place.</div></div>
+  </section>
+
+  <section class="opt">
+    <div class="olabel"><b>C</b><span><strong>One card, rounds inside</strong><small>Kalshi events, with outcomes by date</small></span></div>
+    <div class="phone" id="pC"></div>
+    <div class="cap"><p class="what">Each kind of bet appears <b>once</b>, with Round 1 · 2 · 3 as a switch inside the card. It opens on today’s round. A <b>Featured</b> page leads with what’s live, what’s moving and what the group just made.</p>
+      <ul><li>Twelve round cards become four. No more scrolling past the same question.</li>
+        <li>Flip a card to Round 1 to see how it settled, or to Round 3 to get in early.</li>
+        <li>Chips across the top, as now, but each one means a different kind of bet.</li></ul>
+      <div class="dn"><b>Best for</b>The shortest page, for people who want to compare rounds side by side.</div></div>
+  </section>
+</div>
+
+<section class="dev">
+  <div class="card rec"><h3>My pick: A, round tabs</h3>
+    <ul><li>The trip is lived one round at a time, and so is the betting: almost every bet you’ll place is about today.</li>
+      <li>It’s the pattern DraftKings and FanDuel use for a tournament: tabs for the event and its rounds, “futures” (our “The week”) in their own tab.</li>
+      <li>It’s the clearest “you are here”: one lit tab, one plate, never two of the same bet on screen.</li>
+      <li>It can borrow from C later: a small R1 · R2 · R3 switch on a card, if people want to compare.</li></ul></div>
+  <div class="card"><h3>What stays the same, whichever you pick</h3>
+    <ul><li>The cards: chance, Yes and No, who’s on it, beers bet.</li>
+      <li>🍺 My bets, Make your own bet, Sharpest in the group.</li>
+      <li>The “About” row of names, to see every bet about one person.</li>
+      <li>Placing a bet takes you back to where you were, in that section.</li></ul></div>
+  <div class="card"><h3>Where things go</h3>
+    <ul><li><b>The week:</b> MVP, Team Competition, Ryder Cup, hole in one, eagle, most shots of the hole.</li>
+      <li><b>Each round:</b> under par, birdie a par 3, finds the water, three-putts.</li>
+      <li><b>Off the course:</b> the pool, last one standing, the closing dinner.</li>
+      <li><b>Ours:</b> everything the group makes. <b>Settled</b> lives with its round, or at the foot.</li></ul></div>
+</section>
+
+<script>
+const G = ['Norberto III', 'Norberto Jr.', 'Matt D', 'Devin O', 'Ray V', 'Drea', 'Duncan W', 'DP'];
+const TEAMS = ['Norberto III & Norberto Jr.', 'Matt D & Devin O', 'Ray V & Drea', 'Duncan W & DP'];
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+const TAB = '<div class="tabbar"><span><i></i>Today</span><span><i></i>Scores</span><span class="on"><i></i>Bets</span><span><i></i>Boards</span><span><i></i>Calendar</span><span class="gold"><i></i>Resort</span></div>';
+const HDR = '<div class="hdr"><img src="../../app/icon-192.png" alt=""><b>The Union Invitational<span class="meta">Round 2 · Fri 30 Oct · live</span></b></div>';
+
+/* ---- the bets ---- */
+const rows = (any, list) => [{ n: 'Anyone', p: any, any: true }].concat(list.map(([n, p, bk]) => ({ n, p, bk })));
+const ROUNDS = { r1: { name: 'Round 1', day: 'Thu 29 Oct', course: 'Cullinan Olympos', state: 'done' },
+  r2: { name: 'Round 2', day: 'Fri 30 Oct', course: 'Cullinan Aspendos', state: 'live' },
+  r3: { name: 'Round 3', day: 'Sun 1 Nov', course: 'Cullinan Olympos', state: 'open' } };
+const PROPS = [
+  { key: 'water', q: 'Who finds the water?', mk: '≈', vol: { r1: '6¼', r2: '9½', r3: '1' },
+    r1: [['Anyone', 'yes'], ['Ray V', 'yes'], ['Duncan W', 'no'], ['Drea', 'no']],
+    r2: rows(72, [['Ray V', 18, 'Aimee K, Becky'], ['Duncan W', 15, 'DP'], ['Norberto Jr.', 14], ['Drea', 12]]),
+    r3: rows(70, [['Ray V', 16], ['Duncan W', 15], ['Norberto Jr.', 15], ['Drea', 15]]) },
+  { key: 'under', q: 'Who finishes under par, net?', vol: { r1: '4', r2: '7¾', r3: '½' },
+    r1: [['Anyone', 'yes'], ['Matt D', 'yes'], ['Devin O', 'no'], ['Norberto III', 'no']],
+    r2: rows(58, [['Matt D', 22, 'Devin O'], ['Devin O', 14], ['Norberto III', 12, 'Jennifer D'], ['DP', 10]]),
+    r3: rows(60, [['Matt D', 12], ['Devin O', 10], ['Norberto III', 10], ['DP', 10]]) },
+  { key: 'b3', q: 'Who birdies a par 3?', vol: { r1: '2½', r2: '3', r3: '0' },
+    r1: [['Anyone', 'no'], ['Drea', 'no'], ['Ray V', 'no'], ['Matt D', 'no']],
+    r2: rows(55, [['Drea', 12, 'Ray V'], ['Ray V', 9], ['Matt D', 8], ['Duncan W', 8]]),
+    r3: rows(55, [['Drea', 8], ['Ray V', 8], ['Matt D', 8], ['Duncan W', 8]]) },
+  { key: 'putt3', q: 'Who three-putts?', mk: '3', vol: { r1: '5', r2: '6½', r3: '¾' },
+    r1: [['Anyone', 'yes'], ['Norberto Jr.', 'yes'], ['DP', 'yes'], ['Devin O', 'no']],
+    r2: rows(96, [['DP', 52, 'Matt D, Letty D'], ['Devin O', 48], ['Norberto Jr.', 47], ['Drea', 45]]),
+    r3: rows(95, [['DP', 45], ['Devin O', 45], ['Norberto Jr.', 45], ['Drea', 45]]) },
+];
+const WEEK = [
+  { who: 'Who wins MVP?', all: 8, vol: '11', rs: [['Ray V', 16, 'Aimee K, Duncan W, Becky'], ['Matt D', 14, 'DP'], ['Norberto III', 13], ['Duncan W', 12]] },
+  { who: 'Who wins the Team Competition?', all: 4, vol: '8½', rs: [['Ray V & Drea', 31, 'Becky, Cary'], ['Matt D & Devin O', 27], ['Duncan W & DP', 22], ['Norberto III & Norberto Jr.', 20]] },
+  { yn: 'Will the United Kingdom win the Ryder Cup?', p: 57, vol: '4½', d: 7, bk: '<b class="y">Yes</b> Matt D, Becky &nbsp; <b class="n">No</b> Justin P' },
+  { who: 'Who makes a hole in one this week?', any: 6, all: 9, vol: '1¾', rs: [['Norberto III', 1], ['Norberto Jr.', 1], ['Matt D', 1]] },
+  { who: 'Who makes an eagle this week?', any: 35, all: 9, vol: '3', rs: [['Ray V', 5, 'Drea'], ['Duncan W', 4], ['Matt D', 4]] },
+];
+const OFF = [
+  { who: 'Who ends up in a pool with their clothes on?', any: 25, all: 16, vol: '5', rs: [['DP', 9, 'Becky, Aimee K'], ['Ray V', 6], ['Letty D', 4]] },
+  { who: 'Who’s the last one standing on the final night?', all: 15, vol: '3¼', rs: [['Duncan W', 14, 'Ray V'], ['Becky', 9], ['Devin O', 7], ['Cary', 7]] },
+  { yn: 'Will the closing dinner run past midnight?', p: 64, vol: '2', d: 4, bk: '<b class="y">Yes</b> Jennifer D' },
+];
+const OURS = [
+  { yn: 'Will Ray V wear the pink trousers on Sunday?', p: 38, vol: '3', d: 8, by: 'Becky', tag: 'Ray V', bk: '<b class="y">Yes</b> Becky, Drea &nbsp; <b class="n">No</b> Ray V' },
+  { who: 'Who is last to breakfast on Friday?', all: 4, vol: '2', by: 'Aimee K', rs: [['Ray V', 25], ['Duncan W', 25], ['DP', 25], ['Devin O', 25]] },
+];
+
+/* ---- drawing a card, the way the app draws it ---- */
+const spark = up => `<svg class="xm-sp" viewBox="0 0 300 30" preserveAspectRatio="none" aria-hidden="true"><polygon points="0,30 0,20 60,22 120,14 180,16 240,9 300,${up ? 5 : 12} 300,30"/><polyline points="0,20 60,22 120,14 180,16 240,9 300,${up ? 5 : 12}"/></svg>`;
+function ynCard(m) {
+  return `<article class="xm-c"><div class="xm-ct"><b>${esc(m.yn)}</b><span class="xm-ch"><strong>${m.p}%</strong><small>chance</small></span></div>
+    ${m.tag ? `<span class="xm-tag">${esc(m.tag)}</span>` : ''}${spark(true)}
+    <div class="xm-yn"><button class="y">Yes <small>${m.p}%</small></button><button class="n">No <small>${100 - m.p}%</small></button></div>
+    <div class="xm-bk">${m.bk}</div>
+    <div class="xm-v"><span>${m.vol} 🍺 bet${m.by ? ' · by ' + esc(m.by) : ''}</span><span class="xm-d up">▲ ${m.d} since open</span></div></article>`;
+}
+function rowHtml(r) {
+  if (typeof r[1] === 'string') return `<div class="xm-mo${r[0] === 'Anyone' ? ' any' : ''}"><span>${esc(r[0])}</span><span class="xm-res ${r[1]}">Settled ${r[1] === 'yes' ? 'Yes' : 'No'}</span></div>`;
+  const x = Array.isArray(r) ? { n: r[0], p: r[1], bk: r[2] } : r;
+  return `<div class="xm-mo${x.any ? ' any' : ''}"><span>${esc(x.n)}${x.bk ? `<small>🍺 ${esc(x.bk)}</small>` : ''}</span><em>${x.p}%</em><button>Yes</button></div>`;
+}
+function whoCard(m, title, inner) {
+  const rs = (m.any != null ? [{ n: 'Anyone', p: m.any, any: true }] : []).concat(m.rs.map(r => ({ n: r[0], p: r[1], bk: r[2] })));
+  return `<article class="xm-c"><div class="xm-ct"><b>${title || esc(m.who)}</b></div>${inner || ''}
+    ${rs.slice(0, 4).map(rowHtml).join('')}
+    <button class="xm-more">All ${m.all + (m.any != null ? 1 : 0)}</button>
+    <div class="xm-v"><span>${m.vol} 🍺 bet${m.by ? ' · by ' + esc(m.by) : ''}</span><span>${m.by ? '' : 'Each name is its own yes/no'}</span></div></article>`;
+}
+const card = m => m.yn ? ynCard(m) : whoCard(m);
+function propCard(pr, rid, prefix, seg) {
+  const t = (pr.mk ? `<span class="mk${pr.key === 'putt3' ? ' t' : ''}">${pr.mk}</span>` : '') + (prefix ? esc(ROUNDS[rid].name) + ': ' : '') + esc(pr.q);
+  const rs = pr[rid];
+  return `<article class="xm-c"><div class="xm-ct"><b>${t}</b></div>${seg || ''}
+    ${rs.map(rowHtml).join('')}
+    <button class="xm-more">All 9</button>
+    <div class="xm-v"><span>${pr.vol[rid]} 🍺 bet</span><span>${ROUNDS[rid].state === 'done' ? 'Settled from the scores' : /water|putt3/.test(pr.key) ? 'Settles from the refs’ marks' : 'Settles from the scores'}</span></div></article>`;
+}
+const barTop = () => `<div class="xm-top"><h2>Bets</h2><button class="xm-bal">🍺 18 · My bets</button></div>`;
+const mine = '<button class="xm-new"><span>＋</span> Make your own bet</button>';
+
+/* ---- A: round tabs ---- */
+const A = { tab: 'r2', sub: 'open' };
+function drawA() {
+  const tabs = [['week', 'The week', 'MVP · cup'], ['r1', 'Round 1', 'Thu · settled'], ['r2', 'Round 2', '<span class="live">Live</span>'], ['r3', 'Round 3', 'Sun 1 Nov'], ['off', 'Off course', 'Pool · bar'], ['ours', 'Ours', '2 made']];
+  let body = '';
+  if (ROUNDS[A.tab]) {
+    const R = ROUNDS[A.tab];
+    body = `<div class="a-plate"><span class="k">${R.state === 'live' ? '● Live now' : R.state === 'done' ? 'Settled' : 'Opens Sunday · bet early'}</span><b>${R.name} · ${R.day}</b><span>${R.course}${R.state === 'live' ? ' · Ray V & Drea lead, thru 9' : ''} · 4 bets</span></div>`
+      + PROPS.map(pr => propCard(pr, A.tab, false)).join('');
+  } else if (A.tab === 'week') {
+    body = `<div class="a-plate"><span class="k">All week · settles after Round 3</span><b>The week</b><span>MVP, the teams, the cup, the big shots · 5 bets</span></div>` + WEEK.map(card).join('');
+  } else if (A.tab === 'off') {
+    body = `<div class="a-plate"><span class="k">Settled by the commissioner</span><b>Off the course</b><span>Golfers, the gallery and the refs · 3 bets</span></div>` + OFF.map(card).join('');
+  } else {
+    body = `<div class="a-plate"><span class="k">Made by the group</span><b>Ours</b><span>Settled by whoever made it, or the commissioner</span></div>` + mine + OURS.map(card).join('');
+  }
+  document.getElementById('pA').innerHTML = `<div class="scr" id="sA">${HDR}<div class="pad">${barTop()}
+    <nav class="a-tabs" aria-label="Sections">${tabs.map(([k, l, s]) => `<button class="${A.tab === k ? 'on' : ''}" data-a="${k}"><b>${l}</b><small>${s}</small></button>`).join('')}</nav>
+    ${body}</div></div>${TAB}`;
+}
+document.getElementById('pA').addEventListener('click', e => { const b = e.target.closest('.a-tabs button'); if (!b) return; A.tab = b.dataset.a; drawA(); document.getElementById('sA').scrollTop = 0; });
+
+/* ---- B: shelves ---- */
+const B = { open: {} };
+function drawB() {
+  const sec = (id, ico, name, sub, n, inner) => `<section class="b-sec" id="b-${id}"><div class="b-h"><span class="ico">${ico}</span><b><small>${sub}</small>${name}</b><em>${n}</em></div>${inner}</section>`;
+  const shelf = (rid, note) => `<button class="b-shelf" data-r="${rid}"><b>${ROUNDS[rid].name} · ${ROUNDS[rid].day.slice(0, 3)}<small>${note}</small></b><i>4 bets</i><span class="car">${B.open[rid] ? '▴' : '▾'}</span></button>`
+    + (B.open[rid] ? PROPS.map(pr => propCard(pr, rid, true)).join('') : '');
+  document.getElementById('pB').innerHTML = `<div class="scr" id="sB">${HDR}<div class="pad">${barTop()}
+    <div class="b-jump">${[['today', '● Today'], ['week', 'The week'], ['off', 'Off the course'], ['ours', 'Ours'], ['more', 'Other rounds']].map(([k, l]) => `<button data-j="${k}">${l}</button>`).join('')}</div>
+    ${sec('today', '<span class="live"></span>', 'Round 2', 'Today · live · thru 9', '4 bets', PROPS.map(pr => propCard(pr, 'r2', false)).join(''))}
+    ${sec('week', '🏆', 'The week', 'Settles after Round 3', '5 bets', WEEK.map(card).join(''))}
+    ${sec('off', '🍹', 'Off the course', 'Golfers, gallery and refs', '3 bets', OFF.map(card).join(''))}
+    ${sec('ours', '✍️', 'Made by us', 'The group’s own', '2 bets', mine + OURS.map(card).join(''))}
+    ${sec('more', '⛳', 'Other rounds', 'Tap one to open it', '8 bets', shelf('r3', 'Opens Sunday · bet early') + shelf('r1', 'Settled: see who called it'))}
+    </div></div>${TAB}`;
+}
+document.getElementById('pB').addEventListener('click', e => {
+  const j = e.target.closest('.b-jump button'), s = e.target.closest('.b-shelf');
+  if (j) { const t = document.getElementById('b-' + j.dataset.j), sc = document.getElementById('sB'); sc.scrollTop = t.offsetTop - 2; }
+  if (s) { const keep = document.getElementById('sB').scrollTop; B.open[s.dataset.r] = !B.open[s.dataset.r]; drawB(); document.getElementById('sB').style.scrollBehavior = 'auto'; document.getElementById('sB').scrollTop = keep; document.getElementById('sB').style.scrollBehavior = ''; }
+});
+
+/* ---- C: one card, rounds inside ---- */
+const C = { cat: 'feat', r: {} };
+function seg(key) {
+  const cur = C.r[key] || 'r2';
+  return `<div class="c-seg" role="tablist">${['r1', 'r2', 'r3'].map(rid => { const R = ROUNDS[rid];
+    return `<button class="${cur === rid ? 'on' : ''}${R.state === 'done' ? ' done' : ''}" data-k="${key}" data-r="${rid}">${R.name}<small>${R.state === 'done' ? '✓ Settled' : R.state === 'live' ? '<span class="live">Live</span>' : R.day.slice(0, 3)}</small></button>`; }).join('')}</div>`;
+}
+const cProp = pr => propCard(pr, C.r[pr.key] || 'r2', false, seg(pr.key));
+function drawC() {
+  const cats = [['feat', 'Featured'], ['week', 'The week'], ['round', 'Every round'], ['off', 'Off the course'], ['ours', 'Ours'], ['done', 'Settled']];
+  const h = (t, s) => `<div class="c-h">${t}<span>${s || ''}</span></div>`;
+  let body = '';
+  if (C.cat === 'feat') body = h('● Live now · Round 2', 'thru 9') + cProp(PROPS[0]) + cProp(PROPS[3]) + h('Moving', 'most bet today') + card(WEEK[0]) + h('New from the group') + card(OURS[0]);
+  else if (C.cat === 'week') body = WEEK.map(card).join('');
+  else if (C.cat === 'round') body = h('Every round', 'one card each · switch the round inside') + PROPS.map(cProp).join('');
+  else if (C.cat === 'off') body = OFF.map(card).join('');
+  else if (C.cat === 'ours') body = mine + OURS.map(card).join('');
+  else body = h('Round 1 · Thu', 'settled') + PROPS.map(pr => propCard(pr, 'r1', false)).join('');
+  document.getElementById('pC').innerHTML = `<div class="scr" id="sC">${HDR}<div class="pad">${barTop()}
+    <div class="c-cats">${cats.map(([k, l]) => `<button class="${C.cat === k ? 'on' : ''}" data-c="${k}">${l}</button>`).join('')}</div>
+    ${body}</div></div>${TAB}`;
+}
+document.getElementById('pC').addEventListener('click', e => {
+  const c = e.target.closest('.c-cats button'), s = e.target.closest('.c-seg button');
+  if (c) { C.cat = c.dataset.c; drawC(); document.getElementById('sC').scrollTop = 0; }
+  if (s) { const keep = document.getElementById('sC').scrollTop; C.r[s.dataset.k] = s.dataset.r; drawC(); const sc = document.getElementById('sC'); sc.style.scrollBehavior = 'auto'; sc.scrollTop = keep; sc.style.scrollBehavior = ''; }
+});
+
+drawA(); drawB(); drawC();
+</script>
+</body>
+</html>
