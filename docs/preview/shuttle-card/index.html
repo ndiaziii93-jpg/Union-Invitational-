@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1D2E21">
+<meta name="robots" content="noindex">
+<link rel="icon" href="../../app/icon-192.png">
+<title>Shuttle Card</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap">
+<style>
+/* three phones, one Today screen each: the shuttle card small until tapped */
+:root{
+  color-scheme:light;
+  --paper:#E3DBCB; --page:#EEE8D5; --sunk:#DBD2BA; --ink:#1D2E21; --ink2:#2A3D2E; --turf:#5C6B55; --green:#3E5C43;
+  --rule:#C4B896; --hair:#DCD1B4; --gold:#8C6B2F; --gold-up:#C9A253; --gold-hi:#E2C277; --sage:#9FB3A3; --flag:#9E3B2E; --yes:#2F7A4A;
+  --shadow:rgba(29,46,33,.16);
+  --serif:'Source Serif 4','Iowan Old Style',Georgia,'Times New Roman',serif;
+  --ui:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:16px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:26px 56px}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:inherit}
+:focus-visible{outline:2px solid var(--flag);outline-offset:2px}
+.top,.row,.dev{max-width:1260px;margin-left:auto;margin-right:auto}
+.top{display:grid;gap:10px;margin-bottom:22px}
+.top h1{margin:0;font-size:clamp(26px,4vw,34px);line-height:1.15}
+.top p{margin:0;color:var(--turf);max-width:82ch}
+.row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px;align-items:start}
+@media (max-width:1150px){.row{grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr))}}
+.opt{display:grid;gap:14px;justify-items:center;min-width:0}
+.olabel{width:100%;max-width:390px;display:flex;align-items:center;gap:12px;background:var(--ink);color:var(--page);border-radius:16px;padding:10px 14px;border-bottom:3px solid var(--gold-up);position:sticky;top:8px;z-index:50}
+.olabel b{display:inline-grid;place-items:center;width:40px;height:40px;border-radius:50%;background:var(--gold-hi);color:var(--ink);font-size:22px;font-weight:800;flex:0 0 auto}
+.olabel strong{display:block;font-size:20px;line-height:1.1}
+.olabel small{display:block;font-family:var(--ui);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--gold-hi);margin-top:2px}
+.cap{width:100%;max-width:390px}
+.cap .what{margin:0 0 8px;color:var(--turf);font-size:15px}
+.cap ul{margin:0;padding-left:18px;font-size:14.5px;display:grid;gap:3px}
+.cap .dn{margin-top:10px;font-size:13.5px;background:var(--page);border-radius:12px;padding:10px 12px;box-shadow:0 0 0 .5px var(--shadow)}
+.cap .dn b{display:block;font-family:var(--ui);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-bottom:3px}
+.demo{font-family:var(--ui);font-size:13.5px;font-weight:700;color:var(--ink);background:var(--page);border-radius:999px;padding:9px 15px;box-shadow:inset 0 0 0 1.5px var(--gold-up);min-height:40px}
+.dev{margin-top:34px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:14px}
+.dev .card{background:var(--page);border-radius:16px;padding:16px 18px;box-shadow:0 0 0 .5px var(--shadow)}
+.dev h3{margin:0 0 8px;font-size:18px}
+.dev ul{margin:0;padding-left:18px;font-size:14.5px;display:grid;gap:5px}
+.dev .rec{background:var(--ink);color:var(--page);border-bottom:3px solid var(--gold-up)}
+.dev .rec h3{color:var(--gold-hi)}
+
+/* ---- the phone: Today, as the app draws it ---- */
+.phone{position:relative;width:100%;max-width:390px;height:780px;border-radius:38px;overflow:hidden;background:var(--paper);
+  box-shadow:0 0 0 9px #17211A,0 0 0 10px #3A463D,0 30px 60px rgba(16,22,17,.28);isolation:isolate;display:flex;flex-direction:column}
+.scr{flex:1 1 auto;overflow:auto;scrollbar-width:none;min-height:0;position:relative}
+.scr::-webkit-scrollbar{display:none}
+.cover{position:relative;padding:54px 18px 18px;color:var(--page);background:
+  linear-gradient(180deg,rgba(16,22,17,.15),rgba(16,22,17,.75)),linear-gradient(135deg,#4F6B4C 0%,#2F4A3A 40%,#C48A4A 100%)}
+.cover .k{font-family:var(--ui);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold-hi);font-weight:700}
+.cover h2{margin:6px 0 4px;font-size:30px;line-height:1.05}
+.cover p{margin:0;font-size:14.5px;color:#E4E7DE}
+.np{display:flex;gap:14px;align-items:center;background:var(--ink);color:var(--page);padding:14px 18px;border-bottom:3px solid var(--gold-up)}
+.np .ring{width:74px;height:74px;border-radius:50%;display:grid;place-items:center;box-shadow:inset 0 0 0 5px #3A4D3E,inset 0 0 0 5px var(--gold-up);flex:0 0 auto}
+.np .ring b{font-size:20px;color:var(--gold-hi)}
+.np .k{font-family:var(--ui);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--sage);font-weight:700}
+.np .t{font-size:17px;font-weight:700}
+.np small{display:block;color:var(--sage);font-size:13px}
+.pad{padding:14px 14px 120px;display:grid;gap:12px}
+.ghost{background:var(--page);border-radius:14px;padding:12px 14px;box-shadow:0 0 0 .5px var(--shadow)}
+.ghost .k{font-family:var(--ui);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--turf);font-weight:700}
+.ghost b{display:block;font-size:17px;margin-top:2px}
+.tabbar{flex:0 0 auto;display:grid;grid-template-columns:repeat(6,1fr);background:var(--ink);border-top:3px solid var(--gold-up);color:var(--sage);
+  padding:8px 4px 18px;font-family:var(--ui);font-size:10.5px;text-align:center;position:relative;z-index:30}
+.tabbar span{display:grid;gap:3px;justify-items:center}
+.tabbar span.on{color:var(--page);font-weight:700} .tabbar span.gold{color:var(--gold-up)}
+.tabbar i{display:block;width:20px;height:16px;border:1.6px solid currentColor;border-radius:4px}
+
+/* the full detail, the same in all three once open */
+.det{display:grid;gap:8px}
+.det .m{font-size:14.5px;color:var(--turf)}
+.det .w{font-family:var(--ui);font-size:13px;font-weight:700;color:var(--gold);background:#F3E6CF;border-radius:8px;padding:6px 10px;justify-self:start}
+.det .l{font-family:var(--ui);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--turf);font-weight:700;margin-top:2px}
+.fl{display:grid;gap:2px;padding:8px 0;border-top:1px solid var(--hair)}
+.fl:first-of-type{border-top:0}
+.fl .h{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.fl .h b{font-size:15.5px} .fl .h span{font-size:14px;color:var(--turf)}
+.fl .h em{font-style:normal;font-family:var(--ui);font-size:11px;font-weight:800;border-radius:999px;padding:2px 7px;background:#F3E6CF;color:var(--gold)}
+.fl .n{font-size:14.5px;line-height:1.4}
+.fl .n i{font-style:normal;font-family:var(--ui);font-size:10.5px;font-weight:800;border-radius:999px;padding:2px 7px;background:var(--ink);color:var(--gold-hi);vertical-align:1px}
+.fl.me{background:color-mix(in srgb,#E2C277 18%,transparent);margin:0 -8px;padding-left:8px;padding-right:8px;border-radius:8px}
+.chev{transition:transform .25s ease}
+.open .chev{transform:rotate(180deg)}
+
+/* ---- A: the boarding pass ---- */
+.pass{position:relative;background:var(--page);border-radius:16px;box-shadow:0 0 0 .5px var(--shadow),0 10px 22px -16px rgba(16,22,17,.5);overflow:hidden}
+.pass .stub{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:12px 14px;width:100%}
+.pass .ic{width:40px;height:40px;border-radius:12px;background:var(--ink);color:var(--gold-hi);display:grid;place-items:center;font-size:19px}
+.pass .rt{display:grid;gap:1px;min-width:0}
+.pass .rt small{font-family:var(--ui);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);font-weight:800}
+.pass .rt b{font-size:17px;line-height:1.15;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.pass .rt b span{font-family:var(--ui);font-size:12px;color:var(--turf);font-weight:700;letter-spacing:.08em}
+.pass .rt i{font-style:normal;font-size:13px;color:var(--turf);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pass .tm{text-align:right;display:grid}
+.pass .tm b{font-size:22px;line-height:1}
+.pass .tm small{font-family:var(--ui);font-size:10.5px;color:var(--turf);font-weight:700}
+.pass .perf{position:relative;height:0;border-top:2px dashed var(--rule);margin:0 14px}
+.pass .perf::before,.pass .perf::after{content:"";position:absolute;top:-10px;width:18px;height:18px;border-radius:50%;background:var(--paper)}
+.pass .perf::before{left:-24px} .pass .perf::after{right:-24px}
+.pass .body{display:grid;grid-template-rows:0fr;transition:grid-template-rows .3s ease}
+.pass.open .body{grid-template-rows:1fr}
+.pass .body>div{overflow:hidden}
+.pass .inner{padding:12px 14px 14px}
+.pass .foot{display:flex;justify-content:space-between;align-items:center;padding:7px 14px 9px;font-family:var(--ui);font-size:12px;font-weight:700;color:var(--turf);background:var(--sunk)}
+.pass .foot .who{display:flex;align-items:center}
+.av{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-family:var(--ui);font-size:10px;font-weight:800;letter-spacing:-.02em;background:var(--ink);color:var(--gold-hi);box-shadow:0 0 0 2px var(--sunk);margin-left:-5px;flex:0 0 auto}
+.av:nth-child(2){background:var(--green)} .av:nth-child(3){background:#6B5530} .av:nth-child(4){background:var(--ink2)}
+.av:first-child{margin-left:0}
+.av.more{background:var(--page);color:var(--ink)}
+
+/* ---- B: the live pill, the sheet ---- */
+.pill{display:flex;align-items:center;gap:10px;width:100%;background:var(--ink);color:var(--page);border-radius:999px;padding:7px 8px 7px 7px;
+  box-shadow:0 10px 22px -12px rgba(16,22,17,.6),inset 0 0 0 1px rgba(226,194,119,.25)}
+.pill .ic{width:38px;height:38px;border-radius:50%;background:var(--gold-hi);color:var(--ink);display:grid;place-items:center;font-size:18px;flex:0 0 auto}
+.pill .tx{flex:1;min-width:0;display:grid;line-height:1.2}
+.pill .tx b{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pill .tx small{font-family:var(--ui);font-size:12px;color:var(--sage);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pill .tx small em{font-style:normal;color:var(--gold-hi);font-weight:700}
+.pill .dot{width:8px;height:8px;border-radius:50%;background:#E25A44;box-shadow:0 0 0 0 rgba(226,90,68,.6);animation:ping 1.8s infinite;flex:0 0 auto}
+@keyframes ping{70%{box-shadow:0 0 0 7px rgba(226,90,68,0)}100%{box-shadow:0 0 0 0 rgba(226,90,68,0)}}
+.pill .go{font-family:var(--ui);font-size:12.5px;font-weight:800;color:var(--ink);background:var(--gold-hi);border-radius:999px;padding:7px 11px;flex:0 0 auto}
+.scrim{position:absolute;inset:0;z-index:60;background:rgba(16,22,17,.45);display:flex;align-items:flex-end;animation:fade .2s ease both}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.sheet{width:100%;max-height:82%;overflow:auto;background:var(--paper);border-radius:22px 22px 0 0;animation:rise .3s cubic-bezier(.2,.9,.28,1) both;scrollbar-width:none}
+@keyframes rise{from{transform:translateY(40%)}to{transform:none}}
+.sheet .grab{width:42px;height:5px;border-radius:3px;background:var(--rule);margin:8px auto 2px}
+.sheet .hd{background:var(--ink);color:var(--page);margin:6px 12px 0;border-radius:16px;padding:14px 16px;border-bottom:3px solid var(--gold-up);display:grid;gap:2px}
+.sheet .hd small{font-family:var(--ui);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-hi);font-weight:800}
+.sheet .hd b{font-size:22px;line-height:1.15}
+.sheet .hd span{font-size:14px;color:#C9D2C3}
+.sheet .hd .big{display:flex;justify-content:space-between;align-items:end;margin-top:6px}
+.sheet .hd .big div{display:grid}
+.sheet .hd .big div small{color:var(--sage);letter-spacing:.1em}
+.sheet .hd .big div b{font-size:26px;color:var(--gold-hi)}
+.sheet .bd{padding:12px 16px 26px}
+.sheet .close{display:block;margin:12px auto 0;font-family:var(--ui);font-size:14px;font-weight:700;background:var(--page);border-radius:999px;padding:10px 20px;box-shadow:inset 0 0 0 1px var(--rule)}
+
+/* ---- C: the departures board ---- */
+.board{background:#121A14;color:#F1E6C8;border-radius:14px;overflow:hidden;box-shadow:0 10px 22px -14px rgba(16,22,17,.7);border-bottom:3px solid var(--gold-up)}
+.board .bt{display:grid;grid-template-columns:auto 1fr auto auto;gap:10px;align-items:center;width:100%;padding:11px 12px}
+.board .tag{font-family:var(--ui);font-size:10px;font-weight:800;letter-spacing:.14em;color:#121A14;background:var(--gold-hi);border-radius:5px;padding:4px 6px}
+.flap{font-family:var(--mono);font-weight:700;letter-spacing:.06em;font-size:14.5px;display:flex;gap:2px;min-width:0;overflow:hidden}
+.flap span{display:inline-grid;place-items:center;min-width:12px;padding:3px 1px;background:#1F2A22;border-radius:3px;box-shadow:inset 0 -1px 0 rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.04);position:relative}
+.flap span::after{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:rgba(0,0,0,.55)}
+.flap span.sp{background:none;box-shadow:none;min-width:6px}
+.flap span.sp::after{display:none}
+.board .st{font-family:var(--ui);font-size:11px;font-weight:800;letter-spacing:.1em;color:var(--gold-hi)}
+.board .st.blink{animation:bl 1.4s infinite}
+@keyframes bl{50%{opacity:.35}}
+.board .sub{display:flex;justify-content:space-between;font-family:var(--ui);font-size:12px;color:#B9B096;padding:0 12px 10px;margin-top:-4px}
+.board .rows{display:grid;grid-template-rows:0fr;transition:grid-template-rows .3s ease}
+.board.open .rows{grid-template-rows:1fr}
+.board .rows>div{overflow:hidden}
+.board table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12.5px}
+.board th{font-family:var(--ui);font-size:9.5px;letter-spacing:.14em;color:#8F8770;text-align:left;font-weight:800;padding:6px 12px;border-top:1px solid #2A352C}
+.board td{padding:7px 10px;border-top:1px solid #222D24;vertical-align:top;white-space:nowrap}
+.board td.nm{white-space:normal}
+.board td.st2{color:var(--gold-hi);font-family:var(--ui);font-size:11px;font-weight:800;letter-spacing:.08em}
+.board td.nm{font-family:var(--serif);font-size:14px;color:#F1E6C8;line-height:1.35}
+.board td.nm b{color:var(--gold-hi)}
+.board .note{font-family:var(--ui);font-size:12.5px;color:#B9B096;padding:9px 12px 12px;border-top:1px solid #2A352C}
+.board .note b{color:var(--gold-hi)}
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>Your shuttle: three ways to keep it small</h1>
+  <p>Each phone below is Today on Sunday, the day before you land. The shuttle sits small under the countdown; <b>tap it</b> to see everything: when it leaves, where to meet, whose flight it waits for, and who rides with you. Tap again to fold it away.</p>
+  <p>Sample flights and times only. Nobody’s real travel is on this page.</p>
+</header>
+
+<div class="row">
+  <section class="opt">
+    <div class="olabel"><b>A</b><span><strong>Boarding pass</strong><small>A ticket stub that tears open</small></span></div>
+    <div class="phone" id="pA"></div>
+    <div class="cap"><p class="what">A slim stub with the route, your landing time and who’s riding as little faces. Tap and it opens below the perforation, like tearing off a boarding pass.</p>
+      <ul><li>Reads at a glance: where, when, how many.</li><li>Opens in place, so the page doesn’t jump.</li><li>The most “travel” of the three.</li></ul>
+      <div class="dn"><b>Feels like</b>Wallet and airline boarding passes.</div></div>
+  </section>
+  <section class="opt">
+    <div class="olabel"><b>B</b><span><strong>Live pill</strong><small>One line, a sheet on tap</small></span></div>
+    <div class="phone" id="pB"></div>
+    <div class="cap"><p class="what">One dark pill: “Your shuttle · tomorrow · waits for XQ 200, 6:05 PM”, with a red pulse on the day. Tap and the full card rises from the bottom, like the chat.</p>
+      <ul><li>The smallest: never pushes the scores down.</li><li>The detail gets the whole screen when you want it.</li><li>Matches how the chat already opens.</li></ul>
+      <div class="dn"><b>Feels like</b>An iPhone Live Activity or an Uber trip in progress.</div></div>
+  </section>
+  <section class="opt">
+    <div class="olabel"><b>C</b><span><strong>Departures board</strong><small>Split-flap letters, airport style</small></span></div>
+    <div class="phone" id="pC"></div>
+    <div class="cap"><p class="what">Your shuttle as a line on an airport board: split-flap letters, a blinking status. Tap and the board drops down with a row per flight: time, flight, who’s on it, and its status.</p>
+      <ul><li>The boldest look on the page, so nobody misses it.</li><li>The flight rows read like a real arrivals board.</li><li>The darkest and heaviest of the three.</li></ul>
+      <div class="dn"><b>Feels like</b>Standing under the arrivals board at Antalya.</div></div>
+  </section>
+</div>
+
+<section class="dev">
+  <div class="card rec"><h3>My pick: A, the boarding pass</h3>
+    <ul><li>It holds the three things you check most (where, when, who) without opening it.</li>
+      <li>It opens where it is, so Today doesn’t jump or cover the scores.</li>
+      <li>It looks like travel at a glance, and still sits in the book’s own paper and ink.</li></ul></div>
+  <div class="card"><h3>The same in all three</h3>
+    <ul><li>It appears three days before you land, and the day before you fly home.</li>
+      <li>Opened, it shows the same detail as now: pickup, meeting point, whose flight it waits for, riders by flight.</li>
+      <li>It remembers whether you left it open.</li>
+      <li>The bleachers never see it.</li></ul></div>
+</section>
+
+<script>
+const ME = 'Ray V';
+const SH = { when: 'Tomorrow', day: 'Mon 26 Oct', meet: 'Meeting point to come', mine: { flight: 'XQ 200', time: '6:05 PM' },
+  flights: [{ flight: 'BA 1000', time: '5:10 PM', names: ['Duncan W', 'Becky'] },
+            { flight: 'XQ 200', time: '6:05 PM', last: true, names: ['Norberto III', 'Bertie (infant)', 'Norberto Jr.', 'Jennifer D', 'Matt D', 'Aimee K', 'Letty D', 'Ray V', 'Drea', 'Justin P', 'DP', 'Cary'] }] };
+const count = SH.flights.reduce((n, f) => n + f.names.length, 0);
+const ini = n => n.replace(/\(.*?\)/g, '').split(/\s+/).filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase();
+const TAB = '<div class="tabbar"><span class="on"><i></i>Today</span><span><i></i>Scores</span><span><i></i>Bets</span><span><i></i>Boards</span><span><i></i>Calendar</span><span class="gold"><i></i>Resort</span></div>';
+const TODAY = card => `<div class="scr"><div class="cover"><div class="k">Sunday 25 Oct · 1 day to go</div><h2>Practice — Get Loose Foursomes</h2><p><b>Cullinan Aspendos</b> · first tee 8:30 AM</p></div>
+  <div class="np"><div class="ring"><b>1d</b></div><div><div class="k">Next on the card</div><div class="t">Check-in · 2:00 PM</div><small>Monday</small></div></div>
+  <div class="pad">${card}<div class="ghost"><div class="k">Team competition</div><b>Ray V &amp; Drea</b></div><div class="ghost"><div class="k">MVP</div><b>Matt D</b></div><div class="ghost"><div class="k">Ryder Cup</div><b>Nothing played yet</b></div></div></div>${TAB}`;
+const detail = () => `<div class="det">
+  <div class="m">Leaves once the last flight is in · ${SH.meet}</div>
+  <div class="m" style="color:var(--ink)">You land at <b>${SH.mine.time}</b> · ${SH.mine.flight}</div>
+  <div class="w">Yours is the last flight in: the shuttle waits for it</div>
+  <div class="l">Riding together · ${count}</div>
+  ${SH.flights.map(f => `<div class="fl${f.names.includes(ME) ? ' me' : ''}"><div class="h"><b>${f.flight}</b><span>lands ${f.time}</span>${f.last ? '<em>last in</em>' : ''}</div>
+    <div class="n">${f.names.map(n => n === ME ? `<b>${n} <i>you</i></b>` : n).join(', ')}</div></div>`).join('')}
+</div>`;
+const faces = () => { const all = SH.flights.flatMap(f => f.names); return all.slice(0, 4).map(n => `<span class="av">${ini(n)}</span>`).join('') + `<span class="av more">+${all.length - 4}</span>`; };
+
+/* A: the pass */
+const A = { open: false };
+function drawA() {
+  document.getElementById('pA').innerHTML = TODAY(`<div class="pass${A.open ? ' open' : ''}">
+    <button class="stub" data-t="A" aria-expanded="${A.open}"><span class="ic">✈︎</span>
+      <span class="rt"><small>Your shuttle · ${SH.when}</small><b>AYT <span>→</span> Resort</b><i>${SH.mine.flight} · waits for the last flight</i></span>
+      <span class="tm"><b>${SH.mine.time}</b><small>you land</small></span></button>
+    <div class="perf"></div>
+    <div class="body"><div><div class="inner">${detail()}</div></div></div>
+    <button class="foot" data-t="A" style="width:100%"><span class="who">${faces()}</span><span>${A.open ? 'Fold it away' : count + ' riding · tap for all'} <span class="chev" style="display:inline-block">▾</span></span></button>
+  </div>`);
+}
+/* B: the pill */
+const B = { open: false };
+function drawB() {
+  document.getElementById('pB').innerHTML = TODAY(`<button class="pill" data-t="B"><span class="ic">✈︎</span>
+    <span class="tx"><b>Your shuttle · ${SH.when.toLowerCase()}</b><small>Waits for <em>${SH.mine.flight} · ${SH.mine.time}</em> · ${count} riding</small></span><span class="dot"></span><span class="go">Open</span></button>`)
+    + (B.open ? `<div class="scrim" data-t="B"><div class="sheet"><div class="grab"></div>
+      <div class="hd"><small>✈️ Your shuttle · ${SH.when} · ${SH.day}</small><b>The airport → the resort</b><span>${SH.meet}</span>
+        <div class="big"><div><small>You land</small><b>${SH.mine.time}</b></div><div style="text-align:right"><small>Flight</small><b>${SH.mine.flight}</b></div></div></div>
+      <div class="bd">${detail()}<button class="close" data-t="B">Done</button></div></div></div>` : '');
+}
+/* C: the board */
+const C = { open: false };
+const flap = t => `<span class="flap">${[...t].map(c => c === ' ' ? '<span class="sp"></span>' : `<span>${c}</span>`).join('')}</span>`;
+function drawC() {
+  document.getElementById('pC').innerHTML = TODAY(`<div class="board${C.open ? ' open' : ''}">
+    <button class="bt" data-t="C" aria-expanded="${C.open}"><span class="tag">SHUTTLE</span>${flap('AYT>RESORT')}${flap('18:05')}<span class="st blink">TMRW</span></button>
+    <button class="sub" data-t="C" style="width:100%"><span>${SH.day} · waits for ${SH.mine.flight}</span><span>${count} riding <span class="chev" style="display:inline-block">▾</span></span></button>
+    <div class="rows"><div>
+      <table><thead><tr><th>Lands</th><th>Flight</th><th>Riders</th></tr></thead><tbody>
+      ${SH.flights.map(f => `<tr><td>${f.time.replace(' PM', '')}</td><td>${f.flight.replace(' ', '')}${f.last ? '<br><span class="st2" style="font-size:10px">LAST IN</span>' : ''}</td>
+        <td class="nm">${f.names.map(n => n === ME ? `<b>${n} (you)</b>` : n).join(', ')}</td></tr>`).join('')}
+      </tbody></table>
+      <div class="note"><b>Leaves once the last flight is in.</b> ${SH.meet}. Yours is the last flight in: the shuttle waits for it.</div>
+    </div></div>
+  </div>`);
+}
+const draw = { A: drawA, B: drawB, C: drawC }, st = { A, B, C };
+document.addEventListener('click', e => { if (e.target.closest('.sheet') && !e.target.closest('.close')) return; const t = e.target.closest('[data-t]'); if (!t) return; const k = t.dataset.t; st[k].open = !st[k].open; draw[k](); });
+drawA(); drawB(); drawC();
+</script>
+</body>
+</html>
