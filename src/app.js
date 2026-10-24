@@ -328,6 +328,7 @@ function scrToday() {
       ${npS ? `<small>${esc(npS)}</small>` : ''}
     </div>
   </div>
+  ${shuttleCard()}
 
   <div class="today-grid">
     <div class="tg-r">
@@ -4269,13 +4270,129 @@ function scrRoster() {
       </tbody>
     </table>
   </div>
-  ${rosterPins()}`;
+  ${rosterPins()}
+  ${rosterTravel()}`;
 }
 
 /* ---- PINs and guests: the master reviewer's eyes only ----
    Everyone's chat-and-bets PIN, so one forgotten on the 9th tee is a word
    with the commissioner rather than a lost name; and every guest pass, to
    take away if one is ever misused. Drawn only for the master reviewer. */
+/* ---------------- Shuttles ----------------
+   The airport runs, both ways: who rides together, each one's flight, and
+   whose landing the shuttle waits for. The commissioner pastes the plan in
+   once, as plain lines; it is kept in the book's settings, never in the
+   code, and only people on the trip are shown it.
+
+     ARRIVE Mon 26 Oct | pickup 15:30 | Arrivals hall, exit 4
+     Ray V | XX 123 | 13:45
+     DEPART Mon 2 Nov | pickup 09:00 | Hotel lobby
+     Ray V | XX 124 | 12:40
+
+   A heading starts a shuttle; each line under it is a rider, then their
+   flight and its time, in any order after the name. */
+const TIME_RE = /\b([01]?\d|2[0-3])[:.h]([0-5]\d)\b/;
+const FLIGHT_RE = /^[A-Z0-9]{2}\s?\d{1,4}[A-Z]?$/i;
+function parseTravel(text) {
+  const shuttles = [], errs = [], warns = [];
+  const people = T.config.people || [];
+  const low = x => String(x || '').toLowerCase().replace(/\s+/g, ' ').trim();
+  let cur = null;
+  String(text || '').split(/\r?\n/).forEach((raw, i) => {
+    const line = raw.trim(), at = 'Line ' + (i + 1) + ': ';
+    if (!line || line.startsWith('#')) return;
+    const parts = line.split('|').map(x => x.trim()).filter(Boolean);
+    const head = parts[0].match(/^(arrive|arrival|arrivals|depart|departure|departures)\b\s*(.*)$/i);
+    if (head) {
+      const dir = /^arr/i.test(head[1]) ? 'arrive' : 'depart', when = head[2];
+      const num = (when.match(/\b(\d{1,2})\b/) || [])[1];
+      const day = D.DAYS.find(d => num ? +d.date.split(' ')[0] === +num : low(when) && low(d.dow).startsWith(low(when).slice(0, 3)));
+      if (!day) { errs.push(at + 'which day? Write it like “ARRIVE Mon 26 Oct”.'); cur = null; return; }
+      cur = { id: 'sh' + (shuttles.length + 1), dir, dayIdx: day.n, pickup: null, meet: '', riders: [] };
+      for (const x of parts.slice(1)) {
+        const t = x.match(TIME_RE);
+        if (/pick ?up|leaves?|departs?/i.test(x) && t) cur.pickup = t[1].padStart(2, '0') + ':' + t[2];
+        else cur.meet = cur.meet ? cur.meet + ' · ' + x : x;
+      }
+      shuttles.push(cur); return;
+    }
+    if (!cur) { errs.push(at + 'start with a shuttle heading first, like “ARRIVE Mon 26 Oct”.'); return; }
+    const name = parts[0], p = people.find(x => low(x.display) === low(name) || low(x.name) === low(name));
+    if (!p) warns.push(at + '“' + name + '” isn’t on the roster: kept, but they won’t see it in the app.');
+    const r = { pid: p ? p.id : null, name: p ? p.display : name, flight: '', time: null };
+    for (const x of parts.slice(1)) {
+      const t = x.match(TIME_RE);
+      if (FLIGHT_RE.test(x.replace(/\s+/g, ' '))) r.flight = x.toUpperCase().replace(/\s+/g, ' ');
+      else if (t) r.time = t[1].padStart(2, '0') + ':' + t[2];
+      else r.flight = r.flight || x;
+    }
+    cur.riders.push(r);
+  });
+  shuttles.forEach(sh => { if (!sh.riders.length) warns.push('The ' + (sh.dir === 'arrive' ? 'arrival' : 'departure') + ' shuttle on ' + E.dayOf(sh.dayIdx).dow + ' has nobody on it.'); });
+  return { shuttles, errs, warns };
+}
+const shuttles = () => ((T.config.travel || {}).shuttles || []);
+/** The shuttle to show someone on Today: the arrival from three days out,
+ *  the departure from the day before, each until its day is over. */
+function myShuttle(pid) {
+  if (!pid) return null;
+  const day = iso => Date.parse(iso) / 86400000, today = day(now.iso);
+  return shuttles().filter(sh => sh.riders.some(r => r.pid === pid))
+    .map(sh => ({ sh, d: day(E.dayOf(sh.dayIdx).iso) }))
+    .filter(x => today <= x.d && today >= x.d - (x.sh.dir === 'arrive' ? 3 : 1))
+    .sort((a, b) => a.d - b.d).map(x => x.sh)[0] || null;
+}
+/** Your shuttle, on Today: who you ride with, and whose flight it waits for. */
+function shuttleCard() {
+  const me = whoAmI();
+  if (!me || isGuest(me)) return '';                 // the trip's own travel, not the bleachers'
+  const sh = myShuttle(me);
+  if (!sh) return '';
+  const d = E.dayOf(sh.dayIdx), arrive = sh.dir === 'arrive';
+  const diff = Math.round((Date.parse(d.iso) - Date.parse(now.iso)) / 86400000);
+  const when = diff === 0 ? 'Today' : diff === 1 ? 'Tomorrow' : d.dow + ' ' + d.date;
+  const rs = sh.riders.slice().sort((a, b) => String(a.time || '99').localeCompare(String(b.time || '99')));
+  const mine = rs.find(r => r.pid === me);
+  const timed = rs.filter(r => r.time), last = arrive && timed.length > 1 ? timed[timed.length - 1] : null;
+  const wait = arrive && mine && mine.time ? timed.filter(r => r.pid !== me && r.time > mine.time) : [];
+  return `<section class="shuttle" aria-label="Your shuttle">
+    <div class="sh-k">✈️ Your shuttle · ${esc(when)}</div>
+    <b class="sh-t">${arrive ? 'The airport → the resort' : 'The resort → the airport'}</b>
+    <div class="sh-m">${sh.pickup ? 'Leaves <b class="num">' + esc(E.to12(sh.pickup)) + '</b>' : arrive ? 'Leaves once the last flight is in' : 'Pickup time to come'}${sh.meet ? ' · ' + esc(sh.meet) : ''}</div>
+    ${mine && (mine.time || mine.flight) ? `<div class="sh-you">You ${arrive ? 'land' : 'fly'}${mine.time ? ' at <b class="num">' + esc(E.to12(mine.time)) + '</b>' : ''}${mine.flight ? ' · ' + esc(mine.flight) : ''}</div>` : ''}
+    ${wait.length ? `<div class="sh-w">Waiting for ${esc(wait.map(r => r.name).join(', '))} to land</div>` : ''}
+    <div class="sh-l">${rs.length > 1 ? (arrive ? 'Riding together, by landing time' : 'Riding together') : 'Just you on this one'}</div>
+    <div class="sh-rs">${rs.map(r => `<div class="sh-r${r.pid === me ? ' me' : ''}"><span>${esc(r.name)}${r.pid === me ? ' <i>you</i>' : ''}${r === last ? ' <em>last in</em>' : ''}</span>
+      <span class="num">${esc(r.flight || '')}</span><b class="num">${r.time ? esc(E.to12(r.time)) : '—'}</b></div>`).join('')}</div>
+  </section>`;
+}
+/** The commissioner's paste box for the shuttle plan, on Roster. */
+function rosterTravel() {
+  if (!canAdmin()) return '';
+  const tr = T.config.travel || {}, text = UI.travelDraft != null ? UI.travelDraft : (tr.text || '');
+  const chk = UI.travelCheck;
+  const list = sh => `<div class="trv-sh"><b>${sh.dir === 'arrive' ? 'Arrival' : 'Departure'} · ${esc(E.dayOf(sh.dayIdx).dow + ' ' + E.dayOf(sh.dayIdx).date)}${sh.pickup ? ' · ' + esc(E.to12(sh.pickup)) : ''}</b>
+      ${sh.meet ? `<span>${esc(sh.meet)}</span>` : ''}<span>${sh.riders.map(r => esc(r.name) + (r.time ? ' ' + esc(E.to12(r.time)) : '') + (r.flight ? ' (' + esc(r.flight) + ')' : '')).join(' · ') || 'nobody yet'}</span></div>`;
+  return `<div class="titlerow" style="margin-top:44px">
+    <h3 class="sub" style="font-size:28px;font-weight:700;margin:0">✈️ Shuttles</h3>
+    <span class="rnote">Only you can edit this. Everyone on the trip sees their own shuttle on Today, from three days before they land; the bleachers never see it. One heading a shuttle, then a line a rider: name | flight | time.</span>
+  </div>
+  <textarea id="travelText" class="trv-in" rows="10" spellcheck="false" autocapitalize="off" placeholder="ARRIVE Mon 26 Oct | pickup 15:30 | Arrivals hall, exit 4
+Ray V | XX 123 | 13:45
+Drea | XX 456 | 14:20
+
+DEPART Mon 2 Nov | pickup 09:00 | Hotel lobby
+Ray V | XX 124 | 12:40">${esc(text)}</textarea>
+  <div class="trv-acts"><button class="btn ghost" data-act="travelCheck">Check it</button><button class="btn" data-act="travelSave">Save</button></div>
+  ${chk ? `<div class="trv-chk">${chk.errs.map(e => `<p class="xm-err">${esc(e)}</p>`).join('')}${chk.warns.map(e => `<p class="trv-warn">${esc(e)}</p>`).join('')}
+    ${chk.shuttles.length ? `<p class="trv-ok">${chk.saved ? 'Saved: ' : 'Reads as '}${chk.shuttles.length} shuttle${chk.shuttles.length === 1 ? '' : 's'}${chk.errs.length ? '' : ', all good'}.</p>` + chk.shuttles.map(list).join('') : ''}</div>`
+    : shuttles().length ? `<p class="trv-ok">${shuttles().length} shuttle${shuttles().length === 1 ? '' : 's'} saved.</p>` + shuttles().map(list).join('') : '<p class="pnote">No shuttles yet.</p>'}`;
+}
+function travelRead() {
+  const f = document.getElementById('travelText');
+  if (f) UI.travelDraft = f.value;
+  return UI.travelDraft != null ? UI.travelDraft : ((T.config.travel || {}).text || '');
+}
 function rosterPins() {
   if (!canAdmin()) return '';
   const ppl = T.config.people || [], gs = allGuests().sort((a, b) => (a.at || 0) - (b.at || 0));
@@ -7312,6 +7429,14 @@ function onClick(e) {
     case 'xTab': UI.xTab = a; UI.xAbout = 'all'; UI.liftTo = '.xm-tabs'; render(); return;
     case 'xMore': UI.xMore = a || null; render(); return;
     case 'xWho': UI.xWho = UI.xWho === a ? null : a; render(); return;
+    case 'travelCheck': { const f = document.activeElement; if (f && f.blur) f.blur(); UI.travelCheck = parseTravel(travelRead()); render(); return; }
+    case 'travelSave': {
+      const f = document.activeElement; if (f && f.blur) f.blur();
+      const text = travelRead(), r = parseTravel(text);
+      if (r.errs.length) { UI.travelCheck = r; render(); return; }
+      store.writeConfig(c => { c.travel = { text, shuttles: r.shuttles, at: Date.now() }; });
+      UI.travelDraft = null; UI.travelCheck = { ...r, saved: true }; render(); return;
+    }
     case 'xOpen':
       UI.xView = a; UI.xErr = ''; UI.liftTo = '.xm-anchor';
       UI.xTicket = { m: a, side: b === 'no' ? 'no' : 'yes', act: 'buy', type: 'market', beers: 1, lim: null };
@@ -8547,6 +8672,7 @@ export function boot() {
     }
     if (e.target && e.target.id === 'resortQ') { UI.resortQ = e.target.value; filterGuide(); }
     if (e.target && e.target.id === 'chatText') { UI.chatDraft = e.target.value; atSuggest(e.target); }
+    if (e.target && e.target.id === 'travelText') UI.travelDraft = e.target.value;
     if (e.target && e.target.id === 'guestName') UI.guestDraft = e.target.value;
     if (e.target && /^whoPin[AB]$/.test(e.target.id) && UI.modal && UI.modal.kind === 'whopin') UI.modal[e.target.id === 'whoPinA' ? 'a' : 'b'] = e.target.value;
     if (e.target && e.target.id === 'xQ' && UI.xNew) UI.xNew.q = e.target.value;
