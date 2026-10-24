@@ -4353,17 +4353,30 @@ function shuttleCard() {
   const when = diff === 0 ? 'Today' : diff === 1 ? 'Tomorrow' : d.dow + ' ' + d.date;
   const rs = sh.riders.slice().sort((a, b) => String(a.time || '99').localeCompare(String(b.time || '99')));
   const mine = rs.find(r => r.pid === me);
-  const timed = rs.filter(r => r.time), last = arrive && timed.length > 1 ? timed[timed.length - 1] : null;
-  const wait = arrive && mine && mine.time ? timed.filter(r => r.pid !== me && r.time > mine.time) : [];
+  /* Riders by flight: a planeload is one line, not fourteen. */
+  const flights = [];
+  for (const r of rs) {
+    const key = (r.flight || '') + '|' + (r.time || '');
+    let f = flights.find(x => x.key === key);
+    if (!f) flights.push(f = { key, flight: r.flight, time: r.time, rs: [] });
+    f.rs.push(r);
+  }
+  const lastT = arrive ? rs.filter(r => r.time).map(r => r.time).sort().pop() : null;
+  const later = arrive && mine && mine.time ? flights.filter(f => f.time && f.time > mine.time) : [];
+  const many = flights.filter(f => f.time).length > 1;
+  const said = f => (f.flight || 'Their flight') + ' to land at ' + E.to12(f.time);
   return `<section class="shuttle" aria-label="Your shuttle">
     <div class="sh-k">✈️ Your shuttle · ${esc(when)}</div>
     <b class="sh-t">${arrive ? 'The airport → the resort' : 'The resort → the airport'}</b>
     <div class="sh-m">${sh.pickup ? 'Leaves <b class="num">' + esc(E.to12(sh.pickup)) + '</b>' : arrive ? 'Leaves once the last flight is in' : 'Pickup time to come'}${sh.meet ? ' · ' + esc(sh.meet) : ''}</div>
-    ${mine && (mine.time || mine.flight) ? `<div class="sh-you">You ${arrive ? 'land' : 'fly'}${mine.time ? ' at <b class="num">' + esc(E.to12(mine.time)) + '</b>' : ''}${mine.flight ? ' · ' + esc(mine.flight) : ''}</div>` : ''}
-    ${wait.length ? `<div class="sh-w">Waiting for ${esc(wait.map(r => r.name).join(', '))} to land</div>` : ''}
-    <div class="sh-l">${rs.length > 1 ? (arrive ? 'Riding together, by landing time' : 'Riding together') : 'Just you on this one'}</div>
-    <div class="sh-rs">${rs.map(r => `<div class="sh-r${r.pid === me ? ' me' : ''}"><span>${esc(r.name)}${r.pid === me ? ' <i>you</i>' : ''}${r === last ? ' <em>last in</em>' : ''}</span>
-      <span class="num">${esc(r.flight || '')}</span><b class="num">${r.time ? esc(E.to12(r.time)) : '—'}</b></div>`).join('')}</div>
+    ${mine && mine.time ? `<div class="sh-you">You ${arrive ? 'land' : 'fly'} at <b class="num">${esc(E.to12(mine.time))}</b>${mine.flight ? ' · ' + esc(mine.flight) : ''}</div>`
+      : mine && mine.flight ? `<div class="sh-you">${arrive ? 'Your flight' : 'Where you’re going'}: ${esc(mine.flight)}</div>` : ''}
+    ${later.length ? `<div class="sh-w">Waiting for ${esc(later.map(said).join(', then '))}</div>`
+      : arrive && many && mine && mine.time && mine.time === lastT ? '<div class="sh-w">Yours is the last flight in: the shuttle waits for it</div>' : ''}
+    <div class="sh-l">${rs.length > 1 ? 'Riding together · ' + rs.length : 'Just you on this one'}</div>
+    <div class="sh-fs">${flights.map(f => `<div class="sh-f${f.rs.some(r => r.pid === me) ? ' me' : ''}">
+      <div class="sh-fh"><b>${esc(f.flight || (arrive ? 'Flight to come' : 'Along for the ride'))}</b>${f.time ? `<span class="num">${arrive ? 'lands' : 'flies'} ${esc(E.to12(f.time))}</span>` : ''}${arrive && many && f.time === lastT ? '<em>last in</em>' : ''}</div>
+      <div class="sh-fn">${f.rs.map(r => r.pid === me ? `<b>${esc(r.name)} <i>you</i></b>` : esc(r.name)).join(', ')}</div></div>`).join('')}</div>
   </section>`;
 }
 /** The commissioner's paste box for the shuttle plan, on Roster. */

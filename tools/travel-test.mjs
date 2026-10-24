@@ -60,10 +60,13 @@ await go('today', 'g6');
 ok('Ray V lands tomorrow: his shuttle is on Today', [await p.locator('.shuttle .sh-k').innerText(), await p.locator('.shuttle .sh-t').innerText()], ['✈️ YOUR SHUTTLE · TOMORROW', 'The airport → the resort']);
 ok('when it leaves and where to meet', (await p.locator('.shuttle .sh-m').innerText()).replace(/\s+/g, ' '), 'Leaves 4:00 PM · Arrivals hall, exit 4');
 ok('his own landing', (await p.locator('.shuttle .sh-you').innerText()).replace(/\s+/g, ' '), 'You land at 1:45 PM · XX 123');
-ok('who he waits for', await p.locator('.shuttle .sh-w').innerText(), 'Waiting for Uncle Bob, Matt D to land');
-ok('everyone on it, by landing time, the last one marked', (await p.locator('.shuttle .sh-r').allInnerTexts()).map(t => t.replace(/\s+/g, ' ').trim()),
-  ['Ray V you XX 123 1:45 PM', 'Uncle Bob XX 789 2:30 PM', 'Matt D last in XX 456 3:10 PM']);
+ok('who he waits for, by flight', await p.locator('.shuttle .sh-w').innerText(), 'Waiting for XX 789 to land at 2:30 PM, then XX 456 to land at 3:10 PM');
+ok('riders by flight, his own lit, the last one in marked', (await p.locator('.shuttle .sh-f').allInnerTexts()).map(t => t.replace(/\s+/g, ' ').trim()),
+  ['XX 123 lands 1:45 PM Ray V you', 'XX 789 lands 2:30 PM Uncle Bob', 'XX 456 lands 3:10 PM last in Matt D']);
+ok('with the count', await p.locator('.shuttle .sh-l').innerText(), 'RIDING TOGETHER · 3');
 await shot('travel-today');
+await go('today', 'g3');
+ok('the last one in is told the shuttle waits for him', await p.locator('.shuttle .sh-w').innerText(), 'Yours is the last flight in: the shuttle waits for it');
 await go('today', 'g9');
 ok('someone not on a shuttle sees nothing', await p.locator('.shuttle').count(), 0);
 await p.evaluate(() => { const T = window.__T; T.chat.guest_xd9 = { id: 'guest_xd9', k: 'g', pid: 'xd9', name: 'Aunt May', at: Date.now(), dev: 'd9' };

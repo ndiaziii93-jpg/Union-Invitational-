@@ -4430,6 +4430,16 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 .sh-you{color:var(--ink)}
 .sh-w{font-size:14px;font-weight:700;color:#8C6B2F;background:#F3E6CF;border-radius:8px;padding:5px 9px;justify-self:start}
 .sh-l{margin-top:6px;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--turf);font-weight:700}
+.sh-fs{display:grid}
+.sh-f{padding:8px 0;border-top:1px solid var(--hair);display:grid;gap:2px}
+.sh-f:first-child{border-top:0}
+.sh-f.me{background:color-mix(in srgb,#E2C277 16%,transparent);margin:0 -8px;padding-left:8px;padding-right:8px;border-radius:8px}
+.sh-fh{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.sh-fh b{font-size:15.5px}
+.sh-fh span{font-size:14px;color:var(--turf)}
+.sh-fh em{font-style:normal;font-size:11px;font-weight:800;border-radius:999px;padding:2px 7px;background:#F3E6CF;color:#8C6B2F}
+.sh-fn{font-size:15px;line-height:1.4}
+.sh-fn i{font-style:normal;font-size:11px;font-weight:800;border-radius:999px;padding:2px 7px;background:var(--ink);color:#E2C277;vertical-align:1px}
 .sh-rs{display:grid}
 .sh-r{display:grid;grid-template-columns:minmax(0,1fr) auto 72px;gap:10px;align-items:baseline;padding:7px 0;border-top:1px solid var(--hair);font-size:15px}
 .sh-r:first-child{border-top:0}
@@ -4576,7 +4586,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261024-1025';
+const BUILD = '20261024-1125';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -13989,17 +13999,30 @@ function shuttleCard() {
   const when = diff === 0 ? 'Today' : diff === 1 ? 'Tomorrow' : d.dow + ' ' + d.date;
   const rs = sh.riders.slice().sort((a, b) => String(a.time || '99').localeCompare(String(b.time || '99')));
   const mine = rs.find(r => r.pid === me);
-  const timed = rs.filter(r => r.time), last = arrive && timed.length > 1 ? timed[timed.length - 1] : null;
-  const wait = arrive && mine && mine.time ? timed.filter(r => r.pid !== me && r.time > mine.time) : [];
+  /* Riders by flight: a planeload is one line, not fourteen. */
+  const flights = [];
+  for (const r of rs) {
+    const key = (r.flight || '') + '|' + (r.time || '');
+    let f = flights.find(x => x.key === key);
+    if (!f) flights.push(f = { key, flight: r.flight, time: r.time, rs: [] });
+    f.rs.push(r);
+  }
+  const lastT = arrive ? rs.filter(r => r.time).map(r => r.time).sort().pop() : null;
+  const later = arrive && mine && mine.time ? flights.filter(f => f.time && f.time > mine.time) : [];
+  const many = flights.filter(f => f.time).length > 1;
+  const said = f => (f.flight || 'Their flight') + ' to land at ' + E.to12(f.time);
   return `<section class="shuttle" aria-label="Your shuttle">
     <div class="sh-k">✈️ Your shuttle · ${esc(when)}</div>
     <b class="sh-t">${arrive ? 'The airport → the resort' : 'The resort → the airport'}</b>
     <div class="sh-m">${sh.pickup ? 'Leaves <b class="num">' + esc(E.to12(sh.pickup)) + '</b>' : arrive ? 'Leaves once the last flight is in' : 'Pickup time to come'}${sh.meet ? ' · ' + esc(sh.meet) : ''}</div>
-    ${mine && (mine.time || mine.flight) ? `<div class="sh-you">You ${arrive ? 'land' : 'fly'}${mine.time ? ' at <b class="num">' + esc(E.to12(mine.time)) + '</b>' : ''}${mine.flight ? ' · ' + esc(mine.flight) : ''}</div>` : ''}
-    ${wait.length ? `<div class="sh-w">Waiting for ${esc(wait.map(r => r.name).join(', '))} to land</div>` : ''}
-    <div class="sh-l">${rs.length > 1 ? (arrive ? 'Riding together, by landing time' : 'Riding together') : 'Just you on this one'}</div>
-    <div class="sh-rs">${rs.map(r => `<div class="sh-r${r.pid === me ? ' me' : ''}"><span>${esc(r.name)}${r.pid === me ? ' <i>you</i>' : ''}${r === last ? ' <em>last in</em>' : ''}</span>
-      <span class="num">${esc(r.flight || '')}</span><b class="num">${r.time ? esc(E.to12(r.time)) : '—'}</b></div>`).join('')}</div>
+    ${mine && mine.time ? `<div class="sh-you">You ${arrive ? 'land' : 'fly'} at <b class="num">${esc(E.to12(mine.time))}</b>${mine.flight ? ' · ' + esc(mine.flight) : ''}</div>`
+      : mine && mine.flight ? `<div class="sh-you">${arrive ? 'Your flight' : 'Where you’re going'}: ${esc(mine.flight)}</div>` : ''}
+    ${later.length ? `<div class="sh-w">Waiting for ${esc(later.map(said).join(', then '))}</div>`
+      : arrive && many && mine && mine.time && mine.time === lastT ? '<div class="sh-w">Yours is the last flight in: the shuttle waits for it</div>' : ''}
+    <div class="sh-l">${rs.length > 1 ? 'Riding together · ' + rs.length : 'Just you on this one'}</div>
+    <div class="sh-fs">${flights.map(f => `<div class="sh-f${f.rs.some(r => r.pid === me) ? ' me' : ''}">
+      <div class="sh-fh"><b>${esc(f.flight || (arrive ? 'Flight to come' : 'Along for the ride'))}</b>${f.time ? `<span class="num">${arrive ? 'lands' : 'flies'} ${esc(E.to12(f.time))}</span>` : ''}${arrive && many && f.time === lastT ? '<em>last in</em>' : ''}</div>
+      <div class="sh-fn">${f.rs.map(r => r.pid === me ? `<b>${esc(r.name)} <i>you</i></b>` : esc(r.name)).join(', ')}</div></div>`).join('')}</div>
   </section>`;
 }
 /** The commissioner's paste box for the shuttle plan, on Roster. */
