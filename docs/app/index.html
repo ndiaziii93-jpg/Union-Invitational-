@@ -4296,7 +4296,8 @@ html.kbd .xm-backfab{display:none}
 .xm-kv{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:14.5px;color:var(--turf)}
 .xm-kv b{color:var(--ink);text-align:right}
 .xm-kv b.up{color:#2F7A4A} .xm-kv b.dn{color:var(--flag)}
-.xm-go{width:100%}
+.xm-go{width:100%;display:flex;align-items:center;justify-content:center;gap:6px;text-align:center;border-radius:999px;min-height:54px;padding:13px 22px;font-size:16.5px;font-weight:700;border-bottom:2px solid #C9A253;-webkit-appearance:none;appearance:none}
+.xm-page .btn,.xm-tk .btn{border-radius:999px}
 .xm-note{margin:0;font-size:13px;color:var(--turf);line-height:1.4}
 .xm-err{margin:0;font-size:14px;color:var(--flag);font-weight:600}
 .xm-ob{display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13.5px}
@@ -4592,7 +4593,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261023-2152';
+const BUILD = '20261024-0941';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -18221,7 +18222,7 @@ if ('serviceWorker' in navigator) {
    So every return reads the build stamp off the server and, when it has
    moved on, the page reloads itself — unless a hole is half entered, in
    which case it waits for the save. */
-var BOOK_BUILD = '20261023-2152';
+var BOOK_BUILD = '20261024-0941';
 function checkBuild() {
   if (document.hidden || navigator.onLine === false) return;
   fetch('sw.js', { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (t) {
