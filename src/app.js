@@ -4365,20 +4365,38 @@ function shuttleCard() {
   const later = arrive && mine && mine.time ? flights.filter(f => f.time && f.time > mine.time) : [];
   const many = flights.filter(f => f.time).length > 1;
   const said = f => (f.flight || 'Their flight') + ' to land at ' + E.to12(f.time);
-  return `<section class="shuttle" aria-label="Your shuttle">
-    <div class="sh-k">✈️ Your shuttle · ${esc(when)}</div>
-    <b class="sh-t">${arrive ? 'The airport → the resort' : 'The resort → the airport'}</b>
-    <div class="sh-m">${sh.pickup ? 'Leaves <b class="num">' + esc(E.to12(sh.pickup)) + '</b>' : arrive ? 'Leaves once the last flight is in' : 'Pickup time to come'}${sh.meet ? ' · ' + esc(sh.meet) : ''}</div>
-    ${mine && mine.time ? `<div class="sh-you">You ${arrive ? 'land' : 'fly'} at <b class="num">${esc(E.to12(mine.time))}</b>${mine.flight ? ' · ' + esc(mine.flight) : ''}</div>`
-      : mine && mine.flight ? `<div class="sh-you">${arrive ? 'Your flight' : 'Where you’re going'}: ${esc(mine.flight)}</div>` : ''}
-    ${later.length ? `<div class="sh-w">Waiting for ${esc(later.map(said).join(', then '))}</div>`
-      : arrive && many && mine && mine.time && mine.time === lastT ? '<div class="sh-w">Yours is the last flight in: the shuttle waits for it</div>' : ''}
-    <div class="sh-l">${rs.length > 1 ? 'Riding together · ' + rs.length : 'Just you on this one'}</div>
-    <div class="sh-fs">${flights.map(f => `<div class="sh-f${f.rs.some(r => r.pid === me) ? ' me' : ''}">
-      <div class="sh-fh"><b>${esc(f.flight || (arrive ? 'Flight to come' : 'Along for the ride'))}</b>${f.time ? `<span class="num">${arrive ? 'lands' : 'flies'} ${esc(E.to12(f.time))}</span>` : ''}${arrive && many && f.time === lastT ? '<em>last in</em>' : ''}</div>
-      <div class="sh-fn">${f.rs.map(r => r.pid === me ? `<b>${esc(r.name)} <i>you</i></b>` : esc(r.name)).join(', ')}</div></div>`).join('')}</div>
+  /* Folded, it is a boarding-pass stub: where, when, how many. Tapped, it
+     opens below the perforation with the rest. The phone remembers which. */
+  const open = shuttleOpen();
+  const route = arrive ? 'AYT <span>→</span> Resort' : 'Resort <span>→</span> AYT';
+  const big = arrive ? (mine && mine.time ? [E.to12(mine.time), 'you land'] : null)
+    : sh.pickup ? [E.to12(sh.pickup), 'pickup'] : mine && mine.time ? [E.to12(mine.time), 'you fly'] : null;
+  const line = arrive
+    ? (mine && mine.flight ? mine.flight + ' · ' : '') + (later.length ? 'waits for ' + later[later.length - 1].flight : many && mine && mine.time === lastT ? 'waits for your flight' : 'straight to the resort')
+    : (mine && mine.flight ? mine.flight + (mine.time && sh.pickup ? ' at ' + E.to12(mine.time) : '') + ' · ' : '') + (sh.pickup ? 'pickup at the resort' : 'pickup time to come');
+  const faces = rs.filter(r => r.pid !== me).slice(0, 4);
+  return `<section class="shuttle${open ? ' open' : ''}" aria-label="Your shuttle">
+    <button class="sh-stub" data-act="shuttleToggle" aria-expanded="${open}"><span class="sh-ic" aria-hidden="true">✈︎</span>
+      <span class="sh-rt"><small>Your shuttle · ${esc(when)}</small><b>${route}</b><i>${esc(line)}</i></span>
+      ${big ? `<span class="sh-tm"><b class="num">${esc(big[0])}</b><small>${big[1]}</small></span>` : ''}</button>
+    <div class="sh-perf" aria-hidden="true"></div>
+    ${open ? `<div class="sh-body">
+      <div class="sh-m">${sh.pickup ? 'Leaves <b class="num">' + esc(E.to12(sh.pickup)) + '</b>' : arrive ? 'Leaves once the last flight is in' : 'Pickup time to come'}${sh.meet ? ' · ' + esc(sh.meet) : ''}</div>
+      ${mine && mine.time ? `<div class="sh-you">You ${arrive ? 'land' : 'fly'} at <b class="num">${esc(E.to12(mine.time))}</b>${mine.flight ? ' · ' + esc(mine.flight) : ''}</div>`
+        : mine && mine.flight ? `<div class="sh-you">${arrive ? 'Your flight' : 'Where you’re going'}: ${esc(mine.flight)}</div>` : ''}
+      ${later.length ? `<div class="sh-w">Waiting for ${esc(later.map(said).join(', then '))}</div>`
+        : arrive && many && mine && mine.time && mine.time === lastT ? '<div class="sh-w">Yours is the last flight in: the shuttle waits for it</div>' : ''}
+      <div class="sh-l">${rs.length > 1 ? 'Riding together · ' + rs.length : 'Just you on this one'}</div>
+      <div class="sh-fs">${flights.map(f => `<div class="sh-f${f.rs.some(r => r.pid === me) ? ' me' : ''}">
+        <div class="sh-fh"><b>${esc(f.flight || (arrive ? 'Flight to come' : 'Along for the ride'))}</b>${f.time ? `<span class="num">${arrive ? 'lands' : 'flies'} ${esc(E.to12(f.time))}</span>` : ''}${arrive && many && f.time === lastT ? '<em>last in</em>' : ''}</div>
+        <div class="sh-fn">${f.rs.map(r => r.pid === me ? `<b>${esc(r.name)} <i>you</i></b>` : esc(r.name)).join(', ')}</div></div>`).join('')}</div>
+    </div>` : ''}
+    <button class="sh-foot" data-act="shuttleToggle" aria-expanded="${open}"><span class="sh-who" aria-hidden="true">${faces.map(r => `<span class="sh-av">${esc(initialsOf(r.name.replace(/\(.*?\)/g, '')))}</span>`).join('')}${rs.length - 1 > faces.length ? `<span class="sh-av more">+${rs.length - 1 - faces.length}</span>` : ''}</span>
+      <span>${open ? 'Fold it away' : rs.length > 1 ? rs.length + ' riding · tap for all' : 'Tap for the details'} <span class="sh-chev" aria-hidden="true">▾</span></span></button>
   </section>`;
 }
+const SHUTTLE_KEY = 'union-invitational:shuttleOpen';
+function shuttleOpen() { try { return localStorage.getItem(SHUTTLE_KEY) === '1'; } catch (e) { return false; } }
 /** The commissioner's paste box for the shuttle plan, on Roster. */
 function rosterTravel() {
   if (!canAdmin()) return '';
@@ -7442,6 +7460,7 @@ function onClick(e) {
     case 'xTab': UI.xTab = a; UI.xAbout = 'all'; UI.liftTo = '.xm-tabs'; render(); return;
     case 'xMore': UI.xMore = a || null; render(); return;
     case 'xWho': UI.xWho = UI.xWho === a ? null : a; render(); return;
+    case 'shuttleToggle': { const o = !shuttleOpen(); try { localStorage.setItem(SHUTTLE_KEY, o ? '1' : ''); } catch (e) { /* storage blocked: it just folds back next time */ } render(); return; }
     case 'travelCheck': { const f = document.activeElement; if (f && f.blur) f.blur(); UI.travelCheck = parseTravel(travelRead()); render(); return; }
     case 'travelSave': {
       const f = document.activeElement; if (f && f.blur) f.blur();

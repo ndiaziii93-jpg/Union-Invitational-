@@ -4422,8 +4422,31 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 .xm-subh{margin:18px 0 0;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);font-weight:800;border-bottom:1px solid var(--rule);padding-bottom:5px}
 
 /* ---- your shuttle, on Today; the plan, on Roster ---- */
-.shuttle{position:relative;margin:14px 0 0;background:var(--page);border-radius:16px;padding:14px 16px;box-shadow:0 0 0 .5px var(--shadow);
-  border-left:4px solid #C9A253;display:grid;gap:4px}
+.shuttle{position:relative;margin:14px 0 0;background:var(--page);border-radius:16px;box-shadow:0 0 0 .5px var(--shadow),0 10px 22px -16px rgba(16,22,17,.5);overflow:hidden}
+.sh-stub{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;width:100%;padding:12px 14px;background:none;border:0;font:inherit;color:var(--ink);text-align:left;cursor:pointer}
+.sh-ic{width:42px;height:42px;border-radius:12px;background:var(--ink);color:#E2C277;display:grid;place-items:center;font-size:20px}
+.sh-rt{display:grid;gap:1px;min-width:0}
+.sh-rt small{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sh-rt b{font-size:18px;line-height:1.15;white-space:nowrap}
+.sh-rt b span{font-size:13px;color:var(--turf);margin:0 2px}
+.sh-rt i{font-style:normal;font-size:13.5px;color:var(--turf);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sh-tm{display:grid;text-align:right}
+.sh-tm b{font-size:23px;line-height:1}
+.sh-tm small{font-size:11px;color:var(--turf);font-weight:700}
+.sh-perf{position:relative;height:0;border-top:2px dashed var(--rule);margin:0 14px}
+.sh-perf::before,.sh-perf::after{content:"";position:absolute;top:-10px;width:18px;height:18px;border-radius:50%;background:var(--paper)}
+.sh-perf::before{left:-24px} .sh-perf::after{right:-24px}
+.sh-body{display:grid;gap:4px;padding:12px 16px 12px;animation:fadeIn .25s ease both}
+.sh-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;padding:8px 14px 9px;background:var(--sunk,#DBD2BA);border:0;
+  font:inherit;font-size:13px;font-weight:700;color:var(--turf);cursor:pointer;min-height:44px}
+.sh-who{display:flex;align-items:center}
+.sh-av{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:10px;font-weight:800;background:var(--ink);color:#E2C277;
+  box-shadow:0 0 0 2px var(--sunk,#DBD2BA);margin-left:-5px}
+.sh-av:first-child{margin-left:0}
+.sh-av:nth-child(2){background:#3E5C43} .sh-av:nth-child(3){background:#6B5530} .sh-av:nth-child(4){background:#2A3D2E}
+.sh-av.more{background:var(--page);color:var(--ink)}
+.sh-chev{display:inline-block;transition:transform .25s ease}
+.shuttle.open .sh-chev{transform:rotate(180deg)}
 .sh-k{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);font-weight:800}
 .sh-t{font-size:20px;line-height:1.2}
 .sh-m,.sh-you{font-size:15px;color:var(--turf)}
@@ -4557,7 +4580,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261024-1125';
+const BUILD = '20261024-1149';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -13982,20 +14005,38 @@ function shuttleCard() {
   const later = arrive && mine && mine.time ? flights.filter(f => f.time && f.time > mine.time) : [];
   const many = flights.filter(f => f.time).length > 1;
   const said = f => (f.flight || 'Their flight') + ' to land at ' + E.to12(f.time);
-  return `<section class="shuttle" aria-label="Your shuttle">
-    <div class="sh-k">✈️ Your shuttle · ${esc(when)}</div>
-    <b class="sh-t">${arrive ? 'The airport → the resort' : 'The resort → the airport'}</b>
-    <div class="sh-m">${sh.pickup ? 'Leaves <b class="num">' + esc(E.to12(sh.pickup)) + '</b>' : arrive ? 'Leaves once the last flight is in' : 'Pickup time to come'}${sh.meet ? ' · ' + esc(sh.meet) : ''}</div>
-    ${mine && mine.time ? `<div class="sh-you">You ${arrive ? 'land' : 'fly'} at <b class="num">${esc(E.to12(mine.time))}</b>${mine.flight ? ' · ' + esc(mine.flight) : ''}</div>`
-      : mine && mine.flight ? `<div class="sh-you">${arrive ? 'Your flight' : 'Where you’re going'}: ${esc(mine.flight)}</div>` : ''}
-    ${later.length ? `<div class="sh-w">Waiting for ${esc(later.map(said).join(', then '))}</div>`
-      : arrive && many && mine && mine.time && mine.time === lastT ? '<div class="sh-w">Yours is the last flight in: the shuttle waits for it</div>' : ''}
-    <div class="sh-l">${rs.length > 1 ? 'Riding together · ' + rs.length : 'Just you on this one'}</div>
-    <div class="sh-fs">${flights.map(f => `<div class="sh-f${f.rs.some(r => r.pid === me) ? ' me' : ''}">
-      <div class="sh-fh"><b>${esc(f.flight || (arrive ? 'Flight to come' : 'Along for the ride'))}</b>${f.time ? `<span class="num">${arrive ? 'lands' : 'flies'} ${esc(E.to12(f.time))}</span>` : ''}${arrive && many && f.time === lastT ? '<em>last in</em>' : ''}</div>
-      <div class="sh-fn">${f.rs.map(r => r.pid === me ? `<b>${esc(r.name)} <i>you</i></b>` : esc(r.name)).join(', ')}</div></div>`).join('')}</div>
+  /* Folded, it is a boarding-pass stub: where, when, how many. Tapped, it
+     opens below the perforation with the rest. The phone remembers which. */
+  const open = shuttleOpen();
+  const route = arrive ? 'AYT <span>→</span> Resort' : 'Resort <span>→</span> AYT';
+  const big = arrive ? (mine && mine.time ? [E.to12(mine.time), 'you land'] : null)
+    : sh.pickup ? [E.to12(sh.pickup), 'pickup'] : mine && mine.time ? [E.to12(mine.time), 'you fly'] : null;
+  const line = arrive
+    ? (mine && mine.flight ? mine.flight + ' · ' : '') + (later.length ? 'waits for ' + later[later.length - 1].flight : many && mine && mine.time === lastT ? 'waits for your flight' : 'straight to the resort')
+    : (mine && mine.flight ? mine.flight + (mine.time && sh.pickup ? ' at ' + E.to12(mine.time) : '') + ' · ' : '') + (sh.pickup ? 'pickup at the resort' : 'pickup time to come');
+  const faces = rs.filter(r => r.pid !== me).slice(0, 4);
+  return `<section class="shuttle${open ? ' open' : ''}" aria-label="Your shuttle">
+    <button class="sh-stub" data-act="shuttleToggle" aria-expanded="${open}"><span class="sh-ic" aria-hidden="true">✈︎</span>
+      <span class="sh-rt"><small>Your shuttle · ${esc(when)}</small><b>${route}</b><i>${esc(line)}</i></span>
+      ${big ? `<span class="sh-tm"><b class="num">${esc(big[0])}</b><small>${big[1]}</small></span>` : ''}</button>
+    <div class="sh-perf" aria-hidden="true"></div>
+    ${open ? `<div class="sh-body">
+      <div class="sh-m">${sh.pickup ? 'Leaves <b class="num">' + esc(E.to12(sh.pickup)) + '</b>' : arrive ? 'Leaves once the last flight is in' : 'Pickup time to come'}${sh.meet ? ' · ' + esc(sh.meet) : ''}</div>
+      ${mine && mine.time ? `<div class="sh-you">You ${arrive ? 'land' : 'fly'} at <b class="num">${esc(E.to12(mine.time))}</b>${mine.flight ? ' · ' + esc(mine.flight) : ''}</div>`
+        : mine && mine.flight ? `<div class="sh-you">${arrive ? 'Your flight' : 'Where you’re going'}: ${esc(mine.flight)}</div>` : ''}
+      ${later.length ? `<div class="sh-w">Waiting for ${esc(later.map(said).join(', then '))}</div>`
+        : arrive && many && mine && mine.time && mine.time === lastT ? '<div class="sh-w">Yours is the last flight in: the shuttle waits for it</div>' : ''}
+      <div class="sh-l">${rs.length > 1 ? 'Riding together · ' + rs.length : 'Just you on this one'}</div>
+      <div class="sh-fs">${flights.map(f => `<div class="sh-f${f.rs.some(r => r.pid === me) ? ' me' : ''}">
+        <div class="sh-fh"><b>${esc(f.flight || (arrive ? 'Flight to come' : 'Along for the ride'))}</b>${f.time ? `<span class="num">${arrive ? 'lands' : 'flies'} ${esc(E.to12(f.time))}</span>` : ''}${arrive && many && f.time === lastT ? '<em>last in</em>' : ''}</div>
+        <div class="sh-fn">${f.rs.map(r => r.pid === me ? `<b>${esc(r.name)} <i>you</i></b>` : esc(r.name)).join(', ')}</div></div>`).join('')}</div>
+    </div>` : ''}
+    <button class="sh-foot" data-act="shuttleToggle" aria-expanded="${open}"><span class="sh-who" aria-hidden="true">${faces.map(r => `<span class="sh-av">${esc(initialsOf(r.name.replace(/\(.*?\)/g, '')))}</span>`).join('')}${rs.length - 1 > faces.length ? `<span class="sh-av more">+${rs.length - 1 - faces.length}</span>` : ''}</span>
+      <span>${open ? 'Fold it away' : rs.length > 1 ? rs.length + ' riding · tap for all' : 'Tap for the details'} <span class="sh-chev" aria-hidden="true">▾</span></span></button>
   </section>`;
 }
+const SHUTTLE_KEY = 'union-invitational:shuttleOpen';
+function shuttleOpen() { try { return localStorage.getItem(SHUTTLE_KEY) === '1'; } catch (e) { return false; } }
 /** The commissioner's paste box for the shuttle plan, on Roster. */
 function rosterTravel() {
   if (!canAdmin()) return '';
@@ -17059,6 +17100,7 @@ function onClick(e) {
     case 'xTab': UI.xTab = a; UI.xAbout = 'all'; UI.liftTo = '.xm-tabs'; render(); return;
     case 'xMore': UI.xMore = a || null; render(); return;
     case 'xWho': UI.xWho = UI.xWho === a ? null : a; render(); return;
+    case 'shuttleToggle': { const o = !shuttleOpen(); try { localStorage.setItem(SHUTTLE_KEY, o ? '1' : ''); } catch (e) { /* storage blocked: it just folds back next time */ } render(); return; }
     case 'travelCheck': { const f = document.activeElement; if (f && f.blur) f.blur(); UI.travelCheck = parseTravel(travelRead()); render(); return; }
     case 'travelSave': {
       const f = document.activeElement; if (f && f.blur) f.blur();

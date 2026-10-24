@@ -57,7 +57,12 @@ await shot('travel-roster');
 
 console.log('\non Today');
 await go('today', 'g6');
-ok('Ray V lands tomorrow: his shuttle is on Today', [await p.locator('.shuttle .sh-k').innerText(), await p.locator('.shuttle .sh-t').innerText()], ['✈️ YOUR SHUTTLE · TOMORROW', 'The airport → the resort']);
+ok('Ray V lands tomorrow: his shuttle is on Today, folded to a stub', [(await p.locator('.shuttle .sh-stub').innerText()).replace(/\s+/g, ' ').trim(), await p.locator('.shuttle .sh-body').count()],
+  ['✈︎ YOUR SHUTTLE · TOMORROW AYT → Resort XX 123 · waits for XX 456 1:45 PM you land', 0]);
+ok('with who else is riding, as faces', [await p.locator('.shuttle .sh-av').allInnerTexts(), (await p.locator('.shuttle .sh-foot').innerText()).replace(/\s+/g, ' ').trim()], [['UB', 'MD'], 'UB MD 3 riding · tap for all ▾']);
+await shot('travel-folded');
+await tap('.shuttle .sh-stub');
+ok('a tap opens it', [await p.locator('.shuttle.open .sh-body').count(), await p.evaluate(() => localStorage.getItem('union-invitational:shuttleOpen'))], [1, '1']);
 ok('when it leaves and where to meet', (await p.locator('.shuttle .sh-m').innerText()).replace(/\s+/g, ' '), 'Leaves 4:00 PM · Arrivals hall, exit 4');
 ok('his own landing', (await p.locator('.shuttle .sh-you').innerText()).replace(/\s+/g, ' '), 'You land at 1:45 PM · XX 123');
 ok('who he waits for, by flight', await p.locator('.shuttle .sh-w').innerText(), 'Waiting for XX 789 to land at 2:30 PM, then XX 456 to land at 3:10 PM');
@@ -65,6 +70,9 @@ ok('riders by flight, his own lit, the last one in marked', (await p.locator('.s
   ['XX 123 lands 1:45 PM Ray V you', 'XX 789 lands 2:30 PM Uncle Bob', 'XX 456 lands 3:10 PM last in Matt D']);
 ok('with the count', await p.locator('.shuttle .sh-l').innerText(), 'RIDING TOGETHER · 3');
 await shot('travel-today');
+await tap('.shuttle .sh-foot');
+ok('and the foot folds it away again, remembered', [await p.locator('.shuttle .sh-body').count(), await p.evaluate(() => localStorage.getItem('union-invitational:shuttleOpen'))], [0, '']);
+await tap('.shuttle .sh-stub');
 await go('today', 'g3');
 ok('the last one in is told the shuttle waits for him', await p.locator('.shuttle .sh-w').innerText(), 'Yours is the last flight in: the shuttle waits for it');
 await go('today', 'g9');
