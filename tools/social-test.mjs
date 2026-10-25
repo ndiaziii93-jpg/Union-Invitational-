@@ -95,6 +95,26 @@ ok('Ray V sees it called out to him', [await p.locator('.ch-msg.ment').count(), 
 await shot('called-out');
 await p.evaluate(() => { localStorage.setItem('union-invitational:whoami', 's1'); window.__UI.who = undefined; window.__forceRender(); }); await p.waitForTimeout(300);
 ok('nobody else sees it as theirs', await p.locator('.ch-msg.ment').count(), 0);
+
+console.log('\nreplying to a message');
+await p.evaluate(() => { window.__T.chat.mray = { id: 'mray', k: 'm', rid: 'r1', pid: 'g6', name: 'Ray V', text: 'Who is buying the first round tonight?', at: Date.now() - 90000, dev: 'dray', re: null }; window.__forceRender(); });
+await p.waitForTimeout(300);
+await tap('#cm-mray .ch-rp');
+ok('Reply says who and what, above the box, and the box is ready', [(await p.locator('.ch-reply').innerText()).replace(/\s+/g, ' ').trim(), await p.evaluate(() => document.activeElement && document.activeElement.id)],
+  ['↩ Replying to Ray V: “Who is buying the first round tonight?” ✕', 'chatText']);
+await p.keyboard.type('Matt is, he lost the bet'); await p.keyboard.press('Enter'); await p.waitForTimeout(400);
+ok('the reply keeps what it answers and whose it was', await p.evaluate(() => Object.values(window.__T.chat).filter(r => r.to).map(r => [r.to, r.rto, r.toName, r.text])), [['mray', 'g6', 'Ray V', 'Matt is, he lost the bet']]);
+ok('and the box is free again', await p.locator('.ch-reply').count(), 0);
+const top = p.locator('.ch-feed > .ch-msg').first();
+ok('it shows the line it answers, quoted above it', (await top.locator('.ch-q').innerText()).replace(/\s+/g, ' ').trim(), 'Ray V Who is buying the first round tonight?');
+await shot('reply');
+await top.locator('.ch-q').click(); await p.waitForTimeout(300);
+ok('tapping the quote goes back to it, lit for a moment', await p.locator('#cm-mray.jumped').count(), 1);
+await tap('#cm-mray .ch-rp'); await tap('.ch-reply button');
+ok('a reply can be dropped before it is sent', await p.locator('.ch-reply').count(), 0);
+await p.evaluate(() => { document.activeElement && document.activeElement.blur(); localStorage.setItem('union-invitational:whoami', 'g6'); window.__UI.who = undefined; window.__forceRender(); }); await p.waitForTimeout(300);
+ok('Ray V sees it as a reply to him, beside the earlier call-out', await p.locator('.ch-msg.ment .ch-callout').allInnerTexts(), ['↩ REPLYING TO YOU', '📣 CALLING YOU OUT']);
+await p.evaluate(() => { localStorage.setItem('union-invitational:whoami', 's1'); window.__UI.who = undefined; window.__forceRender(); }); await p.waitForTimeout(300);
 await shot('chat-round');
 await tap('.ch-rooms button[data-a="trip"]');
 ok('the trip room has no score and none of the round', [await p.locator('.ch-plate').count(), await p.locator('.ch-ev').count()], [0, 0]);

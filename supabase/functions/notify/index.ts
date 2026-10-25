@@ -11,7 +11,7 @@
  * Tapping that one opens the bet.
  *
  * Someone called out by name with @ gets the message as their own
- * ("called you out"). A reaction to a message goes only to whoever wrote it,
+ * ("called you out"), and someone replied to gets it as a reply. A reaction to a message goes only to whoever wrote it,
  * once per person reacting, however often they change their mind.
  *
  * Deploy: Supabase dashboard -> Edge Functions -> Deploy a new function ->
@@ -175,6 +175,13 @@ async function handler(req: Request): Promise<Response> {
   /* someone called out by name gets it as theirs, and it stays on their screen
      beside the room's own line rather than replacing it */
   const ment: string[] = !isBet && Array.isArray(m.ment) ? m.ment.map(String) : [];
+  /* whoever was answered gets it as a reply to them */
+  const rto = !isBet && m.to && m.rto ? String(m.rto) : '';
+  const repliedTo = rto ? JSON.stringify({
+    title: '↩️ ' + (m.name || 'Someone') + ' replied to you · ' + where,
+    body: String(m.text).slice(0, 240),
+    room, tag: 'reply-' + path.slice('chat/'.length),
+  }) : payload;
   const calledOut = ment.length ? JSON.stringify({
     title: '📣 ' + (m.name || 'Someone') + ' called you out · ' + where,
     body: String(m.text).slice(0, 240),
@@ -189,7 +196,7 @@ async function handler(req: Request): Promise<Response> {
     if (s.dev === m.dev || (m.pid && s.pid === m.pid)) return;    // not back to whoever posted it
     if (isBet && !onIt.includes(String(s.pid))) return;          // a bet, only to the people on it
     try {
-      const status = await sendPush(s.sub, ment.includes(String(s.pid)) ? calledOut : payload, keys);
+      const status = await sendPush(s.sub, ment.includes(String(s.pid)) ? calledOut : rto && String(s.pid) === rto ? repliedTo : payload, keys);
       if (status === 404 || status === 410) { gone++; await db.from('docs').delete().eq('path', r.path); }
       else if (status < 300) sent++;
       else console.error('push', status, new URL(s.sub.endpoint).host);

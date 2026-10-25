@@ -4479,3 +4479,15 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 .trv-ok{margin:12px 0 6px;font-weight:700;color:#2F7A4A}
 .trv-sh{display:grid;gap:2px;padding:9px 0;border-top:1px solid var(--hair);font-size:14px}
 .trv-sh span{color:var(--turf)}
+
+/* ---- replies ---- */
+.ch-acts{display:flex;align-items:flex-end;justify-content:space-between;gap:8px}
+.ch-acts .ch-rx{flex:1;min-width:0}
+.ch-rp{flex:0 0 auto;font:inherit;font-size:13px;font-weight:700;color:var(--green);background:none;border:0;border-radius:999px;padding:6px 6px;min-height:36px;cursor:pointer;white-space:nowrap}
+.ch-q{display:grid;gap:1px;width:100%;text-align:left;font:inherit;margin:5px 0 2px;padding:6px 10px;border:0;border-radius:8px;cursor:pointer;
+  background:color-mix(in srgb,var(--ink) 6%,var(--paper));box-shadow:inset 3px 0 0 #C9A253;color:var(--ink)}
+.ch-q b{font-size:12.5px;color:#8C6B2F}
+.ch-q span{font-size:13.5px;color:var(--turf);line-height:1.35;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.ch-reply{background:color-mix(in srgb,#3E5C43 12%,var(--page));color:var(--green)}
+.ch-msg.jumped .ch-bub{animation:jumped 1.6s ease}
+@keyframes jumped{0%,35%{box-shadow:0 0 0 3px #E2C277,0 0 0 .5px var(--shadow)}100%{box-shadow:0 0 0 .5px var(--shadow)}}

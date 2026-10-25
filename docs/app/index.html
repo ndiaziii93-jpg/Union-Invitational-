@@ -4551,6 +4551,18 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 .trv-sh{display:grid;gap:2px;padding:9px 0;border-top:1px solid var(--hair);font-size:14px}
 .trv-sh span{color:var(--turf)}
 
+/* ---- replies ---- */
+.ch-acts{display:flex;align-items:flex-end;justify-content:space-between;gap:8px}
+.ch-acts .ch-rx{flex:1;min-width:0}
+.ch-rp{flex:0 0 auto;font:inherit;font-size:13px;font-weight:700;color:var(--green);background:none;border:0;border-radius:999px;padding:6px 6px;min-height:36px;cursor:pointer;white-space:nowrap}
+.ch-q{display:grid;gap:1px;width:100%;text-align:left;font:inherit;margin:5px 0 2px;padding:6px 10px;border:0;border-radius:8px;cursor:pointer;
+  background:color-mix(in srgb,var(--ink) 6%,var(--paper));box-shadow:inset 3px 0 0 #C9A253;color:var(--ink)}
+.ch-q b{font-size:12.5px;color:#8C6B2F}
+.ch-q span{font-size:13.5px;color:var(--turf);line-height:1.35;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.ch-reply{background:color-mix(in srgb,#3E5C43 12%,var(--page));color:var(--green)}
+.ch-msg.jumped .ch-bub{animation:jumped 1.6s ease}
+@keyframes jumped{0%,35%{box-shadow:0 0 0 3px #E2C277,0 0 0 .5px var(--shadow)}100%{box-shadow:0 0 0 .5px var(--shadow)}}
+
 </style>
 <div id="app"></div>
 <!-- The crest, and the opening it pays for, ahead of everything else. A few
@@ -4677,7 +4689,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261024-1211';
+const BUILD = '20261025-2148';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -11361,12 +11373,21 @@ function atStart() {
 }
 function msgHtml(r, small) {
   const nm = r.name || nameOf(r.pid);
-  const me = whoAmI(), forMe = !!me && (r.ment || []).includes(me) && r.pid !== me;
-  return `<div class="ch-msg${small ? ' hk' : ''}${forMe ? ' ment' : ''}">
+  const me = whoAmI(), atMe = !!me && (r.ment || []).includes(me) && r.pid !== me;
+  const toMe = !!me && !!r.to && r.rto === me && r.pid !== me, forMe = atMe || toMe;
+  return `<div class="ch-msg${small ? ' hk' : ''}${forMe ? ' ment' : ''}" id="cm-${esc(r.id)}">
     <span class="ch-av${E.person(T, r.pid) && E.person(T, r.pid).role === 'golfer' ? ' g' : ''}" aria-hidden="true">${esc(initialsOf(nm))}</span>
     <div class="ch-bub"><span class="ch-n"><span class="ch-who">${esc(nm)}${guestTag(r.pid)}</span><small>${esc(sinceOf(r.at))}</small>${ownsMsg(r)
       ? `<button class="ch-rm" data-act="chatDrop" data-a="${esc(r.id)}" aria-label="Remove this message">Remove</button>` : ''}</span>
-      ${forMe ? '<span class="ch-callout">📣 Calling you out</span>' : ''}<p>${atText(r.text, r.ment)}</p>${small ? '' : rxRow(r.id, r)}</div></div>`;
+      ${atMe ? '<span class="ch-callout">📣 Calling you out</span>' : toMe ? '<span class="ch-callout">↩ Replying to you</span>' : ''}${r.to ? quoteHtml(r) : ''}<p>${atText(r.text, r.ment)}</p>
+      ${small ? '' : `<div class="ch-acts">${rxRow(r.id, r)}${me ? `<button class="ch-rp" data-act="chatReply" data-a="${esc(r.id)}" aria-label="Reply to ${esc(nm)}">↩ Reply</button>` : ''}</div>`}</div></div>`;
+}
+/** The line a reply answers, quoted above it: tap it to go back to it. */
+function quoteHtml(r) {
+  const o = (T.chat || {})[r.to];
+  const who = o ? (o.name || nameOf(o.pid)) : r.toName || 'Someone', said = o ? o.text : null;
+  return `<button class="ch-q" data-act="chatJump" data-a="${esc(r.to)}"><b>${esc(who)}</b><span>${said
+    ? esc(said.length > 90 ? said.slice(0, 88) + '…' : said) : '<i>Message removed</i>'}</span></button>`;
 }
 function momentHtml(m, heckles) {
   const doc = (T.chat || {})['x_' + m.key];
@@ -11393,6 +11414,7 @@ function boardChat(inSheet) {
   const lead = isRound ? E.pairRoundBoard(T, room)[0] : null;
   const ph = isRound ? E.phaseOf(T, room, now) : null;
   const reMoment = UI.chatRe && ms.find(m => m.key === UI.chatRe);
+  const replyTo = UI.chatReply && (T.chat || {})[UI.chatReply] && T.chat[UI.chatReply].rid === room ? T.chat[UI.chatReply] : null;
   return `${inSheet ? '' : '<h2 class="head" style="margin-top:14px">Chat</h2>'}
   <div class="ch-rooms nos" role="tablist" aria-label="Which chat">${rooms.map(id => {
     const r = D.ROUNDS.find(x => x.id === id), d = r ? E.dayOf(r.dayIdx) : null;
@@ -11404,10 +11426,11 @@ function boardChat(inSheet) {
       ${lead ? `<em class="num">${esc(E.fmtToPar(lead.today))}</em>` : ''}</div>` : ''}
   <div class="ch-post">
     ${reMoment ? `<div class="ch-re"><span>Heckling: <b>${esc(reMoment.title)}</b></span><button data-act="chatHeckle" data-a="" aria-label="Stop heckling">✕</button></div>` : ''}
+    ${replyTo ? `<div class="ch-re ch-reply"><span>↩ Replying to <b>${esc(replyTo.name || nameOf(replyTo.pid))}</b>: “${esc(replyTo.text.length > 60 ? replyTo.text.slice(0, 58) + '…' : replyTo.text)}”</span><button data-act="chatReply" data-a="" aria-label="Stop replying">✕</button></div>` : ''}
     ${me ? `<div class="ch-at" id="chatAt" role="listbox" aria-label="Call someone out" hidden></div>
       <div class="ch-box"><button type="button" class="ch-atb" aria-label="Call someone out by name">@</button>
         <input id="chatText" type="text" maxlength="280" autocomplete="off" enterkeyhint="send"
-          placeholder="${reMoment ? 'Heckle it…' : isRound ? 'Say something to the group…' : 'Anything from the trip…'}" value="${esc(UI.chatDraft || '')}" aria-label="Message">
+          placeholder="${replyTo ? 'Your reply…' : reMoment ? 'Heckle it…' : isRound ? 'Say something to the group…' : 'Anything from the trip…'}" value="${esc(UI.chatDraft || '')}" aria-label="Message">
         <button class="btn sm" data-act="chatSend">Post</button></div>
       <button class="ch-as" data-act="whoOpen">Posting as ${esc(nameOf(me))}${isGuest(me) ? ', in the bleachers' : ''} · change</button>`
     : `<button class="btn" data-act="whoOpen" style="width:100%">Choose your name to join in</button>`}
@@ -11543,7 +11566,7 @@ let peekFrom = Date.now(), peekUntil = 0, peekItem = null;
 function chatNews() {
   const me = whoAmI();
   const said = chatRows().filter(r => (r.at || 0) > chatSeen && r.dev !== myDev())
-    .map(r => ({ at: r.at, who: (me && (r.ment || []).includes(me) ? '📣 ' : '') + (r.name || nameOf(r.pid)), text: r.text }));
+    .map(r => ({ at: r.at, who: (me && (r.ment || []).includes(me) ? '📣 ' : me && r.rto === me ? '↩ ' : '') + (r.name || nameOf(r.pid)), text: r.text }));
   const live = D.ROUNDS.filter(r => E.phaseOf(T, r.id, now) === 'live' || E.dayOf(r.dayIdx).iso === now.iso);
   const posted = live.flatMap(r => X.moments(T, r.id)).filter(m => (m.at || 0) > chatSeen)
     .map(m => ({ at: m.at, who: 'The book', text: m.title }));
@@ -11692,9 +11715,11 @@ function chatSend() {
   if (!me || !text || !store) return;
   const id = 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
   const ment = mentionsIn(text).filter(x => x !== me);
-  store.putSocial('chat', id, { k: 'm', rid: chatRoomNow(), pid: me, name: nameOf(me), text, at: Date.now(), dev: myDev(), re: UI.chatRe || null, ...(ment.length ? { ment } : {}) })
+  const o = UI.chatReply && (T.chat || {})[UI.chatReply];
+  const to = o ? { to: o.id, rto: o.pid, toName: o.name || nameOf(o.pid) } : {};
+  store.putSocial('chat', id, { k: 'm', rid: chatRoomNow(), pid: me, name: nameOf(me), text, at: Date.now(), dev: myDev(), re: o ? null : UI.chatRe || null, ...to, ...(ment.length ? { ment } : {}) })
     .then(landed => { if (landed) notifyOthers('chat/' + id); });
-  UI.chatDraft = ''; UI.chatRe = null;
+  UI.chatDraft = ''; UI.chatRe = null; UI.chatReply = null;
   if (f) { f.value = ''; f.blur(); }
   const ab = document.getElementById('chatAt'); if (ab) { ab.hidden = true; ab.innerHTML = ''; }
   render();
@@ -17161,7 +17186,24 @@ function onClick(e) {
       store.patchSocial('chat', a, fields).then(ok => { if (ok && buzz) notifyOthers('chat/' + a, { rx: dv }); });
       render(); return;
     }
+    case 'chatReply': {
+      UI.chatReply = a || null;
+      if (a) UI.chatRe = null;
+      const inSheet = UI.modal && UI.modal.kind === 'chat';
+      if (a && !inSheet) UI.liftTo = '.ch-post';
+      render();
+      if (a) { const g = document.getElementById('chatText'); if (g) g.focus({ preventScroll: !!inSheet }); }
+      return;
+    }
+    case 'chatJump': {
+      const el = document.getElementById('cm-' + a);
+      if (!el) return;
+      el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      el.classList.remove('jumped'); void el.offsetWidth; el.classList.add('jumped');
+      return;
+    }
     case 'chatHeckle':
+      if (a) UI.chatReply = null;
       UI.chatRe = a || null;
       if (a && !(UI.modal && UI.modal.kind === 'chat')) UI.liftTo = '.ch-post';
       render();
@@ -18523,7 +18565,7 @@ if ('serviceWorker' in navigator) {
    So every return reads the build stamp off the server and, when it has
    moved on, the page reloads itself — unless a hole is half entered, in
    which case it waits for the save. */
-var BOOK_BUILD = '20261024-1211';
+var BOOK_BUILD = '20261025-2148';
 function checkBuild() {
   if (document.hidden || navigator.onLine === false) return;
   fetch('sw.js', { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (t) {

@@ -1624,12 +1624,21 @@ function atStart() {
 }
 function msgHtml(r, small) {
   const nm = r.name || nameOf(r.pid);
-  const me = whoAmI(), forMe = !!me && (r.ment || []).includes(me) && r.pid !== me;
-  return `<div class="ch-msg${small ? ' hk' : ''}${forMe ? ' ment' : ''}">
+  const me = whoAmI(), atMe = !!me && (r.ment || []).includes(me) && r.pid !== me;
+  const toMe = !!me && !!r.to && r.rto === me && r.pid !== me, forMe = atMe || toMe;
+  return `<div class="ch-msg${small ? ' hk' : ''}${forMe ? ' ment' : ''}" id="cm-${esc(r.id)}">
     <span class="ch-av${E.person(T, r.pid) && E.person(T, r.pid).role === 'golfer' ? ' g' : ''}" aria-hidden="true">${esc(initialsOf(nm))}</span>
     <div class="ch-bub"><span class="ch-n"><span class="ch-who">${esc(nm)}${guestTag(r.pid)}</span><small>${esc(sinceOf(r.at))}</small>${ownsMsg(r)
       ? `<button class="ch-rm" data-act="chatDrop" data-a="${esc(r.id)}" aria-label="Remove this message">Remove</button>` : ''}</span>
-      ${forMe ? '<span class="ch-callout">📣 Calling you out</span>' : ''}<p>${atText(r.text, r.ment)}</p>${small ? '' : rxRow(r.id, r)}</div></div>`;
+      ${atMe ? '<span class="ch-callout">📣 Calling you out</span>' : toMe ? '<span class="ch-callout">↩ Replying to you</span>' : ''}${r.to ? quoteHtml(r) : ''}<p>${atText(r.text, r.ment)}</p>
+      ${small ? '' : `<div class="ch-acts">${rxRow(r.id, r)}${me ? `<button class="ch-rp" data-act="chatReply" data-a="${esc(r.id)}" aria-label="Reply to ${esc(nm)}">↩ Reply</button>` : ''}</div>`}</div></div>`;
+}
+/** The line a reply answers, quoted above it: tap it to go back to it. */
+function quoteHtml(r) {
+  const o = (T.chat || {})[r.to];
+  const who = o ? (o.name || nameOf(o.pid)) : r.toName || 'Someone', said = o ? o.text : null;
+  return `<button class="ch-q" data-act="chatJump" data-a="${esc(r.to)}"><b>${esc(who)}</b><span>${said
+    ? esc(said.length > 90 ? said.slice(0, 88) + '…' : said) : '<i>Message removed</i>'}</span></button>`;
 }
 function momentHtml(m, heckles) {
   const doc = (T.chat || {})['x_' + m.key];
@@ -1656,6 +1665,7 @@ function boardChat(inSheet) {
   const lead = isRound ? E.pairRoundBoard(T, room)[0] : null;
   const ph = isRound ? E.phaseOf(T, room, now) : null;
   const reMoment = UI.chatRe && ms.find(m => m.key === UI.chatRe);
+  const replyTo = UI.chatReply && (T.chat || {})[UI.chatReply] && T.chat[UI.chatReply].rid === room ? T.chat[UI.chatReply] : null;
   return `${inSheet ? '' : '<h2 class="head" style="margin-top:14px">Chat</h2>'}
   <div class="ch-rooms nos" role="tablist" aria-label="Which chat">${rooms.map(id => {
     const r = D.ROUNDS.find(x => x.id === id), d = r ? E.dayOf(r.dayIdx) : null;
@@ -1667,10 +1677,11 @@ function boardChat(inSheet) {
       ${lead ? `<em class="num">${esc(E.fmtToPar(lead.today))}</em>` : ''}</div>` : ''}
   <div class="ch-post">
     ${reMoment ? `<div class="ch-re"><span>Heckling: <b>${esc(reMoment.title)}</b></span><button data-act="chatHeckle" data-a="" aria-label="Stop heckling">✕</button></div>` : ''}
+    ${replyTo ? `<div class="ch-re ch-reply"><span>↩ Replying to <b>${esc(replyTo.name || nameOf(replyTo.pid))}</b>: “${esc(replyTo.text.length > 60 ? replyTo.text.slice(0, 58) + '…' : replyTo.text)}”</span><button data-act="chatReply" data-a="" aria-label="Stop replying">✕</button></div>` : ''}
     ${me ? `<div class="ch-at" id="chatAt" role="listbox" aria-label="Call someone out" hidden></div>
       <div class="ch-box"><button type="button" class="ch-atb" aria-label="Call someone out by name">@</button>
         <input id="chatText" type="text" maxlength="280" autocomplete="off" enterkeyhint="send"
-          placeholder="${reMoment ? 'Heckle it…' : isRound ? 'Say something to the group…' : 'Anything from the trip…'}" value="${esc(UI.chatDraft || '')}" aria-label="Message">
+          placeholder="${replyTo ? 'Your reply…' : reMoment ? 'Heckle it…' : isRound ? 'Say something to the group…' : 'Anything from the trip…'}" value="${esc(UI.chatDraft || '')}" aria-label="Message">
         <button class="btn sm" data-act="chatSend">Post</button></div>
       <button class="ch-as" data-act="whoOpen">Posting as ${esc(nameOf(me))}${isGuest(me) ? ', in the bleachers' : ''} · change</button>`
     : `<button class="btn" data-act="whoOpen" style="width:100%">Choose your name to join in</button>`}
@@ -1806,7 +1817,7 @@ let peekFrom = Date.now(), peekUntil = 0, peekItem = null;
 function chatNews() {
   const me = whoAmI();
   const said = chatRows().filter(r => (r.at || 0) > chatSeen && r.dev !== myDev())
-    .map(r => ({ at: r.at, who: (me && (r.ment || []).includes(me) ? '📣 ' : '') + (r.name || nameOf(r.pid)), text: r.text }));
+    .map(r => ({ at: r.at, who: (me && (r.ment || []).includes(me) ? '📣 ' : me && r.rto === me ? '↩ ' : '') + (r.name || nameOf(r.pid)), text: r.text }));
   const live = D.ROUNDS.filter(r => E.phaseOf(T, r.id, now) === 'live' || E.dayOf(r.dayIdx).iso === now.iso);
   const posted = live.flatMap(r => X.moments(T, r.id)).filter(m => (m.at || 0) > chatSeen)
     .map(m => ({ at: m.at, who: 'The book', text: m.title }));
@@ -1955,9 +1966,11 @@ function chatSend() {
   if (!me || !text || !store) return;
   const id = 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
   const ment = mentionsIn(text).filter(x => x !== me);
-  store.putSocial('chat', id, { k: 'm', rid: chatRoomNow(), pid: me, name: nameOf(me), text, at: Date.now(), dev: myDev(), re: UI.chatRe || null, ...(ment.length ? { ment } : {}) })
+  const o = UI.chatReply && (T.chat || {})[UI.chatReply];
+  const to = o ? { to: o.id, rto: o.pid, toName: o.name || nameOf(o.pid) } : {};
+  store.putSocial('chat', id, { k: 'm', rid: chatRoomNow(), pid: me, name: nameOf(me), text, at: Date.now(), dev: myDev(), re: o ? null : UI.chatRe || null, ...to, ...(ment.length ? { ment } : {}) })
     .then(landed => { if (landed) notifyOthers('chat/' + id); });
-  UI.chatDraft = ''; UI.chatRe = null;
+  UI.chatDraft = ''; UI.chatRe = null; UI.chatReply = null;
   if (f) { f.value = ''; f.blur(); }
   const ab = document.getElementById('chatAt'); if (ab) { ab.hidden = true; ab.innerHTML = ''; }
   render();
@@ -7424,7 +7437,24 @@ function onClick(e) {
       store.patchSocial('chat', a, fields).then(ok => { if (ok && buzz) notifyOthers('chat/' + a, { rx: dv }); });
       render(); return;
     }
+    case 'chatReply': {
+      UI.chatReply = a || null;
+      if (a) UI.chatRe = null;
+      const inSheet = UI.modal && UI.modal.kind === 'chat';
+      if (a && !inSheet) UI.liftTo = '.ch-post';
+      render();
+      if (a) { const g = document.getElementById('chatText'); if (g) g.focus({ preventScroll: !!inSheet }); }
+      return;
+    }
+    case 'chatJump': {
+      const el = document.getElementById('cm-' + a);
+      if (!el) return;
+      el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      el.classList.remove('jumped'); void el.offsetWidth; el.classList.add('jumped');
+      return;
+    }
     case 'chatHeckle':
+      if (a) UI.chatReply = null;
       UI.chatRe = a || null;
       if (a && !(UI.modal && UI.modal.kind === 'chat')) UI.liftTo = '.ch-post';
       render();
