@@ -4491,3 +4491,48 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 .ch-reply{background:color-mix(in srgb,#3E5C43 12%,var(--page));color:var(--green)}
 .ch-msg.jumped .ch-bub{animation:jumped 1.6s ease}
 @keyframes jumped{0%,35%{box-shadow:0 0 0 3px #E2C277,0 0 0 .5px var(--shadow)}100%{box-shadow:0 0 0 .5px var(--shadow)}}
+
+/* ---- rulings: the button on the row, the sheet, the round's log ---- */
+.rl-btn{display:inline-flex;align-items:center;gap:5px;margin-top:6px;font:inherit;font-size:12.5px;font-weight:700;color:#8C6B2F;background:#F3E6CF;
+  border:0;box-shadow:inset 0 0 0 1px #C9A253;border-radius:999px;padding:5px 11px;min-height:32px;cursor:pointer;white-space:nowrap}
+.rlsheet .rl-body{display:grid;gap:10px}
+.rl-chips{display:flex;gap:6px;flex-wrap:wrap}
+.rl-chips button{font:inherit;font-size:13px;font-weight:700;border:0;border-radius:999px;padding:7px 11px;min-height:36px;background:var(--page);box-shadow:inset 0 0 0 1px var(--rule);color:var(--ink);cursor:pointer;white-space:nowrap}
+.rl-chips button.on{background:var(--ink);color:#E2C277;box-shadow:none}
+.rl-q{display:flex;gap:8px;align-items:flex-end;background:var(--page);border-radius:14px;padding:8px 8px 8px 12px;box-shadow:inset 0 0 0 1px var(--rule)}
+.rl-q textarea{flex:1;min-width:0;width:0;border:0;background:none;font:inherit;font-size:16px;line-height:1.35;color:var(--ink);resize:none;outline:none;padding:4px 0}
+.rl-q .btn{border-radius:999px;flex:0 0 auto}
+.rl-ans{background:var(--page);border-radius:14px;box-shadow:0 0 0 .5px var(--shadow);overflow:hidden}
+.rl-ah{display:flex;gap:10px;align-items:center;padding:10px 12px;background:var(--ink);color:var(--page)}
+.rl-ic{width:32px;height:32px;border-radius:50%;background:#E2C277;color:var(--ink);display:grid;place-items:center;font-size:16px;flex:0 0 auto}
+.rl-ah b{display:block;font-size:15px;line-height:1.2}
+.rl-ah small{font-size:11.5px;color:#9FB3A3}
+.rl-ab{padding:10px 12px 12px;display:grid;gap:8px;font-size:15px;line-height:1.45}
+.rl-ab p{margin:0;white-space:pre-wrap}
+.rl-v{font-size:16.5px;font-weight:700}
+.rl-v em{font-style:normal;font-size:11px;font-weight:800;letter-spacing:.06em;border-radius:999px;padding:2px 8px;background:#F2DDD6;color:var(--flag);margin-left:6px;vertical-align:2px;white-space:nowrap}
+.rl-ab ol{margin:0;padding-left:20px;display:grid;gap:3px}
+.rl-house{background:#F3E6CF;border-radius:10px;padding:8px 10px;font-size:14.5px}
+.rl-house b{color:#8C6B2F}
+.rl-card{background:color-mix(in srgb,#3E5C43 10%,var(--page));border-radius:10px;padding:8px 10px;font-size:14.5px}
+.rl-fine{font-size:12px;color:var(--turf)}
+.rl-think{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--turf);padding:12px}
+.rl-think i{width:8px;height:8px;border-radius:50%;background:#C9A253;animation:rlbob 1s infinite}
+.rl-think i:nth-child(2){animation-delay:.15s} .rl-think i:nth-child(3){animation-delay:.3s}
+@keyframes rlbob{50%{transform:translateY(-4px);opacity:.4}}
+.rl-acts{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.rl-acts .btn{border-radius:999px}
+.rl-saved{font-size:12.5px;font-weight:700;color:#2F7A4A}
+.rl-lh{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);font-weight:800;display:flex;gap:8px;align-items:center}
+.rl-lh span{background:var(--ink);color:#E2C277;border-radius:999px;padding:1px 7px;letter-spacing:0}
+.rl-prev{font-size:14px;color:var(--turf);padding:6px 0;border-top:1px solid var(--hair)}
+.rl-prev b{color:var(--ink)}
+.rl-ok{font-size:11.5px;font-weight:800;border-radius:999px;padding:2px 8px;background:#DDEBDD;color:#2F7A4A;justify-self:start;white-space:nowrap}
+.rl-ok.wait{background:#F3E6CF;color:#8C6B2F}
+.rl-log{margin-top:18px;display:grid;gap:8px}
+.rl-item{background:var(--page);border-radius:12px;box-shadow:0 0 0 .5px var(--shadow);overflow:hidden}
+.rl-row{display:grid;gap:3px;width:100%;text-align:left;font:inherit;color:var(--ink);background:none;border:0;padding:10px 12px;cursor:pointer}
+.rl-row b{font-size:15px;line-height:1.3}
+.rl-t{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--turf)}
+.rl-more{padding:0 12px 12px;display:grid;gap:8px}
+.rl-asked{margin:0;font-size:14px;color:var(--turf);font-style:italic}

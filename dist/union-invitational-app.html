@@ -4496,6 +4496,51 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 .ch-msg.jumped .ch-bub{animation:jumped 1.6s ease}
 @keyframes jumped{0%,35%{box-shadow:0 0 0 3px #E2C277,0 0 0 .5px var(--shadow)}100%{box-shadow:0 0 0 .5px var(--shadow)}}
 
+/* ---- rulings: the button on the row, the sheet, the round's log ---- */
+.rl-btn{display:inline-flex;align-items:center;gap:5px;margin-top:6px;font:inherit;font-size:12.5px;font-weight:700;color:#8C6B2F;background:#F3E6CF;
+  border:0;box-shadow:inset 0 0 0 1px #C9A253;border-radius:999px;padding:5px 11px;min-height:32px;cursor:pointer;white-space:nowrap}
+.rlsheet .rl-body{display:grid;gap:10px}
+.rl-chips{display:flex;gap:6px;flex-wrap:wrap}
+.rl-chips button{font:inherit;font-size:13px;font-weight:700;border:0;border-radius:999px;padding:7px 11px;min-height:36px;background:var(--page);box-shadow:inset 0 0 0 1px var(--rule);color:var(--ink);cursor:pointer;white-space:nowrap}
+.rl-chips button.on{background:var(--ink);color:#E2C277;box-shadow:none}
+.rl-q{display:flex;gap:8px;align-items:flex-end;background:var(--page);border-radius:14px;padding:8px 8px 8px 12px;box-shadow:inset 0 0 0 1px var(--rule)}
+.rl-q textarea{flex:1;min-width:0;width:0;border:0;background:none;font:inherit;font-size:16px;line-height:1.35;color:var(--ink);resize:none;outline:none;padding:4px 0}
+.rl-q .btn{border-radius:999px;flex:0 0 auto}
+.rl-ans{background:var(--page);border-radius:14px;box-shadow:0 0 0 .5px var(--shadow);overflow:hidden}
+.rl-ah{display:flex;gap:10px;align-items:center;padding:10px 12px;background:var(--ink);color:var(--page)}
+.rl-ic{width:32px;height:32px;border-radius:50%;background:#E2C277;color:var(--ink);display:grid;place-items:center;font-size:16px;flex:0 0 auto}
+.rl-ah b{display:block;font-size:15px;line-height:1.2}
+.rl-ah small{font-size:11.5px;color:#9FB3A3}
+.rl-ab{padding:10px 12px 12px;display:grid;gap:8px;font-size:15px;line-height:1.45}
+.rl-ab p{margin:0;white-space:pre-wrap}
+.rl-v{font-size:16.5px;font-weight:700}
+.rl-v em{font-style:normal;font-size:11px;font-weight:800;letter-spacing:.06em;border-radius:999px;padding:2px 8px;background:#F2DDD6;color:var(--flag);margin-left:6px;vertical-align:2px;white-space:nowrap}
+.rl-ab ol{margin:0;padding-left:20px;display:grid;gap:3px}
+.rl-house{background:#F3E6CF;border-radius:10px;padding:8px 10px;font-size:14.5px}
+.rl-house b{color:#8C6B2F}
+.rl-card{background:color-mix(in srgb,#3E5C43 10%,var(--page));border-radius:10px;padding:8px 10px;font-size:14.5px}
+.rl-fine{font-size:12px;color:var(--turf)}
+.rl-think{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--turf);padding:12px}
+.rl-think i{width:8px;height:8px;border-radius:50%;background:#C9A253;animation:rlbob 1s infinite}
+.rl-think i:nth-child(2){animation-delay:.15s} .rl-think i:nth-child(3){animation-delay:.3s}
+@keyframes rlbob{50%{transform:translateY(-4px);opacity:.4}}
+.rl-acts{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.rl-acts .btn{border-radius:999px}
+.rl-saved{font-size:12.5px;font-weight:700;color:#2F7A4A}
+.rl-lh{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);font-weight:800;display:flex;gap:8px;align-items:center}
+.rl-lh span{background:var(--ink);color:#E2C277;border-radius:999px;padding:1px 7px;letter-spacing:0}
+.rl-prev{font-size:14px;color:var(--turf);padding:6px 0;border-top:1px solid var(--hair)}
+.rl-prev b{color:var(--ink)}
+.rl-ok{font-size:11.5px;font-weight:800;border-radius:999px;padding:2px 8px;background:#DDEBDD;color:#2F7A4A;justify-self:start;white-space:nowrap}
+.rl-ok.wait{background:#F3E6CF;color:#8C6B2F}
+.rl-log{margin-top:18px;display:grid;gap:8px}
+.rl-item{background:var(--page);border-radius:12px;box-shadow:0 0 0 .5px var(--shadow);overflow:hidden}
+.rl-row{display:grid;gap:3px;width:100%;text-align:left;font:inherit;color:var(--ink);background:none;border:0;padding:10px 12px;cursor:pointer}
+.rl-row b{font-size:15px;line-height:1.3}
+.rl-t{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--turf)}
+.rl-more{padding:0 12px 12px;display:grid;gap:8px}
+.rl-asked{margin:0;font-size:14px;color:var(--turf);font-style:italic}
+
 </style>
 <div id="app"></div>
 <!-- The crest, and the opening it pays for, ahead of everything else. A few
@@ -4622,7 +4667,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261025-2148';
+const BUILD = '20261026-0905';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -13214,6 +13259,167 @@ function scrMine(rid) {
   </div>`;
 }
 
+/* ---------------- Rulings ----------------
+   A rules question asked at the ball. The ⚖️ button on a golfer's row on
+   the scorecard opens a sheet that already knows the round, the hole, the
+   par, the cap and what that golfer has left of the Union's mulligans; the
+   answer comes from Claude, through the same function as the recap, from
+   the Rules of Golf with the Union's own rules on top. Every ruling is kept
+   on the round, so the next group at the same pond gets the same answer,
+   and a ref can confirm it. Guidance only: the refs and the commissioner
+   decide. */
+const RULING_SITS = [['water', 'Ball in the water'], ['ob', 'Out of bounds'], ['lost', 'Lost ball'], ['unplay', 'Unplayable'],
+  ['path', 'Cart path · free relief'], ['plug', 'Plugged'], ['moved', 'Ball moved'], ['wrong', 'Wrong ball'], ['other', 'Something else']];
+const RULING_ASK = {
+  water: n => `${n}’s ball went in the water. What are the options?`,
+  ob: n => `${n} hit it out of bounds. What now?`,
+  lost: n => `${n} can’t find the ball. What are the options?`,
+  unplay: n => `${n}’s ball is in a spot they can’t play from. What are the options?`,
+  path: n => `${n}’s ball is on the cart path. Can they take a drop?`,
+  plug: n => `${n}’s ball is plugged in its own pitch mark. Is there free relief?`,
+  moved: n => `${n}’s ball moved at address. Is there a penalty?`,
+  wrong: n => `${n} played someone else’s ball. What happens?`,
+  other: () => '',
+};
+const RULING_CAP = 15;           // questions a phone a day; the commissioner is never counted
+const RULING_RULES = [
+  'You are the Rules Official for the Union Invitational, a golf trip of friends playing net better-ball in Belek, Türkiye.',
+  'A ref or a player is asking mid-round, standing at the ball. Answer from the Rules of Golf in force (the R&A and USGA rules, 2023 edition),',
+  'and apply the Union’s house rules below, which come first where they differ. Be exact about the Rules and their numbers. If the answer turns',
+  'on something you are not told (the colour of the stakes, where the ball crossed, a Local Rule), say so in a few words and give each case.',
+  'Never invent a course’s Local Rules, and do not apply Model Local Rule E-5 unless the house rules adopt it. Plain words, short: they are holding a phone.',
+  '',
+  'Reply in exactly this shape, with nothing before or after it:',
+  'VERDICT: the ruling in one line, with the penalty (for example "One penalty stroke" or "Free relief, no penalty")',
+  'RULE: the Rule numbers, for example 17.1d',
+  'OPTIONS:',
+  '- each option on its own line, in the order a referee would give them, at most four',
+  'UNION: one or two sentences on what the Union’s house rules change here (a mulligan still in hand, the breakfast ball on hole 1, the cap), or "Nothing changes."',
+  'CARD: one sentence on what to write on the card, using the hole’s par and the cap.',
+  '',
+  'If the question is not about the rules of golf on this trip, reply exactly: VERDICT: Not a rules question.',
+].join('\n');
+const canAskRuling = () => { const me = whoAmI(); return (!!me && !isGuest(me)) || !D.PINS_ENABLED || (UI.role && UI.role !== 'viewer'); };
+const rulingsOf = rid => Object.values(T.chat || {}).filter(r => r && r.k === 'r' && r.rid === rid).sort((a, b) => (b.at || 0) - (a.at || 0));
+function rulingContext(rid, h, pid, sit) {
+  const r = E.roundDef(rid), course = E.courseOf(T, rid), hole = course.holes[h], g = E.person(T, pid) || { display: 'The golfer' };
+  const cap = E.capFor(hole.par, T.config.capOver), st = E.strokesFor(g.band, hole.si), c = E.card(T, rid, pid) || {};
+  const raw = grossOf(rid, pid, h), front = h < 9;
+  const before = rulingsOf(rid).filter(x => x.hole === h).slice(0, 3);
+  return [
+    'THE UNION’S HOUSE RULES',
+    ...RELIEF.items.map(i => '- ' + i.name + ': ' + i.body),
+    '',
+    'THE SITUATION',
+    `Round: ${r.full} at ${course.name}${r.counts ? '' : ' (a practice round that counts for nothing)'}${r.noMulligans ? '. This is the championship final: no mulligans today.' : '.'}`,
+    `Hole ${hole.n}, par ${hole.par}, stroke index ${hole.si}. The most anyone can score here is ${cap} (they pick up at ${cap}).`,
+    `Player: ${g.display}${g.band ? ', band ' + g.band + (st ? ', receives ' + st + ' stroke' + (st === 1 ? '' : 's') + ' here' : '') : ''}.`,
+    `Score written for this hole so far: ${raw == null ? 'none yet' : raw}.`,
+    r.noMulligans ? 'Mulligans: none today.'
+      : `Mulligans: the front-nine one is ${c.mF ? 'used' : 'unused'}; the back-nine one is ${c.mB ? 'used' : 'unused'}. This hole is on the ${front ? 'front' : 'back'} nine.`,
+    h === 0 ? `Breakfast ball (hole 1 only): ${c.bb ? 'used' : 'unused'}.` : 'Breakfast ball: only on hole 1, so not here.',
+    sit && sit !== 'other' ? 'What happened, as picked: ' + (RULING_SITS.find(x => x[0] === sit) || [])[1] + '.' : '',
+    before.length ? 'Rulings already given on this hole today, keep to them where the facts match: ' + before.map(x => (parseRuling(x.a).verdict || '').slice(0, 120)).join(' | ') : '',
+  ].filter(Boolean).join('\n');
+}
+/** The answer, read back into its parts; anything unexpected is kept whole. */
+function parseRuling(text) {
+  const t = String(text || ''), get = k => { const m = t.match(new RegExp('^' + k + ':\\s*(.*)$', 'mi')); return m ? m[1].trim() : ''; };
+  const opts = (t.match(/^OPTIONS:\s*\n([\s\S]*?)(?=^\s*(UNION|CARD):)/mi) || [])[1] || '';
+  return { verdict: get('VERDICT'), rule: get('RULE'), options: opts.split('\n').map(x => x.replace(/^\s*[-•*\d.)]+\s*/, '').trim()).filter(Boolean),
+    union: get('UNION'), card: get('CARD'), raw: t };
+}
+function rulingAnswerHtml(x, title) {
+  const p = parseRuling(x.a);
+  if (!p.verdict) return `<div class="rl-ans"><div class="rl-ab"><p>${esc(x.a)}</p></div></div>`;
+  return `<div class="rl-ans">
+    <div class="rl-ah"><span class="rl-ic" aria-hidden="true">⚖️</span><span><b>${esc(title)}</b><small>${p.rule ? 'Rules of Golf ' + esc(p.rule) + ' · ' : ''}with the Union’s rules</small></span></div>
+    <div class="rl-ab">
+      <div class="rl-v">${esc(p.verdict)}${p.rule ? `<em>RULE ${esc(p.rule)}</em>` : ''}</div>
+      ${p.options.length ? `<ol>${p.options.map(o => `<li>${esc(o)}</li>`).join('')}</ol>` : ''}
+      ${p.union && !/^nothing changes/i.test(p.union) ? `<div class="rl-house"><b>Union rule:</b> ${esc(p.union)}</div>` : ''}
+      ${p.card ? `<div class="rl-card"><b>On the card:</b> ${esc(p.card)}</div>` : ''}
+      <div class="rl-fine">Guidance from the Rules of Golf. The refs and the commissioner make the call.</div>
+    </div></div>`;
+}
+function rulingSheetHtml() {
+  const m = UI.modal, rid = m.rid, h = m.hole, g = E.person(T, m.pid) || { display: 'Golfer' };
+  const r = E.roundDef(rid), hole = E.courseOf(T, rid).holes[h], c = E.card(T, rid, m.pid) || {};
+  const front = h < 9, mkey = front ? 'mF' : 'mB';
+  const left = r.noMulligans ? 'no mulligans today' : (c[mkey] ? (front ? 'front' : 'back') + ' mulligan used' : (front ? 'front' : 'back') + ' mulligan left');
+  const before = rulingsOf(rid).filter(x => x.hole === h && x.id !== m.id);
+  const done = m.id && (T.chat || {})[m.id];
+  const open = E.roundCfg(T, rid).state === 'open' && canEdit();
+  const p = done ? parseRuling(done.a) : null;
+  const mullOk = p && open && !r.noMulligans && !c[mkey] && /mulligan/i.test(p.union);
+  const markKey = m.sit === 'water' ? 'water' : m.sit === 'ob' ? 'ob' : null;
+  const marked = markKey && E.holeMarks(T, rid, m.pid, h).includes(markKey);
+  return `<div class="scrim" data-act="modalScrim"><div class="modal psheet rlsheet" role="dialog" aria-modal="true" aria-label="Ask for a ruling">
+    <span class="ps-grab dark" aria-hidden="true"><i></i></span>${modalBanner('⚖️ ' + g.display + ' · Hole ' + hole.n, roomName(rid) + ' · par ' + hole.par + ' · ' + left)}
+    <div class="ps-body rl-body">
+      <div class="rl-chips">${RULING_SITS.map(([k, l]) => `<button class="${m.sit === k ? 'on' : ''}" data-act="ruleSit" data-a="${k}"${m.busy ? ' disabled' : ''}>${esc(l)}</button>`).join('')}</div>
+      <div class="rl-q"><textarea id="rulingQ" rows="2" maxlength="400" placeholder="What happened? The more you say, the better the answer." ${m.busy ? 'disabled' : ''}>${esc(m.q || '')}</textarea>
+        <button class="btn" data-act="ruleAsk"${m.busy ? ' disabled' : ''}>${m.busy ? 'Asking…' : done ? 'Ask again' : 'Ask'}</button></div>
+      ${m.err ? `<p class="xm-err">${esc(m.err)}</p>` : ''}
+      ${m.busy ? `<div class="rl-ans"><div class="rl-think"><i></i><i></i><i></i> Checking the Rules and ${esc(g.display)}’s card…</div></div>` : ''}
+      ${done ? rulingAnswerHtml(done, (RULING_SITS.find(x => x[0] === m.sit) || [, 'Ruling'])[1] + ' · Hole ' + hole.n) + `<div class="rl-acts">
+          ${mullOk ? `<button class="btn" data-act="ruleMull">Use ${esc(g.display)}’s ${front ? 'front' : 'back'} mulligan</button>` : ''}
+          ${markKey && open ? `<button class="btn ghost" data-act="ruleMark"${marked ? ' disabled' : ''}>${marked ? '✓ Marked' : 'Mark the ' + (markKey === 'water' ? 'water' : 'OB')}</button>` : ''}
+          <span class="rl-saved">✓ Kept with the round’s rulings</span></div>` : ''}
+      ${before.length ? `<div class="rl-lh">Asked before on this hole</div>${before.map(x => `<div class="rl-prev"><b>${esc(nameOf(x.pid))}</b> · ${esc(parseRuling(x.a).verdict || x.q)}${x.ok ? ' <span class="rl-ok">✓ ' + esc(x.ok.name) + '</span>' : ''}</div>`).join('')}` : ''}
+    </div>
+    <div class="acts"><button class="btn ghost" data-act="modalCancel">Close</button></div>
+  </div></div>`;
+}
+/** The round's rulings, under the scorecard: newest first, a ref confirms. */
+function rulingLog(rid) {
+  const all = rulingsOf(rid);
+  if (!all.length) return '';
+  const course = E.courseOf(T, rid), ref = D.PINS_ENABLED ? (UI.role && UI.role !== 'viewer') : canEdit();
+  return `<section class="rl-log" aria-label="Rulings">
+    <div class="rl-lh">⚖️ Rulings · ${esc(roomName(rid))} <span>${all.length}</span></div>
+    ${all.map(x => { const p = parseRuling(x.a), open = UI.ruleOpen === x.id, mine = x.dev === myDev();
+      return `<div class="rl-item${open ? ' open' : ''}">
+        <button class="rl-row" data-act="ruleView" data-a="${esc(x.id)}" aria-expanded="${open}">
+          <span class="rl-t">Hole ${course.holes[x.hole] ? course.holes[x.hole].n : x.hole + 1} · ${esc(nameOf(x.pid))} · ${esc(clockOf(x.at))}<span>asked by ${esc(x.byName || 'someone')}</span></span>
+          <b>${esc(p.verdict || x.q)}</b>
+          ${x.ok ? `<span class="rl-ok">✓ Confirmed · ${esc(x.ok.name)}</span>` : '<span class="rl-ok wait">Waiting for a ref</span>'}</button>
+        ${open ? `<div class="rl-more"><p class="rl-asked">“${esc(x.q)}”</p>${rulingAnswerHtml(x, 'Hole ' + (course.holes[x.hole] ? course.holes[x.hole].n : x.hole + 1) + ' · ' + nameOf(x.pid))}
+          <div class="rl-acts">${ref && !x.ok ? `<button class="btn" data-act="ruleOk" data-a="${esc(x.id)}">Confirm it ✓</button>` : ''}
+            ${ref && x.ok ? `<button class="btn ghost" data-act="ruleOk" data-a="${esc(x.id)}" data-b="undo">Undo the confirm</button>` : ''}
+            ${ref || mine || canAdmin() ? `<button class="xm-link danger" data-act="ruleDrop" data-a="${esc(x.id)}">Remove</button>` : ''}</div></div>` : ''}
+      </div>`; }).join('')}
+  </section>`;
+}
+function rulingCount(add) {
+  const k = 'union-invitational:rulings:' + now.iso;
+  try { const n = (+localStorage.getItem(k) || 0) + (add || 0); if (add) localStorage.setItem(k, String(n)); return n; } catch (e) { return 0; }
+}
+async function rulingAsk() {
+  const m = UI.modal; if (!m || m.kind !== 'ruling' || m.busy) return;
+  const f = document.getElementById('rulingQ'); if (f) m.q = f.value;
+  const q = String(m.q || '').trim();
+  if (!q) { m.err = 'Say what happened, or pick it above.'; redrawFrom('rulingQ'); return; }
+  if (!askClaude) { m.err = sampleError({ code: 'not_granted' }); redrawFrom(); return; }
+  if (!canAdmin() && rulingCount() >= RULING_CAP) { m.err = 'That’s ' + RULING_CAP + ' rulings from this phone today. Ask a ref, or the commissioner.'; redrawFrom(); return; }
+  m.err = ''; m.busy = true; redrawFrom();
+  try {
+    const { text } = await askClaude([{ role: 'user', content: RULING_RULES + '\n\n' + rulingContext(m.rid, m.hole, m.pid, m.sit) }, { role: 'user', content: q }],
+      { cache: false, modelTier: 'complex' });
+    if (/^\s*VERDICT:\s*Not a rules question/i.test(text)) { m.err = 'That isn’t a rules question. Ask about what happened to the ball.'; return; }
+    rulingCount(1);
+    const id = 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), me = whoAmI();
+    const doc = { k: 'r', rid: m.rid, hole: m.hole, pid: m.pid, sit: m.sit || null, q, a: text, by: me || null, byName: me ? nameOf(me) : (S.ROLES[UI.role] || {}).label || 'Someone', at: Date.now(), dev: myDev() };
+    if (store) store.putSocial('chat', id, doc); else (T.chat || (T.chat = {}))[id] = { id, ...doc };
+    if (UI.modal === m) m.id = id;
+  } catch (e) {
+    m.err = sampleError(e);
+  } finally {
+    m.busy = false;
+    if (UI.modal === m) render();
+  }
+}
+
 function scrEntry() {
   const rid = UI.entryRound;
   const r = E.roundDef(rid);
@@ -13338,6 +13544,7 @@ function scrEntry() {
           <div class="bd num">band ${g.band ? g.band : '\u2014'} <span>${st == null ? '\u00b7' : '+' + st + ' here'}</span>${
             net != null ? ' \u00b7 net ' + net : ''}${tp.thru ? ' \u00b7 ' + esc(E.fmtToPar(tp.tp)) + ' thru ' + tp.thru : ''}${
             capped ? ' \u00b7 <em class="capped">picked up</em>' : ''}${spent.length ? ' \u00b7 ' + spent.join(', ') : ''}</div>
+          ${canAskRuling() ? `<button class="rl-btn" data-act="ruleOpen" data-a="${g.id}" aria-label="Ask for a ruling for ${esc(g.display)} on hole ${hole.n}">⚖️ Ruling</button>` : ''}
         </div>
         ${editable
           ? `<button class="ptile${tone}" data-act="padOpen" data-a="${g.id}" aria-label="Score for ${esc(g.display)} on hole ${hole.n}${raw == null ? '' : ': ' + raw}" aria-expanded="${UI.pad === g.id}">${tile}</button>`
@@ -13495,7 +13702,7 @@ function scrEntry() {
         same markup, placed by the stylesheet. */ ''}
   ${keypad}
   <div class="entrygrid">
-    <div class="egl">${rows || `<p class="empty">No golfers in this group.</p>`}</div>
+    <div class="egl">${rows || `<p class="empty">No golfers in this group.</p>`}${rulingLog(rid)}</div>
     <div class="egr">
       ${holePlate(rid, h, hole, course, cap, list, slotPlayers, { cam: true })}
       <div class="side-b" data-reveal="bbb">
@@ -16874,6 +17081,7 @@ function modalHtml() {
        : UI.modal.kind === 'whopin' ? whoPinHtml()
        : UI.modal.kind === 'chat' ? chatSheetHtml()
        : UI.modal.kind === 'marks' ? markSheet(UI.modal.rid, UI.modal.hole, UI.modal.who)
+       : UI.modal.kind === 'ruling' ? rulingSheetHtml()
        : UI.modal.kind === 'hole' ? holeModalHtml()
        : UI.modal.kind === 'setup' ? setupModalHtml()
        : UI.modal.kind === 'add' ? addModalHtml()
@@ -17178,6 +17386,45 @@ function onClick(e) {
     case 'xTab': UI.xTab = a; UI.xAbout = 'all'; UI.liftTo = '.xm-tabs'; render(); return;
     case 'xMore': UI.xMore = a || null; render(); return;
     case 'xWho': UI.xWho = UI.xWho === a ? null : a; render(); return;
+    case 'ruleOpen': UI.pad = null; UI.modal = { kind: 'ruling', rid: UI.entryRound, hole: UI.entryHole, pid: a, sit: null, q: '', busy: false, err: '', id: null }; render(); return;
+    case 'ruleSit': {
+      const m = UI.modal; if (!m || m.kind !== 'ruling' || m.busy) return;
+      const f = document.getElementById('rulingQ'); if (f) m.q = f.value;
+      const nm = nameOf(m.pid), was = m.sit && RULING_ASK[m.sit] ? RULING_ASK[m.sit](nm) : '';
+      m.sit = a;
+      if (!m.q || m.q === was) m.q = RULING_ASK[a] ? RULING_ASK[a](nm) : '';
+      m.err = ''; redrawFrom(); return;
+    }
+    case 'ruleAsk': rulingAsk(); return;
+    case 'ruleMull': {
+      const m = UI.modal; if (!m || m.kind !== 'ruling' || !canEdit() || E.roundCfg(T, m.rid).state !== 'open') return;
+      if (cardClosed(m.rid) || closedFor(m.rid, m.pid)) return;
+      const key = m.hole < 9 ? 'mF' : 'mB', held = E.card(T, m.rid, m.pid);
+      if (E.roundDef(m.rid).noMulligans || (held && held[key])) return;
+      store.writeCard(m.rid, m.pid, c => { c[key] = true; });
+      render(); return;
+    }
+    case 'ruleMark': {
+      const m = UI.modal; if (!m || m.kind !== 'ruling' || !canEdit()) return;
+      const key = m.sit === 'water' ? 'water' : m.sit === 'ob' ? 'ob' : null; if (!key) return;
+      store.writeCard(m.rid, m.pid, c => { const was = Array.isArray(c.marks[m.hole]) ? c.marks[m.hole] : []; if (!was.includes(key)) c.marks[m.hole] = was.concat(key); });
+      render(); return;
+    }
+    case 'ruleView': UI.ruleOpen = UI.ruleOpen === a ? null : a; render(); return;
+    case 'ruleOk': {
+      const ref = D.PINS_ENABLED ? (UI.role && UI.role !== 'viewer') : canEdit();
+      if (!ref || !store) return;
+      const who = whoAmI() ? nameOf(whoAmI()) : (S.ROLES[UI.role] || {}).label || 'A ref';
+      store.patchSocial('chat', a, { ok: b === 'undo' ? null : { name: who, at: Date.now() } }); render(); return;
+    }
+    case 'ruleDrop': {
+      const x = (T.chat || {})[a]; if (!x || !store) return;
+      const ref = D.PINS_ENABLED ? (UI.role && UI.role !== 'viewer') : canEdit();
+      if (!(ref || canAdmin() || x.dev === myDev())) return;
+      UI.modal = { kind: 'confirm', title: 'Remove this ruling?', note: 'It comes off the round’s list for everyone.', ok: 'Remove', cancel: 'Keep it',
+        onOk: () => { store.dropSocial('chat', a); if (UI.ruleOpen === a) UI.ruleOpen = null; } };
+      render(); return;
+    }
     case 'shuttleToggle': { const o = !shuttleOpen(); try { localStorage.setItem(SHUTTLE_KEY, o ? '1' : ''); } catch (e) { /* storage blocked: it just folds back next time */ } render(); return; }
     case 'travelCheck': { const f = document.activeElement; if (f && f.blur) f.blur(); UI.travelCheck = parseTravel(travelRead()); render(); return; }
     case 'travelSave': {
@@ -18423,6 +18670,7 @@ function boot() {
     if (e.target && e.target.id === 'resortQ') { UI.resortQ = e.target.value; filterGuide(); }
     if (e.target && e.target.id === 'chatText') { UI.chatDraft = e.target.value; atSuggest(e.target); }
     if (e.target && e.target.id === 'travelText') UI.travelDraft = e.target.value;
+    if (e.target && e.target.id === 'rulingQ' && UI.modal && UI.modal.kind === 'ruling') UI.modal.q = e.target.value;
     if (e.target && e.target.id === 'guestName') UI.guestDraft = e.target.value;
     if (e.target && /^whoPin[AB]$/.test(e.target.id) && UI.modal && UI.modal.kind === 'whopin') UI.modal[e.target.id === 'whoPinA' ? 'a' : 'b'] = e.target.value;
     if (e.target && e.target.id === 'xQ' && UI.xNew) UI.xNew.q = e.target.value;
