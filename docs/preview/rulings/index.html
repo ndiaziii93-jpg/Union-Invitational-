@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1D2E21">
+<meta name="robots" content="noindex">
+<link rel="icon" href="../../app/icon-192.png">
+<title>Ask for a Ruling</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap">
+<style>
+/* three phones: a rules question asked mid-round, answered with the trip's own rules in mind */
+:root{
+  color-scheme:light;
+  --paper:#E3DBCB; --page:#EEE8D5; --sunk:#DBD2BA; --ink:#1D2E21; --ink2:#2A3D2E; --turf:#5C6B55; --green:#3E5C43;
+  --rule:#C4B896; --hair:#DCD1B4; --gold:#8C6B2F; --gold-up:#C9A253; --gold-hi:#E2C277; --sage:#9FB3A3; --flag:#9E3B2E; --yes:#2F7A4A;
+  --shadow:rgba(29,46,33,.16);
+  --serif:'Source Serif 4','Iowan Old Style',Georgia,'Times New Roman',serif;
+  --ui:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:16px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:26px 56px}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:inherit}
+:focus-visible{outline:2px solid var(--flag);outline-offset:2px}
+.top,.row,.dev{max-width:1260px;margin-left:auto;margin-right:auto}
+.top{display:grid;gap:10px;margin-bottom:22px}
+.top h1{margin:0;font-size:clamp(26px,4vw,34px);line-height:1.15}
+.top p{margin:0;color:var(--turf);max-width:84ch}
+.row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px;align-items:start}
+@media (max-width:1150px){.row{grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr))}}
+.opt{display:grid;gap:14px;justify-items:center;min-width:0}
+.olabel{width:100%;max-width:390px;display:flex;align-items:center;gap:12px;background:var(--ink);color:var(--page);border-radius:16px;padding:10px 14px;border-bottom:3px solid var(--gold-up);position:sticky;top:8px;z-index:50}
+.olabel b{display:inline-grid;place-items:center;width:40px;height:40px;border-radius:50%;background:var(--gold-hi);color:var(--ink);font-size:22px;font-weight:800;flex:0 0 auto}
+.olabel strong{display:block;font-size:20px;line-height:1.1}
+.olabel small{display:block;font-family:var(--ui);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--gold-hi);margin-top:2px}
+.cap{width:100%;max-width:390px}
+.cap .what{margin:0 0 8px;color:var(--turf);font-size:15px}
+.cap ul{margin:0;padding-left:18px;font-size:14.5px;display:grid;gap:3px}
+.cap .dn{margin-top:10px;font-size:13.5px;background:var(--page);border-radius:12px;padding:10px 12px;box-shadow:0 0 0 .5px var(--shadow)}
+.cap .dn b{display:block;font-family:var(--ui);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-bottom:3px}
+.reset{font-family:var(--ui);font-size:13px;font-weight:700;color:var(--ink);background:var(--page);border-radius:999px;padding:8px 14px;box-shadow:inset 0 0 0 1.5px var(--gold-up)}
+.dev{margin-top:34px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:14px}
+.dev .card{background:var(--page);border-radius:16px;padding:16px 18px;box-shadow:0 0 0 .5px var(--shadow)}
+.dev h3{margin:0 0 8px;font-size:18px}
+.dev ul{margin:0;padding-left:18px;font-size:14.5px;display:grid;gap:5px}
+.dev .rec{background:var(--ink);color:var(--page);border-bottom:3px solid var(--gold-up)}
+.dev .rec h3{color:var(--gold-hi)}
+
+/* ---- the phone: Score Entry, as the app draws it ---- */
+.phone{position:relative;width:100%;max-width:390px;height:800px;border-radius:38px;overflow:hidden;background:var(--paper);
+  box-shadow:0 0 0 9px #17211A,0 0 0 10px #3A463D,0 30px 60px rgba(16,22,17,.28);isolation:isolate;display:flex;flex-direction:column}
+.scr{flex:1 1 auto;overflow:auto;scrollbar-width:none;min-height:0;position:relative}
+.scr::-webkit-scrollbar{display:none}
+.ehd{background:var(--ink);color:var(--page);padding:50px 16px 12px;border-bottom:3px solid var(--gold-up)}
+.ehd .k{font-family:var(--ui);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-hi);font-weight:700}
+.ehd .t{display:flex;justify-content:space-between;align-items:baseline;margin-top:2px}
+.ehd .t b{font-size:22px}
+.ehd .t span{font-family:var(--ui);font-size:13px;color:var(--sage)}
+.holes{display:flex;gap:5px;margin-top:10px;overflow:hidden}
+.holes span{flex:0 0 auto;width:30px;height:30px;border-radius:8px;display:grid;place-items:center;font-family:var(--ui);font-size:12.5px;font-weight:700;background:#2B3D2F;color:var(--sage)}
+.holes span.on{background:var(--gold-hi);color:var(--ink)}
+.holes span.d{background:#3A4D3E;color:var(--page)}
+.pad{padding:12px 14px 120px;display:grid;gap:10px}
+.hole{display:flex;justify-content:space-between;align-items:center}
+.hole b{font-size:20px}
+.hole span{font-family:var(--ui);font-size:13px;color:var(--turf)}
+.player{background:var(--page);border-radius:14px;padding:11px 13px;box-shadow:0 0 0 .5px var(--shadow);display:grid;gap:8px}
+.player .nm{display:flex;justify-content:space-between;align-items:baseline}
+.player .nm b{font-size:16.5px}
+.player .nm span{font-family:var(--ui);font-size:12px;color:var(--turf)}
+.keys{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.keys i{font-style:normal;height:38px;border-radius:9px;display:grid;place-items:center;font-family:var(--ui);font-weight:700;font-size:15px;background:var(--paper);box-shadow:inset 0 0 0 1px var(--rule)}
+.keys i.on{background:var(--ink);color:var(--gold-hi);box-shadow:none}
+.marks{display:flex;gap:6px;flex-wrap:wrap}
+.marks i{font-style:normal;font-family:var(--ui);font-size:12px;font-weight:700;border-radius:999px;padding:5px 10px;background:var(--paper);box-shadow:inset 0 0 0 1px var(--rule);color:var(--turf)}
+.marks i.on{background:#DCE7EE;color:#2F5D7A;box-shadow:none}
+.tabbar{flex:0 0 auto;display:grid;grid-template-columns:repeat(6,1fr);background:var(--ink);border-top:3px solid var(--gold-up);color:var(--sage);
+  padding:8px 4px 18px;font-family:var(--ui);font-size:10.5px;text-align:center;position:relative;z-index:30}
+.tabbar span{display:grid;gap:3px;justify-items:center}
+.tabbar span.on{color:var(--page);font-weight:700} .tabbar span.gold{color:var(--gold-up)}
+.tabbar i{display:block;width:20px;height:16px;border:1.6px solid currentColor;border-radius:4px}
+
+/* the answer, the same in all three */
+.ans{background:var(--page);border-radius:14px;box-shadow:0 0 0 .5px var(--shadow);overflow:hidden}
+.ans .ah{display:flex;gap:10px;align-items:center;padding:10px 12px;background:var(--ink);color:var(--page)}
+.ans .ah .ic{width:32px;height:32px;border-radius:50%;background:var(--gold-hi);color:var(--ink);display:grid;place-items:center;font-size:16px;flex:0 0 auto}
+.ans .ah b{font-size:15px;display:block;line-height:1.2}
+.ans .ah small{font-family:var(--ui);font-size:11px;color:var(--sage)}
+.ans .ab{padding:10px 12px 12px;display:grid;gap:8px;font-size:14.5px;line-height:1.45}
+.ans .verdict{font-size:16px;font-weight:700}
+.ans .verdict em{font-style:normal;font-family:var(--ui);font-size:11px;font-weight:800;letter-spacing:.06em;border-radius:999px;padding:2px 8px;background:#F2DDD6;color:var(--flag);margin-left:6px;vertical-align:2px}
+.ans ol{margin:0;padding-left:20px;display:grid;gap:3px}
+.ans .house{background:#F3E6CF;border-radius:10px;padding:8px 10px;font-size:14px}
+.ans .house b{color:var(--gold)}
+.ans .card{background:color-mix(in srgb,var(--green) 10%,var(--page));border-radius:10px;padding:8px 10px;font-size:14px}
+.ans .fine{font-family:var(--ui);font-size:11.5px;color:var(--turf)}
+.ans .acts{display:flex;gap:6px;flex-wrap:wrap}
+.ans .acts button{font-family:var(--ui);font-size:12.5px;font-weight:800;border-radius:999px;padding:8px 12px;background:var(--ink);color:var(--gold-hi)}
+.ans .acts button.g{background:var(--page);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--rule)}
+.ans .acts button.done{background:var(--yes);color:#fff}
+.think{display:flex;gap:8px;align-items:center;font-family:var(--ui);font-size:13px;color:var(--turf);padding:12px}
+.think i{width:8px;height:8px;border-radius:50%;background:var(--gold-up);animation:bob 1s infinite}
+.think i:nth-child(2){animation-delay:.15s} .think i:nth-child(3){animation-delay:.3s}
+@keyframes bob{50%{transform:translateY(-4px);opacity:.4}}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chips button{font-family:var(--ui);font-size:12.5px;font-weight:700;border-radius:999px;padding:7px 11px;background:var(--page);box-shadow:inset 0 0 0 1px var(--rule)}
+.chips button.on{background:var(--ink);color:var(--gold-hi);box-shadow:none}
+.qbox{display:flex;gap:8px;align-items:flex-end;background:var(--page);border-radius:14px;padding:8px 8px 8px 12px;box-shadow:inset 0 0 0 1px var(--rule)}
+.qbox p{flex:1;margin:0;font-size:14.5px;line-height:1.35}
+.qbox button{font-family:var(--ui);font-size:13px;font-weight:800;background:var(--ink);color:var(--gold-hi);border-radius:999px;padding:9px 14px;flex:0 0 auto}
+
+/* A: on the hole */
+.rbtn{display:inline-flex;align-items:center;gap:6px;font-family:var(--ui);font-size:12.5px;font-weight:800;border-radius:999px;padding:6px 11px;background:#F3E6CF;color:var(--gold);box-shadow:inset 0 0 0 1px var(--gold-up)}
+.scrim{position:absolute;inset:0;z-index:60;background:rgba(16,22,17,.45);display:flex;align-items:flex-end;animation:fade .2s ease both}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.sheet{width:100%;max-height:88%;overflow:auto;background:var(--paper);border-radius:22px 22px 0 0;animation:rise .3s cubic-bezier(.2,.9,.28,1) both;scrollbar-width:none;padding:0 12px 18px;display:grid;gap:10px}
+.sheet::-webkit-scrollbar{display:none}
+@keyframes rise{from{transform:translateY(40%)}to{transform:none}}
+.grab{width:42px;height:5px;border-radius:3px;background:var(--rule);margin:8px auto 0}
+.sh{background:var(--ink);color:var(--page);border-radius:16px;padding:12px 14px;border-bottom:3px solid var(--gold-up)}
+.sh small{font-family:var(--ui);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-hi);font-weight:800}
+.sh b{display:block;font-size:20px;line-height:1.15;margin-top:2px}
+.sh span{font-family:var(--ui);font-size:12.5px;color:var(--sage)}
+.ctx{display:flex;gap:6px;flex-wrap:wrap}
+.ctx span{font-family:var(--ui);font-size:11.5px;font-weight:700;border-radius:999px;padding:4px 9px;background:var(--page);color:var(--turf);box-shadow:inset 0 0 0 1px var(--hair)}
+
+/* B: the rules desk */
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--sunk);border-radius:12px;padding:3px}
+.seg button{border-radius:9px;padding:8px;text-align:center;font-family:var(--ui);font-size:13.5px;font-weight:700;color:var(--turf)}
+.seg button.on{background:var(--page);color:var(--ink);box-shadow:0 1px 3px rgba(16,22,17,.18)}
+.seg button i{font-style:normal;font-size:10.5px;background:var(--flag);color:#fff;border-radius:999px;padding:1px 6px;margin-left:4px}
+.topics{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.topics button{background:var(--page);border-radius:12px;padding:10px;box-shadow:0 0 0 .5px var(--shadow);display:grid;gap:1px;text-align:left}
+.topics button b{font-size:14.5px}
+.topics button span{font-family:var(--ui);font-size:11.5px;color:var(--turf)}
+.log{display:grid;gap:6px}
+.lh{font-family:var(--ui);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);font-weight:800;margin-top:6px}
+.li{background:var(--page);border-radius:12px;padding:9px 11px;box-shadow:0 0 0 .5px var(--shadow);display:grid;gap:2px;font-size:14px}
+.li .t{display:flex;justify-content:space-between;gap:8px;font-family:var(--ui);font-size:11.5px;color:var(--turf)}
+.li b{font-size:14.5px}
+.stamp{font-family:var(--ui);font-size:11px;font-weight:800;border-radius:999px;padding:2px 8px;background:#DDEBDD;color:var(--yes);justify-self:start}
+.stamp.wait{background:#F3E6CF;color:var(--gold)}
+
+/* C: in the chat */
+.rooms{display:flex;gap:6px;padding:10px 14px 0;overflow:hidden}
+.rooms span{font-family:var(--ui);font-size:12.5px;font-weight:700;border-radius:10px;padding:6px 11px;background:var(--page);box-shadow:inset 0 0 0 1px var(--rule);white-space:nowrap}
+.rooms span.on{background:var(--ink);color:var(--page);box-shadow:none}
+.feed{display:grid;gap:9px}
+.msg{display:flex;gap:8px;align-items:flex-start}
+.av{flex:0 0 auto;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-family:var(--ui);font-size:11px;font-weight:800;background:var(--ink);color:var(--gold-hi)}
+.av.off{background:var(--gold-hi);color:var(--ink);font-size:15px}
+.bub{flex:1;min-width:0;background:var(--page);border-radius:4px 14px 14px 14px;padding:8px 11px;box-shadow:0 0 0 .5px var(--shadow);font-size:14.5px}
+.bub .n{font-family:var(--ui);font-size:12.5px;font-weight:800;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.bub .n small{font-weight:600;color:var(--turf)}
+.tag{font-family:var(--ui);font-size:9.5px;font-weight:800;letter-spacing:.08em;border-radius:999px;padding:2px 7px;background:var(--ink);color:var(--gold-hi);white-space:nowrap}
+.tag.ref{background:#F2DDD6;color:var(--flag)}
+.tag.ro{background:var(--gold-hi);color:var(--ink)}
+.bub.q{box-shadow:inset 3px 0 0 var(--gold-up),0 0 0 .5px var(--shadow)}
+.bub.q .ask{font-family:var(--ui);font-size:10.5px;font-weight:800;letter-spacing:.12em;color:var(--gold);text-transform:uppercase}
+.bub.ro{background:color-mix(in srgb,var(--gold-hi) 16%,var(--page))}
+.compose{display:flex;gap:8px;align-items:center;background:var(--page);border-radius:999px;padding:5px 5px 5px 6px;box-shadow:inset 0 0 0 1px var(--rule)}
+.compose .ruling{font-family:var(--ui);font-size:12px;font-weight:800;border-radius:999px;padding:8px 10px;background:var(--gold-hi);color:var(--ink);white-space:nowrap}
+.compose span{flex:1;font-size:14.5px;color:var(--turf);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.compose button.p{font-family:var(--ui);font-size:13px;font-weight:800;background:var(--ink);color:var(--gold-hi);border-radius:999px;padding:9px 13px}
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>Ask for a ruling: three ways in</h1>
+  <p>Ray V’s tee shot on the par-3 7th has found the pond. Each phone below is a way for a ref or a player to ask about it there and then. Tap through each one: the answer comes back the way it will in the app, from the Rules of Golf <b>and</b> the Union’s own rules (the triple-bogey cap, the breakfast ball, one mulligan a nine, none on Sunday), with Ray’s card in mind.</p>
+  <p>The answers come from the same Claude that already writes the round recaps. It gives guidance; the refs and the commissioner make the call.</p>
+</header>
+
+<div class="row">
+  <section class="opt">
+    <div class="olabel"><b>A</b><span><strong>On the hole</strong><small>A ruling button on the scorecard</small></span></div>
+    <div class="phone" id="pA"></div>
+    <div class="cap"><p class="what">A small <b>⚖️ Ruling</b> button beside each player on the hole being scored. It already knows the round, the hole, the par, who, and what’s left of their mulligans; pick what happened or type it.</p>
+      <ul><li>Fastest in the moment: two taps from the scorecard.</li><li>The answer offers the next step on the card: use the mulligan, mark the water.</li><li>Every ruling is kept with the round, so the next group gets the same answer.</li></ul>
+      <div class="dn"><b>Best for</b>The ref with the scorecard open, standing at the pond.</div></div>
+  </section>
+  <section class="opt">
+    <div class="olabel"><b>B</b><span><strong>Rules desk</strong><small>A Rulings tab beside the card</small></span></div>
+    <div class="phone" id="pB"></div>
+    <div class="cap"><p class="what">Scores gets two tabs: <b>Card</b> and <b>Rulings</b>. The desk has the common situations as tiles, a box to ask anything, and the day’s rulings log, each one stamped when a ref confirms it.</p>
+      <ul><li>One place for every question, from any group.</li><li>The log keeps the day consistent: the same pond, the same answer.</li><li>Players can read it to settle an argument without a ref.</li></ul>
+      <div class="dn"><b>Best for</b>A trip that wants a record, and refs who like to confirm.</div></div>
+  </section>
+  <section class="opt">
+    <div class="olabel"><b>C</b><span><strong>In the chat</strong><small>The Rules Official answers in the chat</small></span></div>
+    <div class="phone" id="pC"></div>
+    <div class="cap"><p class="what">A <b>⚖️ Ruling</b> switch on the chat box. The question goes into the round’s chat for everyone, and the <b>Rules Official</b> answers there; a ref can stamp it.</p>
+      <ul><li>Everyone sees it, and everyone can chime in.</li><li>Nothing new to learn: it’s the chat they already use.</li><li>Rulings mix with the banter, so they’re harder to find later.</li></ul>
+      <div class="dn"><b>Best for</b>The fun of it: the whole trip watches the ruling land.</div></div>
+  </section>
+</div>
+
+<section class="dev">
+  <div class="card rec"><h3>My pick: A, with B’s log</h3>
+    <ul><li>Rulings happen at the ball, with the card open: the button should be right there, already knowing the hole and the player.</li>
+      <li>Because it knows the card, the answer can offer the fix (“use Ray’s front mulligan”) instead of just reading out the rule.</li>
+      <li>Keep a small rulings log on the round, so every group gets the same answer at the same pond.</li></ul></div>
+  <div class="card"><h3>What every answer gives</h3>
+    <ul><li>The ruling in one line, with the penalty and the Rule number.</li>
+      <li>The options, in order, the way a referee would give them.</li>
+      <li>What the Union’s own rules change: mulligans left, the cap, the breakfast ball.</li>
+      <li>How to put it on the card.</li>
+      <li>Always: guidance only, the refs and the commissioner decide.</li></ul></div>
+  <div class="card"><h3>Who can ask</h3>
+    <ul><li>Refs and players on the trip. The bleachers can read rulings, not ask.</li>
+      <li>Answers use the same Claude and the same key as the round recap: nothing new to set up.</li>
+      <li>A cap on questions a day keeps the cost to pennies.</li></ul></div>
+</section>
+
+<script>
+const TAB = on => `<div class="tabbar">${['Today', 'Scores', 'Bets', 'Boards', 'Calendar', 'Resort'].map(t => `<span class="${t === on ? 'on' : t === 'Resort' ? 'gold' : ''}"><i></i>${t}</span>`).join('')}</div>`;
+const HEAD = `<div class="ehd"><div class="k">Round 2 · Better Ball · Group 2</div><div class="t"><b>Hole 7</b><span>Par 3 · 164 yds · stroke index 15</span></div>
+  <div class="holes">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => `<span class="${n === 7 ? 'on' : n < 7 ? 'd' : ''}">${n}</span>`).join('')}</div></div>`;
+const Q = 'Tee shot went in the pond in front of the green. What are his options?';
+const ANSWER = (acts) => `<div class="ans"><div class="ah"><span class="ic">⚖️</span><span><b>Ball in the water · Hole 7</b><small>Rules of Golf 17.1 · with the Union’s rules</small></span></div>
+  <div class="ab">
+    <div class="verdict">One penalty stroke<em>RULE 17.1d</em></div>
+    <div>The pond is a red penalty area. Ray takes one stroke and picks one:</div>
+    <ol><li><b>Replay from the tee</b>: he’ll be hitting 3.</li>
+      <li><b>Back on the line</b>: drop on a line from the hole through where it crossed the edge, as far back as he likes.</li>
+      <li><b>Beside it (red only)</b>: drop within two club-lengths of where it crossed the edge, no nearer the hole.</li></ol>
+    <div class="house"><b>Union rule:</b> it’s the front nine and Ray hasn’t used his front mulligan. He can take it instead: re-tee, <b>no penalty</b>, and the first shot doesn’t count.</div>
+    <div class="card"><b>On the card:</b> with the penalty, drop, chip on and two putts is a <b>5</b>. The most he can score here is <b>6</b> (triple bogey cap).</div>
+    ${acts ? `<div class="acts">${acts}</div>` : ''}
+    <div class="fine">Guidance from the Rules of Golf. The refs and the commissioner make the call.</div>
+  </div></div>`;
+const think = '<div class="ans"><div class="think"><i></i><i></i><i></i> Checking the Rules and Ray’s card…</div></div>';
+const later = (fn, ms = 1100) => setTimeout(fn, ms);
+
+/* ---- A: on the hole ---- */
+const A = { step: 0, pick: 'Ball in the water', done: {} };
+function drawA() {
+  const player = (nm, sub, on, rb) => `<div class="player"><div class="nm"><b>${nm}</b><span>${sub}</span></div>
+    <div class="keys">${[2, 3, 4, 5, 6, 7, 8].map(n => `<i class="${n === on ? 'on' : ''}">${n}</i>`).join('')}</div>
+    <div class="marks"><i class="${rb ? 'on' : ''}">≈ Water</i><i>3-putt</i><i>Shot of the hole</i>${rb ? '<button class="rbtn" data-a="open">⚖️ Ruling</button>' : '<button class="rbtn" style="opacity:.55">⚖️ Ruling</button>'}</div></div>`;
+  let sheet = '';
+  if (A.step > 0) sheet = `<div class="scrim" data-a="close"><div class="sheet">
+    <div class="grab"></div>
+    <div class="sh"><small>⚖️ Ask for a ruling</small><b>Ray V · Hole 7</b><span>Round 2 · par 3 · front mulligan left · breakfast ball used</span></div>
+    <div class="chips">${['Ball in the water', 'Out of bounds', 'Lost ball', 'Unplayable', 'Cart path', 'Plugged', 'Ball moved', 'Wrong ball'].map(c => `<button class="${A.pick === c ? 'on' : ''}">${c}</button>`).join('')}</div>
+    <div class="qbox"><p>${Q}</p><button data-a="ask">${A.step >= 2 ? 'Asked' : 'Ask'}</button></div>
+    ${A.step === 2 ? think : A.step === 3 ? ANSWER(`<button data-a="mull" class="${A.done.mull ? 'done' : ''}">${A.done.mull ? '✓ Mulligan used' : 'Use Ray’s front mulligan'}</button><button class="g" data-a="water">${A.done.water ? '✓ Water marked' : 'Mark the water'}</button><button class="g" data-a="keep">${A.done.keep ? '✓ Saved to the round' : 'Save the ruling'}</button>`) : ''}
+  </div></div>`;
+  document.getElementById('pA').innerHTML = `<div class="scr">${HEAD}<div class="pad">
+    <div class="hole"><b>Who’s in</b><span>Ray V &amp; Drea vs Matt D &amp; Devin O</span></div>
+    ${player('Ray V', 'band 20 · gets a stroke', 0, true)}${player('Drea', 'band 25 · gets a stroke', 3)}${player('Matt D', 'band 20 · gets a stroke', 4)}
+  </div></div>${TAB('Scores')}${sheet}`;
+}
+document.getElementById('pA').addEventListener('click', e => {
+  const t = e.target.closest('[data-a]'); if (!t) return; const a = t.dataset.a;
+  if (a === 'close' && e.target.closest('.sheet')) return;
+  if (a === 'open') A.step = 1; else if (a === 'close') A.step = 0;
+  else if (a === 'ask' && A.step === 1) { A.step = 2; later(() => { A.step = 3; drawA(); }); }
+  else if (a === 'mull' || a === 'water' || a === 'keep') A.done[a] = true;
+  drawA();
+});
+
+/* ---- B: the rules desk ---- */
+const B = { step: 0 };
+function drawB() {
+  const log = `<div class="lh">Today’s rulings · Round 2</div><div class="log">
+    ${B.step === 3 ? `<div class="li"><div class="t"><span>Hole 7 · Ray V · just now</span><span>asked by Drea</span></div><b>Ball in the water: one stroke, three options, or his front mulligan.</b><span class="stamp wait">Waiting for a ref</span></div>` : ''}
+    <div class="li"><div class="t"><span>Hole 4 · Duncan W · 12:52</span><span>asked by Justin P</span></div><b>Ball on the cart path: free relief, nearest point, one club-length.</b><span class="stamp">✓ Confirmed · Justin P</span></div>
+    <div class="li"><div class="t"><span>Hole 2 · DP · 12:31</span><span>asked by DP</span></div><b>Lost in the bushes: one stroke, replay from where he last hit (Rule 18.2).</b><span class="stamp">✓ Confirmed · Manny J</span></div></div>`;
+  const body = B.step === 0 ? `<div class="lh">What happened?</div><div class="topics">
+      ${[['💧', 'Water', 'red & yellow stakes'], ['⛔', 'Out of bounds', 'white stakes'], ['🔍', 'Lost ball', 'three minutes'], ['🌳', 'Unplayable', 'two club-lengths'], ['🛞', 'Cart path', 'free relief'], ['🕳️', 'Plugged', 'in the fairway'], ['👟', 'Ball moved', 'by you or not'], ['❓', 'Something else', 'type it']].map(([i, b, s], k) => `<button data-a="${k === 0 ? 'topic' : ''}"><b>${i} ${b}</b><span>${s}</span></button>`).join('')}</div>`
+    : `<div class="qbox"><p><b>Ray V · hole 7:</b> ${Q}</p><button>Asked</button></div>${B.step === 1 ? think : ANSWER(`<button class="g" data-a="new">Ask another</button>`)}`;
+  document.getElementById('pB').innerHTML = `<div class="scr">${HEAD}<div class="pad">
+    <div class="seg"><button>Card</button><button class="on">Rulings<i>2</i></button></div>
+    ${body}${log}
+  </div></div>${TAB('Scores')}`;
+}
+document.getElementById('pB').addEventListener('click', e => {
+  const t = e.target.closest('[data-a]'); if (!t || !t.dataset.a) return;
+  if (t.dataset.a === 'topic') { B.step = 1; later(() => { B.step = 3; drawB(); }); }
+  if (t.dataset.a === 'new') B.step = 0;
+  drawB();
+});
+
+/* ---- C: in the chat ---- */
+const C = { step: 0, stamp: false };
+function drawC() {
+  const msgs = [];
+  if (C.step >= 1) msgs.push(`<div class="msg"><span class="av">DR</span><div class="bub q"><div class="n">Drea <span class="tag">⛳ PLAYER</span><small>just now</small></div><div class="ask">⚖️ Asking for a ruling · hole 7</div>${Q}</div></div>`);
+  if (C.step === 2) msgs.push(`<div class="msg"><span class="av off">⚖️</span><div class="bub ro" style="padding:0;background:none;box-shadow:none">${think}</div></div>`);
+  if (C.step >= 3) msgs.push(`<div class="msg"><span class="av off">⚖️</span><div class="bub ro"><div class="n">Rules Official <span class="tag ro">CLAUDE</span><small>just now</small></div>
+    <b>One penalty stroke (Rule 17.1d).</b> Replay from the tee, drop back on the line, or within two club-lengths of where it crossed (red). <b>Or</b> Ray uses his front mulligan: re-tee, no penalty. Most he can card is a 6.
+    <div style="margin-top:6px">${C.stamp ? '<span class="tag ref">✓ REF: JUSTIN P</span>' : '<button data-a="stamp" class="tag ref" style="cursor:pointer">Ref: stamp it ✓</button>'}</div></div></div>`);
+  msgs.push(`<div class="msg"><span class="av">MD</span><div class="bub"><div class="n">Matt D <span class="tag">⛳ PLAYER</span><small>2 min ago</small></div>Ray found the pond again 😂</div></div>`);
+  document.getElementById('pC').innerHTML = `<div class="scr"><div class="ehd" style="padding-bottom:10px"><div class="k">The gallery and the golfers</div><div class="t"><b>Chat</b><span>Round 2 · live</span></div></div>
+    <div class="rooms"><span>Practice</span><span>Round 1</span><span class="on">Round 2</span><span>Round 3</span></div>
+    <div class="pad"><div class="compose">${C.step ? '<b class="ruling" style="background:var(--page);box-shadow:inset 0 0 0 1px var(--rule)">⚖️</b><span>Say something…</span>' : `<button class="ruling" data-a="ask">⚖️ Ruling</button><span>${Q}</span>`}<button class="p" data-a="ask">Post</button></div>
+    <div class="feed">${msgs.join('')}</div></div></div>${TAB('Boards')}`;
+}
+document.getElementById('pC').addEventListener('click', e => {
+  const t = e.target.closest('[data-a]'); if (!t) return;
+  if (t.dataset.a === 'ask' && !C.step) { C.step = 1; drawC(); later(() => { C.step = 2; drawC(); later(() => { C.step = 3; drawC(); }); }, 500); return; }
+  if (t.dataset.a === 'stamp') C.stamp = true;
+  drawC();
+});
+drawA(); drawB(); drawC();
+</script>
+</body>
+</html>
