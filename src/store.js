@@ -98,7 +98,7 @@ export function emptyState() {
 /** Everything written to config/tournament. The roster is ALSO kept here as a
  *  mirror — never read while the per-person documents exist, but never dropped
  *  either, so no migration or bad load can lose it. */
-function configOnly(cfg) { return { ...cfg }; }
+function configOnly(cfg) { const { pins, pinsChanged, ...rest } = cfg; return rest; }   // the PINs never go to the shared book
 const byOrder = (a, b) => (a.order || 0) - (b.order || 0);
 
 /* A store may drop keys whose value is null, so put them back explicitly —
@@ -162,6 +162,10 @@ export function createStore(onChange) {
   let fromDevice = false;       // the book on screen came off this phone, not the wire
   let localAt = null;           // when that copy was last written
   let landedCb = null;          // told when a write that waited for a signal gets through
+  /* THE PIN THIS PHONE HOLDS. The server checks it on every write to the
+     tournament's own rows; the phone never checks it itself any more. */
+  let currentPin = '';
+  let deniedAt = 0;             // the server last refused this phone's PIN
   let refusedAt = 0;            // the database last turned a write down on principle
   // Our revision per document. A snapshot older than what we last wrote is an
   // echo of a version we have already moved past, and applying it would undo
@@ -172,7 +176,7 @@ export function createStore(onChange) {
 
   const notify = () => {
     keepLocal();                 // the device keeps its own copy of whatever it knows
-    onChange(T, { ready, mode, status, saveState, lastSavedAt, settled, backend, fromDevice, localAt,
+    onChange(T, { ready, mode, status, saveState, lastSavedAt, settled, backend, fromDevice, localAt, deniedAt,
                   /* the phone's own log waits too, but nobody is waiting for it */
                   pending: ((db && db.pendingPaths) ? db.pendingPaths() : []).filter(x => !x.startsWith('diag/')).length,
                   waiting: (db && db.pendingPaths) ? db.pendingPaths() : [],
@@ -242,9 +246,10 @@ export function createStore(onChange) {
       const factory = (typeof window !== 'undefined' && window.__supabase)
         ? window.__supabase.createClient : null;
       db = factory ? createSupabaseDb({
-        url: SUPABASE_URL, key: SUPABASE_KEY, deviceId, createClient: factory,
+        url: SUPABASE_URL, key: SUPABASE_KEY, deviceId, createClient: factory, pinFor: () => currentPin,
         onStatus: (s2, path) => {
           if (s2 === 'landed') { if (landedCb) { try { landedCb(path); } catch (e) { /* the screen's business */ } } return; }
+          if (s2 === 'denied') { deniedAt = Date.now(); saveState = 'queued'; note('denied', 'the server did not accept this phone\'s PIN for ' + path); notify(); return; }
           if (s2 === 'offline' || s2 === 'queued') { saveState = 'queued'; }
           else if (s2 === 'saved' || s2 === 'flushed') { saveState = 'saved'; lastSavedAt = Date.now(); }
           if (s2 === 'live' || s2 === 'polling') status = 'live';
@@ -1087,7 +1092,7 @@ export function createStore(onChange) {
     notify();
     if (mode === 'local') { saveLocal(); return true; }
     try {
-      await db.doc('config/tournament').set(T.config);
+      await db.doc('config/tournament').set(configOnly(T.config));
       for (const coll of ['scores', 'bbb', 'notes', 'recaps', 'photos', 'chat', 'market']) {
         const got = await db.collection(coll).get();
         for (const d of got.docs) await db.doc(coll + '/' + d.id).delete();
@@ -1111,6 +1116,24 @@ export function createStore(onChange) {
            get pending() { return (db && typeof db.pending === 'number') ? db.pending : 0; },
            get waiting() { return (db && db.pendingPaths) ? db.pendingPaths() : []; },
            set onLanded(fn) { landedCb = fn; },
+           /* the PIN, held here for the writes; the server is the judge of it */
+           get pin() { return currentPin; },
+           set pin(v) { currentPin = String(v || ''); if (db && db.pinChanged) db.pinChanged(); },
+           get deniedAt() { return deniedAt; },
+           /** The role a PIN proves: asked of the server with the book's own
+            *  database, read off the config only where there is no server. */
+           async verifyPin(p) {
+             if (backend === 'supabase' && db && db.verifyPin) {
+               try { return await db.verifyPin(p); }
+               catch (e) { if (e && (e.code === 'PGRST202' || /could not find the function/i.test(String(e.message || '')))) return roleForPin(T.config, p); throw e; }
+             }
+             return roleForPin(T.config, p);
+           },
+           /** Change PINs, proving the master PIN: { s1: '2468', ... }. */
+           async setPins(master, next) {
+             if (backend === 'supabase' && db && db.setPin) { for (const k of Object.keys(next)) await db.setPin(master, k, next[k]); return true; }
+             T.config.pins = { ...(T.config.pins || {}), ...next }; T.config.pinsChanged = true; saveLocal(); notify(); return true;
+           },
            get live() { return !!(db && db.live); },
            destroy() { unsubs.forEach(u => { try { u(); } catch (e) {} }); } };
 }

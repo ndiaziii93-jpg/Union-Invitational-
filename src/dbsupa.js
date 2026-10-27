@@ -35,6 +35,13 @@
 /* Every collection the book keeps. A path outside this list is not polled,
    so adding one here is part of adding one at all. */
 const PREFIXES = ['config', 'people', 'pairs', 'scores', 'bbb', 'notes', 'recaps', 'photos', 'chat', 'market', 'diag'];
+/* THE TOURNAMENT'S OWN ROWS GO THROUGH THE SERVER'S GATE. The config, the
+   roster, the pairs, the scores, the bingo and the recaps cannot be written
+   with the public key: the database refuses them. They go through write_doc
+   and delete_doc, which check the PIN this phone holds before anything
+   lands — so a copy of the book with the checks taken out gets exactly as
+   far as a stranger with the link: nowhere. */
+const PROTECTED = /^(config|people|pairs|scores|bbb|recaps)\//;
 const POLL_LIVE_MS = 180000;  // the net under a live socket: every three minutes (the socket brings everything; this only catches what it dropped)
 const POLL_DOWN_MS = 15000;   // the socket is down, so the poll is the update
 const hidden = () => typeof document !== 'undefined' && document.visibilityState === 'hidden';
@@ -69,7 +76,8 @@ function rowSnap(rows) {
 }
 
 export function createSupabaseDb(opts) {
-  const { url, key, deviceId, createClient, onStatus } = opts || {};
+  const { url, key, deviceId, createClient, onStatus, pinFor } = opts || {};
+  const pin = () => { try { return pinFor ? String(pinFor() || '') : ''; } catch (e) { return ''; } };
   if (!url || !key || typeof createClient !== 'function') return null;
 
   let sb;
@@ -174,6 +182,14 @@ export function createSupabaseDb(opts) {
      outbox only ever holds writes that a signal will deliver. */
   const refused = e => !!e && (e.code === '42501' || e.code === 'PGRST301'
     || /row-level security|violates|permission denied/i.test(String(e.message || '')));
+  /* The gate said no to THIS PHONE'S PIN. Not a dead signal, not a rule the
+     book is breaking: a write that will go the moment someone signs in with
+     a PIN the server accepts. It stays in the outbox, and the screen is told. */
+  const denied = e => !!e && /PIN/.test(String(e.message || ''));
+  /* The gate is not built yet (the lockdown SQL has not been run): the book
+     writes the way it did before, directly, until it is. So the build and
+     the SQL can go in in either order without a phone's writes stranding. */
+  const noGate = e => !!e && (e.code === 'PGRST202' || /could not find the function/i.test(String(e.message || '')));
 
   /* The outbox tries again after a while, and after a longer while each
      time the signal is still not there — four seconds, eight, sixteen, up
@@ -200,7 +216,8 @@ export function createSupabaseDb(opts) {
           /* turned down on the way out: the screen has been showing a write
              the book will never hold, so read what the book does hold */
           else pull({ eq: path }).then(rows => { if (rows.length) absorb(rows[0]); else forget(path); }).catch(() => {});
-        } else { stuck = true; break; }
+        } else if (done === 'denied') { continue; }    // waits for a PIN, not for a signal: the rest of the queue goes
+        else { stuck = true; break; }
       }
       if (stuck) { retryIn = Math.min(retryIn * 2, RETRY_MAX_MS); armRetry(); }
       else { retryIn = RETRY_MS; say('flushed'); }
@@ -211,7 +228,12 @@ export function createSupabaseDb(opts) {
 
   async function rawWrite(path, doc, merge, fromOutbox) {
     try {
-      if (merge) {
+      let gated = PROTECTED.test(path);
+      if (gated) {
+        const { error } = await bound(sb.rpc('write_doc', { p_path: path, p_doc: doc, p_merge: !!merge, p_pin: pin(), p_who: deviceId || null }));
+        if (error && noGate(error)) gated = false; else if (error) throw error;
+      }
+      if (gated) { /* landed through the gate */ } else if (merge) {
         const { error } = await bound(sb.rpc('merge_doc', { p: path, patch: doc, who: deviceId || null }));
         if (error) throw error;
       } else {
@@ -226,6 +248,7 @@ export function createSupabaseDb(opts) {
       say('saved');
       return true;
     } catch (e) {
+      if (denied(e)) { if (!fromOutbox) queue(path, merge ? 'merge' : 'set', doc); say('denied', path); return fromOutbox ? 'denied' : false; }
       if (refused(e)) { say('refused'); return fromOutbox ? null : false; }
       if (!fromOutbox) queue(path, merge ? 'merge' : 'set', doc);
       say('offline');
@@ -235,12 +258,16 @@ export function createSupabaseDb(opts) {
 
   async function rawDelete(path, fromOutbox) {
     try {
-      const { error } = await bound(sb.from('docs').delete().eq('path', path));
+      let { error } = PROTECTED.test(path)
+        ? await bound(sb.rpc('delete_doc', { p_path: path, p_pin: pin() }))
+        : { error: null };
+      if (!error && !PROTECTED.test(path) || noGate(error)) ({ error } = await bound(sb.from('docs').delete().eq('path', path)));
       if (error) throw error;
       forget(path);                 // gone from the screen now, not in six seconds
       say('saved');
       return true;
     } catch (e) {
+      if (denied(e)) { if (!fromOutbox) queue(path, 'delete'); say('denied', path); return fromOutbox ? 'denied' : false; }
       if (refused(e)) { say('refused'); return fromOutbox ? null : false; }
       if (!fromOutbox) queue(path, 'delete');
       say('offline');
@@ -318,6 +345,21 @@ export function createSupabaseDb(opts) {
     get pending() { return pending(); },
     pendingPaths,
     get live() { return live; },
+
+    /** The role a PIN proves, asked of the server: 'master', 's1', 's2' or null. Throws with no signal. */
+    async verifyPin(p) {
+      const { data, error } = await bound(sb.rpc('verify_pin', { p_pin: String(p || '') }));
+      if (error) throw error;
+      return data || null;
+    },
+    /** Change a PIN, proving the master PIN first. */
+    async setPin(master, role, next) {
+      const { error } = await bound(sb.rpc('set_pin', { p_master: String(master || ''), p_role: role, p_new: String(next || '') }));
+      if (error) throw error;
+      return true;
+    },
+    /** A PIN just arrived on this phone: anything that waited for one goes now. */
+    pinChanged() { if (waiting.size) armRetry(true); },
 
     doc(path) {
       return {

@@ -34,7 +34,7 @@ global.localStorage = {
    test can push a change as the server would. */
 function fakeSupabase() {
   const rows = new Map();
-  const state = { offline: false, calls: 0, sweeps: 0, handler: null, onState: null, subscribed: false, deny: [] };
+  const state = { offline: false, calls: 0, sweeps: 0, handler: null, onState: null, subscribed: false, deny: [], pins: { 1000: 'master', 2000: 's1' }, gated: [] };
   let clock = 1000;
   const stamp = () => new Date(clock++).toISOString();
 
@@ -89,6 +89,18 @@ function fakeSupabase() {
         from: () => table(),
         async rpc(name, args) {
           try { guard(); } catch (e) { return { error: e }; }
+          /* the server's gate: the tournament's own rows take a PIN it knows */
+          const role = state.pins[args.p_pin];
+          if (name === 'verify_pin') return { data: role || null, error: null };
+          if (name === 'write_doc' || name === 'delete_doc') {
+            state.gated.push([name, args.p_path, args.p_pin]);
+            if (!role) return { error: { code: '42501', message: 'PIN not accepted' } };
+            if (name === 'delete_doc') { rows.delete(args.p_path); return { error: null }; }
+            const held = rows.get(args.p_path);
+            rows.set(args.p_path, { path: args.p_path, doc: args.p_merge ? { ...((held || {}).doc || {}), ...args.p_doc } : args.p_doc,
+                                    writer: args.p_who, updated_at: stamp() });
+            return { error: null };
+          }
           if (name !== 'merge_doc') return { error: new Error('no such function') };
           if (denied(args.p)) return { error: denied(args.p) };
           const held = rows.get(args.p);
@@ -111,11 +123,36 @@ function fakeSupabase() {
 }
 
 const said = [];
+let myPin = '1000';
 function open(fake) {
   return createSupabaseDb({
     url: 'https://example.supabase.co', key: 'sb_publishable_test', deviceId: 'dtest',
-    createClient: fake.createClient, onStatus: s => said.push(s),
+    createClient: fake.createClient, onStatus: s => said.push(s), pinFor: () => myPin,
   });
+}
+
+/* ---- the server's gate ---------------------------------------------------- */
+{
+  console.log('\nthe tournament\'s own rows go through the gate');
+  const fake = fakeSupabase();
+  const db = open(fake);
+  await db.doc('scores/r1__g6').set({ raw: [4] });
+  ok('a card is written through write_doc, with the PIN this phone holds', fake.state.gated.at(-1), ['write_doc', 'scores/r1__g6', '1000']);
+  await db.doc('chat/m1').set({ k: 'm', text: 'hi' });
+  ok('a chat message goes straight in, no PIN', fake.state.gated.length, 1);
+  ok('the role a PIN proves is the server\'s to say', [await db.verifyPin('1000'), await db.verifyPin('2000'), await db.verifyPin('9999')], ['master', 's1', null]);
+  await db.doc('people/g1').delete();
+  ok('and a roster row is deleted through delete_doc', fake.state.gated.at(-1), ['delete_doc', 'people/g1', '1000']);
+
+  myPin = '4321';
+  said.length = 0;
+  ok('a write with a PIN the server does not know is not landed', await db.doc('scores/r1__g2').set({ raw: [5] }), false);
+  ok('the screen is told it was denied, and it waits in the outbox', [said.includes('denied'), db.pendingPaths()], [true, ['scores/r1__g2']]);
+  await db.doc('chat/m2').set({ k: 'm', text: 'still talking' });
+  ok('the chat is not held up behind it', fake.rows.has('chat/m2'), true);
+  myPin = '1000'; db.pinChanged(); await wait(300);
+  ok('a PIN the server accepts sends it on', [fake.rows.has('scores/r1__g2'), db.pendingPaths()], [true, []]);
+  db.close();
 }
 
 /* ---- a document goes in and comes back ---------------------------------- */

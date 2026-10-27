@@ -95,6 +95,38 @@ golf app, and works with no signal.
 
 ---
 
+## 4. Lock the book down — PINs checked by the server, never by a phone
+
+The app runs in the browser and the repository is public, so anyone can read
+its code and anyone can change the copy running on their own phone. What
+stops a changed copy from doing anything is the database refusing it. Run
+`docs/supabase-lockdown.sql` once and it does:
+
+1. Open **Supabase → SQL Editor → New query** and paste the whole of
+   `docs/supabase-lockdown.sql`.
+2. Near the bottom, replace the three placeholders with the PINs you choose
+   (`TYPE-THE-MASTER-PIN-HERE` and the two scorers'). Six digits or more for
+   the master PIN. Type them there and nowhere else — never into a chat,
+   never into the repository.
+3. **Run**. The check at the end should list three rows and say the config
+   has no PINs in it any more.
+4. The SQL editor keeps a history of queries: open the ⋯ menu on this one
+   and delete it, so the PINs are not sitting in it.
+5. Tell the two scorers their PINs in person. Every phone signs in again
+   (Manage → Setup, or the PIN prompt on the first score): the PINs that
+   were in the book before are gone.
+
+After this, scores, the roster, the pairs, rounds, bingo points and recaps
+can only be written through the server's own functions, which check the PIN
+first; the public key cannot touch those rows directly. Wrong guesses are
+limited to twelve a minute for everyone. Changing a PIN later is done from
+Setup with the master PIN, as before — the server does the changing.
+
+What this does not cover, because the book has no accounts: the chat, the
+bets and the photos are as trustworthy as a group chat — anyone with the
+link can post as anyone, exactly as before — and the commissioner settles the
+beers.
+
 ## What I need back from you
 
 | | Where from | Send me |

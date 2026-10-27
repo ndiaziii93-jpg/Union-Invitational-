@@ -115,7 +115,10 @@ const ROLE_KEY = 'union-invitational:role';
    again against the book every time the book changes. A role saved while
    the PINs were off, or under a PIN that has since been changed, proves
    nothing and the phone goes back to reading. */
-function saveRole(role, pin) { try { localStorage.setItem(ROLE_KEY, JSON.stringify({ role, pin: String(pin || '') })); } catch (e) { /* storage blocked */ } }
+function saveRole(role, pin) {
+  try { localStorage.setItem(ROLE_KEY, JSON.stringify({ role, pin: String(pin || '') })); } catch (e) { /* storage blocked */ }
+  if (store) store.pin = pin;                 // the writes carry it; the server judges it
+}
 function loadRole() {
   try {
     const raw = localStorage.getItem(ROLE_KEY);
@@ -128,11 +131,20 @@ function loadRole() {
 /** The phone's role, proved against the book as it stands. Run whenever the
  *  book changes: a PIN changed in Setup signs out every phone that used the
  *  old one, at once. */
+let deniedSeen = 0;
 function checkRole() {
   if (!D.PINS_ENABLED || UI.role === 'viewer' || !loaded()) return;
   const saved = loadRole();
-  const proven = saved && saved.pin && S.roleForPin(T.config, saved.pin) === UI.role;
-  if (!proven) { UI.role = 'viewer'; saveRole('viewer', ''); if (UI.screen === 'setup') UI.screen = 'today'; }
+  /* With the book's own database the server judges the PIN on every write,
+     and says so when it will not have it: that is the moment this phone
+     stops being a scorer. Without one, the config is all there is to check. */
+  const denied = store && store.backend === 'supabase' && meta.deniedAt && meta.deniedAt > deniedSeen;
+  if (denied) deniedSeen = meta.deniedAt;
+  const proven = saved && saved.pin && !denied && (store && store.backend === 'supabase' ? true : S.roleForPin(T.config, saved.pin) === UI.role);
+  if (!proven) {
+    UI.role = 'viewer'; saveRole('viewer', ''); if (UI.screen === 'setup') UI.screen = 'today';
+    if (denied) UI.deniedNote = 'The book did not accept the PIN on this phone, so it is reading only. Sign in again; anything you entered is kept and goes through once a PIN is accepted.';
+  }
 }
 
 /* The book has no accounts — anyone with the link can open it — so "who am
@@ -5038,11 +5050,11 @@ function scrCourses() {
 function scrSetup() {
   if (!canAdmin()) return `<h2 class="head">Setup</h2><p class="empty">The master PIN opens this screen.</p>
     <button class="btn" data-act="signIn">Enter PIN</button>`;
-  const p = T.config.pins;
+  const p = store && store.backend === 'supabase' ? { master: true, s1: true, s2: true } : (T.config.pins || {});
   const outstanding = E.setupIssues(T).length;
   return `${manageHead('Setup', 'Manage \u00B7 master reviewer', [
       [D.PINS_ENABLED ? 'On' : 'Off', 'PINs', !D.PINS_ENABLED],
-      [[p.master, p.s1, p.s2].filter(Boolean).length, 'Saved'],
+      [store && store.backend === 'supabase' ? 'Server' : 'Phone', 'Checked by'],
       [outstanding, 'Outstanding', outstanding > 0],
       [T.config.calLocked ? 'Locked' : 'Open', 'Calendar']])}
   <p class="lede">Master reviewer controls. PINs gate who may write to a card; everyone else reads the book.</p>
@@ -5051,7 +5063,9 @@ function scrSetup() {
   ${!D.PINS_ENABLED ? `<div class="notice"><b>PINs are switched off</b>
     <div style="font-size:15px;color:var(--turf)">Anyone who can open this page can enter scores, open a round and lock it. The three PINs below are saved and ready — ask for them to be switched on once the book is finished.</div></div>` : ''}
   <div class="notice"><b>A PIN is written once and never shown again.</b>
-    <div style="font-size:15px;color:var(--turf)">Type into the boxes you want to change, then tap Save PINs. A box left empty keeps the PIN it has. Nothing in the book ever reads a PIN back \u2014 not this screen, not the scorers' phones. They are a courtesy lock: they stop the wrong thumb changing a score, and they live in the shared database, so do not reuse a passcode from anywhere else.</div></div>
+    <div style="font-size:15px;color:var(--turf)">Type into the boxes you want to change, then tap Save PINs. A box left empty keeps the PIN it has. ${store && store.backend === 'supabase'
+      ? 'The PINs are kept hashed on the server and checked there on every write to a card, the roster or a round: no phone, and no copy of this page, can read them or get round them. A phone that stops proving its PIN goes back to reading.'
+      : 'Nothing in the book ever reads a PIN back \u2014 not this screen, not the scorers\' phones.'} Do not reuse a passcode from anywhere else.</div></div>
   <div class="panel">
     ${[['master', 'Master reviewer', 'Opens, locks and reopens rounds, clears the scores, changes every PIN'],
        ['s1', 'Scorer 1', 'Signs in once a day; enters and finishes rounds'],
@@ -5063,7 +5077,7 @@ function scrSetup() {
     <div class="chiprow" style="align-items:center;gap:12px">
       <button class="btn" data-act="savePins">Save PINs</button>
       ${UI.pinNote ? `<span class="eyebrow" style="color:${/saved/i.test(UI.pinNote) ? 'var(--green)' : 'var(--flag)'}">${esc(UI.pinNote)}</span>`
-        : !T.config.pinsChanged ? `<span class="eyebrow" style="color:var(--flag)">Still the factory defaults \u2014 set all three before the book goes live</span>` : ''}
+        : !T.config.pinsChanged && !(store && store.backend === 'supabase') ? `<span class="eyebrow" style="color:var(--flag)">Still the factory defaults \u2014 set all three before the book goes live</span>` : ''}
     </div>
   </div>
 
@@ -6433,6 +6447,7 @@ function paint() {
     </header>
     ${datelineRail()}
     <div class="rule-heavy"></div>
+    ${UI.deniedNote ? `<div class="loadbar bad">${esc(UI.deniedNote)} <button class="rm" data-act="signIn">Sign in</button></div>` : ''}
     ${loaded() ? '' : meta.fromDevice ? `<div class="loadbar off">
       No signal yet. This is the book as the phone last read it${meta.localAt ? ', ' + esc(sinceOf(meta.localAt)) : ''}. Scores, posts and bets you enter are kept here and sent the moment it finds one.</div>`
     : `<div class="loadbar${meta.status === 'error' ? ' bad' : ''}">
@@ -6660,10 +6675,10 @@ function pinModalHtml() {
   return `<div class="scrim" data-act="modalScrim"><div class="modal" role="dialog" aria-modal="true" aria-label="${esc(m.title)}">
     ${modalBanner(m.title, 'The Union Invitational')}
     ${m.note ? `<p>${esc(m.note)}</p>` : ''}
-    <input class="pinin" id="pinField" type="password" inputmode="numeric" autocomplete="off" maxlength="8" placeholder="••••" aria-label="PIN" value="${esc(UI.pinTyped || '')}">
+    <input class="pinin" id="pinField" type="password" inputmode="numeric" autocomplete="off" maxlength="8" placeholder="••••" aria-label="PIN" value="${esc(UI.pinTyped || '')}"${m.busy ? ' disabled' : ''}>
     <p class="err">${esc(UI.modalErr)}</p>
     <div class="acts"><button class="btn ghost" data-act="modalCancel">Cancel</button>
-      <button class="btn" data-act="modalOk">${esc(m.ok || 'Confirm')}</button></div>
+      <button class="btn" data-act="modalOk"${m.busy ? ' disabled' : ''}>${m.busy ? 'Checking…' : esc(m.ok || 'Confirm')}</button></div>
   </div></div>`;
 }
 
@@ -7690,13 +7705,27 @@ function fromDaySheet() {
 
 function submitPin() {
   const el = document.getElementById('pinField');
-  const pin = el ? el.value : '';
-  const role = S.roleForPin(T.config, pin);
-  if (!role) { UI.modalErr = 'That PIN is not on the list. Try again, or ask the master reviewer.'; render(); return; }
+  const pin = String(el ? el.value : '').trim();
   const m = UI.modal;
-  UI.modal = null; UI.modalErr = ''; UI.pinTyped = '';
-  if (m && m.onOk) m.onOk(role, pin);
-  render();
+  if (!m || m.kind !== 'pin' || m.busy) return;
+  if (!/^\d{4,8}$/.test(pin)) { UI.modalErr = 'A PIN is 4 to 8 digits.'; render(); return; }
+  /* the server is asked, not the phone: a copy of the book with the check
+     taken out proves nothing to it */
+  m.busy = true; UI.modalErr = ''; render();
+  store.verifyPin(pin).then(role => {
+    if (UI.modal !== m) return;
+    m.busy = false;
+    if (!role) { UI.modalErr = 'That PIN is not on the list. Try again, or ask the master reviewer.'; UI.pinTyped = ''; render(); return; }
+    UI.modal = null; UI.modalErr = ''; UI.pinTyped = ''; UI.deniedNote = '';
+    if (m.onOk) m.onOk(role, pin);
+    render();
+  }, e => {
+    if (UI.modal !== m) return;
+    m.busy = false;
+    UI.modalErr = /PIN attempts/.test(String(e && e.message || '')) ? 'Too many PIN attempts just now. Wait a minute and try again.'
+      : 'No signal to check the PIN with. Try again when there is one.';
+    render();
+  });
 }
 
 /** The roster and pairings save on every edit. This states that plainly, and
@@ -8753,10 +8782,15 @@ function onClick(e) {
       }
       if (bad.length) { UI.pinNote = 'A PIN is 4 to 8 digits'; break; }
       if (!Object.keys(next).length) { UI.pinNote = 'Nothing typed, nothing changed'; break; }
-      store.writeConfig(c => { for (const k of Object.keys(next)) c.pins[k] = next[k]; c.pinsChanged = true; });
-      UI.pinDraft = { master: '', s1: '', s2: '' };
-      UI.pinNote = 'Saved \u00b7 ' + Object.keys(next).length + ' of 3';
-      break;
+      /* the server changes them, and only for the master PIN this phone holds */
+      const master = (loadRole() || {}).pin || '';
+      UI.pinNote = 'Saving…'; render();
+      store.setPins(master, next).then(() => {
+        if (next.master) saveRole('master', next.master);       // this phone keeps its own new key
+        UI.pinDraft = { master: '', s1: '', s2: '' };
+        UI.pinNote = 'Saved \u00b7 ' + Object.keys(next).length + ' of 3'; render();
+      }, e => { UI.pinNote = /PIN/.test(String(e && e.message || '')) ? 'The server did not accept this phone\'s master PIN' : 'Could not reach the book — try again with a signal'; render(); });
+      return;
     }
     case 'resetScores':
       askPinStrict('Clear every score', 'Every card, point, note and report for every round, on every device. The roster, bands, pairs and calendar stay. Enter the master PIN.', 'Clear scores',
@@ -9171,6 +9205,7 @@ export function boot() {
   store = S.createStore((state, m) => {
     T = state; meta = m;
     store.onLanded = path => { if (/^chat\/m/.test(path)) notifyOthers(path); };
+    if (!store.pin) { const sv = loadRole(); if (sv && sv.pin) store.pin = sv.pin; }
     if (betFromPush && m.ready && m.settled !== false && T.market && T.market[betFromPush]) {
       const id = betFromPush; betFromPush = null; openBetFrom(id, true);
     }
