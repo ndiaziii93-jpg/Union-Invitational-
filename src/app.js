@@ -3995,12 +3995,18 @@ function scrEntry() {
             it is open the closest-to-the-pin fields appear on that hole and
             the longest-drive fields on theirs, and the other sixteen holes
             carry neither. */ ''}
-      ${(!open || cfg.ctpHole === hole.n || cfg.ldHole === hole.n) ? `<div class="side-g" data-reveal="pins">
+      ${/* NEVER OUT OF SIGHT. Once the round is open each competition's
+            boxes are on its own hole; on every other hole it is still there
+            as a line, who holds it and a way to its hole, so it never looks
+            gone. */ ''}
+      <div class="side-g" data-reveal="pins">
         <h3>Pin &amp; drive — ${esc(r.short)}</h3>
         <p class="sublede">${nominated
           ? (open ? 'Nominated. Moving a hole now asks a scorer to confirm.' : 'Both nominated — the round can open.')
           : 'Both holes must be nominated before the round can open.'}</p>
         <div class="fieldset">
+          ${open && cfg.ctpHole !== hole.n ? pinLine('ctp', cfg, course, people) : ''}
+          ${open && cfg.ldHole !== hole.n ? pinLine('ld', cfg, course, people) : ''}
           ${(!open || cfg.ctpHole === hole.n) ? `<label>Closest to the Pin hole
             ${pickWrap(`<select class="field${cfg.ctpHole ? '' : ' unset'}" data-act="setRoundField" data-a="ctpHole"${ed && !locked ? '' : ' disabled'}>
               <option value="">Not chosen yet</option>
@@ -4037,9 +4043,22 @@ function scrEntry() {
               say so. They used to look open, take the pick, refuse it
               without a word, and put Nobody yet back at the next redraw. */
           !open && ed ? `<p class="sublede">The names go in once the round is open.</p>` : ''}
-      </div>` : ''}
+      </div>
     </div>
   </div>`;
+}
+/** A pin-or-drive competition seen from another hole: its hole, who holds
+ *  it, and a way there. */
+function pinLine(kind, cfg, course) {
+  const ctp = kind === 'ctp', n = ctp ? cfg.ctpHole : cfg.ldHole, who = ctp ? cfg.ctpWinner : cfg.ldWinner;
+  const i = course.holes.findIndex(x => x.n === n), hl = course.holes[i];
+  if (!n || !hl) return '';
+  const nm = who ? (E.person(T, who) || {}).display || '—' : null;
+  return `<div class="pinline">
+    <span class="pl-ic" aria-hidden="true">${ctp ? '📍' : '🏌️'}</span>
+    <span class="pl-w"><b>${ctp ? 'Closest to the pin' : 'Longest drive'} · Hole ${n}</b>
+      <small>${nm ? esc(nm) + (ctp ? ' is in there now' : ' holds it' + (cfg.ldDist ? ', ' + esc(cfg.ldDist) : '')) : 'Nobody yet'} · par ${hl.par} · ${hl.mW} m</small></span>
+    <button class="pl-go" data-act="entryHole" data-a="${i}">Hole ${n} ›</button></div>`;
 }
 
 /* ---------------- the pickers ----------------

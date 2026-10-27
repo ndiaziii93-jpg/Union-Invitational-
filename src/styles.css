@@ -4536,3 +4536,11 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 .rl-t{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--turf)}
 .rl-more{padding:0 12px 12px;display:grid;gap:8px}
 .rl-asked{margin:0;font-size:14px;color:var(--turf);font-style:italic}
+
+/* ---- pin & drive, from another hole ---- */
+.pinline{display:flex;align-items:center;gap:10px;background:var(--page);border-radius:12px;padding:10px 12px;box-shadow:0 0 0 .5px var(--shadow);margin:6px 0}
+.pl-ic{font-size:20px;flex:0 0 auto}
+.pl-w{flex:1;min-width:0;display:grid;gap:1px}
+.pl-w b{font-size:15.5px}
+.pl-w small{font-size:13px;color:var(--turf)}
+.pl-go{flex:0 0 auto;font:inherit;font-size:13.5px;font-weight:700;border:0;border-radius:999px;padding:8px 13px;min-height:40px;background:var(--ink);color:#E2C277;cursor:pointer;white-space:nowrap}

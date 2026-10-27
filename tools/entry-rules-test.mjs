@@ -130,7 +130,11 @@ ok('longest drive still takes one',
 ok('and the only distance box on the screen is that one',
   (await p.locator('.side-g label').allInnerTexts()).filter(t => /distance/i.test(t)).length, 1);
 await p.locator('.hcell').nth(0).click(); await p.waitForTimeout(500); await shut();
-ok('and a plain hole carries neither', await p.locator('[data-reveal="pins"]').count(), +([await nomOf('ctpHole'), await nomOf('ldHole')].includes(1)));
+{ const onOne = [await nomOf('ctpHole'), await nomOf('ldHole')].filter(n => n === 1).length;
+  ok('a plain hole carries neither competition’s boxes', await p.locator('[data-act="setRoundField"][data-a$="Winner"]').count(), onOne);
+  ok('but both are still there, as a line with the way to their hole', await p.locator('.pinline .pl-go').count(), 2 - onOne); }
+await p.locator('.pinline .pl-go').first().click(); await p.waitForTimeout(500); await shut();
+ok('and the line goes there', await p.locator('[data-act="setRoundField"][data-a$="Winner"]').count(), 1);
 
 console.log('\nBingo Bango Bongo stays inside the group');
 const g1 = await names();
