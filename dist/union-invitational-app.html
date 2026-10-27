@@ -4825,7 +4825,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261027-1344';
+const BUILD = '20261027-1412';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -12889,20 +12889,25 @@ function recapText(rid) {
   const L = [];
   L.push('THE UNION INVITATIONAL \u2014 ' + (r.full || '') + (d.dow ? ', ' + d.dow + ' ' + d.date : ''));
   if (b.headline) L.push('', '*' + b.headline + '*');
-  /* the page first: the whole recap as the book lays it out, photos and
-     tables and all, for anyone with a browser — no book, no sign-in */
-  L.push('', 'Read it with the photos and the tables: ' + recapLink(rid));
   (b.narrative || []).forEach(para => L.push('', para));
   if (b.swing && b.swing.value) L.push('', 'Swing of the day: ' + b.swing.value + (b.swing.caption ? ' \u2014 ' + b.swing.caption : ''));
   const hs = (b.honours || []).filter(h => h.winner);
   if (hs.length) { L.push('', 'Honours'); hs.forEach(h => { const lab = (HONOURS.find(x => x.slot === h.slot) || {}).label || h.slot; L.push('\u2022 ' + lab + ' \u2014 ' + who(h.winner) + (h.citation ? ': ' + h.citation : '')); }); }
   const pn = Object.entries(b.pairNotes || {}).filter(([, v]) => v);
   if (pn.length) { L.push('', 'The pairs'); pn.forEach(([id, v]) => L.push('\u2022 ' + who(id) + ': ' + v)); }
-  L.push('', 'The whole book, boards and photos: ' + D.SITE_URL);
+  L.push('', 'The day’s recap, with the photos and the tables: ' + recapLink(rid));
   return L.join('\n');
 }
 /** The recap's own page on the public site: one link a round. */
 const recapLink = rid => D.SITE_URL + 'recap/?r=' + encodeURIComponent(rid);
+/** What goes to the group: three lines and the link. The page is the recap,
+ *  laid out as the book lays it out; a wall of text in a chat bubble is not. */
+function recapShare(rid) {
+  const rec = T.recaps[rid]; const b = rec && rec.body; if (!b) return '';
+  const r = E.roundDef(rid) || {}; const d = E.dayOf(r.dayIdx || 0) || {};
+  return ['⛳ THE UNION INVITATIONAL — ' + (r.short === 'Practice' ? 'Practice day' : r.full || '') + (d.dow ? ', ' + d.dow + ' ' + d.date : ''),
+    b.headline ? '*' + b.headline + '*' : '', '', 'The day’s recap, with the photos and the tables: ' + recapLink(rid)].filter((x, i) => x || i === 2).join('\n');
+}
 const HONOURS = [
   { slot: 'shot_of_the_day', label: 'Shot of the day' },
   { slot: 'round_of_the_day', label: 'Round of the day' },
@@ -18244,7 +18249,7 @@ function onClick(e) {
       writeRecap(a, true);
       return;
     case 'recapWhatsApp': {
-      const text = recapText(a); if (!text) return;
+      const text = recapShare(a); if (!text) return;
       /* the phone's own share sheet first, which lets them pick the group;
          WhatsApp's link otherwise, which opens the app with the words in */
       const wa = () => { try { window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank'); } catch (e) { /* nothing to open */ } };

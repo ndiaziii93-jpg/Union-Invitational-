@@ -32,15 +32,15 @@ ok('a reader gets a Send to WhatsApp button', await p.locator('[data-act="recapW
 ok('and a Copy', await p.locator('[data-act="recapCopy"]').count(), 1);
 await p.locator('[data-act="recapWhatsApp"]').click(); await p.waitForTimeout(400);
 const sent = await p.evaluate(() => window.__sent[0] || '');
-ok('the phone\'s share sheet is handed the words', sent.length > 50, true);
+/* a card, not the article: the round, the headline, the link to the page */
+ok('the phone\'s share sheet is handed a short message, not the article', [sent.split('\n').length, sent.length < 300, /Nobody said much/.test(sent)], [4, true, false]);
+ok('the round on top', /^⛳ THE UNION INVITATIONAL — Practice day, /.test(sent), true);
 ok('with the headline, bold the WhatsApp way', /\*The wind got up on the back nine\*/.test(sent), true);
-ok('the paragraphs', /Nobody said much on the 16th tee\./.test(sent), true);
-ok('the swing and the honour by name', /Swing of the day: 4 shots/.test(sent) && /Shot of the day — Norberto III: A six iron/.test(sent), true);
-ok('and the book\'s address at the foot', /github\.io\/Union-Invitational-\/$/.test(sent.trim()), true);
+ok('and the recap page\'s address, which is the recap', /github\.io\/Union-Invitational-\/recap\/\?r=practice$/.test(sent.trim()), true);
 /* no share sheet: WhatsApp's own link, with the words in it */
 await p.evaluate(() => { delete navigator.share; });
 await p.locator('[data-act="recapWhatsApp"]').click(); await p.waitForTimeout(300);
-ok('without a share sheet it opens WhatsApp with the words', await p.evaluate(() => /^https:\/\/wa\.me\/\?text=/.test(window.__opened[0] || '') && decodeURIComponent(window.__opened[0]).includes('wind got up')), true);
+ok('without a share sheet it opens WhatsApp with the same card', await p.evaluate(() => /^https:\/\/wa\.me\/\?text=/.test(window.__opened[0] || '') && decodeURIComponent(window.__opened[0]).includes('recap/?r=practice')), true);
 await p.locator('[data-act="recapCopy"]').click(); await p.waitForTimeout(300);
 ok('Copy puts the same words on the clipboard', await p.evaluate(() => (window.__copied || '').includes('Dinner was better.')), true);
 ok('and says so', (await p.locator('[data-act="recapCopy"]').innerText()).trim(), 'Copied');
