@@ -358,7 +358,7 @@ await q.locator('.ch-post [data-act="whoOpen"]').click(); await q.waitForTimeout
 await q.locator('.who-c button:has-text("Jennifer D")').click(); await q.waitForTimeout(300);
 ok('it asks for her PIN rather than a new one', [await q.locator('#whoPinA').count(), await q.locator('#whoPinB').count()], [1, 0]);
 await q.locator('#whoPinA').fill('1111'); await q.locator('[data-act="whoPinGo"]').click(); await q.waitForTimeout(300);
-ok('the wrong one is refused, and says who can help', /commissioner can tell you/.test(await q.locator('.whomodal .xm-err').innerText()), true);
+ok('the wrong one is refused, and says who can help', /commissioner can/.test(await q.locator('.whomodal .xm-err').innerText()), true);
 await q.locator('#whoPinA').fill('4826'); await q.locator('#whoPinA').press('Enter'); await q.waitForTimeout(400);
 ok('the right one lets her in, back in the chat', [await q.evaluate(() => localStorage.getItem('union-invitational:whoami')), await q.locator('.chatsheet').count()], ['s1', 1]);
 

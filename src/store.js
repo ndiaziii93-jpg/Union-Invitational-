@@ -165,7 +165,9 @@ export function createStore(onChange) {
   /* THE PIN THIS PHONE HOLDS. The server checks it on every write to the
      tournament's own rows; the phone never checks it itself any more. */
   let currentPin = '';
+  let currentWho = { pid: '', pin: '' };   // the name this phone has claimed, and its PIN, for the chat and the bets
   let deniedAt = 0;             // the server last refused this phone's PIN
+  let deniedPath = '';          // ... for this document
   let refusedAt = 0;            // the database last turned a write down on principle
   // Our revision per document. A snapshot older than what we last wrote is an
   // echo of a version we have already moved past, and applying it would undo
@@ -176,7 +178,7 @@ export function createStore(onChange) {
 
   const notify = () => {
     keepLocal();                 // the device keeps its own copy of whatever it knows
-    onChange(T, { ready, mode, status, saveState, lastSavedAt, settled, backend, fromDevice, localAt, deniedAt,
+    onChange(T, { ready, mode, status, saveState, lastSavedAt, settled, backend, fromDevice, localAt, deniedAt, deniedPath,
                   /* the phone's own log waits too, but nobody is waiting for it */
                   pending: ((db && db.pendingPaths) ? db.pendingPaths() : []).filter(x => !x.startsWith('diag/')).length,
                   waiting: (db && db.pendingPaths) ? db.pendingPaths() : [],
@@ -246,10 +248,10 @@ export function createStore(onChange) {
       const factory = (typeof window !== 'undefined' && window.__supabase)
         ? window.__supabase.createClient : null;
       db = factory ? createSupabaseDb({
-        url: SUPABASE_URL, key: SUPABASE_KEY, deviceId, createClient: factory, pinFor: () => currentPin,
+        url: SUPABASE_URL, key: SUPABASE_KEY, deviceId, createClient: factory, pinFor: () => currentPin, whoFor: () => currentWho,
         onStatus: (s2, path) => {
           if (s2 === 'landed') { if (landedCb) { try { landedCb(path); } catch (e) { /* the screen's business */ } } return; }
-          if (s2 === 'denied') { deniedAt = Date.now(); saveState = 'queued'; note('denied', 'the server did not accept this phone\'s PIN for ' + path); notify(); return; }
+          if (s2 === 'denied') { deniedAt = Date.now(); deniedPath = String(path || ''); saveState = 'queued'; note('denied', 'the server did not accept this phone\'s PIN for ' + path); notify(); return; }
           if (s2 === 'offline' || s2 === 'queued') { saveState = 'queued'; }
           else if (s2 === 'saved' || s2 === 'flushed') { saveState = 'saved'; lastSavedAt = Date.now(); }
           if (s2 === 'live' || s2 === 'polling') status = 'live';
@@ -1120,6 +1122,30 @@ export function createStore(onChange) {
            get pin() { return currentPin; },
            set pin(v) { currentPin = String(v || ''); if (db && db.pinChanged) db.pinChanged(); },
            get deniedAt() { return deniedAt; },
+           get deniedPath() { return deniedPath; },
+           /* the name and PIN the chat and the bets are signed with */
+           get who() { return currentWho; },
+           set who(v) { currentWho = { pid: String((v && v.pid) || ''), pin: String((v && v.pin) || '') }; if (db && db.pinChanged) db.pinChanged(); },
+           /** Take a name with its PIN. On the server the PIN is hashed; with
+            *  no server it is kept beside the chat as it always was. */
+           async claimName(pid, p) {
+             const gone = e => e && (e.code === 'PGRST202' || /could not find the function/i.test(String(e.message || '')));
+             if (backend === 'supabase' && db && db.claimName) {
+               try { return await db.claimName(pid, p); } catch (e) { if (!gone(e)) throw e; }
+             }
+             const held = T.chat['id_' + pid];
+             if (held && (held.pin || held.hash)) { const e = new Error('taken'); e.code = 'taken'; throw e; }
+             await putSocial('chat', 'id_' + pid, { k: 'id', pid, pin: String(p), at: Date.now(), dev: deviceId });
+             return true;
+           },
+           async checkName(pid, p) {
+             const gone = e => e && (e.code === 'PGRST202' || /could not find the function/i.test(String(e.message || '')));
+             if (backend === 'supabase' && db && db.checkName) {
+               try { return await db.checkName(pid, p); } catch (e) { if (!gone(e)) throw e; }
+             }
+             const held = T.chat['id_' + pid];
+             return !!held && String(held.pin || '') === String(p);
+           },
            /** The role a PIN proves: asked of the server with the book's own
             *  database, read off the config only where there is no server. */
            async verifyPin(p) {

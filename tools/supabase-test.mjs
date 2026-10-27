@@ -34,7 +34,7 @@ global.localStorage = {
    test can push a change as the server would. */
 function fakeSupabase() {
   const rows = new Map();
-  const state = { offline: false, calls: 0, sweeps: 0, handler: null, onState: null, subscribed: false, deny: [], pins: { 1000: 'master', 2000: 's1' }, gated: [] };
+  const state = { offline: false, calls: 0, sweeps: 0, handler: null, onState: null, subscribed: false, deny: [], pins: { 1000: 'master', 2000: 's1' }, names: { g6: '4826' }, gated: [] };
   let clock = 1000;
   const stamp = () => new Date(clock++).toISOString();
 
@@ -92,6 +92,26 @@ function fakeSupabase() {
           /* the server's gate: the tournament's own rows take a PIN it knows */
           const role = state.pins[args.p_pin];
           if (name === 'verify_pin') return { data: role || null, error: null };
+          /* a name and its PIN: claimed once, proved after */
+          if (name === 'claim_name') {
+            if (state.names[args.p_pid]) return { error: { code: '23505', message: 'That name already has a PIN' } };
+            state.names[args.p_pid] = args.p_pin; rows.set('chat/id_' + args.p_pid, { path: 'chat/id_' + args.p_pid, doc: { k: 'id', pid: args.p_pid, hash: 'x' }, updated_at: stamp() });
+            return { error: null };
+          }
+          if (name === 'check_name') return { data: state.names[args.p_pid] === args.p_pin, error: null };
+          if (name === 'social_write' || name === 'social_delete') {
+            state.gated.push([name, args.p_path, args.p_pid, args.p_name_pin]);
+            if (denied(args.p_path)) return { error: denied(args.p_path) };
+            const master = role === 'master';
+            const ident = master || (args.p_pid.startsWith('x') ? true : state.names[args.p_pid] === args.p_name_pin);
+            if (!ident) return { error: { code: '42501', message: 'PIN not accepted: confirm the PIN for your name' } };
+            const held = rows.get(args.p_path);
+            if (!master && held && held.doc.dev !== args.p_who && !(args.p_merge && Object.keys(args.p_doc).every(k => k === 'id' || k === 'rev' || k.startsWith('rx')))) return { error: { code: '42501', message: 'PIN not accepted: not yours to change' } };
+            if (!master && !args.p_merge && name === 'social_write' && args.p_doc.pid && args.p_doc.pid !== args.p_pid) return { error: { code: '42501', message: 'PIN not accepted: a post is signed by its own name' } };
+            if (name === 'social_delete') { rows.delete(args.p_path); return { error: null }; }
+            rows.set(args.p_path, { path: args.p_path, doc: args.p_merge ? { ...((held || {}).doc || {}), ...args.p_doc } : args.p_doc, writer: args.p_who, updated_at: stamp() });
+            return { error: null };
+          }
           if (name === 'write_doc' || name === 'delete_doc') {
             state.gated.push([name, args.p_path, args.p_pin]);
             if (!role) return { error: { code: '42501', message: 'PIN not accepted' } };
@@ -123,11 +143,11 @@ function fakeSupabase() {
 }
 
 const said = [];
-let myPin = '1000';
+let myPin = '1000', myName = { pid: 'g6', pin: '4826' };
 function open(fake) {
   return createSupabaseDb({
     url: 'https://example.supabase.co', key: 'sb_publishable_test', deviceId: 'dtest',
-    createClient: fake.createClient, onStatus: s => said.push(s), pinFor: () => myPin,
+    createClient: fake.createClient, onStatus: s => said.push(s), pinFor: () => myPin, whoFor: () => myName,
   });
 }
 
@@ -138,8 +158,8 @@ function open(fake) {
   const db = open(fake);
   await db.doc('scores/r1__g6').set({ raw: [4] });
   ok('a card is written through write_doc, with the PIN this phone holds', fake.state.gated.at(-1), ['write_doc', 'scores/r1__g6', '1000']);
-  await db.doc('chat/m1').set({ k: 'm', text: 'hi' });
-  ok('a chat message goes straight in, no PIN', fake.state.gated.length, 1);
+  await db.doc('chat/m1').set({ k: 'm', pid: 'g6', dev: 'dtest', text: 'hi' });
+  ok('a chat message is signed with the name this phone claimed and its PIN', fake.state.gated.at(-1), ['social_write', 'chat/m1', 'g6', '4826']);
   ok('the role a PIN proves is the server\'s to say', [await db.verifyPin('1000'), await db.verifyPin('2000'), await db.verifyPin('9999')], ['master', 's1', null]);
   await db.doc('people/g1').delete();
   ok('and a roster row is deleted through delete_doc', fake.state.gated.at(-1), ['delete_doc', 'people/g1', '1000']);
@@ -152,6 +172,20 @@ function open(fake) {
   ok('the chat is not held up behind it', fake.rows.has('chat/m2'), true);
   myPin = '1000'; db.pinChanged(); await wait(300);
   ok('a PIN the server accepts sends it on', [fake.rows.has('scores/r1__g2'), db.pendingPaths()], [true, []]);
+
+  console.log('\nthe chat and the bets are signed');
+  myPin = '';
+  ok('a name is claimed once', [await db.claimName('g1', '1111'), await db.claimName('g1', '2222').catch(e => e.code)], [true, 'taken']);
+  ok('and proved after', [await db.checkName('g1', '1111'), await db.checkName('g1', '9999')], [true, false]);
+  myName = { pid: 'g1', pin: '1111' };
+  ok('a post as another name is not landed', await db.doc('chat/m2').set({ k: 'm', pid: 'g6', dev: 'dtest', text: 'as Ray' }), false);
+  ok('nor a post with a PIN the server does not know', (myName = { pid: 'g1', pin: '0000' }, await db.doc('chat/m3').set({ k: 'm', pid: 'g1', dev: 'dtest', text: 'hi' })), false);
+  myName = { pid: 'g1', pin: '1111' };
+  fake.rows.set('chat/m9', { path: 'chat/m9', doc: { k: 'm', pid: 'g6', dev: 'dOther', text: 'from another phone' }, updated_at: 'z' });
+  ok('a reaction on another phone\'s post is a merge of this phone\'s own keys', await db.doc('chat/m9').update({ rx_dtest: '🔥' }), true);
+  ok('but its words are not this phone\'s to change', await db.doc('chat/m9').update({ text: 'edited' }), false);
+  ok('nor its existence', await db.doc('chat/m9').delete(), false);
+  myPin = '1000'; myName = { pid: 'g6', pin: '4826' };
   db.close();
 }
 

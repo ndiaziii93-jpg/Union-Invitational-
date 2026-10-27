@@ -116,16 +116,29 @@ stops a changed copy from doing anything is the database refusing it. Run
    (Manage → Setup, or the PIN prompt on the first score): the PINs that
    were in the book before are gone.
 
-After this, scores, the roster, the pairs, rounds, bingo points and recaps
-can only be written through the server's own functions, which check the PIN
-first; the public key cannot touch those rows directly. Wrong guesses are
-limited to twelve a minute for everyone. Changing a PIN later is done from
-Setup with the master PIN, as before — the server does the changing.
+After this, scores, the roster (handicaps included — only the master PIN
+moves one), the pairs, rounds, bingo points and recaps can only be written
+through the server's own functions, which check the PIN first; the public
+key cannot touch those rows directly. Wrong guesses are limited to twelve a
+minute for everyone. Changing a PIN later is done from Setup with the master
+PIN, as before — the server does the changing.
 
-What this does not cover, because the book has no accounts: the chat, the
-bets and the photos are as trustworthy as a group chat — anyone with the
-link can post as anyone, exactly as before — and the commissioner settles the
-beers.
+The chat, the bets and the golfers' notes are signed. A name is claimed with
+a four-digit PIN that the server keeps hashed and never shows; every post,
+bet, reaction and note goes through the server with that name and PIN, and a
+name can only write what is its own. Nobody can post, bet or react as anyone
+else, and nobody can edit or remove another phone's post. The name PINs that
+were in the book before are hashed where they stand — but anyone who read
+the database before today may know them, so the safest course is the
+commented line near the end of the SQL (`delete from public.docs where path
+like 'chat/id\_%'`), which makes everyone choose a fresh PIN the next time
+they open the chat. Forgotten a name PIN? The master PIN clears it from the
+Roster (Clear PIN), and the person chooses again.
+
+Still open, and worth knowing: photos can be added by anyone with the link
+(and removed by anyone, as before); the bleachers sign with the phone they
+registered on rather than a PIN; and the recap writer's spend is capped by
+the limit you set in the Anthropic console, not by the book.
 
 ## What I need back from you
 

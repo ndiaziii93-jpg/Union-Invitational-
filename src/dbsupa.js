@@ -42,6 +42,12 @@ const PREFIXES = ['config', 'people', 'pairs', 'scores', 'bbb', 'notes', 'recaps
    lands — so a copy of the book with the checks taken out gets exactly as
    far as a stranger with the link: nowhere. */
 const PROTECTED = /^(config|people|pairs|scores|bbb|recaps)\//;
+/* THE CHAT, THE BETS AND THE NOTES ARE SIGNED. A post, a bet, a reaction or
+   a note goes through social_write with the name this phone has claimed and
+   that name's PIN; the server checks it and lets a name write only what is
+   its own. Nobody posts or bets as anyone else, and nobody touches what
+   another phone wrote. */
+const SOCIAL = /^(chat|market|notes)\//;
 const POLL_LIVE_MS = 180000;  // the net under a live socket: every three minutes (the socket brings everything; this only catches what it dropped)
 const POLL_DOWN_MS = 15000;   // the socket is down, so the poll is the update
 const hidden = () => typeof document !== 'undefined' && document.visibilityState === 'hidden';
@@ -76,8 +82,10 @@ function rowSnap(rows) {
 }
 
 export function createSupabaseDb(opts) {
-  const { url, key, deviceId, createClient, onStatus, pinFor } = opts || {};
+  const { url, key, deviceId, createClient, onStatus, pinFor, whoFor } = opts || {};
   const pin = () => { try { return pinFor ? String(pinFor() || '') : ''; } catch (e) { return ''; } };
+  const who = () => { try { const w = whoFor ? whoFor() : null; return { pid: String((w && w.pid) || ''), pin: String((w && w.pin) || '') }; } catch (e) { return { pid: '', pin: '' }; } };
+  const signed = (path, more) => { const w = who(); return { p_path: path, p_pid: w.pid, p_name_pin: w.pin, p_role_pin: pin(), p_who: deviceId || null, ...more }; };
   if (!url || !key || typeof createClient !== 'function') return null;
 
   let sb;
@@ -228,9 +236,11 @@ export function createSupabaseDb(opts) {
 
   async function rawWrite(path, doc, merge, fromOutbox) {
     try {
-      let gated = PROTECTED.test(path);
+      let gated = PROTECTED.test(path) || SOCIAL.test(path);
       if (gated) {
-        const { error } = await bound(sb.rpc('write_doc', { p_path: path, p_doc: doc, p_merge: !!merge, p_pin: pin(), p_who: deviceId || null }));
+        const { error } = PROTECTED.test(path)
+          ? await bound(sb.rpc('write_doc', { p_path: path, p_doc: doc, p_merge: !!merge, p_pin: pin(), p_who: deviceId || null }))
+          : await bound(sb.rpc('social_write', signed(path, { p_doc: doc, p_merge: !!merge })));
         if (error && noGate(error)) gated = false; else if (error) throw error;
       }
       if (gated) { /* landed through the gate */ } else if (merge) {
@@ -258,10 +268,12 @@ export function createSupabaseDb(opts) {
 
   async function rawDelete(path, fromOutbox) {
     try {
+      const gated = PROTECTED.test(path) || SOCIAL.test(path);
       let { error } = PROTECTED.test(path)
         ? await bound(sb.rpc('delete_doc', { p_path: path, p_pin: pin() }))
+        : SOCIAL.test(path) ? await bound(sb.rpc('social_delete', signed(path)))
         : { error: null };
-      if (!error && !PROTECTED.test(path) || noGate(error)) ({ error } = await bound(sb.from('docs').delete().eq('path', path)));
+      if (!error && !gated || noGate(error)) ({ error } = await bound(sb.from('docs').delete().eq('path', path)));
       if (error) throw error;
       forget(path);                 // gone from the screen now, not in six seconds
       say('saved');
@@ -360,6 +372,18 @@ export function createSupabaseDb(opts) {
     },
     /** A PIN just arrived on this phone: anything that waited for one goes now. */
     pinChanged() { if (waiting.size) armRetry(true); },
+    /** Take a name with a four-digit PIN. Throws 'taken' if it already has one. */
+    async claimName(pid, p) {
+      const { error } = await bound(sb.rpc('claim_name', { p_pid: pid, p_pin: String(p || ''), p_who: deviceId || null }));
+      if (error) { if (error.code === '23505' || /already has/i.test(error.message || '')) { const e = new Error('taken'); e.code = 'taken'; throw e; } throw error; }
+      return true;
+    },
+    /** Whether a PIN is the one a name was claimed with. */
+    async checkName(pid, p) {
+      const { data, error } = await bound(sb.rpc('check_name', { p_pid: pid, p_pin: String(p || '') }));
+      if (error) throw error;
+      return data === true;
+    },
 
     doc(path) {
       return {

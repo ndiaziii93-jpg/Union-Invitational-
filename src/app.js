@@ -133,6 +133,17 @@ function loadRole() {
  *  old one, at once. */
 let deniedSeen = 0;
 function checkRole() {
+  /* a post, bet or note the server would not sign: this phone must prove
+     its name again — the PIN may never have been kept here, or was cleared */
+  if (store && store.backend === 'supabase' && meta.deniedAt && meta.deniedAt > deniedSeen && /^(chat|market|notes)\//.test(meta.deniedPath || '')) {
+    deniedSeen = meta.deniedAt;
+    const me = whoAmI();
+    if (me && !isGuest(me) && !(UI.modal && UI.modal.kind === 'whopin')) {
+      UI.modal = { kind: 'whopin', pid: me, back: UI.modal && UI.modal.kind ? UI.modal.kind : null, mode: pinOf(me) ? 'enter' : 'set', a: '', b: '',
+        err: 'The book needs the PIN for your name before it will take that. Anything you posted is kept and goes through once it has it.' };
+    }
+    return;
+  }
   if (!D.PINS_ENABLED || UI.role === 'viewer' || !loaded()) return;
   const saved = loadRole();
   /* With the book's own database the server judges the PIN on every write,
@@ -758,7 +769,7 @@ function bandModalHtml() {
   const mine = canEdit();
   /* A move is offered where there is one to make and the viewer is allowed to
      make it. Everybody else reads the same page without a live control on it. */
-  const takeable = x => mine && (x.verdict === 'light' || x.verdict === 'heavy' || x.verdict === 'unset');
+  const takeable = x => mine && canAdmin() && (x.verdict === 'light' || x.verdict === 'heavy' || x.verdict === 'unset');   // the master PIN moves a handicap, nobody else
   const moved = x => Object.prototype.hasOwnProperty.call(UI.bandMoved, x.id);
 
   const line = x => {
@@ -1588,9 +1599,17 @@ function photoViewHtml() {
    for again, once. */
 const WHO_KEY = 'union-invitational:whoami';
 function loadWho() { try { return localStorage.getItem(WHO_KEY) || null; } catch (e) { return null; } }
-function saveWho(pid) { try { localStorage.setItem(WHO_KEY, pid || ''); } catch (e) { /* storage blocked */ } }
-/* the PIN for a name, and the guests, live beside the chat: chat/id_<pid>, chat/guest_<pid> */
-const pinOf = pid => (((T.chat || {})['id_' + pid]) || {}).pin || '';
+/* The name, and the PIN that proved it, stay on the phone: every post and
+   bet is signed with them and the server checks the signature. */
+const WHO_PIN_KEY = 'union-invitational:whopin';
+const namePin = () => { try { return localStorage.getItem(WHO_PIN_KEY) || ''; } catch (e) { return ''; } };
+function saveWho(pid, pin) {
+  try { localStorage.setItem(WHO_KEY, pid || ''); if (pin !== undefined) localStorage.setItem(WHO_PIN_KEY, pin || ''); } catch (e) { /* storage blocked */ }
+  if (store) store.who = { pid: pid || '', pin: pin !== undefined ? pin : namePin() };
+}
+/* whether a name has a PIN (hashed on the server, or kept beside the chat
+   with no server), and the guests: chat/id_<pid>, chat/guest_<pid> */
+const pinOf = pid => { const d = ((T.chat || {})['id_' + pid]) || {}; return d.pin || (d.hash ? 'set' : ''); };
 const guestOf = pid => ((T.chat || {})['guest_' + pid]) || null;
 const allGuests = () => Object.values(T.chat || {}).filter(r => r && r.k === 'g');
 const isGuest = pid => !!pid && !E.person(T, pid) && !!guestOf(pid);
@@ -2019,7 +2038,7 @@ function whoPinHtml() {
   return `<div class="scrim" data-act="modalScrim"><div class="modal whomodal" role="dialog" aria-modal="true" aria-label="${set ? 'Make a PIN' : 'Enter your PIN'}">
     ${modalBanner(set ? 'Make your PIN, ' + nm : 'Your PIN, ' + nm, 'Chat and bets')}
     <p>${set ? `Four numbers you’ll remember. You’ll need them to be ${esc(nm)} on any other phone. The commissioner can look it up if you forget. Not your bank PIN.`
-      : `Enter the four numbers you chose for ${esc(nm)}. Forgotten them? The commissioner can tell you.`}</p>
+      : `Enter the four numbers you chose for ${esc(nm)}. Forgotten them? The commissioner can clear it so you can choose again.`}</p>
     <label class="who-pin"><span>${set ? 'Your PIN' : 'PIN'}</span>
       <input id="whoPinA" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" value="${esc(m.a || '')}"></label>
     ${set ? `<label class="who-pin"><span>Once more</span>
@@ -2047,14 +2066,27 @@ function whoPinGo() {
   const held = pinOf(m.pid);
   if (m.mode === 'set' && held) { m.mode = 'enter'; m.a = ''; m.err = 'Someone has already made a PIN for this name. Enter it, or ask the commissioner.'; redrawFrom('whoPinA'); return; }
   if (!/^\d{4}$/.test(a)) { m.err = 'Four numbers, please.'; redrawFrom('whoPinA'); return; }
-  if (m.mode === 'set') {
-    if (a !== b) { m.err = 'Those two don’t match. Try again.'; m.b = ''; redrawFrom('whoPinB'); return; }
-    store.putSocial('chat', 'id_' + m.pid, { k: 'id', pid: m.pid, pin: a, at: Date.now(), dev: myDev() });
-  } else if (a !== held) { m.err = 'That isn’t it. The commissioner can tell you your PIN.'; m.a = ''; redrawFrom('whoPinA'); return; }
-  UI.who = m.pid; saveWho(m.pid);
-  const back = m.back;
-  UI.modal = back ? { kind: back } : null;
-  redrawFrom();
+  if (m.mode === 'set' && a !== b) { m.err = 'Those two don’t match. Try again.'; m.b = ''; redrawFrom('whoPinB'); return; }
+  /* the server keeps the PIN hashed and is the judge of it; the phone keeps
+     it to sign the posts with */
+  if (m.busy) return;
+  m.busy = true; redrawFrom();
+  const done = () => {
+    m.busy = false;
+    UI.who = m.pid; saveWho(m.pid, a); UI.deniedNote = '';
+    const back = m.back;
+    UI.modal = back ? { kind: back } : null;
+    redrawFrom();
+  };
+  const fail = e => {
+    m.busy = false;
+    if (e && e.code === 'taken') { m.mode = 'enter'; m.a = ''; m.b = ''; m.err = 'Someone has already made a PIN for this name. Enter it, or ask the commissioner.'; }
+    else if (/PIN attempts/.test(String(e && e.message || ''))) m.err = 'Too many PIN attempts just now. Wait a minute and try again.';
+    else m.err = 'No signal to check the PIN with. Try again when there is one.';
+    redrawFrom('whoPinA');
+  };
+  if (m.mode === 'set') store.claimName(m.pid, a).then(done, fail);
+  else store.checkName(m.pid, a).then(okd => { if (okd) done(); else { m.busy = false; m.err = 'That isn’t it. The commissioner can clear it so you can choose again.'; m.a = ''; redrawFrom('whoPinA'); } }, fail);
 }
 function guestJoin() {
   const f = document.getElementById('guestName');
@@ -4561,7 +4593,7 @@ function scrRoster() {
   /* The practice day is there to find out who is in the wrong band, so bands
      stay open all through it. Once it is concluded they settle, and only a
      scorer or the master reviewer moves one. */
-  const bandEd = ed && (!E.bandsLocked(T) || canEdit());
+  const bandEd = canAdmin();                 // handicaps move on the master PIN and nothing else
 
   const pairOptions = cur => [`<option value="unassigned"${cur === 'unassigned' ? ' selected' : ''}>Unassigned</option>`]
     .concat(T.config.pairs.map(p => `<option value="${p.id}"${cur === p.id ? ' selected' : ''}>${esc(E.pairName(T, p))}</option>`)).join('');
@@ -8713,7 +8745,7 @@ function onClick(e) {
       UI.modal = { kind: 'bandread' };
       break;
     case 'bandTake': {
-      if (!canEdit()) return;
+      if (!canAdmin()) return;                 // a handicap is the commissioner's to move
       const who = E.person(T, a);
       if (!who || !b) return;
       UI.bandMoved[a] = who.band == null ? null : who.band;
@@ -8721,7 +8753,7 @@ function onClick(e) {
       break;
     }
     case 'bandUndo': {
-      if (!canEdit()) return;
+      if (!canAdmin()) return;                 // a handicap is the commissioner's to move
       if (!Object.prototype.hasOwnProperty.call(UI.bandMoved, a)) return;
       const back = UI.bandMoved[a];
       delete UI.bandMoved[a];
@@ -8730,17 +8762,17 @@ function onClick(e) {
     }
 
     case 'bandStep': {
-      if (!canEdit()) return;
+      if (!canAdmin()) return;                 // a handicap is the commissioner's to move
       const was = (E.person(T, a) || {}).band;
       const next = Math.max(0, Math.min(E.HCP_MAX, (was == null ? 18 : was) + (+b)));
       store.writePerson(a, p => { p.band = next; });
       return;
     }
     case 'setBand':
-      if (!canEdit()) return;
+      if (!canAdmin()) return;                 // a handicap is the commissioner's to move
       // the control is already disabled once the practice round settles them;
       // refuse the write too, so a stale screen cannot move one
-      if (E.bandsLocked(T) && !canEdit()) return;
+      if (E.bandsLocked(T) && !canAdmin()) return;
       store.writePerson(a, p => { p.band = b === '' ? null : +b; });
       return;
     case 'addPerson':
@@ -9206,6 +9238,7 @@ export function boot() {
     T = state; meta = m;
     store.onLanded = path => { if (/^chat\/m/.test(path)) notifyOthers(path); };
     if (!store.pin) { const sv = loadRole(); if (sv && sv.pin) store.pin = sv.pin; }
+    if (!store.who.pid) { const w = loadWho(); if (w) store.who = { pid: w, pin: namePin() }; }
     if (betFromPush && m.ready && m.settled !== false && T.market && T.market[betFromPush]) {
       const id = betFromPush; betFromPush = null; openBetFrom(id, true);
     }
