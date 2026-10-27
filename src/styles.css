@@ -1238,6 +1238,9 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 .statusbar .dot{width:8px;height:8px;border-radius:50%;background:var(--turf);flex:0 0 auto}
 .statusbar .dot.live{background:var(--under)}
 .statusbar .dot.err{background:var(--flag)}
+.statusbar .dot.wait{background:var(--gold);animation:waitpulse 2s ease-in-out infinite}
+@keyframes waitpulse{0%,100%{opacity:1}50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){.statusbar .dot.wait{animation:none}}
 .statusbar .who::before,.statusbar .build::before{content:"\00B7";padding-right:10px;color:var(--rule)}
 .statusbar .build{margin-left:auto}
 /* on a phone the foot is two deliberate lines: the connection, then who you are and the build */
@@ -1956,6 +1959,7 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
 .loadbar{margin-top:10px;padding:11px 15px;border:1px solid var(--rule);border-left:3px solid var(--gold);
   background:var(--page);border-radius:3px;font-size:15px;color:var(--turf)}
 .loadbar.bad{border-left-color:var(--flag);color:var(--ink)}
+.loadbar.off{border-left-color:var(--gold)}
 
 /* On a phone the roster was a 900px table on a 390px screen: you had to drag
    it sideways to reach Band and Remove, and the drag fought the page. Each
@@ -4403,6 +4407,9 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 .ch-atn{color:var(--gold);font-weight:700}
 .ch-atn.me{background:#E2C277;color:var(--ink);border-radius:6px;padding:0 4px}
 .ch-msg.ment .ch-bub{box-shadow:inset 3px 0 0 #E2C277,0 0 0 1px rgba(201,162,83,.45);background:color-mix(in srgb,#E2C277 20%,var(--page))}
+/* a post still on this phone, and the line under the box when there is no signal to send it */
+.ch-n .ch-wait{color:#8C6B2F;font-weight:600}
+.ch-off{margin:2px 0 0;font-size:12.5px;line-height:1.4;color:#8C6B2F}
 .ch-callout{display:block;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#8C6B2F;margin:2px 0 1px}
 
 /* ---- Bets in tabs: the week, each round, off the course, ours ---- */

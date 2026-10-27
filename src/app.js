@@ -1692,13 +1692,22 @@ function atStart() {
   f.setSelectionRange(pre.length + lead.length, pre.length + lead.length);
   atSuggest(f);
 }
+/** Writes still on this phone, waiting for a signal: by document path. */
+const waitingOn = path => (meta.waiting || []).includes(path);
+/** The line under a composer when a post will have to wait for a signal. */
+function noSignalNote() {
+  const off = (typeof navigator !== 'undefined' && navigator.onLine === false) || meta.saveState === 'queued' || (meta.pending || 0) > 0;
+  if (!off) return '';
+  const n = meta.pending || 0;
+  return `<p class="ch-off" role="status">⏱ No signal here. ${n ? (n === 1 ? 'One post' : n + ' things') + ' waiting on this phone' : 'Posts are kept on this phone'} and go the moment it finds one.</p>`;
+}
 function msgHtml(r, small) {
   const nm = r.name || nameOf(r.pid);
   const me = whoAmI(), atMe = !!me && (r.ment || []).includes(me) && r.pid !== me;
   const toMe = !!me && !!r.to && r.rto === me && r.pid !== me, forMe = atMe || toMe;
   return `<div class="ch-msg${small ? ' hk' : ''}${forMe ? ' ment' : ''}" id="cm-${esc(r.id)}">
     <span class="ch-av${E.person(T, r.pid) && E.person(T, r.pid).role === 'golfer' ? ' g' : ''}" aria-hidden="true">${esc(initialsOf(nm))}</span>
-    <div class="ch-bub"><span class="ch-n"><span class="ch-who">${esc(nm)}${guestTag(r.pid)}</span><small>${esc(sinceOf(r.at))}</small>${ownsMsg(r)
+    <div class="ch-bub"><span class="ch-n"><span class="ch-who">${esc(nm)}${guestTag(r.pid)}</span><small>${esc(sinceOf(r.at))}</small>${waitingOn('chat/' + r.id) ? '<small class="ch-wait">⏱ waiting for signal</small>' : ''}${ownsMsg(r)
       ? `<button class="ch-rm" data-act="chatDrop" data-a="${esc(r.id)}" aria-label="Remove this message">Remove</button>` : ''}</span>
       ${atMe ? '<span class="ch-callout">📣 Calling you out</span>' : toMe ? '<span class="ch-callout">↩ Replying to you</span>' : ''}${r.to ? quoteHtml(r) : ''}<p>${atText(r.text, r.ment)}</p>
       ${small ? '' : `<div class="ch-acts">${rxRow(r.id, r)}${me ? `<button class="ch-rp" data-act="chatReply" data-a="${esc(r.id)}" aria-label="Reply to ${esc(nm)}">↩ Reply</button>` : ''}</div>`}</div></div>`;
@@ -1753,7 +1762,7 @@ function boardChat(inSheet) {
         <input id="chatText" type="text" maxlength="280" autocomplete="off" enterkeyhint="send"
           placeholder="${replyTo ? 'Your reply…' : reMoment ? 'Heckle it…' : isRound ? 'Say something to the group…' : 'Anything from the trip…'}" value="${esc(UI.chatDraft || '')}" aria-label="Message">
         <button class="btn sm" data-act="chatSend">Post</button></div>
-      <button class="ch-as" data-act="whoOpen">Posting as ${esc(nameOf(me))}${isGuest(me) ? ', in the bleachers' : ''} · change</button>`
+      <button class="ch-as" data-act="whoOpen">Posting as ${esc(nameOf(me))}${isGuest(me) ? ', in the bleachers' : ''} · change</button>${noSignalNote()}`
     : `<button class="btn" data-act="whoOpen" style="width:100%">Choose your name to join in</button>`}
   </div>
   ${socialRefused()}
@@ -3861,7 +3870,8 @@ function scrEntry() {
     <div class="sv">${dirty
       ? `<b>Hole ${hole.n} is not saved</b><span>${Object.keys(UI.draft.strokes).length} entr${Object.keys(UI.draft.strokes).length === 1 ? 'y' : 'ies'} waiting. ${D.PINS_ENABLED ? 'Saving asks for your PIN.' : 'Nothing counts until you save.'}</span>`
       : saved
-        ? `<b>Hole ${hole.n} saved</b><span>Recorded${D.PINS_ENABLED && S.ROLES[saved.role] ? ' by ' + esc(S.ROLES[saved.role].label) : ''}${saved.at ? ' at ' + esc(E.to12(new Date(saved.at + D.TZ_OFFSET_MIN * 60000).toISOString().slice(11, 16))) : ''}.</span>`
+        ? `<b>Hole ${hole.n} saved${(meta.waiting || []).some(p => p.startsWith('scores/' + rid + '__')) ? ' on this phone' : ''}</b><span>Recorded${D.PINS_ENABLED && S.ROLES[saved.role] ? ' by ' + esc(S.ROLES[saved.role].label) : ''}${saved.at ? ' at ' + esc(E.to12(new Date(saved.at + D.TZ_OFFSET_MIN * 60000).toISOString().slice(11, 16))) : ''}.${
+          (meta.waiting || []).some(p => p.startsWith('scores/' + rid + '__')) ? ' ⏱ Waiting for signal to reach the others.' : ''}</span>`
         : `<b>Hole ${hole.n}</b><span>Enter every score on this hole, then save it.</span>`}</div>
     <button class="btn${dirty ? '' : ' ghost'}" data-act="saveHole"${dirty ? '' : ' disabled'}>Save hole ${hole.n}</button>
     ${/* One button, not sixteen controls. See markSheet(). */ ''}
@@ -6341,13 +6351,17 @@ function paint() {
   /* A write that was turned away has to say so. Silence is what made a
      refused tee time look like a control that "resets itself", and a refused
      Open round look like a button that does nothing. */
-  const bad = meta.status === 'error' || meta.saveState === 'error';
-  const dot = bad ? 'err' : meta.status === 'live' ? 'live' : '';
-  const statusText = bad
+  const pend = meta.pending || 0;
+  const bad = !pend && (meta.status === 'error' || meta.saveState === 'error');
+  const dot = pend ? 'wait' : bad ? 'err' : meta.status === 'live' ? 'live' : '';
+  const statusText = pend
+    ? (pend === 1 ? 'One change' : pend + ' changes') + ' waiting for signal — kept on this phone, sent the moment it finds one'
+    : bad
     ? (loaded() ? 'Save failed — your last change may not have reached the others'
                 : 'Not saved — the book is still loading. Try again in a moment.')
     : meta.status === 'live' ? 'Shared — every device sees this'
     : meta.status === 'local' ? 'This device only — shared storage unavailable'
+    : meta.fromDevice ? 'No signal — the book as this phone last read it' + (meta.localAt ? ', ' + sinceOf(meta.localAt) : '') + '. Anything you enter is kept and sent when it finds one.'
     : 'Connecting…';
 
   const html = `
@@ -6367,7 +6381,9 @@ function paint() {
     </header>
     ${datelineRail()}
     <div class="rule-heavy"></div>
-    ${loaded() ? '' : `<div class="loadbar${meta.status === 'error' ? ' bad' : ''}">
+    ${loaded() ? '' : meta.fromDevice ? `<div class="loadbar off">
+      No signal yet. This is the book as the phone last read it${meta.localAt ? ', ' + esc(sinceOf(meta.localAt)) : ''}. Scores, posts and bets you enter are kept here and sent the moment it finds one.</div>`
+    : `<div class="loadbar${meta.status === 'error' ? ' bad' : ''}">
       ${meta.status === 'error'
         ? 'Cannot read the shared book. Nothing can be edited until it loads, so nothing gets overwritten. Check your connection and reload.'
         : 'Opening the book… everything is read-only until the saved tournament arrives.'}</div>`}
@@ -9094,6 +9110,7 @@ export function boot() {
   }
   store = S.createStore((state, m) => {
     T = state; meta = m;
+    store.onLanded = path => { if (/^chat\/m/.test(path)) notifyOthers(path); };
     if (betFromPush && m.ready && m.settled !== false && T.market && T.market[betFromPush]) {
       const id = betFromPush; betFromPush = null; openBetFrom(id, true);
     }
@@ -9102,7 +9119,7 @@ export function boot() {
       UI.chatRoom = room && (room === TRIP || D.ROUNDS.some(r => r.id === room)) ? room : null;
       UI.modal = { kind: 'chat' };
     }
-    window.__T = T; window.__UI = UI;        // read by the tests, written by nobody
+    window.__T = T; window.__UI = UI; window.__meta = meta;   // read by the tests, written by nobody
     /* the tests' way to make the book redraw as a poll would: `true` makes it
        redraw even when nothing changed, the way a real change would */
     window.__render = force => { if (force) paintedHTML = ''; render(); };

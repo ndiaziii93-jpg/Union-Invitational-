@@ -42,7 +42,8 @@ const shut = async () => { for (let i = 0; i < 6; i++) { const m = p.locator('.s
   if (!await m.count()) return; await m.first().click({ force: true }).catch(() => {}); await p.waitForTimeout(200); } };
 const bar = async t => { await p.locator('.navbtn:visible', { hasText: t }).first().click(); await p.waitForTimeout(650); };
 
-await p.goto('file://' + W);
+/* the phone's clock set to the week before the trip, so the calendar tests read the same all year */
+await p.clock.install({ time: new Date('2026-10-24T08:00:00Z') }); await p.goto('file://' + W);
 await p.waitForSelector('#app.arrived', { timeout: 20000 }).catch(() => {});
 await p.waitForTimeout(900); await shut();
 

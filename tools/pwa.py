@@ -10,7 +10,7 @@ writes. Run after tools/build.py:
 
 Output lands in docs/app/, which is what GitHub Pages serves.
 """
-import os, re, io, sys, json, shutil, datetime
+import os, re, io, sys, json, shutil, datetime, base64, hashlib
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(ROOT, 'src')
@@ -80,6 +80,47 @@ def fonts():
     return open(css, encoding='utf-8').read(), out
 
 
+IMG_INLINE = 6 * 1024   # a picture smaller than this stays in the page: a request costs more than it would save
+
+
+def unpack_images(body):
+    """THE PICTURES COME OUT OF THE PAGE. The single-file book carried every
+    hole diagram and hotel photograph inside it as base64 — seven of its nine
+    megabytes — and on one bar of roaming signal that is a page that never
+    finishes arriving. Only the words and the code are the book; a picture is
+    wanted two taps later, if at all. So each one is written out beside the
+    page under a name that carries its own fingerprint, the table in the page
+    points at it instead, and the browser fetches it when it is first looked
+    at, over whatever signal there is then, and keeps it in the picture cache
+    from one build to the next. The crest stays in: it is the first thing on
+    screen and it is small."""
+    m = re.search(r'window\.UI_IMAGES = (\{.*?\});\n', body)
+    if not m:
+        return body, []
+    table = json.loads(m.group(1))
+    dest = os.path.join(OUT, 'img')
+    os.makedirs(dest, exist_ok=True)
+    keep, written = set(), []
+    for key, uri in list(table.items()):
+        if not uri.startswith('data:image/webp;base64,'):
+            continue
+        raw = base64.b64decode(uri.split(',', 1)[1])
+        if len(raw) < IMG_INLINE:
+            continue
+        name = '%s-%s.webp' % (key, hashlib.sha1(raw).hexdigest()[:8])
+        path = os.path.join(dest, name)
+        if not os.path.exists(path):
+            open(path, 'wb').write(raw)
+        keep.add(name)
+        written.append(path)
+        table[key] = 'img/' + name
+    for f in os.listdir(dest):             # a picture no longer in the book
+        if f not in keep:
+            os.remove(os.path.join(dest, f))
+    body = body[:m.start()] + 'window.UI_IMAGES = ' + json.dumps(table) + ';\n' + body[m.end():]
+    return body, written
+
+
 def manifest():
     return {
         'name': NAME,
@@ -128,37 +169,62 @@ HEAD = """<!doctype html>
   /* the phone's own notch and home bar, so nothing important hides under them */
   body {{ padding: env(safe-area-inset-top) env(safe-area-inset-right)
                    env(safe-area-inset-bottom) env(safe-area-inset-left); }}
+  /* a newer book has arrived behind this one: one line, one tap */
+  #newbook {{ position: fixed; left: 50%; bottom: calc(14px + env(safe-area-inset-bottom)); transform: translateX(-50%);
+             z-index: 60; background: {green}; color: {paper}; border: 0; border-radius: 999px; padding: 11px 18px;
+             font: 600 14px/1.2 "Source Serif 4", Georgia, serif; box-shadow: 0 6px 22px rgba(0,0,0,.28); }}
+  #newbook[hidden] {{ display: none; }}
 </style>
 """
 
 FOOT = """
+<button id="newbook" type="button" hidden>A newer book is ready — tap to open it</button>
 <script>
 /* Register the worker that makes the book work with no signal. It is the
    whole point of installing it: Belek is five hours of walking and everyone
    is roaming. A failure here must never stop the page loading. */
+var BOOK_BUILD = '__STAMP__';
+var swReg = null;
 if ('serviceWorker' in navigator) {
+  /* THE PAGE ON THE PHONE OPENS FIRST, ALWAYS. The worker serves the copy it
+     holds and fetches the newer one behind it, so the book is on screen in
+     a second whatever the signal. When the newer copy has taken over, the
+     page is told — and reloads itself only while nobody is looking at it,
+     or at a tap, never under a hole half entered. */
+  var hadWorker = !!navigator.serviceWorker.controller;
+  var newBook = false;
+  var bar = document.getElementById('newbook');
+  function openNewBook() {
+    if (!newBook || document.querySelector('.savebar.dirty')) return;
+    newBook = false; location.reload();
+  }
+  bar.addEventListener('click', openNewBook);
+  navigator.serviceWorker.addEventListener('controllerchange', function () {
+    if (!hadWorker) { hadWorker = true; return; }    // the first worker taking hold is not an update
+    newBook = true;
+    if (document.hidden) openNewBook(); else bar.hidden = false;
+  });
   window.addEventListener('load', function () {
     navigator.serviceWorker.register('sw.js').then(function (reg) {
+      swReg = reg;
       /* the worker only looks for a newer copy of itself once a day; a phone
          coming back to the book looks every time */
       document.addEventListener('visibilitychange', function () {
-        if (!document.hidden) reg.update().catch(function () {});
+        if (document.hidden) return;
+        if (newBook) openNewBook(); else reg.update().catch(function () {});
       });
     }).catch(function () { /* offline is a bonus, not a requirement */ });
   });
 }
 /* THE BOOK IN HAND IS THE BOOK PUBLISHED. A home-screen app is not closed
-   by leaving it: it is resumed, hours later, exactly where it was, with the
-   newer copy the worker fetched sitting behind a page that never reloads.
-   So every return reads the build stamp off the server and, when it has
-   moved on, the page reloads itself — unless a hole is half entered, in
-   which case it waits for the save. */
-var BOOK_BUILD = '__STAMP__';
+   by leaving it: it is resumed, hours later, exactly where it was. So every
+   return reads the build stamp off the server and, when it has moved on,
+   asks the worker for the newer copy; the worker says when it is in. */
 function checkBuild() {
   if (document.hidden || navigator.onLine === false) return;
   fetch('sw.js', { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (t) {
     var m = /Build (\S+)\./.exec(t);
-    if (m && m[1] !== BOOK_BUILD && !document.querySelector('.savebar.dirty')) location.reload();
+    if (m && m[1] !== BOOK_BUILD) { if (swReg) swReg.update().catch(function () {}); else if (!document.querySelector('.savebar.dirty')) location.reload(); }
   }).catch(function () {});
 }
 document.addEventListener('visibilitychange', checkBuild);
@@ -172,20 +238,30 @@ window.addEventListener('pageshow', function (e) { if (e.persisted) checkBuild()
 SW = """/* The Union Invitational — offline shell.
    Build {stamp}.
 
-   The book is one file, so there is little to cache and no dependency graph
-   to get wrong. The page itself is served network-first, so a phone picks up
-   a new build the moment it has signal, and falls back to the copy it already
-   has when it does not. Fonts and icons never change under a given URL, so
-   they are served from the cache the instant they are in it.
+   THE COPY ON THE PHONE IS THE ONE THAT OPENS. A page served network-first
+   does not fail on a weak signal, it crawls — and a phone on one bar sat on
+   blank paper for a minute before the worker gave up and showed the copy it
+   had all along. So the page is served from the cache the instant it is
+   there, and refreshed behind the screen when the signal allows. A new
+   build installs a new worker, which fetches the new page into a new cache
+   before it takes over; the page is told when that has happened.
+
+   The pictures live outside the page, in a cache of their own that outlasts
+   builds: a hole diagram fetched on Tuesday is still on the phone on Sunday
+   whatever has been changed in the words beside it. Fonts and icons never
+   change under a given URL either, so they are served from the cache the
+   instant they are in it.
 
    Anything that is not a GET — every score, every photo — is left entirely
    alone. Writes are the store's business, and it queues them itself. */
 
 const CACHE = 'union-{stamp}';
+const PICTURES = 'union-pictures';
 const SHELL = ['./', './index.html', './manifest.webmanifest',
                './icon-192.png', './icon-512.png', './apple-touch-icon.png',
                './fonts/source-serif-latin-normal.woff2',
                './fonts/source-serif-latin-italic.woff2'];
+const FRESH_MS = 15 * 60 * 1000;   // a page cached this recently is not fetched again behind the screen
 
 self.addEventListener('install', e => {{
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
@@ -193,38 +269,43 @@ self.addEventListener('install', e => {{
 
 self.addEventListener('activate', e => {{
   e.waitUntil(caches.keys()
-    .then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k))))
+    .then(ks => Promise.all(ks.filter(k => k !== CACHE && k !== PICTURES).map(k => caches.delete(k))))
     .then(() => self.clients.claim()));
 }});
+
+const keep = (name, req, res) => {{
+  if (res && (res.ok || res.type === 'opaque')) {{
+    const copy = res.clone();
+    caches.open(name).then(c => c.put(req, copy));
+  }}
+  return res;
+}};
 
 self.addEventListener('fetch', e => {{
   const req = e.request;
   if (req.method !== 'GET') return;                       // never touch a write
   const url = new URL(req.url);
   if (url.origin !== location.origin) return;             // the database talks for itself
+  if (/\\/sw\\.js$/.test(url.pathname)) return;             // the page reads the build off the wire, on purpose
 
-  // the typeface and the icons: whatever is in the cache is right, and both
-  // ship with the book, so there is nothing cross-origin left to wait on
-  const immutable = /\\.(png|webp|woff2?|ico)$/.test(url.pathname);
+  // the pictures, the typeface and the icons: whatever is in the cache is right
+  const picture = /\\/img\\/.*\\.webp$/.test(url.pathname);
+  const immutable = picture || /\\.(png|webp|woff2?|ico)$/.test(url.pathname);
   if (immutable) {{
-    e.respondWith(caches.match(req).then(hit => hit || fetch(req).then(res => {{
-      if (res.ok || res.type === 'opaque') {{
-        const copy = res.clone();
-        caches.open(CACHE).then(c => c.put(req, copy));
-      }}
-      return res;
-    }}).catch(() => hit)));
+    const bin = picture ? PICTURES : CACHE;
+    e.respondWith(caches.match(req).then(hit => hit || fetch(req).then(res => keep(bin, req, res)).catch(() => hit)));
     return;
   }}
 
-  // the book itself: newest if there is signal, the copy on the phone if not
-  e.respondWith(fetch(req).then(res => {{
-    if (res && res.ok) {{
-      const copy = res.clone();
-      caches.open(CACHE).then(c => c.put(req, copy));
+  // the book itself: the copy on the phone, now; the wire behind it, when the copy is old enough to be worth asking
+  e.respondWith(caches.match(req, {{ ignoreSearch: true }}).then(hit => {{
+    if (hit) {{
+      const at = Date.parse(hit.headers.get('date') || '') || 0;
+      if (!at || Date.now() - at > FRESH_MS) e.waitUntil(fetch(req).then(res => keep(CACHE, req, res)).catch(() => {{}}));
+      return hit;
     }}
-    return res;
-  }}).catch(() => caches.match(req).then(hit => hit || caches.match('./index.html'))));
+    return fetch(req).then(res => keep(CACHE, req, res)).catch(() => caches.match('./index.html'));
+  }}));
 }});
 
 /* A chat message from someone else, while the book is closed or in a pocket.
@@ -279,6 +360,9 @@ def main():
     face_css, face_files = fonts()
     written += face_files
 
+    body, pictures = unpack_images(body)
+    written += pictures
+
     head = HEAD.format(green=GREEN, paper=PAPER, short=SHORT)
     head += (title.group(0) if title else '<title>%s</title>' % NAME) + '\n'
     head += '<style>\n' + face_css + '</style>\n</head>\n<body>\n'
@@ -302,7 +386,10 @@ def main():
     written.append(p)
 
     for f in written:
+        if f in pictures:
+            continue
         print('%-46s %8.1f KB' % (os.path.relpath(f, ROOT), os.path.getsize(f) / 1024))
+    print('%-46s %8.1f KB in %d files' % ('docs/app/img/', sum(os.path.getsize(f) for f in pictures) / 1024, len(pictures)))
     print('\nbuild %s — docs/app/ is ready to serve' % stamp)
 
 

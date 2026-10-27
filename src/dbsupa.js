@@ -38,8 +38,17 @@ const PREFIXES = ['config', 'people', 'pairs', 'scores', 'bbb', 'notes', 'recaps
 const POLL_LIVE_MS = 180000;  // the net under a live socket: every three minutes (the socket brings everything; this only catches what it dropped)
 const POLL_DOWN_MS = 15000;   // the socket is down, so the poll is the update
 const hidden = () => typeof document !== 'undefined' && document.visibilityState === 'hidden';
-const RETRY_MS = 4000;        // how often a stranded outbox tries again
+const RETRY_MS = 4000;        // a stranded outbox tries again this soon, then waits longer each time it fails
+const RETRY_MAX_MS = 60000;   // ... but never longer than a minute, and a signal coming back is tried at once
 const OUTBOX_KEY = 'ui.outbox.v1';
+/* NOTHING WAITS FOR EVER. On one bar a request does not fail, it hangs: the
+   phone sits on "Saving…" for minutes, and the write never reaches the
+   outbox, where the next signal would have carried it. So every call to the
+   wire is given this long and then given up on, which turns a hang into an
+   ordinary queued write. */
+const WIRE_MS = 20000;
+const bounded = () => (typeof AbortSignal !== 'undefined' && AbortSignal.timeout) ? AbortSignal.timeout(WIRE_MS) : undefined;
+const bound = q => { const sig = bounded(); return sig && q && typeof q.abortSignal === 'function' ? q.abortSignal(sig) : q; };
 
 const freeze = o => { try { return Object.freeze(o); } catch (e) { return o; } };
 
@@ -81,8 +90,11 @@ export function createSupabaseDb(opts) {
   let lastSeen = null;             // newest updated_at we have applied
   let closed = false;
   let pollTimer = null, retryTimer = null;
+  let retryIn = RETRY_MS;          // the next wait before the outbox tries again
+  const waiting = new Set();       // the outbox's paths, mirrored so the screen can ask without reading storage
+  try { Object.keys(JSON.parse(localStorage.getItem(OUTBOX_KEY) || '{}')).forEach(k => waiting.add(k)); } catch (e) { /* none */ }
 
-  const say = s => { try { onStatus && onStatus(s); } catch (e) { /* never let a listener break a write */ } };
+  const say = (s, path) => { try { onStatus && onStatus(s, path); } catch (e) { /* never let a listener break a write */ } };
   const prefixOf = p => String(p).split('/')[0];
 
   function fanOut(path) {
@@ -142,14 +154,17 @@ export function createSupabaseDb(opts) {
     else if (held && held.op !== 'delete') q[path] = { op: held.op, doc: { ...(held.doc || {}), ...doc }, at: Date.now() };
     else q[path] = { op: 'merge', doc, at: Date.now() };
     writeOutbox(q);
+    waiting.add(path);
     say('queued');
     armRetry();
   }
   function unqueue(path, stamp) {
     const q = readOutbox();
     if (q[path] && q[path].at === stamp) { delete q[path]; writeOutbox(q); }
+    if (!q[path]) waiting.delete(path);
   }
-  function pending() { return Object.keys(readOutbox()).length; }
+  function pending() { return waiting.size; }
+  function pendingPaths() { return [...waiting]; }
 
   /* REFUSED IS NOT OFFLINE. A write the database turns down on principle —
      its rules do not allow that path — will be turned down again on every
@@ -160,8 +175,15 @@ export function createSupabaseDb(opts) {
   const refused = e => !!e && (e.code === '42501' || e.code === 'PGRST301'
     || /row-level security|violates|permission denied/i.test(String(e.message || '')));
 
-  function armRetry() {
-    if (closed || retryTimer) return;
+  /* The outbox tries again after a while, and after a longer while each
+     time the signal is still not there — four seconds, eight, sixteen, up
+     to a minute — so a phone in a bag on the 7th is not waking its radio
+     every four seconds all afternoon. Anything that suggests the signal is
+     back (the phone says so, the book comes to the front) tries at once. */
+  function armRetry(now) {
+    if (closed) return;
+    if (now) { clearTimeout(retryTimer); retryTimer = null; retryIn = RETRY_MS; }
+    if (retryTimer) return;
     retryTimer = setTimeout(async () => {
       retryTimer = null;
       const q = readOutbox();
@@ -172,10 +194,17 @@ export function createSupabaseDb(opts) {
         const job = q[path];
         const done = job.op === 'delete' ? await rawDelete(path, true)
                                          : await rawWrite(path, job.doc, job.op === 'merge', true);
-        if (done || done === null) unqueue(path, job.at); else { stuck = true; break; }
+        if (done || done === null) {
+          unqueue(path, job.at);
+          if (done) say('landed', path);
+          /* turned down on the way out: the screen has been showing a write
+             the book will never hold, so read what the book does hold */
+          else pull({ eq: path }).then(rows => { if (rows.length) absorb(rows[0]); else forget(path); }).catch(() => {});
+        } else { stuck = true; break; }
       }
-      if (stuck) armRetry(); else say('flushed');
-    }, RETRY_MS);
+      if (stuck) { retryIn = Math.min(retryIn * 2, RETRY_MAX_MS); armRetry(); }
+      else { retryIn = RETRY_MS; say('flushed'); }
+    }, now ? 50 : retryIn);
   }
 
   /* ---------------- the wire ---------------- */
@@ -183,11 +212,11 @@ export function createSupabaseDb(opts) {
   async function rawWrite(path, doc, merge, fromOutbox) {
     try {
       if (merge) {
-        const { error } = await sb.rpc('merge_doc', { p: path, patch: doc, who: deviceId || null });
+        const { error } = await bound(sb.rpc('merge_doc', { p: path, patch: doc, who: deviceId || null }));
         if (error) throw error;
       } else {
-        const { error } = await sb.from('docs')
-          .upsert({ path, doc, writer: deviceId || null }, { onConflict: 'path' });
+        const { error } = await bound(sb.from('docs')
+          .upsert({ path, doc, writer: deviceId || null }, { onConflict: 'path' }));
         if (error) throw error;
       }
       /* Show it now. Realtime will send the same row back with the server's
@@ -206,7 +235,7 @@ export function createSupabaseDb(opts) {
 
   async function rawDelete(path, fromOutbox) {
     try {
-      const { error } = await sb.from('docs').delete().eq('path', path);
+      const { error } = await bound(sb.from('docs').delete().eq('path', path));
       if (error) throw error;
       forget(path);                 // gone from the screen now, not in six seconds
       say('saved');
@@ -220,7 +249,7 @@ export function createSupabaseDb(opts) {
   }
 
   async function pull(where) {
-    const q = sb.from('docs').select('path,doc,updated_at');
+    const q = bound(sb.from('docs').select('path,doc,updated_at'));
     const { data, error } = where.eq ? await q.eq('path', where.eq)
                                      : await q.like('path', where.like);
     if (error) throw error;
@@ -245,7 +274,7 @@ export function createSupabaseDb(opts) {
         .subscribe(state => {
           if (state === 'SUBSCRIBED') { live = true; say('live'); armPoll(); }
           else if (state === 'CHANNEL_ERROR' || state === 'TIMED_OUT' || state === 'CLOSED') {
-            live = false; say('polling');
+            live = false; say('socket-down');   // not 'polling' yet: that is said when a poll actually answers
             soon();                   // the socket just went: look now, then every fifteen seconds
           }
         });
@@ -257,7 +286,7 @@ export function createSupabaseDb(opts) {
      Cheap enough to run for the whole week and still be inside a free tier. */
   async function sweep() {
     try {
-      let q = sb.from('docs').select('path,doc,updated_at').order('updated_at', { ascending: true }).limit(400);
+      let q = bound(sb.from('docs').select('path,doc,updated_at').order('updated_at', { ascending: true }).limit(400));
       if (lastSeen) q = q.gt('updated_at', lastSeen);
       const { data, error } = await q;
       if (error) throw error;
@@ -276,10 +305,10 @@ export function createSupabaseDb(opts) {
   }
   const soon = () => armPoll(800);
   if (typeof document !== 'undefined') {
-    document.addEventListener('visibilitychange', () => { if (closed) return; if (hidden()) armPoll(); else soon(); });
+    document.addEventListener('visibilitychange', () => { if (closed) return; if (hidden()) armPoll(); else { soon(); if (waiting.size) armRetry(true); } });
   }
   if (typeof window !== 'undefined' && window.addEventListener) {
-    window.addEventListener('online', () => { if (closed) return; soon(); clearTimeout(retryTimer); retryTimer = null; armRetry(); });
+    window.addEventListener('online', () => { if (closed) return; soon(); armRetry(true); });
   }
 
   /* ---------------- the interface store.js is written against ---------------- */
@@ -287,6 +316,7 @@ export function createSupabaseDb(opts) {
   return {
     kind: 'supabase',
     get pending() { return pending(); },
+    pendingPaths,
     get live() { return live; },
 
     doc(path) {

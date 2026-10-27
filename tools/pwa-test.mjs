@@ -31,7 +31,7 @@ const goTab = async (pg, t) => {
 
 
 const DIR = 'docs/app';
-const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.png': 'image/png',
+const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.png': 'image/png', '.webp': 'image/webp',
   '.webmanifest': 'application/manifest+json', '.json': 'application/json',
   '.woff2': 'font/woff2', '.txt': 'text/plain' };
 
@@ -44,7 +44,12 @@ const server = createServer((req, res) => {
   const file = join(DIR, normalize(p).replace(/^(\.\.[/\\])+/, ''));
   if (!existsSync(file) || !statSync(file).isFile()) { res.writeHead(404); res.end('no'); return; }
   served++;
-  res.writeHead(200, { 'content-type': TYPES[extname(file)] || 'application/octet-stream' });
+  res.writeHead(200, { 'content-type': TYPES[extname(file)] || 'application/octet-stream', date: new Date().toUTCString() });
+  /* THE TEST NEVER TALKS TO THE REAL BOOK. The page is served with its
+     database pointed at a port nobody answers on, so every read fails and
+     every write goes to the outbox — which is the condition under test —
+     and nothing typed here can land in the tournament's own chat. */
+  if (file.endsWith('index.html')) { res.end(readFileSync(file, 'utf8').replace(/https:\/\/[a-z0-9]+\.supabase\.co/g, 'http://127.0.0.1:1')); return; }
   res.end(readFileSync(file));
 });
 await new Promise(r => server.listen(0, '127.0.0.1', r));
@@ -123,10 +128,9 @@ ok('a worker is controlling the page', await p.evaluate(
 // let it finish pulling the shell and the fonts into the cache
 await p.waitForTimeout(2500);
 const cached = await p.evaluate(async () => {
-  const names = await caches.keys();
-  if (!names.length) return [];
-  const c = await caches.open(names[0]);
-  return (await c.keys()).map(r => r.url);
+  const out = [];
+  for (const n of await caches.keys()) { const c = await caches.open(n); out.push(...(await c.keys()).map(r => r.url)); }
+  return out;
 });
 ok('the book itself is in the cache', cached.some(u => /index\.html$|\/$/.test(u)), true);
 ok('and so is the typeface it draws with', cached.filter(u => /\.woff2$/.test(u)).length >= 2, true);
@@ -134,6 +138,41 @@ ok('nothing cross-origin is needed at all', await p.evaluate(
   () => [...document.querySelectorAll('link[href],script[src],img[src]')]
     .map(e => e.href || e.src).filter(u => u && !u.startsWith(location.origin)
       && !u.startsWith('data:')).length), 0);
+
+console.log('\nthe pictures live outside the page');
+ok('the page is the words and the code, not seven megabytes of pictures', statSync('docs/app/index.html').size < 3.5e6, true);
+const pics = await p.evaluate(() => Object.values(window.UI_IMAGES || {}));
+ok('every big picture is a file beside it, named with its own fingerprint', [pics.filter(u => /^img\/[a-z_0-9]+-[0-9a-f]{8}\.webp$/.test(u)).length > 60, pics.filter(u => u.startsWith('data:')).length < 40], [true, true]);
+ok('and the one on the cover is really there', await p.evaluate(async () => (await fetch((window.UI_IMAGES || {}).hero)).status), 200);
+ok('the crest stayed in the page: it is the first thing on screen', (await p.evaluate(() => (window.UI_IMAGES || {}).crest || '')).startsWith('data:'), true);
+
+/* A phone that read the book once can write into it with no signal at all:
+   the post shows at once, says it is waiting, and sits in the outbox. */
+console.log('\na post with no signal');
+await p.evaluate(() => {
+  const T = window.__T;
+  const book = { ...T, config: { ...T.config, people: [{ id: 'g6', display: 'Ray V', role: 'golfer', band: 20, location: 'UK', group: '7-day', order: 0 }], pairs: [] } };
+  localStorage.setItem('union-invitational:v3', JSON.stringify(book));
+  localStorage.setItem('union-invitational:v3:at', String(Date.now() - 30 * 60e3));
+  localStorage.setItem('union-invitational:whoami', 'g6');
+  localStorage.removeItem('ui.outbox.v1');
+});
+await p.reload({ waitUntil: 'commit' }).catch(() => {}); await settled(); await shut();
+ok('the book on the phone opens, and says what it is', /^No signal yet\. This is the book as the phone last read it, .*ago\. Scores, posts and bets you enter are kept here/.test((await p.locator('.loadbar.off').innerText()).replace(/\s+/g, ' ')), true);
+await p.evaluate(() => { window.__UI.modal = { kind: 'chat' }; window.__forceRender(); }); await p.waitForTimeout(400);
+ok('the composer says a post will wait', (await p.locator('.ch-off').innerText()).slice(0, 18), '⏱ No signal here. ');
+await p.locator('#chatText').fill('Anyone seen my 7 iron?');
+await p.locator('[data-act="chatSend"]').click(); await p.waitForTimeout(300);
+ok('the post is on the screen at once', await p.locator('.ch-msg p').first().innerText(), 'Anyone seen my 7 iron?');
+const t0 = Date.now();
+/* the box keeps the keyboard up for the next line, and the screen is not
+   redrawn under a focused box; tapping away lets it catch up */
+await p.locator('#chatText').blur();
+await p.waitForSelector('.ch-msg .ch-wait', { timeout: 30000 }).catch(() => {});
+ok('and marked as waiting once the wire has given up on it — within the time a hung request is allowed', [await p.locator('.ch-msg .ch-wait').count(), Date.now() - t0 < 25000], [1, true]);
+ok('and in the outbox for the next signal', await p.evaluate(() => Object.keys(JSON.parse(localStorage.getItem('ui.outbox.v1') || '{}')).map(k => k.split('/')[0]).filter(k => k !== 'diag')), ['chat']);
+ok('the foot counts it', await p.evaluate(() => [document.querySelector('.statusbar .dot').className, document.querySelector('.statusbar .st').textContent.slice(0, 30)]), ['dot wait', 'One change waiting for signal ']);
+await shut();
 
 console.log('\nand then the signal goes');
 offline = true;

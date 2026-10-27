@@ -151,6 +151,16 @@ export function createStore(onChange) {
   let status = 'connecting';    // connecting | live | local | error
   let saveState = 'idle';       // idle | saving | saved | queued | error — the last write's fate
   let lastSavedAt = null;
+  /* THE COPY ON THE PHONE IS A BOOK TOO. With no signal at all on the way
+     in, nothing from the server ever arrives, and the book used to refuse
+     every write until it did — so a ref on the 7th could see yesterday's
+     scores but not enter today's, and a post typed in a dead spot was
+     refused rather than kept. A tournament the phone read last time is a
+     tournament: writes go into the outbox from it, and go when the signal
+     does. The server's copy still wins the moment it is heard from. */
+  let fromDevice = false;       // the book on screen came off this phone, not the wire
+  let localAt = null;           // when that copy was last written
+  let landedCb = null;          // told when a write that waited for a signal gets through
   let refusedAt = 0;            // the database last turned a write down on principle
   // Our revision per document. A snapshot older than what we last wrote is an
   // echo of a version we have already moved past, and applying it would undo
@@ -161,8 +171,10 @@ export function createStore(onChange) {
 
   const notify = () => {
     keepLocal();                 // the device keeps its own copy of whatever it knows
-    onChange(T, { ready, mode, status, saveState, lastSavedAt, settled, backend,
-                  pending: (db && typeof db.pending === 'number') ? db.pending : 0,
+    onChange(T, { ready, mode, status, saveState, lastSavedAt, settled, backend, fromDevice, localAt,
+                  /* the phone's own log waits too, but nobody is waiting for it */
+                  pending: ((db && db.pendingPaths) ? db.pendingPaths() : []).filter(x => !x.startsWith('diag/')).length,
+                  waiting: (db && db.pendingPaths) ? db.pendingPaths() : [],
                   live: !!(db && db.live) });
   };
 
@@ -202,10 +214,13 @@ export function createStore(onChange) {
         const s = JSON.parse(raw);
         if (s && s.config && s.config.v === 3) { T.config = s.config; T.scores = s.scores || {}; T.bbb = s.bbb || {};
           T.recaps = s.recaps || {}; T.photos = s.photos || {}; T.notes = s.notes || {};
-          T.chat = s.chat || {}; T.market = s.market || {}; return; }
+          T.chat = s.chat || {}; T.market = s.market || {};
+          localAt = parseInt(localStorage.getItem(LOCAL_KEY + ':at'), 10) || null;
+          return (T.config.people || []).length > 0; }
       }
     } catch (e) { /* first run, or storage blocked */ }
     T.config = defaultConfig();   // no database and nothing stored: start from the factory book
+    return false;
   }
   /* With the book's own database, whatever has been read is also kept on the
      device — so a phone that opens on the first tee with no signal shows the
@@ -215,7 +230,7 @@ export function createStore(onChange) {
   function saveLocal() {
     clearTimeout(saveTimer);
     saveTimer = setTimeout(() => {
-      try { localStorage.setItem(LOCAL_KEY, JSON.stringify(T)); } catch (e) { /* quota or blocked */ }
+      try { localStorage.setItem(LOCAL_KEY, JSON.stringify(T)); localStorage.setItem(LOCAL_KEY + ':at', String(Date.now())); } catch (e) { /* quota or blocked */ }
     }, 250);
   }
 
@@ -227,7 +242,8 @@ export function createStore(onChange) {
         ? window.__supabase.createClient : null;
       db = factory ? createSupabaseDb({
         url: SUPABASE_URL, key: SUPABASE_KEY, deviceId, createClient: factory,
-        onStatus: s2 => {
+        onStatus: (s2, path) => {
+          if (s2 === 'landed') { if (landedCb) { try { landedCb(path); } catch (e) { /* the screen's business */ } } return; }
           if (s2 === 'offline' || s2 === 'queued') { saveState = 'queued'; }
           else if (s2 === 'saved' || s2 === 'flushed') { saveState = 'saved'; lastSavedAt = Date.now(); }
           if (s2 === 'live' || s2 === 'polling') status = 'live';
@@ -249,7 +265,7 @@ export function createStore(onChange) {
     /* A book opened on the first tee with no signal must still show the
        tournament. Whatever was read last time is on the device; it is put up
        straight away and every subscription below corrects it. */
-    if (backend === 'supabase') loadLocal();
+    if (backend === 'supabase' && loadLocal()) { fromDevice = true; ready = true; }
     // eslint-disable-next-line no-var
     var settle;
 
@@ -616,7 +632,7 @@ export function createStore(onChange) {
      quietly. Silence made a refused change look like a control that undoes
      itself, which is a far worse thing to hand a scorer on a tee. */
   function tooEarly() {
-    if (settled) return false;
+    if (settled || fromDevice) return false;
     note('refused', 'not settled yet');
     saveState = 'error';
     notify();
@@ -704,7 +720,7 @@ export function createStore(onChange) {
   let configChain = Promise.resolve();
   const unsent = [];                       // [{ k, changes }] in the order made
   function writeConfig(mutate, silent) {
-    if (!settled) { if (!silent) { saveState = 'error'; notify(); } return Promise.resolve(false); }
+    if (!settled && !fromDevice) { if (!silent) { saveState = 'error'; notify(); } return Promise.resolve(false); }
     const before = {}, was = {};
     for (const k of Object.keys(T.config)) { before[k] = JSON.stringify(T.config[k]); was[k] = before[k] === undefined ? undefined : JSON.parse(before[k]); }
     mutate(T.config);
@@ -758,7 +774,7 @@ export function createStore(onChange) {
     bump(path, obj);
     saveState = 'saving'; notify();
     if (mode === 'local') return localOnly();
-    try { await db.doc(path).set(obj); saveState = 'saved'; lastSavedAt = Date.now(); notify(); return true; }
+    try { if (await db.doc(path).set(obj)) { saveState = 'saved'; lastSavedAt = Date.now(); } notify(); return true; }
     catch (e) { status = 'error'; saveState = 'error'; notify(); return false; }
   }
 
@@ -767,7 +783,7 @@ export function createStore(onChange) {
     delete rev[path];
     saveState = 'saving'; notify();
     if (mode === 'local') return localOnly();
-    try { await db.doc(path).delete(); saveState = 'saved'; lastSavedAt = Date.now(); notify(); return true; }
+    try { if (await db.doc(path).delete()) { saveState = 'saved'; lastSavedAt = Date.now(); } notify(); return true; }
     catch (e) { status = 'error'; saveState = 'error'; notify(); return false; }
   }
 
@@ -977,7 +993,9 @@ export function createStore(onChange) {
     T[coll][id] = r;
     notify();
     if (mode === 'local') { saveLocal(); return true; }
-    try { await db.doc(coll + '/' + id).set(r); saveState = 'saved'; lastSavedAt = Date.now(); notify(); return true; }
+    /* true once it has reached the others; false while it waits for a signal
+       (it is on this screen already, and onLanded says when it gets there) */
+    try { const landed = await db.doc(coll + '/' + id).set(r); if (landed) { saveState = 'saved'; lastSavedAt = Date.now(); } notify(); return landed; }
     catch (e) { status = 'error'; saveState = 'error'; notify(); return false; }
   }
   async function patchSocial(coll, id, fields) {
@@ -988,7 +1006,7 @@ export function createStore(onChange) {
     T[coll][id] = { ...(T[coll][id] || {}), ...patch };
     notify();
     if (mode === 'local') { saveLocal(); return true; }
-    try { await db.doc(path).update(patch); saveState = 'saved'; lastSavedAt = Date.now(); notify(); return true; }
+    try { const landed = await db.doc(path).update(patch); if (landed) { saveState = 'saved'; lastSavedAt = Date.now(); } notify(); return landed; }
     catch (e) { status = 'error'; saveState = 'error'; notify(); return false; }
   }
   async function dropSocial(coll, id) {
@@ -1089,6 +1107,8 @@ export function createStore(onChange) {
               ref who has just walked off the 9th needs to know the card in
               their hand has not reached anyone yet. */
            get pending() { return (db && typeof db.pending === 'number') ? db.pending : 0; },
+           get waiting() { return (db && db.pendingPaths) ? db.pendingPaths() : []; },
+           set onLanded(fn) { landedCb = fn; },
            get live() { return !!(db && db.live); },
            destroy() { unsubs.forEach(u => { try { u(); } catch (e) {} }); } };
 }

@@ -58,7 +58,8 @@ for (const [label, vp, mob] of [['phone 390', { width: 390, height: 844 }, true]
     if (ap !== null) await s.nth(2).selectOption(ap);
     await p.waitForTimeout(650); };
 
-  await p.goto('file://' + W); await p.waitForTimeout(2200); await clear();
+/* the phone's clock set to the week before the trip, so the calendar tests read the same all year */
+  await p.clock.install({ time: new Date('2026-10-24T08:00:00Z') }); await p.goto('file://' + W); await p.waitForTimeout(2200); await clear();
 
   ok('nothing anywhere asks you to type a time', await p.locator('input.tt-in, input.fxtime').count(), 0);
 
