@@ -102,8 +102,8 @@ const give = (T, pid, overs) => {
 };
 const readFor = (T, pid) => E.bandRead(T, 'practice').find(r => r.id === pid);
 
-ok('nearest band rounds to the real four',
-  [10, 17, 18, 22, 23, 28, 40].map(E.nearestBand), [15, 15, 20, 20, 25, 30, 30]);
+ok('the read asks for the handicap the card says, whole, and within the book’s range',
+  [10, 17, 18, 22.4, 23, 28, 40, 60, -3].map(E.nearestBand), [10, 17, 18, 22, 23, 28, 40, 45, 0]);
 
 /* A round at exactly +20 off a band of 20 is the band. */
 {
@@ -123,7 +123,7 @@ ok('nearest band rounds to the real four',
   const r = readFor(T, 'g1');
   ok('a card at +29 reads as +29', r.projected, 29);
   ok('off a band of 20 that is nine light', r.gap, 9);
-  ok('and the card says band 30', [r.verdict, r.suggested], ['light', 30]);
+  ok('and the card says handicap 29', [r.verdict, r.suggested], ['light', 29]);
 }
 
 /* More shots than the round asked for. */
@@ -157,8 +157,8 @@ ok('nearest band rounds to the real four',
      same card reads +26 and says 25. The cap does not make the disasters
      free; it stops them being counted at a price nobody will ever pay. */
   const raw = clean + 3 * (8 - 1);
-  ok('uncapped, the same card would have said band 30', E.nearestBand(raw), 30);
-  ok('capped, it says 25', r.suggested, 25);
+  ok('uncapped, the same card would have said 41', E.nearestBand(raw), 41);
+  ok('capped, it says 26', r.suggested, 26);
   ok('which is one band of correction, not two', r.verdict, 'light');
 }
 
@@ -169,7 +169,7 @@ ok('nearest band rounds to the real four',
   give(T, 'g1', Array.from({ length: 18 }, (_, i) => (i < 9 ? 1 : null)));  // +9 through 9
   const r = readFor(T, 'g1');
   ok('nine holes at +9 projects to +18', [r.played, r.over, r.projected], [9, 9, 18]);
-  ok('which is a band of 20, not 15', [r.verdict, r.suggested], ['light', 20]);
+  ok('which is a handicap of 18, not 15', [r.verdict, r.suggested], ['light', 18]);
 }
 
 /* Too little to say anything. */
@@ -186,7 +186,7 @@ ok('nearest band rounds to the real four',
   T.config.people.find(p => p.id === 'g1').band = null;
   give(T, 'g1', Array.from({ length: 18 }, () => 1));
   const r = readFor(T, 'g1');
-  ok('an unbanded card still gets a suggestion', [r.verdict, r.suggested], ['unset', 20]);
+  ok('an unbanded card still gets a suggestion', [r.verdict, r.suggested], ['unset', 18]);
 }
 
 ok('a golfer who has not teed off is left out of it',
@@ -215,10 +215,13 @@ await p.waitForTimeout(400); await shut();
 console.log('\nband 30 is written down with the other three');
 await tab('Rules');
 const bands = await p.locator('.rows .row .who').allInnerTexts();
-ok('all four bands are documented',
-  ['Band 15', 'Band 20', 'Band 25', 'Band 30'].every(x => bands.some(t => t.trim() === x)), true);
-const b30 = await p.locator('.rows .row', { hasText: 'Band 30' }).innerText();
-ok('and band 30 says what it gives', /stroke index 1–12/.test(b30), true);
+ok('handicaps are documented: what one is, how the strokes fall, the quick picks, the cap',
+  ['Your handicap', 'How they fall', 'Quick picks', 'Capped'].every(x => bands.some(t => t.trim() === x)), true);
+const rowNamed = n => p.locator('.rows .row:visible').filter({ has: p.locator('.who', { hasText: new RegExp('^' + n + '$') }) }).first();   // by its name, not a word in another row's body
+const qp = await rowNamed('Quick picks').innerText();
+ok('and the quick picks say what they give', /1–12/.test(qp) && /1–15/.test(qp), true);
+const hf = await rowNamed('How they fall').innerText();
+ok('with a worked example off the four', /22 is one a hole and a second on stroke index 1–4/.test(hf), true);
 
 console.log('\nthe read, on a phone');
 await tab('Roster');
@@ -256,8 +259,8 @@ ok('the board carries a button, not the read itself', await p.locator('.br-row')
    beside the heading where a tablet has room, under the card where a phone
    has not. Exactly one of them is ever on screen. */
 ok('the button is in the page twice, for the two widths',
-  await p.locator('.recapbtn', { hasText: 'The Band Read' }).count(), 2);
-const face = p.locator('.recapbtn:visible', { hasText: 'The Band Read' });
+  await p.locator('.recapbtn', { hasText: 'The Handicap Read' }).count(), 2);
+const face = p.locator('.recapbtn:visible', { hasText: 'The Handicap Read' });
 ok('and exactly one of them is showing', await face.count(), 1);
 ok('on a phone it is the one under the card',
   await face.evaluate(el => !!el.closest('.brlow')), true);
@@ -345,7 +348,7 @@ if (await act.count()) {
   ok('and the row now reads as holding',
     await after.evaluate(el => el.className.includes('br-right')), true);
   ok('the working says what just happened',
-    /Moved to band /.test(await p.locator('.brmodal .br-line').nth(idx).innerText()), true);
+    /Moved to handicap /.test(await p.locator('.brmodal .br-line').nth(idx).innerText()), true);
 
   /* A tap that does the thing on the spot needs a way back from a wrong tap. */
   console.log('\nand a wrong tap has a way back');
@@ -371,14 +374,14 @@ if (await act.count()) {
     const row = rows.find(r => Array.from(r.querySelectorAll('input'))
       .some(i => i.value.trim() === name));
     if (!row) return 'no row for ' + name;
-    const on = row.querySelector('[data-act="setBand"].on');
-    return on ? on.getAttribute('data-b') : null;
+    const on = row.querySelector('.bandcrest.on .bn');   // a quick pick or the golfer's own shield, whichever is lit
+    return on ? on.textContent.trim() : null;
   }, who);
   ok('the roster itself carries the new band', onBand, wants);
 
   await tab('Boards');
   await p.locator('.btab', { hasText: 'Practice Day' }).click(); await p.waitForTimeout(700); await shut();
-  await p.locator('.recapbtn:visible', { hasText: 'The Band Read' }).click(); await p.waitForTimeout(600);
+  await p.locator('.recapbtn:visible', { hasText: 'The Handicap Read' }).click(); await p.waitForTimeout(600);
   ok('and a fresh open carries no stale undo', await p.locator('.brmodal .br-undo').count(), 0);
 }
 
@@ -390,7 +393,7 @@ await p.setViewportSize({ width: 1024, height: 768 });
 await p.waitForTimeout(700);
 await p.evaluate(() => window.__forceRender && window.__forceRender());
 await p.waitForTimeout(500);
-const wide = p.locator('.recapbtn:visible', { hasText: 'The Band Read' });
+const wide = p.locator('.recapbtn:visible', { hasText: 'The Handicap Read' });
 ok('still exactly one button on screen', await wide.count(), 1);
 ok('and now it is the one beside the heading',
   await wide.evaluate(el => !!el.closest('.brtop')), true);

@@ -21,7 +21,7 @@
  *      obviously offline. So a single indexed query catches whatever the
  *      socket missed — but every one wakes the phone's radio, and a phone
  *      on a golf course all day has a battery to think of. The poll keeps
- *      to a minute while the socket is live, which is only a net; to fifteen
+ *      to three minutes while the socket is live, which is only a net; to fifteen
  *      seconds while it is down, when the poll IS the update; and to nothing
  *      at all while the book is in somebody's pocket. Coming back to the
  *      front, or getting signal back, looks at once.
@@ -35,7 +35,7 @@
 /* Every collection the book keeps. A path outside this list is not polled,
    so adding one here is part of adding one at all. */
 const PREFIXES = ['config', 'people', 'pairs', 'scores', 'bbb', 'notes', 'recaps', 'photos', 'chat', 'market', 'diag'];
-const POLL_LIVE_MS = 60000;   // the net under a live socket: once a minute
+const POLL_LIVE_MS = 180000;  // the net under a live socket: every three minutes (the socket brings everything; this only catches what it dropped)
 const POLL_DOWN_MS = 15000;   // the socket is down, so the poll is the update
 const hidden = () => typeof document !== 'undefined' && document.visibilityState === 'hidden';
 const RETRY_MS = 4000;        // how often a stranded outbox tries again

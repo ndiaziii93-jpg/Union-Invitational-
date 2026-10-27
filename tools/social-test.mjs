@@ -25,6 +25,8 @@ const shot = async name => { if (SHOTS) { await p.waitForTimeout(250); await p.s
 const shut = async () => { for (let i = 0; i < 6; i++) { const d = p.locator('.scrim [data-act="modalCancel"]'); if (await d.count()) { await d.first().click({ force: true }); await p.waitForTimeout(200); } else break; } };
 const tap = async sel => { await p.locator(sel).first().click(); await p.waitForTimeout(300); };
 
+/* the phone's clock on the first day of the trip, whenever this runs: one day's beers */
+await p.clock.install({ time: new Date('2026-10-26T06:00:00Z') });
 await p.goto('file://' + S + '/social.html'); await p.waitForTimeout(3500);
 await shut();
 /* a round under way: Round 1 open, Robby B birdies the 3rd, Ray V in the water on the 7th, Group 1 at the turn */
@@ -346,6 +348,7 @@ ok('on Photos it sits above the camera button', await p.locator('.chatfab.up').c
 console.log('\nthe same name on another phone');
 const ctx2 = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
 const q = await ctx2.newPage(); q.on('pageerror', e => errs.push(String(e)));
+await q.clock.install({ time: new Date('2026-10-26T06:00:00Z') });
 await q.goto('file://' + S + '/social.html'); await q.waitForTimeout(3500);
 for (let i = 0; i < 6; i++) { const d = q.locator('.scrim [data-act="modalCancel"]'); if (await d.count()) { await d.first().click({ force: true }); await q.waitForTimeout(200); } else break; }
 /* the shared book, as the second phone would read it */
@@ -383,6 +386,7 @@ console.log('\nwith the PINs on, as on the real app');
 writeFileSync(S + '/social-pins.html', readFileSync(S + '/social.html', 'utf8').replace('PINS_ENABLED = false', 'PINS_ENABLED = true'));
 const ctx3 = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
 const r = await ctx3.newPage(); r.on('pageerror', e => errs.push(String(e)));
+await r.clock.install({ time: new Date('2026-10-26T06:00:00Z') });
 await r.goto('file://' + S + '/social-pins.html'); await r.waitForTimeout(3500);
 for (let i = 0; i < 6; i++) { const d = r.locator('.scrim [data-act="modalCancel"]'); if (await d.count()) { await d.first().click({ force: true }); await r.waitForTimeout(200); } else break; }
 await r.evaluate(() => { const T = window.__T, at = Date.now();

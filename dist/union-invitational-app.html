@@ -74,7 +74,11 @@ a{color:var(--green);text-underline-offset:3px}
 .watermark{position:fixed;inset:0;pointer-events:none;z-index:0;background-repeat:no-repeat;
   background-position:center 58%;background-size:min(52vh,86vw,470px);
   opacity:.045;
-  transform:none;transform-origin:center 58%;will-change:transform,opacity}
+  transform:none;transform-origin:center 58%}
+/* BATTERY. `will-change` here kept a full-screen compositor layer alive for
+   the whole week, recomposited on every scroll. It is wanted for the few
+   seconds of the opening and never after. */
+.watermark.opening{will-change:transform,opacity}
 /* The crest art carries its own transparency, so it needs no blend mode to
    sit on the paper. It used to multiply, which is very nearly invisible at
    four and a half percent and a needless second opinion about the colour at
@@ -538,6 +542,10 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 @supports not ((backdrop-filter:blur(2px)) or (-webkit-backdrop-filter:blur(2px))){
   .scrim{background:rgba(16,22,17,.62)}
 }
+/* BATTERY. A backdrop blur is re-rendered on every frame anything moves
+   behind or inside it. The chat sheet stays open for an hour and scrolls;
+   the recap covers the whole phone. Neither needs the page blurred. */
+.scrim.chatscrim,.scrim.recapscrim,.scrim.tcscrim{backdrop-filter:none;-webkit-backdrop-filter:none;background:rgba(16,22,17,.62)}
 
 /* ---- a window opening ----
    The scrim resolves, the card rises the last few pixels and settles out of
@@ -1203,13 +1211,13 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 .fm-crest{position:relative;width:150px;max-width:54vw;aspect-ratio:1;margin:16px auto 6px;
   display:grid;place-items:center}
 .fm-crest img{position:relative;z-index:2;width:100%;height:auto;display:block;
-  animation:finishLift 2600ms ease-in-out infinite}
+  animation:finishLift 2600ms ease-in-out 8}
 /* The swing is the intensity. Both curves travel further in the same 2.6s,
    so the breath is deeper AND moves quicker without the tempo changing —
    a faster cycle at the old amplitude would have read as a flicker. */
 .fm-crest .halo{position:absolute;inset:-26%;border-radius:50%;z-index:1;
   background:radial-gradient(circle,rgba(140,107,47,.56) 0%,rgba(140,107,47,.26) 42%,transparent 74%);
-  animation:finishBreath 2600ms ease-in-out infinite}
+  animation:finishBreath 2600ms ease-in-out 8}
 /* The trough is what the eye reads as "how gold is it" — it is where the
    wash sits for most of the cycle. Lifted with the peak so the glow stays
    present all the way round rather than only at the top of the breath. */
@@ -2365,7 +2373,7 @@ html:has(.page.scoring){scroll-padding-top:136px;scroll-padding-bottom:110px}
   0%,100%{box-shadow:0 0 0 0 rgba(226,194,119,0);filter:brightness(1)}
   50%{box-shadow:0 0 26px 6px rgba(226,194,119,.55);filter:brightness(1.12)}
 }
-.recapbtn.ready{animation:recappulse 2.2s ease-in-out infinite}
+.recapbtn.ready{animation:recappulse 2.2s ease-in-out 4}   /* four breaths, then still: it sits on Today all evening */
 @media (prefers-reduced-motion:reduce){.recapbtn.ready{animation:none}}
 
 /* The same card as every other window, and it CENTRES — it had no auto
@@ -4618,6 +4626,14 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 .metaline{margin:14px 0 0;padding:9px 0 8px;border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);font-size:13px;color:var(--turf);line-height:1.5}
 .metaline b{color:var(--ink)}
 
+/* ---- a handicap of their own, beside the quick picks ---- */
+.bandown{display:inline-flex;align-items:center;gap:4px;margin-left:6px;padding-left:10px;border-left:1px solid var(--rule)}
+.bstep{width:30px;height:34px;border-radius:9px;border:0;background:var(--paper);box-shadow:inset 0 0 0 1px var(--rule);font:inherit;font-size:19px;font-weight:700;color:var(--ink);cursor:pointer;padding:0}
+.bstep:disabled{opacity:.4;cursor:default}
+.bandcrest.own{opacity:.75}
+.bandcrest.own .bn{letter-spacing:-.02em}
+.bandown.on .bandcrest{opacity:1}
+
 </style>
 <div id="app"></div>
 <!-- The crest, and the opening it pays for, ahead of everything else. A few
@@ -4744,7 +4760,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261027-1108';
+const BUILD = '20261027-1154';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -4954,17 +4970,17 @@ const RELIEF = {
     { name: 'Sunday is different', body: 'The championship final has no mulligans at all. The breakfast ball on hole 1 is retained.' },
   ],
   bands: [
-    ['Band 15', 'One stroke on stroke index 1–15. Fifteen strokes in all.'],
-    ['Band 20', 'One stroke on every hole, a second on stroke index 1–2. Twenty strokes in all.'],
-    ['Band 25', 'One stroke on every hole, a second on stroke index 1–7. Twenty-five strokes in all.'],
-    ['Band 30', 'One stroke on every hole, a second on stroke index 1–12. Thirty strokes in all.'],
+    ['Your handicap', 'The strokes you receive over eighteen holes, any whole number. Set on Roster, by hand or with one of the four quick picks.'],
+    ['How they fall', 'One stroke on each hole whose stroke index is at or under your handicap. Over eighteen, one on every hole and a second on the lowest indexes for the rest: 22 is one a hole and a second on stroke index 1–4.'],
+    ['Quick picks', '15 is one on index 1–15. 20, 25 and 30 are one a hole plus a second on index 1–2, 1–7 and 1–12.'],
+    ['Capped', 'Strokes come off the capped gross: a hole picked up at triple bogey counts as triple bogey, then your strokes.'],
   ],
   /* Tuesday is the audition. Said here because a band is the one thing a
      golfer picks for himself and the one thing that decides every figure he
      is measured by all week. */
-  bandNote: 'Pick your own band for Tuesday. The practice round is scored gross and feeds nothing, so it '
+  bandNote: 'Give yourself a handicap for Tuesday. The practice round is scored gross and feeds nothing, so it '
     + 'costs you nothing to be wrong — and the Practice Day board reads every card back and says whether the '
-    + 'band you chose is the one you should take into Thursday. A scorer settles them before Round 1, and '
+    + 'handicap you chose is the one you should take into Thursday. A scorer settles them before Round 1, and '
     + 'after that they are fixed for the week.',
 };
 
@@ -5689,18 +5705,22 @@ function to24(str) {
 
 /* ---------- handicap bands ---------- */
 
+/* A golfer's handicap is the strokes they receive, any whole number; the
+   four bands are the quick picks it started with, still one tap on Roster. */
 const BANDS = [15, 20, 25, 30];
+const HCP_MAX = 45;
 
-/** Strokes a band receives on a hole of the given stroke index.
+/** Strokes a handicap receives on a hole of the given stroke index, the way
+ *  every club allocates them: one on each hole up to the handicap, going
+ *  round again for anything over eighteen.
  *  15 → 1 stroke on SI 1–15 (15 total)
  *  20 → 1 a hole, 2 on SI 1–2   (20 total)
- *  25 → 1 a hole, 2 on SI 1–7   (25 total) */
+ *  25 → 1 a hole, 2 on SI 1–7   (25 total)
+ *  22 → 1 a hole, 2 on SI 1–4   (22 total) */
 function strokesFor(band, si) {
-  if (band === 15) return si <= 15 ? 1 : 0;
-  if (band === 20) return 1 + (si <= 2 ? 1 : 0);
-  if (band === 25) return 1 + (si <= 7 ? 1 : 0);
-  if (band === 30) return 1 + (si <= 12 ? 1 : 0);
-  return null; // no band assigned — this player cannot be scored
+  if (band == null || !Number.isFinite(+band)) return null; // no handicap — this player cannot be scored
+  const h = Math.max(0, Math.min(HCP_MAX, Math.round(+band)));
+  return Math.floor(h / 18) + (si <= h % 18 ? 1 : 0);
 }
 function bandTotal(band) {
   const c = COURSES.aspendos.holes;
@@ -6107,9 +6127,10 @@ function practiceBoard(T) {
  * It is a READ, not a ruling. One round is thin evidence, the cap hides how
  * bad a hole truly was, and a scorer sets the band in the end. */
 
-/** The nearest band to a number of strokes over par. */
+/** The handicap a number of strokes over par asks for: that number, whole,
+ *  within what the book allows. */
 function nearestBand(over) {
-  return BANDS.reduce((a, b) => (Math.abs(b - over) < Math.abs(a - over) ? b : a));
+  return Math.max(0, Math.min(HCP_MAX, Math.round(over)));
 }
 
 /** Every golfer's round, read as a band. `verdict` is one of:
@@ -6142,9 +6163,8 @@ function bandRead(T, rid = 'practice') {
     if (played < 9) { row.verdict = 'thin'; return row; }
     if (p.band == null) { row.verdict = 'unset'; return row; }
     row.gap = row.projected - p.band;
-    /* The bands are five apart, so half of one is the line between "about
-       right" and "in the wrong one". */
-    row.verdict = Math.abs(row.gap) <= 2.5 ? 'right' : row.gap > 0 ? 'light' : 'heavy';
+    /* Two shots either way is a round's noise, not a wrong handicap. */
+    row.verdict = Math.abs(row.gap) <= 2 ? 'right' : row.gap > 0 ? 'light' : 'heavy';
     return row;
   }).filter(r => r.verdict !== 'none')
     .sort((a, b) => (b.projected || 0) - (a.projected || 0));
@@ -6614,11 +6634,11 @@ function brief(T, now) {
   const day = dayOf(ROUNDS[0].dayIdx);
   L.push('THE UNION INVITATIONAL — Titanic Deluxe Golf Belek, Antalya, Turkiye, 26 Oct to 2 Nov 2026.');
   L.push('Today is ' + now.dow + ' ' + now.date + '.');
-  L.push('Handicap bands are the strokes a golfer receives: 15, 20, 25 or 30.');
+  L.push('A handicap is the strokes a golfer receives over the round: one a hole up to the handicap, and a second on the lowest stroke indexes for anything over eighteen.');
 
   L.push('\nROSTER');
   for (const p of golfers(T)) {
-    L.push('- ' + p.display + ' (golfer, band ' + (p.band == null ? 'not set' : p.band)
+    L.push('- ' + p.display + ' (golfer, handicap ' + (p.band == null ? 'not set' : p.band)
       + ', squad ' + (p.location || 'unassigned') + ')');
   }
 
@@ -7085,7 +7105,7 @@ function clubhouse(T, now) {
     tone: mvp.length ? toneOf(mvp[0].total) : '',
     thru: thru(mvp), by: margin(mvp, 'total'),
     runner: mvp.length > 1 ? mvp[1].name : null,
-    note: mvp.length ? null : 'Every golfer needs a band before their card counts' });
+    note: mvp.length ? null : 'Every golfer needs a handicap before their card counts' });
 
   const bbb = bbbBoard(T);
   const banked = bbb.reduce((n, r) => n + r.pts, 0);
@@ -7265,7 +7285,7 @@ function roundToPar(T, roundId, pid) {
   return { tp, thru };
 }
 
-return {nowLocal, dayOf, hhmmToMin, to12, TEE_GAP_MIN, plusMins, to24, BANDS, strokesFor, bandTotal, fmtToPar, capFor, capped, person, golfers, roundDef, roundCfg, courseByKey, courseOf, scoreKey, card, pairName, phaseOf, phaseLabel, hasScores, countingRounds, playerNet, pairHole, playerGross, grossThru, PAIRS_PER_GROUP, teeTime, teeTimes, groups, finishGroups, groupThru18, groupDone, groupsOut, TURN_HOLES, toParThru, groupAtTurn, turnAt, turnGroups, turnSnapshot, practiceBoard, nearestBand, bandRead, practiceBbb, bandsLocked, pairsBoard, gapOf, mvpBoard, BBB_SLOTS, bbbMarks, MARKS, MARK_KEYS, MOODS, OWNS, moodLabel, ownLabels, OWN_MARKS, OWN_KEYS, holeMarks, selfLog, selfMarks, markCoverage, markTally, markLine, scoreName, feelWhy, feelAsks, feelTally, feelBlock, bbbBoard, roundComplete, brief, roundBrief, recapRound, roundStanding, ribbon, pairRoundBoard, recapTable, recapField, swingOfTheDay, sideGames, recapInput, matchPlay, matchDetail, ryderData, clubhouse, toneOf, holeCells, setupIssues, nextTee, fixtures, nextFixture, TEE_CHOICES, TEE_PRIV, teePrivilege, roundToPar};
+return {nowLocal, dayOf, hhmmToMin, to12, TEE_GAP_MIN, plusMins, to24, BANDS, HCP_MAX, strokesFor, bandTotal, fmtToPar, capFor, capped, person, golfers, roundDef, roundCfg, courseByKey, courseOf, scoreKey, card, pairName, phaseOf, phaseLabel, hasScores, countingRounds, playerNet, pairHole, playerGross, grossThru, PAIRS_PER_GROUP, teeTime, teeTimes, groups, finishGroups, groupThru18, groupDone, groupsOut, TURN_HOLES, toParThru, groupAtTurn, turnAt, turnGroups, turnSnapshot, practiceBoard, nearestBand, bandRead, practiceBbb, bandsLocked, pairsBoard, gapOf, mvpBoard, BBB_SLOTS, bbbMarks, MARKS, MARK_KEYS, MOODS, OWNS, moodLabel, ownLabels, OWN_MARKS, OWN_KEYS, holeMarks, selfLog, selfMarks, markCoverage, markTally, markLine, scoreName, feelWhy, feelAsks, feelTally, feelBlock, bbbBoard, roundComplete, brief, roundBrief, recapRound, roundStanding, ribbon, pairRoundBoard, recapTable, recapField, swingOfTheDay, sideGames, recapInput, matchPlay, matchDetail, ryderData, clubhouse, toneOf, holeCells, setupIssues, nextTee, fixtures, nextFixture, TEE_CHOICES, TEE_PRIV, teePrivilege, roundToPar};
 })();
 
 const __m_social = (function(){
@@ -8361,7 +8381,7 @@ const __m_dbsupa = (function(){
  *      obviously offline. So a single indexed query catches whatever the
  *      socket missed — but every one wakes the phone's radio, and a phone
  *      on a golf course all day has a battery to think of. The poll keeps
- *      to a minute while the socket is live, which is only a net; to fifteen
+ *      to three minutes while the socket is live, which is only a net; to fifteen
  *      seconds while it is down, when the poll IS the update; and to nothing
  *      at all while the book is in somebody's pocket. Coming back to the
  *      front, or getting signal back, looks at once.
@@ -8375,7 +8395,7 @@ const __m_dbsupa = (function(){
 /* Every collection the book keeps. A path outside this list is not polled,
    so adding one here is part of adding one at all. */
 const PREFIXES = ['config', 'people', 'pairs', 'scores', 'bbb', 'notes', 'recaps', 'photos', 'chat', 'market', 'diag'];
-const POLL_LIVE_MS = 60000;   // the net under a live socket: once a minute
+const POLL_LIVE_MS = 180000;  // the net under a live socket: every three minutes (the socket brings everything; this only catches what it dropped)
 const POLL_DOWN_MS = 15000;   // the socket is down, so the poll is the update
 const hidden = () => typeof document !== 'undefined' && document.visibilityState === 'hidden';
 const RETRY_MS = 4000;        // how often a stranded outbox tries again
@@ -10107,9 +10127,9 @@ function holeLeaf(rid, h, opts = {}) {
       <tr><td>White tees</td><td>${hole.mW} m</td></tr>
       <tr><td>Yellow tees</td><td>${hole.mY} m</td></tr>
       <tr><td>Stroke index</td><td>${hole.si}</td></tr>
-      <tr><td>Band 15 receives</td><td>${E.strokesFor(15, hole.si)}</td></tr>
-      <tr><td>Band 20 receives</td><td>${E.strokesFor(20, hole.si)}</td></tr>
-      <tr><td>Band 25 receives</td><td>${E.strokesFor(25, hole.si)}</td></tr>
+      <tr><td>Handicap 15 receives</td><td>${E.strokesFor(15, hole.si)}</td></tr>
+      <tr><td>Handicap 20 receives</td><td>${E.strokesFor(20, hole.si)}</td></tr>
+      <tr><td>Handicap 25 receives</td><td>${E.strokesFor(25, hole.si)}</td></tr>
       <tr class="cap"><td>Pick up at</td><td>${cap}</td></tr>
     </tbody></table>
     ${opts.strip || ''}
@@ -10429,9 +10449,9 @@ function boardPairs() {
             <tr><td>Par</td><td>${hole.par}</td></tr>
             <tr><td>Length, White tees</td><td>${hole.mW} m</td></tr>
             <tr><td>Stroke index</td><td>${hole.si}</td></tr>
-            <tr><td>Band 15 receives</td><td>${E.strokesFor(15, hole.si)}</td></tr>
-            <tr><td>Band 20 receives</td><td>${E.strokesFor(20, hole.si)}</td></tr>
-            <tr><td>Band 25 receives</td><td>${E.strokesFor(25, hole.si)}</td></tr>
+            <tr><td>Handicap 15 receives</td><td>${E.strokesFor(15, hole.si)}</td></tr>
+            <tr><td>Handicap 20 receives</td><td>${E.strokesFor(20, hole.si)}</td></tr>
+            <tr><td>Handicap 25 receives</td><td>${E.strokesFor(25, hole.si)}</td></tr>
             <tr class="cap"><td>Picks up at</td><td>${E.capFor(hole.par, T.config.capOver)}</td></tr>
           </tbody></table>
           ${IMG[hole.img] ? `<figure class="diagram"><img decoding="sync" src="${IMG[hole.img]}" alt="Diagram of hole ${hole.n} at ${esc(course.name)}" loading="lazy"></figure>` : ''}
@@ -10467,7 +10487,7 @@ function boardMvp() {
 
   ${leadPlate({ eyebrow: 'Leading', live,
     who: rows.length ? rows[0].name : null,
-    whoSub: rows.length && rows[0].band ? '\u00B7 band ' + rows[0].band : '',
+    whoSub: rows.length && rows[0].band ? '\u00B7 hcp ' + rows[0].band : '',
     fig: rows.length ? rows[0].totalStr : '', tone: rows.length ? E.toneOf(rows[0].total) : '',
     cells: [rows.length > 1 ? ['Ahead by', String(Math.abs(rows[1].total - rows[0].total))] : null,
             rows.length && rows[0].thru ? ['Through', String(rows[0].thru)] : null,
@@ -10475,7 +10495,7 @@ function boardMvp() {
 
   ${rows.length ? `<div class="bd">
     <div class="bdh mvp"><span>Pos</span><span>Player</span>
-      <span>Band</span><span>Thru</span><span>Today<small class="rawh">net · raw</small></span><span>Total<small class="rawh">net · raw</small></span><span>Gap</span></div>
+      <span>Hcp</span><span>Thru</span><span>Today<small class="rawh">net · raw</small></span><span>Total<small class="rawh">net · raw</small></span><span>Gap</span></div>
     ${rows.map((r, i) => `<div class="bdr mvp${i === 0 ? ' lead' : ''}">
       <span class="p num">${r.pos}</span>
       <span class="w">${esc(r.name)}</span>
@@ -10488,7 +10508,7 @@ function boardMvp() {
   <p class="legend">Your own ball, your own number, every stroke counted — off the same card as the team
   competition. The big number is net, with your band’s strokes; the small one under it is raw, the strokes as written.
   Gap is how far back of the leader; the MVP is decided on net to par.</p>`
-  : `<p class="empty">No individual scores yet. Every golfer needs a playing band before their card counts.</p>`}`;
+  : `<p class="empty">No individual scores yet. Every golfer needs a handicap before their card counts.</p>`}`;
 }
 
 function boardBbb() {
@@ -10564,10 +10584,10 @@ function boardPrizes() {
  * take the argument off opinion and put it on the card. */
 
 const BANDWORD = {
-  right: ['holding', 'The band they picked is the band the card says.'],
-  light: ['needs more', 'Going round in more than their band gives them.'],
+  right: ['holding', 'The handicap they picked is the one the card says.'],
+  light: ['needs more', 'Going round in more than their handicap gives them.'],
   heavy: ['needs fewer', 'Took more shots than the round asked for.'],
-  unset: ['no band yet', 'Played, but has not picked one.'],
+  unset: ['no handicap yet', 'Played, but has not picked one.'],
   thin:  ['too few holes', 'Not enough of a card to read.'],
 };
 
@@ -10584,14 +10604,14 @@ function bandReadState() {
   const unset = read.filter(x => x.verdict === 'unset').length;
   const thin = read.length > 0 && read.every(x => x.verdict === 'thin');
   const line = moves && unset
-      ? moves + ' to move, ' + unset + ' with no band yet.'
+      ? moves + ' to move, ' + unset + ' with no handicap yet.'
     : moves
       ? moves + ' golfer' + (moves === 1 ? ' is' : 's are') + ' in the wrong band.'
     : unset
-      ? unset + (unset === 1 ? ' golfer has' : ' golfers have') + ' no band yet.'
+      ? unset + (unset === 1 ? ' golfer has' : ' golfers have') + ' no handicap yet.'
     : thin
       ? 'Too early to read — nine holes needed.'
-      : 'Everybody is in the band their card asks for.';
+      : 'Everybody is on the handicap their card asks for.';
   return { read, moves, unset, line, lit: !!(moves || unset), empty: !read.length };
 }
 
@@ -10601,7 +10621,7 @@ function bandReadButton() {
   return `<div class="recapwrap">
     <button class="recapbtn${s.lit ? ' ready' : ''}" data-act="bandOpen">
       <span class="rb-w">
-        <span class="rb-t">The Band Read</span>
+        <span class="rb-t">The Handicap Read</span>
         <span class="rb-s">${esc(s.line)}</span>
       </span>
       ${IMG.crest ? `<img class="rb-c" src="${IMG.crest}" alt="">` : ''}
@@ -10620,7 +10640,7 @@ function bandModalHtml() {
 
   const line = x => {
     const was = moved(x)
-      ? `<span class="br-moved"><b>Moved to band ${x.band}</b> from `
+      ? `<span class="br-moved"><b>Moved to handicap ${x.band}</b> from `
         + `${UI.bandMoved[x.id] == null ? 'no band' : UI.bandMoved[x.id]}. `
         + `<button class="br-undo" data-act="bandUndo" data-a="${x.id}">Undo</button></span>`
       : '';
@@ -10629,22 +10649,22 @@ function bandModalHtml() {
       + (x.played < 18 ? ', projected from ' + x.played : '')
       + (x.hitCap ? ' · capped on ' + x.hitCap + ' hole' + (x.hitCap === 1 ? '' : 's') : '');
     if (x.verdict === 'unset') return was + over + '. Tuesday says <b>band ' + x.suggested + '</b>.';
-    if (x.verdict === 'right') return was + over + ', on a band of ' + x.band + '. That is the band.';
+    if (x.verdict === 'right') return was + over + ', on a handicap of ' + x.band + '. That is the handicap.';
     const n = Math.abs(x.gap);
-    return was + over + ', on a band of ' + x.band + ' — ' + n + ' shot' + (n === 1 ? '' : 's')
-      + (x.gap > 0 ? ' more than they are given. <b>Band ' + x.suggested + '</b> brings them to level.'
-                   : ' fewer than they are given. <b>Band ' + x.suggested + '</b> is nearer.');
+    return was + over + ', on a handicap of ' + x.band + ' — ' + n + ' shot' + (n === 1 ? '' : 's')
+      + (x.gap > 0 ? ' more than they are given. <b>handicap ' + x.suggested + '</b> brings them to level.'
+                   : ' fewer than they are given. <b>handicap ' + x.suggested + '</b> is nearer.');
   };
 
   return `<div class="scrim" data-act="modalScrim"><div class="modal brmodal"
-    role="dialog" aria-modal="true" aria-label="The band read">
-    ${modalBanner('The band read', 'Practice Day · the audition')}
-    <p class="br-lede">A band IS the strokes you receive, so a band is right when your net lands near level par.
+    role="dialog" aria-modal="true" aria-label="The handicap read">
+    ${modalBanner('The handicap read', 'Practice Day · the audition')}
+    <p class="br-lede">A handicap IS the strokes you receive, so it is right when your net lands near level par.
     This holds how far over par each card actually went — capped at triple bogey, exactly as Thursday will cap it,
-    and projected to eighteen if the round was short — against the band that golfer chose.
-    <b>It is a read, not a ruling.</b> One round is thin evidence and the band is a scorer&rsquo;s to set.</p>
+    and projected to eighteen if the round was short — against the handicap that golfer chose.
+    <b>It is a read, not a ruling.</b> One round is thin evidence and the handicap is a scorer&rsquo;s to set.</p>
     ${mine && (s.moves || s.unset)
-      ? `<p class="br-how">Tap a verdict to move that golfer to the band his card asks for. It is done here —
+      ? `<p class="br-how">Tap a verdict to move that golfer to the handicap his card asks for. It is done here —
          you do not have to go anywhere.</p>` : ''}
 
     <div class="bandread">
@@ -10656,8 +10676,8 @@ function bandModalHtml() {
           ? `<b class="num">${x.suggested}</b><small>says</small>` : ''}</span>
         ${takeable(x)
           ? `<button class="br-tag act" data-act="bandTake" data-a="${x.id}" data-b="${x.suggested}"
-              aria-label="Move ${esc(x.name)} to band ${x.suggested}"
-              title="Move ${esc(x.name)} to band ${x.suggested}">${esc(BANDWORD[x.verdict][0])}</button>`
+              aria-label="Move ${esc(x.name)} to handicap ${x.suggested}"
+              title="Move ${esc(x.name)} to handicap ${x.suggested}">${esc(BANDWORD[x.verdict][0])}</button>`
           : `<span class="br-tag">${esc(BANDWORD[x.verdict][0])}</span>`}
       </div>
       <p class="br-line">${line(x)}</p>`).join('')}
@@ -10668,9 +10688,9 @@ function bandModalHtml() {
       : !mine
         ? 'Bands are a scorer&rsquo;s to set. This is the read they will be working from.'
         : s.moves
-          ? s.moves + ' golfer' + (s.moves === 1 ? '' : 's') + ' came in some way off the band they chose. '
+          ? s.moves + ' golfer' + (s.moves === 1 ? '' : 's') + ' came in some way off the handicap they chose. '
             + 'Move them before Round 1 — once the practice round is concluded the bands settle for the week.'
-          : 'Nobody is far off the band they chose. Conclude the practice round to settle them for the week.'}</p>
+          : 'Nobody is far off the handicap they chose. Conclude the practice round to settle them for the week.'}</p>
 
     <div class="acts"><button class="btn" data-act="modalCancel">Close</button></div>
   </div></div>`;
@@ -10697,7 +10717,7 @@ function boardPractice() {
 
   ${leadPlate({ eyebrow: 'Round of the day', live: E.phaseOf(T, rid, now) === 'live',
     who: rows.length ? rows[0].name : null,
-    whoSub: rows.length && rows[0].band ? '\u00B7 band ' + rows[0].band : '',
+    whoSub: rows.length && rows[0].band ? '\u00B7 hcp ' + rows[0].band : '',
     fig: rows.length ? E.fmtToPar(rows[0].tp) : '', tone: rows.length ? E.toneOf(rows[0].tp) : '',
     cells: [rows.length ? ['Gross', String(rows[0].gross)] : null,
             rows.length && rows[0].thru ? ['Through', String(rows[0].thru)] : null,
@@ -10710,10 +10730,10 @@ function boardPractice() {
   <h3 class="sub">The day's card</h3>
   <p class="lede" style="margin-bottom:0">Scored gross, so a golfer with no band yet still has a card; under each raw score is the
   same round net, with the band’s strokes and the triple-bogey cap, for anyone who has a band. What the day is
-  for is the band read under it: whether the band you chose is the one to take into Thursday.</p>
+  for is the handicap read under it: whether the handicap you chose is the one to take into Thursday.</p>
   <div class="rows pboard" style="margin-top:8px">
     <div class="rowhead"><span class="p-pos">#</span><span class="p-who">Golfer</span>
-      <span class="p-band">Band</span>
+      <span class="p-band">Hcp</span>
       <span class="p-thru">Thru</span>
       <span class="p-gross">Gross</span>
       <span class="p-par">To par<small class="rawh">raw · net</small></span></div>
@@ -11188,7 +11208,7 @@ function recapPanel() {
       <span class="rt-c">Strokes</span><span class="rt-c">Raw</span><span class="rt-c">Net</span></div>
     ${field.map(x => `<div class="row${x.pos === 1 ? ' lead' : ''}">
       <span class="pos rt-pos">${x.pos}</span>
-      <span class="who rt-who">${esc(x.name)}<small>${x.band ? 'band ' + x.band : 'no band'}${x.thru < 18 ? ' · thru ' + x.thru : ''}</small></span>
+      <span class="who rt-who">${esc(x.name)}<small>${x.band != null ? 'hcp ' + x.band : 'no handicap'}${x.thru < 18 ? ' · thru ' + x.thru : ''}</small></span>
       <span class="num rt-c">${x.strokes}</span>
       <span class="num rt-c ${cls(x.raw)}">${esc(fmt(x.raw))}</span>
       <span class="num rt-c ${cls(x.net)}">${esc(fmt(x.net))}</span></div>`).join('')}
@@ -11275,8 +11295,9 @@ function recapSlideSeen(tr) {
   if (c) c.innerHTML = '📷 <b>' + (i + 1) + '</b> / ' + n + (by ? ' · ' + esc(by) : '');
 }
 setInterval(() => {
+  if (!UI.recapOpen || document.hidden || Date.now() < slideHeld) return;
   const tr = document.querySelector('.rh-track');
-  if (!tr || document.hidden || Date.now() < slideHeld || (+tr.dataset.n || 0) < 2) return;
+  if (!tr || (+tr.dataset.n || 0) < 2) return;
   if (matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   const n = +tr.dataset.n, next = ((UI.recapSlide || 0) + 1) % n;
   tr.scrollTo({ left: next * tr.clientWidth, behavior: next ? 'smooth' : 'auto' });
@@ -11719,12 +11740,19 @@ function openChatFrom(room) {
 (() => {
   const vv = typeof window !== 'undefined' && window.visualViewport;
   if (!vv) return;
+  /* BATTERY. The visual viewport scrolls on every frame of every scroll, and
+     writing a custom property on <html> restyles the whole page each time.
+     Nothing here matters unless a keyboard is up, so without one nothing is
+     written, and with one only what changed. */
+  let wasUp = false, h0 = 0, t0 = 0;
   const fit = () => {
     const root = document.documentElement;
     const up = window.innerHeight - vv.height > 120;   // a keyboard, not a toolbar
-    root.style.setProperty('--vvh', vv.height + 'px');
-    root.style.setProperty('--vvt', vv.offsetTop + 'px');
-    root.classList.toggle('kbd', up);
+    if (!up && !wasUp) return;
+    if (up !== wasUp) { root.classList.toggle('kbd', up); wasUp = up; }
+    const h = up ? Math.round(vv.height) : 0, t = up ? Math.round(vv.offsetTop) : 0;
+    if (h !== h0) { root.style.setProperty('--vvh', up ? h + 'px' : ''); h0 = h; }
+    if (t !== t0) { root.style.setProperty('--vvt', up ? t + 'px' : ''); t0 = t; }
   };
   vv.addEventListener('resize', fit);
   vv.addEventListener('scroll', fit);
@@ -13548,7 +13576,7 @@ function rulingContext(rid, h, pid, sit) {
     'THE SITUATION',
     `Round: ${r.full} at ${course.name}${r.counts ? '' : ' (a practice round that counts for nothing)'}${r.noMulligans ? '. This is the championship final: no mulligans today.' : '.'}`,
     `Hole ${hole.n}, par ${hole.par}, stroke index ${hole.si}. The most anyone can score here is ${cap} (they pick up at ${cap}).`,
-    `Player: ${g.display}${g.band ? ', band ' + g.band + (st ? ', receives ' + st + ' stroke' + (st === 1 ? '' : 's') + ' here' : '') : ''}.`,
+    `Player: ${g.display}${g.band != null ? ', handicap ' + g.band + (st ? ', receives ' + st + ' stroke' + (st === 1 ? '' : 's') + ' here' : '') : ''}.`,
     `Score written for this hole so far: ${raw == null ? 'none yet' : raw}.`,
     r.noMulligans ? 'Mulligans: none today.'
       : `Mulligans: the front-nine one is ${c.mF ? 'used' : 'unused'}; the back-nine one is ${c.mB ? 'used' : 'unused'}. This hole is on the ${front ? 'front' : 'back'} nine.`,
@@ -13776,7 +13804,7 @@ function scrEntry() {
       <div class="pmain">
         <div class="pwho">
           <div class="nm">${esc(g.display)}${pending ? '<span class="tag">unsaved</span>' : ''}</div>
-          <div class="bd num">band ${g.band ? g.band : '\u2014'} <span>${st == null ? '\u00b7' : '+' + st + ' here'}</span>${
+          <div class="bd num">hcp ${g.band != null ? g.band : '\u2014'} <span>${st == null ? '\u00b7' : '+' + st + ' here'}</span>${
             net != null ? ' \u00b7 net ' + net : ''}${tp.thru ? ' \u00b7 ' + esc(E.fmtToPar(tp.tp)) + ' thru ' + tp.thru : ''}${
             capped ? ' \u00b7 <em class="capped">picked up</em>' : ''}${spent.length ? ' \u00b7 ' + spent.join(', ') : ''}</div>
           ${canAskRuling() ? `<button class="rl-btn" data-act="ruleOpen" data-a="${g.id}" aria-label="Ask for a ruling for ${esc(g.display)} on hole ${hole.n}">⚖️ Ruling</button>` : ''}
@@ -14323,7 +14351,7 @@ function bandCrest(p, band, editable) {
   const on = p.band === band;
   return `<button class="bandcrest${on ? ' on' : ''}" data-act="setBand"
     data-a="${p.id}" data-b="${band}"${editable ? '' : ' disabled'}
-    aria-pressed="${on}" aria-label="Band ${band} — ${band} strokes${on ? ', chosen' : ''}"
+    aria-pressed="${on}" aria-label="Handicap ${band} — ${band} strokes${on ? ', chosen' : ''}"
     title="${band} strokes">
     <svg viewBox="0 0 40 46" aria-hidden="true" focusable="false">
       <path class="sh" d="${CREST_SHIELD}"></path>
@@ -14331,6 +14359,21 @@ function bandCrest(p, band, editable) {
     </svg>
     <span class="bn num">${band}</span>
   </button>`;
+}
+
+/** The golfer's own handicap, any number: a shield with − and + beside it.
+ *  It is the lit one when the number is not one of the quick picks. */
+function ownCrest(p, editable) {
+  const own = p.band != null && !E.BANDS.includes(p.band);
+  const n = p.band == null ? 18 : p.band;
+  return `<span class="bandown${own ? ' on' : ''}">
+    <button class="bstep" data-act="bandStep" data-a="${p.id}" data-b="-1"${editable ? '' : ' disabled'} aria-label="One stroke fewer for ${esc(p.display)}">−</button>
+    <button class="bandcrest own${own ? ' on' : ''}" data-act="bandStep" data-a="${p.id}" data-b="0"${editable ? '' : ' disabled'}
+      aria-pressed="${own}" aria-label="Handicap ${own ? p.band : n}${own ? ', chosen' : ', their own number: tap to start at ' + n}" title="Their own number">
+      <svg viewBox="0 0 40 46" aria-hidden="true" focusable="false"><path class="sh" d="${CREST_SHIELD}"></path><path class="in" d="${CREST_INNER}"></path></svg>
+      <span class="bn num">${own ? p.band : '…'}</span></button>
+    <button class="bstep" data-act="bandStep" data-a="${p.id}" data-b="1"${editable ? '' : ' disabled'} aria-label="One stroke more for ${esc(p.display)}">+</button>
+  </span>`;
 }
 
 function scrRoster() {
@@ -14363,7 +14406,7 @@ function scrRoster() {
   return `${manageHead('Roster &amp; Pairings', 'Manage \u00B7 fixed for the week', [
       [T.config.pairs.length, 'Pairs'],
       [unassigned.length, 'Unassigned', unassigned.length > 0],
-      [bandsSet + ' / ' + gs.length, 'Bands set', bandsSet < gs.length]])}
+      [bandsSet + ' / ' + gs.length, 'Handicaps set', bandsSet < gs.length]])}
   <div class="titlerow">
     <h3 class="sub" style="font-size:28px;font-weight:700;margin:0">Pairings</h3>
     ${ed ? `<button class="btn ghost" data-act="addPair">Add pair</button>` : ''}
@@ -14424,8 +14467,9 @@ function scrRoster() {
           })()}</td>
           <td data-l="Group">${ed ? pickWrap(`<select class="field small" data-act="setPerson" data-a="${p.id}" data-b="group" aria-label="Group">
                 ${['7-day', '5-day'].map(v => `<option value="${v}"${p.group === v ? ' selected' : ''}>${v}</option>`).join('')}</select>`, { kind: 'list', small: true, title: p.display, sub: 'Which trip' }) : esc(p.group)}</td>
-          <td data-l="Band">${p.role === 'golfer' ? `<div class="bandrow">
+          <td data-l="Handicap">${p.role === 'golfer' ? `<div class="bandrow">
             ${E.BANDS.map(bnd => bandCrest(p, bnd, bandEd)).join('')}
+            ${ownCrest(p, bandEd)}
           </div>` : ''}</td>
           <td data-l="">${canAdmin() ? `<button class="rm" data-act="removePerson" data-a="${p.id}">Remove</button>` : ''}</td>
         </tr>`).join('')}
@@ -16647,8 +16691,8 @@ function artModalHtml() {
     ${model.traced !== true && live ? `<div class="h3note">${model.traced === 'drawing' ? 'Traced from the drawing' : 'Shape drawn from the card'} · not surveyed yet</div>` : ''}
     ${UI.gps && UI.gps.err ? `<div class="h3note warn">${esc(UI.gps.err)}</div>` : ''}
     <div class="h3dock">
-      ${canFeel ? `<button class="h3who" data-act="artFeel" aria-label="${me ? 'Band ' + me.band : 'Who are you?'}">${shield}</button>`
-                : `<span class="h3who" aria-label="${me ? 'Band ' + me.band : 'Who are you?'}">${shield}</span>`}
+      ${canFeel ? `<button class="h3who" data-act="artFeel" aria-label="${me ? 'Handicap ' + me.band : 'Who are you?'}">${shield}</button>`
+                : `<span class="h3who" aria-label="${me ? 'Handicap ' + me.band : 'Who are you?'}">${shield}</span>`}
       <div class="w">
         <div class="fig"><b class="num">${scored && scored.thru ? E.fmtToPar(scored.tp) : me ? 'E' : '—'}</b>
           <span>${me ? 'Band ' + (me.band || '—') + (scored && scored.thru ? ' · thru ' + scored.thru : '') : 'Who are you?'}</span></div>
@@ -18382,6 +18426,13 @@ function onClick(e) {
       break;
     }
 
+    case 'bandStep': {
+      if (!canEdit()) return;
+      const was = (E.person(T, a) || {}).band;
+      const next = Math.max(0, Math.min(E.HCP_MAX, (was == null ? 18 : was) + (+b)));
+      store.writePerson(a, p => { p.band = next; });
+      return;
+    }
     case 'setBand':
       if (!canEdit()) return;
       // the control is already disabled once the practice round settles them;

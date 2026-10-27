@@ -81,16 +81,16 @@ export const RELIEF = {
     { name: 'Sunday is different', body: 'The championship final has no mulligans at all. The breakfast ball on hole 1 is retained.' },
   ],
   bands: [
-    ['Band 15', 'One stroke on stroke index 1–15. Fifteen strokes in all.'],
-    ['Band 20', 'One stroke on every hole, a second on stroke index 1–2. Twenty strokes in all.'],
-    ['Band 25', 'One stroke on every hole, a second on stroke index 1–7. Twenty-five strokes in all.'],
-    ['Band 30', 'One stroke on every hole, a second on stroke index 1–12. Thirty strokes in all.'],
+    ['Your handicap', 'The strokes you receive over eighteen holes, any whole number. Set on Roster, by hand or with one of the four quick picks.'],
+    ['How they fall', 'One stroke on each hole whose stroke index is at or under your handicap. Over eighteen, one on every hole and a second on the lowest indexes for the rest: 22 is one a hole and a second on stroke index 1–4.'],
+    ['Quick picks', '15 is one on index 1–15. 20, 25 and 30 are one a hole plus a second on index 1–2, 1–7 and 1–12.'],
+    ['Capped', 'Strokes come off the capped gross: a hole picked up at triple bogey counts as triple bogey, then your strokes.'],
   ],
   /* Tuesday is the audition. Said here because a band is the one thing a
      golfer picks for himself and the one thing that decides every figure he
      is measured by all week. */
-  bandNote: 'Pick your own band for Tuesday. The practice round is scored gross and feeds nothing, so it '
+  bandNote: 'Give yourself a handicap for Tuesday. The practice round is scored gross and feeds nothing, so it '
     + 'costs you nothing to be wrong — and the Practice Day board reads every card back and says whether the '
-    + 'band you chose is the one you should take into Thursday. A scorer settles them before Round 1, and '
+    + 'handicap you chose is the one you should take into Thursday. A scorer settles them before Round 1, and '
     + 'after that they are fixed for the week.',
 };

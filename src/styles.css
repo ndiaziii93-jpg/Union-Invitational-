@@ -70,7 +70,11 @@ a{color:var(--green);text-underline-offset:3px}
 .watermark{position:fixed;inset:0;pointer-events:none;z-index:0;background-repeat:no-repeat;
   background-position:center 58%;background-size:min(52vh,86vw,470px);
   opacity:.045;
-  transform:none;transform-origin:center 58%;will-change:transform,opacity}
+  transform:none;transform-origin:center 58%}
+/* BATTERY. `will-change` here kept a full-screen compositor layer alive for
+   the whole week, recomposited on every scroll. It is wanted for the few
+   seconds of the opening and never after. */
+.watermark.opening{will-change:transform,opacity}
 /* The crest art carries its own transparency, so it needs no blend mode to
    sit on the paper. It used to multiply, which is very nearly invisible at
    four and a half percent and a needless second opinion about the colour at
@@ -534,6 +538,10 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 @supports not ((backdrop-filter:blur(2px)) or (-webkit-backdrop-filter:blur(2px))){
   .scrim{background:rgba(16,22,17,.62)}
 }
+/* BATTERY. A backdrop blur is re-rendered on every frame anything moves
+   behind or inside it. The chat sheet stays open for an hour and scrolls;
+   the recap covers the whole phone. Neither needs the page blurred. */
+.scrim.chatscrim,.scrim.recapscrim,.scrim.tcscrim{backdrop-filter:none;-webkit-backdrop-filter:none;background:rgba(16,22,17,.62)}
 
 /* ---- a window opening ----
    The scrim resolves, the card rises the last few pixels and settles out of
@@ -1199,13 +1207,13 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 .fm-crest{position:relative;width:150px;max-width:54vw;aspect-ratio:1;margin:16px auto 6px;
   display:grid;place-items:center}
 .fm-crest img{position:relative;z-index:2;width:100%;height:auto;display:block;
-  animation:finishLift 2600ms ease-in-out infinite}
+  animation:finishLift 2600ms ease-in-out 8}
 /* The swing is the intensity. Both curves travel further in the same 2.6s,
    so the breath is deeper AND moves quicker without the tempo changing —
    a faster cycle at the old amplitude would have read as a flicker. */
 .fm-crest .halo{position:absolute;inset:-26%;border-radius:50%;z-index:1;
   background:radial-gradient(circle,rgba(140,107,47,.56) 0%,rgba(140,107,47,.26) 42%,transparent 74%);
-  animation:finishBreath 2600ms ease-in-out infinite}
+  animation:finishBreath 2600ms ease-in-out 8}
 /* The trough is what the eye reads as "how gold is it" — it is where the
    wash sits for most of the cycle. Lifted with the peak so the glow stays
    present all the way round rather than only at the top of the breath. */
@@ -2361,7 +2369,7 @@ html:has(.page.scoring){scroll-padding-top:136px;scroll-padding-bottom:110px}
   0%,100%{box-shadow:0 0 0 0 rgba(226,194,119,0);filter:brightness(1)}
   50%{box-shadow:0 0 26px 6px rgba(226,194,119,.55);filter:brightness(1.12)}
 }
-.recapbtn.ready{animation:recappulse 2.2s ease-in-out infinite}
+.recapbtn.ready{animation:recappulse 2.2s ease-in-out 4}   /* four breaths, then still: it sits on Today all evening */
 @media (prefers-reduced-motion:reduce){.recapbtn.ready{animation:none}}
 
 /* The same card as every other window, and it CENTRES — it had no auto
@@ -4613,3 +4621,11 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 }
 .metaline{margin:14px 0 0;padding:9px 0 8px;border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);font-size:13px;color:var(--turf);line-height:1.5}
 .metaline b{color:var(--ink)}
+
+/* ---- a handicap of their own, beside the quick picks ---- */
+.bandown{display:inline-flex;align-items:center;gap:4px;margin-left:6px;padding-left:10px;border-left:1px solid var(--rule)}
+.bstep{width:30px;height:34px;border-radius:9px;border:0;background:var(--paper);box-shadow:inset 0 0 0 1px var(--rule);font:inherit;font-size:19px;font-weight:700;color:var(--ink);cursor:pointer;padding:0}
+.bstep:disabled{opacity:.4;cursor:default}
+.bandcrest.own{opacity:.75}
+.bandcrest.own .bn{letter-spacing:-.02em}
+.bandown.on .bandcrest{opacity:1}

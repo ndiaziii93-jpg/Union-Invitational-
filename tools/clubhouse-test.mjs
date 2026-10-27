@@ -237,7 +237,7 @@ const inside = await p.evaluate(() => {
   return {
     strip: f.querySelectorAll('.hcell, .cell').length,
     par: /Par/.test(t), length: /Length/.test(t), index: /Stroke index/.test(t),
-    bands: (t.match(/Band \d+ receives/g) || []).length,
+    bands: (t.match(/Handicap \d+ receives/g) || []).length,
     cap: /Picks up at/.test(t),
     teams: /Teams on this hole/.test(t),
     diagram: f.querySelectorAll('.diagram img').length,

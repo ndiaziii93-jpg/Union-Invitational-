@@ -48,18 +48,22 @@ export function to24(str) {
 
 /* ---------- handicap bands ---------- */
 
+/* A golfer's handicap is the strokes they receive, any whole number; the
+   four bands are the quick picks it started with, still one tap on Roster. */
 export const BANDS = [15, 20, 25, 30];
+export const HCP_MAX = 45;
 
-/** Strokes a band receives on a hole of the given stroke index.
+/** Strokes a handicap receives on a hole of the given stroke index, the way
+ *  every club allocates them: one on each hole up to the handicap, going
+ *  round again for anything over eighteen.
  *  15 → 1 stroke on SI 1–15 (15 total)
  *  20 → 1 a hole, 2 on SI 1–2   (20 total)
- *  25 → 1 a hole, 2 on SI 1–7   (25 total) */
+ *  25 → 1 a hole, 2 on SI 1–7   (25 total)
+ *  22 → 1 a hole, 2 on SI 1–4   (22 total) */
 export function strokesFor(band, si) {
-  if (band === 15) return si <= 15 ? 1 : 0;
-  if (band === 20) return 1 + (si <= 2 ? 1 : 0);
-  if (band === 25) return 1 + (si <= 7 ? 1 : 0);
-  if (band === 30) return 1 + (si <= 12 ? 1 : 0);
-  return null; // no band assigned — this player cannot be scored
+  if (band == null || !Number.isFinite(+band)) return null; // no handicap — this player cannot be scored
+  const h = Math.max(0, Math.min(HCP_MAX, Math.round(+band)));
+  return Math.floor(h / 18) + (si <= h % 18 ? 1 : 0);
 }
 export function bandTotal(band) {
   const c = COURSES.aspendos.holes;
@@ -466,9 +470,10 @@ export function practiceBoard(T) {
  * It is a READ, not a ruling. One round is thin evidence, the cap hides how
  * bad a hole truly was, and a scorer sets the band in the end. */
 
-/** The nearest band to a number of strokes over par. */
+/** The handicap a number of strokes over par asks for: that number, whole,
+ *  within what the book allows. */
 export function nearestBand(over) {
-  return BANDS.reduce((a, b) => (Math.abs(b - over) < Math.abs(a - over) ? b : a));
+  return Math.max(0, Math.min(HCP_MAX, Math.round(over)));
 }
 
 /** Every golfer's round, read as a band. `verdict` is one of:
@@ -501,9 +506,8 @@ export function bandRead(T, rid = 'practice') {
     if (played < 9) { row.verdict = 'thin'; return row; }
     if (p.band == null) { row.verdict = 'unset'; return row; }
     row.gap = row.projected - p.band;
-    /* The bands are five apart, so half of one is the line between "about
-       right" and "in the wrong one". */
-    row.verdict = Math.abs(row.gap) <= 2.5 ? 'right' : row.gap > 0 ? 'light' : 'heavy';
+    /* Two shots either way is a round's noise, not a wrong handicap. */
+    row.verdict = Math.abs(row.gap) <= 2 ? 'right' : row.gap > 0 ? 'light' : 'heavy';
     return row;
   }).filter(r => r.verdict !== 'none')
     .sort((a, b) => (b.projected || 0) - (a.projected || 0));
@@ -973,11 +977,11 @@ export function brief(T, now) {
   const day = dayOf(ROUNDS[0].dayIdx);
   L.push('THE UNION INVITATIONAL — Titanic Deluxe Golf Belek, Antalya, Turkiye, 26 Oct to 2 Nov 2026.');
   L.push('Today is ' + now.dow + ' ' + now.date + '.');
-  L.push('Handicap bands are the strokes a golfer receives: 15, 20, 25 or 30.');
+  L.push('A handicap is the strokes a golfer receives over the round: one a hole up to the handicap, and a second on the lowest stroke indexes for anything over eighteen.');
 
   L.push('\nROSTER');
   for (const p of golfers(T)) {
-    L.push('- ' + p.display + ' (golfer, band ' + (p.band == null ? 'not set' : p.band)
+    L.push('- ' + p.display + ' (golfer, handicap ' + (p.band == null ? 'not set' : p.band)
       + ', squad ' + (p.location || 'unassigned') + ')');
   }
 
@@ -1444,7 +1448,7 @@ export function clubhouse(T, now) {
     tone: mvp.length ? toneOf(mvp[0].total) : '',
     thru: thru(mvp), by: margin(mvp, 'total'),
     runner: mvp.length > 1 ? mvp[1].name : null,
-    note: mvp.length ? null : 'Every golfer needs a band before their card counts' });
+    note: mvp.length ? null : 'Every golfer needs a handicap before their card counts' });
 
   const bbb = bbbBoard(T);
   const banked = bbb.reduce((n, r) => n + r.pts, 0);
