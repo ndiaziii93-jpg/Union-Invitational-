@@ -1224,6 +1224,7 @@ function recapPanel() {
         editing ? 'Done editing' : 'Edit the words'}</button>` : ''}
       ${ed && body && !published && !gallery ? `<button class="btn" data-act="recapPublish" data-a="${rid}">Share to the group</button>` : ''}
       ${body && (published || ed) && !gallery ? `<button class="btn wa" data-act="recapWhatsApp" data-a="${rid}">Send to WhatsApp</button>
+        <button class="btn ghost" data-act="recapLink" data-a="${rid}">${UI.recap.linked ? 'Link copied' : 'Copy the link'}</button>
         <button class="btn ghost" data-act="recapCopy" data-a="${rid}">${UI.recap.copied ? 'Copied' : 'Copy the words'}</button>` : ''}
       ${UI.recap.busy ? '<button class="btn ghost" data-act="recapStop">Stop</button>' : ''}
     </div>
@@ -2797,6 +2798,9 @@ function recapText(rid) {
   const L = [];
   L.push('THE UNION INVITATIONAL \u2014 ' + (r.full || '') + (d.dow ? ', ' + d.dow + ' ' + d.date : ''));
   if (b.headline) L.push('', '*' + b.headline + '*');
+  /* the page first: the whole recap as the book lays it out, photos and
+     tables and all, for anyone with a browser — no book, no sign-in */
+  L.push('', 'Read it with the photos and the tables: ' + recapLink(rid));
   (b.narrative || []).forEach(para => L.push('', para));
   if (b.swing && b.swing.value) L.push('', 'Swing of the day: ' + b.swing.value + (b.swing.caption ? ' \u2014 ' + b.swing.caption : ''));
   const hs = (b.honours || []).filter(h => h.winner);
@@ -2806,6 +2810,8 @@ function recapText(rid) {
   L.push('', 'The whole book, boards and photos: ' + D.SITE_URL);
   return L.join('\n');
 }
+/** The recap's own page on the public site: one link a round. */
+const recapLink = rid => D.SITE_URL + 'recap/?r=' + encodeURIComponent(rid);
 const HONOURS = [
   { slot: 'shot_of_the_day', label: 'Shot of the day' },
   { slot: 'round_of_the_day', label: 'Round of the day' },
@@ -8153,6 +8159,14 @@ function onClick(e) {
       const wa = () => { try { window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank'); } catch (e) { /* nothing to open */ } };
       if (navigator.share) navigator.share({ text }).catch(err => { if (!err || err.name !== 'AbortError') wa(); });
       else wa();
+      return;
+    }
+    case 'recapLink': {
+      /* the page's address alone, for pasting anywhere */
+      const url = recapLink(a);
+      const done = () => { UI.recap.linked = true; render(); setTimeout(() => { UI.recap.linked = false; render(); }, 1800); };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done, () => { window.prompt('Copy the link', url); });
+      else window.prompt('Copy the link', url);
       return;
     }
     case 'recapCopy': {

@@ -20,7 +20,7 @@ MODULE_ORDER = ['data', 'config', 'rules', 'resort', 'weather', 'engine', 'socia
 SUPABASE_URL = 'https://zolsghkbgceularukood.supabase.co'
 SUPABASE_KEY = 'sb_publishable_g8feql6XYrOP60S6bFNz9A_rTKMPrZw'
 
-EXPORT_RE = re.compile(r'^export\s+(?:const|let|var|function|class)\s+([A-Za-z_$][\w$]*)', re.M)
+EXPORT_RE = re.compile(r'^export\s+(?:const|let|var|async\s+function|function|class)\s+([A-Za-z_$][\w$]*)', re.M)
 IMPORT_RE = re.compile(r"^import\s+(.+?)\s+from\s+'\./(\w+)\.js';\s*$", re.M)
 
 

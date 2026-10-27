@@ -4825,7 +4825,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261027-1327';
+const BUILD = '20261027-1344';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -9735,7 +9735,8 @@ function createStore(onChange) {
     bump(path, obj);
     saveState = 'saving'; notify();
     if (mode === 'local') return localOnly();
-    try { if (await db.doc(path).set(obj)) { saveState = 'saved'; lastSavedAt = Date.now(); } notify(); return true; }
+    /* only an explicit false is 'still on the phone': the artifact's store answers with nothing at all */
+    try { if ((await db.doc(path).set(obj)) !== false) { saveState = 'saved'; lastSavedAt = Date.now(); } notify(); return true; }
     catch (e) { status = 'error'; saveState = 'error'; notify(); return false; }
   }
 
@@ -9744,7 +9745,7 @@ function createStore(onChange) {
     delete rev[path];
     saveState = 'saving'; notify();
     if (mode === 'local') return localOnly();
-    try { if (await db.doc(path).delete()) { saveState = 'saved'; lastSavedAt = Date.now(); } notify(); return true; }
+    try { if ((await db.doc(path).delete()) !== false) { saveState = 'saved'; lastSavedAt = Date.now(); } notify(); return true; }
     catch (e) { status = 'error'; saveState = 'error'; notify(); return false; }
   }
 
@@ -9956,7 +9957,7 @@ function createStore(onChange) {
     if (mode === 'local') { saveLocal(); return true; }
     /* true once it has reached the others; false while it waits for a signal
        (it is on this screen already, and onLanded says when it gets there) */
-    try { const landed = await db.doc(coll + '/' + id).set(r); if (landed) { saveState = 'saved'; lastSavedAt = Date.now(); } notify(); return landed; }
+    try { const landed = (await db.doc(coll + '/' + id).set(r)) !== false; if (landed) { saveState = 'saved'; lastSavedAt = Date.now(); } notify(); return landed; }
     catch (e) { status = 'error'; saveState = 'error'; notify(); return false; }
   }
   async function patchSocial(coll, id, fields) {
@@ -9967,7 +9968,7 @@ function createStore(onChange) {
     T[coll][id] = { ...(T[coll][id] || {}), ...patch };
     notify();
     if (mode === 'local') { saveLocal(); return true; }
-    try { const landed = await db.doc(path).update(patch); if (landed) { saveState = 'saved'; lastSavedAt = Date.now(); } notify(); return landed; }
+    try { const landed = (await db.doc(path).update(patch)) !== false; if (landed) { saveState = 'saved'; lastSavedAt = Date.now(); } notify(); return landed; }
     catch (e) { status = 'error'; saveState = 'error'; notify(); return false; }
   }
   async function dropSocial(coll, id) {
@@ -11314,6 +11315,7 @@ function recapPanel() {
         editing ? 'Done editing' : 'Edit the words'}</button>` : ''}
       ${ed && body && !published && !gallery ? `<button class="btn" data-act="recapPublish" data-a="${rid}">Share to the group</button>` : ''}
       ${body && (published || ed) && !gallery ? `<button class="btn wa" data-act="recapWhatsApp" data-a="${rid}">Send to WhatsApp</button>
+        <button class="btn ghost" data-act="recapLink" data-a="${rid}">${UI.recap.linked ? 'Link copied' : 'Copy the link'}</button>
         <button class="btn ghost" data-act="recapCopy" data-a="${rid}">${UI.recap.copied ? 'Copied' : 'Copy the words'}</button>` : ''}
       ${UI.recap.busy ? '<button class="btn ghost" data-act="recapStop">Stop</button>' : ''}
     </div>
@@ -12887,6 +12889,9 @@ function recapText(rid) {
   const L = [];
   L.push('THE UNION INVITATIONAL \u2014 ' + (r.full || '') + (d.dow ? ', ' + d.dow + ' ' + d.date : ''));
   if (b.headline) L.push('', '*' + b.headline + '*');
+  /* the page first: the whole recap as the book lays it out, photos and
+     tables and all, for anyone with a browser — no book, no sign-in */
+  L.push('', 'Read it with the photos and the tables: ' + recapLink(rid));
   (b.narrative || []).forEach(para => L.push('', para));
   if (b.swing && b.swing.value) L.push('', 'Swing of the day: ' + b.swing.value + (b.swing.caption ? ' \u2014 ' + b.swing.caption : ''));
   const hs = (b.honours || []).filter(h => h.winner);
@@ -12896,6 +12901,8 @@ function recapText(rid) {
   L.push('', 'The whole book, boards and photos: ' + D.SITE_URL);
   return L.join('\n');
 }
+/** The recap's own page on the public site: one link a round. */
+const recapLink = rid => D.SITE_URL + 'recap/?r=' + encodeURIComponent(rid);
 const HONOURS = [
   { slot: 'shot_of_the_day', label: 'Shot of the day' },
   { slot: 'round_of_the_day', label: 'Round of the day' },
@@ -18243,6 +18250,14 @@ function onClick(e) {
       const wa = () => { try { window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank'); } catch (e) { /* nothing to open */ } };
       if (navigator.share) navigator.share({ text }).catch(err => { if (!err || err.name !== 'AbortError') wa(); });
       else wa();
+      return;
+    }
+    case 'recapLink': {
+      /* the page's address alone, for pasting anywhere */
+      const url = recapLink(a);
+      const done = () => { UI.recap.linked = true; render(); setTimeout(() => { UI.recap.linked = false; render(); }, 1800); };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done, () => { window.prompt('Copy the link', url); });
+      else window.prompt('Copy the link', url);
       return;
     }
     case 'recapCopy': {

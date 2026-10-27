@@ -9,7 +9,8 @@ group.
 - Briefings, guides, mockups the group will see, and anything else meant for
   other people go on the public GitHub Pages site, under `docs/`, committed
   and pushed: https://ndiaziii93-jpg.github.io/Union-Invitational-/
-  (briefings live in `docs/brief/`).
+  (briefings live in `docs/brief/`; the day's recap is a page of its own at
+  `docs/recap/?r=<round>`, built by `tools/recap.py` after `tools/pwa.py`).
 - Pages must be self-contained: their own `<!doctype html>` and head, relative
   links between them, and no links to claude.ai.
 - A Claude artifact may be used as a private preview for the commissioner,

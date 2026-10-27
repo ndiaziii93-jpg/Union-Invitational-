@@ -6,9 +6,10 @@ a small reset — so `src/index.html` is a fragment. A PWA has no host: it needs
 a whole document, a manifest, icons and a service worker, which is what this
 writes. Run after tools/build.py:
 
-    python3 tools/build.py && python3 tools/pwa.py
+    python3 tools/build.py && python3 tools/pwa.py && python3 tools/recap.py
 
-Output lands in docs/app/, which is what GitHub Pages serves.
+Output lands in docs/app/, which is what GitHub Pages serves; tools/recap.py
+then builds the recap page beside it, in docs/recap/.
 """
 import os, re, io, sys, json, shutil, datetime, base64, hashlib
 

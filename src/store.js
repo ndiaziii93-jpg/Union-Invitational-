@@ -775,7 +775,8 @@ export function createStore(onChange) {
     bump(path, obj);
     saveState = 'saving'; notify();
     if (mode === 'local') return localOnly();
-    try { if (await db.doc(path).set(obj)) { saveState = 'saved'; lastSavedAt = Date.now(); } notify(); return true; }
+    /* only an explicit false is 'still on the phone': the artifact's store answers with nothing at all */
+    try { if ((await db.doc(path).set(obj)) !== false) { saveState = 'saved'; lastSavedAt = Date.now(); } notify(); return true; }
     catch (e) { status = 'error'; saveState = 'error'; notify(); return false; }
   }
 
@@ -784,7 +785,7 @@ export function createStore(onChange) {
     delete rev[path];
     saveState = 'saving'; notify();
     if (mode === 'local') return localOnly();
-    try { if (await db.doc(path).delete()) { saveState = 'saved'; lastSavedAt = Date.now(); } notify(); return true; }
+    try { if ((await db.doc(path).delete()) !== false) { saveState = 'saved'; lastSavedAt = Date.now(); } notify(); return true; }
     catch (e) { status = 'error'; saveState = 'error'; notify(); return false; }
   }
 
@@ -996,7 +997,7 @@ export function createStore(onChange) {
     if (mode === 'local') { saveLocal(); return true; }
     /* true once it has reached the others; false while it waits for a signal
        (it is on this screen already, and onLanded says when it gets there) */
-    try { const landed = await db.doc(coll + '/' + id).set(r); if (landed) { saveState = 'saved'; lastSavedAt = Date.now(); } notify(); return landed; }
+    try { const landed = (await db.doc(coll + '/' + id).set(r)) !== false; if (landed) { saveState = 'saved'; lastSavedAt = Date.now(); } notify(); return landed; }
     catch (e) { status = 'error'; saveState = 'error'; notify(); return false; }
   }
   async function patchSocial(coll, id, fields) {
@@ -1007,7 +1008,7 @@ export function createStore(onChange) {
     T[coll][id] = { ...(T[coll][id] || {}), ...patch };
     notify();
     if (mode === 'local') { saveLocal(); return true; }
-    try { const landed = await db.doc(path).update(patch); if (landed) { saveState = 'saved'; lastSavedAt = Date.now(); } notify(); return landed; }
+    try { const landed = (await db.doc(path).update(patch)) !== false; if (landed) { saveState = 'saved'; lastSavedAt = Date.now(); } notify(); return landed; }
     catch (e) { status = 'error'; saveState = 'error'; notify(); return false; }
   }
   async function dropSocial(coll, id) {
