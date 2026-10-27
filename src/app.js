@@ -6371,6 +6371,11 @@ let restTimer = null;
 let readerTurn = false;
 const restSoon = () => { clearTimeout(restTimer); restTimer = setTimeout(() => { if (!fingerOnGlass) flushRender(); }, 260); };
 addEventListener('touchstart', () => { fingerOnGlass = true; }, { passive: true, capture: true });
+/* Safari's own pinch-to-zoom, declined at the source: the page is never
+   zoomed, so the bar stays at the foot of the screen and nothing slides
+   sideways. The site plan and the hole pinch through their own touch
+   handlers, which these events do not reach. */
+['gesturestart', 'gesturechange', 'gestureend'].forEach(k => document.addEventListener(k, e => { e.preventDefault(); }, { passive: false }));
 addEventListener('touchend', () => { fingerOnGlass = false; restSoon(); }, { passive: true, capture: true });
 addEventListener('touchcancel', () => { fingerOnGlass = false; restSoon(); }, { passive: true, capture: true });
 addEventListener('scroll', () => { glidingUntil = Date.now() + 220; restSoon(); }, { passive: true });

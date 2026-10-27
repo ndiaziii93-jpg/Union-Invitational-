@@ -79,7 +79,7 @@ await p.goto(BASE); await settled(); await shut();
 ok('it has a doctype', await p.evaluate(() => !!document.doctype), true);
 ok('and a viewport that fits a phone', await p.evaluate(
   () => (document.querySelector('meta[name=viewport]') || {}).content || ''),
-  'width=device-width, initial-scale=1, viewport-fit=cover');
+  'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover');
 ok('the book rendered', await p.locator('.masthead h1').innerText(), 'The Union Invitational');
 ok('and it does not scroll sideways', await p.evaluate(
   () => document.documentElement.scrollWidth - document.documentElement.clientWidth <= 1), true);

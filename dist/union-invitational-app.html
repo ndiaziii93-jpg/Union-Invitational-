@@ -36,6 +36,16 @@
 *,*::before,*::after{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:16px;line-height:1.5}
+/* A PAGE GOES UP AND DOWN. Only the strips that hold more than fits — chip
+   rows, the board tabs, the photos across a recap — move sideways, and they
+   say so themselves. Nothing else may be wider than the phone (the root is
+   clipped sideways, the body without becoming a scroller of its own), and
+   nothing zooms: a quick double tap on a score, or two thumbs on the glass,
+   used to zoom the whole page, which is what left the bar floating in the
+   middle of the screen and the page sliding left and right. The site plan
+   and the hole still pinch, with their own handlers. */
+html{overflow-x:hidden}
+body{overflow-x:clip;touch-action:pan-x pan-y}
 img{max-width:100%}
 [hidden]{display:none!important}
 button,input,select,textarea{font:inherit;color:inherit}
@@ -4833,7 +4843,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261027-1720';
+const BUILD = '20261027-1731';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -16624,6 +16634,11 @@ let restTimer = null;
 let readerTurn = false;
 const restSoon = () => { clearTimeout(restTimer); restTimer = setTimeout(() => { if (!fingerOnGlass) flushRender(); }, 260); };
 addEventListener('touchstart', () => { fingerOnGlass = true; }, { passive: true, capture: true });
+/* Safari's own pinch-to-zoom, declined at the source: the page is never
+   zoomed, so the bar stays at the foot of the screen and nothing slides
+   sideways. The site plan and the hole pinch through their own touch
+   handlers, which these events do not reach. */
+['gesturestart', 'gesturechange', 'gestureend'].forEach(k => document.addEventListener(k, e => { e.preventDefault(); }, { passive: false }));
 addEventListener('touchend', () => { fingerOnGlass = false; restSoon(); }, { passive: true, capture: true });
 addEventListener('touchcancel', () => { fingerOnGlass = false; restSoon(); }, { passive: true, capture: true });
 addEventListener('scroll', () => { glidingUntil = Date.now() + 220; restSoon(); }, { passive: true });

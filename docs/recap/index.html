@@ -86,6 +86,16 @@
 *,*::before,*::after{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:16px;line-height:1.5}
+/* A PAGE GOES UP AND DOWN. Only the strips that hold more than fits — chip
+   rows, the board tabs, the photos across a recap — move sideways, and they
+   say so themselves. Nothing else may be wider than the phone (the root is
+   clipped sideways, the body without becoming a scroller of its own), and
+   nothing zooms: a quick double tap on a score, or two thumbs on the glass,
+   used to zoom the whole page, which is what left the bar floating in the
+   middle of the screen and the page sliding left and right. The site plan
+   and the hole still pinch, with their own handlers. */
+html{overflow-x:hidden}
+body{overflow-x:clip;touch-action:pan-x pan-y}
 img{max-width:100%}
 [hidden]{display:none!important}
 button,input,select,textarea{font:inherit;color:inherit}
