@@ -522,22 +522,23 @@ function boardPairs() {
     live, who: board.length ? board[0].name : null,
     fig: board.length ? board[0].totalStr : '', tone: board.length ? E.toneOf(board[0].total) : '',
     cells: [board.length > 1 ? ['Ahead by', String(Math.abs(board[1].total - board[0].total))] : null,
-            board.length && board[0].thru ? ['Through', String(board[0].thru)] : null] })}
+            board.length && board[0].thru ? ['Through', String(board[0].thru)] : null,
+            board.length ? ['Raw', board[0].gTotalStr] : null] })}
 
   ${roundBand(rid, 'boardRound')}
 
   ${board.length ? `<div class="bd">
     <div class="bdh pairs"><span>Pos</span><span>Team</span>
-      <span>Thru</span><span>Today</span><span>Total</span><span>Gap</span></div>
+      <span>Thru</span><span>Today<small class="rawh">net · raw</small></span><span>Total<small class="rawh">net · raw</small></span><span>Gap</span></div>
     ${board.map((x, i) => `<div class="bdr pairs${i === 0 ? ' lead' : ''}">
       <span class="p num">${x.pos}</span>
       <span class="w">${esc(x.name)}</span>
       <span class="n num">${esc(x.thruStr)}</span>
-      <span class="n num ${cls(x.today)}">${esc(x.todayStr)}</span>
-      <span class="t num ${cls(x.total)}">${esc(x.totalStr)}</span>
+      <span class="n num ${cls(x.today)}">${esc(x.todayStr)}${x.today == null ? '' : `<small class="rawv">${esc(x.gTodayStr)}</small>`}</span>
+      <span class="t num ${cls(x.total)}">${esc(x.totalStr)}<small class="rawv">${esc(x.gTotalStr)}</small></span>
       <span class="g num">${esc(x.gapStr)}</span></div>`).join('')}
   </div>
-  <p class="legend">Total is the tournament to par across the counting rounds. Gap is how far back of the leader.</p>`
+  <p class="legend">Total is the tournament to par across the counting rounds. The big number is net, with each band’s strokes; the small one under it is raw, the strokes as written. Gap is how far back of the leader, net.</p>`
   : `<p class="empty">The championship board opens once a counting round is under way.</p>`}
 
   ${/* THE HOLE IS REFERENCE, AND REFERENCE GOES AFTER THE ANSWER. All of it
@@ -598,22 +599,24 @@ function boardMvp() {
     whoSub: rows.length && rows[0].band ? '\u00B7 band ' + rows[0].band : '',
     fig: rows.length ? rows[0].totalStr : '', tone: rows.length ? E.toneOf(rows[0].total) : '',
     cells: [rows.length > 1 ? ['Ahead by', String(Math.abs(rows[1].total - rows[0].total))] : null,
-            rows.length && rows[0].thru ? ['Through', String(rows[0].thru)] : null] })}
+            rows.length && rows[0].thru ? ['Through', String(rows[0].thru)] : null,
+            rows.length ? ['Raw', rows[0].gTotalStr] : null] })}
 
   ${rows.length ? `<div class="bd">
     <div class="bdh mvp"><span>Pos</span><span>Player</span>
-      <span>Band</span><span>Thru</span><span>Today</span><span>Total</span><span>Gap</span></div>
+      <span>Band</span><span>Thru</span><span>Today<small class="rawh">net · raw</small></span><span>Total<small class="rawh">net · raw</small></span><span>Gap</span></div>
     ${rows.map((r, i) => `<div class="bdr mvp${i === 0 ? ' lead' : ''}">
       <span class="p num">${r.pos}</span>
       <span class="w">${esc(r.name)}</span>
       <span class="n num">${esc(r.bandStr)}</span>
       <span class="n num">${esc(r.thruStr)}</span>
-      <span class="n num ${cls(r.today)}">${esc(r.todayStr)}</span>
-      <span class="t num ${cls(r.total)}">${esc(r.totalStr)}</span>
+      <span class="n num ${cls(r.today)}">${esc(r.todayStr)}${r.today == null ? '' : `<small class="rawv">${esc(r.gTodayStr)}</small>`}</span>
+      <span class="t num ${cls(r.total)}">${esc(r.totalStr)}<small class="rawv">${esc(r.gTotalStr)}</small></span>
       <span class="g num">${esc(r.gapStr)}</span></div>`).join('')}
   </div>
   <p class="legend">Your own ball, your own number, every stroke counted — off the same card as the team
-  competition. Gap is how far back of the leader; the MVP is decided on net to par.</p>`
+  competition. The big number is net, with your band’s strokes; the small one under it is raw, the strokes as written.
+  Gap is how far back of the leader; the MVP is decided on net to par.</p>`
   : `<p class="empty">No individual scores yet. Every golfer needs a playing band before their card counts.</p>`}`;
 }
 
@@ -826,27 +829,29 @@ function boardPractice() {
     whoSub: rows.length && rows[0].band ? '\u00B7 band ' + rows[0].band : '',
     fig: rows.length ? E.fmtToPar(rows[0].tp) : '', tone: rows.length ? E.toneOf(rows[0].tp) : '',
     cells: [rows.length ? ['Gross', String(rows[0].gross)] : null,
-            rows.length && rows[0].thru ? ['Through', String(rows[0].thru)] : null] })}
+            rows.length && rows[0].thru ? ['Through', String(rows[0].thru)] : null,
+            rows.length && rows[0].ntp != null ? ['Net', E.fmtToPar(rows[0].ntp)] : null] })}
   <p class="lede">${esc(d.dow)} ${esc(d.date)} — ${esc(E.courseOf(T, rid).name)}. Get Loose Foursomes, and a taste of
   everything to come: the Bingo Bango Bongo, the longest drive and the closest to the pin.
   <b>None of it counts.</b> Nothing on this page feeds the Team Competition, the MVP or the Ryder Cup.</p>
 
   ${!played ? `<p class="empty">No cards in from the practice round yet. Scores appear here hole by hole.</p>` : `
   <h3 class="sub">The day's card</h3>
-  <p class="lede" style="margin-bottom:0">Scored gross, so a golfer with no band yet still has a card. What the day is
+  <p class="lede" style="margin-bottom:0">Scored gross, so a golfer with no band yet still has a card; under each raw score is the
+  same round net, with the band’s strokes and the triple-bogey cap, for anyone who has a band. What the day is
   for is the band read under it: whether the band you chose is the one to take into Thursday.</p>
   <div class="rows pboard" style="margin-top:8px">
     <div class="rowhead"><span class="p-pos">#</span><span class="p-who">Golfer</span>
       <span class="p-band">Band</span>
       <span class="p-thru">Thru</span>
       <span class="p-gross">Gross</span>
-      <span class="p-par">To par</span></div>
+      <span class="p-par">To par<small class="rawh">raw · net</small></span></div>
     ${rows.map(x => `<div class="row"><span class="pos p-pos">${x.pos}</span>
       <span class="who p-who">${esc(x.name)}</span>
       <span class="num p-band">${x.band == null ? '—' : x.band}</span>
       <span class="num p-thru">${x.thru}</span>
       <span class="num p-gross">${x.gross}</span>
-      <span class="num p-par ${x.tp < 0 ? 'under' : x.tp > 0 ? 'over' : 'level'}">${esc(E.fmtToPar(x.tp))}</span></div>`).join('')}
+      <span class="num p-par ${x.tp < 0 ? 'under' : x.tp > 0 ? 'over' : 'level'}">${esc(E.fmtToPar(x.tp))}<small class="rawv">${x.ntp == null ? 'no band' : 'net ' + esc(E.fmtToPar(x.ntp))}</small></span></div>`).join('')}
   </div>`}
 
   <span class="brlow">${bandReadButton()}</span>
@@ -7077,7 +7082,8 @@ function turnWatch() {
 function turnModalHtml() {
   const m = UI.modal;
   const s = E.turnSnapshot(T, m.rid, m.gid, now);
-  const par = n => `<span class="${cls(n)}">${esc(E.fmtToPar(n))}</span>`;
+  const par = n => n == null ? '<span>—</span>' : `<span class="${cls(n)}">${esc(E.fmtToPar(n))}</span>`;
+  const raw = n => n == null ? '' : `<small class="rawv">raw ${esc(E.fmtToPar(n))}</small>`;
   return `<div class="scrim" data-act="modalScrim"><div class="modal turnmodal"
     role="dialog" aria-modal="true" aria-label="${esc(s.label)} has made the turn">
     ${modalBanner(s.label + ' has made the turn', [s.course, s.round].join(' \u00B7 '))}
@@ -7094,9 +7100,9 @@ function turnModalHtml() {
           drawn below in the form it takes everywhere else in the book. */ ''}
     <div class="tn-cards">
       ${s.pair ? `<div class="tn-card"><span class="l">Leading pair</span>
-        <span class="v">${esc(s.pair.name)}</span><span class="s num">${esc(s.pair.tp)}</span></div>` : ''}
+        <span class="v">${esc(s.pair.name)}</span><span class="s num">${esc(s.pair.tp)} net · ${esc(s.pair.gross)} raw</span></div>` : ''}
       ${s.leader ? `<div class="tn-card"><span class="l">Leading golfer</span>
-        <span class="v">${esc(s.leader.name)}</span><span class="s num">${esc(s.leader.tp)} thru ${esc(s.leader.thru)}</span></div>` : ''}
+        <span class="v">${esc(s.leader.name)}</span><span class="s num">${esc(s.leader.tp)} net · ${esc(s.leader.gross)} raw · thru ${esc(s.leader.thru)}</span></div>` : ''}
       ${s.bbb ? `<div class="tn-card tn-wide"><span class="l">Bingo Bango Bongo</span>
         <span class="v">${esc(s.bbb.name)}</span><span class="s num">${s.bbb.pts} point${s.bbb.pts === 1 ? '' : 's'}</span></div>` : ''}
     </div>
@@ -7116,13 +7122,13 @@ function turnModalHtml() {
     ${s.groups.length > 1 ? `<h4 class="tn-h">At the turn</h4>
       <div class="tn-rows">${s.groups.map(g => `<div class="tn-row${g.id === s.gid ? ' me' : ''}">
         <span class="w">${esc(g.label)}${g.turned ? '' : ' <em>still out</em>'}</span>
-        <span class="n num">${par(g.tp)}</span></div>`).join('')}</div>` : ''}
+        <span class="n num">${par(g.tp)}${raw(g.gtp)}</span></div>`).join('')}</div>` : ''}
 
-    ${s.field.length ? `<h4 class="tn-h">Every card, through ${E.TURN_HOLES}</h4>
+    ${s.field.length ? `<h4 class="tn-h">Every card, through ${E.TURN_HOLES} <small class="rawh">net · raw</small></h4>
       <div class="tn-rows tn-field">${s.field.map(x => `<div class="tn-row${x.mine ? ' me' : ''}">
         <span class="p num">${x.pos}</span>
         <span class="w">${esc(x.name)}<small>${esc(x.group)}</small></span>
-        <span class="n num">${par(x.tp)}<small>thru ${x.thru}</small></span></div>`).join('')}</div>` : ''}
+        <span class="n num">${par(x.tp)}<small>raw ${esc(E.fmtToPar(x.gtp))} · thru ${x.thru}</small></span></div>`).join('')}</div>` : ''}
 
     <div class="acts"><button class="btn" data-act="modalCancel">Back to it</button></div>
   </div></div>`;

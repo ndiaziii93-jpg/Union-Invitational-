@@ -4557,3 +4557,8 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 .gm-b button.on{background:var(--ink);color:#E2C277;box-shadow:none}
 .gm-b button.out{font-size:13px}
 .gm-b button.out.on{background:var(--flag);color:#fff}
+
+/* ---- raw beside net ---- */
+.rawv{display:block;font-size:11.5px;font-weight:600;color:var(--turf);line-height:1.2;letter-spacing:0;white-space:nowrap}
+.rawh{display:block;font-size:9.5px;font-weight:600;letter-spacing:.04em;text-transform:none;color:var(--turf);opacity:.85;white-space:nowrap}
+.tn-h .rawh{display:inline;margin-left:6px}

@@ -139,6 +139,30 @@ export function pairHole(T, roundId, pair, h) {
   return best;
 }
 
+/* RAW, BESIDE NET. The boards are decided net, but the strokes as written
+   are what a golfer remembers walking off: every board carries both. Raw is
+   the number on the card, before any band and before the cap; a team's raw
+   is the better of its two raw scores on each hole. */
+export function playerGross(T, roundId, pid, h) {
+  const c = card(T, roundId, pid);
+  return c && c.raw[h] != null ? c.raw[h] : null;
+}
+function pairHoleGross(T, roundId, pair, h) {
+  let best = null;
+  for (const pid of pair.members) { const g = playerGross(T, roundId, pid, h); if (g != null && (best == null || g < best)) best = g; }
+  return best;
+}
+/** Raw to par through the first `upto` holes, for a golfer or a team. */
+export function grossThru(T, roundId, who, upto = 18) {
+  const holes = courseOf(T, roundId).holes;
+  let tp = 0, thru = 0, strokes = 0;
+  for (let h = 0; h < upto && h < 18; h++) {
+    const g = typeof who === 'string' ? playerGross(T, roundId, who, h) : pairHoleGross(T, roundId, who, h);
+    if (g != null) { tp += g - holes[h].par; strokes += g; thru = h + 1; }
+  }
+  return { tp, thru, strokes };
+}
+
 function toParPair(T, roundId, pair) {
   const holes = courseOf(T, roundId).holes;
   let tp = 0, thru = 0;
@@ -311,18 +335,20 @@ export function turnAt(T, rid, gid) {
 export function turnGroups(T, rid) {
   return finishGroups(T, rid).map(g => {
     const prs = (g.pairIds || []).map(id => (T.config.pairs || []).find(x => x.id === id)).filter(Boolean);
-    let tp = 0, thru = 0, any = false;
+    let tp = 0, thru = 0, any = false, gtp = 0;
     for (const pr of prs) {
-      const r = pairThru(T, rid, pr, TURN_HOLES);
+      const r = pairThru(T, rid, pr, TURN_HOLES), gr = grossThru(T, rid, pr, TURN_HOLES);
       if (r.thru > 0) { tp += r.tp; thru = Math.max(thru, r.thru); any = true; }
+      if (gr.thru > 0) gtp += gr.tp;
     }
     if (!prs.length) {                       // no pairings: the field as one
       for (const id of g.members) {
-        const r = toParThru(T, rid, id, TURN_HOLES);
+        const r = toParThru(T, rid, id, TURN_HOLES), gr = grossThru(T, rid, id, TURN_HOLES);
         if (r.thru > 0) { tp += r.tp; thru = Math.max(thru, r.thru); any = true; }
+        if (gr.thru > 0) { gtp += gr.tp; thru = Math.max(thru, gr.thru); any = true; }
       }
     }
-    return { id: g.id, label: g.label, tp, thru, started: any,
+    return { id: g.id, label: g.label, tp, gtp, thru, started: any,
       turned: !!turnAt(T, rid, g.id) || groupAtTurn(T, rid, g) };
   });
 }
@@ -368,11 +394,11 @@ export function turnSnapshot(T, rid, gid, now) {
   const where = {};
   for (const g of finishGroups(T, rid)) for (const id of g.members) where[id] = g.label;
   const field = golfers(T).map(p => {
-    const t = toParThru(T, rid, p.id, TURN_HOLES);
+    const t = toParThru(T, rid, p.id, TURN_HOLES), g = grossThru(T, rid, p.id, TURN_HOLES);
     return { id: p.id, name: p.display, group: where[p.id] || '—',
-      tp: t.tp, thru: t.thru, mine: (mine && where[p.id] === mine.label) || false };
+      tp: t.thru > 0 ? t.tp : null, gtp: g.tp, thru: Math.max(t.thru, g.thru), mine: (mine && where[p.id] === mine.label) || false };
   }).filter(x => x.thru > 0);
-  field.sort((a, b) => a.tp - b.tp || b.thru - a.thru);
+  field.sort((a, b) => (a.tp == null) - (b.tp == null) || (a.tp - b.tp) || (a.gtp - b.gtp) || b.thru - a.thru);
 
   return {
     rid, gid,
@@ -380,8 +406,8 @@ export function turnSnapshot(T, rid, gid, now) {
     round: r.short === 'Practice' ? 'the practice round' : 'Round ' + r.short.slice(1),
     course: courseOf(T, rid).name,
     cup: cupNow(cup),
-    pair: pairs.length ? { name: pairs[0].name, tp: pairs[0].totalStr } : null,
-    leader: mvp.length ? { name: mvp[0].name, tp: mvp[0].totalStr, thru: mvp[0].thruStr } : null,
+    pair: pairs.length ? { name: pairs[0].name, tp: pairs[0].totalStr, gross: pairs[0].gTotalStr } : null,
+    leader: mvp.length ? { name: mvp[0].name, tp: mvp[0].totalStr, gross: mvp[0].gTotalStr, thru: mvp[0].thruStr } : null,
     bbb: bbb.length ? { name: bbb[0].name, pts: bbb[0].pts } : null,
     groups: gs.filter(g => g.started),
     field: field.map((x, i) => ({ ...x, pos: i + 1 })),
@@ -408,7 +434,13 @@ export function practiceBoard(T) {
       gross += raw;
       tp += raw - holes[h].par;
     }
-    return { id: p.id, name: p.display, band: p.band, gross, tp, thru };
+    /* and net beside it, for anyone with a band: capped, strokes applied */
+    let ntp = null;
+    if (strokesFor(p.band, holes[0].si) != null) {
+      ntp = 0;
+      for (let h = 0; h < 18; h++) { const n = playerNet(T, rid, p.id, h); if (n != null) ntp += n - holes[h].par; }
+    }
+    return { id: p.id, name: p.display, band: p.band, gross, tp, ntp, thru };
   }).filter(r => r.thru > 0);
   rows.sort((a, b) => (a.tp - b.tp) || (b.thru - a.thru));
   return rows.map((r, i) => ({ ...r, pos: i + 1 }));
@@ -504,17 +536,18 @@ function toParPlayer(T, roundId, pid) {
 
 export function pairsBoard(T, now) {
   const rows = T.config.pairs.map(pair => {
-    let total = 0, today = null, thru = null, played = false;
+    let total = 0, today = null, thru = null, played = false, gTotal = 0, gToday = null;
     for (const r of countingRounds(T)) {
-      const { tp, thru: th } = toParPair(T, r.id, pair);
+      const { tp, thru: th } = toParPair(T, r.id, pair), g = grossThru(T, r.id, pair);
       if (th > 0) played = true;
-      if (phaseOf(T, r.id, now) === 'live') { today = th > 0 ? tp : null; thru = th; }
+      if (phaseOf(T, r.id, now) === 'live') { today = th > 0 ? tp : null; gToday = g.thru > 0 ? g.tp : null; thru = th; }
       if (th > 0) total += tp;
+      if (g.thru > 0) gTotal += g.tp;
     }
     return {
       id: pair.id, name: pairName(T, pair),
       members: pair.members.map(id => (person(T, id) || {}).display || '?').join(' + ') || '—',
-      today, thru, total, played,
+      today, thru, total, played, gTotal, gToday,
     };
   }).filter(r => r.played);
   rows.sort((a, b) => a.total - b.total);
@@ -523,7 +556,8 @@ export function pairsBoard(T, now) {
     todayStr: r.today == null ? '—' : fmtToPar(r.today),
     thruStr: r.thru ? String(r.thru) : '—',
     gap: r.total - lead, gapStr: gapOf(r.total - lead),
-    totalStr: fmtToPar(r.total) }));
+    totalStr: fmtToPar(r.total),
+    gTodayStr: r.gToday == null ? '—' : fmtToPar(r.gToday), gTotalStr: fmtToPar(r.gTotal) }));
 }
 
 /* ---------- the gap to the leader ----------
@@ -535,14 +569,15 @@ export function gapOf(n) { return n <= 0 ? '—' : '+' + n; }
 
 export function mvpBoard(T, now) {
   const rows = golfers(T).map(p => {
-    let total = 0, today = null, thru = null, played = false;
+    let total = 0, today = null, thru = null, played = false, gTotal = 0, gToday = null;
     for (const r of countingRounds(T)) {
-      const { tp, thru: th } = toParPlayer(T, r.id, p.id);
+      const { tp, thru: th } = toParPlayer(T, r.id, p.id), g = grossThru(T, r.id, p.id);
       if (th > 0) played = true;
-      if (phaseOf(T, r.id, now) === 'live') { today = th > 0 ? tp : null; thru = th; }
+      if (phaseOf(T, r.id, now) === 'live') { today = th > 0 ? tp : null; gToday = g.thru > 0 ? g.tp : null; thru = th; }
       if (th > 0) total += tp;
+      if (g.thru > 0) gTotal += g.tp;
     }
-    return { id: p.id, name: p.display, band: p.band, today, thru, total, played };
+    return { id: p.id, name: p.display, band: p.band, today, thru, total, played, gTotal, gToday };
   }).filter(r => r.played);
   rows.sort((a, b) => a.total - b.total);
   const lead = rows.length ? rows[0].total : 0;
@@ -551,7 +586,8 @@ export function mvpBoard(T, now) {
     todayStr: r.today == null ? '—' : fmtToPar(r.today),
     thruStr: r.thru ? String(r.thru) : '—',
     gap: r.total - lead, gapStr: gapOf(r.total - lead),
-    totalStr: fmtToPar(r.total) }));
+    totalStr: fmtToPar(r.total),
+    gTodayStr: r.gToday == null ? '—' : fmtToPar(r.gToday), gTotalStr: fmtToPar(r.gTotal) }));
 }
 
 /* A hole's Bingo Bango Bongo marks, whatever shape they were written in.

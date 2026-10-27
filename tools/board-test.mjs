@@ -303,7 +303,7 @@ ok('the name on the plate is the name in first place', await A.p.evaluate(() => 
 }), true);
 ok('and the figure on it is the figure in the Total column', await A.p.evaluate(() => {
   const a = document.querySelector('.pl-big').textContent.trim();
-  const b = document.querySelector('.bdr.mvp .t').textContent.trim();
+  const b = document.querySelector('.bdr.mvp .t').childNodes[0].textContent.trim();   // the net figure; raw sits under it
   return a === b;
 }), true);
 /* The gap is the number a golfer talks in, and the leader has none. */
