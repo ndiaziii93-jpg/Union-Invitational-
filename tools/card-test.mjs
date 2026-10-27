@@ -46,35 +46,36 @@ const course = await p.evaluate(() => { const c = window.__T.config.courses.olym
 console.log('\nfrom the MVP board');
 ok('every name on the MVP board is a button', await p.locator('.bdr.mvp .namebtn').count(), await p.locator('.bdr.mvp').count());
 await tap('.bdr.mvp .namebtn:has-text("Ray V")');
-ok('tapping Ray V opens his card for the round being played', [await p.locator('.cardsheet').count(), await text('.cardsheet .mbanner')], [1, 'Ray V ROUND 1 · CULLINAN OLYMPOS · HCP 20 · THRU 9 · LIVE']);
-ok('eighteen holes, nine played', [await p.locator('.cs-table .cs-row:not(.cs-head):not(.cs-sum)').count(), await p.locator('.cs-row.todo').count()], [18, 9]);
-const h2 = p.locator('.cs-table .cs-row').nth(2);
-ok('a hole reads par, index, strokes received, gross and net', (await h2.innerText()).replace(/\s+/g, ' ').trim(), `2 ${course.par[1]} ${course.si[1]} ${course.si[1] <= 2 ? 2 : 1} 2 ${2 - (course.si[1] <= 2 ? 2 : 1)}`);
-ok('and is coloured for what it was', await h2.locator('.cs-g').getAttribute('class'), course.par[1] - 2 >= 2 ? 'cs-g eagle' : 'cs-g birdie');
-const h5 = p.locator('.cs-table .cs-row').nth(5);
-ok('the marks ride beside the gross: water and a three-putt on the 5th', await h5.locator('.cs-g i').innerText(), '≈3·');
-ok('a nine on a par ' + course.par[4] + ' is capped for net, and says so', [await h5.locator('.cs-g').evaluate(e => e.classList.contains('capped')), (await h5.locator('.cs-n').innerText()).trim()],
-  [9 > course.par[4] + 3, String(Math.min(9, course.par[4] + 3) - (course.si[4] <= 2 ? 2 : 1))]);
-const out = await text('.cs-row.cs-sum:has-text("Out")');
+ok('tapping Ray V opens his card for the round being played', [await p.locator('.cardsheet').count(), await text('.cardsheet .mbanner')], [1, 'Ray V ROUND 1 · CULLINAN OLYMPOS · WHITE TEES · THU 29 OCT · LIVE']);
+const labels = async () => (await p.locator('.sc-nine').first().locator('.sc-r .sc-l').allInnerTexts()).map(t => t.toUpperCase());
+const col = async (h, sel) => (await p.locator(`.sc-gross .sc-c[data-h="${h}"]`).first().evaluate((e, sel) => sel ? e.querySelector(sel) && e.querySelector(sel).textContent.trim() : e.className, sel));
+ok('holes run across, the nines one under the other, eighteen cells with nine filled', [await p.locator('.sc-nine').count(), await p.locator('.sc-gross .sc-c').count(), await p.locator('.sc-gross .sc-c.has').count()], [2, 18, 9]);
+ok('a row each for the hole, par, index and metres, then gross and net', await labels(), ['HOLE', 'PAR', 'INDEX', 'METRES', 'GROSS', 'NET']);
+const st2 = course.si[1] <= 2 ? 2 : 1;
+ok('the 2nd: the gross with a dot a stroke received, and the net under it', [await col(2, 'b'), (await col(2, '.sc-dots')).length, await p.locator('.sc-net .sc-c[data-h="2"] b').first().innerText()], ['2', st2, String(2 - st2)]);
+ok('and a birdie wears a circle', (await col(2)).includes(course.par[1] - 2 >= 2 ? 'g2' : 'g1'), true);
+ok('the capped 9 on the 5th wears two squares, says it was capped, and nets off the cap', [(await col(5)).includes('b2'), (await col(5)).includes('capped'), await p.locator('.sc-net .sc-c[data-h="5"] b').first().innerText()],
+  [true, 9 > course.par[4] + 3, String(Math.min(9, course.par[4] + 3) - (course.si[4] <= 2 ? 2 : 1))]);
+ok('the marks sit in the corner of the cell: water and a three-putt on the 5th', await col(5, 'i'), '≈3·');
 const grossOut = [4, 2, 6, 4, 9, 4, 5, 3, 4].reduce((a, v) => a + v, 0);
-ok('the front nine adds up', out.startsWith('Out ') && out.includes(' ' + grossOut + ' '), true);
-ok('the tile says the round so far, raw and net', /^This round \d+ raw [+−E]\d* · net [+−E]\d* · thru 9$/i.test(await text('.cs-tile')), true);
+ok('the front nine adds up at the end of the row', await p.locator('.sc-nine').first().locator('.sc-gross .sc-t').innerText(), String(grossOut));
+ok('the tile says the round so far, gross and net', /^Ray V · hcp 20 \d+ gross [+−E]\d* · net [+−E]\d* · thru 9$/i.test(await text('.cs-tile')), true);
 ok('the mulligan spent is noted', /front mulligan/.test(await text('.cs-key')), true);
 await shot('card-ray');
 ok('Ray V has a practice card too, offered as a tab', await p.locator('.cs-rounds button').allInnerTexts(), ['Practice', 'Round 1']);
 await tap('.cs-rounds button:has-text("Practice")');
-ok('which flips the sheet to that round, all eighteen in', [await text('.cs-rounds button.on'), await p.locator('.cs-row.todo').count()], ['Practice', 0]);
+ok('which flips the sheet to that round, all eighteen in', [await text('.cs-rounds button.on'), await p.locator('.sc-gross .sc-c.has').count()], ['Practice', 18]);
 await shut();
 
 console.log('\nfrom the Team board');
 await p.evaluate(() => { window.__UI.boardTab = 'pairs'; window.__UI.boardRound = 'r1'; window.__forceRender(); }); await p.waitForTimeout(300); await shut();
 await tap('.bdr.pairs .namebtn:has-text("Ray V & Drea")');
-ok('a team opens both cards side by side', [await p.locator('.cardsheet.two').count(), (await p.locator('.cs-head .cs-g').allInnerTexts()).map(t => t.toUpperCase())], [1, ['RV GROSS', 'D GROSS']]);
-const r1 = p.locator('.cs-table .cs-row').nth(1);
-ok('with the better ball picked out on each hole', (await r1.locator('.cs-b').innerText()).trim(), String(Math.min(4 - (course.si[0] <= 2 ? 2 : 1), 5 - (course.si[0] <= 7 ? 2 : 1))));
-ok('and a hole only one of them has played takes that one', (await p.locator('.cs-table .cs-row').nth(7).locator('.cs-b').innerText()).trim(), String(5 - (course.si[6] <= 2 ? 2 : 1)));
+ok('a team opens both cards on one sheet: a gross and net row each, then the better ball', [await p.locator('.cardsheet.two').count(), await labels()],
+  [1, ['HOLE', 'PAR', 'INDEX', 'METRES', 'RV', 'NET', 'D', 'NET', 'BEST']]);
+ok('with the better ball picked out on each hole', await p.locator('.sc-best .sc-c[data-h="1"] b').first().innerText(), String(Math.min(4 - (course.si[0] <= 2 ? 2 : 1), 5 - (course.si[0] <= 7 ? 2 : 1))));
+ok('and a hole only one of them has played takes that one', await p.locator('.sc-best .sc-c[data-h="7"] b').first().innerText(), String(5 - (course.si[6] <= 2 ? 2 : 1)));
 await shot('card-pair');
-ok('the two cards fit a phone without sideways scroll', await p.evaluate(() => { const t = document.querySelector('.cs-table'); return t.scrollWidth <= t.clientWidth + 1 && t.getBoundingClientRect().right <= innerWidth; }), true);
+ok('the card fits a phone without sideways scroll', await p.evaluate(() => [...document.querySelectorAll('.sc-nine')].every(t => t.scrollWidth <= t.clientWidth + 1 && t.getBoundingClientRect().right <= innerWidth)), true);
 await shut();
 
 console.log('\nfrom the practice board and the recap');
@@ -84,7 +85,8 @@ ok('the practice board opens the practice card', await text('.cs-rounds button.o
 await shut();
 await p.evaluate(() => { window.__UI.recapOpen = true; window.__UI.recap = { rid: 'r1', busy: false, err: '', stream: '', edit: false, view: 'report' }; window.__forceRender(); }); await p.waitForTimeout(500);
 await tap('.recfield .namebtn:has-text("Drea")');
-ok('and Every card in the recap opens that golfer’s', await text('.cardsheet .mbanner'), 'Drea ROUND 1 · CULLINAN OLYMPOS · HCP 25 · THRU 6 · LIVE');
+ok('and Every card in the recap opens that golfer’s', await text('.cardsheet .mbanner'), 'Drea ROUND 1 · CULLINAN OLYMPOS · WHITE TEES · THU 29 OCT · LIVE');
+ok('with her handicap and how far she is on the tile', /^Drea · hcp 25 \d+ gross .* · thru 6$/i.test(await text('.cs-tile')), true);
 await shut();
 
 ok('no errors on the way', errs, []);

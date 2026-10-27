@@ -4741,34 +4741,48 @@ function cardRoundsOf(pid) {
 }
 function cardSheetHtml() {
   const m = UI.modal, pids = m.pids || [m.pid], rid = m.rid;
-  const r = E.roundDef(rid), course = E.courseOf(T, rid);
+  const course = E.courseOf(T, rid);
   const cards = pids.map(pid => cardRows(rid, pid));
   const pair = m.pair ? (T.config.pairs || []).find(x => x.id === m.pair) : null;
   const title = pair ? E.pairName(T, pair) : (cards[0].g.display || 'Card');
   const rounds = [...new Set(pids.flatMap(cardRoundsOf))];
   const live = E.phaseOf(T, rid, now) === 'live';
-  const hcp = cards.map(x => x.g.band != null ? 'hcp ' + x.g.band : 'no handicap');
+  const r = E.roundDef(rid) || {}, day = r.dayIdx ? E.dayOf(r.dayIdx) : null;
   const thru = Math.max(...cards.map(x => x.thru));
-  const sub = `${roomName(rid)} · ${course.name} · ${hcp.join(' / ')}${thru ? ' · thru ' + thru : ' · not started'}${live ? ' · live' : ''}`;
-  const tone = (gross, par) => gross == null ? '' : gross - par <= -2 ? ' eagle' : gross - par === -1 ? ' birdie' : gross === par ? ' par' : gross - par === 1 ? ' bogey' : ' dbl';
-  const cell = (row) => `<span class="cs-g${tone(row.gross, row.par)}${row.capped ? ' capped' : ''}"><b class="num">${row.raw == null ? '·' : row.raw}</b>${row.marks.length ? `<i>${row.marks.map(k => MARK_GLYPH[k] || '').join('')}</i>` : ''}</span><span class="cs-n num">${row.net == null ? '·' : row.net}</span>`;
-  const best = i => { if (!pair) return ''; const ns = cards.map(x => x.rows[i].net).filter(v => v != null); return `<span class="cs-b num">${ns.length ? Math.min(...ns) : '·'}</span>`; };
-  const sums = (k, label) => { const parts = cards.map(x => x[k]); const bb = pair ? (() => { let t = 0, any = false; cards[0].rows.forEach((_, i) => { if ((k === 'out' && i >= 9) || (k === 'back' && i < 9)) return; const ns = cards.map(x => x.rows[i].net).filter(v => v != null); if (ns.length) { t += Math.min(...ns); any = true; } }); return any ? t : null; })() : null;
-    return `<div class="cs-row cs-sum"><span class="cs-h">${label}</span><span class="cs-p num">${parts[0].par}</span><span class="cs-si"></span>
-      ${cards.map((x, i) => `<span class="cs-st num">${parts[i].st}</span><span class="cs-g"><b class="num">${parts[i].gross == null ? '·' : parts[i].gross}</b></span><span class="cs-n num">${parts[i].net == null ? '·' : parts[i].net}</span>`).join('')}${pair ? `<span class="cs-b num">${bb == null ? '·' : bb}</span>` : ''}</div>`; };
-  const head = `<div class="cs-row cs-head"><span class="cs-h">Hole</span><span class="cs-p">Par</span><span class="cs-si">SI</span>
-    ${cards.map(x => `<span class="cs-st" title="strokes received">+</span><span class="cs-g">${pair ? esc(initialsOf(x.g.display)) + ' ' : ''}Gross</span><span class="cs-n">Net</span>`).join('')}${pair ? '<span class="cs-b">Best</span>' : ''}</div>`;
-  const hole = i => `<div class="cs-row${cards.every(x => x.rows[i].gross == null) ? ' todo' : ''}"><span class="cs-h num">${cards[0].rows[i].n}</span><span class="cs-p num">${cards[0].rows[i].par}</span><span class="cs-si num">${cards[0].rows[i].si}</span>
-    ${cards.map(x => `<span class="cs-st num">${x.rows[i].st == null ? '·' : x.rows[i].st}</span>${cell(x.rows[i])}`).join('')}${best(i)}</div>`;
-  const spent = cards.map(x => [x.c.bb ? 'breakfast ball' : '', x.c.mF ? 'front mulligan' : '', x.c.mB ? 'back mulligan' : ''].filter(Boolean)).map((l, i) => l.length ? (pair ? cards[i].g.display + ': ' : '') + l.join(', ') : '').filter(Boolean);
+  const sub = `${roomName(rid)} · ${course.name} · White tees${day ? ' · ' + day.dow.slice(0, 3) + ' ' + day.date : ''}${live ? ' · live' : ''}`;
   const tp = cards.map(x => x.all.gross == null ? null : [x.all.gross - x.all.parPlayed, x.all.net == null ? null : x.all.net - x.all.parPlayed]);
+  /* THE CARD, AS A CARD. Holes run across, the nines one under the other,
+     the way every scorecard app lays one out: a row for the hole, par and
+     index, then a gross row and a net row a player, with the marks a card
+     has always carried: a circle for a birdie, two for an eagle, a square
+     for a bogey, two for worse, and a dot in the corner for each stroke the
+     handicap gives on that hole. */
+  const glyph = (gross, par) => gross == null ? '' : gross - par <= -2 ? ' g2' : gross - par === -1 ? ' g1' : gross === par ? '' : gross - par === 1 ? ' b1' : ' b2';
+  const grossCell = row => `<span class="sc-c${row.raw == null ? '' : ' has'}${glyph(row.gross, row.par)}${row.capped ? ' capped' : ''}" data-h="${row.n}">${row.st ? `<em class="sc-dots" aria-label="${row.st} stroke${row.st === 1 ? '' : 's'}">${'•'.repeat(Math.min(row.st, 3))}</em>` : ''}<b class="num">${row.raw == null ? '' : row.raw}</b>${row.marks.length ? `<i>${row.marks.map(k => MARK_GLYPH[k] || '').join('')}</i>` : ''}</span>`;
+  const netCell = row => `<span class="sc-c sc-nc${row.net == null ? '' : ' has'}" data-h="${row.n}"><b class="num">${row.net == null ? '' : row.net}</b></span>`;
+  const bestOf = i => { const ns = cards.map(x => x.rows[i].net).filter(v => v != null); return ns.length ? Math.min(...ns) : null; };
+  const nine = (from, k, label) => {
+    const idx = Array.from({ length: 9 }, (_, i) => from + i), rows0 = cards[0].rows;
+    const bestSum = pair ? idx.reduce((a, i) => { const v = bestOf(i); return v == null ? a : (a == null ? 0 : a) + v; }, null) : null;
+    return `<div class="sc-nine">
+      <div class="sc-r sc-hole"><span class="sc-l">Hole</span>${idx.map(i => `<span class="num">${rows0[i].n}</span>`).join('')}<span class="sc-t">${label}</span></div>
+      <div class="sc-r sc-par"><span class="sc-l">Par</span>${idx.map(i => `<span class="num">${rows0[i].par}</span>`).join('')}<span class="sc-t num">${cards[0][k].par}</span></div>
+      <div class="sc-r sc-si"><span class="sc-l">Index</span>${idx.map(i => `<span class="num">${rows0[i].si}</span>`).join('')}<span class="sc-t"></span></div>
+      <div class="sc-r sc-yds"><span class="sc-l">Metres</span>${idx.map(i => `<span class="num">${course.holes[i].mW}</span>`).join('')}<span class="sc-t num">${idx.reduce((a, i) => a + (course.holes[i].mW || 0), 0)}</span></div>
+      ${cards.map(x => `<div class="sc-r sc-gross"><span class="sc-l">${pair ? esc(initialsOf(x.g.display)) : 'Gross'}</span>${idx.map(i => grossCell(x.rows[i])).join('')}<span class="sc-t num">${x[k].gross == null ? '' : x[k].gross}</span></div>
+        <div class="sc-r sc-net"><span class="sc-l">${pair ? 'net' : 'Net'}</span>${idx.map(i => netCell(x.rows[i])).join('')}<span class="sc-t num">${x[k].net == null ? '' : x[k].net}</span></div>`).join('')}
+      ${pair ? `<div class="sc-r sc-best"><span class="sc-l">Best</span>${idx.map(i => { const v = bestOf(i); return `<span class="sc-c sc-bc${v == null ? '' : ' has'}" data-h="${rows0[i].n}"><b class="num">${v == null ? '' : v}</b></span>`; }).join('')}<span class="sc-t num">${bestSum == null ? '' : bestSum}</span></div>` : ''}
+    </div>`;
+  };
+  const spent = cards.map(x => [x.c.bb ? 'breakfast ball' : '', x.c.mF ? 'front mulligan' : '', x.c.mB ? 'back mulligan' : ''].filter(Boolean)).map((l, i) => l.length ? (pair ? cards[i].g.display + ': ' : '') + l.join(', ') : '').filter(Boolean);
   return `<div class="scrim tcscrim" data-act="modalScrim"><div class="modal psheet cardsheet${pair ? ' two' : ''}" role="dialog" aria-modal="true" aria-label="${esc(title)}’s card">
     <span class="ps-grab dark" aria-hidden="true"><i></i></span>${modalBanner(title, sub)}
     <div class="ps-body cs-body">
       ${rounds.length > 1 ? `<div class="cs-rounds nos">${rounds.map(id => `<button class="${id === rid ? 'on' : ''}" data-act="cardRound" data-a="${id}">${esc(roomName(id))}</button>`).join('')}</div>` : ''}
-      <div class="cs-tiles">${cards.map((x, i) => `<div class="cs-tile"><span>${pair ? esc(x.g.display) : 'This round'}</span><b class="num">${x.all.gross == null ? '—' : x.all.gross}</b><small>${tp[i] ? 'raw ' + E.fmtToPar(tp[i][0]) + (tp[i][1] != null ? ' · net ' + E.fmtToPar(tp[i][1]) : '') : 'no holes yet'}${x.thru && x.thru < 18 ? ' · thru ' + x.thru : ''}</small></div>`).join('')}</div>
-      <div class="cs-table">${head}${cards[0].rows.slice(0, 9).map((_, i) => hole(i)).join('')}${sums('out', 'Out')}${cards[0].rows.slice(9).map((_, i) => hole(i + 9)).join('')}${sums('back', 'In')}${sums('all', 'Total')}</div>
-      <p class="cs-key"><b>+</b> strokes received · gross is capped at ${E.capFor(0, T.config.capOver) ? 'par + ' + T.config.capOver : 'the cap'} for net · <b>≈</b> water · <b>OB</b> out of bounds · <b>3·</b> three-putt · <b>★</b> shot of the hole${spent.length ? ' · ' + esc(spent.join(' · ')) : ''}</p>
+      <div class="cs-tiles">${cards.map((x, i) => `<div class="cs-tile"><span>${esc(x.g.display)}${x.g.band != null ? ' · hcp ' + x.g.band : ' · no handicap'}</span><b class="num">${x.all.gross == null ? '—' : x.all.gross}</b><small>${tp[i] ? 'gross ' + E.fmtToPar(tp[i][0]) + (tp[i][1] != null ? ' · net ' + E.fmtToPar(tp[i][1]) : '') : 'no holes yet'}${x.thru && x.thru < 18 ? ' · thru ' + x.thru : x.thru === 18 ? ' · 18 holes' : ''}</small></div>`).join('')}</div>
+      <div class="sc-card">${nine(0, 'out', 'Out')}${nine(9, 'back', 'In')}
+        <div class="sc-r sc-tot"><span class="sc-l">Total</span>${cards.map(x => `<span class="sc-tv"><b>${pair ? esc(initialsOf(x.g.display)) + ' ' : ''}${x.all.gross == null ? '—' : x.all.gross}</b><small>net ${x.all.net == null ? '—' : x.all.net} · par ${x.all.par}</small></span>`).join('')}</div></div>
+      <p class="cs-key"><span class="sc-k g1">4</span> birdie <span class="sc-k g2">3</span> eagle <span class="sc-k b1">5</span> bogey <span class="sc-k b2">6</span> double or worse · <b>•</b> a stroke received · <b>≈</b> water · <b>OB</b> out of bounds · <b>3·</b> three-putt · <b>★</b> shot of the hole · net is off the gross capped at par + ${T.config.capOver}${spent.length ? ' · ' + esc(spent.join(' · ')) : ''}</p>
     </div>
     <div class="acts"><button class="btn ghost" data-act="modalCancel">Close</button></div>
   </div></div>`;
