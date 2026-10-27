@@ -34,9 +34,9 @@ await p.locator('[data-act="recapWhatsApp"]').click(); await p.waitForTimeout(40
 const sent = await p.evaluate(() => window.__sent[0] || '');
 /* a card, not the article: the round, the headline, the link to the page */
 ok('the phone\'s share sheet is handed a short message, not the article', [sent.split('\n').length, sent.length < 300, /Nobody said much/.test(sent)], [4, true, false]);
-ok('the round on top', /^⛳ THE UNION INVITATIONAL — Practice day, /.test(sent), true);
+ok('an announcement on top', /^⛳ The practice day at Cullinan Aspendos is in the books/.test(sent), true);
 ok('with the headline, bold the WhatsApp way', /\*The wind got up on the back nine\*/.test(sent), true);
-ok('and the recap page\'s address, which is the recap', /github\.io\/Union-Invitational-\/recap\/\?r=practice$/.test(sent.trim()), true);
+ok('and a nudge to the recap page, which is the recap', /^Read all about it .*👉 https:\/\/ndiaziii93-jpg\.github\.io\/Union-Invitational-\/recap\/\?r=practice$/m.test(sent.trim()), true);
 /* no share sheet: WhatsApp's own link, with the words in it */
 await p.evaluate(() => { delete navigator.share; });
 await p.locator('[data-act="recapWhatsApp"]').click(); await p.waitForTimeout(300);

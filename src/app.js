@@ -2809,13 +2809,15 @@ function recapText(rid) {
 }
 /** The recap's own page on the public site: one link a round. */
 const recapLink = rid => D.SITE_URL + 'recap/?r=' + encodeURIComponent(rid);
-/** What goes to the group: three lines and the link. The page is the recap,
- *  laid out as the book lays it out; a wall of text in a chat bubble is not. */
+/** What goes to the group: an announcement and the link. The page is the
+ *  recap, laid out as the book lays it out; a wall of text in a bubble is not. */
 function recapShare(rid) {
   const rec = T.recaps[rid]; const b = rec && rec.body; if (!b) return '';
-  const r = E.roundDef(rid) || {}; const d = E.dayOf(r.dayIdx || 0) || {};
-  return ['⛳ THE UNION INVITATIONAL — ' + (r.short === 'Practice' ? 'Practice day' : r.full || '') + (d.dow ? ', ' + d.dow + ' ' + d.date : ''),
-    b.headline ? '*' + b.headline + '*' : '', '', 'The day’s recap, with the photos and the tables: ' + recapLink(rid)].filter((x, i) => x || i === 2).join('\n');
+  const r = E.roundDef(rid) || {}; const st = E.roundStanding(T, rid); const course = E.courseOf(T, rid);
+  const name = r.short === 'Practice' ? 'The practice day' : 'Round ' + String(r.short || '').slice(1);
+  return [`⛳ ${name} at ${course.name} is in the books${st.complete ? ' — every card is in.' : '.'}`,
+    b.headline ? `*${b.headline}*` : '', '',
+    'Read all about it — the report, the scores and the photos 👉 ' + recapLink(rid)].filter((x, i) => x || i === 2).join('\n');
 }
 const HONOURS = [
   { slot: 'shot_of_the_day', label: 'Shot of the day' },
