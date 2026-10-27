@@ -25,7 +25,9 @@
 --   * Everything refused is logged in security_log, which only the master PIN
 --     can read (from Setup → Security in the book). A phone that keeps
 --     trying is blocked for 24 hours, automatically, and that is logged too.
---     Wrong guesses are throttled: twelve a minute, for everyone.
+--     Wrong guesses count against the phone that made them, never against
+--     the group: a right PIN always passes. A name with ten wrong guesses
+--     against it is closed for ten minutes.
 --
 -- TYPE THE PINS INTO THE THREE PLACEHOLDERS NEAR THE BOTTOM BEFORE RUNNING,
 -- then clear this query from the editor's history (⋯ → delete): the SQL
@@ -44,7 +46,8 @@ create table if not exists public.pins (
 alter table public.pins enable row level security;      -- and no policies: nobody outside reads it
 revoke all on table public.pins from anon, authenticated;
 
-create table if not exists public.pin_tries (at timestamptz not null default now());
+create table if not exists public.pin_tries (at timestamptz not null default now(), who text);
+alter table public.pin_tries add column if not exists who text;
 alter table public.pin_tries enable row level security;
 revoke all on table public.pin_tries from anon, authenticated;
 
@@ -114,6 +117,16 @@ revoke execute on function public.is_blocked(text) from public, anon, authentica
 -- ---- which role a PIN proves -----------------------------------------------
 -- 'master', 's1', 's2'; null for a wrong one; 'throttled' when the minute is
 -- used up. It never raises, so the log it writes is kept.
+-- A RIGHT PIN IS NEVER THROTTLED. The first version counted wrong guesses
+-- for everyone together and refused everything once the minute was spent —
+-- which meant twelve wrong guesses a minute from one phone would have
+-- frozen every scorer's writes on the course: a denial of service for the
+-- price of a loop. Now a PIN is checked first and a right one always
+-- passes; wrong guesses count against the phone that made them, and a
+-- phone over its allowance is refused, logged and (by log_security)
+-- blocked for a day. What makes guessing hopeless is the PINs themselves:
+-- six digits or more for the master, bcrypt behind each, and the log
+-- showing the commissioner the attempt while it is still going.
 create or replace function public.pin_role(p_pin text, p_who text default null)
 returns text
 language plpgsql
@@ -123,18 +136,17 @@ as $$
 declare r text; n int;
 begin
   if p_pin is null or p_pin !~ '^[0-9]{4,8}$' then return null; end if;
+  select role into r from public.pins where hash = crypt(p_pin, hash) limit 1;
+  if r is not null then return r; end if;
   delete from public.pin_tries where at < now() - interval '10 minutes';
-  select count(*) into n from public.pin_tries where at > now() - interval '1 minute';
-  if n >= 12 then
-    perform public.log_security('pin', null, p_who, null, 'throttled: too many PIN attempts this minute');
+  insert into public.pin_tries (at, who) values (now(), p_who);
+  select count(*) into n from public.pin_tries where at > now() - interval '1 minute' and who is not distinct from p_who;
+  if n > 12 then
+    perform public.log_security('pin', null, p_who, null, 'throttled: too many wrong PINs this minute');
     return 'throttled';
   end if;
-  select role into r from public.pins where hash = crypt(p_pin, hash) limit 1;
-  if r is null then
-    insert into public.pin_tries default values;
-    perform public.log_security('pin', null, p_who, null, 'wrong role PIN (' || length(p_pin) || ' digits)');
-  end if;
-  return r;
+  perform public.log_security('pin', null, p_who, null, 'wrong role PIN (' || length(p_pin) || ' digits)');
+  return null;
 end $$;
 revoke execute on function public.pin_role(text, text) from public, anon, authenticated;
 
@@ -281,11 +293,19 @@ begin
   if public.is_blocked(p_who) then return false; end if;
   select doc->>'hash' into h from public.docs where path = 'chat/id_' || p_pid;
   if h is null then return false; end if;
-  if h = crypt(p_pin, h) then return true; end if;
+  /* a name with ten wrong guesses against it in ten minutes is closed for
+     ten minutes — that name alone, whoever is guessing — since four digits
+     are few. A right guess inside that window is refused too: the window
+     is the point. */
   delete from public.pin_tries where at < now() - interval '10 minutes';
-  select count(*) into n from public.pin_tries where at > now() - interval '1 minute';
-  insert into public.pin_tries default values;
-  perform public.log_security('pin', 'chat/id_' || p_pid, p_who, p_pid, case when n >= 12 then 'throttled: too many PIN attempts' else 'wrong name PIN' end);
+  select count(*) into n from public.pin_tries where who = 'name:' || p_pid and at > now() - interval '10 minutes';
+  if n >= 10 then
+    perform public.log_security('pin', 'chat/id_' || p_pid, p_who, p_pid, 'name closed: ten wrong PINs in ten minutes');
+    return false;
+  end if;
+  if h = crypt(p_pin, h) then return true; end if;
+  insert into public.pin_tries (at, who) values (now(), 'name:' || p_pid);
+  perform public.log_security('pin', 'chat/id_' || p_pid, p_who, p_pid, 'wrong name PIN');
   return false;
 end $$;
 grant execute on function public.check_name(text, text, text) to anon, authenticated;
