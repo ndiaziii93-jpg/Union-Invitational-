@@ -1931,7 +1931,10 @@ function openChatFrom(room) {
     const root = document.documentElement;
     const up = window.innerHeight - vv.height > 120;   // a keyboard, not a toolbar
     if (!up && !wasUp) return;
-    if (up !== wasUp) { root.classList.toggle('kbd', up); wasUp = up; }
+    if (up !== wasUp) {
+      root.classList.toggle('kbd', up); wasUp = up;
+      if (!up) { dropKeyboard(); resetViewport(); }    // the keyboard went: the viewport is measured afresh
+    }
     const h = up ? Math.round(vv.height) : 0, t = up ? Math.round(vv.offsetTop) : 0;
     if (h !== h0) { root.style.setProperty('--vvh', up ? h + 'px' : ''); h0 = h; }
     if (t !== t0) { root.style.setProperty('--vvt', up ? t + 'px' : ''); t0 = t; }
@@ -6299,6 +6302,7 @@ addEventListener('scroll', onScroll, { passive: true });
 addEventListener('resize', () => { measurePlate(); onScroll(); measureCover(); fitPlates(); }, { passive: true });
 
 function goTo(id) {
+  dropKeyboard();
   if (id === UI.screen) { SCROLL_AT[id] = 0; UI.landAt = 0; }
   else { SCROLL_AT[UI.screen] = window.scrollY; UI.landAt = SCROLL_AT[id] || 0; }
   UI.screen = id;
@@ -7783,8 +7787,26 @@ function askPinStrict(title, note, ok, onOk) {
  *  The Bingo Bango Bongo alert on the 18th stands in front of the crest, and
  *  the crest must not be lost to whichever way out the scorer happened to
  *  take: the button, the scrim, or anything added later. */
+/* THE KEYBOARD GOES WITH THE WINDOW. A box left focused while its window
+   closes keeps iOS believing the keyboard is up: the layout viewport stays
+   the height of what was left above it, a fixed bar sits at the foot of
+   THAT, mid-screen, and the page pans sideways to where the box was. So a
+   box is let go of before anything that takes it off the screen, and when
+   the keyboard goes the viewport is told to measure itself again. */
+function dropKeyboard() {
+  const el = document.activeElement;
+  if (el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)) { try { el.blur(); } catch (e) { /* nothing */ } }
+}
+function resetViewport() {
+  const m = document.querySelector('meta[name=viewport]');
+  if (!m) return;
+  const c = m.getAttribute('content') || '';
+  m.setAttribute('content', c + ', minimum-scale=1');
+  requestAnimationFrame(() => { m.setAttribute('content', c); window.scrollTo(window.scrollX, window.scrollY); });
+}
 function closeModal() {
   const m = UI.modal;
+  dropKeyboard();
   if (m && m.kind === 'pick') { UI.modal = m.parent || null; return; }   // back to the window it was opened from
   if (m && m.kind === 'art') dropHole3D();
   if (m && m.kind === 'venue') commitResortNote();    // a note half written on a place is kept
@@ -9460,7 +9482,8 @@ export function boot() {
      and nobody is reading it from a pocket. Nothing here touches the
      network. */
   setInterval(() => { if (document.visibilityState === 'hidden') return; now = E.nowLocal(); render(); }, 60000);
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { now = E.nowLocal(); render(); } });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { now = E.nowLocal(); dropKeyboard(); resetViewport(); render(); } });
+  window.addEventListener('pageshow', () => { dropKeyboard(); resetViewport(); });
   render();
   store.connect();
 }
