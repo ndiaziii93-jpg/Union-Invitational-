@@ -1153,17 +1153,36 @@ export function recapTable(T, rid, now) {
   const rows = (T.config.pairs || []).map(pair => {
     const w = week.find(x => x.id === pair.id);
     const t = byId[pair.id];
+    const g = grossThru(T, rid, pair);
     return {
       id: pair.id,
       name: pairName(T, pair),
       today: t ? t.today : null,
       total: w && w.played ? w.total : null,
       thru: t ? t.thru : 0,
+      /* raw beside net: the better of the two raw scores, hole by hole */
+      todayRaw: g.thru > 0 ? g.tp : null,
+      totalRaw: w && w.played ? w.gTotal : null,
     };
   }).filter(r => r.thru > 0 || r.total != null);
   rows.sort((a, b) => ((a.total == null ? 99 : a.total) - (b.total == null ? 99 : b.total))
     || ((a.today == null ? 99 : a.today) - (b.today == null ? 99 : b.today)));
   return rows.map((r, i) => ({ ...r, pos: i + 1 }));
+}
+
+/** Every card from one round: the strokes, raw to par, and net to par with
+ *  the band's strokes and the cap. A counting round is read net first; the
+ *  practice day, which is scored gross, raw first. */
+export function recapField(T, rid) {
+  const r = roundDef(rid) || {};
+  const rows = golfers(T).map(p => {
+    const g = grossThru(T, rid, p.id), n = toParThru(T, rid, p.id, 18);
+    return { id: p.id, name: p.display, band: p.band, strokes: g.strokes, raw: g.tp, net: n.thru > 0 ? n.tp : null, thru: g.thru };
+  }).filter(x => x.thru > 0);
+  rows.sort((a, b) => r.counts
+    ? ((a.net == null) - (b.net == null)) || (a.net - b.net) || (a.raw - b.raw)
+    : (a.raw - b.raw) || ((a.net == null ? 99 : a.net) - (b.net == null ? 99 : b.net)));
+  return rows.map((x, i) => ({ ...x, pos: i + 1 }));
 }
 
 /** The biggest gap the leaders opened on the third-placed pair in one stretch. */

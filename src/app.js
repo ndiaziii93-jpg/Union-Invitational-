@@ -1160,8 +1160,14 @@ function recapPanel() {
      added to this round, and until there is one, the course the round was
      played on — which alternates from round to round of its own accord. */
   const snaps = photosFor(rid);
-  const hero = snaps.length ? snaps[0].url : IMG['course_' + course.key];
-  const heroAlt = snaps.length ? (snaps[0].caption || 'From the round') : course.name;
+  /* THE FRONT CYCLES. Every photo of the round, newest first, sliding by on
+     their own and swipeable; the headline stays put over them. Until anyone
+     adds one, the course the round was played on. */
+  const slides = snaps.length ? snaps.slice(0, 15)
+    : IMG['course_' + course.key] ? [{ url: IMG['course_' + course.key], caption: course.name, course: true }] : [];
+  const at = Math.min(UI.recapSlide || 0, Math.max(slides.length - 1, 0));
+  const field = E.recapField(T, rid);
+  const fmt = n => n == null ? '—' : E.fmtToPar(n);
   const shots = st.field;
   const top = table && table[0];
 
@@ -1175,7 +1181,10 @@ function recapPanel() {
       <button class="rm" data-act="recapClose" aria-label="Close the recap">Close</button>
     </div>
     ${gallery ? '' : `<div class="rhero">
-      ${hero ? `<img src="${esc(hero)}" alt="${esc(heroAlt)}">` : ''}
+      <div class="rh-track nos" data-n="${slides.length}">${slides.map((ph, i) => `<figure class="rh-slide" data-by="${esc(ph.course ? '' : ph.byName || '')}">
+        <img src="${esc(ph.url)}" alt="${esc(ph.caption || 'From the round')}"${i > 1 ? ' loading="lazy"' : ''} decoding="async"></figure>`).join('')}</div>
+      ${slides.length > 1 ? `<span class="rh-count num" aria-live="polite">📷 <b>${at + 1}</b> / ${slides.length}${slides[at].byName ? ' · ' + esc(slides[at].byName) : ''}</span>
+        <div class="rh-dots" aria-hidden="true">${slides.map((_, i) => `<i class="${i === at ? 'on' : ''}"></i>`).join('')}</div>` : ''}
       <div class="rh-in">
         <span class="rh-k">${esc(r.short === 'Practice' ? 'Practice day' : 'Round ' + r.short.slice(1) + ' of 3')} · ${esc(course.name)} · ${esc(day.dow)} ${esc(day.date)}${
           body ? (published ? '' : ' · Draft') : ''}</span>
@@ -1183,13 +1192,20 @@ function recapPanel() {
           : st.complete ? 'No report yet' : esc(r.full)}</h2>`}
       </div>
     </div>
-    <div class="rtiles num">
-      <div class="rtile"><b class="g">${top && top.today != null ? esc(E.fmtToPar(top.today)) : '—'}</b><span>${top ? esc(top.name) : 'Leading pair'}</span></div>
-      <div class="rtile"><b>${sw ? sw.shots + ' shot' + (sw.shots === 1 ? '' : 's') : '—'}</b><span>Swing of the day${sw ? ', ' + sw.fromHole + '–' + sw.toHole : ''}</span></div>
-      <div class="rtile"><b>${st.inCards} / ${st.field}</b><span>Cards in</span></div>
+    <div class="rtiles">
+      <div class="rtile"><span class="rt-l">Leading pair</span>
+        <b class="g num">${top && top.today != null ? esc(E.fmtToPar(top.today)) : '—'}<small>net</small></b>
+        ${top && top.todayRaw != null ? `<em class="num">${esc(E.fmtToPar(top.todayRaw))} raw</em>` : ''}
+        <span class="rt-n">${top ? esc(top.name) : '—'}</span></div>
+      <div class="rtile"><span class="rt-l">Swing of the day</span>
+        <b class="num">${sw ? sw.shots : '—'}<small>${sw ? (sw.shots === 1 ? 'shot' : 'shots') : ''}</small></b>
+        <span class="rt-n">${sw ? 'Holes ' + sw.fromHole + '–' + sw.toHole : 'Not yet'}</span></div>
+      <div class="rtile"><span class="rt-l">Cards in</span>
+        <b class="num">${st.inCards}<small>of ${st.field}</small></b>
+        <span class="rt-n">${st.complete ? 'All in' : st.started ? 'Still out' : 'Not started'}</span></div>
     </div>`}
     <div class="recapbar">
-    <div>${gallery ? 'The whole week\'s photos, by round.' : esc(!st.started ? 'This round has not started.'
+    <div class="rb-s">${gallery ? 'The whole week\'s photos, by round.' : esc(!st.started ? 'This round has not started.'
       : !st.complete ? 'Round in progress — ' + st.inCards + ' of ' + st.field + ' cards in. Standings only until every card is in.'
       : !body ? 'Round is complete. The report has not been written yet.'
       : published ? 'Round is closed and the recap is ready. Everyone in the party can read it and add photos.'
@@ -1221,13 +1237,7 @@ function recapPanel() {
         banded masthead, then a dateline, then a kicker, then the headline —
         and the reason is that it tells you what you are looking at before
         you have read a word. */ ''}
-  <div class="metarail">
-    <span>${esc(r.short === 'Practice' ? 'Practice day' : 'Round ' + r.short.slice(1) + ' of 3')}</span>
-    <span>${esc(course.name)}</span>
-    <span>${esc(day.dow)} ${esc(day.date)}</span>
-    <span>${esc(r.counts ? 'Better Ball, net' : 'Practice, counts for nothing')}</span>
-    <span>${shots} player${shots === 1 ? '' : 's'}, ${st.pairs} pairing${st.pairs === 1 ? '' : 's'}</span>
-  </div>
+  <p class="metaline"><b>${esc(course.name)}</b> · ${esc(day.dow)} ${esc(day.date)} · ${esc(r.counts ? 'Better ball, net' : 'Practice, counts for nothing')} · ${shots} player${shots === 1 ? '' : 's'}, ${st.pairs} pair${st.pairs === 1 ? '' : 's'}</p>
 
   ${UI.recap.err ? `<p class="askerr" style="margin-top:14px">${esc(UI.recap.err)}</p>` : ''}
   ${UI.upload.err ? `<p class="askerr" style="margin-top:14px">${esc(UI.upload.err)}
@@ -1253,7 +1263,7 @@ function recapPanel() {
           data-act="recapEdit" data-a="para" data-b="${i}"
           aria-label="Paragraph ${i + 1}" placeholder="${i >= (body.narrative || []).length ? 'Add a paragraph…' : ''}">${esc(x)}</textarea>`).join('')
         : body && body.narrative ? body.narrative.filter(x => x && x.trim())
-            .map((x, i) => `<p class="recpara${i === 0 ? ' lead' : ''}">${esc(x)}</p>`).join('')
+            .map((x, i) => `<p class="recpara${i === 0 ? ' lead' : ''}">${esc(x)}</p>${inlinePhoto(snaps, i)}`).join('')
         : UI.recap.busy ? `<p class="recpara thinking">${esc(UI.recap.stream || 'Reading the cards…')}</p>`
         : st.complete ? `<p class="recpara">${ed ? 'Generate the report and it will be written from today\'s cards.'
             : 'The scorers have not written it up yet.'}</p>`
@@ -1287,18 +1297,33 @@ function recapPanel() {
           the figures can be centred in their own column rather than flung to
           the far side of a sheet that is nine hundred pixels wide. */ ''}
     <div class="rowhead"><span class="rt-pos"></span><span class="rt-who">Pair</span>
-      <span class="rt-n">Today</span>
-      <span class="rt-t">Total</span></div>
+      <span class="rt-n">Today<small class="rawh">net · raw</small></span>
+      ${r.counts ? '<span class="rt-t">Total<small class="rawh">net · raw</small></span>' : ''}</div>
     ${table.length ? table.map(x => `<div class="row${x.pos === 1 ? ' lead' : ''}">
       <span class="pos rt-pos">${x.pos}</span>
       <span class="who rt-who">${esc(x.name)}${editing
         ? `<input class="field recedit one" data-act="recapEdit" data-a="note" data-b="${esc(x.id)}"
             aria-label="Note on ${esc(x.name)}" placeholder="A line about this pair…" value="${esc(pairNote(x.id))}">`
         : pairNote(x.id) ? `<small>${esc(pairNote(x.id))}</small>` : ''}</span>
-      <span class="num rt-n ${cls(x.today)}">${x.today == null ? '—' : esc(E.fmtToPar(x.today))}</span>
-      <span class="num rt-t ${cls(x.total)}">${x.total == null ? '—' : esc(E.fmtToPar(x.total))}</span>
+      <span class="num rt-n ${cls(x.today)}">${esc(fmt(x.today))}${x.todayRaw == null ? '' : `<small class="rawv">${esc(fmt(x.todayRaw))}</small>`}</span>
+      ${r.counts ? `<span class="num rt-t ${cls(x.total)}">${esc(fmt(x.total))}${x.totalRaw == null ? '' : `<small class="rawv">${esc(fmt(x.totalRaw))}</small>`}</span>` : ''}
     </div>`).join('') : '<p class="empty">No cards in yet.</p>'}
   </div>
+  ${r.counts ? '' : '<p class="legend">The practice day counts for nothing, so there is no running total. Net is with each band’s strokes and the triple-bogey cap; raw is the strokes as written.</p>'}
+
+  <h3 class="sub">Every card</h3>
+  ${field.length ? `<div class="rows rectable recfield" style="margin-top:8px">
+    <div class="rowhead"><span class="rt-pos"></span><span class="rt-who">Golfer</span>
+      <span class="rt-c">Strokes</span><span class="rt-c">Raw</span><span class="rt-c">Net</span></div>
+    ${field.map(x => `<div class="row${x.pos === 1 ? ' lead' : ''}">
+      <span class="pos rt-pos">${x.pos}</span>
+      <span class="who rt-who">${esc(x.name)}<small>${x.band ? 'band ' + x.band : 'no band'}${x.thru < 18 ? ' · thru ' + x.thru : ''}</small></span>
+      <span class="num rt-c">${x.strokes}</span>
+      <span class="num rt-c ${cls(x.raw)}">${esc(fmt(x.raw))}</span>
+      <span class="num rt-c ${cls(x.net)}">${esc(fmt(x.net))}</span></div>`).join('')}
+  </div>
+  <p class="legend">${r.counts ? 'In order of net to par, as the MVP is decided.' : 'In order of raw to par, as the practice day is scored.'} Strokes are the total as written; raw is that against par; net takes off each band’s strokes and caps any hole at triple bogey.</p>`
+  : '<p class="empty">No cards in yet.</p>'}
 
   <div class="recapcols">
     <div>
@@ -1349,6 +1374,45 @@ function recapPanel() {
     </div>
   </div>`;
 }
+
+/** A photo of the round set between the paragraphs of the report: after the
+ *  first and the third, the second and third newest (the newest is on the
+ *  front). */
+function inlinePhoto(snaps, i) {
+  const ph = i === 0 ? snaps[1] : i === 2 ? snaps[2] : null;
+  if (!ph) return '';
+  return `<figure class="rinline"><img src="${esc(ph.url)}" alt="${esc(ph.caption || 'From the round')}" loading="lazy" decoding="async">
+    <figcaption>${esc(ph.caption || (ph.hole != null ? 'Hole ' + (ph.hole + 1) : 'From the round'))}${ph.byName ? ' · 📷 ' + esc(ph.byName) : ''}</figcaption></figure>`;
+}
+/* THE FRONT, SLIDING. The track scrolls itself every few seconds, a swipe
+   takes over and holds it for a while, and a redraw (the shared book lands
+   something every few seconds) puts it back where it was. */
+let slideHeld = 0;
+function recapSlides() {
+  const tr = document.querySelector('.rh-track');
+  if (!tr) return;
+  const w = tr.clientWidth || 1, want = Math.round((UI.recapSlide || 0) * w);
+  if (Math.abs(tr.scrollLeft - want) > 2) tr.scrollLeft = want;
+}
+function recapSlideSeen(tr) {
+  const n = +tr.dataset.n || 1, i = Math.max(0, Math.min(n - 1, Math.round(tr.scrollLeft / (tr.clientWidth || 1))));
+  if (i === UI.recapSlide) return;
+  UI.recapSlide = i;
+  const box = tr.closest('.rhero');
+  box.querySelectorAll('.rh-dots i').forEach((d, k) => d.classList.toggle('on', k === i));
+  const c = box.querySelector('.rh-count'), by = tr.children[i] && tr.children[i].dataset.by;
+  if (c) c.innerHTML = '📷 <b>' + (i + 1) + '</b> / ' + n + (by ? ' · ' + esc(by) : '');
+}
+setInterval(() => {
+  const tr = document.querySelector('.rh-track');
+  if (!tr || document.hidden || Date.now() < slideHeld || (+tr.dataset.n || 0) < 2) return;
+  if (matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const n = +tr.dataset.n, next = ((UI.recapSlide || 0) + 1) % n;
+  tr.scrollTo({ left: next * tr.clientWidth, behavior: next ? 'smooth' : 'auto' });
+}, 4500);
+document.addEventListener('scroll', e => { const t = e.target; if (t && t.classList && t.classList.contains('rh-track')) recapSlideSeen(t); }, true);
+['touchstart', 'pointerdown', 'wheel'].forEach(k => document.addEventListener(k, e => {
+  if (e.target && e.target.closest && e.target.closest('.rh-track')) slideHeld = Date.now() + 9000; }, { passive: true, capture: true }));
 
 /* ---------------- the standing gallery ----------------
    Every photo of the week in one place, the rounds in the order they are
@@ -6105,7 +6169,7 @@ function mustChoose() {
 function render() {
   X.invalidate();                       // every draw reckons the bets afresh, once
   if (mustChoose()) UI.modal = { kind: 'who', forced: true };
-  try { paint(); centrePick(); }
+  try { paint(); centrePick(); recapSlides(); }
   catch (err) {
     // The screen is the least of it: a throw here used to abort whatever write
     // was in flight. Record it, and let the save carry on.
@@ -7613,6 +7677,7 @@ function onClick(e) {
       return;
     case 'recapOpen':
       UI.recap = { rid: a, busy: false, err: '', stream: '', edit: false, view: 'report' };
+      UI.recapSlide = 0;
       UI.recapOpen = true;
       render();
       /* Opening it is the ask. A finished round with nothing written yet
@@ -7885,6 +7950,7 @@ function onClick(e) {
     }
     case 'recapPick':
       UI.recap = { rid: a, busy: false, err: '', stream: '', edit: false, view: 'report' };
+      UI.recapSlide = 0;
       render();
       recapTop();
       return;

@@ -186,8 +186,8 @@ ok('it opens over the page, not instead of it', await p.locator('.recapbox').cou
 ok('and it wrote itself without a second click',
   (await p.locator('.rechead').innerText()).startsWith('Aspendos waited'), true);
 ok('Today is still behind it', await p.locator('.recapbtn').count(), 1);
-ok('the meta rail is in it', await p.locator('.metarail').count(), 1);
-ok('the meta rail has five facts', await p.locator('.metarail span').count(), 5);
+ok('the dateline is in it, one line', await p.locator('.metaline').count(), 1);
+ok('with the course, the day, the format and the field', (await p.locator('.metaline').innerText()).split(' · ').length, 4);
 ok('the ribbon has eighteen cells', await p.locator('.ribcell').count(), 18);
 ok('the table is there', await p.locator('.rectable .row').count() > 0, true);
 ok('four honours, always', await p.locator('.row.honour').count(), 4);
@@ -230,10 +230,10 @@ ok('the opening letter is still cut into the first paragraph', await p.evaluate(
 console.log('\nthe scoreboard reads as columns, not as edges');
 await p.setViewportSize({ width: 834, height: 1112 }); await p.waitForTimeout(700);
 ok('the figures are centred in a column of their own', await p.evaluate(
-  () => getComputedStyle(document.querySelector('.rectable .rt-t')).textAlign), 'center');
+  () => getComputedStyle(document.querySelector('.rectable .rt-n')).textAlign), 'center');   // Today: every round has it; Total only when it counts
 ok('and the column is not flush with the edge of the sheet', await p.evaluate(() => {
   const box = document.getElementById('recapBox').getBoundingClientRect();
-  return [...document.querySelectorAll('.rectable .rt-t, .recapbox .row .rt-v')]
+  return [...document.querySelectorAll('.rectable .rt-n, .rectable .rt-t, .recapbox .row .rt-v')]
     .every(e => box.right - e.getBoundingClientRect().right > 20);
 }), true);
 ok('every honour and side game sits in that column too',
