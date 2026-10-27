@@ -46,6 +46,15 @@ async function supabase(route) {
     if (body.rx) reacted.push(body); else notified.push(body.path);
     return send({ sent: 1 });
   }
+  /* the server's gate for the chat: a signed post lands, a name is proved */
+  if (url.pathname === '/rest/v1/rpc/social_write') {
+    const { p_path, p_doc, p_merge } = JSON.parse(req.postData());
+    rows.set(p_path, { path: p_path, doc: p_merge ? { ...((rows.get(p_path) || {}).doc || {}), ...p_doc } : p_doc, updated_at: stamp() });
+    return send('ok');
+  }
+  if (url.pathname === '/rest/v1/rpc/social_delete') { const { p_path } = JSON.parse(req.postData()); rows.delete(p_path); return send('ok'); }
+  if (url.pathname === '/rest/v1/rpc/check_name') return send(true);
+  if (url.pathname === '/rest/v1/rpc/claim_name') return send('ok');
   if (url.pathname === '/rest/v1/rpc/merge_doc') {
     const { p, patch } = JSON.parse(req.postData());
     rows.set(p, { path: p, doc: { ...((rows.get(p) || {}).doc || {}), ...patch }, updated_at: stamp() });
