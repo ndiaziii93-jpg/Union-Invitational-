@@ -1493,6 +1493,8 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
 .cc--main .cc-st{color:var(--gold-up)}
 .cc--main .cc-b,.cc--main .cc-none{color:var(--sage-up)}
 .cc--main .cc-f{color:#E2C277}
+.cc-f.pts{color:var(--green)}
+.cc--main .cc-f.pts{color:#E2C277}
 .cc--main .cc-go{color:var(--sage-up)}
 .cc--main.cc--closed,.cc--main.cc--empty{opacity:1}
 @media (hover:hover) and (pointer:fine){ .cc--main:hover{background:#243a29;border-color:#243a29} }
@@ -4678,6 +4680,11 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 .sc-nc b{width:auto;height:auto;font-weight:600;font-size:12.5px;color:var(--turf)}
 .sc-best{background:#DDEBDD;color:#2F7A4A} .sc-best .sc-l{color:#2F7A4A}
 .sc-bc b{width:auto;height:auto;font-weight:800;font-size:13.5px;color:#2F7A4A}
+/* the team game's points, a row under each golfer's net: three or more is a good hole, one or none a lost one */
+.sc-pts{background:#F3EFE4}
+.sc-pc b{width:auto;height:auto;font-weight:700;font-size:12.5px;color:var(--turf)}
+.sc-pc.up b{color:#2F7A4A} .sc-pc.dn b{color:#A33A2A}
+.sc-tv.team b{color:#2F7A4A}
 .sc-tot{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;padding:8px 10px;background:var(--ink);color:var(--page);border-radius:12px;border:0}
 .sc-tot .sc-l{color:#E2C277;flex:0 0 auto}
 .sc-tv{display:grid;text-align:left!important}

@@ -50,7 +50,12 @@ ok('tapping Ray V opens his card for the round being played', [await p.locator('
 const labels = async () => (await p.locator('.sc-nine').first().locator('.sc-r .sc-l').allInnerTexts()).map(t => t.toUpperCase());
 const col = async (h, sel) => (await p.locator(`.sc-gross .sc-c[data-h="${h}"]`).first().evaluate((e, sel) => sel ? e.querySelector(sel) && e.querySelector(sel).textContent.trim() : e.className, sel));
 ok('holes run across, the nines one under the other, eighteen cells with nine filled', [await p.locator('.sc-nine').count(), await p.locator('.sc-gross .sc-c').count(), await p.locator('.sc-gross .sc-c.has').count()], [2, 18, 9]);
-ok('a row each for the hole, par, index and metres, then gross and net', await labels(), ['HOLE', 'PAR', 'INDEX', 'METRES', 'GROSS', 'NET']);
+ok('a row each for the hole, par, index and metres, then gross, net and the team game’s points', await labels(), ['HOLE', 'PAR', 'INDEX', 'METRES', 'GROSS', 'NET', 'PTS']);
+/* the team game plays off 85% of the handicap: 20 becomes 17, one stroke a hole on index 1–17 and none on 18 */
+const tst = (hcp, si) => { const h = Math.round(hcp * 0.85); return Math.floor(h / 18) + (si <= h % 18 ? 1 : 0); };
+const pts = (gross, hcp, i) => Math.max(0, 2 + course.par[i] - (gross - tst(hcp, course.si[i])));
+ok('the points row: the 2nd, a gross 2 off 17, is a birdie or better', await p.locator('.sc-pts .sc-c[data-h="2"] b').first().innerText(), String(pts(2, 20, 1)));
+ok('and the 5th, a 9, is nought — no cap needed', await p.locator('.sc-pts .sc-c[data-h="5"] b').first().innerText(), String(pts(9, 20, 4)));
 const st2 = course.si[1] <= 2 ? 2 : 1;
 ok('the 2nd: the gross with a dot a stroke received, and the net under it', [await col(2, 'b'), (await col(2, '.sc-dots')).length, await p.locator('.sc-net .sc-c[data-h="2"] b').first().innerText()], ['2', st2, String(2 - st2)]);
 ok('and a birdie wears a circle', (await col(2)).includes(course.par[1] - 2 >= 2 ? 'g2' : 'g1'), true);
@@ -59,7 +64,7 @@ ok('the capped 9 on the 5th wears two squares, says it was capped, and nets off 
 ok('the marks sit in the corner of the cell: water and a three-putt on the 5th', await col(5, 'i'), '≈3·');
 const grossOut = [4, 2, 6, 4, 9, 4, 5, 3, 4].reduce((a, v) => a + v, 0);
 ok('the front nine adds up at the end of the row', await p.locator('.sc-nine').first().locator('.sc-gross .sc-t').innerText(), String(grossOut));
-ok('the tile says the round so far, gross and net', /^Ray V · hcp 20 \d+ gross [+−E]\d* · net [+−E]\d* · thru 9$/i.test(await text('.cs-tile')), true);
+ok('the tile says the round so far, gross and net, and the handicap he plays off in the team game', /^Ray V · hcp 20 · team 17 \d+ gross [+−E]\d* · net [+−E]\d* · thru 9$/i.test(await text('.cs-tile')), true);
 ok('the mulligan spent is noted', /front mulligan/.test(await text('.cs-key')), true);
 await shot('card-ray');
 ok('Ray V has a practice card too, offered as a tab', await p.locator('.cs-rounds button').allInnerTexts(), ['Practice', 'Round 1']);
@@ -70,10 +75,11 @@ await shut();
 console.log('\nfrom the Team board');
 await p.evaluate(() => { window.__UI.boardTab = 'pairs'; window.__UI.boardRound = 'r1'; window.__forceRender(); }); await p.waitForTimeout(300); await shut();
 await tap('.bdr.pairs .namebtn:has-text("Ray V & Drea")');
-ok('a team opens both cards on one sheet: a gross and net row each, then the better ball', [await p.locator('.cardsheet.two').count(), await labels()],
-  [1, ['HOLE', 'PAR', 'INDEX', 'METRES', 'RV', 'NET', 'D', 'NET', 'BEST']]);
-ok('with the better ball picked out on each hole', await p.locator('.sc-best .sc-c[data-h="1"] b').first().innerText(), String(Math.min(4 - (course.si[0] <= 2 ? 2 : 1), 5 - (course.si[0] <= 7 ? 2 : 1))));
-ok('and a hole only one of them has played takes that one', await p.locator('.sc-best .sc-c[data-h="7"] b').first().innerText(), String(5 - (course.si[6] <= 2 ? 2 : 1)));
+ok('a team opens both cards on one sheet: gross, net and points a golfer, then the team’s points', [await p.locator('.cardsheet.two').count(), await labels()],
+  [1, ['HOLE', 'PAR', 'INDEX', 'METRES', 'RV', 'NET', 'PTS', 'D', 'NET', 'PTS', 'TEAM']]);
+ok('the team takes the better partner’s points on each hole', await p.locator('.sc-best .sc-c[data-h="1"] b').first().innerText(), String(Math.max(pts(4, 20, 0), pts(5, 25, 0))));
+ok('and a hole only one of them has played takes that one', await p.locator('.sc-best .sc-c[data-h="7"] b').first().innerText(), String(pts(5, 20, 6)));
+ok('the total bar adds the team’s points up', /^Team \d+ pts better partner, each hole$/.test(await text('.sc-tv.team')), true);
 await shot('card-pair');
 ok('the card fits a phone without sideways scroll', await p.evaluate(() => [...document.querySelectorAll('.sc-nine')].every(t => t.scrollWidth <= t.clientWidth + 1 && t.getBoundingClientRect().right <= innerWidth)), true);
 await shut();
@@ -86,7 +92,7 @@ await shut();
 await p.evaluate(() => { window.__UI.recapOpen = true; window.__UI.recap = { rid: 'r1', busy: false, err: '', stream: '', edit: false, view: 'report' }; window.__forceRender(); }); await p.waitForTimeout(500);
 await tap('.recfield .namebtn:has-text("Drea")');
 ok('and Every card in the recap opens that golfer’s', await text('.cardsheet .mbanner'), 'Drea ROUND 1 · CULLINAN OLYMPOS · WHITE TEES · THU 29 OCT · LIVE');
-ok('with her handicap and how far she is on the tile', /^Drea · hcp 25 \d+ gross .* · thru 6$/i.test(await text('.cs-tile')), true);
+ok('with her handicap and how far she is on the tile', /^Drea · hcp 25 · team 21 \d+ gross .* · thru 6$/i.test(await text('.cs-tile')), true);
 await shut();
 
 ok('no errors on the way', errs, []);

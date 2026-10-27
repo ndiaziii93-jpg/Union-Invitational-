@@ -66,6 +66,7 @@ export function defaultConfig() {
   return {
     v: 3,
     capOver: 3,
+    teamAllowance: 85,      // the USGA's four-ball Stableford allowance: each partner plays off 85% of their handicap
     courses,
     people,
     pairs: PAIRS.map(p => ({ ...p, members: [...p.members] })),

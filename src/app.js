@@ -213,8 +213,8 @@ function holeStrip(rid, sel, act, pair) {
   return `<div class="strip">` + holes.map((hole, i) => {
     let k = '';
     if (pair) {
-      const s = E.pairHole(T, rid, pair, i);
-      if (s != null) { const d = s - hole.par; k = d < 0 ? ' u' : d > 0 ? ' o' : ' e'; }
+      const pts = E.pairPts(T, rid, pair, i);
+      if (pts != null) k = pts > 2 ? ' u' : pts < 2 ? ' o' : ' e';
     } else {
       const any = E.golfers(T).some(g => { const c = E.card(T, rid, g.id); return c && c.raw[i] != null; });
       if (any) k = holeSavedBy(rid, i) ? ' played saved' : ' played';
@@ -507,21 +507,23 @@ function boardPairs() {
   const totalOf = id => { const row = board.find(x => x.id === id); return row ? row : null; };
 
   const onHole = T.config.pairs.map(p => {
-    const sc = E.pairHole(T, rid, p, h);
+    const pts = E.pairPts(T, rid, p, h), sc = E.pairHole(T, rid, p, h);
     const tot = totalOf(p.id);
-    return { name: E.pairName(T, p), net: sc, d: sc == null ? null : sc - hole.par, tot };
-  }).filter(x => x.net != null).sort((a, b) => a.net - b.net);
+    const each = p.members.map(id => { const g = E.person(T, id); const v = E.playerPts(T, rid, id, h); return g && v != null ? initialsOf(g.display) + ' ' + v : null; }).filter(Boolean).join(' · ');
+    return { name: E.pairName(T, p), pts, net: sc, each, tot };
+  }).filter(x => x.pts != null).sort((a, b) => b.pts - a.pts);
 
   let thru = 0;
-  for (const p of T.config.pairs) for (let i = 0; i < 18; i++) if (E.pairHole(T, rid, p, i) != null) thru = Math.max(thru, i + 1);
+  for (const p of T.config.pairs) for (let i = 0; i < 18; i++) if (E.pairPts(T, rid, p, i) != null) thru = Math.max(thru, i + 1);
+  const ptsCls = n => n == null ? '' : n > 2 ? 'under' : n < 2 ? 'over' : 'level';
 
   return `
   <div class="titlerow"><h2 class="head">Team Competition</h2><button class="rulelink" data-act="goRule" data-a="pairs">Full rules</button></div>
 
   ${leadPlate({ eyebrow: 'Leading \u00B7 ' + (r.short === 'Practice' ? 'Practice' : 'Round ' + r.short.slice(1)),
     live, who: board.length ? board[0].name : null,
-    fig: board.length ? board[0].totalStr : '', tone: board.length ? E.toneOf(board[0].total) : '',
-    cells: [board.length > 1 ? ['Ahead by', String(Math.abs(board[1].total - board[0].total))] : null,
+    fig: board.length ? board[0].totalStr + ' pts' : '', tone: 'pts',
+    cells: [board.length > 1 ? ['Ahead by', String(Math.abs(board[1].total - board[0].total)) + ' pts'] : null,
             board.length && board[0].thru ? ['Through', String(board[0].thru)] : null,
             board.length ? ['Raw', board[0].gTotalStr] : null] })}
 
@@ -529,16 +531,16 @@ function boardPairs() {
 
   ${board.length ? `<div class="bd">
     <div class="bdh pairs"><span>Pos</span><span>Team</span>
-      <span>Thru</span><span>Today<small class="rawh">net · raw</small></span><span>Total<small class="rawh">net · raw</small></span><span>Gap</span></div>
+      <span>Thru</span><span>Today<small class="rawh">pts · raw</small></span><span>Total<small class="rawh">pts · raw</small></span><span>Back</span></div>
     ${board.map((x, i) => `<div class="bdr pairs${i === 0 ? ' lead' : ''}">
       <span class="p num">${x.pos}</span>
       <button class="w namebtn" data-act="pairCardOpen" data-a="${esc(x.id)}" data-b="${esc(rid)}">${esc(x.name)}</button>
       <span class="n num">${esc(x.thruStr)}</span>
-      <span class="n num ${cls(x.today)}">${esc(x.todayStr)}${x.today == null ? '' : `<small class="rawv">${esc(x.gTodayStr)}</small>`}</span>
-      <span class="t num ${cls(x.total)}">${esc(x.totalStr)}<small class="rawv">${esc(x.gTotalStr)}</small></span>
+      <span class="n num">${esc(x.todayStr)}${x.today == null ? '' : `<small class="rawv">${esc(x.gTodayStr)}</small>`}</span>
+      <span class="t num pts">${esc(x.totalStr)}<small class="rawv">${esc(x.gTotalStr)}</small></span>
       <span class="g num">${esc(x.gapStr)}</span></div>`).join('')}
   </div>
-  <p class="legend">Total is the tournament to par across the counting rounds. The big number is net, with each band’s strokes; the small one under it is raw, the strokes as written. Gap is how far back of the leader, net.</p>`
+  <p class="legend">Four-ball Stableford. Each partner scores every hole against par with ${E.teamAllowance(T)}% of their handicap taken off: net bogey 1 point, par 2, birdie 3, eagle 4, anything worse than bogey nought. The better partner’s points count on each hole, and the big number is the team’s points across the counting rounds — the more the better. The small figure under it is raw, the better ball’s strokes as written against par. Back is how many points behind the leader.</p>`
   : `<p class="empty">The championship board opens once a counting round is under way.</p>`}
 
   ${/* THE HOLE IS REFERENCE, AND REFERENCE GOES AFTER THE ANSWER. All of it
@@ -558,31 +560,31 @@ function boardPairs() {
             <tr><td>Par</td><td>${hole.par}</td></tr>
             <tr><td>Length, White tees</td><td>${hole.mW} m</td></tr>
             <tr><td>Stroke index</td><td>${hole.si}</td></tr>
-            <tr><td>Handicap 15 receives</td><td>${E.strokesFor(15, hole.si)}</td></tr>
-            <tr><td>Handicap 20 receives</td><td>${E.strokesFor(20, hole.si)}</td></tr>
-            <tr><td>Handicap 25 receives</td><td>${E.strokesFor(25, hole.si)}</td></tr>
+            <tr><td>Handicap 15 receives</td><td>${E.strokesFor(15, hole.si)}<small class="rawv">team game ${E.teamStrokesFor(T, 15, hole.si)}</small></td></tr>
+            <tr><td>Handicap 20 receives</td><td>${E.strokesFor(20, hole.si)}<small class="rawv">team game ${E.teamStrokesFor(T, 20, hole.si)}</small></td></tr>
+            <tr><td>Handicap 25 receives</td><td>${E.strokesFor(25, hole.si)}<small class="rawv">team game ${E.teamStrokesFor(T, 25, hole.si)}</small></td></tr>
             <tr class="cap"><td>Picks up at</td><td>${E.capFor(hole.par, T.config.capOver)}</td></tr>
           </tbody></table>
           ${IMG[hole.img] ? `<figure class="diagram"><img decoding="sync" src="${IMG[hole.img]}" alt="Diagram of hole ${hole.n} at ${esc(course.name)}" loading="lazy"></figure>` : ''}
         </div>
         <div class="leaf-r">
-          <div class="eyebrow">Teams on this hole — Net Better Ball</div>
+          <div class="eyebrow">Teams on this hole — Stableford points</div>
           ${/* Sized by class rather than by inline widths: inside the fold the
                 column is narrower than the page it used to sit on, and four
                 fixed numeric columns squeezed "Norberto III & Norberto Jr."
                 down to one word a line. */ ''}
           <div class="bd oh">
             <div class="bdh oh"><span>Pos</span><span>Team</span>
-              <span>Net</span><span>Hole</span><span>Total</span></div>
+              <span>Each</span><span>Pts</span><span>Total</span></div>
             ${onHole.length ? onHole.map((x, i) => `<div class="bdr oh">
               <span class="p num">${i + 1}</span>
               <span class="w">${esc(x.name)}</span>
-              <span class="n num">${x.net}</span>
-              <span class="n num ${cls(x.d)}">${esc(E.fmtToPar(x.d))}</span>
-              <span class="t num ${x.tot ? cls(x.tot.total) : ''}">${x.tot ? esc(x.tot.totalStr) : '—'}</span></div>`).join('')
+              <span class="n num"><small>${esc(x.each)}</small></span>
+              <span class="n num ${ptsCls(x.pts)}">${x.pts}</span>
+              <span class="t num">${x.tot ? esc(x.tot.totalStr) : '—'}</span></div>`).join('')
             : `<p class="empty">Nobody has played hole ${hole.n} yet.</p>`}
           </div>
-          <p class="legend">Net = team\u2019s better ball, strokes applied. Hole = that score against par.</p>
+          <p class="legend">Each = what each partner scored here, in points. Pts = the better of the two, the team\u2019s for the hole. Total = the team\u2019s points for the week.</p>
         </div>
       </div>
     </div>
@@ -1168,6 +1170,10 @@ function recapPanel() {
   const at = Math.min(UI.recapSlide || 0, Math.max(slides.length - 1, 0));
   const field = E.recapField(T, rid);
   const fmt = n => n == null ? '—' : E.fmtToPar(n);
+  /* the individual race and the day's bingo, both read off the same boards */
+  const mvpRace = r.counts ? E.mvpBoard(T, now).map(x => { const f = field.find(y => y.id === x.id); return { ...x, today: f ? f.net : null, todayRaw: f ? f.raw : null }; }) : [];
+  const bbbWeek = E.bbbBoard(T);
+  const bbbDay = E.bbbRoundBoard(T, rid).map(x => { const w = bbbWeek.find(y => y.id === x.id); return { ...x, week: w ? w.pts : null }; });
   const shots = st.field;
   const top = table && table[0];
 
@@ -1194,11 +1200,11 @@ function recapPanel() {
     </div>
     <div class="rtiles">
       <div class="rtile"><span class="rt-l">Leading pair</span>
-        <b class="g num">${top && top.today != null ? esc(E.fmtToPar(top.today)) : '—'}<small>net</small></b>
+        <b class="g num">${top && top.today != null ? esc(String(top.today)) : '—'}<small>pts</small></b>
         ${top && top.todayRaw != null ? `<em class="num">${esc(E.fmtToPar(top.todayRaw))} raw</em>` : ''}
         <span class="rt-n">${top ? esc(top.name) : '—'}</span></div>
       <div class="rtile"><span class="rt-l">Swing of the day</span>
-        <b class="num">${sw ? sw.shots : '—'}<small>${sw ? (sw.shots === 1 ? 'shot' : 'shots') : ''}</small></b>
+        <b class="num">${sw ? sw.shots : '—'}<small>${sw ? (sw.shots === 1 ? 'point' : 'points') : ''}</small></b>
         <span class="rt-n">${sw ? 'Holes ' + sw.fromHole + '–' + sw.toHole : 'Not yet'}</span></div>
       <div class="rtile"><span class="rt-l">Cards in</span>
         <b class="num">${st.inCards}<small>of ${st.field}</small></b>
@@ -1237,7 +1243,7 @@ function recapPanel() {
         banded masthead, then a dateline, then a kicker, then the headline —
         and the reason is that it tells you what you are looking at before
         you have read a word. */ ''}
-  <p class="metaline"><b>${esc(course.name)}</b> · ${esc(day.dow)} ${esc(day.date)} · ${esc(r.counts ? 'Better ball, net' : 'Practice, counts for nothing')} · ${shots} player${shots === 1 ? '' : 's'}, ${st.pairs} pair${st.pairs === 1 ? '' : 's'}</p>
+  <p class="metaline"><b>${esc(course.name)}</b> · ${esc(day.dow)} ${esc(day.date)} · ${esc(r.counts ? 'Four-ball Stableford' : 'Practice, counts for nothing')} · ${shots} player${shots === 1 ? '' : 's'}, ${st.pairs} pair${st.pairs === 1 ? '' : 's'}</p>
 
   ${UI.recap.err ? `<p class="askerr" style="margin-top:14px">${esc(UI.recap.err)}</p>` : ''}
   ${UI.upload.err ? `<p class="askerr" style="margin-top:14px">${esc(UI.upload.err)}
@@ -1273,7 +1279,7 @@ function recapPanel() {
     <aside class="recapside">
       ${sw ? `<div class="swing">
         <div class="sw-l">Swing of the day</div>
-        <div class="sw-v num">${sw.shots} shot${sw.shots === 1 ? '' : 's'}</div>
+        <div class="sw-v num">${sw.shots} point${sw.shots === 1 ? '' : 's'}</div>
         <div class="sw-c">${editing ? `<input class="field recedit one" data-act="recapEdit" data-a="swing"
           aria-label="Swing of the day caption" value="${esc((body.swing && body.swing.caption) || '')}">`
           : body && body.swing && body.swing.caption ? esc(body.swing.caption)
@@ -1284,7 +1290,7 @@ function recapPanel() {
 
   <div class="ribwrap">
     <div class="ribhead"><span>Leaders' hole by hole</span>
-      <span class="riblegend"><i class="rl under"></i>under <i class="rl level"></i>level <i class="rl over"></i>over</span></div>
+      <span class="riblegend"><i class="rl under"></i>3 pts or more <i class="rl level"></i>2 <i class="rl over"></i>1 or none</span></div>
     <div class="scroller nos"><div class="ribbon">
       ${rib.map(c => `<div class="ribcell ${c.d == null ? '' : c.d < 0 ? 'under' : c.d > 0 ? 'over' : 'level'}">
         <span class="num">${c.n}</span></div>`).join('')}
@@ -1297,19 +1303,19 @@ function recapPanel() {
           the figures can be centred in their own column rather than flung to
           the far side of a sheet that is nine hundred pixels wide. */ ''}
     <div class="rowhead"><span class="rt-pos"></span><span class="rt-who">Pair</span>
-      <span class="rt-n">Today<small class="rawh">net · raw</small></span>
-      ${r.counts ? '<span class="rt-t">Total<small class="rawh">net · raw</small></span>' : ''}</div>
+      <span class="rt-n">Today<small class="rawh">pts · raw</small></span>
+      ${r.counts ? '<span class="rt-t">Total<small class="rawh">pts · raw</small></span>' : ''}</div>
     ${table.length ? table.map(x => `<div class="row${x.pos === 1 ? ' lead' : ''}">
       <span class="pos rt-pos">${x.pos}</span>
       <span class="who rt-who">${esc(x.name)}${editing
         ? `<input class="field recedit one" data-act="recapEdit" data-a="note" data-b="${esc(x.id)}"
             aria-label="Note on ${esc(x.name)}" placeholder="A line about this pair…" value="${esc(pairNote(x.id))}">`
         : pairNote(x.id) ? `<small>${esc(pairNote(x.id))}</small>` : ''}</span>
-      <span class="num rt-n ${cls(x.today)}">${esc(fmt(x.today))}${x.todayRaw == null ? '' : `<small class="rawv">${esc(fmt(x.todayRaw))}</small>`}</span>
-      ${r.counts ? `<span class="num rt-t ${cls(x.total)}">${esc(fmt(x.total))}${x.totalRaw == null ? '' : `<small class="rawv">${esc(fmt(x.totalRaw))}</small>`}</span>` : ''}
+      <span class="num rt-n">${x.today == null ? '—' : x.today}${x.todayRaw == null ? '' : `<small class="rawv">${esc(fmt(x.todayRaw))}</small>`}</span>
+      ${r.counts ? `<span class="num rt-t pts">${x.total == null ? '—' : x.total}${x.totalRaw == null ? '' : `<small class="rawv">${esc(fmt(x.totalRaw))}</small>`}</span>` : ''}
     </div>`).join('') : '<p class="empty">No cards in yet.</p>'}
   </div>
-  ${r.counts ? '' : '<p class="legend">The practice day counts for nothing, so there is no running total. Net is with each band’s strokes and the triple-bogey cap; raw is the strokes as written.</p>'}
+  <p class="legend">${r.counts ? 'Four-ball Stableford: the better partner’s points on each hole, off ' + E.teamAllowance(T) + '% of each handicap — the more the better. ' : 'The practice day counts for nothing, so there is no running total. '}Under each figure is raw, the better ball’s strokes as written against par.</p>
 
   <h3 class="sub">Every card</h3>
   ${field.length ? `<div class="rows rectable recfield" style="margin-top:8px">
@@ -1324,6 +1330,29 @@ function recapPanel() {
   </div>
   <p class="legend">${r.counts ? 'In order of net to par, as the MVP is decided.' : 'In order of raw to par, as the practice day is scored.'} Strokes are the total as written; raw is that against par; net takes off each band’s strokes and caps any hole at triple bogey.</p>`
   : '<p class="empty">No cards in yet.</p>'}
+
+  ${r.counts && mvpRace.length ? `<h3 class="sub">MVP race</h3>
+  <div class="rows rectable recmvp" style="margin-top:8px">
+    <div class="rowhead"><span class="rt-pos"></span><span class="rt-who">Golfer</span>
+      <span class="rt-n">Today<small class="rawh">net · raw</small></span><span class="rt-t">Week<small class="rawh">net · raw</small></span></div>
+    ${mvpRace.map(x => `<div class="row${x.pos === 1 ? ' lead' : ''}">
+      <span class="pos rt-pos">${x.pos}</span>
+      <button class="who rt-who namebtn" data-act="cardOpen" data-a="${esc(x.id)}" data-b="${esc(rid)}">${esc(x.name)}<small>${x.band != null ? 'hcp ' + x.band : 'no handicap'}${x.gap ? ' · ' + x.gapStr + ' back' : x.pos === 1 ? ' · leads' : ''}</small></button>
+      <span class="num rt-n ${cls(x.today)}">${esc(fmt(x.today))}${x.todayRaw == null ? '' : `<small class="rawv">${esc(fmt(x.todayRaw))}</small>`}</span>
+      <span class="num rt-t ${cls(x.total)}">${esc(x.totalStr)}<small class="rawv">${esc(x.gTotalStr)}</small></span></div>`).join('')}
+  </div>
+  <p class="legend">The week’s individual standing after this round: lowest net to par across the counting rounds, off the full handicap. Today is this round alone.</p>` : ''}
+
+  ${bbbDay.length ? `<h3 class="sub">Bingo Bango Bongo${r.counts ? '' : ' — practice'}</h3>
+  <div class="rows rectable recbbb" style="margin-top:8px">
+    <div class="rowhead"><span class="rt-pos"></span><span class="rt-who">Golfer</span>
+      <span class="rt-n">Today</span>${r.counts ? '<span class="rt-t">Week</span>' : ''}</div>
+    ${bbbDay.map(x => `<div class="row${x.pos === 1 ? ' lead' : ''}">
+      <span class="pos rt-pos">${x.pos}</span>
+      <span class="who rt-who">${esc(x.name)}<small>${x.bingo} bingo · ${x.bango} bango · ${x.bongo} bongo</small></span>
+      <span class="num rt-n">${x.pts}</span>${r.counts ? `<span class="num rt-t">${x.week == null ? '—' : x.week}</span>` : ''}</div>`).join('')}
+  </div>
+  <p class="legend">Points banked today: first on the green, closest once everyone is on, first in the hole. ${r.counts ? 'Week is the running total across the counting rounds.' : 'The practice day’s points count for nothing.'}</p>` : ''}
 
   <div class="recapcols">
     <div>
@@ -1753,7 +1782,7 @@ function boardChat(inSheet) {
       ${esc(roomName(id))}<small>${d ? esc(d.dow.slice(0, 3) + ' ' + d.date) : 'Everything else'}${n ? ' · ' + n : ''}</small></button>`; }).join('')}</div>
   ${isRound ? `<div class="ch-plate"><span><b>${esc(roomName(room))} · ${esc(E.phaseLabel(ph))}</b>
       ${lead ? `${esc(lead.name)} lead${lead.thru < 18 ? ' · thru ' + lead.thru : ''}` : 'No scores in yet'}</span>
-      ${lead ? `<em class="num">${esc(E.fmtToPar(lead.today))}</em>` : ''}</div>` : ''}
+      ${lead ? `<em class="num">${esc(String(lead.today))} pts</em>` : ''}</div>` : ''}
   <div class="ch-post">
     ${reMoment ? `<div class="ch-re"><span>Heckling: <b>${esc(reMoment.title)}</b></span><button data-act="chatHeckle" data-a="" aria-label="Stop heckling">✕</button></div>` : ''}
     ${replyTo ? `<div class="ch-re ch-reply"><span>↩ Replying to <b>${esc(replyTo.name || nameOf(replyTo.pid))}</b>: “${esc(replyTo.text.length > 60 ? replyTo.text.slice(0, 58) + '…' : replyTo.text)}”</span><button data-act="chatReply" data-a="" aria-label="Stop replying">✕</button></div>` : ''}
@@ -3664,7 +3693,7 @@ const RULING_ASK = {
 };
 const RULING_CAP = 15;           // questions a phone a day; the commissioner is never counted
 const RULING_RULES = [
-  'You are the Rules Official for the Union Invitational, a golf trip of friends playing net better-ball in Belek, Türkiye.',
+  'You are the Rules Official for the Union Invitational, a golf trip of friends in Belek, Türkiye, playing four-ball Stableford for the teams and net stroke play for the MVP.',
   'A ref or a player is asking mid-round, standing at the ball. Answer from the Rules of Golf in force (the R&A and USGA rules, 2023 edition),',
   'and apply the Union’s house rules below, which come first where they differ. Be exact about the Rules and their numbers. If the answer turns',
   'on something you are not told (the colour of the stakes, where the ball crossed, a Local Rule), say so in a few words and give each case.',
@@ -3914,6 +3943,8 @@ function scrEntry() {
     const capped = raw != null && raw >= cap;
     const c = E.card(T, rid, g.id);
     const tp = E.roundToPar(T, rid, g.id);
+    const rdef = E.roundDef(rid) || {};
+    const pts = rdef.counts && raw != null && g.band != null ? E.stablefordPts(raw - E.teamStrokesFor(T, g.band, hole.si), hole.par) : null;
     const pending = UI.draft && UI.draft.rid === rid && UI.draft.hole === h && (g.id in UI.draft.strokes)
       && UI.draft.strokes[g.id] !== (c ? c.raw[h] : null);
     const spent = [c && c.mF ? 'front mulligan used' : '', c && c.mB ? 'back mulligan used' : '', h === 0 && c && c.bb ? 'breakfast ball used' : ''].filter(Boolean);
@@ -3924,7 +3955,7 @@ function scrEntry() {
         <div class="pwho">
           <div class="nm">${esc(g.display)}${pending ? '<span class="tag">unsaved</span>' : ''}</div>
           <div class="bd num">hcp ${g.band != null ? g.band : '\u2014'} <span>${st == null ? '\u00b7' : '+' + st + ' here'}</span>${
-            net != null ? ' \u00b7 net ' + net : ''}${tp.thru ? ' \u00b7 ' + esc(E.fmtToPar(tp.tp)) + ' thru ' + tp.thru : ''}${
+            net != null ? ' \u00b7 net ' + net : ''}${pts != null ? ' \u00b7 <b>' + pts + ' pt' + (pts === 1 ? '' : 's') + '</b>' : ''}${tp.thru ? ' \u00b7 ' + esc(E.fmtToPar(tp.tp)) + ' thru ' + tp.thru : ''}${
             capped ? ' \u00b7 <em class="capped">picked up</em>' : ''}${spent.length ? ' \u00b7 ' + spent.join(', ') : ''}</div>
           ${canAskRuling() ? `<button class="rl-btn" data-act="ruleOpen" data-a="${g.id}" aria-label="Ask for a ruling for ${esc(g.display)} on hole ${hole.n}">⚖️ Ruling</button>` : ''}
         </div>
@@ -4735,15 +4766,17 @@ function cardRows(rid, pid) {
     const raw = c.raw[h] == null ? null : c.raw[h], st = E.strokesFor(g.band, hole.si);
     const cap = E.capFor(hole.par, T.config.capOver), gross = raw == null ? null : Math.min(raw, cap);
     const net = gross == null || st == null ? null : gross - st;
-    return { n: hole.n, par: hole.par, si: hole.si, st, raw, gross, net, capped: raw != null && raw > cap, marks: E.holeMarks(T, rid, pid, h) };
+    const pts = E.playerPts(T, rid, pid, h);
+    return { n: hole.n, par: hole.par, si: hole.si, st, raw, gross, net, pts, capped: raw != null && raw > cap, marks: E.holeMarks(T, rid, pid, h) };
   });
   const sum = (from, to, k) => rows.slice(from, to).reduce((a, r) => a + (r[k] == null ? 0 : r[k]), 0);
   const thru = rows.reduce((a, r, i) => (r.gross != null ? i + 1 : a), 0);
   /* Gross adds up the strokes as written, so a nine is a nine in the total as
      it is on the hole; net is off the capped score, as every board has it. */
   const part = (from, to) => { const played = rows.slice(from, to).filter(r => r.gross != null); return { par: sum(from, to, 'par'), parPlayed: played.reduce((a, r) => a + r.par, 0), st: sum(from, to, 'st'),
-    gross: played.length ? sum(from, to, 'raw') : null, net: played.length && played.every(r => r.net != null) ? sum(from, to, 'net') : null, played: played.length }; };
-  return { rows, thru, out: part(0, 9), back: part(9, 18), all: part(0, 18), c, g };
+    gross: played.length ? sum(from, to, 'raw') : null, net: played.length && played.every(r => r.net != null) ? sum(from, to, 'net') : null,
+    pts: played.length && played.every(r => r.pts != null) ? sum(from, to, 'pts') : null, played: played.length }; };
+  return { rows, thru, out: part(0, 9), back: part(9, 18), all: part(0, 18), c, g, teamHcp: E.playingHcp(g.band, E.teamAllowance(T)) };
 }
 const toParOf = (v, par) => v == null ? '—' : E.fmtToPar(v - par);
 function cardRoundsOf(pid) {
@@ -4770,7 +4803,9 @@ function cardSheetHtml() {
   const glyph = (gross, par) => gross == null ? '' : gross - par <= -2 ? ' g2' : gross - par === -1 ? ' g1' : gross === par ? '' : gross - par === 1 ? ' b1' : ' b2';
   const grossCell = row => `<span class="sc-c${row.raw == null ? '' : ' has'}${glyph(row.gross, row.par)}${row.capped ? ' capped' : ''}" data-h="${row.n}">${row.st ? `<em class="sc-dots" aria-label="${row.st} stroke${row.st === 1 ? '' : 's'}">${'•'.repeat(Math.min(row.st, 3))}</em>` : ''}<b class="num">${row.raw == null ? '' : row.raw}</b>${row.marks.length ? `<i>${row.marks.map(k => MARK_GLYPH[k] || '').join('')}</i>` : ''}</span>`;
   const netCell = row => `<span class="sc-c sc-nc${row.net == null ? '' : ' has'}" data-h="${row.n}"><b class="num">${row.net == null ? '' : row.net}</b></span>`;
-  const bestOf = i => { const ns = cards.map(x => x.rows[i].net).filter(v => v != null); return ns.length ? Math.min(...ns) : null; };
+  /* a team's row is its Stableford points: the better partner's on each hole */
+  const bestOf = i => { const ns = cards.map(x => x.rows[i].pts).filter(v => v != null); return ns.length ? Math.max(...ns) : null; };
+  const ptsCell = row => `<span class="sc-c sc-pc${row.pts == null ? '' : ' has'}${row.pts != null && row.pts > 2 ? ' up' : row.pts != null && row.pts < 2 ? ' dn' : ''}" data-h="${row.n}"><b class="num">${row.pts == null ? '' : row.pts}</b></span>`;
   const nine = (from, k, label) => {
     const idx = Array.from({ length: 9 }, (_, i) => from + i), rows0 = cards[0].rows;
     const bestSum = pair ? idx.reduce((a, i) => { const v = bestOf(i); return v == null ? a : (a == null ? 0 : a) + v; }, null) : null;
@@ -4780,8 +4815,9 @@ function cardSheetHtml() {
       <div class="sc-r sc-si"><span class="sc-l">Index</span>${idx.map(i => `<span class="num">${rows0[i].si}</span>`).join('')}<span class="sc-t"></span></div>
       <div class="sc-r sc-yds"><span class="sc-l">Metres</span>${idx.map(i => `<span class="num">${course.holes[i].mW}</span>`).join('')}<span class="sc-t num">${idx.reduce((a, i) => a + (course.holes[i].mW || 0), 0)}</span></div>
       ${cards.map(x => `<div class="sc-r sc-gross"><span class="sc-l">${pair ? esc(initialsOf(x.g.display)) : 'Gross'}</span>${idx.map(i => grossCell(x.rows[i])).join('')}<span class="sc-t num">${x[k].gross == null ? '' : x[k].gross}</span></div>
-        <div class="sc-r sc-net"><span class="sc-l">${pair ? 'net' : 'Net'}</span>${idx.map(i => netCell(x.rows[i])).join('')}<span class="sc-t num">${x[k].net == null ? '' : x[k].net}</span></div>`).join('')}
-      ${pair ? `<div class="sc-r sc-best"><span class="sc-l">Best</span>${idx.map(i => { const v = bestOf(i); return `<span class="sc-c sc-bc${v == null ? '' : ' has'}" data-h="${rows0[i].n}"><b class="num">${v == null ? '' : v}</b></span>`; }).join('')}<span class="sc-t num">${bestSum == null ? '' : bestSum}</span></div>` : ''}
+        <div class="sc-r sc-net"><span class="sc-l">${pair ? 'net' : 'Net'}</span>${idx.map(i => netCell(x.rows[i])).join('')}<span class="sc-t num">${x[k].net == null ? '' : x[k].net}</span></div>
+        ${pair || r.counts ? `<div class="sc-r sc-pts"><span class="sc-l">${pair ? 'pts' : 'Pts'}</span>${idx.map(i => ptsCell(x.rows[i])).join('')}<span class="sc-t num">${x[k].pts == null ? '' : x[k].pts}</span></div>` : ''}`).join('')}
+      ${pair ? `<div class="sc-r sc-best"><span class="sc-l">Team</span>${idx.map(i => { const v = bestOf(i); return `<span class="sc-c sc-bc${v == null ? '' : ' has'}" data-h="${rows0[i].n}"><b class="num">${v == null ? '' : v}</b></span>`; }).join('')}<span class="sc-t num">${bestSum == null ? '' : bestSum}</span></div>` : ''}
     </div>`;
   };
   const spent = cards.map(x => [x.c.bb ? 'breakfast ball' : '', x.c.mF ? 'front mulligan' : '', x.c.mB ? 'back mulligan' : ''].filter(Boolean)).map((l, i) => l.length ? (pair ? cards[i].g.display + ': ' : '') + l.join(', ') : '').filter(Boolean);
@@ -4789,10 +4825,11 @@ function cardSheetHtml() {
     <span class="ps-grab dark" aria-hidden="true"><i></i></span>${modalBanner(title, sub)}
     <div class="ps-body cs-body">
       ${rounds.length > 1 ? `<div class="cs-rounds nos">${rounds.map(id => `<button class="${id === rid ? 'on' : ''}" data-act="cardRound" data-a="${id}">${esc(roomName(id))}</button>`).join('')}</div>` : ''}
-      <div class="cs-tiles">${cards.map((x, i) => `<div class="cs-tile"><span>${esc(x.g.display)}${x.g.band != null ? ' · hcp ' + x.g.band : ' · no handicap'}</span><b class="num">${x.all.gross == null ? '—' : x.all.gross}</b><small>${tp[i] ? 'gross ' + E.fmtToPar(tp[i][0]) + (tp[i][1] != null ? ' · net ' + E.fmtToPar(tp[i][1]) : '') : 'no holes yet'}${x.thru && x.thru < 18 ? ' · thru ' + x.thru : x.thru === 18 ? ' · 18 holes' : ''}</small></div>`).join('')}</div>
+      <div class="cs-tiles">${cards.map((x, i) => `<div class="cs-tile"><span>${esc(x.g.display)}${x.g.band != null ? ' · hcp ' + x.g.band + (pair || r.counts ? ' · team ' + x.teamHcp : '') : ' · no handicap'}</span><b class="num">${x.all.gross == null ? '—' : x.all.gross}</b><small>${tp[i] ? 'gross ' + E.fmtToPar(tp[i][0]) + (tp[i][1] != null ? ' · net ' + E.fmtToPar(tp[i][1]) : '') : 'no holes yet'}${x.thru && x.thru < 18 ? ' · thru ' + x.thru : x.thru === 18 ? ' · 18 holes' : ''}</small></div>`).join('')}</div>
       <div class="sc-card">${nine(0, 'out', 'Out')}${nine(9, 'back', 'In')}
-        <div class="sc-r sc-tot"><span class="sc-l">Total</span>${cards.map(x => `<span class="sc-tv"><b>${pair ? esc(initialsOf(x.g.display)) + ' ' : ''}${x.all.gross == null ? '—' : x.all.gross}</b><small>net ${x.all.net == null ? '—' : x.all.net} · par ${x.all.par}</small></span>`).join('')}</div></div>
-      <p class="cs-key"><span class="sc-k g1">4</span> birdie <span class="sc-k g2">3</span> eagle <span class="sc-k b1">5</span> bogey <span class="sc-k b2">6</span> double or worse · <b>•</b> a stroke received · <b>≈</b> water · <b>OB</b> out of bounds · <b>3·</b> three-putt · <b>★</b> shot of the hole · net is off the gross capped at par + ${T.config.capOver}${spent.length ? ' · ' + esc(spent.join(' · ')) : ''}</p>
+        <div class="sc-r sc-tot"><span class="sc-l">Total</span>${cards.map(x => `<span class="sc-tv"><b>${pair ? esc(initialsOf(x.g.display)) + ' ' : ''}${x.all.gross == null ? '—' : x.all.gross}</b><small>net ${x.all.net == null ? '—' : x.all.net} · par ${x.all.par}${x.all.pts != null && (pair || r.counts) ? ' · ' + x.all.pts + ' pts' : ''}</small></span>`).join('')}${
+          pair ? `<span class="sc-tv team"><b>Team ${[0, 9].reduce((a, from) => { const v = Array.from({ length: 9 }, (_, i) => bestOf(from + i)).filter(v => v != null); return v.length ? (a == null ? 0 : a) + v.reduce((p, q) => p + q, 0) : a; }, null) ?? '—'} pts</b><small>better partner, each hole</small></span>` : ''}</div></div>
+      <p class="cs-key"><span class="sc-k g1">4</span> birdie <span class="sc-k g2">3</span> eagle <span class="sc-k b1">5</span> bogey <span class="sc-k b2">6</span> double or worse · <b>•</b> a stroke received · <b>≈</b> water · <b>OB</b> out of bounds · <b>3·</b> three-putt · <b>★</b> shot of the hole · net is off the gross capped at par + ${T.config.capOver}${pair || r.counts ? ' · pts are Stableford points in the team game, off ' + E.teamAllowance(T) + '% of the handicap (team ' + cards.map(x => x.teamHcp == null ? '—' : x.teamHcp).join(' and ') + ')' : ''}${spent.length ? ' · ' + esc(spent.join(' · ')) : ''}</p>
     </div>
     <div class="acts"><button class="btn ghost" data-act="modalCancel">Close</button></div>
   </div></div>`;
@@ -4861,11 +4898,13 @@ function scrRules() {
   <div class="notice" style="border-left-color:var(--gold)">
     <b>They all count the same numbers — in different currencies</b>
     <div style="font-size:15px;color:var(--turf)">You write down one gross score a hole. The
-      Team Competition and the MVP add up <b>strokes</b>. Bingo Bango Bongo counts <b>points</b>,
+      Team Competition counts <b>Stableford points</b>, the better partner’s on each hole, off 85% of
+      your handicap. The MVP adds up <b>net strokes</b>. Bingo Bango Bongo counts <b>points</b>,
       three a hole. The Ryder Cup counts <b>holes won</b>, and pays a point a match. So a
-      blow-up hole can cost you a mile in the MVP and exactly one hole in the cup — and two
-      boards disagreeing about who had the better day is them working, not them broken.
-      Nothing here is entered twice and no competition changes another.</div>
+      blow-up hole can cost you a mile in the MVP, one hole in the cup and nothing at all for
+      the team if your partner made par — and two boards disagreeing about who had the better
+      day is them working, not them broken. Nothing here is entered twice and no competition
+      changes another.</div>
   </div>
 
   <div style="margin-top:16px">
@@ -7277,7 +7316,7 @@ function turnModalHtml() {
     ${s.pace
       ? `<p class="tn-pace ${s.pace.ahead ? 'good' : 'bad'}">${s.pace.delta === 0
           ? 'Level with ' + esc(s.pace.against) + ' at the same point.'
-          : (s.pace.ahead ? Math.abs(s.pace.delta) + ' better than ' : Math.abs(s.pace.delta) + ' behind ')
+          : (s.pace.ahead ? s.pace.delta + (s.pace.pts ? ' points' : '') + ' better than ' : s.pace.delta + (s.pace.pts ? ' points' : '') + ' behind ')
             + esc(s.pace.against) + ' at the same point.'}</p>`
       : `<p class="tn-pace first">First group through the turn. Everyone else is chasing this.</p>`}
 
@@ -7287,7 +7326,7 @@ function turnModalHtml() {
           drawn below in the form it takes everywhere else in the book. */ ''}
     <div class="tn-cards">
       ${s.pair ? `<div class="tn-card"><span class="l">Leading pair</span>
-        <span class="v">${esc(s.pair.name)}</span><span class="s num">${esc(s.pair.tp)} net · ${esc(s.pair.gross)} raw</span></div>` : ''}
+        <span class="v">${esc(s.pair.name)}</span><span class="s num">${esc(s.pair.tp)} pts · ${esc(s.pair.gross)} raw</span></div>` : ''}
       ${s.leader ? `<div class="tn-card"><span class="l">Leading golfer</span>
         <span class="v">${esc(s.leader.name)}</span><span class="s num">${esc(s.leader.tp)} net · ${esc(s.leader.gross)} raw · thru ${esc(s.leader.thru)}</span></div>` : ''}
       ${s.bbb ? `<div class="tn-card tn-wide"><span class="l">Bingo Bango Bongo</span>
@@ -7309,7 +7348,7 @@ function turnModalHtml() {
     ${s.groups.length > 1 ? `<h4 class="tn-h">At the turn</h4>
       <div class="tn-rows">${s.groups.map(g => `<div class="tn-row${g.id === s.gid ? ' me' : ''}">
         <span class="w">${esc(g.label)}${g.turned ? '' : ' <em>still out</em>'}</span>
-        <span class="n num">${par(g.tp)}${raw(g.gtp)}</span></div>`).join('')}</div>` : ''}
+        <span class="n num">${g.pts ? `<span>${g.tp} pts</span>` : par(g.tp)}${raw(g.gtp)}</span></div>`).join('')}</div>` : ''}
 
     ${s.field.length ? `<h4 class="tn-h">Every card, through ${E.TURN_HOLES} <small class="rawh">net · raw</small></h4>
       <div class="tn-rows tn-field">${s.field.map(x => `<div class="tn-row${x.mine ? ' me' : ''}">

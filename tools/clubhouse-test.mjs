@@ -196,7 +196,7 @@ await team.click(); await p.waitForTimeout(800);
 ok('tapping it opens that board', await p.locator('.bdh.pairs').count(), 1);
 ok('and the leader on the card is the leader on the board',
   (await p.locator('.bdr.pairs .w').first().innerText()).trim(), cardLead);
-ok('with the same figure', await p.locator('.bdr.pairs .t').first().evaluate(e => e.childNodes[0].textContent.trim()), cardFig);   // the net figure; raw sits under it
+ok('with the same figure', await p.locator('.bdr.pairs .t').first().evaluate(e => e.childNodes[0].textContent.trim()), cardFig.replace(/ pts$/, ''));   // the points; raw sits under it
 ok('and the raw figure under it', await p.locator('.bdr.pairs').first().locator('.t .rawv').count(), 1);
 
 /* ---------------- 2. every board opens on its own answer ---------------- */

@@ -143,6 +143,67 @@ export function pairHole(T, roundId, pair, h) {
   return best;
 }
 
+/* ---------- the Team Competition: Four-Ball Stableford ----------
+   Points, not strokes. Each partner plays their own ball and scores the
+   hole against par with their strokes taken off (Rule 21.1b): net bogey 1,
+   par 2, birdie 3, eagle 4, albatross 5; worse than net bogey, or a pick-up,
+   nought. The better of the two partners' points is the team's for the hole
+   (Rule 23, the four-ball form of Stableford), and the holes add up — so a
+   blow-up costs a hole, never the round, and a pick-up at net double bogey
+   keeps the group moving.
+   The handicap for it is the USGA's for the format: 85% of each golfer's
+   handicap (Rules of Handicapping, Appendix C, Four-Ball Stableford), rounded
+   to the nearest whole stroke, falling on the stroke indexes the same way.
+   The pair's team handicap is the two of those together; what it buys is
+   where each partner's strokes land. The triple-bogey cap is a pace rule for
+   the card and the MVP; Stableford needs none, nought is nought. */
+export const TEAM_ALLOWANCE = 85;
+export function teamAllowance(T) { const a = T && T.config && T.config.teamAllowance; return Number.isFinite(+a) && +a > 0 ? +a : TEAM_ALLOWANCE; }
+/** A golfer's playing handicap in the team game: the allowance applied, rounded (.5 up). */
+export function playingHcp(band, allowance = TEAM_ALLOWANCE) {
+  if (band == null || band === '') return null;
+  return Math.max(0, Math.min(HCP_MAX, Math.round(Math.round(+band) * allowance / 100)));
+}
+export function teamStrokesFor(T, band, si) { return strokesFor(playingHcp(band, teamAllowance(T)), si); }
+/** Stableford points for a net score against par. */
+export function stablefordPts(net, par) { return net == null ? null : Math.max(0, 2 + par - net); }
+/** One golfer's points on a hole in the team game, or null with no score or no handicap. */
+export function playerPts(T, roundId, pid, h) {
+  const c = card(T, roundId, pid);
+  if (!c || c.raw[h] == null) return null;
+  const hole = courseOf(T, roundId).holes[h];
+  const s = teamStrokesFor(T, (person(T, pid) || {}).band, hole.si);
+  if (s == null) return null;
+  return stablefordPts(c.raw[h] - s, hole.par);
+}
+/** The team's points on a hole: the better of the partners'. */
+export function pairPts(T, roundId, pair, h) {
+  let best = null;
+  for (const pid of pair.members) {
+    const p = playerPts(T, roundId, pid, h);
+    if (p != null && (best == null || p > best)) best = p;
+  }
+  return best;
+}
+/** A team's points through the first `upto` holes. */
+export function pairPtsThru(T, roundId, pair, upto = 18) {
+  let pts = 0, thru = 0;
+  for (let h = 0; h < upto && h < 18; h++) {
+    const p = pairPts(T, roundId, pair, h);
+    if (p != null) { pts += p; thru = h + 1; }
+  }
+  return { pts, thru };
+}
+/** A golfer's own points through the first `upto` holes, for the card. */
+export function playerPtsThru(T, roundId, pid, upto = 18) {
+  let pts = 0, thru = 0;
+  for (let h = 0; h < upto && h < 18; h++) {
+    const p = playerPts(T, roundId, pid, h);
+    if (p != null) { pts += p; thru = h + 1; }
+  }
+  return { pts, thru };
+}
+
 /* RAW, BESIDE NET. The boards are decided net, but the strokes as written
    are what a golfer remembers walking off: every board carries both. Raw is
    the number on the card, before any band and before the cap; a team's raw
@@ -173,6 +234,9 @@ function toParPair(T, roundId, pair) {
   for (let h = 0; h < 18; h++) { const s = pairHole(T, roundId, pair, h); if (s != null) { tp += s - holes[h].par; thru = h + 1; } }
   return { tp, thru };
 }
+/** Points. 'tp' is kept as the name the boards read, so a team's figure is
+ *  read the same way everywhere: the bigger, the better, now. */
+function ptsPair(T, roundId, pair) { const r = pairPtsThru(T, roundId, pair, 18); return { tp: r.pts, thru: r.thru }; }
 /* A group is two pairs — a fourball — taken in the pairings' own order, so
    Group 1 is the first two pairs off and Group 2 the next two. The count
    follows the pairings rather than the three tee slots the book shipped with.
@@ -310,16 +374,8 @@ export function toParThru(T, rid, pid, upto) {
   return { tp, thru };
 }
 
-/** A pair's better ball, to par, through the first `upto` holes. */
-function pairThru(T, rid, pair, upto) {
-  const holes = courseOf(T, rid).holes;
-  let tp = 0, thru = 0;
-  for (let h = 0; h < upto && h < 18; h++) {
-    const s = pairHole(T, rid, pair, h);
-    if (s != null) { tp += s - holes[h].par; thru = h + 1; }
-  }
-  return { tp, thru };
-}
+/** A pair's points through the first `upto` holes. */
+function pairThru(T, rid, pair, upto) { const r = pairPtsThru(T, rid, pair, upto); return { tp: r.pts, thru: r.thru }; }
 
 /** Whether every golfer in a group has the ninth SAVED. */
 export function groupAtTurn(T, rid, g) {
@@ -352,7 +408,7 @@ export function turnGroups(T, rid) {
         if (gr.thru > 0) { gtp += gr.tp; thru = Math.max(thru, gr.thru); any = true; }
       }
     }
-    return { id: g.id, label: g.label, tp, gtp, thru, started: any,
+    return { id: g.id, label: g.label, tp, gtp, thru, started: any, pts: prs.length > 0,
       turned: !!turnAt(T, rid, g.id) || groupAtTurn(T, rid, g) };
   });
 }
@@ -388,9 +444,10 @@ export function turnSnapshot(T, rid, gid, now) {
      comparison is only honest between groups at the same point, which is
      the whole reason this fires at the ninth and not at the tenth. */
   const others = gs.filter(g => g.id !== gid && g.turned && g.started);
-  const best = others.length ? Math.min(...others.map(g => g.tp)) : null;
+  const inPts = !!(mine && mine.pts);                 // pairs: points, the more the better
+  const best = others.length ? (inPts ? Math.max : Math.min)(...others.map(g => g.tp)) : null;
   const pace = (mine && mine.started && best != null)
-    ? { delta: mine.tp - best, ahead: mine.tp <= best,
+    ? { delta: Math.abs(mine.tp - best), ahead: inPts ? mine.tp >= best : mine.tp <= best, level: mine.tp === best, pts: inPts,
         against: others.find(g => g.tp === best).label }
     : null;
 
@@ -411,6 +468,7 @@ export function turnSnapshot(T, rid, gid, now) {
     course: courseOf(T, rid).name,
     cup: cupNow(cup),
     pair: pairs.length ? { name: pairs[0].name, tp: pairs[0].totalStr, gross: pairs[0].gTotalStr } : null,
+    inPts,
     leader: mvp.length ? { name: mvp[0].name, tp: mvp[0].totalStr, gross: mvp[0].gTotalStr, thru: mvp[0].thruStr } : null,
     bbb: bbb.length ? { name: bbb[0].name, pts: bbb[0].pts } : null,
     groups: gs.filter(g => g.started),
@@ -542,7 +600,7 @@ export function pairsBoard(T, now) {
   const rows = T.config.pairs.map(pair => {
     let total = 0, today = null, thru = null, played = false, gTotal = 0, gToday = null;
     for (const r of countingRounds(T)) {
-      const { tp, thru: th } = toParPair(T, r.id, pair), g = grossThru(T, r.id, pair);
+      const { tp, thru: th } = ptsPair(T, r.id, pair), g = grossThru(T, r.id, pair);
       if (th > 0) played = true;
       if (phaseOf(T, r.id, now) === 'live') { today = th > 0 ? tp : null; gToday = g.thru > 0 ? g.tp : null; thru = th; }
       if (th > 0) total += tp;
@@ -554,13 +612,14 @@ export function pairsBoard(T, now) {
       today, thru, total, played, gTotal, gToday,
     };
   }).filter(r => r.played);
-  rows.sort((a, b) => a.total - b.total);
+  /* points: most first; level on points, the fewer holes used the better */
+  rows.sort((a, b) => (b.total - a.total) || ((a.thru || 0) - (b.thru || 0)));
   const lead = rows.length ? rows[0].total : 0;
   return rows.map((r, i) => ({ ...r, pos: i + 1,
-    todayStr: r.today == null ? '—' : fmtToPar(r.today),
+    todayStr: r.today == null ? '—' : String(r.today),
     thruStr: r.thru ? String(r.thru) : '—',
-    gap: r.total - lead, gapStr: gapOf(r.total - lead),
-    totalStr: fmtToPar(r.total),
+    gap: lead - r.total, gapStr: lead - r.total > 0 ? String(lead - r.total) : '—',
+    totalStr: String(r.total), pts: true,
     gTodayStr: r.gToday == null ? '—' : fmtToPar(r.gToday), gTotalStr: fmtToPar(r.gTotal) }));
 }
 
@@ -947,6 +1006,25 @@ export function feelBlock(T, rid) {
   return L;
 }
 
+/** One round's Bingo Bango Bongo, by golfer, with the three counted apart. */
+export function bbbRoundBoard(T, rid) {
+  const tally = {};
+  const b = T.bbb[rid];
+  if (b) for (const cell of b.holes) {
+    if (!cell) continue;
+    /* a group's set each, or the one set the old shape kept for the hole */
+    const sets = cell.g && typeof cell.g === 'object' ? Object.values(cell.g) : [cell];
+    for (const c of sets) for (const k of BBB_SLOTS) {
+      if (!c || !c[k]) continue;
+      const t = tally[c[k]] || (tally[c[k]] = { pts: 0, bingo: 0, bango: 0, bongo: 0 });
+      t.pts++; t[k]++;
+    }
+  }
+  const rows = Object.entries(tally).map(([pid, t]) => ({ id: pid, name: (person(T, pid) || {}).display || '?', ...t }));
+  rows.sort((a, b) => b.pts - a.pts || a.name.localeCompare(b.name));
+  return rows.map((r, i) => ({ ...r, pos: i + 1 }));
+}
+
 export function bbbBoard(T) {
   const tally = {};
   for (const r of countingRounds(T)) {
@@ -997,8 +1075,8 @@ export function brief(T, now) {
 
   const pb = pairsBoard(T, now).filter(x => x.played);
   if (pb.length) {
-    L.push('\nTEAM COMPETITION (net, counting rounds)');
-    pb.slice(0, 8).forEach(x => L.push('- ' + x.pos + '. ' + x.name + ' ' + x.totalStr));
+    L.push('\nTEAM COMPETITION (four-ball Stableford points, counting rounds; ' + teamAllowance(T) + '% handicap allowance)');
+    pb.slice(0, 8).forEach(x => L.push('- ' + x.pos + '. ' + x.name + ' ' + x.totalStr + ' pts'));
   }
   const mb = mvpBoard(T, now).filter(x => x.played);
   if (mb.length) {
@@ -1126,25 +1204,26 @@ export function roundStanding(T, rid) {
   return { started, complete, inCards, field: field.length, pairs: (T.config.pairs || []).length };
 }
 
-/** The leading pair's round, hole by hole, against par. */
+/** The leading pair's round, hole by hole: the points, and against par
+ *  the way the colours read (two is level, three is under, one is over). */
 export function ribbon(T, rid) {
   const board = pairRoundBoard(T, rid);
   const lead = board[0];
   const holes = courseOf(T, rid).holes;
   const pair = lead && (T.config.pairs || []).find(p => p.id === lead.id);
   return holes.map((h, i) => {
-    const n = pair ? pairHole(T, rid, pair, i) : null;
-    return { n: h.n, par: h.par, net: n, d: n == null ? null : n - h.par };
+    const n = pair ? pairHole(T, rid, pair, i) : null, pts = pair ? pairPts(T, rid, pair, i) : null;
+    return { n: h.n, par: h.par, net: n, pts, d: pts == null ? null : 2 - pts };
   });
 }
 
-/** One round's pairs, by net against par for that round alone. */
+/** One round's pairs, by points for that round alone. */
 export function pairRoundBoard(T, rid) {
   const rows = (T.config.pairs || []).map(pair => {
-    const { tp, thru } = toParPair(T, rid, pair);
-    return { id: pair.id, name: pairName(T, pair), today: tp, thru };
+    const { tp, thru } = ptsPair(T, rid, pair);
+    return { id: pair.id, name: pairName(T, pair), today: tp, thru, pts: true };
   }).filter(r => r.thru > 0);
-  rows.sort((a, b) => (a.today - b.today) || (b.thru - a.thru));
+  rows.sort((a, b) => (b.today - a.today) || (a.thru - b.thru));
   return rows.map((r, i) => ({ ...r, pos: i + 1 }));
 }
 
@@ -1169,9 +1248,9 @@ export function recapTable(T, rid, now) {
       totalRaw: w && w.played ? w.gTotal : null,
     };
   }).filter(r => r.thru > 0 || r.total != null);
-  rows.sort((a, b) => ((a.total == null ? 99 : a.total) - (b.total == null ? 99 : b.total))
-    || ((a.today == null ? 99 : a.today) - (b.today == null ? 99 : b.today)));
-  return rows.map((r, i) => ({ ...r, pos: i + 1 }));
+  rows.sort((a, b) => ((b.total == null ? -1 : b.total) - (a.total == null ? -1 : a.total))
+    || ((b.today == null ? -1 : b.today) - (a.today == null ? -1 : a.today)));
+  return rows.map((r, i) => ({ ...r, pos: i + 1, pts: true }));
 }
 
 /** Every card from one round: the strokes, raw to par, and net to par with
@@ -1189,7 +1268,7 @@ export function recapField(T, rid) {
   return rows.map((x, i) => ({ ...x, pos: i + 1 }));
 }
 
-/** The biggest gap the leaders opened on the third-placed pair in one stretch. */
+/** The biggest gap, in points, the leaders opened on the third-placed pair in one stretch. */
 export function swingOfTheDay(T, rid) {
   const table = recapTable(T, rid, nowLocal());
   if (table.length < 3) return null;
@@ -1201,14 +1280,14 @@ export function swingOfTheDay(T, rid) {
   let best = { gap: 0, from: null, to: null };
   let run = 0, start = null;
   for (let h = 0; h < 18; h++) {
-    const a = pairHole(T, rid, lead, h), b = pairHole(T, rid, third, h);
+    const a = pairPts(T, rid, lead, h), b = pairPts(T, rid, third, h);
     if (a == null || b == null) { run = 0; start = null; continue; }
-    const d = (b - holes[h].par) - (a - holes[h].par);
+    const d = a - b;
     if (d > 0) { if (start == null) start = h; run += d; if (run > best.gap) best = { gap: run, from: start, to: h }; }
     else { run = 0; start = null; }
   }
   if (!best.gap) return null;
-  return { shots: best.gap, fromHole: holes[best.from].n, toHole: holes[best.to].n };
+  return { shots: best.gap, pts: true, fromHole: holes[best.from].n, toHole: holes[best.to].n };
 }
 
 /** Side games for one round, all of it read off the cards and the card's own
@@ -1244,7 +1323,8 @@ export function recapInput(T, rid, now) {
   const course = courseOf(T, rid);
   const L = [];
   L.push('ROUND: ' + r.full + ', ' + course.name + ', ' + dayOf(r.dayIdx).dow + ' ' + dayOf(r.dayIdx).date + '.');
-  L.push('Format: ' + (r.counts ? 'Better Ball, net' : 'practice, counts for nothing') + '.');
+  L.push('Format: ' + (r.counts ? 'Four-Ball Stableford for the teams (each partner scores points against par off ' + teamAllowance(T)
+    + '% of their handicap: net bogey 1, par 2, birdie 3, eagle 4; the better partner\'s points count on each hole), net stroke play for the MVP' : 'practice, counts for nothing') + '.');
   L.push('It is round ' + (ROUNDS.filter(x => x.counts).findIndex(x => x.id === rid) + 1) + ' of 3 that count.');
   L.push('Par ' + course.holes.reduce((a, h) => a + h.par, 0)
     + '. Stroke index by hole: ' + course.holes.map(h => h.n + ':' + h.si).join(' ') + '.');
@@ -1262,12 +1342,12 @@ export function recapInput(T, rid, now) {
       + (capsHit.length ? '\n    cap hit on holes: ' + capsHit.join(',') : ''));
   }
 
-  L.push('\nPAIRS THIS ROUND (better ball, net to par)');
-  pairRoundBoard(T, rid).forEach(x => L.push('- ' + x.id + ' ' + x.name + ': ' + fmtToPar(x.today) + ' thru ' + x.thru));
+  L.push('\nPAIRS THIS ROUND (Stableford points, more is better)');
+  pairRoundBoard(T, rid).forEach(x => L.push('- ' + x.id + ' ' + x.name + ': ' + x.today + ' pts thru ' + x.thru));
 
-  L.push('\nTHE WEEK AFTER THIS ROUND');
+  L.push('\nTHE WEEK AFTER THIS ROUND (points)');
   recapTable(T, rid, now).forEach(x => L.push('- ' + x.id + ' ' + x.name + ': today '
-    + (x.today == null ? '-' : fmtToPar(x.today)) + ', total ' + (x.total == null ? '-' : fmtToPar(x.total))));
+    + (x.today == null ? '-' : x.today + ' pts') + ', total ' + (x.total == null ? '-' : x.total + ' pts')));
 
   const sg = sideGames(T, rid);
   L.push('\nSIDE GAMES');
@@ -1277,7 +1357,7 @@ export function recapInput(T, rid, now) {
   L.push('- Triple-bogey cap hit ' + sg.caps + ' times today.');
 
   const sw = swingOfTheDay(T, rid);
-  if (sw) L.push('\nSWING: the leaders took ' + sw.shots + ' shots out of third place between holes '
+  if (sw) L.push('\nSWING: the leaders took ' + sw.shots + ' points out of third place between holes '
     + sw.fromHole + ' and ' + sw.toHole + '.');
 
   /* what the golfers said: the marks the ref made and the feelings the
@@ -1436,8 +1516,8 @@ export function clubhouse(T, now) {
 
   const pairs = pairsBoard(T, now);
   out.push({ id: 'pairs', label: 'Team Competition', state: pairs.length ? (live ? 'live' : 'open') : 'empty',
-    who: pairs.length ? pairs[0].name : null, fig: pairs.length ? pairs[0].totalStr : null,
-    tone: pairs.length ? toneOf(pairs[0].total) : '',
+    who: pairs.length ? pairs[0].name : null, fig: pairs.length ? pairs[0].totalStr + ' pts' : null,
+    tone: pairs.length ? 'pts' : '',
     thru: thru(pairs), by: margin(pairs, 'total'),
     runner: pairs.length > 1 ? pairs[1].name : null,
     note: pairs.length ? null : 'Opens once a counting round is under way' });
@@ -1497,9 +1577,9 @@ export function toneOf(n) { return n < 0 ? 'under' : n > 0 ? 'over' : 'level'; }
 export function holeCells(T, roundId, pair) {
   const holes = courseOf(T, roundId).holes;
   return holes.map((hole, h) => {
-    const s = pairHole(T, roundId, pair, h);
-    const d = s == null ? null : s - hole.par;
-    return { n: h + 1, par: hole.par, si: hole.si, d, played: s != null, net: s, label: d == null ? '' : fmtToPar(d) };
+    const s = pairHole(T, roundId, pair, h), pts = pairPts(T, roundId, pair, h);
+    const d = pts == null ? null : 2 - pts;
+    return { n: h + 1, par: hole.par, si: hole.si, d, pts, played: s != null, net: s, label: pts == null ? '' : pts + ' pt' + (pts === 1 ? '' : 's') };
   });
 }
 

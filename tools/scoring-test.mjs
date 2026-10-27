@@ -118,7 +118,10 @@ console.log('\nround totals and the week');
   ok('the practice day is not one of them', counting.includes('practice'), false);
 
   // everyone plays every counting round to their band exactly: gross = par + strokes,
-  // so every net is a par and every pair is level
+  // so every net is a par. In the team game each plays off 85% of the band, so
+  // each partner drops to net bogey (1 point) on the holes the allowance takes
+  // a stroke from — but never both on the same hole, so the team is 2 points
+  // a hole, 36 a round, 108 for the week
   for (const rid of counting) {
     const holes = E.courseOf(T, rid).holes;
     for (const p of T.config.people) {
@@ -127,7 +130,8 @@ console.log('\nround totals and the week');
     }
   }
   const board = E.pairsBoard(T, now);
-  ok('both pairs are level after three rounds', board.map(r => r.total), [0, 0]);
+  ok('both pairs are level after three rounds: two points a hole', board.map(r => r.total), [108, 108]);
+  ok('and the board says it is points', [board[0].pts, board[0].totalStr, board[0].gapStr], [true, '108', '—']);
 
   // now one pair drops a shot in each round: three under across the week
   for (const rid of counting) {
@@ -138,14 +142,14 @@ console.log('\nround totals and the week');
   }
   const board2 = E.pairsBoard(T, now);
   const lead = board2.find(r => r.id === 'p1');
-  ok('one shot a round is three under for the week', lead.total, -3);
+  ok('one shot a round is a birdie point a round: three more for the week', lead.total, 111);
   ok('and that pair leads', board2[0].id, 'p1');
-  ok('the other pair is still level', board2.find(r => r.id === 'p2').total, 0);
+  ok('the other pair is still on two a hole', [board2.find(r => r.id === 'p2').total, board2.find(r => r.id === 'p2').gapStr], [108, '3']);
 
   // the practice day must not touch any of it
   const holes = E.courseOf(T, 'practice').holes;
   put(T, 'practice', 'a', holes.map(hl => hl.par - 2));
-  ok('a practice round changes no standing', E.pairsBoard(T, now).find(r => r.id === 'p1').total, -3);
+  ok('a practice round changes no standing', E.pairsBoard(T, now).find(r => r.id === 'p1').total, 111);
 }
 
 /* ---------- 5. what the recap is handed ---------- */
@@ -184,15 +188,15 @@ console.log('\nthe recap figures');
 
   const rb = E.pairRoundBoard(T, rid);
   ok('the round board has both pairs', rb.length, 2);
-  ok('and the leaders are three under for the day', rb[0].today, -3);
+  ok('and the leaders have three birdie points on top of two a hole', rb[0].today, 39);
 
   const rib = E.ribbon(T, rid);
   ok('the ribbon has a cell per hole', rib.length, 18);
-  ok('holes 4, 5 and 6 are under par', [rib[3].d, rib[4].d, rib[5].d], [-1, -1, -1]);
-  ok('hole 1 is level', rib[0].d, 0);
+  ok('holes 4, 5 and 6 are three-point holes, read as under', [rib[3].pts, rib[3].d, rib[4].d, rib[5].d], [3, -1, -1, -1]);
+  ok('hole 1 is two points, level', [rib[0].pts, rib[0].d], [2, 0]);
 
   const table = E.recapTable(T, rid, now);
-  ok('the table shows today and the week', [table[0].today, table[0].total], [-3, -3]);
+  ok('the table shows today and the week, in points', [table[0].today, table[0].total], [39, 39]);
 
   const sg = E.sideGames(T, rid);
   ok('nothing is claimed that was not recorded', [sg.ctp, sg.ld, sg.bbb], [null, null, null]);

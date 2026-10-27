@@ -1,18 +1,21 @@
-/* Competition rules. Band 15 receives 15 strokes (stroke index 1–15),
-   band 20 receives 20 (one a hole, two on SI 1–2), band 25 receives 25
-   (one a hole, two on SI 1–7), band 30 receives 30 (one a hole, two on
-   SI 1–12). The band IS the total strokes received. */
+/* Competition rules. A handicap of 15 receives 15 strokes (stroke index
+   1–15), 20 receives 20 (one a hole, two on SI 1–2), 25 receives 25 (one a
+   hole, two on SI 1–7), 30 receives 30 (one a hole, two on SI 1–12). The
+   handicap IS the total strokes received — in the MVP and the cup. The team
+   game plays off 85% of it, the USGA's allowance for four-ball Stableford. */
 
 export const RULES = [
-  { id: 'pairs', name: 'Team Competition', tag: 'The main event. Fixed pairs, better ball, net.',
+  { id: 'pairs', name: 'Team Competition', tag: 'The main event. Fixed pairs, four-ball Stableford: points, not strokes.',
     when: 'Rounds 1–3 (Thu, Fri, Sun). Sunday is the final.',
-    won: 'Lowest cumulative net score to par across the three counting rounds.',
+    won: 'Most Stableford points across the three counting rounds.',
     body: [
-      'You and your partner each play your own ball on every hole. Both of you write down a net score — your gross minus any handicap strokes your band receives on that hole. Whichever of the two net scores is lower becomes the pair’s score for the hole. The other one is thrown away.',
-      'The pair’s scores add up across Thursday, Friday and Sunday. Tuesday’s practice round feeds nothing.',
-      'Tie: shared until the final; a tie after Sunday is settled by the better Sunday round, then the back nine.',
+      'You and your partner each play your own ball on every hole, and each of you scores the hole in points against par, with your strokes taken off first: net bogey 1 point, net par 2, net birdie 3, net eagle 4, an albatross 5. Worse than net bogey is nought — so once you cannot make net bogey, pick up and walk; the hole is nought either way and the group keeps moving (Rule 21.1). The better of your two points is the team’s score for the hole; the other is thrown away (Rule 23).',
+      'The handicap in this game is the USGA’s for the format: 85% of your handicap, rounded to the nearest stroke (Rules of Handicapping, Appendix C, Four-Ball Stableford). A 20 plays off 17, a 25 off 21, a 30 off 26. The team’s handicap is the two of those together, and what it buys is where each partner’s strokes land — one a hole up to the number, a second on the lowest stroke indexes for anything over eighteen. The MVP and the cup still use the full handicap.',
+      'Why points: a blow-up costs you a hole, never the round. A 9 is nought, the same as a 7 — and your partner’s par is still 2 for the team. The triple-bogey cap is a pace rule for the card and the MVP; Stableford needs no cap.',
+      'The points add up across Thursday, Friday and Sunday. Tuesday’s practice round feeds nothing.',
+      'Tie: shared until the final; a tie after Sunday is settled by the better Sunday round, then the back nine, in points.',
     ],
-    example: 'Hole 7, par 5, stroke index 3. Norberto III (band 20) takes 6 gross, receives 1 stroke: net 5. Norberto Jr. (band 25) takes 7 gross, receives 2 strokes: net 5. The pair scores 5 — level par.' },
+    example: 'Hole 7, par 5, stroke index 3. Norberto III (handicap 20, 17 in the team game) takes 6 gross, receives 1 stroke: net 5, par, 2 points. Norberto Jr. (handicap 25, 21 in the team game) takes 7 gross, receives 2 strokes: net 5, par, 2 points. The team scores 2. Had Jr. taken 9 — nought — the team still scores III’s 2.' },
 
   { id: 'mvp', name: 'Tournament MVP', tag: 'Your own ball, your own number. Every stroke counts.',
     when: 'Rounds 1–3, cumulative.',
@@ -60,12 +63,12 @@ export const RULES = [
     won: 'Most match points across the three sessions. One point per match, half each if all square.',
     body: [
       'Every golfer belongs to a squad — UK or USA — set on the Ryder Cup screen. The matches are scored off the identical cards that feed everything else. No extra golf, no separate card.',
-      'Every session is head-to-head net singles: one UK golfer against one USA golfer, hole by hole, match play. Thursday and Friday run alongside the Better Ball rounds; Sunday runs alongside the championship final. You play your own ball in the cup whatever the day’s team format is.',
+      'Every session is head-to-head net singles: one UK golfer against one USA golfer, hole by hole, match play. Thursday and Friday run alongside the team Stableford rounds; Sunday runs alongside the championship final. You play your own ball in the cup whatever the day’s team format is.',
       'A hole is won like this. Take the gross. Cap it at triple bogey first — a blow-up hole counts as par plus three and no worse. Then take off the strokes your band gives on that hole’s stroke index. Lower net takes the hole; equal nets halve it. Tap the result on any match to see that working, hole by hole.',
       'The match closes the moment the lead is bigger than the holes left — that is what “3&2” means, three up with two to play. Otherwise it runs to the 18th. Win the match and your squad takes a point; all square after eighteen and it is half each. A match still on the course is worth nothing yet, which is why the boards say how many are still out.',
       'With four a side that is four matches a session and twelve points across the week, so six and a half wins the cup. The draw is redrawn each session, so you do not meet the same opponent twice. If the squads are uneven, the bigger squad rotates: whoever sits out on Thursday is in on Friday, and everyone plays at least twice.',
       'STROKES ARE NOT THE CUP. The cup is points and only points. Two squads’ scoring averages settle no match and win no point — a man can go round in 84 and still take his match, and a man can play beautifully and lose it one down. Strokes decide the Team Competition and the MVP; holes decide this.',
-      'Your pairing has no bearing on it either. The draw is built from squads, never from pairs — which means a mixed pair can be drawn against each other, playing better ball together and singles against each other on the same eighteen holes. Shooting your own lowest score still serves both.',
+      'Your pairing has no bearing on it either. The draw is built from squads, never from pairs — which means a mixed pair can be drawn against each other, playing for the same team’s points and singles against each other on the same eighteen holes. Shooting your own lowest score still serves both.',
       'Match play notation: “2 up” means two holes ahead with holes left. “All square” is level. “Dormie” is up by exactly the number left.',
       'Tie: if the cup finishes level, it is shared — and argued about at Mandatory Team Beers.',
     ],
