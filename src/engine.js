@@ -177,6 +177,18 @@ export function groups(T, rid) {
   const cfg = roundCfg(T, rid);
   const tees = cfg.tees || [];
   const pairs = (T.config.pairs || []).slice().sort((a, b) => (a.order || 0) - (b.order || 0));
+  /* A round can be sent out in groups of its own, set on Tee times, without
+     touching the teams: who plays with whom on the day is not who they are
+     paired with for the week. Scores are kept by golfer, not by group, so
+     moving someone never moves or loses a shot. */
+  const own = Array.isArray(cfg.groupOverride) ? cfg.groupOverride.map(g => (Array.isArray(g) ? g : []).filter(id => person(T, id))) : null;
+  if (own && own.some(g => g.length)) {
+    return own.filter(g => g.length).map((members, n) => ({
+      id: 'g' + n, label: 'Group ' + (n + 1),
+      pairs: [], pairIds: pairs.filter(p => (p.members || []).length && p.members.every(m => members.includes(m))).map(p => p.id),
+      members, time: teeTime(cfg, n), own: true,
+    }));
+  }
   if (!pairs.length) {
     return tees.map((t, i) => ({ id: 't' + i, label: 'Group ' + (i + 1),
       pairs: [], members: t.players || [], time: teeTime(cfg, i) }));

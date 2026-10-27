@@ -3005,6 +3005,27 @@ function scrTees() {
   ${teeBlocks()}`;
 }
 
+/* WHO GOES OUT WITH WHOM, FOR ONE ROUND. Each golfer is put in a group with
+   a tap; the teams are not touched, and neither is a single score, which is
+   kept by golfer. Back to the teams' groups puts it as it was. */
+function groupMover(rid) {
+  const cfg = E.roundCfg(T, rid), gs = E.groups(T, rid);
+  const open = UI.moveRound === rid;
+  const own = Array.isArray(cfg.groupOverride) && cfg.groupOverride.some(g => (g || []).length);
+  const slots = Math.max(gs.length, 2) + (open ? 1 : 0);
+  const where = id => gs.findIndex(g => g.members.includes(id));
+  return `<div class="gmove${open ? ' open' : ''}">
+    <div class="gm-h">${own ? '<span class="gm-own">Own groups for this round</span>' : '<span>Groups follow the teams</span>'}
+      <button class="btn ghost sm" data-act="moveOpen" data-a="${open ? '' : rid}">${open ? 'Done' : 'Move people'}</button></div>
+    ${open ? `<p class="sublede">Tap a group for each golfer. Teams stay as they are, and no score moves: they’re kept by golfer.</p>
+      <div class="gm-list">${E.golfers(T).map(g => { const at = where(g.id);
+        return `<div class="gm-row"><span class="gm-n">${esc(g.display)}</span><span class="gm-b">${Array.from({ length: slots }, (_, i) =>
+          `<button class="${at === i ? 'on' : ''}" data-act="moveTo" data-a="${rid}" data-b="${g.id}|${i}" aria-pressed="${at === i}">${i + 1}</button>`).join('')}
+          <button class="out${at < 0 ? ' on' : ''}" data-act="moveTo" data-a="${rid}" data-b="${g.id}|-1" aria-pressed="${at < 0}">Out</button></span></div>`; }).join('')}</div>
+      ${own ? `<button class="xm-link" data-act="moveReset" data-a="${rid}">Back to the teams’ groups</button>` : ''}` : ''}
+  </div>`;
+}
+
 /* Four rounds, all on one page, which is how they are actually set: the night
    before, in one go. */
 function teeBlocks() {
@@ -3025,6 +3046,7 @@ function teeBlocks() {
         ? `<span class="gmem-names">${g.members.map(id => esc((E.person(T, id) || {}).display || '?')).join(', ')}</span>`
         : 'Nobody paired yet'}</div>
     </div>`).join('')}
+    ${ed ? groupMover(r.id) : ''}
   </div>`).join('')}`;
 }
 
@@ -7678,6 +7700,23 @@ function onClick(e) {
     case 'xTab': UI.xTab = a; UI.xAbout = 'all'; UI.liftTo = '.xm-tabs'; render(); return;
     case 'xMore': UI.xMore = a || null; render(); return;
     case 'xWho': UI.xWho = UI.xWho === a ? null : a; render(); return;
+    case 'moveOpen': UI.moveRound = a || null; render(); return;
+    case 'moveTo': {
+      if (!canEdit()) return;
+      const [pid, to] = String(b).split('|'), n = +to;
+      /* start from the groups as they stand, so the first move keeps everyone else where they are */
+      const now0 = E.groups(T, a).map(g => g.members.slice());
+      const next = now0.map(g => g.filter(x => x !== pid));
+      if (n >= 0) { while (next.length <= n) next.push([]); next[n].push(pid); }
+      store.writeConfig(c => { c.rounds[a].groupOverride = next.filter(g => g.length); });
+      render(); return;
+    }
+    case 'moveReset': {
+      if (!canEdit()) return;
+      UI.modal = { kind: 'confirm', title: 'Back to the teams’ groups?', note: 'Groups go back to two teams each, in Roster order. No score changes.', ok: 'Put them back', cancel: 'Keep these',
+        onOk: () => { store.writeConfig(c => { c.rounds[a].groupOverride = null; }); } };
+      render(); return;
+    }
     case 'ruleOpen': UI.pad = null; UI.modal = { kind: 'ruling', rid: UI.entryRound, hole: UI.entryHole, pid: a, sit: null, q: '', busy: false, err: '', id: null }; render(); return;
     case 'ruleSit': {
       const m = UI.modal; if (!m || m.kind !== 'ruling' || m.busy) return;

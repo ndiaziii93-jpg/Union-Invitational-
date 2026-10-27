@@ -4544,3 +4544,16 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 .pl-w b{font-size:15.5px}
 .pl-w small{font-size:13px;color:var(--turf)}
 .pl-go{flex:0 0 auto;font:inherit;font-size:13.5px;font-weight:700;border:0;border-radius:999px;padding:8px 13px;min-height:40px;background:var(--ink);color:#E2C277;cursor:pointer;white-space:nowrap}
+
+/* ---- moving people between groups, one round at a time ---- */
+.gmove{margin-top:10px;background:var(--page);border-radius:12px;padding:10px 12px;box-shadow:0 0 0 .5px var(--shadow)}
+.gm-h{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:14px;color:var(--turf)}
+.gm-own{font-weight:700;color:#8C6B2F}
+.gm-list{display:grid;margin-top:6px}
+.gm-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--hair)}
+.gm-n{font-weight:600;white-space:nowrap}
+.gm-b{display:flex;gap:6px}
+.gm-b button{font:inherit;font-weight:700;font-size:15px;border:0;border-radius:10px;min-width:40px;min-height:40px;padding:0 8px;background:var(--paper);box-shadow:inset 0 0 0 1px var(--rule);color:var(--ink);cursor:pointer}
+.gm-b button.on{background:var(--ink);color:#E2C277;box-shadow:none}
+.gm-b button.out{font-size:13px}
+.gm-b button.out.on{background:var(--flag);color:#fff}
