@@ -4629,3 +4629,44 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 .bandcrest.own{opacity:.75}
 .bandcrest.own .bn{letter-spacing:-.02em}
 .bandown.on .bandcrest{opacity:1}
+
+/* ---- a name on a board opens the card ---- */
+.namebtn{font:inherit;color:inherit;background:none;border:0;padding:0;text-align:left;cursor:pointer;min-width:0}
+.namebtn::after{content:" ›";color:var(--turf);font-weight:400;opacity:.7}
+.namebtn:active{opacity:.6}
+.cardsheet{max-width:600px;overflow-x:hidden}
+.cardsheet.two{max-width:720px}
+.cs-body{display:grid;gap:12px;padding-bottom:4px}
+.cs-rounds{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+.cs-rounds::-webkit-scrollbar{display:none}
+.cs-rounds button{flex:0 0 auto;font:inherit;font-size:13.5px;font-weight:700;border:0;border-radius:999px;padding:7px 13px;min-height:36px;background:var(--page);box-shadow:inset 0 0 0 1px var(--rule);color:var(--ink);cursor:pointer}
+.cs-rounds button.on{background:var(--ink);color:#E2C277;box-shadow:none}
+.cs-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}
+.cs-tile{background:var(--ink);color:var(--page);border-radius:12px;padding:10px 12px;display:grid;gap:2px}
+.cs-tile span{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:#9FB3A3;font-weight:700}
+.cs-tile b{font-size:26px;line-height:1;color:#E2C277}
+.cs-tile small{font-size:12.5px;color:#C9D2C3}
+.cs-table{display:grid;background:var(--page);border-radius:12px;box-shadow:0 0 0 .5px var(--shadow);overflow:hidden}
+.cs-row{display:grid;grid-template-columns:34px 30px 28px 26px minmax(44px,1fr) 36px;align-items:center;gap:2px;padding:4px 8px;border-top:1px solid var(--hair);font-size:14.5px}
+.cardsheet.two .cs-row{grid-template-columns:30px 26px 24px 22px minmax(40px,1fr) 32px 22px minmax(40px,1fr) 32px 36px}
+.cs-row:first-child{border-top:0}
+.cs-row.todo{opacity:.45}
+.cs-head{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--turf);font-weight:800;background:var(--sunk);padding:6px 8px}
+.cs-head span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cs-h{font-weight:700}
+.cs-p,.cs-si,.cs-st{color:var(--turf);text-align:center}
+.cs-st{font-size:12.5px}
+.cs-g{display:inline-flex;align-items:center;justify-content:center;gap:3px;min-height:28px}
+.cs-g b{display:inline-grid;place-items:center;min-width:26px;height:26px;border-radius:7px;font-size:15px}
+.cs-g.eagle b{background:#E2C277;color:var(--ink);border-radius:50%;box-shadow:0 0 0 2px var(--ink) inset}
+.cs-g.birdie b{background:#DDEBDD;color:#2F7A4A;border-radius:50%}
+.cs-g.bogey b{background:#F3E6CF;color:#8C6B2F}
+.cs-g.dbl b{background:#F2DDD6;color:var(--flag)}
+.cs-g.capped b{text-decoration:underline dotted}
+.cs-g i{font-style:normal;font-size:10.5px;font-weight:800;color:#2F5D7A}
+.cs-n{text-align:center;font-weight:700}
+.cs-b{text-align:center;font-weight:800;color:#2F7A4A;background:#DDEBDD;border-radius:7px;padding:3px 0}
+.cs-sum{background:var(--sunk);font-weight:700}
+.cs-sum .cs-g b{background:none;min-width:0}
+.cs-key{margin:0;font-size:12.5px;color:var(--turf);line-height:1.5}
+@media (max-width:420px){ .cardsheet.two .cs-row{grid-template-columns:26px 22px 20px 18px minmax(34px,1fr) 28px 18px minmax(34px,1fr) 28px 32px;font-size:13px;padding:3px 5px} .cardsheet.two .cs-g b{min-width:22px;height:22px;font-size:13px} .cardsheet.two .cs-head{font-size:9px} }
