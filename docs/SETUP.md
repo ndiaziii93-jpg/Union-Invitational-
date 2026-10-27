@@ -119,8 +119,9 @@ stops a changed copy from doing anything is the database refusing it. Run
 After this, scores, the roster (handicaps included — only the master PIN
 moves one), the pairs, rounds, bingo points and recaps can only be written
 through the server's own functions, which check the PIN first; the public
-key cannot touch those rows directly. Wrong guesses are limited to twelve a
-minute for everyone. Changing a PIN later is done from Setup with the master
+key cannot touch those rows directly. Wrong guesses count against the phone
+that made them (a right PIN always passes), and a name with ten wrong
+guesses against it is closed for ten minutes. Changing a PIN later is done from Setup with the master
 PIN, as before — the server does the changing.
 
 The chat, the bets and the golfers' notes are signed. A name is claimed with
