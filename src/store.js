@@ -1123,6 +1123,14 @@ export function createStore(onChange) {
            set pin(v) { currentPin = String(v || ''); if (db && db.pinChanged) db.pinChanged(); },
            get deniedAt() { return deniedAt; },
            get deniedPath() { return deniedPath; },
+           /* the security log, for the master PIN this phone holds */
+           async securityRecent() { if (backend !== 'supabase' || !db || !db.securityRecent) return null; return db.securityRecent(currentPin); },
+           async securityUnblock(dev) { if (backend !== 'supabase' || !db || !db.securityUnblock) return false; return db.securityUnblock(currentPin, dev); },
+           /** A field or two on this phone's push address, such as whether it holds the master PIN. */
+           async patchPush(fields) {
+             if (mode !== 'db' || backend !== 'supabase' || !db) return false;
+             try { return (await db.doc('push/' + deviceId).update({ ...fields, dev: deviceId })) !== false; } catch (e) { return false; }
+           },
            /* the name and PIN the chat and the bets are signed with */
            get who() { return currentWho; },
            set who(v) { currentWho = { pid: String((v && v.pid) || ''), pin: String((v && v.pin) || '') }; if (db && db.pinChanged) db.pinChanged(); },

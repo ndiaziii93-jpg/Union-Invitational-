@@ -26,6 +26,13 @@
  * Called with the project's publishable key, like the recap function, and
  * it reads the book with that same key: it can see exactly what any phone
  * can, and nothing more.
+ *
+ * SECURITY ALERTS. A database webhook (Database -> Webhooks: table
+ * security_log, on insert, HTTP POST to this function) calls this with a
+ * header `x-security-secret` that matches the SECURITY_WEBHOOK_SECRET set in
+ * this function's secrets; the row it carries goes as a push to the phones
+ * that hold the master PIN, and to nobody else. A call without the matching
+ * secret is treated as what it is: not an alert.
  */
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { withSupabase } from 'jsr:@supabase/server@^1';
@@ -109,8 +116,32 @@ async function handler(req: Request): Promise<Response> {
   if (req.method === 'GET') return json({ publicKey: keys.publicKey });
   if (req.method !== 'POST') return json({ error: 'bad_request' }, 405);
 
-  let path = '', rx = '';
-  try { const b = await req.json(); path = String(b?.path || ''); rx = String(b?.rx || ''); } catch { /* falls through */ }
+  let path = '', rx = '', body: any = null;
+  try { body = await req.json(); path = String(body?.path || ''); rx = String(body?.rx || ''); } catch { /* falls through */ }
+
+  /* a row of the security log, from the database's own webhook */
+  const secret = Deno.env.get('SECURITY_WEBHOOK_SECRET') || '';
+  const given = req.headers.get('x-security-secret') || '';
+  if (given && secret && given.length === secret.length && given === secret && body && body.record) {
+    const r = body.record;
+    if (r.kind === 'signin') return json({ sent: 0, skipped: 'signin' });
+    const word: Record<string, string> = { direct: 'Public-key write dropped', pin: 'Wrong PIN', denied: 'Write refused', blocked: 'Phone blocked', claim: 'Name claim refused' };
+    const secPayload = JSON.stringify({
+      title: '⚠️ ' + (word[String(r.kind)] || String(r.kind)),
+      body: [r.path, r.who ? 'phone ' + r.who : '', r.pid ? 'as ' + r.pid : '', r.ip ? 'from ' + r.ip : '', r.detail].filter(Boolean).join(' · ').slice(0, 180),
+      room: '', tag: 'security',
+    });
+    const apikey2 = req.headers.get('apikey') || '';
+    const db2 = createClient(Deno.env.get('SUPABASE_URL') || '', apikey2, { auth: { persistSession: false } });
+    const { data: msubs } = await db2.from('docs').select('path,doc').like('path', 'push/%');
+    let msent = 0;
+    await Promise.all((msubs || []).map(async (row: { path: string; doc: any }) => {
+      const s = row.doc;
+      if (!s || !s.on || !s.sub || !s.sub.endpoint || s.master !== true) return;
+      try { const status = await sendPush(s.sub, secPayload, keys); if (status < 300) msent++; } catch (e) { console.error('push', String(e).slice(0, 200)); }
+    }));
+    return json({ sent: msent, security: true });
+  }
   if (!/^(chat\/m|market\/q)[a-z0-9]{4,40}$/.test(path)) return json({ error: 'bad_request', message: 'Send {"path": "chat/m…"} or {"path": "market/q…"}' }, 400);
   const isBet = path.startsWith('market/');
 

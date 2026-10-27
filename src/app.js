@@ -117,7 +117,7 @@ const ROLE_KEY = 'union-invitational:role';
    nothing and the phone goes back to reading. */
 function saveRole(role, pin) {
   try { localStorage.setItem(ROLE_KEY, JSON.stringify({ role, pin: String(pin || '') })); } catch (e) { /* storage blocked */ }
-  if (store) store.pin = pin;                 // the writes carry it; the server judges it
+  if (store) { store.pin = pin; store.patchPush({ master: role === 'master' }); }   // the writes carry it; the server judges it; alerts go to the master's phone
 }
 function loadRole() {
   try {
@@ -185,7 +185,10 @@ function markFeelSeen(rid, h) {
 /* Nothing is editable until the shared book has loaded. Before that the page is
    showing factory defaults, and an edit would write those over the real
    tournament. */
-const loaded = () => meta.settled !== false;
+/* the book the phone read last time counts as loaded: with no signal on the
+   way in, a ref still scores and the master still reaches Setup — the
+   writes wait in the outbox for a signal, and the server judges them then */
+const loaded = () => meta.settled !== false || !!meta.fromDevice;
 const canEdit = () => loaded() && (!D.PINS_ENABLED || S.ROLES[UI.role].canEdit);
 const canAdmin = () => loaded() && (!D.PINS_ENABLED || S.ROLES[UI.role].canAdmin);
 /* The week is the master reviewer's once PINs are armed: a scorer's PIN
@@ -1875,7 +1878,7 @@ async function pushOn() {
     let sub = await reg.pushManager.getSubscription();
     if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: Uint8Array.from(raw, c => c.charCodeAt(0)) });
     const j = sub.toJSON();
-    if (!(await store.writePush({ k: 'push', on: true, pid: whoAmI(), sub: { endpoint: j.endpoint, keys: j.keys } }))) {
+    if (!(await store.writePush({ k: 'push', on: true, pid: whoAmI(), master: UI.role === 'master', sub: { endpoint: j.endpoint, keys: j.keys } }))) {
       throw new Error('That did not save. Try again with signal.');
     }
     setPushPref('on');
@@ -5079,6 +5082,59 @@ function scrCourses() {
   </div>`;
 }
 
+/* ---------------- the watch ----------------
+   The server logs every refusal: a PIN it did not know, a write it would
+   not sign, a write with the public key straight at the table, a phone it
+   blocked. Only the master PIN reads the log. The master's phone looks
+   every few minutes and says, at the top of every screen, when there is
+   something new to see; Setup shows it all, with a Copy report for passing
+   on. */
+const SEC_KEY = 'union-invitational:secSeen';
+const secSeen = () => { try { return parseInt(localStorage.getItem(SEC_KEY), 10) || 0; } catch (e) { return 0; } };
+const secAlerts = () => ((UI.sec && UI.sec.events) || []).filter(e => e.kind !== 'signin');
+const secNew = () => secAlerts().filter(e => Date.parse(e.at) > secSeen());
+let secBusy = false;
+function securityPoll(force) {
+  if (!store || store.backend !== 'supabase' || UI.role !== 'master' || secBusy) return;
+  if (!force && UI.sec && Date.now() - (UI.sec.got || 0) < 150000) return;
+  secBusy = true;
+  store.securityRecent().then(d => {
+    secBusy = false;
+    if (!d) return;
+    const before = UI.sec ? secNew().length : -1;
+    UI.sec = { events: d.events || [], blocked: d.blocked || [], got: Date.now(), err: '' };
+    if (before === -1 || secNew().length !== before || UI.screen === 'setup') render();
+  }, e => { secBusy = false; UI.sec = { ...(UI.sec || { events: [], blocked: [] }), got: Date.now(), err: /PIN/.test(String(e && e.message || '')) ? 'The server did not accept this phone\'s master PIN.' : 'Could not reach the book.' }; render(); });
+}
+const SEC_WORD = { direct: 'Public-key write dropped', pin: 'Wrong PIN', denied: 'Write refused', blocked: 'Phone blocked', signin: 'Sign-in', claim: 'Name claim refused' };
+function secLine(e) {
+  const t = E.to12(new Date(Date.parse(e.at) + D.TZ_OFFSET_MIN * 60000).toISOString().slice(11, 16));
+  const d = new Date(Date.parse(e.at) + D.TZ_OFFSET_MIN * 60000).toISOString().slice(5, 10).replace('-', '/');
+  return `${d} ${t} · ${SEC_WORD[e.kind] || e.kind}${e.path ? ' · ' + e.path : ''}${e.who ? ' · phone ' + e.who : ''}${e.pid ? ' · as ' + e.pid : ''}${e.ip ? ' · from ' + e.ip : ''}${e.detail ? ' · ' + e.detail : ''}`;
+}
+function securityReport() {
+  const ev = (UI.sec && UI.sec.events) || [];
+  return ['THE UNION INVITATIONAL — security log, ' + new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC',
+    ...((UI.sec && UI.sec.blocked) || []).map(b => 'BLOCKED ' + b.dev + ' until ' + b.until + ' — ' + b.why),
+    ...ev.map(secLine)].join('\n');
+}
+function securityPanel() {
+  if (!store || store.backend !== 'supabase') return '';
+  const sec = UI.sec, fresh = secNew(), alerts = secAlerts();
+  return `<h3 class="sub" id="security">Security</h3>
+  <div class="panel secpanel">
+    <div class="kv"><span class="k">The watch<small>Every refused PIN, every write the server would not sign, every write with the public key straight at the table, every phone it blocked — with the phone, the address and the time. Only the master PIN reads this.</small></span>
+      <span class="chiprow"><button class="btn ghost sm" data-act="secRefresh">${secBusy ? 'Looking…' : 'Look now'}</button>
+        ${sec && sec.events && sec.events.length ? `<button class="btn ghost sm" data-act="secCopy">${UI.secCopied ? 'Copied' : 'Copy report'}</button>` : ''}</span></div>
+    ${sec && sec.err ? `<p class="xm-err">${esc(sec.err)}</p>` : ''}
+    ${!sec ? '<p class="empty">Not read yet — tap Look now.</p>'
+      : !alerts.length ? `<p class="empty">Nothing refused. ${sec.events.length ? sec.events.length + ' sign-ins logged.' : ''}</p>`
+      : `<p class="sec-sum ${fresh.length ? 'new' : ''}">${fresh.length ? '⚠️ ' + fresh.length + ' new since you last looked · ' : ''}${alerts.length} refusal${alerts.length === 1 ? '' : 's'} on record</p>`}
+    ${sec && sec.blocked && sec.blocked.length ? sec.blocked.map(b => `<div class="kv"><span class="k">Blocked phone ${esc(b.dev)}<small>${esc(b.why || '')} · until ${esc(new Date(b.until).toLocaleString())}</small></span>
+      <button class="btn ghost sm" data-act="secUnblock" data-a="${esc(b.dev)}">Unblock</button></div>`).join('') : ''}
+    ${sec && sec.events && sec.events.length ? `<ul class="seclog">${sec.events.slice(0, 60).map(e => `<li class="${esc(e.kind)}${Date.parse(e.at) > secSeen() && e.kind !== 'signin' ? ' new' : ''}">${esc(secLine(e))}</li>`).join('')}</ul>` : ''}
+  </div>`;
+}
 function scrSetup() {
   if (!canAdmin()) return `<h2 class="head">Setup</h2><p class="empty">The master PIN opens this screen.</p>
     <button class="btn" data-act="signIn">Enter PIN</button>`;
@@ -5112,6 +5168,8 @@ function scrSetup() {
         : !T.config.pinsChanged && !(store && store.backend === 'supabase') ? `<span class="eyebrow" style="color:var(--flag)">Still the factory defaults \u2014 set all three before the book goes live</span>` : ''}
     </div>
   </div>
+
+  ${securityPanel()}
 
   <h3 class="sub">Relief</h3>
   <div class="panel">
@@ -6480,7 +6538,8 @@ function paint() {
     ${datelineRail()}
     <div class="rule-heavy"></div>
     ${UI.deniedNote ? `<div class="loadbar bad">${esc(UI.deniedNote)} <button class="rm" data-act="signIn">Sign in</button></div>` : ''}
-    ${loaded() ? '' : meta.fromDevice ? `<div class="loadbar off">
+    ${UI.role === 'master' && UI.screen !== 'setup' && secNew().length ? `<div class="loadbar bad secbar">⚠️ ${secNew().length} security event${secNew().length === 1 ? '' : 's'} since you last looked: ${esc(SEC_WORD[secNew()[0].kind] || secNew()[0].kind)}${secNew()[0].who ? ' · phone ' + esc(secNew()[0].who) : ''}. <button class="rm" data-act="secOpen">See the log</button></div>` : ''}
+    ${meta.settled !== false ? '' : meta.fromDevice ? `<div class="loadbar off">
       No signal yet. This is the book as the phone last read it${meta.localAt ? ', ' + esc(sinceOf(meta.localAt)) : ''}. Scores, posts and bets you enter are kept here and sent the moment it finds one.</div>`
     : `<div class="loadbar${meta.status === 'error' ? ' bad' : ''}">
       ${meta.status === 'error'
@@ -7755,6 +7814,7 @@ function submitPin() {
     if (UI.modal !== m) return;
     m.busy = false;
     UI.modalErr = /PIN attempts/.test(String(e && e.message || '')) ? 'Too many PIN attempts just now. Wait a minute and try again.'
+      : /blocked/.test(String(e && e.message || '')) ? 'This phone is blocked for a while: the book refused too many PINs from it. The commissioner can unblock it.'
       : 'No signal to check the PIN with. Try again when there is one.';
     render();
   });
@@ -8423,6 +8483,15 @@ function onClick(e) {
       return;
     }
     case 'setupOpen': UI.modal = { kind: 'setup', scope: a || 'all' }; UI.modalErr = ''; break;
+    case 'secOpen': goTo('setup'); setTimeout(() => { const el = document.getElementById('security'); if (el) el.scrollIntoView({ block: 'start' }); }, 300); return;
+    case 'secRefresh': securityPoll(true); render(); return;
+    case 'secCopy': {
+      const text = securityReport();
+      const done = () => { UI.secCopied = true; render(); setTimeout(() => { UI.secCopied = false; render(); }, 1800); };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, () => window.prompt('Copy the report', text)); else window.prompt('Copy the report', text);
+      return;
+    }
+    case 'secUnblock': if (!canAdmin()) return; store.securityUnblock(a).then(() => securityPoll(true)); return;
     case 'setupGo': UI.modal = null; goTo(a); break;
 
     case 'signIn':
@@ -9234,8 +9303,13 @@ export function boot() {
       if (e.data && e.data.bet) openBetFrom(String(e.data.bet));
     });
   }
+  setInterval(() => securityPoll(), 60000);          // the watch, for the master's phone
   store = S.createStore((state, m) => {
     T = state; meta = m;
+    if (UI.role === 'master' && UI.screen === 'setup' && UI.sec && UI.sec.events) {
+      const latest = Math.max(0, ...UI.sec.events.map(e => Date.parse(e.at) || 0));
+      if (latest > secSeen()) { try { localStorage.setItem(SEC_KEY, String(latest)); } catch (e) { /* blocked */ } }
+    }
     store.onLanded = path => { if (/^chat\/m/.test(path)) notifyOthers(path); };
     if (!store.pin) { const sv = loadRole(); if (sv && sv.pin) store.pin = sv.pin; }
     if (!store.who.pid) { const w = loadWho(); if (w) store.who = { pid: w, pin: namePin() }; }

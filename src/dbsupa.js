@@ -86,6 +86,16 @@ export function createSupabaseDb(opts) {
   const pin = () => { try { return pinFor ? String(pinFor() || '') : ''; } catch (e) { return ''; } };
   const who = () => { try { const w = whoFor ? whoFor() : null; return { pid: String((w && w.pid) || ''), pin: String((w && w.pin) || '') }; } catch (e) { return { pid: '', pin: '' }; } };
   const signed = (path, more) => { const w = who(); return { p_path: path, p_pid: w.pid, p_name_pin: w.pin, p_role_pin: pin(), p_who: deviceId || null, ...more }; };
+  /* THE GATE ANSWERS IN WORDS, NOT ERRORS. 'ok', or 'denied: …' — a refusal
+     is a normal answer so that the server's log of it is kept (an error
+     would roll the log back with the write). Here it becomes the error the
+     rest of this file already knows how to treat. */
+  const gate = async q => {
+    const { data, error } = await q;
+    if (error) throw error;
+    if (typeof data === 'string' && data !== 'ok') { const e = new Error(data.replace(/^denied:\s*/, '')); e.code = '42501'; throw e; }
+    return data;
+  };
   if (!url || !key || typeof createClient !== 'function') return null;
 
   let sb;
@@ -238,9 +248,12 @@ export function createSupabaseDb(opts) {
     try {
       let gated = PROTECTED.test(path) || SOCIAL.test(path);
       if (gated) {
-        const { error } = PROTECTED.test(path)
-          ? await bound(sb.rpc('write_doc', { p_path: path, p_doc: doc, p_merge: !!merge, p_pin: pin(), p_who: deviceId || null }))
-          : await bound(sb.rpc('social_write', signed(path, { p_doc: doc, p_merge: !!merge })));
+        let error = null;
+        try {
+          await gate(bound(PROTECTED.test(path)
+            ? sb.rpc('write_doc', { p_path: path, p_doc: doc, p_merge: !!merge, p_pin: pin(), p_who: deviceId || null })
+            : sb.rpc('social_write', signed(path, { p_doc: doc, p_merge: !!merge }))));
+        } catch (e) { error = e; }
         if (error && noGate(error)) gated = false; else if (error) throw error;
       }
       if (gated) { /* landed through the gate */ } else if (merge) {
@@ -269,11 +282,15 @@ export function createSupabaseDb(opts) {
   async function rawDelete(path, fromOutbox) {
     try {
       const gated = PROTECTED.test(path) || SOCIAL.test(path);
-      let { error } = PROTECTED.test(path)
-        ? await bound(sb.rpc('delete_doc', { p_path: path, p_pin: pin() }))
-        : SOCIAL.test(path) ? await bound(sb.rpc('social_delete', signed(path)))
-        : { error: null };
-      if (!error && !gated || noGate(error)) ({ error } = await bound(sb.from('docs').delete().eq('path', path)));
+      let error = null;
+      if (gated) {
+        try {
+          await gate(bound(PROTECTED.test(path)
+            ? sb.rpc('delete_doc', { p_path: path, p_pin: pin(), p_who: deviceId || null })
+            : sb.rpc('social_delete', signed(path))));
+        } catch (e) { error = e; }
+      }
+      if (!gated || noGate(error)) ({ error } = await bound(sb.from('docs').delete().eq('path', path)));
       if (error) throw error;
       forget(path);                 // gone from the screen now, not in six seconds
       say('saved');
@@ -360,27 +377,41 @@ export function createSupabaseDb(opts) {
 
     /** The role a PIN proves, asked of the server: 'master', 's1', 's2' or null. Throws with no signal. */
     async verifyPin(p) {
-      const { data, error } = await bound(sb.rpc('verify_pin', { p_pin: String(p || '') }));
+      const { data, error } = await bound(sb.rpc('verify_pin', { p_pin: String(p || ''), p_who: deviceId || null }));
       if (error) throw error;
+      if (data === 'throttled') throw new Error('Too many PIN attempts. Wait a minute and try again.');
+      if (data === 'blocked') throw new Error('This phone is blocked for a while: the book refused too many PINs from it.');
       return data || null;
     },
     /** Change a PIN, proving the master PIN first. */
     async setPin(master, role, next) {
-      const { error } = await bound(sb.rpc('set_pin', { p_master: String(master || ''), p_role: role, p_new: String(next || '') }));
+      await gate(bound(sb.rpc('set_pin', { p_master: String(master || ''), p_role: role, p_new: String(next || ''), p_who: deviceId || null })));
+      return true;
+    },
+    /** The security log and the blocked phones, for the master PIN. */
+    async securityRecent(master) {
+      const { data, error } = await bound(sb.rpc('security_recent', { p_pin: String(master || ''), p_who: deviceId || null, p_limit: 200 }));
       if (error) throw error;
+      if (!data || data.denied) { const e = new Error('PIN not accepted'); e.code = '42501'; throw e; }
+      return data;
+    },
+    async securityUnblock(master, dev) {
+      await gate(bound(sb.rpc('security_unblock', { p_pin: String(master || ''), p_dev: String(dev || ''), p_who: deviceId || null })));
       return true;
     },
     /** A PIN just arrived on this phone: anything that waited for one goes now. */
     pinChanged() { if (waiting.size) armRetry(true); },
     /** Take a name with a four-digit PIN. Throws 'taken' if it already has one. */
     async claimName(pid, p) {
-      const { error } = await bound(sb.rpc('claim_name', { p_pid: pid, p_pin: String(p || ''), p_who: deviceId || null }));
+      const { data, error } = await bound(sb.rpc('claim_name', { p_pid: pid, p_pin: String(p || ''), p_who: deviceId || null }));
       if (error) { if (error.code === '23505' || /already has/i.test(error.message || '')) { const e = new Error('taken'); e.code = 'taken'; throw e; } throw error; }
+      if (data === 'taken') { const e = new Error('taken'); e.code = 'taken'; throw e; }
+      if (typeof data === 'string' && data !== 'ok' && data != null) { const e = new Error(data.replace(/^denied:\s*/, '')); e.code = '42501'; throw e; }
       return true;
     },
     /** Whether a PIN is the one a name was claimed with. */
     async checkName(pid, p) {
-      const { data, error } = await bound(sb.rpc('check_name', { p_pid: pid, p_pin: String(p || '') }));
+      const { data, error } = await bound(sb.rpc('check_name', { p_pid: pid, p_pin: String(p || ''), p_who: deviceId || null }));
       if (error) throw error;
       return data === true;
     },

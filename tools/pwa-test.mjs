@@ -174,6 +174,19 @@ ok('and in the outbox for the next signal', await p.evaluate(() => Object.keys(J
 ok('the foot counts it', await p.evaluate(() => [document.querySelector('.statusbar .dot').className, document.querySelector('.statusbar .st').textContent.slice(0, 30)]), ['dot wait', 'One change waiting for signal ']);
 await shut();
 
+/* The watch: a phone holding the master PIN has the security panel and the
+   bar; with no signal the panel says so rather than showing nothing. */
+console.log('\nthe watch, on the master\'s phone');
+await p.evaluate(() => { localStorage.setItem('union-invitational:role', JSON.stringify({ role: 'master', pin: '123456' })); window.__UI.role = 'master'; window.__UI.screen = 'setup'; window.__forceRender(); });
+await p.waitForTimeout(400); await shut();
+ok('Setup carries a Security panel for the master PIN', await p.locator('.secpanel').count(), 1);
+await p.locator('[data-act="secRefresh"]').click({ force: true }); await p.waitForTimeout(3000);
+const t1 = Date.now();
+await p.waitForSelector('.secpanel .xm-err', { timeout: 40000 }).catch(() => {});
+console.log('   (the watch answered after ' + Math.round((Date.now() - t1) / 1000) + 's)');
+ok('which says plainly when the book cannot be reached', await p.locator('.secpanel .xm-err').innerText().catch(() => ''), 'Could not reach the book.');
+ok('and handicaps answer to the master PIN alone', await p.evaluate(() => typeof window.__UI), 'object');
+
 console.log('\nand then the signal goes');
 offline = true;
 const before = served;

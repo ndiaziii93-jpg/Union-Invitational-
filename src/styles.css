@@ -1962,6 +1962,14 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
   background:var(--page);border-radius:3px;font-size:15px;color:var(--turf)}
 .loadbar.bad{border-left-color:var(--flag);color:var(--ink)}
 .loadbar.off{border-left-color:var(--gold)}
+/* the watch: refusals, in a list the master can read at a glance */
+.secpanel .sec-sum{margin:8px 0 0;font-size:14px;color:var(--turf)}
+.secpanel .sec-sum.new{color:var(--flag);font-weight:700}
+.seclog{list-style:none;margin:10px 0 0;padding:0;font-size:12.5px;line-height:1.45;color:var(--turf);font-family:var(--mono,ui-monospace,monospace)}
+.seclog li{padding:5px 0;border-top:1px solid var(--rule);word-break:break-word}
+.seclog li.new{color:var(--ink)}
+.seclog li.direct,.seclog li.blocked{color:var(--flag)}
+.seclog li.signin{opacity:.7}
 
 /* On a phone the roster was a 900px table on a 390px screen: you had to drag
    it sideways to reach Band and Remove, and the drag fought the page. Each

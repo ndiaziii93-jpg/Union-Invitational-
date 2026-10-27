@@ -140,6 +140,35 @@ Still open, and worth knowing: photos can be added by anyone with the link
 registered on rather than a PIN; and the recap writer's spend is capped by
 the limit you set in the Anthropic console, not by the book.
 
+## 5. The watch — alerts when someone tries it on
+
+The server logs every refusal: a PIN it did not know, a write it would not
+sign, a write with the public key straight at the table (dropped silently,
+so the attacker learns nothing), and every phone it blocked (ten refusals
+in ten minutes blocks a phone for 24 hours). Only the master PIN reads the
+log. It comes with the lockdown SQL in section 4 — nothing more to run.
+
+**On your phone.** Signed in with the master PIN, the book looks at the
+log every minute and puts a red bar at the top of every screen when there
+is something new; Manage → Setup → Security shows the whole log, the
+blocked phones (with Unblock), and **Copy report** — paste that to me and I
+will read it, mitigate and patch.
+
+**As a push notification (optional, five minutes).** The database can send
+each new entry to your phone as it happens:
+
+1. Make up a long random string (a password manager will) — the webhook
+   secret. It never leaves your Supabase project.
+2. Supabase → Edge Functions → **notify** → Secrets → add
+   `SECURITY_WEBHOOK_SECRET` = that string. Redeploy `notify` from
+   `supabase/functions/notify/index.ts` (it carries the alert handler now).
+3. Supabase → Database → **Webhooks** → Create: table `security_log`, event
+   **Insert**, type HTTP request, method POST, URL
+   `https://<your project>.supabase.co/functions/v1/notify`, headers
+   `apikey: <the publishable key>` and `x-security-secret: <the string>`.
+4. On your phone, turn notifications on in the chat (the bell) while signed
+   in with the master PIN. Alerts go only to phones that hold it.
+
 ## What I need back from you
 
 | | Where from | Send me |
