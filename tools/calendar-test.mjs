@@ -75,6 +75,8 @@ const schedule = () => p.evaluate(() => { try {
   return JSON.parse(localStorage.getItem('union-invitational:v3')).config.schedule;
 } catch (e) { return null; } });
 
+/* the phone's clock two days before the trip, whenever this runs: the week ahead, whole */
+await p.clock.install({ time: new Date('2026-10-24T08:00:00Z') });
 await p.goto('file://' + S + '/cale.html');
 await p.waitForSelector('#app.arrived', { timeout: 20000 }).catch(() => {});
 await p.waitForTimeout(700); await shut();
