@@ -5038,7 +5038,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261028-1415';
+const BUILD = '20261028-1634';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -12606,15 +12606,20 @@ let fitBar = () => {};
     /* THE BAR STAYS ON THE FLOOR OF THE SCREEN. After a keyboard, iPhones
        sometimes leave the page's window at the keyboard's height while the
        screen is full again, and a bar fixed to the window's foot then sits
-       across the middle of the screen. The bar is moved by the difference
-       between where the window ends and where the screen does. */
-    const s = up ? 0 : Math.round(vv.offsetTop + vv.height - window.innerHeight);
+       across the middle of the screen. The bar is moved down by however much
+       taller the screen is than the window — by height alone, never by where
+       the screen sits: a page slammed to its top or its bottom bounces, and
+       the bounce moves the screen for a moment without the window changing. */
+    const s = up ? 0 : Math.max(0, Math.round(vv.height - window.innerHeight));
     if (s !== s0) { root.style.setProperty('--barshift', s ? s + 'px' : ''); s0 = s; }
   };
+  /* a look again once the screen has settled, in case the last frame of a bounce or a resize said nothing */
+  let settle = 0;
+  const fitSoon = () => { fit(); clearTimeout(settle); settle = setTimeout(fit, 450); };
   fitBar = fit;
-  vv.addEventListener('resize', fit);
-  vv.addEventListener('scroll', fit);
-  window.addEventListener('resize', fit);
+  vv.addEventListener('resize', fitSoon);
+  vv.addEventListener('scroll', fitSoon);
+  window.addEventListener('resize', fitSoon);
   document.addEventListener('focusin', () => setTimeout(fit, 60));
   document.addEventListener('focusout', () => setTimeout(() => { if (!typing()) { resetViewport(); fit(); } }, 120));
   fit();
@@ -20394,7 +20399,7 @@ __m_app.boot();
 /* Register the worker that makes the book work with no signal. It is the
    whole point of installing it: Belek is five hours of walking and everyone
    is roaming. A failure here must never stop the page loading. */
-var BOOK_BUILD = '20261028-1415';
+var BOOK_BUILD = '20261028-1634';
 var swReg = null;
 /* the book is never shown inside somebody else's page, where a tap could be
    aimed at a button they have put under the finger */
