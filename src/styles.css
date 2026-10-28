@@ -2071,8 +2071,10 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
 .seclog{list-style:none;margin:10px 0 0;padding:0;font-size:12.5px;line-height:1.45;color:var(--turf);font-family:var(--mono,ui-monospace,monospace)}
 .seclog li{padding:5px 0;border-top:1px solid var(--rule);word-break:break-word}
 .seclog li.new{color:var(--ink)}
-.seclog li.direct,.seclog li.blocked{color:var(--flag)}
-.seclog li.signin{opacity:.7}
+.seclog li.ev-direct,.seclog li.ev-blocked,.seclog li.ev-denied{color:var(--flag)}
+.seclog li.ev-signin{opacity:.7}
+/* on a phone the watch's words and its buttons stack: side by side the words were a column four letters wide */
+@media (max-width:699px){ .secpanel > .kv,.mpanel > .kv{grid-template-columns:1fr} .secpanel > .kv .chiprow,.mpanel > .kv .chiprow{justify-self:start} }
 /* a card's history: when, who, what moved, and the way back */
 .histlist{list-style:none;margin:10px 0 0;padding:0}
 .histlist li{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:9px 0;border-top:1px solid var(--rule);align-items:center}

@@ -5343,7 +5343,7 @@ function masterPhonesPanel() {
       <span class="chiprow"><b class="num mp-id">${esc(me)}</b><button class="btn ghost sm" data-act="mpCopy">${UI.mpCopied ? 'Copied' : 'Copy'}</button></span></div>
     ${m && m.err ? `<p class="xm-err">${esc(m.err)} <button class="rm" data-act="mpReload">Try again</button></p>` : ''}
     ${m && !m.err ? (list.length
-      ? `<ul class="seclog mplist">${list.map(p => `<li class="signin"><b class="num">${esc(p.dev)}</b> ${esc(p.label || '')}${p.dev === me ? ' · this phone' : ''}${p.dev !== me && list.length > 1 ? ` <button class="rm" data-act="mpRemove" data-a="${esc(p.dev)}">Take off</button>` : ''}</li>`).join('')}</ul>${
+      ? `<ul class="seclog mplist">${list.map(p => `<li class="ev-signin"><b class="num">${esc(p.dev)}</b> ${esc(p.label || '')}${p.dev === me ? ' · this phone' : ''}${p.dev !== me && list.length > 1 ? ` <button class="rm" data-act="mpRemove" data-a="${esc(p.dev)}">Take off</button>` : ''}</li>`).join('')}</ul>${
           mine ? '' : `<p class="xm-err">This phone is not one of them: the master PIN will stop working here the moment you sign out. Enrol it from the SQL editor, or add it from an enrolled phone.</p>`}`
       : `<p class="xm-err">⚠️ No master phone is enrolled: anyone who learns the master PIN can act as master from any phone. Enrol this one from the SQL editor now — the placeholder at the bottom of the lockdown file, with the id above.</p>`) : ''}
     ${m && !m.err && list.length && mine ? `<div class="kv" style="margin-top:10px"><span class="k">Add a phone<small>Its id, from “This phone” on its own Setup screen, and a name for it.</small></span>
@@ -5364,7 +5364,7 @@ function securityPanel() {
       : `<p class="sec-sum ${fresh.length ? 'new' : ''}">${fresh.length ? '⚠️ ' + fresh.length + ' new since you last looked · ' : ''}${alerts.length} refusal${alerts.length === 1 ? '' : 's'} on record</p>`}
     ${sec && sec.blocked && sec.blocked.length ? sec.blocked.map(b => `<div class="kv"><span class="k">Blocked phone ${esc(b.dev)}<small>${esc(b.why || '')} · until ${esc(new Date(b.until).toLocaleString())}</small></span>
       <button class="btn ghost sm" data-act="secUnblock" data-a="${esc(b.dev)}">Unblock</button></div>`).join('') : ''}
-    ${sec && sec.events && sec.events.length ? `<ul class="seclog">${sec.events.slice(0, 60).map(e => `<li class="${esc(e.kind)}${Date.parse(e.at) > secSeen() && e.kind !== 'signin' ? ' new' : ''}">${esc(secLine(e))}</li>`).join('')}</ul>` : ''}
+    ${sec && sec.events && sec.events.length ? `<ul class="seclog">${sec.events.slice(0, 60).map(e => `<li class="ev-${esc(e.kind)}${Date.parse(e.at) > secSeen() && e.kind !== 'signin' ? ' new' : ''}">${esc(secLine(e))}</li>`).join('')}</ul>` : ''}
     <div class="kv" style="margin-top:12px"><span class="k">Recent changes<small>Every write to a card, the roster, the pairs, a round or a recap, with the phone that made it. A card's own History (on its scorecard) puts an earlier version back.</small></span>
       <button class="btn ghost sm" data-act="histAll">${UI.histAll && UI.histAll.busy ? 'Reading…' : 'Show'}</button></div>
     ${UI.histAll && UI.histAll.err ? `<p class="xm-err">${esc(UI.histAll.err)}</p>` : ''}
@@ -5449,7 +5449,7 @@ function scrSetup() {
     <div class="kv"><span class="k">${label}<small>${hint}</small></span>
       <span class="chiprow"><span class="pinstate${p[k] ? ' on' : ''}">${p[k] ? 'Set' : 'Not set'}</span>
         <input class="field num pinbox" id="pin_${k}" type="password" inputmode="numeric" maxlength="8" autocomplete="off"
-          value="${esc(UI.pinDraft[k] || '')}" placeholder="${p[k] ? '\u2022\u2022\u2022\u2022' : '4\u20138 digits'}" aria-label="${label} PIN"></span></div>`).join('')}
+          value="${esc(UI.pinDraft[k] || '')}" placeholder="${p[k] ? '\u2022\u2022\u2022\u2022\u2022\u2022' : '6\u20138 digits'}" aria-label="${label} PIN"></span></div>`).join('')}
     <div class="chiprow" style="align-items:center;gap:12px">
       <button class="btn" data-act="savePins">Save PINs</button>
       ${UI.pinNote ? `<span class="eyebrow" style="color:${/saved/i.test(UI.pinNote) ? 'var(--green)' : 'var(--flag)'}">${esc(UI.pinNote)}</span>`
@@ -9274,9 +9274,9 @@ function onClick(e) {
       for (const k of ['master', 's1', 's2']) {
         const v = String(d[k] || '').replace(/\D/g, '');
         if (!v) continue;
-        if (v.length < 4) bad.push(k); else next[k] = v.slice(0, 8);
+        if (v.length < 6 || v.length > 8) bad.push(k); else next[k] = v;
       }
-      if (bad.length) { UI.pinNote = 'A PIN is 4 to 8 digits'; break; }
+      if (bad.length) { UI.pinNote = 'A PIN is 6 to 8 digits — ' + bad.map(k => ({ master: 'the master PIN', s1: 'Scorer 1', s2: 'Scorer 2' })[k]).join(', ') + ' as typed is not'; break; }
       if (!Object.keys(next).length) { UI.pinNote = 'Nothing typed, nothing changed'; break; }
       /* the server changes them, and only for the master PIN this phone holds */
       const master = (loadRole() || {}).pin || '';
@@ -9285,7 +9285,9 @@ function onClick(e) {
         if (next.master) saveRole('master', next.master);       // this phone keeps its own new key
         UI.pinDraft = { master: '', s1: '', s2: '' };
         UI.pinNote = 'Saved \u00b7 ' + Object.keys(next).length + ' of 3'; render();
-      }, e => { UI.pinNote = /PIN/.test(String(e && e.message || '')) ? 'The server did not accept this phone\'s master PIN' : 'Could not reach the book — try again with a signal'; render(); });
+      }, e => { const m = String(e && e.message || '');
+        UI.pinNote = /^PIN not accepted/.test(m) ? 'The server did not accept this phone\'s master PIN' + (/not the master phone|blocked/.test(m) ? ': ' + m.replace(/^PIN not accepted:?\s*/, '') : '')
+          : /\bPIN\b|digits|denied/i.test(m) ? 'The server said no: ' + m : 'Could not reach the book — try again with a signal'; render(); });
       return;
     }
     case 'resetRound':
