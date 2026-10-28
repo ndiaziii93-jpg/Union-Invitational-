@@ -2014,6 +2014,9 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
 
 .pnote{font-size:14px;color:var(--turf);margin:8px 0 0;max-width:34ch;line-height:1.5}
 .pnote.bad{color:var(--flag);max-width:none}
+.mp-id{font-size:17px;letter-spacing:.06em;padding:0 6px;align-self:center}
+.mplist b{letter-spacing:.05em}
+.mpanel .field.small{min-height:38px;padding:6px 10px;font-size:14px;max-width:150px}
 
 
 
@@ -7335,6 +7338,21 @@ function createSupabaseDb(opts) {
       await gate(bound(sb.rpc('set_pin', { p_master: String(master || ''), p_role: role, p_new: String(next || ''), p_who: deviceId || null })));
       return true;
     },
+    /** The master phones, for the master PIN from one of them. */
+    async masterPhones(master) {
+      const { data, error } = await bound(sb.rpc('master_phones_list', { p_pin: String(master || ''), p_who: deviceId || null }));
+      if (error) throw error;
+      if (!data || data.denied) { const e = new Error('PIN not accepted'); e.code = '42501'; throw e; }
+      return data.phones || [];
+    },
+    async masterPhoneAdd(master, dev, label) {
+      await gate(bound(sb.rpc('master_phone_add', { p_pin: String(master || ''), p_who: deviceId || null, p_dev: String(dev || ''), p_label: String(label || '') })));
+      return true;
+    },
+    async masterPhoneRemove(master, dev) {
+      await gate(bound(sb.rpc('master_phone_remove', { p_pin: String(master || ''), p_who: deviceId || null, p_dev: String(dev || '') })));
+      return true;
+    },
     /** The player PINs, for the master PIN: {pid: pin}. */
     async namePins(master) {
       const { data, error } = await bound(sb.rpc('name_pins_list', { p_pin: String(master || ''), p_who: deviceId || null }));
@@ -8688,6 +8706,10 @@ function createStore(onChange) {
            set pin(v) { currentPin = String(v || ''); if (db && db.pinChanged) db.pinChanged(); },
            get deniedAt() { return deniedAt; },
            get deniedPath() { return deniedPath; },
+           /* the master phones: which phones the master PIN counts from */
+           async masterPhones() { if (backend !== 'supabase' || !db || !db.masterPhones) return null; return db.masterPhones(currentPin); },
+           async masterPhoneAdd(dev, label) { if (backend !== 'supabase' || !db || !db.masterPhoneAdd) return false; return db.masterPhoneAdd(currentPin, dev, label); },
+           async masterPhoneRemove(dev) { if (backend !== 'supabase' || !db || !db.masterPhoneRemove) return false; return db.masterPhoneRemove(currentPin, dev); },
            /* low power: the socket closed and the book looking every ten minutes */
            setLowPower(on) { lowPower = !!on; if (db && db.setLowPower) db.setLowPower(lowPower); notify(); },
            get lowPower() { return lowPower; },

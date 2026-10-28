@@ -1964,6 +1964,9 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
 
 .pnote{font-size:14px;color:var(--turf);margin:8px 0 0;max-width:34ch;line-height:1.5}
 .pnote.bad{color:var(--flag);max-width:none}
+.mp-id{font-size:17px;letter-spacing:.06em;padding:0 6px;align-self:center}
+.mplist b{letter-spacing:.05em}
+.mpanel .field.small{min-height:38px;padding:6px 10px;font-size:14px;max-width:150px}
 
 
 
@@ -4966,7 +4969,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261028-1726';
+const BUILD = '20261028-1808';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -9101,6 +9104,21 @@ function createSupabaseDb(opts) {
       await gate(bound(sb.rpc('set_pin', { p_master: String(master || ''), p_role: role, p_new: String(next || ''), p_who: deviceId || null })));
       return true;
     },
+    /** The master phones, for the master PIN from one of them. */
+    async masterPhones(master) {
+      const { data, error } = await bound(sb.rpc('master_phones_list', { p_pin: String(master || ''), p_who: deviceId || null }));
+      if (error) throw error;
+      if (!data || data.denied) { const e = new Error('PIN not accepted'); e.code = '42501'; throw e; }
+      return data.phones || [];
+    },
+    async masterPhoneAdd(master, dev, label) {
+      await gate(bound(sb.rpc('master_phone_add', { p_pin: String(master || ''), p_who: deviceId || null, p_dev: String(dev || ''), p_label: String(label || '') })));
+      return true;
+    },
+    async masterPhoneRemove(master, dev) {
+      await gate(bound(sb.rpc('master_phone_remove', { p_pin: String(master || ''), p_who: deviceId || null, p_dev: String(dev || '') })));
+      return true;
+    },
     /** The player PINs, for the master PIN: {pid: pin}. */
     async namePins(master) {
       const { data, error } = await bound(sb.rpc('name_pins_list', { p_pin: String(master || ''), p_who: deviceId || null }));
@@ -10454,6 +10472,10 @@ function createStore(onChange) {
            set pin(v) { currentPin = String(v || ''); if (db && db.pinChanged) db.pinChanged(); },
            get deniedAt() { return deniedAt; },
            get deniedPath() { return deniedPath; },
+           /* the master phones: which phones the master PIN counts from */
+           async masterPhones() { if (backend !== 'supabase' || !db || !db.masterPhones) return null; return db.masterPhones(currentPin); },
+           async masterPhoneAdd(dev, label) { if (backend !== 'supabase' || !db || !db.masterPhoneAdd) return false; return db.masterPhoneAdd(currentPin, dev, label); },
+           async masterPhoneRemove(dev) { if (backend !== 'supabase' || !db || !db.masterPhoneRemove) return false; return db.masterPhoneRemove(currentPin, dev); },
            /* low power: the socket closed and the book looking every ten minutes */
            setLowPower(on) { lowPower = !!on; if (db && db.setLowPower) db.setLowPower(lowPower); notify(); },
            get lowPower() { return lowPower; },
@@ -15866,6 +15888,36 @@ function securityReport() {
     ...((UI.sec && UI.sec.blocked) || []).map(b => 'BLOCKED ' + b.dev + ' until ' + b.until + ' — ' + b.why),
     ...ev.map(secLine)].join('\n');
 }
+/* THE MASTER PHONE. The master PIN counts only from a phone enrolled on the
+   server; this panel shows this phone's id to enrol it (from the SQL editor
+   the first time), the phones enrolled, and lets an enrolled phone add or
+   drop another. With nobody enrolled it says so, loudly. */
+let mpBusy = false;
+function masterPhonesLoad(force) {
+  if (!store || UI.role !== 'master' || mpBusy) return;
+  if (!force && UI.mphones && Date.now() - (UI.mphones.got || 0) < 150000) return;
+  mpBusy = true;
+  store.masterPhones().then(ph => { mpBusy = false; UI.mphones = { phones: ph || [], got: Date.now(), err: '' }; render(); },
+    e => { mpBusy = false; UI.mphones = { phones: [], got: Date.now(), err: /PIN/.test(String(e && e.message || '')) ? 'The server did not accept this phone’s master PIN.' : 'Could not read the master phones: no signal, or the lockdown SQL has not been run with this version.' }; render(); });
+}
+function masterPhonesPanel() {
+  if (!store || store.backend !== 'supabase' || UI.role !== 'master') return '';
+  masterPhonesLoad();
+  const me = myDev(), m = UI.mphones, list = (m && m.phones) || [];
+  const mine = list.some(p => p.dev === me);
+  return `<h3 class="sub">The master phone</h3>
+  <div class="panel mpanel">
+    <div class="kv"><span class="k">This phone<small>Its id in the book. The master PIN counts only from a phone enrolled below; enrol the first from the SQL editor, with this id.</small></span>
+      <span class="chiprow"><b class="num mp-id">${esc(me)}</b><button class="btn ghost sm" data-act="mpCopy">${UI.mpCopied ? 'Copied' : 'Copy'}</button></span></div>
+    ${m && m.err ? `<p class="xm-err">${esc(m.err)} <button class="rm" data-act="mpReload">Try again</button></p>` : ''}
+    ${m && !m.err ? (list.length
+      ? `<ul class="seclog mplist">${list.map(p => `<li class="signin"><b class="num">${esc(p.dev)}</b> ${esc(p.label || '')}${p.dev === me ? ' · this phone' : ''}${p.dev !== me && list.length > 1 ? ` <button class="rm" data-act="mpRemove" data-a="${esc(p.dev)}">Take off</button>` : ''}</li>`).join('')}</ul>${
+          mine ? '' : `<p class="xm-err">This phone is not one of them: the master PIN will stop working here the moment you sign out. Enrol it from the SQL editor, or add it from an enrolled phone.</p>`}`
+      : `<p class="xm-err">⚠️ No master phone is enrolled: anyone who learns the master PIN can act as master from any phone. Enrol this one from the SQL editor now — the placeholder at the bottom of the lockdown file, with the id above.</p>`) : ''}
+    ${m && !m.err && list.length && mine ? `<div class="kv" style="margin-top:10px"><span class="k">Add a phone<small>Its id, from “This phone” on its own Setup screen, and a name for it.</small></span>
+      <span class="chiprow"><input class="field small" id="mpDev" placeholder="id" autocomplete="off" maxlength="64"><input class="field small" id="mpLabel" placeholder="whose" autocomplete="off" maxlength="40"><button class="btn ghost sm" data-act="mpAdd">Add</button></span></div>` : ''}
+  </div>`;
+}
 function securityPanel() {
   if (!store || store.backend !== 'supabase') return '';
   const sec = UI.sec, fresh = secNew(), alerts = secAlerts();
@@ -15973,6 +16025,7 @@ function scrSetup() {
     </div>
   </div>
 
+  ${masterPhonesPanel()}
   ${securityPanel()}
 
   <h3 class="sub">Relief</h3>
@@ -19365,6 +19418,23 @@ function onClick(e) {
     case 'setupOpen': UI.modal = { kind: 'setup', scope: a || 'all' }; UI.modalErr = ''; break;
     case 'secOpen': goTo('setup'); setTimeout(() => { const el = document.getElementById('security'); if (el) el.scrollIntoView({ block: 'start' }); }, 300); return;
     case 'secRefresh': securityPoll(true); render(); return;
+    case 'mpReload': masterPhonesLoad(true); render(); return;
+    case 'mpCopy': {
+      const id = myDev();
+      const done = () => { UI.mpCopied = true; render(); setTimeout(() => { UI.mpCopied = false; render(); }, 1800); };
+      try { navigator.clipboard.writeText(id).then(done, () => { window.prompt('This phone’s id', id); }); } catch (e) { window.prompt('This phone’s id', id); }
+      return;
+    }
+    case 'mpAdd': {
+      const dev = (document.getElementById('mpDev') || {}).value || '', label = (document.getElementById('mpLabel') || {}).value || '';
+      if (!/^[A-Za-z0-9_-]{2,64}$/.test(dev.trim())) { flash('That is not a phone id.'); return; }
+      store.masterPhoneAdd(dev.trim(), label.trim()).then(() => { flash('Added. The master PIN counts from that phone now.'); masterPhonesLoad(true); }, e => flash(String(e && e.message || 'Could not add it.')));
+      return;
+    }
+    case 'mpRemove':
+      UI.modal = { kind: 'confirm', eyebrow: 'The master phone', title: 'Take ' + a + ' off?', note: 'The master PIN will no longer count from that phone.', ok: 'Take it off',
+        onOk: () => { store.masterPhoneRemove(a).then(() => { flash('Taken off.'); masterPhonesLoad(true); }, e => flash(String(e && e.message || 'Could not take it off.'))); } };
+      render(); return;
     case 'calcHcp': UI.calcHcp = +a; render(); return;
     case 'calcStep': UI.calcHcp = Math.max(0, Math.min(E.HCP_MAX, (UI.calcHcp == null ? 20 : UI.calcHcp) + (+a))); render(); return;
     case 'calcRound': UI.calcRid = a; render(); return;

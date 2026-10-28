@@ -1960,6 +1960,9 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
 
 .pnote{font-size:14px;color:var(--turf);margin:8px 0 0;max-width:34ch;line-height:1.5}
 .pnote.bad{color:var(--flag);max-width:none}
+.mp-id{font-size:17px;letter-spacing:.06em;padding:0 6px;align-self:center}
+.mplist b{letter-spacing:.05em}
+.mpanel .field.small{min-height:38px;padding:6px 10px;font-size:14px;max-width:150px}
 
 
 

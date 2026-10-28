@@ -121,6 +121,32 @@ stable
 as $$ select exists (select 1 from public.blocked_devices where dev = p_who and until > now()) $$;
 revoke execute on function public.is_blocked(text) from public, anon, authenticated;
 
+-- ---- THE MASTER PHONE --------------------------------------------------------
+-- The master PIN is only half of it. Once a phone is enrolled here, the
+-- master PIN counts as the master PIN only from an enrolled phone: from any
+-- other phone it is refused and logged like a wrong one, whoever typed it.
+-- The first phone is enrolled from this editor (the placeholder at the
+-- bottom, with the id the book shows on Setup); an enrolled phone can add
+-- another from the app. With nobody enrolled the PIN alone still works, as
+-- it did — so enrol one.
+create table if not exists public.master_devices (
+  dev      text primary key,
+  label    text,
+  added_at timestamptz not null default now(),
+  added_by text
+);
+revoke all on public.master_devices from anon, authenticated, public;
+alter table public.master_devices enable row level security;
+
+create or replace function public.master_phone_ok(p_who text)
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$ select not exists (select 1 from public.master_devices) or exists (select 1 from public.master_devices where dev = p_who) $$;
+revoke execute on function public.master_phone_ok(text) from public, anon, authenticated;
+
 -- ---- which role a PIN proves -----------------------------------------------
 -- 'master', 's1', 's2'; null for a wrong one; 'throttled' when the minute is
 -- used up. It never raises, so the log it writes is kept.
@@ -144,6 +170,10 @@ declare r text; n int;
 begin
   if p_pin is null or p_pin !~ '^[0-9]{4,8}$' then return null; end if;
   select role into r from public.pins where hash = crypt(p_pin, hash) limit 1;
+  if r = 'master' and not public.master_phone_ok(p_who) then
+    perform public.log_security('denied', 'pins/master', p_who, null, 'the master PIN from a phone that is not the master phone');
+    return null;
+  end if;
   if r is not null then return r; end if;
   delete from public.pin_tries where at < now() - interval '10 minutes';
   insert into public.pin_tries (at, who) values (now(), p_who);
@@ -531,6 +561,54 @@ begin
 end $$;
 grant execute on function public.security_unblock(text, text, text) to anon, authenticated;
 
+-- the master phones: read, add another, take one off — from an enrolled phone
+create or replace function public.master_phones_list(p_pin text, p_who text default null)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare out jsonb;
+begin
+  if public.pin_role(p_pin, p_who) is distinct from 'master' then return jsonb_build_object('denied', true); end if;
+  select coalesce(jsonb_agg(jsonb_build_object('dev', dev, 'label', label, 'added_at', added_at) order by added_at), '[]'::jsonb) into out from public.master_devices;
+  return jsonb_build_object('phones', out, 'you', p_who);
+end $$;
+grant execute on function public.master_phones_list(text, text) to anon, authenticated;
+
+create or replace function public.master_phone_add(p_pin text, p_who text, p_dev text, p_label text default null)
+returns text
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+begin
+  if public.pin_role(p_pin, p_who) is distinct from 'master' then return 'denied: PIN not accepted'; end if;
+  if not exists (select 1 from public.master_devices) then return 'denied: the first master phone is enrolled from the SQL editor, not the app'; end if;
+  if p_dev !~ '^[A-Za-z0-9_-]{2,64}$' then return 'denied: that is not a phone id'; end if;
+  insert into public.master_devices (dev, label, added_by) values (p_dev, left(coalesce(p_label, ''), 40), p_who)
+  on conflict (dev) do update set label = excluded.label;
+  perform public.log_security('signin', 'pins/master', p_who, null, 'enrolled ' || p_dev || ' as a master phone');
+  return 'ok';
+end $$;
+grant execute on function public.master_phone_add(text, text, text, text) to anon, authenticated;
+
+create or replace function public.master_phone_remove(p_pin text, p_who text, p_dev text)
+returns text
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+begin
+  if public.pin_role(p_pin, p_who) is distinct from 'master' then return 'denied: PIN not accepted'; end if;
+  if p_dev = p_who then return 'denied: a phone cannot take itself off; do it from another master phone'; end if;
+  if (select count(*) from public.master_devices) < 2 then return 'denied: the last master phone stays'; end if;
+  delete from public.master_devices where dev = p_dev;
+  perform public.log_security('signin', 'pins/master', p_who, null, 'took ' || p_dev || ' off the master phones');
+  return 'ok';
+end $$;
+grant execute on function public.master_phone_remove(text, text, text) to anon, authenticated;
+
 -- ---- every change to the tournament's own rows is kept -----------------------
 -- What a card, a roster row, a pairing, a round or a recap was before each
 -- write, who wrote it (the phone) and when. Only the master PIN reads it,
@@ -762,9 +840,23 @@ insert into public.pins (role, hash) values
   ('s2',     crypt('TYPE-SCORER-2-PIN-HERE',     gen_salt('bf', 8)))
 on conflict (role) do update set hash = excluded.hash, changed_at = now();
 
+-- ---- THE MASTER PHONE: TYPE THIS PHONE'S ID IN ------------------------------
+-- Setup → Security → "This phone" shows the id (tap Copy). Left as it is,
+-- this line does nothing. Once a phone is here, the master PIN works from
+-- that phone only.
+insert into public.master_devices (dev, label, added_by)
+select 'TYPE-THIS-PHONE-ID-HERE', 'the commissioner''s phone', 'sql'
+ where 'TYPE-THIS-PHONE-ID-HERE' !~ '^TYPE-'
+on conflict (dev) do nothing;
+
+-- A phone that should never get in again (its id is in the security log):
+-- insert into public.blocked_devices (dev, until, why) values ('THE-PHONE-ID', now() + interval '1 year', 'changed the master PIN')
+--   on conflict (dev) do update set until = excluded.until, why = excluded.why;
+
 -- Did it work? Three rows; the config has no pins; no name PIN in the clear;
--- the guard is on.
+-- the guard is on; the master phone is listed.
 select role, changed_at from public.pins;
 select path, doc ? 'pins' as still_has_pins from public.docs where path = 'config/tournament';
 select count(*) as names_with_pins_in_the_clear from public.docs where path like 'chat/id\_%' and doc ? 'pin';
 select tgname, tgenabled from pg_trigger where tgname = 'docs_guard';
+select dev, label, added_at from public.master_devices;

@@ -1171,6 +1171,10 @@ export function createStore(onChange) {
            set pin(v) { currentPin = String(v || ''); if (db && db.pinChanged) db.pinChanged(); },
            get deniedAt() { return deniedAt; },
            get deniedPath() { return deniedPath; },
+           /* the master phones: which phones the master PIN counts from */
+           async masterPhones() { if (backend !== 'supabase' || !db || !db.masterPhones) return null; return db.masterPhones(currentPin); },
+           async masterPhoneAdd(dev, label) { if (backend !== 'supabase' || !db || !db.masterPhoneAdd) return false; return db.masterPhoneAdd(currentPin, dev, label); },
+           async masterPhoneRemove(dev) { if (backend !== 'supabase' || !db || !db.masterPhoneRemove) return false; return db.masterPhoneRemove(currentPin, dev); },
            /* low power: the socket closed and the book looking every ten minutes */
            setLowPower(on) { lowPower = !!on; if (db && db.setLowPower) db.setLowPower(lowPower); notify(); },
            get lowPower() { return lowPower; },

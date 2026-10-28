@@ -90,7 +90,12 @@ function fakeSupabase() {
         async rpc(name, args) {
           try { guard(); } catch (e) { return { error: e }; }
           /* the server's gate: the tournament's own rows take a PIN it knows */
-          const role = state.pins[args.p_pin];
+          let role = state.pins[args.p_pin];
+          /* the master phone: the master PIN counts only from an enrolled phone, once one is */
+          if (role === 'master' && state.masters && state.masters.size && !state.masters.has(args.p_who)) { state.deniedMaster = (state.deniedMaster || 0) + 1; role = null; }
+          if (name === 'master_phones_list') return { data: role === 'master' ? { phones: [...(state.masters || [])].map(dev => ({ dev, label: '' })), you: args.p_who } : { denied: true }, error: null };
+          if (name === 'master_phone_add') { if (role !== 'master') return { data: 'denied: PIN not accepted', error: null }; if (!state.masters || !state.masters.size) return { data: 'denied: the first master phone is enrolled from the SQL editor, not the app', error: null }; state.masters.add(args.p_dev); return { data: 'ok', error: null }; }
+          if (name === 'master_phone_remove') { if (role !== 'master') return { data: 'denied: PIN not accepted', error: null }; if (args.p_dev === args.p_who) return { data: 'denied: a phone cannot take itself off; do it from another master phone', error: null }; state.masters.delete(args.p_dev); return { data: 'ok', error: null }; }
           if (name === 'verify_pin') return { data: role || null, error: null };
           /* a name and its PIN: claimed once, proved after */
           if (name === 'claim_name') {
@@ -397,6 +402,31 @@ function open(fake) {
   db.setLowPower(false);
   await wait(900);
   ok('turning it off opens the socket again', [fake.state.subscribed, db.lowPower], [true, false]);
+  db.close();
+}
+
+/* ---- the master phone ---------------------------------------------------- */
+{
+  console.log('\nthe master phone');
+  mem.clear();
+  const fake = fakeSupabase();
+  const db = open(fake);
+  db.start();
+  myPin = '1000';                                                   // the master PIN, on this phone (dtest)
+  ok('with nobody enrolled, the master PIN works from any phone', await db.verifyPin('1000'), 'master');
+  fake.state.masters = new Set(['dother']);                        // the commissioner enrolled their own phone
+  ok('once a phone is enrolled, the same PIN from another phone is refused like a wrong one', await db.verifyPin('1000'), null);
+  await db.doc('config/tournament').update({ rev: 9, capOver: 4 });
+  ok('and nothing of the master’s goes through from it', [fake.rows.has('config/tournament'), fake.state.deniedMaster > 0], [false, true]);
+  let said = '';
+  try { await db.masterPhoneAdd('1000', 'dtest', 'mine'); } catch (e) { said = e.message; }
+  ok('nor can it enrol itself', said, 'PIN not accepted');
+  fake.state.masters = new Set(['dtest']);                         // this phone is the one enrolled
+  ok('from the enrolled phone the PIN is the master PIN again', await db.verifyPin('1000'), 'master');
+  ok('and it can add another phone', [await db.masterPhoneAdd('1000', 'dbackup', 'the backup'), (await db.masterPhones('1000')).map(p => p.dev)], [true, ['dtest', 'dbackup']]);
+  said = '';
+  try { await db.masterPhoneRemove('1000', 'dtest'); } catch (e) { said = e.message; }
+  ok('but not take itself off', said, 'a phone cannot take itself off; do it from another master phone');
   db.close();
 }
 
