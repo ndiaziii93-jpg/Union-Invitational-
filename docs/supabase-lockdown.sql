@@ -302,7 +302,9 @@ begin
     perform public.log_security('denied', 'pins/' || p_role, p_who, null, 'tried to change a PIN without the master PIN');
     return 'denied: PIN not accepted';
   end if;
-  if p_role not in ('master', 's1', 's2') or p_new !~ '^[0-9]{6,8}$' then return 'denied: A PIN is 6 to 8 digits'; end if;
+  if p_role not in ('master', 's1', 's2') then return 'denied: no such PIN'; end if;
+  if p_role = 'master' and p_new !~ '^[0-9]{6,8}$' then return 'denied: The master PIN is 6 to 8 digits'; end if;
+  if p_role <> 'master' and p_new !~ '^[0-9]{4,8}$' then return 'denied: A ref PIN is 4 to 8 digits'; end if;
   insert into public.pins (role, hash) values (p_role, crypt(p_new, gen_salt('bf', 8)))
   on conflict (role) do update set hash = excluded.hash, changed_at = now();
   perform public.log_security('signin', 'pins/' || p_role, p_who, null, 'the ' || p_role || ' PIN was changed');

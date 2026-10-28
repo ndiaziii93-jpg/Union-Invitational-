@@ -4944,7 +4944,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261028-1904';
+const BUILD = '20261028-1907';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -15992,7 +15992,7 @@ function scrSetup() {
     <div class="kv"><span class="k">${label}<small>${hint}</small></span>
       <span class="chiprow"><span class="pinstate${p[k] ? ' on' : ''}">${p[k] ? 'Set' : 'Not set'}</span>
         <input class="field num pinbox" id="pin_${k}" type="password" inputmode="numeric" maxlength="8" autocomplete="off"
-          value="${esc(UI.pinDraft[k] || '')}" placeholder="${p[k] ? '\u2022\u2022\u2022\u2022\u2022\u2022' : '6\u20138 digits'}" aria-label="${label} PIN"></span></div>`).join('')}
+          value="${esc(UI.pinDraft[k] || '')}" placeholder="${p[k] ? (k === 'master' ? '\u2022\u2022\u2022\u2022\u2022\u2022' : '\u2022\u2022\u2022\u2022') : (k === 'master' ? '6\u20138 digits' : '4\u20138 digits')}" aria-label="${label} PIN"></span></div>`).join('')}
     <div class="chiprow" style="align-items:center;gap:12px">
       <button class="btn" data-act="savePins">Save PINs</button>
       ${UI.pinNote ? `<span class="eyebrow" style="color:${/saved/i.test(UI.pinNote) ? 'var(--green)' : 'var(--flag)'}">${esc(UI.pinNote)}</span>`
@@ -19817,9 +19817,10 @@ function onClick(e) {
       for (const k of ['master', 's1', 's2']) {
         const v = String(d[k] || '').replace(/\D/g, '');
         if (!v) continue;
-        if (v.length < 6 || v.length > 8) bad.push(k); else next[k] = v;
+        /* six to eight for the master PIN, four to eight for the refs' */
+        if (v.length < (k === 'master' ? 6 : 4) || v.length > 8) bad.push(k); else next[k] = v;
       }
-      if (bad.length) { UI.pinNote = 'A PIN is 6 to 8 digits — ' + bad.map(k => ({ master: 'the master PIN', s1: 'Scorer 1', s2: 'Scorer 2' })[k]).join(', ') + ' as typed is not'; break; }
+      if (bad.length) { UI.pinNote = (bad.includes('master') ? 'The master PIN is 6 to 8 digits' : 'A ref PIN is 4 to 8 digits') + ' — ' + bad.map(k => ({ master: 'the master PIN', s1: 'Scorer 1', s2: 'Scorer 2' })[k]).join(', ') + ' as typed is not'; break; }
       if (!Object.keys(next).length) { UI.pinNote = 'Nothing typed, nothing changed'; break; }
       /* the server changes them, and only for the master PIN this phone holds */
       const master = (loadRole() || {}).pin || '';
