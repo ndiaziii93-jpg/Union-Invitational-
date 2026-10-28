@@ -162,6 +162,8 @@ function lowLine() {
 function saveRole(role, pin) {
   try { localStorage.setItem(ROLE_KEY, JSON.stringify({ role, pin: String(pin || '') })); } catch (e) { /* storage blocked */ }
   if (store) { store.pin = pin; store.patchPush({ master: role === 'master' }); }   // the writes carry it; the server judges it; alerts go to the master's phone
+  /* a fresh PIN: whatever the old one was refused for is asked again */
+  for (const k of ['sec', 'namePins', 'mphones']) if (UI[k] && UI[k].err) UI[k] = null;
 }
 function loadRole() {
   try {
@@ -5121,6 +5123,7 @@ let pinsBusy = false;
 function namePinsLoad(force) {
   if (!store || UI.role !== 'master' || pinsBusy) return;
   if (!force && UI.namePins && Date.now() - (UI.namePins.got || 0) < 150000) return;
+  if (!force && pinRefused(UI.namePins)) return;
   pinsBusy = true;
   store.namePins().then(pins => { pinsBusy = false; UI.namePins = { pins: pins || {}, got: Date.now(), err: '' }; render(); },
     e => { pinsBusy = false; UI.namePins = { pins: {}, got: Date.now(), err: /PIN/.test(String(e && e.message || '')) ? 'The server did not accept this phone’s master PIN.' : 'Could not read the PINs: no signal.' }; render(); });
@@ -5298,9 +5301,16 @@ const secSeen = () => { try { return parseInt(localStorage.getItem(SEC_KEY), 10)
 const secAlerts = () => ((UI.sec && UI.sec.events) || []).filter(e => e.kind !== 'signin');
 const secNew = () => secAlerts().filter(e => Date.parse(e.at) > secSeen());
 let secBusy = false;
+/* A PIN THE SERVER REFUSED IS NOT ASKED AGAIN BY ITSELF. Every refused
+   read is logged, and ten refusals in ten minutes block the phone for a
+   day — so a stale PIN on the master's own phone, polling every couple of
+   minutes, would block the master. After a refusal the polls wait for a
+   sign-in, or for Look now. */
+const pinRefused = o => !!(o && o.err && /master PIN/.test(o.err));
 function securityPoll(force) {
   if (!store || store.backend !== 'supabase' || UI.role !== 'master' || secBusy) return;
   if (!force && UI.sec && Date.now() - (UI.sec.got || 0) < 150000) return;
+  if (!force && pinRefused(UI.sec)) return;
   secBusy = true;
   store.securityRecent().then(d => {
     secBusy = false;
@@ -5314,7 +5324,7 @@ const SEC_WORD = { direct: 'Public-key write dropped', pin: 'Wrong PIN', denied:
 function secLine(e) {
   const t = E.to12(new Date(Date.parse(e.at) + D.TZ_OFFSET_MIN * 60000).toISOString().slice(11, 16));
   const d = new Date(Date.parse(e.at) + D.TZ_OFFSET_MIN * 60000).toISOString().slice(5, 10).replace('-', '/');
-  return `${d} ${t} · ${SEC_WORD[e.kind] || e.kind}${e.path ? ' · ' + e.path : ''}${e.who ? ' · phone ' + e.who : ''}${e.pid ? ' · as ' + e.pid : ''}${e.ip ? ' · from ' + e.ip : ''}${e.detail ? ' · ' + e.detail : ''}`;
+  return `${d} ${t} · ${SEC_WORD[e.kind] || e.kind}${e.path ? ' · ' + e.path : ''}${e.who ? ' · phone ' + e.who + (e.who === myDev() ? ' (this one)' : '') : ''}${e.pid ? ' · as ' + e.pid : ''}${e.ip ? ' · from ' + e.ip : ''}${e.detail ? ' · ' + e.detail : ''}`;
 }
 function securityReport() {
   const ev = (UI.sec && UI.sec.events) || [];
@@ -5330,6 +5340,7 @@ let mpBusy = false;
 function masterPhonesLoad(force) {
   if (!store || UI.role !== 'master' || mpBusy) return;
   if (!force && UI.mphones && Date.now() - (UI.mphones.got || 0) < 150000) return;
+  if (!force && pinRefused(UI.mphones)) return;
   mpBusy = true;
   store.masterPhones().then(ph => { mpBusy = false; UI.mphones = { phones: ph || [], got: Date.now(), err: '' }; render(); },
     e => { mpBusy = false; UI.mphones = { phones: [], got: Date.now(), err: /PIN/.test(String(e && e.message || '')) ? 'The server did not accept this phone’s master PIN.' : 'Could not read the master phones: no signal, or the lockdown SQL has not been run with this version.' }; render(); });
