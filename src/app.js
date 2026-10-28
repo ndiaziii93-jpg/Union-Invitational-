@@ -6857,6 +6857,7 @@ function paint() {
       <span class="dot ${dot}"></span><span class="st">${esc(statusText)}</span>
       <span class="who">${D.PINS_ENABLED ? esc(role.label) : 'Unlocked \u2014 anyone can score'}</span>
       <span class="build" title="Which copy of the book this device is running">build ${esc(D.BUILD)}</span>
+      ${myDev() ? `<button class="build phone" data-act="mpCopy" title="This phone's id in the book — tap to copy">phone <b class="num">${esc(myDev())}</b>${UI.mpCopied ? ' · copied' : ''}</button>` : ''}
     </div>
   </div>
   ${feelBar()}

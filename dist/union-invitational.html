@@ -2481,6 +2481,8 @@ html:has(.page.scoring){scroll-padding-top:136px;scroll-padding-bottom:110px}
 }
 
 .statusbar .build{font-size:12px;color:var(--turf);opacity:.75;letter-spacing:.04em}
+.statusbar .build.phone{background:none;border:0;font:inherit;font-size:12px;padding:0;margin-left:10px;cursor:pointer;opacity:.9}
+.statusbar .build.phone b{letter-spacing:.08em;font-weight:700;color:var(--ink)}
 
 .gnote{max-width:52ch;line-height:1.5}
 .lnk{background:none;border:0;padding:0;font:inherit;color:var(--flag);text-decoration:underline;
@@ -4940,7 +4942,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261028-1808';
+const BUILD = '20261028-1816';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -17396,6 +17398,7 @@ function paint() {
       <span class="dot ${dot}"></span><span class="st">${esc(statusText)}</span>
       <span class="who">${D.PINS_ENABLED ? esc(role.label) : 'Unlocked \u2014 anyone can score'}</span>
       <span class="build" title="Which copy of the book this device is running">build ${esc(D.BUILD)}</span>
+      ${myDev() ? `<button class="build phone" data-act="mpCopy" title="This phone's id in the book — tap to copy">phone <b class="num">${esc(myDev())}</b>${UI.mpCopied ? ' · copied' : ''}</button>` : ''}
     </div>
   </div>
   ${feelBar()}
