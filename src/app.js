@@ -5023,6 +5023,9 @@ function scrRules() {
     <summary><span class="nm">${esc(r.name)}</span><span class="tg2">${esc(r.tag)}</span><span class="mk">+</span></summary>
     <div class="rule-body">
       <div class="meta"><div><b>When</b>${esc(r.when)}</div><div><b>How it is won</b>${esc(r.won)}</div></div>
+      ${r.table ? `<div class="ptsbox"><div class="pb-t">${esc(r.table.title)}</div>
+        <table class="ptstab"><tbody>${r.table.rows.map(([k, v, n]) => `<tr class="pts${n}"><td class="pk">${esc(k)}</td><td class="pv">${esc(v)}</td><td class="pn num">${esc(n)}<small>${n === '1' ? 'pt' : 'pts'}</small></td></tr>`).join('')}</tbody></table>
+        <p class="pb-n">${esc(r.table.note)}</p></div>` : ''}
       ${r.body.map(p => `<p>${esc(p)}</p>`).join('')}
       <p class="eg"><b style="font-family:var(--mono);font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--turf);display:block;font-style:normal">Worked example</b>${esc(r.example)}</p>
     </div></details>`).join('')}

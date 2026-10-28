@@ -8,6 +8,11 @@ export const RULES = [
   { id: 'pairs', name: 'Team Competition', tag: 'The main event. Fixed pairs, four-ball Stableford: points, not strokes.',
     when: 'Rounds 1–3 (Thu, Fri, Sun). Sunday is the final.',
     won: 'Most Stableford points across the three counting rounds.',
+    /* the points, on one card: net score against par on the hole, after the
+       strokes the team-game handicap gives there are taken off */
+    table: { title: 'Points a hole', note: 'Net score: your strokes on the hole after the ones your team-game handicap gives you there are taken off.',
+      rows: [['Albatross', 'three under net', '5'], ['Eagle', 'two under net', '4'], ['Birdie', 'one under net', '3'], ['Par', 'net par', '2'],
+             ['Bogey', 'one over net', '1'], ['Double bogey or worse', 'pick up and walk', '0']] },
     body: [
       'You and your partner each play your own ball on every hole, and each of you scores the hole in points against par, with your strokes taken off first: net bogey 1 point, net par 2, net birdie 3, net eagle 4, an albatross 5. Worse than net bogey is nought — so once you cannot make net bogey, pick up and walk; the hole is nought either way and the group keeps moving (Rule 21.1). The better of your two points is the team’s score for the hole; the other is thrown away (Rule 23).',
       'The handicap in this game is the USGA’s for the format: 85% of your handicap, rounded to the nearest stroke (Rules of Handicapping, Appendix C, Four-Ball Stableford). A 20 plays off 17, a 25 off 21, a 30 off 26. The team’s handicap is the two of those together, and what it buys is where each partner’s strokes land — one a hole up to the number, a second on the lowest stroke indexes for anything over eighteen. The MVP and the cup still use the full handicap.',

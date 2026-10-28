@@ -502,6 +502,19 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 
 /* ---- rules ---- */
 .rule-item{border-bottom:1px solid var(--rule)}
+/* the points a hole, on one card, before the words */
+.ptsbox{margin:14px 0 16px;max-width:520px;border:1px solid var(--rule);border-radius:14px;padding:12px 16px 10px;background:var(--page)}
+.ptsbox .pb-t{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--turf);margin-bottom:6px}
+.ptstab{width:100%;border-collapse:collapse}
+.ptstab td{padding:7px 0;border-top:1px solid var(--rule);font-size:15px;vertical-align:baseline}
+.ptstab tr:first-child td{border-top:0}
+.ptstab .pk{font-weight:600;color:var(--ink);white-space:nowrap;padding-right:12px}
+.ptstab .pv{color:var(--turf);font-style:italic;width:100%}
+.ptstab .pn{text-align:right;font-weight:700;font-size:20px;white-space:nowrap;padding-left:12px}
+.ptstab .pn small{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--turf);margin-left:3px}
+.ptstab tr.pts3 .pn,.ptstab tr.pts4 .pn,.ptstab tr.pts5 .pn{color:#2F7A4A}
+.ptstab tr.pts0 .pn{color:var(--flag)}
+.ptsbox .pb-n{margin:8px 0 0;font-size:13px;color:var(--turf);line-height:1.45}
 .rule-item summary{padding:15px 0;cursor:pointer;display:flex;gap:12px;align-items:baseline;list-style:none}
 .rule-item summary::-webkit-details-marker{display:none}
 .rule-item summary .nm{flex:1 1 auto;font-size:20px;font-weight:600}
@@ -4850,7 +4863,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261028-0616';
+const BUILD = '20261028-1200';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -4987,6 +5000,11 @@ const RULES = [
   { id: 'pairs', name: 'Team Competition', tag: 'The main event. Fixed pairs, four-ball Stableford: points, not strokes.',
     when: 'Rounds 1–3 (Thu, Fri, Sun). Sunday is the final.',
     won: 'Most Stableford points across the three counting rounds.',
+    /* the points, on one card: net score against par on the hole, after the
+       strokes the team-game handicap gives there are taken off */
+    table: { title: 'Points a hole', note: 'Net score: your strokes on the hole after the ones your team-game handicap gives you there are taken off.',
+      rows: [['Albatross', 'three under net', '5'], ['Eagle', 'two under net', '4'], ['Birdie', 'one under net', '3'], ['Par', 'net par', '2'],
+             ['Bogey', 'one over net', '1'], ['Double bogey or worse', 'pick up and walk', '0']] },
     body: [
       'You and your partner each play your own ball on every hole, and each of you scores the hole in points against par, with your strokes taken off first: net bogey 1 point, net par 2, net birdie 3, net eagle 4, an albatross 5. Worse than net bogey is nought — so once you cannot make net bogey, pick up and walk; the hole is nought either way and the group keeps moving (Rule 21.1). The better of your two points is the team’s score for the hole; the other is thrown away (Rule 23).',
       'The handicap in this game is the USGA’s for the format: 85% of your handicap, rounded to the nearest stroke (Rules of Handicapping, Appendix C, Four-Ball Stableford). A 20 plays off 17, a 25 off 21, a 30 off 26. The team’s handicap is the two of those together, and what it buys is where each partner’s strokes land — one a hole up to the number, a second on the lowest stroke indexes for anything over eighteen. The MVP and the cup still use the full handicap.',
@@ -15326,6 +15344,9 @@ function scrRules() {
     <summary><span class="nm">${esc(r.name)}</span><span class="tg2">${esc(r.tag)}</span><span class="mk">+</span></summary>
     <div class="rule-body">
       <div class="meta"><div><b>When</b>${esc(r.when)}</div><div><b>How it is won</b>${esc(r.won)}</div></div>
+      ${r.table ? `<div class="ptsbox"><div class="pb-t">${esc(r.table.title)}</div>
+        <table class="ptstab"><tbody>${r.table.rows.map(([k, v, n]) => `<tr class="pts${n}"><td class="pk">${esc(k)}</td><td class="pv">${esc(v)}</td><td class="pn num">${esc(n)}<small>${n === '1' ? 'pt' : 'pts'}</small></td></tr>`).join('')}</tbody></table>
+        <p class="pb-n">${esc(r.table.note)}</p></div>` : ''}
       ${r.body.map(p => `<p>${esc(p)}</p>`).join('')}
       <p class="eg"><b style="font-family:var(--mono);font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--turf);display:block;font-style:normal">Worked example</b>${esc(r.example)}</p>
     </div></details>`).join('')}
