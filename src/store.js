@@ -1140,6 +1140,14 @@ export function createStore(onChange) {
            set pin(v) { currentPin = String(v || ''); if (db && db.pinChanged) db.pinChanged(); },
            get deniedAt() { return deniedAt; },
            get deniedPath() { return deniedPath; },
+           /* the player PINs, for the master PIN this phone holds; with no
+              server the digits sit beside each name already */
+           async namePins() {
+             if (backend !== 'supabase' || !db || !db.namePins) {
+               const out = {}; for (const [k, d] of Object.entries(T.chat || {})) if (k.startsWith('id_') && d && d.pin) out[k.slice(3)] = d.pin; return out;
+             }
+             return db.namePins(currentPin);
+           },
            /* the security log, for the master PIN this phone holds */
            async securityRecent() { if (backend !== 'supabase' || !db || !db.securityRecent) return null; return db.securityRecent(currentPin); },
            async securityUnblock(dev) { if (backend !== 'supabase' || !db || !db.securityUnblock) return false; return db.securityUnblock(currentPin, dev); },

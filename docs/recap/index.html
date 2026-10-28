@@ -1972,6 +1972,7 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
 .scroller table{scroll-snap-align:start}
 
 .pnote{font-size:14px;color:var(--turf);margin:8px 0 0;max-width:34ch;line-height:1.5}
+.pnote.bad{color:var(--flag);max-width:none}
 
 
 
@@ -3537,6 +3538,7 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
   .tabbar{
     display:grid;grid-template-columns:repeat(6,1fr);
     position:fixed;left:0;right:0;bottom:0;z-index:40;
+    transform:translateY(var(--barshift,0px));
     background:var(--page);border-top:1px solid var(--rule);
     box-shadow:0 -6px 20px rgba(29,46,33,.07);
     padding:7px max(6px,env(safe-area-inset-left,0px)) calc(7px + env(safe-area-inset-bottom,0px))
@@ -7279,6 +7281,13 @@ function createSupabaseDb(opts) {
       await gate(bound(sb.rpc('set_pin', { p_master: String(master || ''), p_role: role, p_new: String(next || ''), p_who: deviceId || null })));
       return true;
     },
+    /** The player PINs, for the master PIN: {pid: pin}. */
+    async namePins(master) {
+      const { data, error } = await bound(sb.rpc('name_pins_list', { p_pin: String(master || ''), p_who: deviceId || null }));
+      if (error) throw error;
+      if (!data || data.denied) { const e = new Error('PIN not accepted'); e.code = '42501'; throw e; }
+      return data.pins || {};
+    },
     /** The security log and the blocked phones, for the master PIN. */
     async securityRecent(master) {
       const { data, error } = await bound(sb.rpc('security_recent', { p_pin: String(master || ''), p_who: deviceId || null, p_limit: 200 }));
@@ -8592,6 +8601,14 @@ function createStore(onChange) {
            set pin(v) { currentPin = String(v || ''); if (db && db.pinChanged) db.pinChanged(); },
            get deniedAt() { return deniedAt; },
            get deniedPath() { return deniedPath; },
+           /* the player PINs, for the master PIN this phone holds; with no
+              server the digits sit beside each name already */
+           async namePins() {
+             if (backend !== 'supabase' || !db || !db.namePins) {
+               const out = {}; for (const [k, d] of Object.entries(T.chat || {})) if (k.startsWith('id_') && d && d.pin) out[k.slice(3)] = d.pin; return out;
+             }
+             return db.namePins(currentPin);
+           },
            /* the security log, for the master PIN this phone holds */
            async securityRecent() { if (backend !== 'supabase' || !db || !db.securityRecent) return null; return db.securityRecent(currentPin); },
            async securityUnblock(dev) { if (backend !== 'supabase' || !db || !db.securityUnblock) return false; return db.securityUnblock(currentPin, dev); },

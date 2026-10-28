@@ -112,6 +112,7 @@ function fakeSupabase() {
             rows.set(args.p_path, { path: args.p_path, doc: args.p_merge ? { ...((held || {}).doc || {}), ...args.p_doc } : args.p_doc, writer: args.p_who, updated_at: stamp() });
             return { error: null };
           }
+          if (name === 'name_pins_list') return { data: role === 'master' ? { pins: { ...state.names } } : { denied: true }, error: null };
           if (name === 'photo_patch') {
             const held = rows.get(args.p_path);
             if (!held) return { data: 'denied: no such photo', error: null };

@@ -398,6 +398,13 @@ export function createSupabaseDb(opts) {
       await gate(bound(sb.rpc('set_pin', { p_master: String(master || ''), p_role: role, p_new: String(next || ''), p_who: deviceId || null })));
       return true;
     },
+    /** The player PINs, for the master PIN: {pid: pin}. */
+    async namePins(master) {
+      const { data, error } = await bound(sb.rpc('name_pins_list', { p_pin: String(master || ''), p_who: deviceId || null }));
+      if (error) throw error;
+      if (!data || data.denied) { const e = new Error('PIN not accepted'); e.code = '42501'; throw e; }
+      return data.pins || {};
+    },
     /** The security log and the blocked phones, for the master PIN. */
     async securityRecent(master) {
       const { data, error } = await bound(sb.rpc('security_recent', { p_pin: String(master || ''), p_who: deviceId || null, p_limit: 200 }));

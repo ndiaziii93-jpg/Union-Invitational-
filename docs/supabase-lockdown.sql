@@ -281,6 +281,38 @@ end $$;
 grant execute on function public.set_pin(text, text, text, text) to anon, authenticated;
 
 -- ---- a name and its PIN ----------------------------------------------------
+-- THE PLAYER PINS, FOR THE COMMISSIONER. The book checks a name's PIN
+-- against a hash and never needs the digits; the commissioner does, when
+-- somebody forgets. So the digits are kept in a table of their own that no
+-- key can read — no grant, row security on with no policy — and come out
+-- only through name_pins_list, with the master PIN, logged each time.
+create table if not exists public.name_pins (
+  pid    text primary key,
+  pin    text not null,
+  set_at timestamptz not null default now()
+);
+revoke all on public.name_pins from anon, authenticated, public;
+alter table public.name_pins enable row level security;
+
+create or replace function public.name_pins_list(p_pin text, p_who text default null)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare r text; out jsonb;
+begin
+  r := public.pin_role(p_pin, p_who);
+  if r is distinct from 'master' then
+    perform public.log_security('denied', 'name_pins', p_who, null, 'tried to read the player PINs without the master PIN');
+    return jsonb_build_object('denied', true);
+  end if;
+  select coalesce(jsonb_object_agg(pid, pin), '{}'::jsonb) into out from public.name_pins;
+  perform public.log_security('signin', 'name_pins', p_who, null, 'read the player PINs');
+  return jsonb_build_object('pins', out);
+end $$;
+grant execute on function public.name_pins_list(text, text) to anon, authenticated;
+
 create or replace function public.claim_name(p_pid text, p_pin text, p_who text default null)
 returns text
 language plpgsql
@@ -297,6 +329,7 @@ begin
   insert into public.docs (path, doc, writer)
   values ('chat/id_' || p_pid, jsonb_build_object('id', 'id_' || p_pid, 'k', 'id', 'pid', p_pid, 'at', (extract(epoch from now()) * 1000)::bigint,
                                                   'dev', p_who, 'hash', crypt(p_pin, gen_salt('bf', 6))), p_who);
+  insert into public.name_pins (pid, pin) values (p_pid, p_pin) on conflict (pid) do update set pin = excluded.pin, set_at = now();
   /* a name taken is a thing the commissioner should see: the one time a
      name is claimed by the wrong phone is before its owner arrives */
   perform public.log_security('signin', 'chat/id_' || p_pid, p_who, p_pid, 'claimed the name ' || p_pid);
@@ -457,6 +490,7 @@ begin
     end if;
   end if;
   delete from public.docs where path = p_path;
+  if p_path ~ '^chat/id_' then delete from public.name_pins where pid = substr(p_path, 9); end if;
   return 'ok';
 end $$;
 grant execute on function public.social_delete(text, text, text, text, text) to anon, authenticated;

@@ -1922,6 +1922,7 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
 .scroller table{scroll-snap-align:start}
 
 .pnote{font-size:14px;color:var(--turf);margin:8px 0 0;max-width:34ch;line-height:1.5}
+.pnote.bad{color:var(--flag);max-width:none}
 
 
 
@@ -3487,6 +3488,7 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
   .tabbar{
     display:grid;grid-template-columns:repeat(6,1fr);
     position:fixed;left:0;right:0;bottom:0;z-index:40;
+    transform:translateY(var(--barshift,0px));
     background:var(--page);border-top:1px solid var(--rule);
     box-shadow:0 -6px 20px rgba(29,46,33,.07);
     padding:7px max(6px,env(safe-area-inset-left,0px)) calc(7px + env(safe-area-inset-bottom,0px))
@@ -4923,7 +4925,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261028-1256';
+const BUILD = '20261028-1320';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -9052,6 +9054,13 @@ function createSupabaseDb(opts) {
       await gate(bound(sb.rpc('set_pin', { p_master: String(master || ''), p_role: role, p_new: String(next || ''), p_who: deviceId || null })));
       return true;
     },
+    /** The player PINs, for the master PIN: {pid: pin}. */
+    async namePins(master) {
+      const { data, error } = await bound(sb.rpc('name_pins_list', { p_pin: String(master || ''), p_who: deviceId || null }));
+      if (error) throw error;
+      if (!data || data.denied) { const e = new Error('PIN not accepted'); e.code = '42501'; throw e; }
+      return data.pins || {};
+    },
     /** The security log and the blocked phones, for the master PIN. */
     async securityRecent(master) {
       const { data, error } = await bound(sb.rpc('security_recent', { p_pin: String(master || ''), p_who: deviceId || null, p_limit: 200 }));
@@ -10365,6 +10374,14 @@ function createStore(onChange) {
            set pin(v) { currentPin = String(v || ''); if (db && db.pinChanged) db.pinChanged(); },
            get deniedAt() { return deniedAt; },
            get deniedPath() { return deniedPath; },
+           /* the player PINs, for the master PIN this phone holds; with no
+              server the digits sit beside each name already */
+           async namePins() {
+             if (backend !== 'supabase' || !db || !db.namePins) {
+               const out = {}; for (const [k, d] of Object.entries(T.chat || {})) if (k.startsWith('id_') && d && d.pin) out[k.slice(3)] = d.pin; return out;
+             }
+             return db.namePins(currentPin);
+           },
            /* the security log, for the master PIN this phone holds */
            async securityRecent() { if (backend !== 'supabase' || !db || !db.securityRecent) return null; return db.securityRecent(currentPin); },
            async securityUnblock(dev) { if (backend !== 'supabase' || !db || !db.securityUnblock) return false; return db.securityUnblock(currentPin, dev); },
@@ -12387,6 +12404,7 @@ function openChatFrom(room) {
    read off the phone as the keyboard comes and goes, and the chat is fitted
    into it: the box at the top, the newest lines straight under it, all of
    it above the keys. */
+let fitBar = () => {};
 (() => {
   const vv = typeof window !== 'undefined' && window.visualViewport;
   if (!vv) return;
@@ -12394,11 +12412,14 @@ function openChatFrom(room) {
      writing a custom property on <html> restyles the whole page each time.
      Nothing here matters unless a keyboard is up, so without one nothing is
      written, and with one only what changed. */
-  let wasUp = false, h0 = 0, t0 = 0;
+  const typing = () => { const el = document.activeElement; return !!el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName); };
+  let wasUp = false, h0 = 0, t0 = 0, s0 = 0;
   const fit = () => {
     const root = document.documentElement;
-    const up = window.innerHeight - vv.height > 120;   // a keyboard, not a toolbar
-    if (!up && !wasUp) return;
+    /* a keyboard, not a toolbar: the page's own window is taller than what
+       shows — or, on a phone that shrinks the page with the keyboard, a
+       field has the focus and what shows is well short of the screen */
+    const up = window.innerHeight - vv.height > 120 || (typing() && screen.height > 0 && vv.height < screen.height * 0.72);
     if (up !== wasUp) {
       root.classList.toggle('kbd', up); wasUp = up;
       if (!up) { dropKeyboard(); resetViewport(); }    // the keyboard went: the viewport is measured afresh
@@ -12406,9 +12427,20 @@ function openChatFrom(room) {
     const h = up ? Math.round(vv.height) : 0, t = up ? Math.round(vv.offsetTop) : 0;
     if (h !== h0) { root.style.setProperty('--vvh', up ? h + 'px' : ''); h0 = h; }
     if (t !== t0) { root.style.setProperty('--vvt', up ? t + 'px' : ''); t0 = t; }
+    /* THE BAR STAYS ON THE FLOOR OF THE SCREEN. After a keyboard, iPhones
+       sometimes leave the page's window at the keyboard's height while the
+       screen is full again, and a bar fixed to the window's foot then sits
+       across the middle of the screen. The bar is moved by the difference
+       between where the window ends and where the screen does. */
+    const s = up ? 0 : Math.round(vv.offsetTop + vv.height - window.innerHeight);
+    if (s !== s0) { root.style.setProperty('--barshift', s ? s + 'px' : ''); s0 = s; }
   };
+  fitBar = fit;
   vv.addEventListener('resize', fit);
   vv.addEventListener('scroll', fit);
+  window.addEventListener('resize', fit);
+  document.addEventListener('focusin', () => setTimeout(fit, 60));
+  document.addEventListener('focusout', () => setTimeout(() => { if (!typing()) { resetViewport(); fit(); } }, 120));
   fit();
 })();
 
@@ -15487,15 +15519,32 @@ function travelRead() {
   if (f) UI.travelDraft = f.value;
   return UI.travelDraft != null ? UI.travelDraft : ((T.config.travel || {}).text || '');
 }
+/* THE PLAYER PINS. The server keeps the digits where no key can read them
+   and hands them over for the master PIN only, so they are asked for when
+   the master opens the roster and shown beside each name. A name whose PIN
+   was made before the lockdown kept only its hash: the digits are gone, and
+   the row says so — clear it and the person makes a new one. */
+let pinsBusy = false;
+function namePinsLoad(force) {
+  if (!store || UI.role !== 'master' || pinsBusy) return;
+  if (!force && UI.namePins && Date.now() - (UI.namePins.got || 0) < 150000) return;
+  pinsBusy = true;
+  store.namePins().then(pins => { pinsBusy = false; UI.namePins = { pins: pins || {}, got: Date.now(), err: '' }; render(); },
+    e => { pinsBusy = false; UI.namePins = { pins: {}, got: Date.now(), err: /PIN/.test(String(e && e.message || '')) ? 'The server did not accept this phone’s master PIN.' : 'Could not read the PINs: no signal.' }; render(); });
+}
 function rosterPins() {
   if (!canAdmin()) return '';
+  if (UI.role === 'master' && store && store.backend === 'supabase') namePinsLoad();
   const ppl = T.config.people || [], gs = allGuests().sort((a, b) => (a.at || 0) - (b.at || 0));
+  const known = (UI.namePins && UI.namePins.pins) || {};
+  const digitsOf = pid => known[pid] || (store && store.backend !== 'supabase' ? (((T.chat || {})['id_' + pid]) || {}).pin : '') || '';
   return `<div class="titlerow" style="margin-top:44px">
-    <h3 class="sub" style="font-size:28px;font-weight:700;margin:0">Chat &amp; bets</h3>
-    <span class="rnote">Only you can see this. Each person makes their PIN the first time they choose their name; tell them it if they forget. Clearing one lets them make a new one.</span>
+    <h3 class="sub" style="font-size:28px;font-weight:700;margin:0">Player PINs</h3>
+    <span class="rnote">Only the master PIN sees this. Each person makes a four-digit PIN the first time they choose their name for the chat and bets; read it off here if they forget. Clearing one lets them make a new one.</span>
   </div>
-  <div class="pinlist">${ppl.map(p => { const pin = pinOf(p.id);
-    return `<div class="pinrow"><span class="pn">${esc(p.display)}</span><b class="pv num">${pin ? esc(pin) : p.role === 'official' ? '<i>uses the ref PIN</i>' : '<i>not made yet</i>'}</b>
+  ${UI.namePins && UI.namePins.err ? `<p class="pnote bad">${esc(UI.namePins.err)} <button class="rm" data-act="pinsReload">Try again</button></p>` : ''}
+  <div class="pinlist">${ppl.map(p => { const pin = pinOf(p.id), digits = digitsOf(p.id);
+    return `<div class="pinrow"><span class="pn">${esc(p.display)}</span><b class="pv num">${digits ? esc(digits) : pin ? '<i>made before the lockdown — clear it to reset</i>' : p.role === 'official' ? '<i>uses the ref PIN</i>' : '<i>not made yet</i>'}</b>
       ${pin ? `<button class="rm" data-act="pinReset" data-a="${esc(p.id)}">Clear</button>` : '<span></span>'}</div>`; }).join('')}</div>
   <h4 class="pinh">🏟️ The bleachers <span>${gs.filter(g => !g.removed).length}</span></h4>
   ${gs.length ? `<div class="pinlist">${gs.map(g => `<div class="pinrow${g.removed ? ' gone' : ''}"><span class="pn">${esc(g.name)}</span>
@@ -18423,7 +18472,7 @@ function resetViewport() {
   if (!m) return;
   const c = m.getAttribute('content') || '';
   m.setAttribute('content', c + ', minimum-scale=1');
-  requestAnimationFrame(() => { m.setAttribute('content', c); window.scrollTo(window.scrollX, window.scrollY); });
+  requestAnimationFrame(() => { m.setAttribute('content', c); window.scrollTo(window.scrollX, window.scrollY); setTimeout(fitBar, 50); });
 }
 function closeModal() {
   const m = UI.modal;
@@ -18720,11 +18769,12 @@ function onClick(e) {
     }
     case 'whoPinGo': whoPinGo(); return;
     case 'guestJoin': guestJoin(); return;
+    case 'pinsReload': namePinsLoad(true); render(); return;
     case 'pinReset': {
       if (!canAdmin()) return;
       UI.modal = { kind: 'confirm', eyebrow: 'Chat and bets', title: 'Clear ' + nameOf(a) + '’s PIN?',
         note: 'They make a new one the next time they choose their name. Until then anyone could choose it, so tell them first.',
-        ok: 'Clear it', onOk: () => { store.dropSocial('chat', 'id_' + a); render(); } };
+        ok: 'Clear it', onOk: () => { store.dropSocial('chat', 'id_' + a).then(() => { if (UI.namePins) delete UI.namePins.pins[a]; render(); }); render(); } };
       render(); return;
     }
     case 'guestRemove': {

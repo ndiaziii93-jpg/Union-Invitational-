@@ -1941,6 +1941,7 @@ function openChatFrom(room) {
    read off the phone as the keyboard comes and goes, and the chat is fitted
    into it: the box at the top, the newest lines straight under it, all of
    it above the keys. */
+let fitBar = () => {};
 (() => {
   const vv = typeof window !== 'undefined' && window.visualViewport;
   if (!vv) return;
@@ -1948,11 +1949,14 @@ function openChatFrom(room) {
      writing a custom property on <html> restyles the whole page each time.
      Nothing here matters unless a keyboard is up, so without one nothing is
      written, and with one only what changed. */
-  let wasUp = false, h0 = 0, t0 = 0;
+  const typing = () => { const el = document.activeElement; return !!el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName); };
+  let wasUp = false, h0 = 0, t0 = 0, s0 = 0;
   const fit = () => {
     const root = document.documentElement;
-    const up = window.innerHeight - vv.height > 120;   // a keyboard, not a toolbar
-    if (!up && !wasUp) return;
+    /* a keyboard, not a toolbar: the page's own window is taller than what
+       shows — or, on a phone that shrinks the page with the keyboard, a
+       field has the focus and what shows is well short of the screen */
+    const up = window.innerHeight - vv.height > 120 || (typing() && screen.height > 0 && vv.height < screen.height * 0.72);
     if (up !== wasUp) {
       root.classList.toggle('kbd', up); wasUp = up;
       if (!up) { dropKeyboard(); resetViewport(); }    // the keyboard went: the viewport is measured afresh
@@ -1960,9 +1964,20 @@ function openChatFrom(room) {
     const h = up ? Math.round(vv.height) : 0, t = up ? Math.round(vv.offsetTop) : 0;
     if (h !== h0) { root.style.setProperty('--vvh', up ? h + 'px' : ''); h0 = h; }
     if (t !== t0) { root.style.setProperty('--vvt', up ? t + 'px' : ''); t0 = t; }
+    /* THE BAR STAYS ON THE FLOOR OF THE SCREEN. After a keyboard, iPhones
+       sometimes leave the page's window at the keyboard's height while the
+       screen is full again, and a bar fixed to the window's foot then sits
+       across the middle of the screen. The bar is moved by the difference
+       between where the window ends and where the screen does. */
+    const s = up ? 0 : Math.round(vv.offsetTop + vv.height - window.innerHeight);
+    if (s !== s0) { root.style.setProperty('--barshift', s ? s + 'px' : ''); s0 = s; }
   };
+  fitBar = fit;
   vv.addEventListener('resize', fit);
   vv.addEventListener('scroll', fit);
+  window.addEventListener('resize', fit);
+  document.addEventListener('focusin', () => setTimeout(fit, 60));
+  document.addEventListener('focusout', () => setTimeout(() => { if (!typing()) { resetViewport(); fit(); } }, 120));
   fit();
 })();
 
@@ -5041,15 +5056,32 @@ function travelRead() {
   if (f) UI.travelDraft = f.value;
   return UI.travelDraft != null ? UI.travelDraft : ((T.config.travel || {}).text || '');
 }
+/* THE PLAYER PINS. The server keeps the digits where no key can read them
+   and hands them over for the master PIN only, so they are asked for when
+   the master opens the roster and shown beside each name. A name whose PIN
+   was made before the lockdown kept only its hash: the digits are gone, and
+   the row says so — clear it and the person makes a new one. */
+let pinsBusy = false;
+function namePinsLoad(force) {
+  if (!store || UI.role !== 'master' || pinsBusy) return;
+  if (!force && UI.namePins && Date.now() - (UI.namePins.got || 0) < 150000) return;
+  pinsBusy = true;
+  store.namePins().then(pins => { pinsBusy = false; UI.namePins = { pins: pins || {}, got: Date.now(), err: '' }; render(); },
+    e => { pinsBusy = false; UI.namePins = { pins: {}, got: Date.now(), err: /PIN/.test(String(e && e.message || '')) ? 'The server did not accept this phone’s master PIN.' : 'Could not read the PINs: no signal.' }; render(); });
+}
 function rosterPins() {
   if (!canAdmin()) return '';
+  if (UI.role === 'master' && store && store.backend === 'supabase') namePinsLoad();
   const ppl = T.config.people || [], gs = allGuests().sort((a, b) => (a.at || 0) - (b.at || 0));
+  const known = (UI.namePins && UI.namePins.pins) || {};
+  const digitsOf = pid => known[pid] || (store && store.backend !== 'supabase' ? (((T.chat || {})['id_' + pid]) || {}).pin : '') || '';
   return `<div class="titlerow" style="margin-top:44px">
-    <h3 class="sub" style="font-size:28px;font-weight:700;margin:0">Chat &amp; bets</h3>
-    <span class="rnote">Only you can see this. Each person makes their PIN the first time they choose their name; tell them it if they forget. Clearing one lets them make a new one.</span>
+    <h3 class="sub" style="font-size:28px;font-weight:700;margin:0">Player PINs</h3>
+    <span class="rnote">Only the master PIN sees this. Each person makes a four-digit PIN the first time they choose their name for the chat and bets; read it off here if they forget. Clearing one lets them make a new one.</span>
   </div>
-  <div class="pinlist">${ppl.map(p => { const pin = pinOf(p.id);
-    return `<div class="pinrow"><span class="pn">${esc(p.display)}</span><b class="pv num">${pin ? esc(pin) : p.role === 'official' ? '<i>uses the ref PIN</i>' : '<i>not made yet</i>'}</b>
+  ${UI.namePins && UI.namePins.err ? `<p class="pnote bad">${esc(UI.namePins.err)} <button class="rm" data-act="pinsReload">Try again</button></p>` : ''}
+  <div class="pinlist">${ppl.map(p => { const pin = pinOf(p.id), digits = digitsOf(p.id);
+    return `<div class="pinrow"><span class="pn">${esc(p.display)}</span><b class="pv num">${digits ? esc(digits) : pin ? '<i>made before the lockdown — clear it to reset</i>' : p.role === 'official' ? '<i>uses the ref PIN</i>' : '<i>not made yet</i>'}</b>
       ${pin ? `<button class="rm" data-act="pinReset" data-a="${esc(p.id)}">Clear</button>` : '<span></span>'}</div>`; }).join('')}</div>
   <h4 class="pinh">🏟️ The bleachers <span>${gs.filter(g => !g.removed).length}</span></h4>
   ${gs.length ? `<div class="pinlist">${gs.map(g => `<div class="pinrow${g.removed ? ' gone' : ''}"><span class="pn">${esc(g.name)}</span>
@@ -7977,7 +8009,7 @@ function resetViewport() {
   if (!m) return;
   const c = m.getAttribute('content') || '';
   m.setAttribute('content', c + ', minimum-scale=1');
-  requestAnimationFrame(() => { m.setAttribute('content', c); window.scrollTo(window.scrollX, window.scrollY); });
+  requestAnimationFrame(() => { m.setAttribute('content', c); window.scrollTo(window.scrollX, window.scrollY); setTimeout(fitBar, 50); });
 }
 function closeModal() {
   const m = UI.modal;
@@ -8274,11 +8306,12 @@ function onClick(e) {
     }
     case 'whoPinGo': whoPinGo(); return;
     case 'guestJoin': guestJoin(); return;
+    case 'pinsReload': namePinsLoad(true); render(); return;
     case 'pinReset': {
       if (!canAdmin()) return;
       UI.modal = { kind: 'confirm', eyebrow: 'Chat and bets', title: 'Clear ' + nameOf(a) + '’s PIN?',
         note: 'They make a new one the next time they choose their name. Until then anyone could choose it, so tell them first.',
-        ok: 'Clear it', onOk: () => { store.dropSocial('chat', 'id_' + a); render(); } };
+        ok: 'Clear it', onOk: () => { store.dropSocial('chat', 'id_' + a).then(() => { if (UI.namePins) delete UI.namePins.pins[a]; render(); }); render(); } };
       render(); return;
     }
     case 'guestRemove': {

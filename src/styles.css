@@ -1918,6 +1918,7 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
 .scroller table{scroll-snap-align:start}
 
 .pnote{font-size:14px;color:var(--turf);margin:8px 0 0;max-width:34ch;line-height:1.5}
+.pnote.bad{color:var(--flag);max-width:none}
 
 
 
@@ -3483,6 +3484,7 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
   .tabbar{
     display:grid;grid-template-columns:repeat(6,1fr);
     position:fixed;left:0;right:0;bottom:0;z-index:40;
+    transform:translateY(var(--barshift,0px));
     background:var(--page);border-top:1px solid var(--rule);
     box-shadow:0 -6px 20px rgba(29,46,33,.07);
     padding:7px max(6px,env(safe-area-inset-left,0px)) calc(7px + env(safe-area-inset-bottom,0px))
