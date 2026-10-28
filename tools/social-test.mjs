@@ -210,6 +210,8 @@ ok('Ray V is tagged on it', await p.locator('.xm-page .xm-tags .xm-tag').allInne
 ok('and says who settles it', /Settled by Jennifer D or the commissioner/.test(await p.locator('.xm-rules').innerText()), true);
 await tap('[data-act="xT"][data-a="set"][data-b="0.25"]');
 await tap('[data-act="xSubmit"]');
+await tap('[data-act="xTab"][data-a="week"]');
+ok('a bet the group made is on the week too, under its own head', [await p.locator('.xm-subh:has-text("Made by the group")').count(), (await p.locator('.xm-subh:has-text("Made by the group") ~ .xm-c .xm-ct b').allInnerTexts()).includes('Will Ray V wear the pink trousers on Sunday?')], [1, true]);
 await tap('.xm-c:has-text("pink trousers") .xm-ct');
 await tap('[data-act="xSettle"][data-b="yes"]');
 ok('settling asks first', await p.locator('.scrim [data-act="confirmOk"]').count(), 1);
@@ -217,11 +219,13 @@ await tap('.scrim [data-act="confirmOk"]');
 ok('then it is settled, by name', (await p.locator('.xm-done').innerText()).replace(/\s+/g, ' ').trim().startsWith('Settled Yes by Jennifer D'), true);
 await tap('.xm-back');
 ok('a settled bet stays on its tab, under Settled', [await p.locator('.xm-tabs button.on').getAttribute('data-a'), await p.locator('.xm-subh').innerText(),
-  await p.locator('.xm-subh ~ .xm-c .xm-ct b').allInnerTexts()], ['ours', 'SETTLED', ['Will Ray V wear the pink trousers on Sunday?']]);
+  await p.locator('.xm-subh ~ .xm-c .xm-ct b').allInnerTexts()], ['week', 'SETTLED', ['Will Ray V wear the pink trousers on Sunday?']]);
 await tap('[data-act="xTab"][data-a="cashed"]');
 ok('Cashed lists the settled bet, what it came in as, and who said so', [await p.locator('.xm-cash .xc-q').allInnerTexts(), await p.locator('.xm-cash .xc-res b').innerText(), /settled by Jennifer D/.test(await p.locator('.xm-cash .xc-res small').innerText())],
   [['Will Ray V wear the pink trousers on Sunday?'], 'Yes', true]);
 ok('and what it paid: her quarter on Yes at 25% came back as a beer', (await p.locator('.xm-cash .xc-lines li').allInnerTexts()).map(t => t.replace(/\s+/g, ' ').trim()), ['🏆 Jennifer D cashed 1 🍺 put on ¼ · +¾']);
+await tap('[data-act="xTab"][data-a="week"]');
+ok('once settled it sits under Settled on the week as well', (await p.locator('.xm-subh:has-text("Settled") ~ .xm-c .xm-ct b').allInnerTexts()).includes('Will Ray V wear the pink trousers on Sunday?'), true);
 await tap('[data-act="xTab"][data-a="r1"]');
 ok('Round 1 shows what the book settled itself as it happened: Robby B’s birdie on the 4th and Ray V’s ball in the water',
   await p.locator('.xm-c:has(.xm-res.yes) .xm-ct b').allInnerTexts().then(x => x.sort()), ['Who birdies a par 3?', 'Who finds the water?']);

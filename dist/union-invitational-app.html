@@ -4966,7 +4966,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261028-1722';
+const BUILD = '20261028-1726';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -12803,7 +12803,7 @@ function xTabNow() {
   return r ? r.id : 'week';
 }
 function xTabsHtml(all, on) {
-  const tabs = [['week', 'The week', 'MVP · teams · cup']]
+  const tabs = [['week', 'The week', 'MVP · teams · cup · ours']]
     .concat(xRounds().map(r => { const ph = E.phaseOf(T, r.id, now), d = E.dayOf(r.dayIdx);
       return [r.id, roomName(r.id), ph === 'live' ? '<span class="live">Live</span>' : ph === 'final' ? 'Settled' : ph === 'today' ? 'Today' : esc(d.dow.slice(0, 3) + ' ' + d.date)]; }))
     .concat([['off', 'Off the course', 'Pool · bar'], ['ours', 'Ours', (n => n ? n + ' made' : 'Make one')(new Set(all.filter(m => m.custom).map(m => m.qid || m.id)).size)],
@@ -12821,7 +12821,7 @@ function xPlate(tab, n) {
     return `<div class="xm-plate"><span class="k${ph === 'live' ? ' lv' : ''}">${esc(k)}</span><b>${esc(roomName(r.id))} · ${esc(d.dow.slice(0, 3) + ' ' + d.date)}</b>
       <span>${c ? esc(c.name) + ' · ' : ''}${lead && lead.thru ? esc(lead.name) + (ph === 'final' ? ' won it' : ' lead' + (lead.thru < 18 ? ', thru ' + lead.thru : '')) + ' · ' : ''}${n} bet${n === 1 ? '' : 's'}</span></div>`;
   }
-  const P = { week: ['All week · settles after Round 3', 'The week', 'MVP, the teams, the cup, the big shots'],
+  const P = { week: ['All week · settles after Round 3', 'The week', 'MVP, the teams, the cup, the big shots, and every bet the group has made'],
     off: ['Settled by the commissioner', 'Off the course', 'Golfers, the gallery and the refs'],
     ours: ['Made by the group', 'Ours', 'Settled by whoever made it, or the commissioner'],
     cashed: ['Settled, and what it paid', 'Cashed', 'Who hit, and the beers that came back'] }[tab] || ['', '', ''];
@@ -12965,12 +12965,16 @@ function xList() {
     body = xPlate(tab, X.cashed(T, now).length) + xCashed();
   } else {
     /* a who-card stays whole: it moves under Settled once every name on it has settled */
-    const here = all.filter(m => xTabOf(m) === tab);
+    /* the week holds the book's week-long bets and every bet the group made:
+       a bet made by hand is not tied to a round, so it belongs with the week */
+    const here = all.filter(m => xTabOf(m) === tab || (tab === 'week' && m.custom));
     const over = m => m.group ? here.every(x => x.group !== m.group || !!x.result) : !!m.result;
     const open = here.filter(m => !over(m)), done = here.filter(over);
+    const openBook = open.filter(m => !(tab === 'week' && m.custom)), openOurs = open.filter(m => tab === 'week' && m.custom);
     const make = `<button class="xm-new" data-act="xView" data-a="new"><span aria-hidden="true">＋</span> Make your own bet</button>`;
     body = xPlate(tab, count(here)) + (tab === 'ours' ? make : '')
-      + (cardsOf(open).join('') || (done.length ? '' : `<p class="pg-empty">${tab === 'ours' ? 'Nobody has made one yet. Make the first.' : 'Nothing here yet.'}</p>`))
+      + (cardsOf(openBook).join('') || (done.length || openOurs.length ? '' : `<p class="pg-empty">${tab === 'ours' ? 'Nobody has made one yet. Make the first.' : 'Nothing here yet.'}</p>`))
+      + (openOurs.length ? `<div class="xm-subh">Made by the group</div>` + cardsOf(openOurs).join('') : '')
       + (done.length ? `<div class="xm-subh">Settled</div>` + cardsOf(done).join('') : '')
       + (tab === 'ours' ? '' : make);
   }
