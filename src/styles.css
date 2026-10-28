@@ -504,6 +504,9 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 .ptstab{width:100%;border-collapse:collapse}
 .ptstab td{padding:7px 0;border-top:1px solid var(--rule);font-size:15px;vertical-align:baseline}
 .ptstab tr:first-child td{border-top:0}
+/* .pk is also the hole picker's class, which lays its box out as a block:
+   a table cell by that name must stay a cell, or its rule leaves the row */
+.ptstab td.pk,.ptsgrid td.pk,.calcgrid td.pk{display:table-cell;position:static}
 .ptstab .pk{font-weight:600;color:var(--ink);white-space:nowrap;padding-right:12px}
 .ptstab .pv{color:var(--turf);font-style:italic;width:100%}
 .ptstab .pn{text-align:right;font-weight:700;font-size:20px;white-space:nowrap;padding-left:12px}
