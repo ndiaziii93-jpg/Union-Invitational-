@@ -190,6 +190,7 @@ for (const mode of ['the test copy (this device only)', 'the real book (shared d
       await open.first().click(); await p.waitForTimeout(1300); await clear(); } };
   const shown = () => p.locator('.fig.raw .v').first().innerText();
 
+  await p.clock.install({ time: new Date('2026-10-24T08:00:00Z') });   // the week before the trip, so the rounds read the same all year
   await p.goto('file://' + S + (isDb ? '/dur-db.html' : '/dur-local.html')); await settled(p); await clear();
 
   // --- enter a stroke and save the hole ---
@@ -252,6 +253,7 @@ for (const mode of ['the test copy (this device only)', 'the real book (shared d
   await p.addInitScript(MOCK, { 'scores/practice__g1': card, __lie: true });
   const clear = async () => { for (let i = 0; i < 5; i++) { if (!await p.locator('.scrim').count()) return;
     await p.locator('.scrim [data-act="modalCancel"]').click({ force: true }).catch(() => {}); await p.waitForTimeout(200); } };
+  await p.clock.install({ time: new Date('2026-10-24T08:00:00Z') });   // the week before the trip, so the rounds read the same all year
   await p.goto('file://' + S + '/dur-db.html'); await settled(p); await clear();
   await goTab(p, 'Score Entry'); await p.waitForTimeout(600); await clear();
   const open = p.locator('[data-act="openRound"]');
@@ -272,6 +274,7 @@ for (const mode of ['the test copy (this device only)', 'the real book (shared d
   p.on('pageerror', e => { console.log('  PAGE ERROR:', String(e)); fails.push('pageerror'); });
   const clear = async () => { for (let i = 0; i < 5; i++) { if (!await p.locator('.scrim').count()) return;
     await p.locator('.scrim [data-act="modalCancel"]').click({ force: true }).catch(() => {}); await p.waitForTimeout(200); } };
+  await p.clock.install({ time: new Date('2026-10-24T08:00:00Z') });   // the week before the trip, so the rounds read the same all year
   await p.goto('file://' + S + '/dur-local.html'); await settled(p); await clear();
   await goTab(p, 'Score Entry'); await p.waitForTimeout(600); await clear();
   const open = p.locator('[data-act="openRound"]');
