@@ -5047,7 +5047,7 @@ function scrRules() {
       ${r.table ? `<div class="ptsbox"><div class="pb-t">${esc(r.table.title)}</div>
         <table class="ptstab"><tbody>${r.table.rows.map(([k, v, n]) => { const num = /^\d+$/.test(n); return `<tr class="${num ? 'pts' + n : /^0/.test(n) ? 'pts0' : /^1 pt|^½/.test(n) ? 'ptsw' : ''}"><td class="pk">${esc(k)}</td><td class="pv">${esc(v)}</td><td class="pn num${num || /^(½|0|1)/.test(n) ? '' : ' word'}">${esc(num ? n : n.replace(/ ?pts?( each)?$/, ''))}<small>${num ? (n === '1' ? 'pt' : 'pts') : (n.match(/pts?( each)?$/) || [''])[0]}</small></td></tr>`; }).join('')}</tbody></table>
         <p class="pb-n">${esc(r.table.note)}</p></div>` : ''}
-      ${r.id === 'pairs' ? hcpTables() : ''}
+      ${r.id === 'pairs' ? strokeCalc() + hcpTables() : ''}
       ${r.body.map(p => `<p>${esc(p)}</p>`).join('')}
       <p class="eg"><b style="font-family:var(--mono);font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--turf);display:block;font-style:normal">Worked example</b>${esc(r.example)}</p>
     </div></details>`).join('')}
@@ -5221,6 +5221,36 @@ function securityPanel() {
    different net scores — so a gross 5 on a par 4 is a bogey for one golfer
    and a net par for the next. Two tables say it: gross against par by the
    strokes received there, and what each handicap on the roster gets. */
+/* THE CALCULATOR. Pick your handicap and the course, and here is every
+   hole: the strokes you get on it, and the score you need there for three
+   points, two, or one. The question a golfer actually asks on the tee —
+   "what do I need here?" — answered before the round rather than worked
+   out on the walk. */
+function strokeCalc() {
+  const a = E.teamAllowance(T);
+  const me = whoAmI(), mine = me ? E.person(T, me) : null;
+  if (UI.calcHcp == null) UI.calcHcp = mine && mine.band != null ? mine.band : 20;
+  const rounds = E.countingRounds(T);
+  if (!UI.calcRid || !rounds.some(r => r.id === UI.calcRid)) {
+    const live = rounds.find(r => E.phaseOf(T, r.id, now) === 'live'), due = rounds.find(r => E.dayOf(r.dayIdx).iso >= now.iso);
+    UI.calcRid = (live || due || rounds[0] || {}).id;
+  }
+  const h = Math.max(0, Math.min(E.HCP_MAX, UI.calcHcp)), p = E.playingHcp(h, a);
+  const course = E.courseOf(T, UI.calcRid);
+  const hcps = [...new Set(E.golfers(T).map(g => g.band).filter(b => b != null).concat(E.BANDS))].sort((x, y) => x - y);
+  const rows = course.holes.map(hole => { const st = E.strokesFor(p, hole.si); return { n: hole.n, par: hole.par, si: hole.si, st, for3: hole.par + st - 1, for2: hole.par + st, for1: hole.par + st + 1 }; });
+  const total = rows.reduce((n, r) => n + r.st, 0);
+  return `<div class="ptsbox calc"><div class="pb-t">Your strokes, hole by hole</div>
+    <div class="calc-row"><span class="calc-l">Handicap</span>
+      <div class="chiprow calc-chips">${hcps.map(x => `<button class="chip${x === h ? ' on' : ''}" data-act="calcHcp" data-a="${x}">${x}</button>`).join('')}
+        <span class="calc-step"><button class="chip" data-act="calcStep" data-a="-1" aria-label="One fewer">−</button><b class="num">${h}</b><button class="chip" data-act="calcStep" data-a="1" aria-label="One more">+</button></span></div></div>
+    <div class="calc-row"><span class="calc-l">Course</span>
+      <div class="chiprow calc-chips">${rounds.map(r => `<button class="chip${r.id === UI.calcRid ? ' on' : ''}" data-act="calcRound" data-a="${r.id}">${esc(r.short)} · ${esc(E.courseOf(T, r.id).name.replace(/^Cullinan /, ''))}</button>`).join('')}</div></div>
+    <p class="calc-sum">Handicap <b class="num">${h}</b> plays off <b class="num">${p}</b> in the team game: <b class="num">${total}</b> stroke${total === 1 ? '' : 's'} at ${esc(course.name)}${p > 18 ? ', two on index 1–' + (p - 18) : p < 18 ? ', none on index ' + (p + 1 === 18 ? '18' : (p + 1) + '–18') : ''}.</p>
+    <table class="ptsgrid calcgrid"><thead><tr><th>Hole</th><th>Par</th><th>Idx</th><th>You get</th><th class="g">3 pts</th><th>2 pts</th><th>1 pt</th></tr></thead>
+    <tbody>${rows.map(r => `<tr${r.st ? ' class="has"' : ''}><td class="pk num">${r.n}</td><td class="num">${r.par}</td><td class="num dim">${r.si}</td><td class="st">${r.st ? '•'.repeat(r.st) : '—'}</td><td class="num g">${r.for3}</td><td class="num b">${r.for2}</td><td class="num">${r.for1}</td></tr>`).join('')}</tbody></table>
+    <p class="pb-n">Each row is one hole: the strokes you get there, then the gross score that is worth three points, two (net par) and one. Anything worse than the last column is nought — pick up and walk.</p></div>`;
+}
 function hcpTables() {
   const grid = [['Two under par', -2], ['One under (birdie)', -1], ['Par', 0], ['One over (bogey)', 1], ['Two over', 2], ['Three over', 3]];
   const pts = (over, st) => Math.max(0, 2 - (over - st));
@@ -8632,6 +8662,9 @@ function onClick(e) {
     case 'setupOpen': UI.modal = { kind: 'setup', scope: a || 'all' }; UI.modalErr = ''; break;
     case 'secOpen': goTo('setup'); setTimeout(() => { const el = document.getElementById('security'); if (el) el.scrollIntoView({ block: 'start' }); }, 300); return;
     case 'secRefresh': securityPoll(true); render(); return;
+    case 'calcHcp': UI.calcHcp = +a; render(); return;
+    case 'calcStep': UI.calcHcp = Math.max(0, Math.min(E.HCP_MAX, (UI.calcHcp == null ? 20 : UI.calcHcp) + (+a))); render(); return;
+    case 'calcRound': UI.calcRid = a; render(); return;
     case 'histAll': if (!canAdmin()) return; UI.histAll = { busy: true, rows: null, err: '' }; render();
       store.historyRecent(null).then(rows => { UI.histAll = { busy: false, rows: rows || [], err: '' }; render(); }, e => { UI.histAll = { busy: false, rows: [], err: /PIN/.test(String(e && e.message || '')) ? 'The server did not accept this phone\'s master PIN.' : 'Could not reach the book.' }; render(); });
       return;

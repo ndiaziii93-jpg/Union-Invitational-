@@ -525,6 +525,24 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 .ptsgrid .pn.pts3,.ptsgrid .pn.pts4,.ptsgrid .pn.pts5{color:#2F7A4A}
 .ptsgrid .pn.pts0{color:var(--flag)}
 .ptsgrid.hcp .pn{font-size:17px}
+/* the calculator: a handicap, a course, and what each hole wants */
+.ptsbox.calc{max-width:560px}
+.calc-row{display:grid;grid-template-columns:72px 1fr;gap:8px;align-items:start;margin:6px 0}
+.calc-l{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--turf);padding-top:9px}
+.calc-chips{margin:0;gap:6px}
+.calc-chips .chip{min-height:32px;padding:4px 11px;font-size:14px}
+.calc-step{display:inline-flex;align-items:center;gap:4px;margin-left:4px}
+.calc-step b{min-width:28px;text-align:center;font-size:15px}
+.calc-step .chip{min-width:32px;padding:4px 0;font-size:16px;line-height:1}
+.calc-sum{margin:10px 0 6px;font-size:14px;line-height:1.45;color:var(--turf)}
+.calc-sum b{color:var(--ink)}
+.calcgrid td{padding:5px 2px;font-size:14.5px}
+.calcgrid .st{letter-spacing:1px;color:#2F7A4A;font-weight:700}
+.calcgrid .dim{color:var(--turf);font-size:12.5px}
+.calcgrid .g{color:#2F7A4A;font-weight:700}
+.calcgrid .b{font-weight:700}
+.calcgrid th.g{color:#2F7A4A}
+.calcgrid tr.has td.pk{color:#2F7A4A}
 .rule-item summary{padding:15px 0;cursor:pointer;display:flex;gap:12px;align-items:baseline;list-style:none}
 .rule-item summary::-webkit-details-marker{display:none}
 .rule-item summary .nm{flex:1 1 auto;font-size:20px;font-weight:600}
