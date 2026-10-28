@@ -112,6 +112,11 @@ function fakeSupabase() {
             rows.set(args.p_path, { path: args.p_path, doc: args.p_merge ? { ...((held || {}).doc || {}), ...args.p_doc } : args.p_doc, writer: args.p_who, updated_at: stamp() });
             return { error: null };
           }
+          if (name === 'photo_delete') {
+            const held = rows.get(args.p_path);
+            if (held && role !== 'master' && held.doc.dev !== args.p_who) return { data: 'denied: PIN not accepted: not yours to remove', error: null };
+            rows.delete(args.p_path); return { data: 'ok', error: null };
+          }
           if (name === 'write_doc' || name === 'delete_doc') {
             state.gated.push([name, args.p_path, args.p_pin]);
             if (!role) return { error: { code: '42501', message: 'PIN not accepted' } };
@@ -185,6 +190,9 @@ function open(fake) {
   ok('a reaction on another phone\'s post is a merge of this phone\'s own keys', await db.doc('chat/m9').update({ rx_dtest: '🔥' }), true);
   ok('but its words are not this phone\'s to change', await db.doc('chat/m9').update({ text: 'edited' }), false);
   ok('nor its existence', await db.doc('chat/m9').delete(), false);
+  fake.rows.set('photos/ph1', { path: 'photos/ph1', doc: { url: 'x', dev: 'dOther' }, updated_at: 'z' });
+  fake.rows.set('photos/ph2', { path: 'photos/ph2', doc: { url: 'y', dev: 'dtest' }, updated_at: 'z' });
+  ok('a photo comes down by the phone that put it up', [await db.doc('photos/ph2').delete(), await db.doc('photos/ph1').delete()], [true, false]);
   myPin = '1000'; myName = { pid: 'g6', pin: '4826' };
   db.close();
 }

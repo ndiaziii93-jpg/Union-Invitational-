@@ -2056,6 +2056,13 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
 .seclog li.new{color:var(--ink)}
 .seclog li.direct,.seclog li.blocked{color:var(--flag)}
 .seclog li.signin{opacity:.7}
+/* a card's history: when, who, what moved, and the way back */
+.histlist{list-style:none;margin:10px 0 0;padding:0}
+.histlist li{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:9px 0;border-top:1px solid var(--rule);align-items:center}
+.histlist .hl-when{font-size:12px;color:var(--turf);grid-column:1}
+.histlist .hl-what{font-size:14px;color:var(--ink);grid-column:1}
+.histlist .btn{grid-column:2;grid-row:1/3}
+.histmodal .lede{font-size:14px}
 
 /* On a phone the roster was a 900px table on a 390px screen: you had to drag
    it sideways to reach Band and Remove, and the drag fought the page. Each
@@ -4915,7 +4922,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261027-1743';
+const BUILD = '20261028-0553';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -8646,6 +8653,8 @@ const PROTECTED = /^(config|people|pairs|scores|bbb|recaps)\//;
    its own. Nobody posts or bets as anyone else, and nobody touches what
    another phone wrote. */
 const SOCIAL = /^(chat|market|notes)\//;
+/* A photo comes down only by the phone that put it up, or the master PIN. */
+const PHOTO = /^photos\//;
 const POLL_LIVE_MS = 180000;  // the net under a live socket: every three minutes (the socket brings everything; this only catches what it dropped)
 const POLL_DOWN_MS = 15000;   // the socket is down, so the poll is the update
 const hidden = () => typeof document !== 'undefined' && document.visibilityState === 'hidden';
@@ -8879,12 +8888,13 @@ function createSupabaseDb(opts) {
 
   async function rawDelete(path, fromOutbox) {
     try {
-      const gated = PROTECTED.test(path) || SOCIAL.test(path);
+      const gated = PROTECTED.test(path) || SOCIAL.test(path) || PHOTO.test(path);
       let error = null;
       if (gated) {
         try {
           await gate(bound(PROTECTED.test(path)
             ? sb.rpc('delete_doc', { p_path: path, p_pin: pin(), p_who: deviceId || null })
+            : PHOTO.test(path) ? sb.rpc('photo_delete', { p_path: path, p_role_pin: pin(), p_who: deviceId || null })
             : sb.rpc('social_delete', signed(path))));
         } catch (e) { error = e; }
       }
@@ -8992,6 +9002,18 @@ function createSupabaseDb(opts) {
       if (error) throw error;
       if (!data || data.denied) { const e = new Error('PIN not accepted'); e.code = '42501'; throw e; }
       return data;
+    },
+    /** Every earlier version of a row (or of everything), for the master PIN. */
+    async historyRecent(master, path) {
+      const { data, error } = await bound(sb.rpc('history_recent', { p_pin: String(master || ''), p_path: path || null, p_who: deviceId || null, p_limit: path ? 100 : 60 }));
+      if (error) throw error;
+      if (!data || data.denied) { const e = new Error('PIN not accepted'); e.code = '42501'; throw e; }
+      return data.rows || [];
+    },
+    async historyRevert(master, id) {
+      await gate(bound(sb.rpc('history_revert', { p_pin: String(master || ''), p_id: id, p_who: deviceId || null })));
+      /* the row changed under us: read it back now rather than at the next poll */
+      return true;
     },
     async securityUnblock(master, dev) {
       await gate(bound(sb.rpc('security_unblock', { p_pin: String(master || ''), p_dev: String(dev || ''), p_who: deviceId || null })));
@@ -9309,6 +9331,7 @@ function createStore(onChange) {
   let fromDevice = false;       // the book on screen came off this phone, not the wire
   let localAt = null;           // when that copy was last written
   let landedCb = null;          // told when a write that waited for a signal gets through
+  let takeConfigLater = () => {};   // the config reader, once connect() has made it
   /* THE PIN THIS PHONE HOLDS. The server checks it on every write to the
      tournament's own rows; the phone never checks it itself any more. */
   let currentPin = '';
@@ -9435,6 +9458,7 @@ function createStore(onChange) {
       if (settled && !was) note('ready', 'writes allowed');
     };
 
+    takeConfigLater = data => takeConfig(data);
     const takeConfig = data => {
       sawData = true; sawConfig = true;
       if (!fresher('config', data)) { settle(); return; }
@@ -10273,6 +10297,22 @@ function createStore(onChange) {
            /* the security log, for the master PIN this phone holds */
            async securityRecent() { if (backend !== 'supabase' || !db || !db.securityRecent) return null; return db.securityRecent(currentPin); },
            async securityUnblock(dev) { if (backend !== 'supabase' || !db || !db.securityUnblock) return false; return db.securityUnblock(currentPin, dev); },
+           /* what a row was before each change, and putting one back */
+           async historyRecent(path) { if (backend !== 'supabase' || !db || !db.historyRecent) return null; return db.historyRecent(currentPin, path); },
+           async historyRevert(id, path) {
+             if (backend !== 'supabase' || !db || !db.historyRevert) return false;
+             await db.historyRevert(currentPin, id);
+             try { const s = await db.doc(path).get(); const coll = path.split('/')[0], key = path.slice(coll.length + 1); const held = s && s.exists ? s.data() : null;
+               if (coll === 'scores') { if (held) T.scores[key] = held; else delete T.scores[key]; }
+               else if (coll === 'bbb') { if (held) T.bbb[key] = held; else delete T.bbb[key]; }
+               else if (coll === 'recaps') { if (held) T.recaps[key] = held; else delete T.recaps[key]; }
+               else if (coll === 'people') { const i = T.config.people.findIndex(x => x.id === key); if (held) { if (i >= 0) T.config.people[i] = normPerson(held); else T.config.people.push(normPerson(held)); } else if (i >= 0) T.config.people.splice(i, 1); }
+               else if (coll === 'pairs') { const i = T.config.pairs.findIndex(x => x.id === key); if (held) { if (i >= 0) T.config.pairs[i] = normPair(held); else T.config.pairs.push(normPair(held)); } else if (i >= 0) T.config.pairs.splice(i, 1); }
+               else if (path === 'config/tournament' && held) takeConfigLater(held);
+               notify();
+             } catch (e) { /* the next poll brings it */ }
+             return true;
+           },
            /** A field or two on this phone's push address, such as whether it holds the master PIN. */
            async patchPush(fields) {
              if (mode !== 'db' || backend !== 'supabase' || !db) return false;
@@ -11271,7 +11311,9 @@ function askViaFunction(url, key) {
            token you never had: the 2026 keys are not JWTs and nothing can
            verify them as one. */
         headers: { 'content-type': 'application/json', apikey: key },
-        body: JSON.stringify({ prompt }),
+        /* who is asking: the name this phone has claimed and its PIN, or the
+           role PIN it holds. The writer answers only a phone it can place. */
+        body: JSON.stringify({ prompt, pid: store ? store.who.pid : '', pin: store ? store.who.pin : '', rolePin: store ? store.pin : '' }),
         signal: opts && opts.signal,
       });
     } catch (e) {
@@ -15229,6 +15271,48 @@ function cardSheetHtml() {
           pair ? `<span class="sc-tv team"><b>Team ${[0, 9].reduce((a, from) => { const v = Array.from({ length: 9 }, (_, i) => bestOf(from + i)).filter(v => v != null); return v.length ? (a == null ? 0 : a) + v.reduce((p, q) => p + q, 0) : a; }, null) ?? '—'} pts</b><small>better partner, each hole</small></span>` : ''}</div></div>
       <p class="cs-key"><span class="sc-k g1">4</span> birdie <span class="sc-k g2">3</span> eagle <span class="sc-k b1">5</span> bogey <span class="sc-k b2">6</span> double or worse · <b>•</b> a stroke received · <b>≈</b> water · <b>OB</b> out of bounds · <b>3·</b> three-putt · <b>★</b> shot of the hole · net is off the gross capped at par + ${T.config.capOver}${pair || r.counts ? ' · pts are Stableford points in the team game, off ' + E.teamAllowance(T) + '% of the handicap (team ' + cards.map(x => x.teamHcp == null ? '—' : x.teamHcp).join(' and ') + ')' : ''}${spent.length ? ' · ' + esc(spent.join(' · ')) : ''}</p>
     </div>
+    <div class="acts">${!pair && canAdmin() && store && store.backend === 'supabase' ? `<button class="btn ghost" data-act="histOpen" data-a="scores/${esc(rid)}__${esc(pids[0])}" data-b="${esc(title)} · ${esc(roomName(rid))}">History</button>` : ''}<button class="btn ghost" data-act="modalCancel">Close</button></div>
+  </div></div>`;
+}
+/* ---------------- the history ----------------
+   Every change to a card (and to the roster, the pairs, the rounds and the
+   recaps) is kept on the server with the phone that made it. The master
+   PIN reads it here, hole by hole, and can put any earlier version back. */
+function histLoad(path) {
+  UI.hist = { path, rows: null, err: '', busy: true };
+  store.historyRecent(path).then(rows => { if (UI.hist && UI.hist.path === path) { UI.hist.rows = rows || []; UI.hist.busy = false; render(); } },
+    e => { if (UI.hist && UI.hist.path === path) { UI.hist.rows = []; UI.hist.busy = false; UI.hist.err = /PIN/.test(String(e && e.message || '')) ? 'The server did not accept this phone\'s master PIN.' : 'Could not reach the book.'; render(); } });
+}
+const histWhen = at => { const d = new Date(Date.parse(at) + D.TZ_OFFSET_MIN * 60000).toISOString(); return d.slice(5, 10).replace('-', '/') + ' ' + E.to12(d.slice(11, 16)); };
+/** What changed between two cards, hole by hole; or a word for anything else. */
+function histDiff(path, before, after) {
+  if (/^scores\//.test(path)) {
+    const a = (before && before.raw) || [], b = (after && after.raw) || [];
+    const out = [];
+    for (let i = 0; i < 18; i++) if ((a[i] == null ? null : a[i]) !== (b[i] == null ? null : b[i])) out.push('hole ' + (i + 1) + ': ' + (a[i] == null ? '—' : a[i]) + ' → ' + (b[i] == null ? '—' : b[i]));
+    const ma = JSON.stringify((before && before.marks) || {}), mb = JSON.stringify((after && after.marks) || {});
+    if (ma !== mb) out.push('marks changed');
+    for (const k of ['mF', 'mB', 'bb']) if (!!(before && before[k]) !== !!(after && after[k])) out.push({ mF: 'front mulligan', mB: 'back mulligan', bb: 'breakfast ball' }[k] + (after && after[k] ? ' used' : ' given back'));
+    return out.length ? out.join(' · ') : (before ? 'no score changed' : 'card started');
+  }
+  if (/^people\//.test(path)) { const o = []; for (const k of ['band', 'display', 'name', 'role', 'location', 'group', 'order']) if (JSON.stringify(before && before[k]) !== JSON.stringify(after && after[k])) o.push(k === 'band' ? 'handicap ' + (before ? before[k] : '—') + ' → ' + (after ? after[k] : '—') : k + ' changed'); return o.join(' · ') || 'changed'; }
+  if (/^pairs\//.test(path)) return 'pairing: ' + ((before && before.members) || []).join('+') + ' → ' + ((after && after.members) || []).join('+');
+  if (/^bbb\//.test(path)) return 'bingo points changed';
+  if (/^recaps\//.test(path)) return 'recap ' + ((after && after.status) || 'changed');
+  if (path === 'config/tournament') { const o = []; for (const k of new Set([...Object.keys(before || {}), ...Object.keys(after || {})])) if (k !== 'rev' && JSON.stringify(before && before[k]) !== JSON.stringify(after && after[k])) o.push(k); return o.length ? o.join(', ') + ' changed' : 'changed'; }
+  return 'changed';
+}
+function histModalHtml() {
+  const h = UI.hist || {};
+  const rows = h.rows || [];
+  return `<div class="scrim" data-act="modalScrim"><div class="modal histmodal" role="dialog" aria-modal="true" aria-label="History">
+    ${modalBanner('History', h.title || h.path || '')}
+    <p class="lede">Every change the book has kept for this card, newest first, with the phone that made it. Put an earlier version back and that is a change too.</p>
+    ${h.err ? `<p class="xm-err">${esc(h.err)}</p>` : ''}
+    ${h.busy ? '<p class="empty">Reading…</p>' : !rows.length ? '<p class="empty">No changes kept yet.</p>' : `<ul class="histlist">${rows.map(r => `<li>
+      <span class="hl-when">${esc(histWhen(r.at))}${r.writer ? ' · phone ' + esc(r.writer) : ''}${r.op === 'DELETE' ? ' · removed' : ''}</span>
+      <span class="hl-what">${esc(histDiff(r.path, r.before, r.after))}</span>
+      ${r.before || r.op === 'INSERT' ? `<button class="btn ghost sm" data-act="histRevert" data-a="${r.id}" data-b="${esc(r.path)}">${r.op === 'INSERT' ? 'Remove again' : 'Put this back'}</button>` : ''}</li>`).join('')}</ul>`}
     <div class="acts"><button class="btn ghost" data-act="modalCancel">Close</button></div>
   </div></div>`;
 }
@@ -15471,6 +15555,10 @@ function securityPanel() {
     ${sec && sec.blocked && sec.blocked.length ? sec.blocked.map(b => `<div class="kv"><span class="k">Blocked phone ${esc(b.dev)}<small>${esc(b.why || '')} · until ${esc(new Date(b.until).toLocaleString())}</small></span>
       <button class="btn ghost sm" data-act="secUnblock" data-a="${esc(b.dev)}">Unblock</button></div>`).join('') : ''}
     ${sec && sec.events && sec.events.length ? `<ul class="seclog">${sec.events.slice(0, 60).map(e => `<li class="${esc(e.kind)}${Date.parse(e.at) > secSeen() && e.kind !== 'signin' ? ' new' : ''}">${esc(secLine(e))}</li>`).join('')}</ul>` : ''}
+    <div class="kv" style="margin-top:12px"><span class="k">Recent changes<small>Every write to a card, the roster, the pairs, a round or a recap, with the phone that made it. A card's own History (on its scorecard) puts an earlier version back.</small></span>
+      <button class="btn ghost sm" data-act="histAll">${UI.histAll && UI.histAll.busy ? 'Reading…' : 'Show'}</button></div>
+    ${UI.histAll && UI.histAll.err ? `<p class="xm-err">${esc(UI.histAll.err)}</p>` : ''}
+    ${UI.histAll && UI.histAll.rows ? (UI.histAll.rows.length ? `<ul class="seclog hist">${UI.histAll.rows.map(r => `<li>${esc(histWhen(r.at))} · ${esc(r.path)}${r.writer ? ' · phone ' + esc(r.writer) : ''} · ${esc(histDiff(r.path, r.before, r.after))}</li>`).join('')}</ul>` : '<p class="empty">Nothing kept yet.</p>') : ''}
   </div>`;
 }
 function scrSetup() {
@@ -18092,6 +18180,7 @@ function modalHtml() {
        : UI.modal.kind === 'marks' ? markSheet(UI.modal.rid, UI.modal.hole, UI.modal.who)
        : UI.modal.kind === 'ruling' ? rulingSheetHtml()
        : UI.modal.kind === 'card' ? cardSheetHtml()
+       : UI.modal.kind === 'hist' ? histModalHtml()
        : UI.modal.kind === 'hole' ? holeModalHtml()
        : UI.modal.kind === 'setup' ? setupModalHtml()
        : UI.modal.kind === 'add' ? addModalHtml()
@@ -18435,6 +18524,13 @@ function onClick(e) {
       const pids = (pr.members || []).filter(id => E.person(T, id)); if (!pids.length) return;
       UI.modal = { kind: 'card', pair: pr.id, pids, rid: cardRoundFor(pids, b || null) }; render(); return; }
     case 'cardRound': if (UI.modal && UI.modal.kind === 'card') { UI.modal.rid = a; render(); } return;
+    case 'histOpen': if (!canAdmin()) return; UI.modal = { kind: 'hist', back: UI.modal }; histLoad(a); UI.hist.title = b || a; render(); return;
+    case 'histRevert': {
+      if (!canAdmin() || !UI.hist) return;
+      UI.hist.busy = true; render();
+      store.historyRevert(+a, b).then(() => histLoad(b), e => { UI.hist.busy = false; UI.hist.err = 'Could not put it back: ' + String(e && e.message || ''); render(); });
+      return;
+    }
     case 'moveOpen': UI.moveRound = a || null; render(); return;
     case 'moveTo': {
       if (!canEdit()) return;
@@ -18847,6 +18943,9 @@ function onClick(e) {
     case 'setupOpen': UI.modal = { kind: 'setup', scope: a || 'all' }; UI.modalErr = ''; break;
     case 'secOpen': goTo('setup'); setTimeout(() => { const el = document.getElementById('security'); if (el) el.scrollIntoView({ block: 'start' }); }, 300); return;
     case 'secRefresh': securityPoll(true); render(); return;
+    case 'histAll': if (!canAdmin()) return; UI.histAll = { busy: true, rows: null, err: '' }; render();
+      store.historyRecent(null).then(rows => { UI.histAll = { busy: false, rows: rows || [], err: '' }; render(); }, e => { UI.histAll = { busy: false, rows: [], err: /PIN/.test(String(e && e.message || '')) ? 'The server did not accept this phone\'s master PIN.' : 'Could not reach the book.' }; render(); });
+      return;
     case 'secCopy': {
       const text = securityReport();
       const done = () => { UI.secCopied = true; render(); setTimeout(() => { UI.secCopied = false; render(); }, 1800); };
@@ -19835,7 +19934,7 @@ __m_app.boot();
 /* Register the worker that makes the book work with no signal. It is the
    whole point of installing it: Belek is five hours of walking and everyone
    is roaming. A failure here must never stop the page loading. */
-var BOOK_BUILD = '20261027-1743';
+var BOOK_BUILD = '20261028-0553';
 var swReg = null;
 if ('serviceWorker' in navigator) {
   /* THE PAGE ON THE PHONE OPENS FIRST, ALWAYS. The worker serves the copy it

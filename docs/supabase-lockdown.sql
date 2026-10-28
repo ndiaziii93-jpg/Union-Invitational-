@@ -28,6 +28,13 @@
 --     Wrong guesses count against the phone that made them, never against
 --     the group: a right PIN always passes. A name with ten wrong guesses
 --     against it is closed for ten minutes.
+--   * A scorer's PIN writes a card only while its round is open; a locked
+--     round takes the master PIN. Every change to the tournament's own
+--     rows is kept in docs_history, with the phone that made it, and the
+--     master PIN can put any earlier version back (the History on a card).
+--   * Role PINs are six digits or more when changed. A guest cannot take a
+--     roster name. A photo comes down only by the phone that put it up or
+--     the master PIN, and a photo's picture cannot be swapped.
 --
 -- TYPE THE PINS INTO THE THREE PLACEHOLDERS NEAR THE BOTTOM BEFORE RUNNING,
 -- then clear this query from the editor's history (⋯ → delete): the SQL
@@ -192,6 +199,19 @@ begin
     why := null;
     if p_path !~ '^(scores|bbb|recaps)/' and p_path <> 'config/tournament' then
       why := 'a scorer PIN (' || r || ') tried to write ' || p_path || ': that needs the master PIN';
+    elsif p_path ~ '^(scores|bbb)/' then
+      /* A CARD IS WRITTEN WHILE ITS ROUND IS OPEN. Once the round is locked
+         (or before it is opened) a scorer's PIN cannot touch it: a card
+         changed the next morning takes the master PIN, and the history
+         below shows what it was. */
+      declare rid text; st text;
+      begin
+        rid := case when p_path ~ '^scores/' then split_part(substr(p_path, 8), '__', 1) else substr(p_path, 5) end;
+        select doc->'rounds'->rid->>'state' into st from public.docs where path = 'config/tournament';
+        if st is distinct from 'open' then
+          why := 'a scorer PIN (' || r || ') tried to write ' || p_path || ' while the round is ' || coalesce(st, 'not set up') || ': that needs the master PIN';
+        end if;
+      end;
     elsif p_path = 'config/tournament' then
       -- a scorer finishes a group, marks the turn, names the closest to the
       -- pin, picks a tee time: `rounds` and `teePicks`. The rest is master's.
@@ -252,7 +272,7 @@ begin
     perform public.log_security('denied', 'pins/' || p_role, p_who, null, 'tried to change a PIN without the master PIN');
     return 'denied: PIN not accepted';
   end if;
-  if p_role not in ('master', 's1', 's2') or p_new !~ '^[0-9]{4,8}$' then return 'denied: A PIN is 4 to 8 digits'; end if;
+  if p_role not in ('master', 's1', 's2') or p_new !~ '^[0-9]{6,8}$' then return 'denied: A PIN is 6 to 8 digits'; end if;
   insert into public.pins (role, hash) values (p_role, crypt(p_new, gen_salt('bf', 8)))
   on conflict (role) do update set hash = excluded.hash, changed_at = now();
   perform public.log_security('signin', 'pins/' || p_role, p_who, null, 'the ' || p_role || ' PIN was changed');
@@ -346,6 +366,14 @@ begin
     if p_path ~ '^chat/guest_' then
       if p_path <> 'chat/guest_' || p_pid or p_merge then why := 'a guest tried to write another name';
       elsif held is not null and held->>'dev' is distinct from p_who then why := 'a guest name on another phone';
+      elsif exists (
+        /* the bleachers cannot pass for anyone on the trip: not the name as
+           listed, not a first name on its own, not one wrapped round it */
+        select 1 from public.docs d, lateral (select lower(regexp_replace(coalesce(d.doc->>'display', d.doc->>'name', ''), '[^a-z0-9 ]+', ' ', 'gi')) as n) x,
+               lateral (select lower(regexp_replace(coalesce(p_doc->>'name', ''), '[^a-z0-9 ]+', ' ', 'gi')) as t) y
+         where d.path like 'people/%' and length(trim(x.n)) > 1
+           and (trim(y.t) = trim(x.n) or trim(y.t) = split_part(trim(x.n), ' ', 1) or (' ' || trim(y.t) || ' ') like ('% ' || trim(x.n) || ' %'))
+      ) then why := 'a guest tried to take a roster name: ' || coalesce(p_doc->>'name', '?');
       end if;
     elsif p_path ~ '^notes/' then
       if split_part(substr(p_path, 7), '__', 2) <> p_pid then why := 'notes written under another name'; end if;
@@ -457,6 +485,119 @@ begin
 end $$;
 grant execute on function public.security_unblock(text, text, text) to anon, authenticated;
 
+-- ---- every change to the tournament's own rows is kept -----------------------
+-- What a card, a roster row, a pairing, a round or a recap was before each
+-- write, who wrote it (the phone) and when. Only the master PIN reads it,
+-- and the master PIN can put any version back.
+create table if not exists public.docs_history (
+  id     bigserial primary key,
+  at     timestamptz not null default now(),
+  path   text not null,
+  op     text not null,
+  before jsonb,
+  after  jsonb,
+  writer text
+);
+alter table public.docs_history enable row level security;
+revoke all on table public.docs_history from anon, authenticated;
+create index if not exists docs_history_path on public.docs_history (path, at desc);
+
+create or replace function public.docs_remember()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare p text;
+begin
+  p := case when tg_op = 'DELETE' then old.path else new.path end;
+  if p !~ '^(config|people|pairs|scores|bbb|recaps)/' then return null; end if;
+  if tg_op = 'UPDATE' and old.doc = new.doc then return null; end if;
+  insert into public.docs_history (path, op, before, after, writer)
+  values (p, tg_op, case when tg_op = 'INSERT' then null else old.doc end, case when tg_op = 'DELETE' then null else new.doc end,
+          case when tg_op = 'DELETE' then old.writer else new.writer end);
+  return null;
+end $$;
+drop trigger if exists docs_remember on public.docs;
+create trigger docs_remember after insert or update or delete on public.docs
+  for each row execute function public.docs_remember();
+
+create or replace function public.history_recent(p_pin text, p_path text default null, p_who text default null, p_limit int default 60)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare r text; ev jsonb;
+begin
+  r := public.pin_role(p_pin, p_who);
+  if r is distinct from 'master' then
+    perform public.log_security('denied', 'docs_history', p_who, null, 'tried to read the history without the master PIN');
+    return jsonb_build_object('denied', true);
+  end if;
+  select coalesce(jsonb_agg(to_jsonb(x) order by x.at desc), '[]'::jsonb) into ev
+    from (select id, at, path, op, before, after, writer from public.docs_history
+           where p_path is null or path = p_path
+           order by at desc limit greatest(1, least(p_limit, 300))) x;
+  return jsonb_build_object('rows', ev);
+end $$;
+grant execute on function public.history_recent(text, text, text, int) to anon, authenticated;
+
+create or replace function public.history_revert(p_pin text, p_id bigint, p_who text default null)
+returns text
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare h public.docs_history; r text;
+begin
+  r := public.pin_role(p_pin, p_who);
+  if r is distinct from 'master' then
+    perform public.log_security('denied', 'docs_history', p_who, null, 'tried to revert without the master PIN');
+    return 'denied: PIN not accepted';
+  end if;
+  select * into h from public.docs_history where id = p_id;
+  if h.id is null then return 'denied: no such change'; end if;
+  if h.before is null then
+    delete from public.docs where path = h.path;
+  else
+    insert into public.docs (path, doc, writer) values (h.path, h.before, p_who)
+    on conflict (path) do update set doc = excluded.doc, writer = excluded.writer;
+  end if;
+  perform public.log_security('signin', h.path, p_who, null, 'put back the version from before change #' || p_id);
+  return 'ok';
+end $$;
+grant execute on function public.history_revert(text, bigint, text) to anon, authenticated;
+
+-- ---- a photo comes down only by the phone that put it up, or the master PIN --
+create or replace function public.photo_delete(p_path text, p_role_pin text, p_who text default null)
+returns text
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare held jsonb; r text;
+begin
+  if p_path !~ '^photos/[A-Za-z0-9_.-]{1,80}$' then return 'denied: PIN not accepted for that row'; end if;
+  if public.is_blocked(p_who) then return 'denied: PIN not accepted: this phone is blocked for a while'; end if;
+  select doc into held from public.docs where path = p_path;
+  if held is null then return 'ok'; end if;
+  r := case when p_role_pin ~ '^[0-9]{4,8}$' then public.pin_role(p_role_pin, p_who) else null end;
+  if r is distinct from 'master' and (p_who is null or held->>'dev' is distinct from p_who) then
+    perform public.log_security('denied', p_path, p_who, null, 'tried to remove another phone''s photo');
+    return 'denied: PIN not accepted: not yours to remove';
+  end if;
+  delete from public.docs where path = p_path;
+  return 'ok';
+end $$;
+grant execute on function public.photo_delete(text, text, text) to anon, authenticated;
+
+-- the files themselves stay where they are: nothing with the public key
+-- removes one. A photo taken down is taken off the page; the file is
+-- cleared by the commissioner from the Storage tab if it ever matters.
+drop policy if exists photos_remove on storage.objects;
+create policy photos_remove on storage.objects for delete using (false);
+
 -- ---- a direct write with the public key: dropped on the floor, and logged ---
 -- The row-level rules let the public key's write reach this trigger, which
 -- keeps it only for the photos, the push addresses and the phone logs — and
@@ -477,6 +618,17 @@ begin
   end if;
   p := case when tg_op = 'DELETE' then old.path else new.path end;
   open_path := p ~ '^(photos|push|diag)/[A-Za-z0-9_.-]{1,80}$';
+  /* a photo: anyone adds one; a change can only be a heart (hv_<phone>);
+     taking one down goes through photo_delete */
+  if p ~ '^photos/' then
+    if tg_op = 'INSERT' then return new; end if;
+    if tg_op = 'UPDATE' then
+      select coalesce(bool_and(k like 'hv\_%' or k in ('rev', 'id')), true) into only_sent
+        from jsonb_object_keys(new.doc) k where new.doc->k is distinct from old.doc->k;
+      if only_sent and old.doc->>'url' is not distinct from new.doc->>'url' then return new; end if;
+    end if;
+    open_path := false;
+  end if;
   if tg_op = 'UPDATE' and p ~ '^chat/' and not open_path then
     /* the notify function, with the public key, marks a reaction as sent */
     select coalesce(bool_and(k like 'rxsent\_%'), false) into only_sent

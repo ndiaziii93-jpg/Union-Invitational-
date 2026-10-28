@@ -136,10 +136,26 @@ like 'chat/id\_%'`), which makes everyone choose a fresh PIN the next time
 they open the chat. Forgotten a name PIN? The master PIN clears it from the
 Roster (Clear PIN), and the person chooses again.
 
-Still open, and worth knowing: photos can be added by anyone with the link
-(and removed by anyone, as before); the bleachers sign with the phone they
-registered on rather than a PIN; and the recap writer's spend is capped by
-the limit you set in the Anthropic console, not by the book.
+Also enforced on the server: a scorer's PIN writes a card only while its
+round is open (a locked round takes the master PIN); every change to a card,
+the roster, the pairs, a round or a recap is kept with the phone that made
+it, and the master PIN can put an earlier version back (History on any
+scorecard; Recent changes under Setup → Security); role PINs are six digits
+or more when changed; a guest cannot take a roster name; a photo comes down
+only by the phone that put it up or the master PIN, and its picture cannot
+be swapped.
+
+The two edge functions, once redeployed from `supabase/functions/`: the
+recap writer answers only a phone the book can place (a claimed name with
+its PIN, or a role PIN) and does at most 150 pieces of work a day across the
+trip; a chat message buzzes the group once however often it is asked for.
+Both use the project's service key, which Supabase gives every function on
+its own — nothing to add. The Anthropic console's spend limit stays the
+backstop.
+
+Still worth knowing: the bleachers sign with the phone they registered on
+rather than a PIN, and a phone's id is its own to choose, so a block keeps
+someone out rather than locking them out for good.
 
 ## 5. The watch — alerts when someone tries it on
 

@@ -936,7 +936,9 @@ function askViaFunction(url, key) {
            token you never had: the 2026 keys are not JWTs and nothing can
            verify them as one. */
         headers: { 'content-type': 'application/json', apikey: key },
-        body: JSON.stringify({ prompt }),
+        /* who is asking: the name this phone has claimed and its PIN, or the
+           role PIN it holds. The writer answers only a phone it can place. */
+        body: JSON.stringify({ prompt, pid: store ? store.who.pid : '', pin: store ? store.who.pin : '', rolePin: store ? store.pin : '' }),
         signal: opts && opts.signal,
       });
     } catch (e) {
@@ -4894,6 +4896,48 @@ function cardSheetHtml() {
           pair ? `<span class="sc-tv team"><b>Team ${[0, 9].reduce((a, from) => { const v = Array.from({ length: 9 }, (_, i) => bestOf(from + i)).filter(v => v != null); return v.length ? (a == null ? 0 : a) + v.reduce((p, q) => p + q, 0) : a; }, null) ?? '—'} pts</b><small>better partner, each hole</small></span>` : ''}</div></div>
       <p class="cs-key"><span class="sc-k g1">4</span> birdie <span class="sc-k g2">3</span> eagle <span class="sc-k b1">5</span> bogey <span class="sc-k b2">6</span> double or worse · <b>•</b> a stroke received · <b>≈</b> water · <b>OB</b> out of bounds · <b>3·</b> three-putt · <b>★</b> shot of the hole · net is off the gross capped at par + ${T.config.capOver}${pair || r.counts ? ' · pts are Stableford points in the team game, off ' + E.teamAllowance(T) + '% of the handicap (team ' + cards.map(x => x.teamHcp == null ? '—' : x.teamHcp).join(' and ') + ')' : ''}${spent.length ? ' · ' + esc(spent.join(' · ')) : ''}</p>
     </div>
+    <div class="acts">${!pair && canAdmin() && store && store.backend === 'supabase' ? `<button class="btn ghost" data-act="histOpen" data-a="scores/${esc(rid)}__${esc(pids[0])}" data-b="${esc(title)} · ${esc(roomName(rid))}">History</button>` : ''}<button class="btn ghost" data-act="modalCancel">Close</button></div>
+  </div></div>`;
+}
+/* ---------------- the history ----------------
+   Every change to a card (and to the roster, the pairs, the rounds and the
+   recaps) is kept on the server with the phone that made it. The master
+   PIN reads it here, hole by hole, and can put any earlier version back. */
+function histLoad(path) {
+  UI.hist = { path, rows: null, err: '', busy: true };
+  store.historyRecent(path).then(rows => { if (UI.hist && UI.hist.path === path) { UI.hist.rows = rows || []; UI.hist.busy = false; render(); } },
+    e => { if (UI.hist && UI.hist.path === path) { UI.hist.rows = []; UI.hist.busy = false; UI.hist.err = /PIN/.test(String(e && e.message || '')) ? 'The server did not accept this phone\'s master PIN.' : 'Could not reach the book.'; render(); } });
+}
+const histWhen = at => { const d = new Date(Date.parse(at) + D.TZ_OFFSET_MIN * 60000).toISOString(); return d.slice(5, 10).replace('-', '/') + ' ' + E.to12(d.slice(11, 16)); };
+/** What changed between two cards, hole by hole; or a word for anything else. */
+function histDiff(path, before, after) {
+  if (/^scores\//.test(path)) {
+    const a = (before && before.raw) || [], b = (after && after.raw) || [];
+    const out = [];
+    for (let i = 0; i < 18; i++) if ((a[i] == null ? null : a[i]) !== (b[i] == null ? null : b[i])) out.push('hole ' + (i + 1) + ': ' + (a[i] == null ? '—' : a[i]) + ' → ' + (b[i] == null ? '—' : b[i]));
+    const ma = JSON.stringify((before && before.marks) || {}), mb = JSON.stringify((after && after.marks) || {});
+    if (ma !== mb) out.push('marks changed');
+    for (const k of ['mF', 'mB', 'bb']) if (!!(before && before[k]) !== !!(after && after[k])) out.push({ mF: 'front mulligan', mB: 'back mulligan', bb: 'breakfast ball' }[k] + (after && after[k] ? ' used' : ' given back'));
+    return out.length ? out.join(' · ') : (before ? 'no score changed' : 'card started');
+  }
+  if (/^people\//.test(path)) { const o = []; for (const k of ['band', 'display', 'name', 'role', 'location', 'group', 'order']) if (JSON.stringify(before && before[k]) !== JSON.stringify(after && after[k])) o.push(k === 'band' ? 'handicap ' + (before ? before[k] : '—') + ' → ' + (after ? after[k] : '—') : k + ' changed'); return o.join(' · ') || 'changed'; }
+  if (/^pairs\//.test(path)) return 'pairing: ' + ((before && before.members) || []).join('+') + ' → ' + ((after && after.members) || []).join('+');
+  if (/^bbb\//.test(path)) return 'bingo points changed';
+  if (/^recaps\//.test(path)) return 'recap ' + ((after && after.status) || 'changed');
+  if (path === 'config/tournament') { const o = []; for (const k of new Set([...Object.keys(before || {}), ...Object.keys(after || {})])) if (k !== 'rev' && JSON.stringify(before && before[k]) !== JSON.stringify(after && after[k])) o.push(k); return o.length ? o.join(', ') + ' changed' : 'changed'; }
+  return 'changed';
+}
+function histModalHtml() {
+  const h = UI.hist || {};
+  const rows = h.rows || [];
+  return `<div class="scrim" data-act="modalScrim"><div class="modal histmodal" role="dialog" aria-modal="true" aria-label="History">
+    ${modalBanner('History', h.title || h.path || '')}
+    <p class="lede">Every change the book has kept for this card, newest first, with the phone that made it. Put an earlier version back and that is a change too.</p>
+    ${h.err ? `<p class="xm-err">${esc(h.err)}</p>` : ''}
+    ${h.busy ? '<p class="empty">Reading…</p>' : !rows.length ? '<p class="empty">No changes kept yet.</p>' : `<ul class="histlist">${rows.map(r => `<li>
+      <span class="hl-when">${esc(histWhen(r.at))}${r.writer ? ' · phone ' + esc(r.writer) : ''}${r.op === 'DELETE' ? ' · removed' : ''}</span>
+      <span class="hl-what">${esc(histDiff(r.path, r.before, r.after))}</span>
+      ${r.before || r.op === 'INSERT' ? `<button class="btn ghost sm" data-act="histRevert" data-a="${r.id}" data-b="${esc(r.path)}">${r.op === 'INSERT' ? 'Remove again' : 'Put this back'}</button>` : ''}</li>`).join('')}</ul>`}
     <div class="acts"><button class="btn ghost" data-act="modalCancel">Close</button></div>
   </div></div>`;
 }
@@ -5136,6 +5180,10 @@ function securityPanel() {
     ${sec && sec.blocked && sec.blocked.length ? sec.blocked.map(b => `<div class="kv"><span class="k">Blocked phone ${esc(b.dev)}<small>${esc(b.why || '')} · until ${esc(new Date(b.until).toLocaleString())}</small></span>
       <button class="btn ghost sm" data-act="secUnblock" data-a="${esc(b.dev)}">Unblock</button></div>`).join('') : ''}
     ${sec && sec.events && sec.events.length ? `<ul class="seclog">${sec.events.slice(0, 60).map(e => `<li class="${esc(e.kind)}${Date.parse(e.at) > secSeen() && e.kind !== 'signin' ? ' new' : ''}">${esc(secLine(e))}</li>`).join('')}</ul>` : ''}
+    <div class="kv" style="margin-top:12px"><span class="k">Recent changes<small>Every write to a card, the roster, the pairs, a round or a recap, with the phone that made it. A card's own History (on its scorecard) puts an earlier version back.</small></span>
+      <button class="btn ghost sm" data-act="histAll">${UI.histAll && UI.histAll.busy ? 'Reading…' : 'Show'}</button></div>
+    ${UI.histAll && UI.histAll.err ? `<p class="xm-err">${esc(UI.histAll.err)}</p>` : ''}
+    ${UI.histAll && UI.histAll.rows ? (UI.histAll.rows.length ? `<ul class="seclog hist">${UI.histAll.rows.map(r => `<li>${esc(histWhen(r.at))} · ${esc(r.path)}${r.writer ? ' · phone ' + esc(r.writer) : ''} · ${esc(histDiff(r.path, r.before, r.after))}</li>`).join('')}</ul>` : '<p class="empty">Nothing kept yet.</p>') : ''}
   </div>`;
 }
 function scrSetup() {
@@ -7757,6 +7805,7 @@ function modalHtml() {
        : UI.modal.kind === 'marks' ? markSheet(UI.modal.rid, UI.modal.hole, UI.modal.who)
        : UI.modal.kind === 'ruling' ? rulingSheetHtml()
        : UI.modal.kind === 'card' ? cardSheetHtml()
+       : UI.modal.kind === 'hist' ? histModalHtml()
        : UI.modal.kind === 'hole' ? holeModalHtml()
        : UI.modal.kind === 'setup' ? setupModalHtml()
        : UI.modal.kind === 'add' ? addModalHtml()
@@ -8100,6 +8149,13 @@ function onClick(e) {
       const pids = (pr.members || []).filter(id => E.person(T, id)); if (!pids.length) return;
       UI.modal = { kind: 'card', pair: pr.id, pids, rid: cardRoundFor(pids, b || null) }; render(); return; }
     case 'cardRound': if (UI.modal && UI.modal.kind === 'card') { UI.modal.rid = a; render(); } return;
+    case 'histOpen': if (!canAdmin()) return; UI.modal = { kind: 'hist', back: UI.modal }; histLoad(a); UI.hist.title = b || a; render(); return;
+    case 'histRevert': {
+      if (!canAdmin() || !UI.hist) return;
+      UI.hist.busy = true; render();
+      store.historyRevert(+a, b).then(() => histLoad(b), e => { UI.hist.busy = false; UI.hist.err = 'Could not put it back: ' + String(e && e.message || ''); render(); });
+      return;
+    }
     case 'moveOpen': UI.moveRound = a || null; render(); return;
     case 'moveTo': {
       if (!canEdit()) return;
@@ -8512,6 +8568,9 @@ function onClick(e) {
     case 'setupOpen': UI.modal = { kind: 'setup', scope: a || 'all' }; UI.modalErr = ''; break;
     case 'secOpen': goTo('setup'); setTimeout(() => { const el = document.getElementById('security'); if (el) el.scrollIntoView({ block: 'start' }); }, 300); return;
     case 'secRefresh': securityPoll(true); render(); return;
+    case 'histAll': if (!canAdmin()) return; UI.histAll = { busy: true, rows: null, err: '' }; render();
+      store.historyRecent(null).then(rows => { UI.histAll = { busy: false, rows: rows || [], err: '' }; render(); }, e => { UI.histAll = { busy: false, rows: [], err: /PIN/.test(String(e && e.message || '')) ? 'The server did not accept this phone\'s master PIN.' : 'Could not reach the book.' }; render(); });
+      return;
     case 'secCopy': {
       const text = securityReport();
       const done = () => { UI.secCopied = true; render(); setTimeout(() => { UI.secCopied = false; render(); }, 1800); };

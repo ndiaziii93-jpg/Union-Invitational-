@@ -154,6 +154,17 @@ async function handler(req: Request): Promise<Response> {
   if (error) return json({ error: 'upstream_error', message: error.message }, 502);
   const m = rows && rows[0] && rows[0].doc;
   if (!m || (isBet ? m.k !== 'q' || !m.q : m.k !== 'm' || !m.text)) return json({ error: 'not_found' }, 404);
+  /* ONCE. A message is passed on one time, however often the function is
+     asked: the mark is made with the service key, which no phone holds, so
+     nobody can make a message buzz the whole trip again and again. */
+  if (!rx) {
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+    if (serviceKey) {
+      if (m.notified_at) return json({ sent: 0, already: true });
+      const asOwner = createClient(Deno.env.get('SUPABASE_URL') || '', serviceKey, { auth: { persistSession: false } });
+      await asOwner.rpc('merge_doc', { p: path, patch: { notified_at: Date.now() }, who: 'notify' });
+    }
+  }
   /* A reaction: to whoever wrote the message, once per person reacting. */
   if (rx) {
     if (isBet || !/^[A-Za-z0-9_-]{1,64}$/.test(rx)) return json({ error: 'bad_request' }, 400);

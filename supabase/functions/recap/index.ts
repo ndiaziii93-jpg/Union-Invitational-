@@ -18,6 +18,7 @@
  */
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { withSupabase } from 'jsr:@supabase/server@^1';
+import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const MODEL = 'claude-opus-5';
 const MAX_PROMPT = 60_000;      // a whole day's cards is a few thousand characters
@@ -46,12 +47,44 @@ async function handler(req: Request): Promise<Response> {
 
   let prompt = '';
   let system: string | undefined;
+  let pid = '', pin = '', rolePin = '';
   try {
     const body = await req.json();
     prompt = String(body?.prompt ?? '');
     if (body?.system) system = String(body.system);
+    pid = String(body?.pid ?? ''); pin = String(body?.pin ?? ''); rolePin = String(body?.rolePin ?? '');
   } catch {
     return json({ error: 'bad_request', message: 'Send {"prompt": "..."}' }, 400);
+  }
+
+  /* WHO IS ASKING. The writer answers a phone the book can place: a name it
+     has claimed with its PIN, or a role PIN. The same server functions the
+     book uses judge it; a phone with neither gets nothing, and the key is
+     spent on nobody who is not on the trip. */
+  const apikey = req.headers.get('apikey') || '';
+  const supaUrl = Deno.env.get('SUPABASE_URL') || '';
+  const asAnon = createClient(supaUrl, apikey, { auth: { persistSession: false } });
+  let placed = false;
+  try {
+    if (/^[0-9]{4,8}$/.test(rolePin)) { const { data } = await asAnon.rpc('verify_pin', { p_pin: rolePin, p_who: 'writer' }); placed = data === 'master' || data === 's1' || data === 's2'; }
+    if (!placed && pid && /^[0-9]{4}$/.test(pin)) { const { data } = await asAnon.rpc('check_name', { p_pid: pid, p_pin: pin, p_who: 'writer' }); placed = data === true; }
+  } catch (e) { console.error('place', String(e).slice(0, 200)); }
+  if (!placed) return json({ error: 'not_granted', message: 'Choose your name in the book (with your PIN) before asking.' }, 401);
+
+  /* HOW MUCH. A day's worth across the whole trip, kept on the book's own
+     log row with the service key, which no phone holds. */
+  const DAILY_CAP = 150;
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+  if (serviceKey) {
+    try {
+      const asOwner = createClient(supaUrl, serviceKey, { auth: { persistSession: false } });
+      const day = new Date().toISOString().slice(0, 10);
+      const { data: rows } = await asOwner.from('docs').select('doc').eq('path', 'diag/ai_usage').limit(1);
+      const u = (rows && rows[0] && rows[0].doc) || {};
+      const n = u.day === day ? Number(u.n || 0) : 0;
+      if (n >= DAILY_CAP) return json({ error: 'rate_limited', message: 'The writer has done a full day\'s work. Ask again tomorrow.' }, 429);
+      await asOwner.from('docs').upsert({ path: 'diag/ai_usage', doc: { k: 'usage', day, n: n + 1, last: pid || 'role' }, writer: 'writer' }, { onConflict: 'path' });
+    } catch (e) { console.error('usage', String(e).slice(0, 200)); }
   }
 
   /* Anyone who can open the book can call this, which is the same set of

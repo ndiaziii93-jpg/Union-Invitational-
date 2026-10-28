@@ -48,6 +48,8 @@ const PROTECTED = /^(config|people|pairs|scores|bbb|recaps)\//;
    its own. Nobody posts or bets as anyone else, and nobody touches what
    another phone wrote. */
 const SOCIAL = /^(chat|market|notes)\//;
+/* A photo comes down only by the phone that put it up, or the master PIN. */
+const PHOTO = /^photos\//;
 const POLL_LIVE_MS = 180000;  // the net under a live socket: every three minutes (the socket brings everything; this only catches what it dropped)
 const POLL_DOWN_MS = 15000;   // the socket is down, so the poll is the update
 const hidden = () => typeof document !== 'undefined' && document.visibilityState === 'hidden';
@@ -281,12 +283,13 @@ export function createSupabaseDb(opts) {
 
   async function rawDelete(path, fromOutbox) {
     try {
-      const gated = PROTECTED.test(path) || SOCIAL.test(path);
+      const gated = PROTECTED.test(path) || SOCIAL.test(path) || PHOTO.test(path);
       let error = null;
       if (gated) {
         try {
           await gate(bound(PROTECTED.test(path)
             ? sb.rpc('delete_doc', { p_path: path, p_pin: pin(), p_who: deviceId || null })
+            : PHOTO.test(path) ? sb.rpc('photo_delete', { p_path: path, p_role_pin: pin(), p_who: deviceId || null })
             : sb.rpc('social_delete', signed(path))));
         } catch (e) { error = e; }
       }
@@ -394,6 +397,18 @@ export function createSupabaseDb(opts) {
       if (error) throw error;
       if (!data || data.denied) { const e = new Error('PIN not accepted'); e.code = '42501'; throw e; }
       return data;
+    },
+    /** Every earlier version of a row (or of everything), for the master PIN. */
+    async historyRecent(master, path) {
+      const { data, error } = await bound(sb.rpc('history_recent', { p_pin: String(master || ''), p_path: path || null, p_who: deviceId || null, p_limit: path ? 100 : 60 }));
+      if (error) throw error;
+      if (!data || data.denied) { const e = new Error('PIN not accepted'); e.code = '42501'; throw e; }
+      return data.rows || [];
+    },
+    async historyRevert(master, id) {
+      await gate(bound(sb.rpc('history_revert', { p_pin: String(master || ''), p_id: id, p_who: deviceId || null })));
+      /* the row changed under us: read it back now rather than at the next poll */
+      return true;
     },
     async securityUnblock(master, dev) {
       await gate(bound(sb.rpc('security_unblock', { p_pin: String(master || ''), p_dev: String(dev || ''), p_who: deviceId || null })));

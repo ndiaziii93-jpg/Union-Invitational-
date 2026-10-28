@@ -162,6 +162,7 @@ export function createStore(onChange) {
   let fromDevice = false;       // the book on screen came off this phone, not the wire
   let localAt = null;           // when that copy was last written
   let landedCb = null;          // told when a write that waited for a signal gets through
+  let takeConfigLater = () => {};   // the config reader, once connect() has made it
   /* THE PIN THIS PHONE HOLDS. The server checks it on every write to the
      tournament's own rows; the phone never checks it itself any more. */
   let currentPin = '';
@@ -288,6 +289,7 @@ export function createStore(onChange) {
       if (settled && !was) note('ready', 'writes allowed');
     };
 
+    takeConfigLater = data => takeConfig(data);
     const takeConfig = data => {
       sawData = true; sawConfig = true;
       if (!fresher('config', data)) { settle(); return; }
@@ -1126,6 +1128,22 @@ export function createStore(onChange) {
            /* the security log, for the master PIN this phone holds */
            async securityRecent() { if (backend !== 'supabase' || !db || !db.securityRecent) return null; return db.securityRecent(currentPin); },
            async securityUnblock(dev) { if (backend !== 'supabase' || !db || !db.securityUnblock) return false; return db.securityUnblock(currentPin, dev); },
+           /* what a row was before each change, and putting one back */
+           async historyRecent(path) { if (backend !== 'supabase' || !db || !db.historyRecent) return null; return db.historyRecent(currentPin, path); },
+           async historyRevert(id, path) {
+             if (backend !== 'supabase' || !db || !db.historyRevert) return false;
+             await db.historyRevert(currentPin, id);
+             try { const s = await db.doc(path).get(); const coll = path.split('/')[0], key = path.slice(coll.length + 1); const held = s && s.exists ? s.data() : null;
+               if (coll === 'scores') { if (held) T.scores[key] = held; else delete T.scores[key]; }
+               else if (coll === 'bbb') { if (held) T.bbb[key] = held; else delete T.bbb[key]; }
+               else if (coll === 'recaps') { if (held) T.recaps[key] = held; else delete T.recaps[key]; }
+               else if (coll === 'people') { const i = T.config.people.findIndex(x => x.id === key); if (held) { if (i >= 0) T.config.people[i] = normPerson(held); else T.config.people.push(normPerson(held)); } else if (i >= 0) T.config.people.splice(i, 1); }
+               else if (coll === 'pairs') { const i = T.config.pairs.findIndex(x => x.id === key); if (held) { if (i >= 0) T.config.pairs[i] = normPair(held); else T.config.pairs.push(normPair(held)); } else if (i >= 0) T.config.pairs.splice(i, 1); }
+               else if (path === 'config/tournament' && held) takeConfigLater(held);
+               notify();
+             } catch (e) { /* the next poll brings it */ }
+             return true;
+           },
            /** A field or two on this phone's push address, such as whether it holds the master PIN. */
            async patchPush(fields) {
              if (mode !== 'db' || backend !== 'supabase' || !db) return false;
