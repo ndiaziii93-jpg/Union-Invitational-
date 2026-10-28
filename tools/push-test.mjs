@@ -21,8 +21,9 @@ const src = readFileSync('supabase/functions/notify/index.ts', 'utf8');
 const part = src.slice(src.indexOf('// ---- web push ----'), src.indexOf('// ---- end web push ----'));
 const dir = mkdtempSync(join(tmpdir(), 'push-'));
 writeFileSync(join(dir, 'package.json'), '{"type":"module"}');
-writeFileSync(join(dir, 'push.ts'), part + '\nexport { seal, vapidToken, sendPush, b64u, unb64u };\n');
-const { seal, vapidToken, sendPush, b64u, unb64u } = await import(join(dir, 'push.ts'));
+/* the function sends only to the real push services; this test's service is on this machine, so the lifted copy is let through to it, and the allowlist is checked on its own below */
+writeFileSync(join(dir, 'push.ts'), part.replace('if (!pushService(sub.endpoint)) return 400;', "if (!pushService(sub.endpoint) && !sub.endpoint.startsWith('http://127.0.0.1:')) return 400;") + '\nexport { seal, vapidToken, sendPush, pushService, b64u, unb64u };\n');
+const { seal, vapidToken, sendPush, pushService, b64u, unb64u } = await import(join(dir, 'push.ts'));
 
 /* the phone's side of RFC 8291, done with Node's crypto rather than the browser's */
 function open(body, phone, auth) {
@@ -65,6 +66,10 @@ const pub = createPublicKey({ key: { kty: 'EC', crv: 'P-256', x: b64u(unb64u(VAP
 ok('the public key verifies the signature', verify('sha256', Buffer.from(h + '.' + p), { key: pub, dsaEncoding: 'ieee-p1363' }, Buffer.from(unb64u(s))), true);
 const claims = JSON.parse(Buffer.from(unb64u(p)).toString());
 ok('addressed to the push service it is going to, for twelve hours at most', [claims.aud, claims.sub, claims.exp - Date.now() / 1000 <= 12 * 3600 + 5], ['https://web.push.apple.com', 'https://example.org/', true]);
+
+console.log('\nonly to a push service');
+ok('Apple, Google, Mozilla and Microsoft are push services', ['https://web.push.apple.com/a', 'https://fcm.googleapis.com/fcm/send/b', 'https://updates.push.services.mozilla.com/c', 'https://db5p.notify.windows.com/d'].map(pushService), [true, true, true, true]);
+ok('anywhere else is not, however it is dressed', ['https://example.org/push', 'https://web.push.apple.com.evil.org/a', 'http://web.push.apple.com/a'].map(pushService), [false, false, false]);
 
 console.log('\nsent to a push service');
 let got = null;

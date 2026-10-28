@@ -16,6 +16,8 @@ const ok = (n, g, w) => { const good = JSON.stringify(g) === JSON.stringify(w);
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
 const p = await (await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })).newPage();
 const errs = []; p.on('pageerror', e => errs.push(String(e)));
+/* the phone's clock set to the week before the trip: the week can still be arranged, whatever the real date */
+await p.clock.install({ time: new Date('2026-10-24T08:00:00Z') });
 await p.goto('file://' + S + '/picker.html'); await p.waitForTimeout(3500);
 const shut = async () => { for (let i = 0; i < 6; i++) { const d = p.locator('.scrim [data-act="modalCancel"]'); if (await d.count()) { await d.first().click({ force: true }); await p.waitForTimeout(250); } else break; } };
 const r1 = () => p.evaluate(() => { const r = window.__T.config.rounds[Object.keys(window.__T.config.rounds)[0]]; return { ctp: r.ctpHole, ld: r.ldHole, ctpW: r.ctpWinner, state: r.state, tee: r.tees[0].time }; });
