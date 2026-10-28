@@ -62,6 +62,7 @@ const UI = {
   feelDraft: null,      // the word they are typing on it: {rid, h, v}
   upload: { queue: [], err: '' },
   role: 'viewer',
+  mode: 'day',          // 'day', 'night', or 'low': the moon in the masthead
   boardTab: 'home',     // the six games at once; a board is something you open
   boardRound: 'r1',
   bookHole: 0,
@@ -115,6 +116,49 @@ const ROLE_KEY = 'union-invitational:role';
    again against the book every time the book changes. A role saved while
    the PINs were off, or under a PIN that has since been changed, proves
    nothing and the phone goes back to reading. */
+/* ---- THE MOON ----
+   One button in the masthead, on every screen. A tap goes Day, Night, Low
+   power, Day. Night is the pine palette. Low power is night with the live
+   socket closed and the book looking every ten minutes instead of three,
+   photos waiting for a tap, the pictures dimmed, nothing moving, and the
+   minute clock stopped. The phone remembers, and nothing changes the mode
+   but the button. */
+const MODE_KEY = 'union-invitational:mode';
+const MODES = ['day', 'night', 'low'];
+const MODE_WORD = { day: 'Day', night: 'Night', low: 'Low power' };
+function loadMode() {
+  try { const m = localStorage.getItem(MODE_KEY); if (MODES.includes(m)) UI.mode = m; } catch (e) { /* no memory on this phone */ }
+}
+function applyMode() {
+  const low = UI.mode === 'low', night = UI.mode !== 'day';
+  if (typeof document !== 'undefined') {
+    document.documentElement.classList.toggle('night', night);
+    document.documentElement.classList.toggle('low', low);
+    const t = document.querySelector('meta[name=theme-color]'); if (t) t.setAttribute('content', night ? '#0B110D' : '#3E5C43');
+  }
+  if (store && store.setLowPower) store.setLowPower(low);
+}
+function setMode(m) {
+  if (!MODES.includes(m) || m === UI.mode) return;
+  const wasLow = UI.mode === 'low';
+  UI.mode = m;
+  try { localStorage.setItem(MODE_KEY, m); } catch (e) { /* nothing */ }
+  applyMode();
+  if (wasLow) setTimeout(sendParked, 300);     // the photos that waited go now
+  flash(m === 'low' ? 'Low power: looking every 10 minutes, photos wait for a tap.' : m === 'night' ? 'Night.' : 'Day.');
+}
+const MOON_SVG = { day: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M5.3 18.7 7 17M17 7l1.7-1.7"/></svg>',
+  night: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M14.5 2.6a9.5 9.5 0 1 0 6.9 14.2 8 8 0 0 1-6.9-14.2z"/></svg>' };
+function moonBtn(extra) {
+  const next = MODES[(MODES.indexOf(UI.mode) + 1) % MODES.length];
+  return `<button class="moonbtn${extra ? ' ' + extra : ''}" data-act="modeCycle" title="${MODE_WORD[UI.mode]} — tap for ${MODE_WORD[next].toLowerCase()}"
+    aria-label="${MODE_WORD[UI.mode]}. Tap for ${MODE_WORD[next].toLowerCase()}"${extra ? ' tabindex="-1"' : ''}>${MOON_SVG[UI.mode === 'day' ? 'day' : 'night']}<i class="dot"></i></button>`;
+}
+function lowLine() {
+  if (UI.mode !== 'low') return '';
+  const w = UI.upload.queue.filter(u => u.waiting).length;
+  return `<div class="lowline" role="status">🔋 Low power · looking every 10 min${w ? ' · ' + w + ' photo' + (w === 1 ? '' : 's') + ' waiting' : ' · photos wait'}<button data-act="modeDay">Turn off</button></div>`;
+}
 function saveRole(role, pin) {
   try { localStorage.setItem(ROLE_KEY, JSON.stringify({ role, pin: String(pin || '') })); } catch (e) { /* storage blocked */ }
   if (store) { store.pin = pin; store.patchPush({ master: role === 'master' }); }   // the writes carry it; the server judges it; alerts go to the master's phone
@@ -440,15 +484,14 @@ function scrBoards() {
 
 /* ---- the front page ----
    Every game, and where it stands, without scrolling and without tapping.
-   The Cup is given the pine because it is the only one of the six with a
-   clock on it: points that can still change hands this session. */
+   The Team Competition is first and in the pine: it is the main event. */
 function boardsHome() {
   const cards = E.clubhouse(T, now);
   const live = E.countingRounds(T).find(r => E.phaseOf(T, r.id, now) === 'live');
   return `<h2 class="head bh">Boards${live
     ? ` <span class="bh-s">— ${esc(live.short === 'Practice' ? 'Practice' : 'Round ' + live.short.slice(1))} is live</span>`
     : ''}</h2>
-  <div class="club">${cards.map(c => c.kind === 'cup' ? cupCard(c) : gameCard(c)).join('')}</div>`;
+  <div class="club">${cards.map(c => c.kind === 'cup' ? cupCard(c, 'boardTab', true) : gameCard(c, 'boardTab', c.id === 'pairs' ? 'cc--main' : '')).join('')}</div>`;
 }
 
 /* `plain` draws it on the paper like any other game — the front page keeps
@@ -1465,7 +1508,7 @@ setInterval(() => {
   if (!UI.recapOpen || document.hidden || Date.now() < slideHeld) return;
   const tr = document.querySelector('.rh-track');
   if (!tr || (+tr.dataset.n || 0) < 2) return;
-  if (matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (UI.mode === 'low' || (matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
   const n = +tr.dataset.n, next = ((UI.recapSlide || 0) + 1) % n;
   tr.scrollTo({ left: next * tr.clientWidth, behavior: next ? 'smooth' : 'auto' });
 }, 4500);
@@ -2865,6 +2908,7 @@ async function sendParked() {
       if (!u) { u = { id: item.id, rid: item.rid, hole: item.hole, name: item.name, pct: 30, err: '', waiting: false }; UI.upload.queue.push(u); }
       if (typeof navigator !== 'undefined' && navigator.onLine === false) { u.waiting = true; continue; }
       if (!loaded()) { u.waiting = true; continue; }                   // the book is still opening
+      if (UI.mode === 'low' && !u.force) { u.waiting = true; continue; }   // low power: photos go on a tap, or when it is turned off
       u.waiting = false; u.err = ''; u.pct = 45; render();
       try {
         const supa = store4.kind === 'supabase';
@@ -2908,8 +2952,9 @@ function photoWaiting(rid) {
   const q = UI.upload.queue.filter(u => u.rid === rid);
   if (!q.length) return '';
   const waiting = q.filter(u => u.waiting).length, going = q.length - waiting;
+  const low = UI.mode === 'low' && (typeof navigator === 'undefined' || navigator.onLine !== false);
   return `<span class="phq${waiting ? ' wait' : ''}">${going ? `Sending ${going} photo${going === 1 ? '' : 's'}…` : ''}${going && waiting ? ' · ' : ''}${
-    waiting ? `${waiting} waiting for signal — they go up by themselves` : ''}</span>`;
+    waiting ? (low ? `${waiting} waiting: low power is on. <button class="sendnow" data-act="photoSendNow">Send now</button>` : `${waiting} waiting for signal — they go up by themselves`) : ''}</span>`;
 }
 const CAM_SVG = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l1.6-2.4h6.8L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.6"/></svg>';
 /** The waiting line, under the plate, only while something is waiting. */
@@ -6743,8 +6788,10 @@ function paint() {
         <div class="lbl">Next Tee Time</div>
         <div class="val num">${nt ? esc(nt.day.dow) + ' ' + esc(E.to12(nt.time)) + ' — ' + esc(nt.round.short === 'Practice' ? 'Practice' : 'Round ' + nt.round.short.slice(1)) : '—'}</div>
       </div>
+      ${moonBtn('')}
       ${manageDial(role)}
     </header>
+    ${lowLine()}
     ${datelineRail()}
     <div class="rule-heavy"></div>
     ${UI.deniedNote ? `<div class="loadbar bad">${esc(UI.deniedNote)} <button class="rm" data-act="signIn">Sign in</button></div>` : ''}
@@ -7092,6 +7139,7 @@ function stickyTop(role) {
       tabindex="-1"><img class="ts-c" src="${IMG.crest}" alt=""></button>` : ''}
     <span class="ts-n">Union Invitational</span>
     ${when ? `<span class="ts-t num">${esc(when)}</span>` : ''}
+    ${moonBtn('ts-m')}
     ${dialMark(role, n, 'ts-d')}
   </div>`;
 }
@@ -8306,6 +8354,9 @@ function onClick(e) {
     }
     case 'whoPinGo': whoPinGo(); return;
     case 'guestJoin': guestJoin(); return;
+    case 'modeCycle': setMode(MODES[(MODES.indexOf(UI.mode) + 1) % MODES.length]); render(); return;
+    case 'modeDay': setMode('day'); render(); return;
+    case 'photoSendNow': UI.upload.queue.forEach(u => { u.force = true; }); sendParked(); render(); return;
     case 'pinsReload': namePinsLoad(true); render(); return;
     case 'pinReset': {
       if (!canAdmin()) return;
@@ -9727,9 +9778,10 @@ export function boot() {
   /* The clock on the page reads in minutes, so a minute is often enough,
      and nobody is reading it from a pocket. Nothing here touches the
      network. */
-  setInterval(() => { if (document.visibilityState === 'hidden') return; now = E.nowLocal(); render(); }, 60000);
+  setInterval(() => { if (document.visibilityState === 'hidden' || UI.mode === 'low') return; now = E.nowLocal(); render(); }, 60000);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { now = E.nowLocal(); dropKeyboard(); resetViewport(); render(); } });
   window.addEventListener('pageshow', () => { dropKeyboard(); resetViewport(); });
   render();
+  loadMode(); applyMode();
   store.connect();
 }

@@ -52,6 +52,7 @@ const SOCIAL = /^(chat|market|notes)\//;
 const PHOTO = /^photos\//;
 const POLL_LIVE_MS = 180000;  // the net under a live socket: every three minutes (the socket brings everything; this only catches what it dropped)
 const POLL_DOWN_MS = 15000;   // the socket is down, so the poll is the update
+const POLL_LOW_MS = 600000;   // low power: no socket, and a look every ten minutes while the book is open on screen
 const hidden = () => typeof document !== 'undefined' && document.visibilityState === 'hidden';
 const RETRY_MS = 4000;        // a stranded outbox tries again this soon, then waits longer each time it fails
 const RETRY_MAX_MS = 60000;   // ... but never longer than a minute, and a signal coming back is tried at once
@@ -115,6 +116,8 @@ export function createSupabaseDb(opts) {
   const docWatch = new Map();      // path -> Set(cb)
   const collWatch = new Map();     // prefix -> Set({cb, err})
   let live = false;                // is the socket actually delivering?
+  let lowPower = false;            // the moon: no socket, the slow poll
+  let stopListen = null;           // closes the socket, while one is open
   let lastSeen = null;             // newest updated_at we have applied
   let closed = false;
   let pollTimer = null, retryTimer = null;
@@ -367,7 +370,18 @@ export function createSupabaseDb(opts) {
     if (closed) return;
     clearTimeout(pollTimer); pollTimer = null;
     if (hidden()) return;
-    pollTimer = setTimeout(async () => { await sweep(); armPoll(); }, ms != null ? ms : (live ? POLL_LIVE_MS : POLL_DOWN_MS));
+    pollTimer = setTimeout(async () => { await sweep(); armPoll(); }, ms != null ? ms : (lowPower ? POLL_LOW_MS : live ? POLL_LIVE_MS : POLL_DOWN_MS));
+  }
+  /* LOW POWER. The socket is the thing that keeps a phone's radio awake, so
+     it is closed, and the poll — the one query — runs every ten minutes
+     instead. Turning it off opens the socket again and looks at once. */
+  function setLowPower(on) {
+    on = !!on;
+    if (on === lowPower) return;
+    lowPower = on;
+    if (closed) return;
+    if (on) { if (stopListen) { stopListen(); stopListen = null; } live = false; armPoll(); }
+    else { if (!stopListen) stopListen = listen(); soon(); }
   }
   const soon = () => armPoll(800);
   if (typeof document !== 'undefined') {
@@ -491,11 +505,13 @@ export function createSupabaseDb(opts) {
 
     /** Opened once, after the subscriptions are registered. */
     start() {
-      const stop = listen();
+      if (!lowPower) stopListen = listen();
       armPoll();
       armRetry();
-      return () => { stop(); };
+      return () => { if (stopListen) { stopListen(); stopListen = null; } };
     },
+    setLowPower,
+    get lowPower() { return lowPower; },
 
     close() {
       closed = true;

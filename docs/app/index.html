@@ -102,9 +102,49 @@
   --hole-todo:#CDBF9E; --hole-done:#F4EFE2;
   --overtint:#EFDCD7; --leadtint:#E4ECE2;
   --shadow:rgba(29,46,33,.16);
+  /* the pine: every dark surface the book draws, and the cream written on it */
+  --pine:#1D2E21;  --onpine:#EEE8D5;
   --serif:'Source Serif 4','Iowan Old Style',Georgia,'Times New Roman',serif;
   --mono:var(--serif);
 }
+
+/* ---- NIGHT, AND LOW POWER ----
+   The moon in the masthead turns the page to a pine night: every colour the
+   book uses is a token above, so the page, its rules and its ink swap here,
+   and the pine surfaces go a shade darker still so they stay surfaces. Low
+   power is night with the pictures dimmed and nothing moving. */
+html.night{color-scheme:dark;
+  --paper:#121A14; --page:#1A2420; --sunk:#0E1511;
+  --ink:#ECE5D4;   --turf:#A7B5A2;  --green:#A9CBAE;
+  --rule:#3B4C3E;  --hair:#2A3A2E;
+  --flag:#E39385;  --gold:#D9B45C;
+  --under:#D9B45C; --over:#E39385; --level:#ECE5D4;
+  --uk:#8FAAE8;    --usa:#E39385;
+  --hole-todo:#2B3B2E; --hole-done:#233026;
+  --overtint:#3B2B28; --leadtint:#25382B;
+  --shadow:rgba(0,0,0,.55);
+  --pine:#0B110D;  --onpine:#ECE5D4;}
+html.night body{background:var(--paper)}
+html.night .crestbtn img,html.night .ts-c{filter:invert(1) brightness(1.3)}
+html.night .wrap.cover .crestbtn img{filter:invert(1) brightness(1.3)}
+html.low img,html.low canvas,html.low .h3sky{filter:grayscale(1) brightness(.45)}
+html.low .crestbtn img,html.low .ts-c{filter:invert(1) brightness(1.1)}
+html.low *,html.low *::before,html.low *::after{animation:none!important;transition:none!important}
+/* the moon: day, night, or low power with a gold dot */
+.moonbtn{flex:0 0 auto;width:42px;height:42px;border-radius:50%;border:1.5px solid var(--rule);background:var(--page);color:var(--turf);
+  display:grid;place-items:center;padding:0;position:relative;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.moonbtn svg{width:20px;height:20px;display:block}
+.moonbtn .dot{display:none;position:absolute;right:-2px;top:-2px;width:12px;height:12px;border-radius:50%;background:var(--gold-up);border:2px solid var(--paper)}
+html.night .moonbtn{border-color:#C9A253;color:#E2C277;background:#0B110D}
+html.low .moonbtn .dot{display:block}
+.wrap.cover .moonbtn{background:rgba(11,17,13,.55);border-color:rgba(226,194,119,.7);color:#E2C277}
+.moonbtn.ts-m{width:32px;height:32px;margin-left:9px;background:none;border-color:var(--sage-up);color:var(--onpine)}
+.moonbtn.ts-m svg{width:16px;height:16px}
+html.night .moonbtn.ts-m{border-color:#C9A253;color:#E2C277}
+.lowline{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 10px;padding:7px 12px;border-radius:10px;
+  background:#2B3B2E;color:#E9E2D2;border-left:4px solid #C9A253;font-size:13.5px}
+.lowline button{background:none;border:0;font:inherit;font-weight:700;color:#E2C277;padding:4px 2px;white-space:nowrap;cursor:pointer}
+.phq .sendnow{background:none;border:0;font:inherit;font-weight:700;color:var(--gold);text-decoration:underline;text-underline-offset:3px;padding:0 2px;cursor:pointer}
 *,*::before,*::after{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:16px;line-height:1.5}
@@ -211,7 +251,7 @@ a{color:var(--green);text-underline-offset:3px}
 .tab{padding:11px 21px;font-size:17px;color:var(--turf);background:var(--page);border:1px solid var(--rule);
   border-bottom:none;white-space:nowrap;min-height:44px;border-radius:9px 9px 0 0}
 @media (hover:hover) and (pointer:fine) { .tab:hover{color:var(--ink);background:var(--sunk)} }
-.tab[aria-current="page"]{background:var(--ink);border-color:var(--ink);color:var(--paper);font-weight:700}
+.tab[aria-current="page"]{background:var(--pine);border-color:var(--pine);color:var(--onpine);font-weight:700}
 
 /* Nine of the tabs name a job. One names a place, and typography has always
    set a name apart from a label — so this is a fact about the word before it
@@ -224,7 +264,7 @@ a{color:var(--green);text-underline-offset:3px}
   font-size:13.5px;color:var(--gold)}
 /* On the ink the gold goes muddy, so the selected state keeps the paper and
    lets the letterforms do the distinguishing. */
-.tab.named[aria-current="page"]{color:var(--paper)}
+.tab.named[aria-current="page"]{color:var(--onpine)}
 @media (hover:hover) and (pointer:fine) { .tab.named:hover{color:var(--ink)} }
 
 /* ---- generic blocks ---- */
@@ -240,8 +280,8 @@ h3.sub{font-size:19px;font-weight:600;margin:26px 0 0}
 .chiprow{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .chip{padding:6px 11px;border:1px solid var(--rule);background:var(--page);font-size:14px;min-height:36px;
   display:inline-flex;align-items:center;gap:6px;border-radius:2px;color:var(--turf)}
-.chip[aria-pressed="true"],.chip.on{background:var(--ink);color:var(--paper);border-color:var(--ink);font-weight:600}
-.btn{min-height:44px;padding:10px 17px;border:1px solid var(--ink);background:var(--ink);color:var(--paper);
+.chip[aria-pressed="true"],.chip.on{background:var(--pine);color:var(--onpine);border-color:var(--pine);font-weight:600}
+.btn{min-height:44px;padding:10px 17px;border:1px solid var(--ink);background:var(--pine);color:var(--onpine);
   font-size:15px;font-weight:600;border-radius:2px}
 .btn.ghost{background:none;color:var(--ink);border-color:var(--rule)}
 .btn.danger{background:var(--flag);border-color:var(--flag);color:#fff}
@@ -280,8 +320,8 @@ h3.sub{font-size:19px;font-weight:600;margin:26px 0 0}
 .cell.played{color:var(--ink);font-weight:600}
 .cell.u{background:var(--under);border-color:var(--under);color:#fff}
 .cell.o{background:var(--over);border-color:var(--over);color:#fff}
-.cell.e{background:var(--ink);border-color:var(--ink);color:var(--paper)}
-.cell.here{background:var(--ink);border-color:var(--ink);color:var(--paper);font-weight:700}
+.cell.e{background:var(--pine);border-color:var(--pine);color:var(--onpine)}
+.cell.here{background:var(--pine);border-color:var(--pine);color:var(--onpine);font-weight:700}
 .diagram{margin:18px 0 0;max-width:330px}
 .diagram img{display:block;width:100%;height:auto}
 .diagram figcaption{font-size:14px;color:var(--turf);font-style:italic;margin-top:6px}
@@ -293,8 +333,8 @@ h3.sub{font-size:19px;font-weight:600;margin:26px 0 0}
 .rcard b{display:block;font-size:19px;font-weight:700;line-height:1.2}
 .rcard span{display:block;font-size:14px;font-weight:400;color:var(--turf);margin-top:1px}
 .rcard.practice{border-style:dashed}
-.rcard:hover{border-color:var(--ink)}
-.rcard.on{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.rcard:hover{border-color:var(--pine)}
+.rcard.on{background:var(--pine);border-color:var(--pine);color:var(--onpine)}
 .rcard.on span{color:var(--rule)}
 .note-it{font-size:17px;font-style:italic;color:var(--turf);margin:12px 0 0}
 .note-red{font-size:17px;font-style:italic;color:var(--flag);margin:12px 0 0}
@@ -303,8 +343,8 @@ h3.sub{font-size:19px;font-weight:600;margin:26px 0 0}
 .grouprow .gl{font-size:15px;color:var(--turf)}
 .gchip{padding:9px 16px;border:1px solid var(--rule);background:var(--page);color:var(--ink);
   font-size:16px;border-radius:2px;min-height:44px}
-.gchip:hover{border-color:var(--ink)}
-.gchip.on{background:var(--ink);border-color:var(--ink);color:var(--paper);font-weight:600}
+.gchip:hover{border-color:var(--pine)}
+.gchip.on{background:var(--pine);border-color:var(--pine);color:var(--onpine);font-weight:600}
 .grouprow .gnote{font-size:14px;color:var(--turf)}
 
 .hstrip{display:grid;grid-template-columns:repeat(18,minmax(46px,1fr));gap:2px;min-width:860px}
@@ -312,11 +352,11 @@ h3.sub{font-size:19px;font-weight:600;margin:26px 0 0}
   border:1px solid var(--rule);background:var(--hole-todo);color:var(--ink);border-radius:9px;min-height:52px}
 .hcell .n{font-weight:700;font-variant-numeric:tabular-nums;font-size:16px}
 .hcell .p{font-size:11px;color:var(--turf);font-variant-numeric:tabular-nums}
-.hcell:hover{border-color:var(--ink)}
+.hcell:hover{border-color:var(--pine)}
 /* scored: pale, quiet, done with */
 .hcell.saved{background:var(--hole-done);border-color:var(--hair)}
 .hcell.saved .n{font-weight:400}
-.hcell.on{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.hcell.on{background:var(--pine);border-color:var(--pine);color:var(--onpine)}
 .hcell.on .p{color:var(--rule)}
 .hcell.on .n{font-weight:700}
 
@@ -352,7 +392,7 @@ h3.sub{font-size:19px;font-weight:600;margin:26px 0 0}
 .pwho .bd .capped{font-style:normal;color:var(--flag);font-weight:600}
 /* THE KEYPAD: a sheet of pine from the foot of a phone, a card in the
    corner of anything wider. Par is outlined in gold, the pick-up reads red. */
-.keypad{position:fixed;left:0;right:0;bottom:calc(150px + env(safe-area-inset-bottom,0px));z-index:29;background:var(--ink);color:var(--page);
+.keypad{position:fixed;left:0;right:0;bottom:calc(150px + env(safe-area-inset-bottom,0px));z-index:29;background:var(--pine);color:var(--onpine);
   border-radius:22px;margin:0 8px;padding:14px 16px 12px;
   box-shadow:0 -12px 40px rgba(16,22,17,.4);animation:feelin .22s ease-out}
 .keypad .kh{display:flex;align-items:center;gap:10px;margin-bottom:12px}
@@ -361,7 +401,7 @@ h3.sub{font-size:19px;font-weight:600;margin:26px 0 0}
 .keypad .kh .xx{background:none;border:0;color:#E2C277;font-family:inherit;font-size:14px;font-weight:700;padding:8px 0 8px 8px}
 .keypad .keys{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 .keypad .key{height:58px;border-radius:14px;border:1px solid rgba(238,232,213,.22);background:rgba(238,232,213,.08);
-  color:var(--page);font-size:24px;font-weight:700;font-family:inherit;position:relative;-webkit-tap-highlight-color:transparent;
+  color:var(--onpine);font-size:24px;font-weight:700;font-family:inherit;position:relative;-webkit-tap-highlight-color:transparent;
   text-align:center;padding:0 0 4px;display:grid;place-items:center}
 .keypad .key i{position:absolute;left:0;right:0;bottom:5px;font-size:8.5px;letter-spacing:.12em;text-transform:uppercase;font-style:normal;color:var(--sage-up);font-weight:700;text-align:center}
 .keypad .key.par,.keypad .key.cap{padding-bottom:12px}
@@ -371,7 +411,7 @@ h3.sub{font-size:19px;font-weight:600;margin:26px 0 0}
 .keypad .key.on i{color:var(--turf)}
 .keypad .key.wide{font-size:14px;font-weight:600;color:var(--sage-up)}
 .keypad .krow{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;align-items:center}
-.keypad .mchip{flex:1 1 auto;border-radius:999px;border-color:rgba(238,232,213,.3);background:none;color:var(--page);font-size:12.5px;padding:7px 10px;min-height:38px;text-align:center}
+.keypad .mchip{flex:1 1 auto;border-radius:999px;border-color:rgba(238,232,213,.3);background:none;color:var(--onpine);font-size:12.5px;padding:7px 10px;min-height:38px;text-align:center}
 .keypad .mchip:disabled{opacity:.55}
 .keypad .mchip.on{background:var(--green);border-color:var(--green);color:#FBFAF7;opacity:1}
 .keypad .relq{color:var(--sage-up)}
@@ -435,7 +475,7 @@ html:has(.keypad) .page.scoring{padding-bottom:470px}
 .sqbox{flex:0 0 auto;display:flex;align-items:center;justify-content:center;width:64px;height:44px;
   border:1px solid var(--rule);background:var(--paper);border-radius:2px;color:var(--turf)}
 .sqbox svg{display:block;border:1px solid rgba(29,46,33,.18)}
-.sqbox:hover:not(:disabled){border-color:var(--ink);background:var(--sunk)}
+.sqbox:hover:not(:disabled){border-color:var(--pine);background:var(--sunk)}
 .sqbox:disabled{opacity:.55;cursor:not-allowed}
 .sqname{flex:1;font-size:17px;font-weight:600;min-width:0}
 .sqlabel{font-size:14px;color:var(--turf);white-space:nowrap}
@@ -517,7 +557,7 @@ html:has(.keypad) .page.scoring{padding-bottom:470px}
 .seg{display:flex;gap:2px;margin-left:auto}
 .segb{padding:9px 20px;border:1px solid var(--rule);background:var(--page);color:var(--ink);
   font-size:17px;min-height:44px}
-.segb.on{background:var(--ink);border-color:var(--ink);color:var(--paper);font-weight:600}
+.segb.on{background:var(--pine);border-color:var(--pine);color:var(--onpine);font-weight:600}
 
 /* An event is read first and edited second, so the line stays a line: the
    whole of it is the tap target, with a chevron to say so. */
@@ -530,7 +570,7 @@ html:has(.keypad) .page.scoring{padding-bottom:470px}
 .dayb .num{font-size:19px;font-weight:700}
 .dayb span:last-child{font-size:13px;color:var(--turf)}
 .dayb:hover{background:var(--sunk)}
-.dayb.on{background:var(--ink);color:var(--paper)}
+.dayb.on{background:var(--pine);color:var(--onpine)}
 .dayb.on span:last-child{color:var(--rule)}
 .dayhead{font-size:clamp(24px,3.4vw,31px);font-weight:700;margin:22px 0 0}
 .dayhead span{font-size:17px;font-weight:400;color:var(--turf)}
@@ -551,7 +591,7 @@ html:has(.keypad) .page.scoring{padding-bottom:470px}
 .rm:hover{text-decoration:underline}
 .dashb{margin-top:12px;padding:11px 20px;border:1px dashed var(--gold);background:none;color:var(--turf);
   font-size:16px;border-radius:2px;min-height:44px}
-.dashb:hover{color:var(--ink);border-color:var(--ink)}
+.dashb:hover{color:var(--ink);border-color:var(--pine)}
 
 .teeblock{max-width:820px}
 .teegroup{padding:12px 0;border-bottom:1px solid var(--rule)}
@@ -559,7 +599,7 @@ html:has(.keypad) .page.scoring{padding-bottom:470px}
 .teerow .gl{font-size:15px;color:var(--turf)}
 .pchip{padding:8px 13px;border:1px solid var(--rule);background:var(--page);color:var(--ink);
   font-size:15px;border-radius:2px;min-height:40px}
-.pchip:hover:not(:disabled){border-color:var(--ink)}
+.pchip:hover:not(:disabled){border-color:var(--pine)}
 .pchip.on{background:var(--green);border-color:var(--green);color:#FBFAF7;font-weight:600}
 .pchip:disabled{opacity:.6}
 
@@ -727,7 +767,7 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
    banner joins them, with the same gold hairline on the edge that faces the
    page, so every frame in the book is one material. */
 .mbanner{margin:calc(var(--mpad-y) * -1) calc(var(--mpad-x) * -1) 6px;
-  padding:15px var(--mpad-x) 14px;background:var(--ink);color:var(--page);
+  padding:15px var(--mpad-x) 14px;background:var(--pine);color:var(--onpine);
   border-bottom:2px solid var(--gold-up);
   display:flex;align-items:center;gap:14px;text-align:left}
 .mb-w{flex:1 1 auto;min-width:0}
@@ -831,19 +871,19 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 /* the pins and cards over the ground */
 .h3pin{position:absolute;transform:translate(-50%,-100%);background:var(--page);color:var(--ink);font-weight:900;font-size:16px;line-height:1;
   padding:6px 9px 5px;border-radius:9px;box-shadow:0 3px 10px rgba(16,22,17,.3);font-variant-numeric:tabular-nums;letter-spacing:-.01em;white-space:nowrap}
-.h3pin::after{content:"";position:absolute;left:50%;bottom:-9px;margin-left:-9px;border:9px solid transparent;border-top-color:var(--page);border-bottom:0}
-.h3gcard{position:absolute;transform:translate(-50%,-100%);background:var(--ink);color:var(--page);border-radius:11px;padding:7px 12px 6px;text-align:center;
+.h3pin::after{content:"";position:absolute;left:50%;bottom:-9px;margin-left:-9px;border:9px solid transparent;border-top-color:var(--onpine);border-bottom:0}
+.h3gcard{position:absolute;transform:translate(-50%,-100%);background:var(--pine);color:var(--onpine);border-radius:11px;padding:7px 12px 6px;text-align:center;
   box-shadow:0 5px 14px rgba(16,22,17,.4);border:2px solid var(--page);display:grid;grid-template-columns:auto auto auto;gap:0 12px}
 .h3gcard small{display:block;font-size:7.5px;font-weight:700;line-height:1;color:var(--sage-up);letter-spacing:.12em;text-transform:uppercase;margin-top:3px}
 .h3gcard i{display:block;font-style:normal;font-size:19px;font-weight:900;line-height:1;font-variant-numeric:tabular-nums}
 .h3gcard b{display:block;font-size:25px;font-weight:900;line-height:1;letter-spacing:-.01em;font-variant-numeric:tabular-nums;color:#E2C277}
-.h3gcard::after{content:"";position:absolute;left:50%;bottom:-10px;margin-left:-9px;border:9px solid transparent;border-top-color:var(--page);border-bottom:0}
+.h3gcard::after{content:"";position:absolute;left:50%;bottom:-10px;margin-left:-9px;border:9px solid transparent;border-top-color:var(--onpine);border-bottom:0}
 .h3gline{position:absolute;width:2px;height:36px;background:rgba(238,232,213,.85);transform:translateX(-50%)}
 .h3tcard{position:absolute;transform:translate(-50%,-100%);background:var(--flag);color:#fff;border-radius:11px;padding:7px 12px 7px;text-align:center;
   box-shadow:0 5px 14px rgba(16,22,17,.4);border:2px solid var(--page)}
 .h3tcard small{display:block;font-size:10.5px;font-weight:700;line-height:1;opacity:.9;white-space:nowrap}
 .h3tcard b{display:block;font-size:27px;font-weight:900;line-height:1.05;font-variant-numeric:tabular-nums}
-.h3tcard::after{content:"";position:absolute;left:50%;bottom:-10px;margin-left:-9px;border:9px solid transparent;border-top-color:var(--page);border-bottom:0}
+.h3tcard::after{content:"";position:absolute;left:50%;bottom:-10px;margin-left:-9px;border:9px solid transparent;border-top-color:var(--onpine);border-bottom:0}
 .h3tgt{position:absolute;transform:translate(-50%,-50%);width:40px;height:17px;border-radius:50%;border:3px solid var(--flag);background:rgba(238,232,213,.7);box-shadow:0 2px 6px rgba(0,0,0,.25)}
 .h3tgt::after{content:"";position:absolute;left:50%;top:50%;width:11px;height:5px;margin:-2.5px 0 0 -5.5px;border-radius:50%;background:var(--flag)}
 .h3me{position:absolute;transform:translate(-50%,-50%);width:16px;height:16px;border-radius:50%;background:#E2C277;border:3px solid var(--ink);box-shadow:0 0 0 7px rgba(226,194,119,.3),0 2px 6px rgba(0,0,0,.3)}
@@ -867,8 +907,8 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 .h3rail svg{width:24px;height:24px}
 .h3unit{position:absolute;left:50%;top:calc(max(14px,env(safe-area-inset-top,0px)) + 78px);transform:translateX(-50%);z-index:3;background:rgba(238,232,213,.96);border-radius:999px;padding:5px 4px;display:flex;gap:2px;box-shadow:0 3px 12px rgba(16,22,17,.16)}
 .h3unit button{font-size:12px;font-weight:800;padding:6px 12px;border-radius:999px;color:var(--turf);border:0;background:none;font-family:inherit;min-height:32px}
-.h3unit button.on{background:var(--ink);color:#E2C277}
-.h3note{position:absolute;left:50%;transform:translateX(-50%);bottom:112px;z-index:3;background:rgba(29,46,33,.8);color:var(--page);border-radius:999px;padding:6px 12px;font-size:10px;letter-spacing:.11em;text-transform:uppercase;font-weight:700;white-space:nowrap;max-width:92%;overflow:hidden;text-overflow:ellipsis}
+.h3unit button.on{background:var(--pine);color:#E2C277}
+.h3note{position:absolute;left:50%;transform:translateX(-50%);bottom:112px;z-index:3;background:rgba(29,46,33,.8);color:var(--onpine);border-radius:999px;padding:6px 12px;font-size:10px;letter-spacing:.11em;text-transform:uppercase;font-weight:700;white-space:nowrap;max-width:92%;overflow:hidden;text-overflow:ellipsis}
 .h3note.warn{bottom:140px;background:rgba(158,59,46,.92);letter-spacing:.04em;text-transform:none;font-size:12px;white-space:normal;text-align:center;border-radius:12px}
 /* the dock: a cream bar floating over the ground — the band shield, your
    net to par, par, and How'd you feel? */
@@ -881,7 +921,7 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 .h3shield .bn{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding-bottom:5px;font-size:15px;font-weight:700;color:var(--turf);line-height:1}
 .h3shield.on .sh{fill:var(--green);stroke:var(--ink)}
 .h3shield.on .in{stroke:var(--paper);opacity:.5}
-.h3shield.on .bn{color:var(--paper)}
+.h3shield.on .bn{color:var(--onpine)}
 .h3dock .w{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:12px}
 .h3dock .fig b{display:block;font-size:28px;font-weight:900;line-height:1;letter-spacing:-.02em;color:var(--ink)}
 .h3dock .fig span,.h3dock .par span{display:block;font-size:8.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:800;color:var(--turf);margin-top:3px;white-space:nowrap}
@@ -895,7 +935,7 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 .h3over{position:absolute;inset:0;z-index:5;background:rgba(29,46,33,.5);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
 .h3feelwin{position:absolute;left:14px;right:14px;bottom:max(14px,calc(env(safe-area-inset-bottom,0px) + 8px));z-index:6;border-radius:20px;overflow:hidden;background:var(--page);
   box-shadow:0 0 0 .5px rgba(29,46,33,.16),0 16px 34px rgba(16,22,17,.2),0 40px 80px rgba(16,22,17,.22);max-height:calc(100% - 90px);overflow-y:auto}
-.h3feelwin .mb{display:flex;align-items:center;gap:12px;padding:14px 18px 13px;background:var(--ink);color:var(--page);border-bottom:2px solid var(--gold-up)}
+.h3feelwin .mb{display:flex;align-items:center;gap:12px;padding:14px 18px 13px;background:var(--pine);color:var(--onpine);border-bottom:2px solid var(--gold-up)}
 .h3feelwin .mb .w{flex:1;min-width:0}
 .h3feelwin .mb .t{display:block;font-size:19px;font-weight:700;line-height:1.2}
 .h3feelwin .mb .s{display:block;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--sage-up);margin-top:3px}
@@ -907,8 +947,8 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 .h3chip{border:1px solid var(--rule);border-radius:12px;padding:10px 12px;background:var(--paper);text-align:left;font-family:inherit;min-height:56px}
 .h3chip b{display:block;font-size:15px;color:var(--ink)}
 .h3chip span{display:block;font-size:11.5px;color:var(--turf);margin-top:2px}
-.h3chip.on{background:var(--ink);border-color:var(--ink)}
-.h3chip.on b{color:var(--page)}.h3chip.on span{color:var(--sage-up)}
+.h3chip.on{background:var(--pine);border-color:var(--pine)}
+.h3chip.on b{color:var(--onpine)}.h3chip.on span{color:var(--sage-up)}
 .h3chip.good.on{background:var(--green);border-color:var(--green)}
 .h3word{margin:12px 18px 0;width:calc(100% - 36px);border-radius:12px}
 .h3feelwin .acts{display:flex;gap:8px;padding:12px 18px 16px;margin:0}
@@ -1045,7 +1085,7 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
   display:none;align-items:center;gap:9px;
   padding:7px max(14px,env(safe-area-inset-left,0px)) 7px max(14px,env(safe-area-inset-right,0px));
   padding-top:calc(7px + env(safe-area-inset-top,0px));
-  background:var(--ink);color:var(--page);border-bottom:3px solid var(--gold-up);
+  background:var(--pine);color:var(--onpine);border-bottom:3px solid var(--gold-up);
   box-shadow:0 6px 18px rgba(29,46,33,.22);
   transform:translateY(-100%);transition:transform .2s cubic-bezier(.22,.61,.36,1)}
 .ts-ask{flex:0 0 auto;display:grid;place-items:center;min-width:40px;min-height:40px;
@@ -1059,7 +1099,7 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 .dial.ts-d .dial-g{width:30px;height:30px}
 .dial.ts-d.free{color:var(--gold-up)}
 .dial.ts-d.shut{color:var(--sage-up)}
-.dial.ts-d.in{color:var(--page)}
+.dial.ts-d.in{color:var(--onpine)}
 .dial.ts-d .dial-ct{box-shadow:0 0 0 2px var(--ink);min-width:18px;height:18px;line-height:18px;
   font-size:11px;top:-3px;right:-4px}
 /* The same fade as the bar at the foot, the other way up: the page
@@ -1129,7 +1169,7 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
    the one open question kept visibly apart from the four. */
 .pkg{margin-top:16px;border:1px solid var(--rule);border-radius:3px;overflow:hidden;
   background:var(--paper)}
-.pkghead{background:var(--ink);color:var(--page);border-bottom:2px solid var(--gold-up);padding:12px 16px;
+.pkghead{background:var(--pine);color:var(--onpine);border-bottom:2px solid var(--gold-up);padding:12px 16px;
   display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .pkghead h3{margin:0;font-size:17px;font-weight:700}
 .pkgsrc{font-size:11px;letter-spacing:.1em;text-transform:uppercase;opacity:.78}
@@ -1198,8 +1238,8 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 .evkinds{display:flex;gap:8px}
 .evk{flex:1 1 0;padding:10px 6px;border:1px solid var(--rule);background:var(--paper);
   color:var(--turf);border-radius:3px;font-size:14px;font-weight:600;cursor:pointer}
-.evk:hover{border-color:var(--ink);color:var(--ink)}
-.evk.on{background:var(--ink);border-color:var(--ink);color:var(--page)}
+.evk:hover{border-color:var(--pine);color:var(--ink)}
+.evk.on{background:var(--pine);border-color:var(--pine);color:var(--onpine)}
 .evmodal .err{margin-top:12px}
 .evmodal .acts{margin-top:4px}
 
@@ -1250,8 +1290,8 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 .br-tag.act{cursor:pointer;background:var(--paper);padding:7px 11px;min-height:32px;
   transition:background .15s ease,color .15s ease,border-color .15s ease}
 .br-tag.act::after{content:'\00A0\203A';font-weight:700}
-.br-heavy .br-tag.act:hover,.br-unset .br-tag.act:hover{background:var(--gold);color:var(--paper);border-color:var(--gold)}
-.br-light .br-tag.act:hover{background:var(--flag);color:var(--paper);border-color:var(--flag)}
+.br-heavy .br-tag.act:hover,.br-unset .br-tag.act:hover{background:var(--gold);color:var(--onpine);border-color:var(--gold)}
+.br-light .br-tag.act:hover{background:var(--flag);color:var(--onpine);border-color:var(--flag)}
 .br-tag.act:focus-visible{outline:2px solid var(--flag);outline-offset:3px}
 /* Undo sits in the working line, in the sentence that says what happened. */
 .br-moved{display:block;margin-bottom:3px;color:var(--ink)}
@@ -1363,7 +1403,7 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 }
 
 /* The bar's own way in, and the bar after a group has walked off. */
-.finishbtn{background:var(--gold);border-color:var(--gold);color:var(--paper);font-weight:600}
+.finishbtn{background:var(--gold);border-color:var(--gold);color:var(--onpine);font-weight:600}
 .savebar.done{border-left:3px solid var(--gold);background:var(--sunk)}
 
 /* ---- status foot ---- */
@@ -1399,22 +1439,22 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 /* Under the index the picture keeps to the page's width, as the index does;
    on a phone (below) it runs to the glass. */
 .coverbg{position:absolute;left:0;right:0;
-  top:0;height:0;margin:0;background:var(--ink);overflow:hidden;z-index:0;pointer-events:none}
+  top:0;height:0;margin:0;background:var(--pine);overflow:hidden;z-index:0;pointer-events:none}
 .coverbg img{width:100%;height:100%;object-fit:cover;object-position:50% 62%;display:block;opacity:.95}
 .coverbg::after{content:"";position:absolute;inset:0;
   background:linear-gradient(to top,rgba(16,22,17,.97) 0,rgba(16,22,17,.55) 42%,rgba(16,22,17,.1) 78%)}
 .coverin{position:relative;z-index:1;min-height:clamp(250px,30vw,380px);display:flex;flex-direction:column;
-  justify-content:flex-end;padding:24px 0 18px;color:var(--page)}
+  justify-content:flex-end;padding:24px 0 18px;color:var(--onpine)}
 .today-day{font-size:15px;color:var(--turf)}
 .cv-k.today-day{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:#E2C277}
 .today-title{font-size:clamp(30px,4.6vw,46px);font-weight:700;line-height:1.05;margin:4px 0 0;text-wrap:balance}
-.coverin .today-title{color:var(--page);margin:6px 0 0;font-size:clamp(32px,4.8vw,54px);line-height:1;
+.coverin .today-title{color:var(--onpine);margin:6px 0 0;font-size:clamp(32px,4.8vw,54px);line-height:1;
   letter-spacing:-.025em;font-weight:900;text-shadow:0 2px 12px rgba(0,0,0,.4);max-width:20ch}
 .cv-s{margin:8px 0 0;font-size:15px;color:var(--sage-up)}
-.cv-s b{color:var(--page);font-weight:600}
+.cv-s b{color:var(--onpine);font-weight:600}
 /* the clock */
 .nowplate{position:relative;z-index:1;margin:0;
-  padding:18px clamp(18px,3.4vw,30px) 20px;background:var(--ink);color:var(--page);
+  padding:18px clamp(18px,3.4vw,30px) 20px;background:var(--pine);color:var(--onpine);
   display:flex;align-items:center;gap:20px;border-bottom:3px solid var(--gold-up)}
 /* The ring fills, in gold, as the gap to the next fixture closes; the clock
    sits inside it. The disc is pine again, so the ring is a line of light. */
@@ -1424,7 +1464,7 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 /* Spelled out one stop at a time, with every position carrying a unit: Chrome
    forgives a bare 0 and a doubled stop, Safari throws the whole gradient
    away and the ring comes up blank. */
-.ring::before{content:"";position:absolute;inset:8px;border-radius:50%;background:var(--ink)}
+.ring::before{content:"";position:absolute;inset:8px;border-radius:50%;background:var(--pine)}
 .rn{position:relative;text-align:center;line-height:1;padding:0 6px}
 .np-big{display:block;font-size:24px;font-weight:900;line-height:1;letter-spacing:-.03em;
   color:#E2C277;white-space:nowrap}
@@ -1516,7 +1556,7 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 .ctab{padding:13px 22px;border:1px solid var(--rule);background:var(--page);color:var(--ink);
   font-size:20px;font-weight:700;min-height:44px;text-align:left}
 .ctab span{display:block;font-size:14px;font-weight:400;color:var(--turf);margin-top:2px}
-.ctab.on{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.ctab.on{background:var(--pine);border-color:var(--pine);color:var(--onpine)}
 .ctab.on span{color:var(--rule)}
 .unverified{margin-top:14px;padding:16px;background:var(--flag);color:#FBFAF7;max-width:720px;border-radius:2px}
 .unverified .t{font-size:19px;font-weight:700}
@@ -1611,7 +1651,7 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
 
 /* The Cup is the only one of the six with a clock on it, so it leads and it
    is drawn in the pine. */
-.cc--cup{background:var(--ink);border-color:var(--ink);color:var(--page);padding-top:10px;padding-bottom:12px}
+.cc--cup{background:var(--pine);border-color:var(--pine);color:var(--onpine);padding-top:10px;padding-bottom:12px}
 .cc--cup .cc-t{color:var(--sage-up)}
 .cc--cup .cc-st{color:var(--gold-up)}
 .cc--cup .cc-go{color:var(--sage-up)}
@@ -1622,7 +1662,7 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
 .cc--cupq .cc-win small{color:var(--turf)}
 /* The main event, in pine, at the head of the front page. After the base
    card on purpose: same specificity, and the later rule wins. */
-.cc--main{background:var(--ink);border-color:var(--ink);color:var(--page)}
+.cc--main{background:var(--pine);border-color:var(--pine);color:var(--onpine)}
 .cc--main .cc-t{color:var(--sage-up)}
 .cc--main .cc-st{color:var(--gold-up)}
 .cc--main .cc-b,.cc--main .cc-none{color:var(--sage-up)}
@@ -1642,7 +1682,7 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
   font-weight:700;color:var(--sage-up)}
 
 /* ---- the plate at the head of a board ---- */
-.plate{display:block;margin-top:13px;background:var(--ink);color:var(--page);
+.plate{display:block;margin-top:13px;background:var(--pine);color:var(--onpine);
   border-radius:16px;padding:10px 15px 13px;
   box-shadow:0 1px 3px rgba(16,22,17,.12),0 8px 20px rgba(16,22,17,.14)}
 .plate.flat{box-shadow:none;background:var(--page);color:var(--ink);border:1px solid var(--rule)}
@@ -1661,14 +1701,14 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
 .pl-c{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--sage-up);
   padding-bottom:4px;font-weight:700}
 .plate.flat .pl-c{color:var(--turf)}
-.pl-c b{display:block;font-size:19px;letter-spacing:0;text-transform:none;color:var(--page);
+.pl-c b{display:block;font-size:19px;letter-spacing:0;text-transform:none;color:var(--onpine);
   font-weight:700;margin-top:1px}
 .plate.flat .pl-c b{color:var(--ink)}
 /* The plate carries the under/over colours too, but on pine the gold has to
    do the work the ochre does on paper. */
 .plate .pl-big.under{color:var(--gold-up)}
 .plate .pl-big.over{color:#D98A7C}
-.plate .pl-big.level{color:var(--page)}
+.plate .pl-big.level{color:var(--onpine)}
 @media (max-width:420px){
   .pl-n{font-size:19px}
   .pl-big{font-size:36px}
@@ -1754,8 +1794,8 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
 @media (hover:hover) and (pointer:fine){ .btab:hover{background:var(--sunk);color:var(--ink)} }
 /* A finger has no hover: on a touch screen the state sticks to whatever was
    last tapped, so hover belongs to devices that have one — see above. */
-.btab.on{background:var(--ink);border-color:var(--ink);color:var(--page);font-weight:700}
-@media (hover:hover) and (pointer:fine){ .btab.on:hover{background:var(--ink);color:var(--page)} }
+.btab.on{background:var(--pine);border-color:var(--pine);color:var(--onpine);font-weight:700}
+@media (hover:hover) and (pointer:fine){ .btab.on:hover{background:var(--pine);color:var(--onpine)} }
 .btab:focus-visible{outline:2px solid var(--flag);outline-offset:2px}
 
 /* ================= SWITCHING BETWEEN THE GAMES =================
@@ -1820,7 +1860,7 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
 .roundpick span{display:block;font-size:11.5px;color:var(--turf);margin-top:1px;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media (hover:hover) and (pointer:fine){ .roundpick:hover{background:var(--sunk)} }
-.roundpick.on{background:var(--ink);border-color:var(--ink);color:var(--page)}
+.roundpick.on{background:var(--pine);border-color:var(--pine);color:var(--onpine)}
 .roundpick.on span{color:var(--sage-up)}
 .roundpick.live:not(.on)::after{content:"";position:absolute;top:5px;right:6px;width:6px;height:6px;
   border-radius:50%;background:var(--flag)}
@@ -1866,7 +1906,7 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
 .padrow.pending{border-color:var(--flag);box-shadow:inset 3px 0 0 var(--flag)}
 .padrow .nm .tag{display:inline-block;margin-left:8px;padding:1px 8px;border-radius:999px;font-size:12px;
   background:var(--flag);color:#FBFAF7;vertical-align:2px}
-.cell.saved{border-color:var(--ink)}
+.cell.saved{border-color:var(--pine)}
 
 /* ---- inline name editing ---- */
 .nameedit{width:100%;max-width:250px;font-family:var(--serif);font-size:18px;font-weight:600;color:var(--ink);
@@ -1922,7 +1962,8 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
   /* flex-start, not centre: the venue line runs to three lines on a 390pt
      screen, and a dial centred against the block lands beside the DATES
      rather than beside the name it belongs to. */
-  .dial{order:3;margin-left:auto;align-self:flex-start;width:42px;height:42px}
+  .moonbtn{order:3;margin-left:auto;align-self:flex-start}
+  .dial{order:4;margin-left:0;align-self:flex-start;width:42px;height:42px}
   .dial-g{width:40px;height:40px}
   /* THE VENUE LINE AND THE TEE-TIME CAPTION BOTH GO. One says where you are
      — which you know, and which The Titanic tab says in full — on three
@@ -2010,7 +2051,7 @@ table.scard .cardval{font-size:17px;font-variant-numeric:tabular-nums}
 .pname.read{display:flex;align-items:center;font-size:19px;font-weight:600;border-bottom:none}
 .ibtn{width:40px;height:40px;display:flex;align-items:center;justify-content:center;border:1px solid var(--rule);
   background:var(--page);color:var(--ink);border-radius:2px;font-size:16px;flex:0 0 auto}
-.ibtn:hover{border-color:var(--ink)}
+.ibtn:hover{border-color:var(--pine)}
 .pmem{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--rule);
   flex-wrap:nowrap}
 .pmem[draggable="true"]{cursor:grab}
@@ -2067,7 +2108,7 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
 .bandcrest.on{opacity:1;filter:drop-shadow(0 2px 3px var(--shadow))}
 .bandcrest.on .sh{fill:var(--green);stroke:var(--ink)}
 .bandcrest.on .in{stroke:var(--paper);opacity:.5}
-.bandcrest.on .bn{color:var(--paper);font-weight:700;font-size:16px}
+.bandcrest.on .bn{color:var(--onpine);font-weight:700;font-size:16px}
 
 @media (hover:hover) and (pointer:fine){
   .bandcrest:not(:disabled):hover{opacity:1;transform:translateY(-1px)}
@@ -2084,8 +2125,8 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
 .tbtn{padding:7px 11px;border:1px solid var(--rule);background:var(--page);color:var(--turf);
   font-size:15px;border-radius:2px;min-height:40px;font-variant-numeric:tabular-nums}
 @media (hover:hover) and (pointer:fine) {
-  .tbtn:hover:not(:disabled){border-color:var(--ink);color:var(--ink)} }
-.tbtn.on{background:var(--ink);border-color:var(--ink);color:var(--paper);font-weight:600}
+  .tbtn:hover:not(:disabled){border-color:var(--pine);color:var(--ink)} }
+.tbtn.on{background:var(--pine);border-color:var(--pine);color:var(--onpine);font-weight:600}
 .tbtn:disabled{opacity:.55}
 .cfoot-note{font-size:14px;color:var(--turf);flex:1 1 240px;min-width:0}
 .saverow{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:12px;padding:11px 14px;
@@ -2120,7 +2161,7 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
 .ps-way small{font-size:12.5px;opacity:.8;font-weight:400}
 /* moving a photo: the round, the hole */
 .pv-own{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
-.pv-mv{background:none;border:0;color:var(--page);opacity:.85;font-size:13px;padding:8px 4px;text-decoration:underline;text-underline-offset:3px}
+.pv-mv{background:none;border:0;color:var(--onpine);opacity:.85;font-size:13px;padding:8px 4px;text-decoration:underline;text-underline-offset:3px}
 .pm-pic{display:flex;align-items:center;gap:12px;margin:12px 0 4px;font-size:13px;color:var(--turf)}
 .pm-pic img{width:64px;height:48px;object-fit:cover;border-radius:8px;border:1px solid var(--rule)}
 .calc-chips.holes .chip{min-width:34px;padding:4px 0;text-align:center}
@@ -2216,12 +2257,12 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
  * side, so the whole week is still one screen. */
 .calgrid{display:grid;grid-template-columns:minmax(0,1fr);gap:6px 36px;margin-top:14px}
 @media (min-width:700px){ .calgrid{grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);align-items:start} }
-.calplate{position:relative;overflow:hidden;border-radius:16px;background:var(--ink);color:var(--page);
+.calplate{position:relative;overflow:hidden;border-radius:16px;background:var(--pine);color:var(--onpine);
   padding:16px 18px 17px;min-height:150px;box-shadow:0 2px 10px rgba(16,22,17,.18)}
 .calplate .cp-art{position:absolute;right:-64px;top:-44px;width:310px;height:auto;z-index:0;
   opacity:.88;filter:drop-shadow(0 8px 14px rgba(0,0,0,.45)) saturate(1.1);pointer-events:none}
 .calplate::before{content:"";position:absolute;inset:0;z-index:1;
-  background:linear-gradient(to right,var(--ink) 44%,rgba(29,46,33,.55))}
+  background:linear-gradient(to right,var(--pine) 44%,rgba(29,46,33,.55))}
 .calplate > *:not(.cp-art){position:relative;z-index:2}
 .cp-ey{display:flex;gap:10px;font-size:10px;letter-spacing:.14em;text-transform:uppercase;
   font-weight:700;color:var(--sage-up)}
@@ -2242,7 +2283,7 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
 .calsec .add{margin-left:auto;background:none;border:1px dashed var(--gold);color:var(--turf);
   font:inherit;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;
   padding:5px 11px;border-radius:999px;cursor:pointer}
-@media (hover:hover) and (pointer:fine){ .calsec .add:hover{color:var(--ink);border-color:var(--ink)} }
+@media (hover:hover) and (pointer:fine){ .calsec .add:hover{color:var(--ink);border-color:var(--pine)} }
 
 .callist{display:grid;grid-template-columns:minmax(0,1fr);border-top:1px solid var(--hair)}
 .callist .de{display:flex;gap:10px;align-items:center;padding:10px 2px;
@@ -2291,7 +2332,7 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
 .dsmodal{gap:0}
 .ds-golf{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:2px 12px;align-items:center;
   width:100%;text-align:left;margin:6px 0 0;padding:12px 13px;border:0;border-radius:12px;
-  background:var(--ink);color:var(--page);font:inherit;cursor:pointer}
+  background:var(--pine);color:var(--onpine);font:inherit;cursor:pointer}
 .ds-golf .t{grid-column:1;font-size:13px;color:#E2C277;font-weight:700;font-variant-numeric:tabular-nums}
 .ds-golf .ti{grid-column:2;font-size:16px;font-weight:700;line-height:1.2}
 .ds-golf .sub{grid-column:1 / span 2;font-size:12.5px;color:var(--sage-up)}
@@ -2306,7 +2347,7 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
  * says what it is and the one or two numbers that matter, before anything
  * scrolls; the boxed notices are lines; the panels are cards; the tables
  * are the dense rows the rest of the book uses. */
-.mhead{margin:14px 0 0;padding:15px 18px 14px;border-radius:14px;background:var(--ink);color:var(--page);
+.mhead{margin:14px 0 0;padding:15px 18px 14px;border-radius:14px;background:var(--pine);color:var(--onpine);
   border-bottom:2px solid var(--gold-up);box-shadow:0 6px 18px rgba(16,22,17,.16)}
 .mh-ey{display:block;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--sage-up)}
 .mh-t{display:block;font-size:28px;font-weight:700;line-height:1.05;margin-top:4px;letter-spacing:-.01em}
@@ -2363,7 +2404,7 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
 .page.scoring > .setline{border:1px solid var(--rule);border-radius:12px;background:var(--page);
   margin-top:16px;padding:12px 16px}
 .entryhd{display:block;position:sticky;top:0;z-index:31;margin:14px 0 0;
-  background:var(--ink);color:var(--page);border-radius:14px;padding:12px 18px 0;
+  background:var(--pine);color:var(--onpine);border-radius:14px;padding:12px 18px 0;
   border-bottom:2px solid var(--gold-up);box-shadow:0 6px 18px rgba(16,22,17,.18)}
 .ehd-facts{display:flex;align-items:baseline;gap:10px}
 .ehd-n{font-size:34px;font-weight:700;line-height:1;letter-spacing:-.02em}
@@ -2371,7 +2412,7 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
   font-weight:700;padding-bottom:2px}
 .ehd-m{margin-left:auto;text-align:right;font-size:10.5px;letter-spacing:.1em;
   text-transform:uppercase;color:var(--sage-up);font-weight:700;line-height:1.5}
-.ehd-m b{display:block;color:var(--page)}
+.ehd-m b{display:block;color:var(--onpine)}
 .entryhd .scroller{margin:10px 0 0;overflow-x:auto}
 .entryhd .hstrip{display:flex;gap:5px;min-width:0;padding-bottom:12px}
 .entryhd .hstrip .hcell{flex:1 1 0;min-width:40px;min-height:46px;padding:4px 0;
@@ -2379,13 +2420,13 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
   color:var(--sage-up);display:grid;place-items:center;gap:0}
 .entryhd .hstrip .hcell .n{font-size:14px;font-weight:600;line-height:1.1}
 .entryhd .hstrip .hcell .p{font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;line-height:1.1;opacity:.8}
-.entryhd .hstrip .hcell.saved{background:rgba(255,255,255,.14);border-color:transparent;color:var(--page)}
+.entryhd .hstrip .hcell.saved{background:rgba(255,255,255,.14);border-color:transparent;color:var(--onpine)}
 .entryhd .hstrip .hcell.marked{position:relative}
 .entryhd .hstrip .hcell.marked::after{content:"";position:absolute;top:-2px;right:-2px;
   width:7px;height:7px;border-radius:50%;background:var(--flag)}
-.entryhd .hstrip .hcell.on{background:#E2C277;border-color:#E2C277;color:var(--ink)}
+.entryhd .hstrip .hcell.on{background:#E2C277;border-color:#E2C277;color:#1D2E21}
 .entryhd .hstrip .hcell.on .n{font-weight:700}
-@media (hover:hover) and (pointer:fine){ .entryhd .hstrip .hcell:not(.on):hover{border-color:rgba(255,255,255,.5);color:var(--page)} }
+@media (hover:hover) and (pointer:fine){ .entryhd .hstrip .hcell:not(.on):hover{border-color:rgba(255,255,255,.5);color:var(--onpine)} }
 
 /* the two columns: the rows take the page, the hole stands beside them */
 .entrygrid{grid-template-columns:minmax(0,1fr) 340px;gap:34px;margin-top:22px}
@@ -2410,7 +2451,7 @@ html:has(.page.scoring){scroll-padding-top:136px;scroll-padding-bottom:110px}
 
 /* ---- the hole, lit, and carrying what the group has done ---- */
 .holeplate{display:block;position:relative;margin:13px 0 0;border-radius:16px;
-  overflow:hidden;aspect-ratio:7/5;background:var(--ink);
+  overflow:hidden;aspect-ratio:7/5;background:var(--pine);
   box-shadow:0 2px 10px rgba(16,22,17,.2)}
 /* THE SHEET LAID BACK INTO THE PLATE. The stage is the window, with its
    vanishing point a third of the way down; the sheet is the drawing,
@@ -2456,7 +2497,7 @@ html:has(.page.scoring){scroll-padding-top:136px;scroll-padding-bottom:110px}
 .hp-tee{position:absolute;left:9px;top:9px;z-index:3;font-size:9.5px;letter-spacing:.12em;
   text-transform:uppercase;font-weight:700;color:var(--sage-up);background:rgba(16,22,17,.62);
   padding:4px 9px;border-radius:999px}
-.hp-tee b{color:var(--page)}
+.hp-tee b{color:var(--onpine)}
 /* The plate carries the pick-up, so the band above does not say it twice.
    Where a hole has no art and no plate, the band keeps it. */
 .page.scoring:has(.holeplate) .ehd-m b{display:none}
@@ -2468,15 +2509,15 @@ html:has(.page.scoring){scroll-padding-top:136px;scroll-padding-bottom:110px}
   border-radius:999px;padding:3px 9px 3px 4px;font-size:12px;font-weight:700;color:var(--ink);
   box-shadow:0 2px 7px rgba(0,0,0,.3);max-width:62vw;overflow:hidden;
   text-overflow:ellipsis;white-space:nowrap}
-.hp-pill .n{flex:0 0 auto;width:19px;height:19px;border-radius:50%;background:var(--ink);
-  color:var(--page);display:grid;place-items:center;font-size:11.5px}
+.hp-pill .n{flex:0 0 auto;width:19px;height:19px;border-radius:50%;background:var(--pine);
+  color:var(--onpine);display:grid;place-items:center;font-size:11.5px}
 .hp-pill .n.u{background:var(--gold-up);color:var(--ink)}
 .hp-pill .n.o{background:var(--flag);color:#fff}
 .hp-foot{position:absolute;left:0;right:0;bottom:0;z-index:3;padding:7px 12px;
   background:linear-gradient(to top,rgba(16,22,17,.9),rgba(16,22,17,0));
   font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;
   color:var(--sage-up);display:flex;gap:8px}
-.hp-foot b{color:var(--page)}
+.hp-foot b{color:var(--onpine)}
 .hp-foot .r{margin-left:auto}
 
 
@@ -2539,9 +2580,9 @@ html:has(.page.scoring){scroll-padding-top:136px;scroll-padding-bottom:110px}
 .recapbtn:disabled{opacity:.55;cursor:not-allowed}
 /* it lights up only when every card for the day is in */
 /* It lights in the pine every band is drawn in, with the glow in gold. */
-.recapbtn.ready{background:var(--ink);border-color:var(--ink);border-radius:14px}
-.recapbtn.ready .rb-t{color:var(--paper)}
-.recapbtn.ready .rb-s{color:var(--paper);opacity:.85}
+.recapbtn.ready{background:var(--pine);border-color:var(--pine);border-radius:14px}
+.recapbtn.ready .rb-t{color:var(--onpine)}
+.recapbtn.ready .rb-s{color:var(--onpine);opacity:.85}
 .recapbtn.ready:hover{filter:brightness(1.08)}
 /* A finished round has something to read. The panel breathes until someone
    opens it — a slow glow, not a strobe, and nothing at all for anyone who
@@ -2577,15 +2618,15 @@ html:has(.page.scoring){scroll-padding-top:136px;scroll-padding-bottom:110px}
 .askitem{border-top:1px solid var(--hair);padding:12px 0}
 .askitem:first-child{border-top:2px solid var(--ink)}
 /* the one you just asked, so you know where the answer is */
-.askitem.current{background:var(--ink);color:var(--page);border-radius:12px;
+.askitem.current{background:var(--pine);color:var(--onpine);border-radius:12px;
   padding:13px 15px;border-top:0;margin-top:4px}
-.askitem.current .askq{color:var(--paper)}
+.askitem.current .askq{color:var(--onpine)}
 .askq{font-weight:700;font-size:16px}
 .aska{margin-top:5px;font-size:16px;line-height:1.55;white-space:pre-wrap}
 .askerr{color:var(--flag)}
-.askitem.current .askerr{color:var(--paper);text-decoration:underline}
+.askitem.current .askerr{color:var(--onpine);text-decoration:underline}
 .thinking{color:var(--turf);font-style:italic}
-.askitem.current .thinking{color:var(--paper);opacity:.85}
+.askitem.current .thinking{color:var(--onpine);opacity:.85}
 .cursor{opacity:.6}
 
 .recaptext{margin-top:14px;font-size:17px;line-height:1.6}
@@ -2635,25 +2676,25 @@ html:has(.page.scoring){scroll-padding-top:136px;scroll-padding-bottom:110px}
    Close is never far. Bleeds to the window's edges. */
 .recaptop{position:sticky;top:0;z-index:3;display:flex;gap:12px;align-items:center;
   margin:0 calc(clamp(16px,3.4vw,40px) * -1);padding:11px clamp(16px,3.4vw,40px);
-  background:var(--ink);color:var(--page);border-bottom:2px solid var(--gold-up)}
+  background:var(--pine);color:var(--onpine);border-bottom:2px solid var(--gold-up)}
 .recaptop b{font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:700}
 .recaptop .rt-s{flex:1;font-size:12px;color:var(--sage-up);min-width:0;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.recaptop .rm{color:var(--page);font-size:14px;min-height:36px}
+.recaptop .rm{color:var(--onpine);font-size:14px;min-height:36px}
 /* the picture on the front, the headline over it */
 .recapbox .scroller{touch-action:pan-x pan-y}
 .rhero{position:relative;margin:0 calc(clamp(16px,3.4vw,40px) * -1);height:clamp(230px,34vw,360px);
-  overflow:hidden;background:var(--ink)}
+  overflow:hidden;background:var(--pine)}
 .rhero img{width:100%;height:100%;object-fit:cover;object-position:50% 45%;display:block;opacity:.92}
 .rhero::after{content:"";position:absolute;inset:0;
   background:linear-gradient(to top,rgba(16,22,17,.96) 0,rgba(16,22,17,.5) 50%,rgba(16,22,17,.12))}
-.rh-in{position:absolute;left:clamp(16px,3.4vw,40px);right:clamp(16px,3.4vw,40px);bottom:18px;z-index:2;color:var(--page)}
+.rh-in{position:absolute;left:clamp(16px,3.4vw,40px);right:clamp(16px,3.4vw,40px);bottom:18px;z-index:2;color:var(--onpine)}
 .rh-k{display:block;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:#E2C277}
-.rhero .rechead{color:var(--page);margin:6px 0 0;font-size:clamp(26px,4.2vw,46px);line-height:1.04;
+.rhero .rechead{color:var(--onpine);margin:6px 0 0;font-size:clamp(26px,4.2vw,46px);line-height:1.04;
   text-shadow:0 2px 12px rgba(0,0,0,.4);max-width:22ch}
 /* the numbers of the day */
 .rtiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px}
-.rtile{background:var(--ink);color:var(--page);border-radius:14px;padding:12px 14px 11px;min-width:0}
+.rtile{background:var(--pine);color:var(--onpine);border-radius:14px;padding:12px 14px 11px;min-width:0}
 .rtile b{display:block;font-size:24px;font-weight:700;line-height:1;letter-spacing:-.02em}
 .rtile b.g{color:#E2C277}
 .rtile span{display:block;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--sage-up);
@@ -2743,7 +2784,7 @@ html.noscroll .watermark:not(.opening){display:none}
 textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10px}
 .recedit.one{min-height:38px;padding:5px 8px;font-size:14px;margin-top:4px}
 .recedit.pick{min-height:38px;max-width:180px;font-size:14px}
-.btn.ghost.on{border-color:var(--ink);color:var(--ink)}
+.btn.ghost.on{border-color:var(--pine);color:var(--ink)}
 .galsec{margin-top:22px;padding-top:6px;border-top:1px solid var(--rule)}
 .galsec .titlerow{align-items:baseline}
 .fromround.bare{margin-top:8px}
@@ -2772,13 +2813,13 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
 .ribhead{display:flex;justify-content:space-between;align-items:baseline;gap:14px;font-size:14px;color:var(--turf)}
 .riblegend{display:inline-flex;gap:10px;align-items:center}
 .rl{display:inline-block;width:11px;height:11px;border:1px solid var(--rule);margin-right:4px;vertical-align:-1px}
-.rl.under{background:var(--ink);border-color:var(--ink)}
+.rl.under{background:var(--pine);border-color:var(--pine)}
 .rl.level{background:var(--page)}
 .rl.over{background:var(--overtint);border-color:var(--flag)}
 .ribbon{display:grid;grid-template-columns:repeat(18,minmax(40px,1fr));gap:3px;margin-top:8px;scroll-snap-type:x proximity}
 .ribcell{display:flex;align-items:center;justify-content:center;min-height:34px;font-size:14px;
   border:1px solid var(--rule);background:var(--page);border-radius:2px;scroll-snap-align:center}
-.ribcell.under{background:var(--ink);border-color:var(--ink);color:var(--paper);font-weight:700}
+.ribcell.under{background:var(--pine);border-color:var(--pine);color:var(--onpine);font-weight:700}
 .ribcell.over{background:var(--overtint);border-color:var(--flag)}
 
 .rectable .row.lead{background:var(--leadtint)}
@@ -2898,7 +2939,7 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
   display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;
   color:transparent;-webkit-tap-highlight-color:transparent;
   transition:background .15s ease,border-color .15s ease}
-@media (hover:hover) and (pointer:fine){.mscell:not(:disabled):hover{border-color:var(--ink)}}
+@media (hover:hover) and (pointer:fine){.mscell:not(:disabled):hover{border-color:var(--pine)}}
 .mscell.on{color:#FBFAF7}
 .mscell.bad.on{background:var(--flag);border-color:var(--flag)}
 .mscell.good.on{background:var(--green);border-color:var(--green)}
@@ -2914,7 +2955,7 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
   border-radius:4px;padding:3px;background:var(--page);max-width:420px}
 .lane{flex:1 1 0;min-height:44px;padding:9px 12px;border-radius:2px;font-size:16px;
   color:var(--turf);text-align:center;white-space:nowrap}
-.lane.on{background:var(--ink);color:var(--paper);font-weight:700}
+.lane.on{background:var(--pine);color:var(--onpine);font-weight:700}
 @media (hover:hover) and (pointer:fine){.lane:not(.on):hover{color:var(--ink)}}
 
 /* ---- My Round ---- */
@@ -2923,7 +2964,7 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
 .mnchip{flex:1 1 150px;min-height:52px;padding:12px 14px;border:1px solid var(--rule);
   background:var(--page);color:var(--ink);border-radius:9px;font-size:16px;text-align:left;
   -webkit-tap-highlight-color:transparent;transition:background .15s ease,border-color .15s ease}
-@media (hover:hover) and (pointer:fine){.mnchip:not(.on):hover{border-color:var(--ink)}}
+@media (hover:hover) and (pointer:fine){.mnchip:not(.on):hover{border-color:var(--pine)}}
 .mnchip.on{color:#FBFAF7;font-weight:600}
 .mnchip.bad.on{background:var(--flag);border-color:var(--flag)}
 .mnchip.good.on{background:var(--green);border-color:var(--green)}
@@ -2967,7 +3008,7 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
 @media (min-width:520px){.toneopts{grid-template-columns:repeat(3,1fr)}}
 .minemarks{display:block}
 .minemarks .toneopts .mnchip{width:100%}
-.feelbar .tone{background:rgba(238,232,213,.07);border-color:rgba(238,232,213,.28);color:var(--page)}
+.feelbar .tone{background:rgba(238,232,213,.07);border-color:rgba(238,232,213,.28);color:var(--onpine)}
 .feelbar .tone.good.on{background:var(--gold-up);border-color:var(--gold-up);color:var(--ink)}
 .feelbar .tone.bad.on{background:#B4523F;border-color:#B4523F;color:#fff}
 .feelbar .fb-chips{display:block}
@@ -2981,7 +3022,7 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
    one. On the scoring page it stands above the Save bar; on anything
    wider it is a card in the corner, off the page's own column. */
 .feelbar{position:fixed;left:12px;right:12px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:29;
-  background:var(--ink);color:var(--page);border-radius:18px;padding:12px 14px;
+  background:var(--pine);color:var(--onpine);border-radius:18px;padding:12px 14px;
   box-shadow:0 10px 30px rgba(16,22,17,.38);border-top:2px solid var(--gold-up);
   animation:feelin .28s ease-out}
 /* already up when the page was rebuilt: no second entrance */
@@ -2996,14 +3037,14 @@ html:has(.page.scoring) .feelbar{bottom:calc(150px + env(safe-area-inset-bottom,
 .fb-skip{background:none;border:0;color:var(--sage-up);font-family:inherit;font-size:13px;padding:8px 0 8px 10px}
 .fb-chips{display:grid;grid-template-columns:1fr 1fr;gap:7px}
 .fb-chip{border:1px solid rgba(238,232,213,.28);border-radius:12px;padding:8px 11px;background:rgba(238,232,213,.07);
-  text-align:left;font-family:inherit;color:var(--page);min-height:50px;-webkit-tap-highlight-color:transparent}
+  text-align:left;font-family:inherit;color:var(--onpine);min-height:50px;-webkit-tap-highlight-color:transparent}
 .fb-chip b{display:block;font-size:14px;font-weight:600}
 .fb-chip span{display:block;font-size:11px;color:var(--sage-up);margin-top:1px}
-.fb-chip.on{background:var(--page);border-color:var(--page)}
+.fb-chip.on{background:var(--page);border-color:var(--onpine)}
 .fb-chip.on b{color:var(--ink)}.fb-chip.on span{color:var(--turf)}
 .fb-chip.good.on{background:var(--gold-up);border-color:var(--gold-up)}
 .fb-row{display:flex;gap:8px;margin-top:9px}
-.fb-word{flex:1;min-width:0;border-radius:12px;background:rgba(238,232,213,.08);color:var(--page);
+.fb-word{flex:1;min-width:0;border-radius:12px;background:rgba(238,232,213,.08);color:var(--onpine);
   border-color:rgba(238,232,213,.28);font-size:15px}
 .fb-word::placeholder{color:rgba(238,232,213,.5)}
 .fb-done{background:var(--gold-up);color:var(--ink);border-color:var(--gold-up);border-radius:12px;padding:0 18px;font-weight:600}
@@ -3018,7 +3059,7 @@ html:has(.page.scoring) .feelbar{bottom:calc(150px + env(safe-area-inset-bottom,
 .feelstrip .fs-n{font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--turf);margin-right:auto}
 .feelstrip .fs-t{display:inline-flex;align-items:center;gap:5px;font-size:13px;font-weight:600;color:var(--ink)}
 .feelstrip .fs-t i{font-style:normal;display:inline-grid;place-items:center;min-width:20px;height:20px;border-radius:999px;
-  background:var(--ink);color:var(--page);font-size:11.5px;padding:0 5px}
+  background:var(--pine);color:var(--onpine);font-size:11.5px;padding:0 5px}
 .feelstrip .fs-t.good i{background:var(--gold-up);color:var(--ink)}
 .feelstrip .fs-q{flex-basis:100%;font-style:italic;color:var(--turf);font-size:13.5px}
 
@@ -3029,7 +3070,7 @@ html:has(.page.scoring) .feelbar{bottom:calc(150px + env(safe-area-inset-bottom,
 .mdchip{flex:1 1 140px;min-height:52px;padding:12px 14px;border:1px solid var(--rule);
   background:var(--page);color:var(--ink);border-radius:9px;font-size:16px;
   -webkit-tap-highlight-color:transparent;transition:background .15s ease,border-color .15s ease}
-@media (hover:hover) and (pointer:fine){.mdchip:not(.on):hover{border-color:var(--ink)}}
+@media (hover:hover) and (pointer:fine){.mdchip:not(.on):hover{border-color:var(--pine)}}
 .mdchip.on{color:#FBFAF7;font-weight:700}
 .mdchip.good.on{background:var(--green);border-color:var(--green)}
 .mdchip.mid.on{background:var(--gold);border-color:var(--gold)}
@@ -3048,7 +3089,7 @@ html:has(.page.scoring) .feelbar{bottom:calc(150px + env(safe-area-inset-bottom,
 /* The nameplate. Pine band, crest, letterspaced caps — a masthead on a
    broadsheet and a lower-third on a broadcast are the same object. */
 .artplate{display:flex;align-items:center;gap:12px;margin-top:16px;
-  background:var(--ink);color:var(--paper);padding:10px clamp(12px,2vw,18px);
+  background:var(--pine);color:var(--onpine);padding:10px clamp(12px,2vw,18px);
   border-bottom:3px solid var(--gold-up)}
 /* The crest on a dark band, with its drawing intact.
    `brightness(0) invert(1)` forces EVERY opaque pixel to the same white, so
@@ -3208,23 +3249,23 @@ html:has(.page.scoring) .feelbar{bottom:calc(150px + env(safe-area-inset-bottom,
    guide's title page carries its date. What used to be a caption, a head,
    a paragraph and a box is one piece. */
 .rhero.band{position:relative;margin:14px 0 0;border-radius:16px;overflow:hidden;
-  background:var(--ink);color:var(--page);min-height:150px}
+  background:var(--pine);color:var(--onpine);min-height:150px}
 .rhero.band img{height:250px;object-position:center 58%}
 .rhero.band::after{content:"";position:absolute;inset:0;
   background:linear-gradient(to top,rgba(16,22,17,.92) 0,rgba(16,22,17,.32) 50%,rgba(16,22,17,0))}
 .rhero.band .rt-words{position:absolute;left:18px;bottom:15px;z-index:2;max-width:58%}
 .rhero.band figcaption{margin:0 0 6px;font-size:10px;letter-spacing:.14em;text-transform:uppercase;
   font-weight:700;color:var(--sage-up);max-width:none;line-height:1.3}
-.rhero.band .head{margin:0;color:var(--page);font-size:30px;line-height:1;letter-spacing:-.01em}
+.rhero.band .head{margin:0;color:var(--onpine);font-size:30px;line-height:1;letter-spacing:-.01em}
 .rhero.band .rt-wx{position:absolute;right:16px;bottom:13px;z-index:2;text-align:right}
-.rhero.band .wx{margin:0;padding:0;background:none;border:0;color:var(--page);
+.rhero.band .wx{margin:0;padding:0;background:none;border:0;color:var(--onpine);
   display:grid;justify-items:end;gap:2px}
 .rhero.band .wx-now{display:flex;align-items:center;gap:8px}
 .rhero.band .sky.big{width:30px;height:30px;color:#E2C277}
 .rhero.band .wx-t{font-size:30px;font-weight:700;line-height:1;letter-spacing:-.02em}
 .rhero.band .wx-s{display:flex;flex-direction:row;gap:6px;font-size:10.5px;letter-spacing:.08em;
   text-transform:uppercase;font-weight:700;color:var(--sage-up)}
-.rhero.band .wx-s b{color:var(--page);font-size:10.5px}
+.rhero.band .wx-s b{color:var(--onpine);font-size:10.5px}
 .rhero.band .units{margin:5px 0 0;border:1px solid rgba(255,255,255,.3);border-radius:999px;overflow:hidden}
 .rhero.band .ub{min-width:34px;min-height:24px;padding:0 8px;font-size:11px;
   background:none;color:var(--sage-up);border:0}
@@ -3298,7 +3339,7 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
 
 .units{margin-left:auto;display:flex;border:1px solid var(--rule);flex:0 0 auto}
 .ub{min-width:48px;min-height:40px;padding:0 10px;font-size:15px;color:var(--turf);background:var(--page)}
-.ub.on{background:var(--ink);color:var(--page);font-weight:700}
+.ub.on{background:var(--pine);color:var(--onpine);font-weight:700}
 @media (hover:hover) and (pointer:fine){ .ub:not(.on):hover{color:var(--ink)} }
 
 .wx .tiny{margin:10px 0 0}
@@ -3314,9 +3355,9 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
 .seasonband .sbs{display:flex;gap:8px;flex-wrap:wrap}
 .sbtn{padding:8px 14px;min-height:44px;font-size:16px;color:var(--turf);
   background:var(--paper);border:1px solid var(--rule)}
-.sbtn.on{background:var(--ink);color:var(--page);border-color:var(--ink);font-weight:700}
+.sbtn.on{background:var(--pine);color:var(--onpine);border-color:var(--pine);font-weight:700}
 .sbtn:disabled{opacity:.55;cursor:default}
-@media (hover:hover) and (pointer:fine){ .sbtn:not(.on):not(:disabled):hover{color:var(--ink);border-color:var(--ink)} }
+@media (hover:hover) and (pointer:fine){ .sbtn:not(.on):not(:disabled):hover{color:var(--ink);border-color:var(--pine)} }
 .seasonband .tiny{margin:10px 0 0;max-width:72ch}
 
 .tiny{font-size:13px;color:var(--turf);line-height:1.5}
@@ -3403,7 +3444,7 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
 .pkeys{display:flex;gap:6px;flex-wrap:wrap;margin-top:14px}
 .pkey{display:inline-flex;align-items:center;gap:9px;padding:7px 13px;min-height:40px;
   font-size:15px;color:var(--turf);background:var(--page);border:1px solid var(--rule)}
-.pkey.on{background:var(--ink);color:var(--page);border-color:var(--ink);font-weight:700}
+.pkey.on{background:var(--pine);color:var(--onpine);border-color:var(--pine);font-weight:700}
 /* SVG text scales with the box it is drawn in, so a plan allowed to run the
    full width of a desktop window sets its labels at forty points. Capping the
    width is what keeps them readable, at every size. */
@@ -3430,7 +3471,7 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
    becomes a window of fixed height and the plan is dragged about inside it,
    which is the only way to get close enough to read a single building. */
 .planwrap.art .planstage{width:calc(100% * var(--z,1));min-width:calc(960px * var(--z,1))}
-.planwrap.art.zoomed{height:clamp(320px,56vh,560px);border-color:var(--ink);cursor:grab}
+.planwrap.art.zoomed{height:clamp(320px,56vh,560px);border-color:var(--pine);cursor:grab}
 
 .zoomrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:14px}
 .zoomrow .tiny{margin-left:4px}
@@ -3438,7 +3479,7 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
   color:var(--turf);background:var(--page);border:1px solid var(--rule)}
 .zb.wide{font-size:15px}
 .zb:disabled{opacity:.4;cursor:default}
-@media (hover:hover) and (pointer:fine){ .zb:not(:disabled):hover{color:var(--ink);border-color:var(--ink)} }
+@media (hover:hover) and (pointer:fine){ .zb:not(:disabled):hover{color:var(--ink);border-color:var(--pine)} }
 .zn{min-width:96px;font-size:15px;color:var(--ink);font-weight:700}
 .zoomrow .tiny{margin-left:4px}
 .planimg{display:block;width:100%;height:auto}
@@ -3448,7 +3489,7 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
 .pin::after{content:'';position:absolute;inset:8px;border-radius:50%}
 .planwrap.art .pin::after{inset:10px;border:1.5px solid var(--page);
   box-shadow:0 1px 3px var(--shadow)}
-.planwrap.art .pin.c-core::after{background:var(--ink)}
+.planwrap.art .pin.c-core::after{background:var(--pine)}
 .planwrap.art .pin.c-stay::after{background:var(--turf)}
 .planwrap.art .pin.c-eat::after{background:var(--gold)}
 .planwrap.art .pin.c-play::after{background:var(--green)}
@@ -3465,7 +3506,7 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
   font-weight:400;font-style:italic}
 .pinlabel{position:absolute;left:30px;top:50%;transform:translateY(-50%);
   white-space:nowrap;font-size:14px;font-weight:700;line-height:1.2;
-  padding:3px 7px;background:var(--ink);color:var(--page);pointer-events:none}
+  padding:3px 7px;background:var(--pine);color:var(--onpine);pointer-events:none}
 .pin.flip .pinlabel{left:auto;right:30px}
 .pin.on::after{box-shadow:0 0 0 2px var(--page),0 0 0 4px var(--ink)}
 .pin:focus-visible{outline:none}
@@ -3493,7 +3534,7 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
 .vrow.picked{background:var(--page);box-shadow:inset 3px 0 0 var(--ink);padding-left:10px}
 .plan .pt text{font-family:var(--serif);fill:var(--ink);
   paint-order:stroke;stroke:var(--page);stroke-width:.9px;stroke-linejoin:round}
-.plan .pt.on.c-core circle,.dotk.c-core{fill:var(--ink);background:var(--ink)}
+.plan .pt.on.c-core circle,.dotk.c-core{fill:var(--ink);background:var(--pine)}
 .plan .pt.on.c-stay circle,.dotk.c-stay{fill:var(--turf);background:var(--turf)}
 .plan .pt.on.c-eat  circle,.dotk.c-eat {fill:var(--gold);background:var(--gold)}
 .plan .pt.on.c-play circle,.dotk.c-play{fill:var(--green);background:var(--green)}
@@ -3606,7 +3647,7 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
   /* Air above it, or the masthead's rule — which stops at the page gutter —
      reads as a short underline lying on top of a band that does not. */
   .gamesbar{margin:14px calc(clamp(14px,3vw,26px) * -1) 0;border-bottom:0;
-    background:var(--ink);box-shadow:0 4px 12px rgba(16,22,17,.14)}
+    background:var(--pine);box-shadow:0 4px 12px rgba(16,22,17,.14)}
   .gamesbar::before{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;
     background:var(--gold-up)}
   /* The last name must not read as sliced off, so the band darkens into its
@@ -3620,7 +3661,7 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
   .btabs.games .btab:first-child{padding-left:max(15px,env(safe-area-inset-left,0px))}
   .btabs.games .btab:last-child{padding-right:34px}
   .btabs.games .btab.home{color:var(--gold-up)}
-  .btabs.games .btab.on{color:var(--page)}
+  .btabs.games .btab.on{color:var(--onpine)}
   /* The live game's own mark, on the edge that faces the page. It has to beat
      the band's own gold rule, which it sits on top of — so it is taller than
      that rule and a shade brighter, or the two read as one line. */
@@ -3702,7 +3743,7 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
      numbers with nothing to say which hole was lit. */
   .entryhd{display:block;order:0;position:sticky;z-index:31;border-radius:0;
     top:calc(49px + env(safe-area-inset-top,0px));
-    background:var(--ink);color:var(--page);padding:9px 15px 0;
+    background:var(--pine);color:var(--onpine);padding:9px 15px 0;
     margin:0 calc(clamp(14px,3vw,26px) * -1);
     border-bottom:2px solid var(--gold-up);box-shadow:0 5px 14px rgba(16,22,17,.2)}
   .ehd-facts{display:flex;align-items:baseline;gap:10px}
@@ -3711,7 +3752,7 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
     font-weight:700;padding-bottom:2px}
   .ehd-m{margin-left:auto;text-align:right;font-size:10px;letter-spacing:.1em;
     text-transform:uppercase;color:var(--sage-up);font-weight:700;line-height:1.5}
-  .ehd-m b{display:block;color:var(--page)}
+  .ehd-m b{display:block;color:var(--onpine)}
   /* The eighteen, as a ribbon on the band: one row, not two, and small
      enough that a dozen are on the glass at once. */
   .entryhd .scroller{margin:8px 0 0;overflow-x:auto}
@@ -3723,11 +3764,11 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
     color:var(--sage-up);display:grid;place-items:center}
   .entryhd .hstrip .hcell .p{display:none}
   .entryhd .hstrip .hcell .n{font-size:12px;font-weight:600}
-  .entryhd .hstrip .hcell.saved{background:rgba(255,255,255,.14);border-color:transparent;color:var(--page)}
+  .entryhd .hstrip .hcell.saved{background:rgba(255,255,255,.14);border-color:transparent;color:var(--onpine)}
   .entryhd .hstrip .hcell.marked{position:relative}
   .entryhd .hstrip .hcell.marked::after{content:"";position:absolute;top:-2px;right:-2px;
     width:7px;height:7px;border-radius:50%;background:var(--flag)}
-  .entryhd .hstrip .hcell.on{background:#E2C277;border-color:#E2C277;color:var(--ink)}
+  .entryhd .hstrip .hcell.on{background:#E2C277;border-color:#E2C277;color:#1D2E21}
   .entryhd .hstrip .hcell.on .n{font-weight:700}
 
   /* ---- Save, nailed to the foot ----
@@ -3784,7 +3825,7 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
    or a laptop it means underneath the strip. The live tab carries the same
    gold on the same edge, so the mark and the rule read as one thing. */
 .tabs{
-  background:var(--ink);
+  background:var(--pine);
   border-bottom:3px solid var(--gold-up);
   padding:0;gap:0;align-items:stretch;
 }
@@ -3792,22 +3833,22 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
   background:none;border:0;border-radius:0;color:var(--sage-up);
   padding:12px 18px;position:relative;
 }
-.tab[aria-current="page"]{background:none;border:0;color:var(--page);font-weight:700}
+.tab[aria-current="page"]{background:none;border:0;color:var(--onpine);font-weight:700}
 /* the live tab's own mark, on the edge that faces the page */
 .tab[aria-current="page"]::after{
   content:"";position:absolute;left:14%;right:14%;bottom:0;height:3px;
   background:var(--gold-up);border-radius:3px 3px 0 0;
 }
 @media (hover:hover) and (pointer:fine){
-  .tab:hover{color:var(--page);background:rgba(255,255,255,.06)}
+  .tab:hover{color:var(--onpine);background:rgba(255,255,255,.06)}
   .tab[aria-current="page"]:hover{background:rgba(255,255,255,.06)}
 }
 .tab:focus-visible{outline:2px solid var(--gold-up);outline-offset:-3px}
 /* The one tab that names a place keeps its capitals, in the gold that works
    on the ink rather than the one that works on paper. */
 .tab.named{color:var(--gold-up)}
-.tab.named[aria-current="page"]{color:var(--page)}
-@media (hover:hover) and (pointer:fine){ .tab.named:hover{color:var(--page)} }
+.tab.named[aria-current="page"]{color:var(--onpine)}
+@media (hover:hover) and (pointer:fine){ .tab.named:hover{color:var(--onpine)} }
 
 /* ---- the cover, on a phone ----
    The picture runs from the top of the glass, so the nameplate sits on it:
@@ -3815,12 +3856,12 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
    it gone. The words of the page follow lower down the same sheet. */
 @media (max-width:699px){
   .wrap.cover .masthead,.wrap.cover .dateline,.wrap.cover .loadbar{position:relative;z-index:2}
-  .wrap.cover .masthead h1{color:var(--page);text-shadow:0 1px 8px rgba(0,0,0,.45)}
+  .wrap.cover .masthead h1{color:var(--onpine);text-shadow:0 1px 8px rgba(0,0,0,.45)}
   .wrap.cover .crestbtn img{filter:invert(1);opacity:.95}
-  .wrap.cover .dial{color:var(--page)}
+  .wrap.cover .dial{color:var(--onpine)}
   .wrap.cover .dial.free{color:var(--gold-up)}
   .wrap.cover .dial.shut{color:var(--sage-up)}
-  .wrap.cover .dial.in{color:var(--page)}
+  .wrap.cover .dial.in{color:var(--onpine)}
   .wrap.cover .dial-ct{box-shadow:0 0 0 2px var(--ink)}
   .wrap.cover .dateline{color:var(--sage-up)}
   .wrap.cover .dateline .hot{color:#E2C277}
@@ -3845,19 +3886,19 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
 
 @media (max-width:699px){
   .tabbar{
-    background:var(--ink);
+    background:var(--pine);
     border-top:3px solid var(--gold-up);
     box-shadow:0 -8px 24px rgba(29,46,33,.22);
   }
 }
 .navbtn{color:var(--sage-up);border-radius:0;position:relative}
-.navbtn[aria-current="page"]{color:var(--page)}
+.navbtn[aria-current="page"]{color:var(--onpine)}
 .navbtn[aria-current="page"]::before{
   content:"";position:absolute;left:14%;right:14%;top:0;height:3px;
   background:var(--gold-up);border-radius:0 0 3px 3px;
 }
 @media (hover:hover) and (pointer:fine){
-  .navbtn:hover{color:var(--page);background:rgba(255,255,255,.06)}
+  .navbtn:hover{color:var(--onpine);background:rgba(255,255,255,.06)}
 }
 .navbtn:focus-visible{outline:2px solid var(--gold-up);outline-offset:-3px}
 
@@ -3892,7 +3933,7 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
 .pk-hole .pkf{min-height:58px;padding:8px 12px;border-radius:14px}
 .pk-hole .pkf.unset{border-style:dashed;background:transparent}
 .pk-coin{flex:0 0 auto;display:inline-grid;place-items:center;width:40px;height:40px;border-radius:50%;
-  background:var(--ink);color:var(--gold-up);font-weight:700;font-size:17px}
+  background:var(--pine);color:var(--gold-up);font-weight:700;font-size:17px}
 .pk-coin.none{background:var(--sunk);color:var(--turf)}
 .pk-ed{flex:0 0 auto;font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
 /* fields that sit in tight places */
@@ -3915,7 +3956,7 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
 .pk-li.on{background:var(--leadtint)}
 .pk-li.none{color:var(--turf);font-style:italic}
 .pk-li:active{background:var(--sunk)}
-.pk-li.flash,.pk-li.flash:active{background:var(--ink);color:var(--page)}
+.pk-li.flash,.pk-li.flash:active{background:var(--pine);color:var(--onpine)}
 .pk-li.flash .tick,.pk-li.flash .s{color:var(--gold-up)}
 .pk-empty{margin:0;padding:18px 20px;color:var(--turf);font-size:15px}
 /* C */
@@ -3925,7 +3966,7 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
 .pk-hc:active{transform:scale(.95)}
 .pk-hc b{font-size:28px;line-height:1}
 .pk-hc small{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--turf)}
-.pk-hc.on{background:var(--ink);color:var(--page);box-shadow:0 0 0 3px var(--gold-up)}
+.pk-hc.on{background:var(--pine);color:var(--onpine);box-shadow:0 0 0 3px var(--gold-up)}
 .pk-hc.on small{color:var(--sage-up)}
 .pk-clear{justify-content:center;border-top:1px solid var(--hair)}
 /* B: the sheet */
@@ -3963,7 +4004,7 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
    beside it; a ref gets a small camera in the hole's heading. */
 .snaprow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:10px 0 14px}
 .snaprow .btn{border-radius:999px;min-height:48px;display:inline-flex;align-items:center;justify-content:center;gap:9px;font-weight:600}
-.snaprow .snap{flex:1 1 220px;background:var(--ink);border-color:var(--ink);color:var(--page);font-size:16.5px}
+.snaprow .snap{flex:1 1 220px;background:var(--pine);border-color:var(--pine);color:var(--onpine);font-size:16.5px}
 .snaprow .snap svg{color:var(--gold-up)}
 .snaprow .choose{flex:0 1 auto;background:var(--page);border-color:var(--rule);color:var(--ink);font-size:14.5px;padding:10px 16px}
 .snaprow.ref{margin:6px 0 10px}
@@ -3975,13 +4016,13 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
 .holehead .camicon{align-self:center}
 .camopts{display:grid;gap:10px;padding:18px 18px 8px}
 .camopts .btn{border-radius:999px;min-height:52px;display:flex;align-items:center;justify-content:center;gap:10px;font-weight:600;font-size:16.5px}
-.camopts .snap{background:var(--ink);border-color:var(--ink);color:var(--page)}
+.camopts .snap{background:var(--pine);border-color:var(--pine);color:var(--onpine)}
 .camopts .snap svg{color:var(--gold-up)}
 .camopts .choose{background:var(--page);border-color:var(--rule);color:var(--ink)}
 .camsheet .acts .btn{text-align:center;justify-content:center}
 .phh{font-weight:600;color:var(--ink)}
 /* in the pine hole band the camera is drawn light */
-.entryhd .camicon{background:transparent;border-color:rgba(238,232,213,.4);color:var(--page);width:38px;height:38px}
+.entryhd .camicon{background:transparent;border-color:rgba(238,232,213,.4);color:var(--onpine);width:38px;height:38px}
 .entryhd .camicon:active{background:rgba(238,232,213,.12)}
 
 /* ---------------- The Titanic, as a concierge ----------------
@@ -4003,7 +4044,7 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
 .tc-search input::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none;width:18px;height:18px;border-radius:50%;
   background:var(--rule) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'%3E%3Cpath d='M6 6l6 6M12 6l-6 6' stroke='%23EEE8D5' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") center/18px no-repeat;cursor:pointer}
 .tc-search.live:focus-within{box-shadow:inset 0 0 0 2px var(--green)}
-.tc-nudge{display:flex;align-items:stretch;background:var(--ink);color:var(--page);border-radius:14px;
+.tc-nudge{display:flex;align-items:stretch;background:var(--pine);color:var(--onpine);border-radius:14px;
   border-bottom:2px solid var(--gold-up);overflow:hidden}
 .tc-nudge .go{flex:1;display:grid;gap:3px;padding:12px 14px;background:none;border:0;color:inherit;font:inherit;text-align:left;cursor:pointer}
 .tc-nudge .go b{font-size:15.5px}
@@ -4017,7 +4058,7 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
 .tc-tile b{font-size:15.5px}
 .tc-tile .ct{font-size:12px;color:#3F8A4A}
 .tc-tile .ct.z{color:var(--turf)}
-.tc-tile.on{background:var(--ink);color:var(--page)}
+.tc-tile.on{background:var(--pine);color:var(--onpine)}
 .tc-tile.on .ic{color:var(--sage-up)} .tc-tile.on .ct{color:var(--gold-up)}
 .tc-h{display:flex;align-items:baseline;gap:10px;margin:8px 0 -4px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;
   color:var(--turf);font-weight:700}
@@ -4063,7 +4104,7 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
 .tc-chips::-webkit-scrollbar{display:none}
 .tc-chip{flex:0 0 auto;border-radius:999px;padding:8px 13px;min-height:38px;font:inherit;font-size:14px;color:var(--ink);
   background:var(--page);border:0;box-shadow:inset 0 0 0 1px var(--rule);cursor:pointer}
-.tc-chip.on{background:var(--ink);color:var(--page);box-shadow:none}
+.tc-chip.on{background:var(--pine);color:var(--onpine);box-shadow:none}
 .tc-toggle{display:flex;align-items:center;justify-content:space-between;font-size:14.5px;color:var(--turf)}
 .tc-sw{position:relative;width:50px;height:30px;border-radius:999px;border:0;background:var(--rule);cursor:pointer;padding:0}
 .tc-sw::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;
@@ -4082,7 +4123,7 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
 @media (min-width:760px){ .modal.psheet{border-radius:22px;height:auto;max-height:88dvh} }
 .scrim[data-in] > .modal.psheet{animation:pkSheetIn .34s cubic-bezier(.2,.9,.28,1) both}
 @media (min-width:760px){ .scrim[data-in] > .modal.psheet{animation:cardIn .26s cubic-bezier(.2,.9,.28,1) both} }
-.ps-hero{position:relative;height:250px;background:var(--ink);overflow:hidden}
+.ps-hero{position:relative;height:250px;background:var(--pine);overflow:hidden}
 .ps-hero::after{content:"";position:absolute;inset:auto 0 0 0;height:62%;pointer-events:none;
   background:linear-gradient(transparent,rgba(10,14,11,.82))}
 .ps-slides{display:flex;height:100%;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
@@ -4097,7 +4138,7 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
 /* the handle says the card can be pulled down; on a wide screen it is a window, and there is none */
 .ps-grab{position:absolute;top:0;left:0;right:0;z-index:3;display:flex;justify-content:center;padding:8px 0;pointer-events:none}
 .ps-grab i{width:40px;height:5px;border-radius:3px;background:rgba(255,255,255,.8);box-shadow:0 1px 3px rgba(0,0,0,.3)}
-.ps-grab.dark{position:relative;background:var(--ink)}
+.ps-grab.dark{position:relative;background:var(--pine)}
 .ps-grab.dark i{background:var(--sage-up);box-shadow:none}
 @media (min-width:760px){ .ps-grab{display:none} }
 .ps-ttl{position:absolute;left:18px;right:18px;bottom:14px;z-index:2;color:#fff}
@@ -4160,7 +4201,7 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
   html.tablet .tabbar{
     display:grid;grid-template-columns:repeat(6,1fr);
     position:fixed;left:0;right:0;bottom:0;z-index:40;
-    background:var(--ink);border-top:3px solid var(--gold-up);
+    background:var(--pine);border-top:3px solid var(--gold-up);
     box-shadow:0 -8px 24px rgba(29,46,33,.22);
     /* six tabs across a phone's width, centred, not spread over a tablet's */
     padding:8px max(12px,env(safe-area-inset-right,0px),calc(50% - 330px)) calc(8px + env(safe-area-inset-bottom,0px))
@@ -4193,7 +4234,7 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
 .pg-seg button{border:0;background:none;font:inherit;color:var(--ink);border-radius:9px;padding:9px 6px;text-align:center;font-weight:600;
   font-size:15px;display:grid;gap:1px;cursor:pointer;min-height:48px}
 .pg-seg button small{font-weight:400;font-size:12px;color:var(--turf)}
-.pg-seg button.on{background:var(--ink);color:var(--page)}
+.pg-seg button.on{background:var(--pine);color:var(--onpine)}
 .pg-seg button.on small{color:var(--sage-up)}
 .pg-sec{display:grid;gap:8px;margin-top:18px}
 .pg-h{display:flex;align-items:baseline;justify-content:space-between;gap:10px;border-bottom:2px solid var(--ink);padding-bottom:5px}
@@ -4215,7 +4256,7 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
 .pg-empty{margin:18px 0 0;color:var(--turf);font-style:italic}
 .pg-note{margin:22px 0 80px;font-size:13.5px;color:var(--turf)}
 .pg-potd{position:relative;display:block;width:100%;margin:12px 0 0;padding:0;border:0;border-radius:16px;overflow:hidden;height:clamp(230px,42vw,380px);
-  background:var(--ink);cursor:pointer;text-align:left}
+  background:var(--pine);cursor:pointer;text-align:left}
 .pg-potd img{width:100%;height:100%;object-fit:cover;display:block}
 .pg-potd::after{content:"";position:absolute;inset:0;background:linear-gradient(transparent 35%,rgba(10,14,11,.85))}
 .pg-pw{position:absolute;left:16px;right:16px;bottom:14px;z-index:1;color:#fff;display:grid;gap:3px}
@@ -4223,7 +4264,7 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
 .pg-pw b{font-size:22px;line-height:1.15}
 .pg-pw small{font-size:13px;color:#E8E1C9}
 .pg-fab{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(92px + env(safe-area-inset-bottom,0px));z-index:35;
-  display:flex;align-items:center;gap:8px;background:var(--ink);color:var(--page);border:1.5px solid var(--gold-up);border-radius:999px;
+  display:flex;align-items:center;gap:8px;background:var(--pine);color:var(--onpine);border:1.5px solid var(--gold-up);border-radius:999px;
   padding:12px 17px 12px 14px;font:inherit;font-weight:600;font-size:15px;box-shadow:0 8px 22px rgba(16,22,17,.35);cursor:pointer;min-height:48px}
 .pg-fab svg{color:#E2C277}
 @media (min-width:700px){ .pg-fab{bottom:28px} }
@@ -4260,12 +4301,12 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
 .ch-rooms button{flex:0 0 auto;display:grid;gap:1px;text-align:left;font:inherit;font-weight:600;font-size:15px;color:var(--ink);
   background:var(--page);border:0;box-shadow:inset 0 0 0 1px var(--rule);border-radius:12px;padding:8px 13px;min-height:48px;cursor:pointer}
 .ch-rooms button small{font-weight:400;font-size:12px;color:var(--turf)}
-.ch-rooms button.on{background:var(--ink);color:var(--page);box-shadow:none}
+.ch-rooms button.on{background:var(--pine);color:var(--onpine);box-shadow:none}
 .ch-rooms button.on small{color:var(--sage-up)}
-.ch-plate{display:flex;justify-content:space-between;align-items:center;gap:12px;background:var(--ink);color:var(--page);border-radius:14px;
+.ch-plate{display:flex;justify-content:space-between;align-items:center;gap:12px;background:var(--pine);color:var(--onpine);border-radius:14px;
   padding:12px 15px;margin-top:10px;border-bottom:3px solid var(--gold-up)}
 .ch-plate span{display:grid;gap:2px;font-size:14px;color:#D9DFD3}
-.ch-plate b{font-size:16px;color:var(--page)}
+.ch-plate b{font-size:16px;color:var(--onpine)}
 .ch-plate em{font-style:normal;font-size:30px;font-weight:700;color:#E2C277;line-height:1}
 .ch-post{display:grid;gap:6px;margin:12px 0 4px}
 .ch-box{min-width:0;display:flex;align-items:center;gap:8px;background:var(--page);border-radius:999px;padding:5px 5px 5px 6px;box-shadow:inset 0 0 0 1px var(--rule)}
@@ -4278,7 +4319,7 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
 .ch-feed{display:grid;gap:10px;margin-top:10px}
 .ch-av{flex:0 0 auto;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;
   background:var(--sunk);color:var(--ink);letter-spacing:.02em}
-.ch-av.g{background:var(--ink);color:#E2C277}
+.ch-av.g{background:var(--pine);color:#E2C277}
 .ch-msg{display:flex;gap:9px;align-items:flex-start}
 .ch-bub{flex:1;min-width:0;background:var(--page);border-radius:4px 14px 14px 14px;padding:8px 12px 9px;box-shadow:0 0 0 .5px var(--shadow)}
 .ch-n{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;font-weight:700;font-size:14.5px}
@@ -4290,7 +4331,7 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
 .ch-rx button{font:inherit;font-size:14px;background:var(--paper);border:0;box-shadow:inset 0 0 0 1px var(--rule);border-radius:999px;
   padding:4px 10px;min-height:34px;cursor:pointer;color:var(--ink)}
 .ch-rx button b{font-size:12.5px}
-.ch-rx button.on{background:var(--ink);color:#E2C277;box-shadow:none}
+.ch-rx button.on{background:var(--pine);color:#E2C277;box-shadow:none}
 .ch-ev{background:var(--page);border-radius:14px;padding:12px 13px;box-shadow:0 0 0 .5px var(--shadow);border-left:4px solid var(--rule)}
 .ch-ev.good{border-left-color:#2F7A4A} .ch-ev.bad{border-left-color:var(--flag)} .ch-ev.mid{border-left-color:var(--gold-up)}
 .ch-evt{display:flex;gap:11px;align-items:center}
@@ -4298,7 +4339,7 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
 .ch-big.bird,.ch-big.eagle,.ch-big.hio{background:#DDEBDD;color:#2F7A4A;border-radius:50%}
 .ch-big.water,.ch-big.ob,.ch-big.putt3{background:#F2DDD6;color:var(--flag)}
 .ch-big.shot{background:#F3E6CF;color:var(--gold)}
-.ch-big.turn,.ch-big.done{background:var(--ink);color:#E2C277;font-size:16px}
+.ch-big.turn,.ch-big.done{background:var(--pine);color:#E2C277;font-size:16px}
 .ch-evw{display:grid;gap:1px;min-width:0}
 .ch-k{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--turf);font-weight:700}
 .ch-evw b{font-size:16px;line-height:1.25}
@@ -4314,19 +4355,19 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
 .who-l{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--turf);font-weight:700}
 .who-c{display:flex;flex-wrap:wrap;gap:6px}
 .who-c button{font:inherit;font-size:15px;background:var(--page);border:0;box-shadow:inset 0 0 0 1px var(--rule);border-radius:999px;padding:8px 14px;min-height:42px;cursor:pointer;color:var(--ink)}
-.who-c button.on{background:var(--ink);color:var(--page);box-shadow:none}
+.who-c button.on{background:var(--pine);color:var(--onpine);box-shadow:none}
 
 /* ---------------- the exchange ----------------
    Kalshi's screens in the book's own colours: a chance in big type, Yes in
    green and No in brick, the price in cents of a beer. */
 .xm-top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:14px}
-.xm-bal{font:inherit;font-size:14px;font-weight:700;background:var(--ink);color:#E2C277;border:0;border-radius:999px;padding:8px 14px;min-height:40px;cursor:pointer;white-space:nowrap}
+.xm-bal{font:inherit;font-size:14px;font-weight:700;background:var(--pine);color:#E2C277;border:0;border-radius:999px;padding:8px 14px;min-height:40px;cursor:pointer;white-space:nowrap}
 .xm-how{margin:8px 0 0;font-size:14px;color:var(--turf);line-height:1.45}
 .xm-how b{color:var(--ink)}
 .xm-cats{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin-top:12px}
 .xm-cats::-webkit-scrollbar{display:none}
 .xm-cats button{flex:0 0 auto;font:inherit;font-size:14px;font-weight:600;color:var(--turf);background:none;border:0;border-radius:999px;padding:7px 13px;min-height:38px;cursor:pointer}
-.xm-cats button.on{background:var(--ink);color:var(--page)}
+.xm-cats button.on{background:var(--pine);color:var(--onpine)}
 .xm-new{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin:12px 0 2px;font:inherit;font-size:15.5px;font-weight:700;
   color:var(--ink);background:#F3E6CF;border:1.5px dashed var(--gold-up);border-radius:14px;padding:12px;min-height:50px;cursor:pointer}
 .xm-new span{color:var(--gold);font-size:18px}
@@ -4372,7 +4413,7 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
 .xm-c.land{box-shadow:0 0 0 3px #E2C277,0 8px 22px -10px rgba(16,22,17,.3);transition:box-shadow .4s}
 .xm-back span{font-size:20px;line-height:1;color:var(--green)}
 .xm-backfab{position:fixed;left:max(16px,env(safe-area-inset-left,0px));bottom:calc(100px + env(safe-area-inset-bottom,0px));z-index:35;
-  display:inline-flex;align-items:center;gap:6px;background:var(--ink);color:var(--page);border:0;border-radius:999px;padding:12px 18px 12px 14px;
+  display:inline-flex;align-items:center;gap:6px;background:var(--pine);color:var(--onpine);border:0;border-radius:999px;padding:12px 18px 12px 14px;
   font:inherit;font-size:15px;font-weight:700;min-height:48px;cursor:pointer;box-shadow:0 8px 20px rgba(16,22,17,.3);border-bottom:2px solid #C9A253}
 .xm-backfab span{font-size:20px;line-height:1;color:#E2C277}
 @media (min-width:700px){ .xm-backfab{bottom:36px} }
@@ -4400,7 +4441,7 @@ html.kbd .xm-backfab{display:none}
 .xm-sibs .xm-mo{cursor:pointer;padding:9px 0}
 .xm-sibs .xm-mo:first-child{border-top:0}
 .xm-sibs .xm-mo i{font-style:normal;font-size:12.5px;font-weight:700;border-radius:8px;padding:5px 9px;background:var(--paper);color:var(--ink)}
-.xm-sibs .xm-mo.on i{background:var(--ink);color:var(--page)}
+.xm-sibs .xm-mo.on i{background:var(--pine);color:var(--onpine)}
 .xm-seg{display:grid;grid-template-columns:1fr 1fr;background:var(--paper);border-radius:10px;padding:3px}
 .xm-seg button{font:inherit;font-weight:700;font-size:15px;color:var(--turf);background:none;border:0;border-radius:8px;padding:8px;min-height:42px;cursor:pointer}
 .xm-seg button.on{background:var(--page);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
@@ -4412,7 +4453,7 @@ html.kbd .xm-backfab{display:none}
 .xm-q{display:flex;gap:6px;flex-wrap:wrap}
 .xm-q button{flex:1 1 auto;font:inherit;font-size:14px;font-weight:600;border:0;border-radius:9px;padding:9px 8px;min-height:42px;background:var(--paper);
   box-shadow:inset 0 0 0 1px var(--rule);color:var(--ink);cursor:pointer}
-.xm-q button.on{background:var(--ink);color:var(--page);box-shadow:none}
+.xm-q button.on{background:var(--pine);color:var(--onpine);box-shadow:none}
 .xm-kv{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:14.5px;color:var(--turf)}
 .xm-kv b{color:var(--ink);text-align:right}
 .xm-kv b.up{color:#2F7A4A} .xm-kv b.dn{color:var(--flag)}
@@ -4439,14 +4480,14 @@ html.kbd .xm-backfab{display:none}
 .xm-p:first-child{border-top:0}
 .xm-p b{font-size:15px;line-height:1.3}
 .xm-pl{font-weight:700;text-align:right}
-.xm-p button{grid-column:2;grid-row:2;justify-self:end;font:inherit;font-size:13.5px;font-weight:700;background:var(--ink);color:var(--page);border:0;border-radius:999px;padding:6px 14px;min-height:36px;cursor:pointer}
+.xm-p button{grid-column:2;grid-row:2;justify-self:end;font:inherit;font-size:13.5px;font-weight:700;background:var(--pine);color:var(--onpine);border:0;border-radius:999px;padding:6px 14px;min-height:36px;cursor:pointer}
 .xm-x{background:none;border:0;font:inherit;font-weight:700;color:var(--flag);cursor:pointer;padding:6px}
 .xm-f{display:grid;gap:6px;font-size:14px;font-weight:600}
 .xm-f small{font-weight:400;color:var(--turf)}
 .xm-f input{font:inherit;font-size:16px;font-weight:400;color:var(--ink);background:var(--page);border:0;box-shadow:inset 0 0 0 1px var(--rule);border-radius:10px;padding:11px 12px;min-height:46px}
 .xm-f input:focus{outline:2px solid var(--ink);outline-offset:0}
 .xm-flash{position:fixed;left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));
-  bottom:calc(92px + env(safe-area-inset-bottom,0px));z-index:40;background:var(--ink);color:var(--page);border-radius:12px;
+  bottom:calc(92px + env(safe-area-inset-bottom,0px));z-index:40;background:var(--pine);color:var(--onpine);border-radius:12px;
   padding:12px 15px;font-size:15px;border-left:4px solid #E2C277;box-shadow:0 8px 22px rgba(16,22,17,.35);animation:fadeIn .2s ease both;max-width:560px;margin:0 auto}
 @media (min-width:700px){ .xm-flash{bottom:28px} }
 @media (min-width:700px) and (max-width:1400px){ html.tablet .xm-flash{bottom:calc(var(--barh) + 22px)} }
@@ -4462,7 +4503,7 @@ html.kbd .xm-backfab{display:none}
    the corner, a red count of what this phone has not read, and the newest
    line sliding out beside it when it lands. */
 .chatfab{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(92px + env(safe-area-inset-bottom,0px));z-index:36;
-  width:60px;height:60px;border-radius:50%;border:0;padding:0;background:var(--ink);color:#E2C277;display:grid;place-items:center;cursor:pointer;
+  width:60px;height:60px;border-radius:50%;border:0;padding:0;background:var(--pine);color:#E2C277;display:grid;place-items:center;cursor:pointer;
   box-shadow:0 0 0 2px var(--gold-up),0 10px 24px rgba(16,22,17,.4)}
 .chatfab svg{width:28px;height:28px}
 .chatfab .badge{position:absolute;top:-4px;right:-4px;min-width:22px;height:22px;border-radius:11px;background:var(--flag);color:#fff;
@@ -4558,19 +4599,19 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
   background:var(--page);box-shadow:inset 0 0 0 1px var(--rule);color:var(--ink);cursor:pointer}
 .xm-pick button b{font-size:14.5px}
 .xm-pick button small{font-size:12.5px;font-weight:700;color:var(--turf)}
-.xm-pick button.on{background:var(--ink);color:var(--page);box-shadow:none}
+.xm-pick button.on{background:var(--pine);color:var(--onpine);box-shadow:none}
 .xm-pick button.on small{color:#E2C277}
 .xm-pick button.done.yes small{color:#2F7A4A} .xm-pick button.done.no small{color:var(--flag)}
 .xm-ppl{display:flex;flex-wrap:wrap;gap:6px}
 .xm-ppl button{font:inherit;font-size:14px;border:0;border-radius:999px;padding:6px 12px;background:var(--page);box-shadow:inset 0 0 0 1px var(--rule);color:var(--ink);min-height:36px;cursor:pointer}
-.xm-ppl button.on{background:var(--ink);color:var(--page);box-shadow:none}
+.xm-ppl button.on{background:var(--pine);color:var(--onpine);box-shadow:none}
 .xm-ppl button.on::before{content:"✓ ";color:#E2C277}
 /* room under a bet for the chat bubble, so it never sits on the Bet button */
 .xm-page{padding-bottom:96px}
 .who-ref{margin:14px 0 0;font-size:14px;color:var(--turf);text-align:center}
 .who-ref button{background:none;border:0;font:inherit;font-weight:700;color:var(--green);text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:6px 2px}
 /* who's who: a tag for each kind of person */
-.gtag.t-player{background:var(--ink);color:#E2C277}
+.gtag.t-player{background:var(--pine);color:#E2C277}
 .gtag.t-ref{background:#F2DDD6;color:var(--flag)}
 .gtag.t-gallery{background:#DDEBDD;color:#2F7A4A}
 .gtag.t-bleach{background:#E4E1F0;color:#4B3F7A}
@@ -4581,7 +4622,7 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 .ch-at{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}
 .ch-at[hidden]{display:none}
 .ch-at button{font:inherit;font-size:14.5px;font-weight:600;border:0;border-radius:999px;padding:8px 13px;min-height:38px;
-  background:var(--ink);color:var(--page);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+  background:var(--pine);color:var(--onpine);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 .ch-atn{color:var(--gold);font-weight:700}
 .ch-atn.me{background:#E2C277;color:var(--ink);border-radius:6px;padding:0 4px}
 .ch-msg.ment .ch-bub{box-shadow:inset 3px 0 0 #E2C277,0 0 0 1px rgba(201,162,83,.45);background:color-mix(in srgb,#E2C277 20%,var(--page))}
@@ -4598,13 +4639,13 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
   background:var(--page);box-shadow:inset 0 0 0 1px var(--rule);font:inherit;color:var(--ink);cursor:pointer}
 .xm-tabs button b{font-size:14.5px;line-height:1.1;white-space:nowrap}
 .xm-tabs button small{font-size:10.5px;color:var(--turf);font-weight:600;white-space:nowrap}
-.xm-tabs button.on{background:var(--ink);color:var(--page);box-shadow:inset 0 -3px 0 #C9A253}
+.xm-tabs button.on{background:var(--pine);color:var(--onpine);box-shadow:inset 0 -3px 0 #C9A253}
 .xm-tabs button.on small{color:#E2C277}
 .xm-tabs .live,.xm-plate .lv{color:#E25A44!important;font-weight:800}
 .xm-tabs .live::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:#E25A44;margin-right:4px;vertical-align:1px}
 /* tucked a little under the strip, with paper above it, so no card shows between the two */
 @media (max-width:699px){ html.up .xm-tabs{top:calc(46px + env(safe-area-inset-top,0px));box-shadow:0 -10px 0 var(--paper),0 8px 14px -12px rgba(16,22,17,.35)} }
-.xm-plate{margin-top:12px;background:var(--ink);color:var(--page);border-radius:14px;padding:12px 14px;border-bottom:3px solid #C9A253;display:grid;gap:3px}
+.xm-plate{margin-top:12px;background:var(--pine);color:var(--onpine);border-radius:14px;padding:12px 14px;border-bottom:3px solid #C9A253;display:grid;gap:3px}
 .xm-plate .k{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#E2C277;font-weight:800}
 .xm-plate b{font-size:20px;line-height:1.15}
 .xm-plate span{font-size:12.5px;color:#C9D2C3}
@@ -4614,7 +4655,7 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 /* ---- your shuttle, on Today; the plan, on Roster ---- */
 .shuttle{position:relative;margin:14px 0 0;background:var(--page);border-radius:16px;box-shadow:0 0 0 .5px var(--shadow),0 10px 22px -16px rgba(16,22,17,.5);overflow:hidden}
 .sh-stub{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;width:100%;padding:12px 14px;background:none;border:0;font:inherit;color:var(--ink);text-align:left;cursor:pointer}
-.sh-ic{width:42px;height:42px;border-radius:12px;background:var(--ink);color:#E2C277;display:grid;place-items:center;font-size:20px}
+.sh-ic{width:42px;height:42px;border-radius:12px;background:var(--pine);color:#E2C277;display:grid;place-items:center;font-size:20px}
 .sh-rt{display:grid;gap:1px;min-width:0}
 .sh-rt small{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sh-rt b{font-size:18px;line-height:1.15;white-space:nowrap}
@@ -4630,7 +4671,7 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 .sh-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;padding:8px 14px 9px;background:var(--sunk,#DBD2BA);border:0;
   font:inherit;font-size:13px;font-weight:700;color:var(--turf);cursor:pointer;min-height:44px}
 .sh-who{display:flex;align-items:center}
-.sh-av{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:10px;font-weight:800;background:var(--ink);color:#E2C277;
+.sh-av{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:10px;font-weight:800;background:var(--pine);color:#E2C277;
   box-shadow:0 0 0 2px var(--sunk,#DBD2BA);margin-left:-5px}
 .sh-av:first-child{margin-left:0}
 .sh-av:nth-child(2){background:#3E5C43} .sh-av:nth-child(3){background:#6B5530} .sh-av:nth-child(4){background:#2A3D2E}
@@ -4652,7 +4693,7 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 .sh-fh span{font-size:14px;color:var(--turf)}
 .sh-fh em{font-style:normal;font-size:11px;font-weight:800;border-radius:999px;padding:2px 7px;background:#F3E6CF;color:#8C6B2F}
 .sh-fn{font-size:15px;line-height:1.4}
-.sh-fn i{font-style:normal;font-size:11px;font-weight:800;border-radius:999px;padding:2px 7px;background:var(--ink);color:#E2C277;vertical-align:1px}
+.sh-fn i{font-style:normal;font-size:11px;font-weight:800;border-radius:999px;padding:2px 7px;background:var(--pine);color:#E2C277;vertical-align:1px}
 .sh-rs{display:grid}
 .sh-r{display:grid;grid-template-columns:minmax(0,1fr) auto 72px;gap:10px;align-items:baseline;padding:7px 0;border-top:1px solid var(--hair);font-size:15px}
 .sh-r:first-child{border-top:0}
@@ -4660,7 +4701,7 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 .sh-r span.num{font-size:13px;color:var(--turf)}
 .sh-r b{text-align:right}
 .sh-r i,.sh-r em{font-style:normal;font-size:11px;font-weight:800;border-radius:999px;padding:2px 7px;margin-left:4px;vertical-align:1px}
-.sh-r i{background:var(--ink);color:#E2C277}
+.sh-r i{background:var(--pine);color:#E2C277}
 .sh-r em{background:#F3E6CF;color:#8C6B2F}
 .sh-r.me{background:color-mix(in srgb,#E2C277 16%,transparent);margin:0 -8px;padding-left:8px;padding-right:8px;border-radius:8px}
 .trv-in{display:block;width:100%;margin-top:12px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:14px;line-height:1.5;
@@ -4691,12 +4732,12 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 .rlsheet .rl-body{display:grid;gap:10px}
 .rl-chips{display:flex;gap:6px;flex-wrap:wrap}
 .rl-chips button{font:inherit;font-size:13px;font-weight:700;border:0;border-radius:999px;padding:7px 11px;min-height:36px;background:var(--page);box-shadow:inset 0 0 0 1px var(--rule);color:var(--ink);cursor:pointer;white-space:nowrap}
-.rl-chips button.on{background:var(--ink);color:#E2C277;box-shadow:none}
+.rl-chips button.on{background:var(--pine);color:#E2C277;box-shadow:none}
 .rl-q{display:flex;gap:8px;align-items:flex-end;background:var(--page);border-radius:14px;padding:8px 8px 8px 12px;box-shadow:inset 0 0 0 1px var(--rule)}
 .rl-q textarea{flex:1;min-width:0;width:0;border:0;background:none;font:inherit;font-size:16px;line-height:1.35;color:var(--ink);resize:none;outline:none;padding:4px 0}
 .rl-q .btn{border-radius:999px;flex:0 0 auto}
 .rl-ans{background:var(--page);border-radius:14px;box-shadow:0 0 0 .5px var(--shadow);overflow:hidden}
-.rl-ah{display:flex;gap:10px;align-items:center;padding:10px 12px;background:var(--ink);color:var(--page)}
+.rl-ah{display:flex;gap:10px;align-items:center;padding:10px 12px;background:var(--pine);color:var(--onpine)}
 .rl-ic{width:32px;height:32px;border-radius:50%;background:#E2C277;color:var(--ink);display:grid;place-items:center;font-size:16px;flex:0 0 auto}
 .rl-ah b{display:block;font-size:15px;line-height:1.2}
 .rl-ah small{font-size:11.5px;color:#9FB3A3}
@@ -4717,7 +4758,7 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 .rl-acts .btn{border-radius:999px}
 .rl-saved{font-size:12.5px;font-weight:700;color:#2F7A4A}
 .rl-lh{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);font-weight:800;display:flex;gap:8px;align-items:center}
-.rl-lh span{background:var(--ink);color:#E2C277;border-radius:999px;padding:1px 7px;letter-spacing:0}
+.rl-lh span{background:var(--pine);color:#E2C277;border-radius:999px;padding:1px 7px;letter-spacing:0}
 .rl-prev{font-size:14px;color:var(--turf);padding:6px 0;border-top:1px solid var(--hair)}
 .rl-prev b{color:var(--ink)}
 .rl-ok{font-size:11.5px;font-weight:800;border-radius:999px;padding:2px 8px;background:#DDEBDD;color:#2F7A4A;justify-self:start;white-space:nowrap}
@@ -4736,7 +4777,7 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 .pl-w{flex:1;min-width:0;display:grid;gap:1px}
 .pl-w b{font-size:15.5px}
 .pl-w small{font-size:13px;color:var(--turf)}
-.pl-go{flex:0 0 auto;font:inherit;font-size:13.5px;font-weight:700;border:0;border-radius:999px;padding:8px 13px;min-height:40px;background:var(--ink);color:#E2C277;cursor:pointer;white-space:nowrap}
+.pl-go{flex:0 0 auto;font:inherit;font-size:13.5px;font-weight:700;border:0;border-radius:999px;padding:8px 13px;min-height:40px;background:var(--pine);color:#E2C277;cursor:pointer;white-space:nowrap}
 
 /* ---- moving people between groups, one round at a time ---- */
 .gmove{margin-top:10px;background:var(--page);border-radius:12px;padding:10px 12px;box-shadow:0 0 0 .5px var(--shadow)}
@@ -4747,7 +4788,7 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 .gm-n{font-weight:600;white-space:nowrap}
 .gm-b{display:flex;gap:6px}
 .gm-b button{font:inherit;font-weight:700;font-size:15px;border:0;border-radius:10px;min-width:40px;min-height:40px;padding:0 8px;background:var(--paper);box-shadow:inset 0 0 0 1px var(--rule);color:var(--ink);cursor:pointer}
-.gm-b button.on{background:var(--ink);color:#E2C277;box-shadow:none}
+.gm-b button.on{background:var(--pine);color:#E2C277;box-shadow:none}
 .gm-b button.out{font-size:13px}
 .gm-b button.out.on{background:var(--flag);color:#fff}
 
@@ -4778,7 +4819,7 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 .rtile b{font-size:26px}
 .rtile b small{font-size:12px;font-weight:600;letter-spacing:0;margin-left:4px;color:var(--sage-up)}
 .rtile em{font-style:normal;font-size:12.5px;color:#E2C277;opacity:.85}
-.rtile .rt-n{font-size:13px;letter-spacing:0;text-transform:none;color:var(--page);font-weight:600;white-space:normal;overflow:visible;line-height:1.25;margin:0}
+.rtile .rt-n{font-size:13px;letter-spacing:0;text-transform:none;color:var(--onpine);font-weight:600;white-space:normal;overflow:visible;line-height:1.25;margin:0}
 .recapbar{font-size:13.5px;letter-spacing:0;text-transform:none;font-weight:500;line-height:1.4}
 .recapbar .rb-s{flex:1 1 220px}
 .metarail{font-size:12.5px;letter-spacing:0;text-transform:none}
@@ -4825,9 +4866,9 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 .cs-rounds{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
 .cs-rounds::-webkit-scrollbar{display:none}
 .cs-rounds button{flex:0 0 auto;font:inherit;font-size:13.5px;font-weight:700;border:0;border-radius:999px;padding:7px 13px;min-height:36px;background:var(--page);box-shadow:inset 0 0 0 1px var(--rule);color:var(--ink);cursor:pointer}
-.cs-rounds button.on{background:var(--ink);color:#E2C277;box-shadow:none}
+.cs-rounds button.on{background:var(--pine);color:#E2C277;box-shadow:none}
 .cs-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}
-.cs-tile{background:var(--ink);color:var(--page);border-radius:12px;padding:10px 12px;display:grid;gap:2px}
+.cs-tile{background:var(--pine);color:var(--onpine);border-radius:12px;padding:10px 12px;display:grid;gap:2px}
 .cs-tile span{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:#9FB3A3;font-weight:700}
 .cs-tile b{font-size:26px;line-height:1;color:#E2C277}
 .cs-tile small{font-size:12.5px;color:#C9D2C3}
@@ -4838,7 +4879,7 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 .sc-r > span{text-align:center;min-width:0}
 .sc-l{text-align:left!important;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--turf);font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sc-t{font-weight:800;border-left:1px solid var(--rule);min-height:26px;display:inline-grid;place-items:center}
-.sc-hole{background:var(--ink);color:var(--page)} .sc-hole .sc-l,.sc-hole .sc-t{color:#E2C277} .sc-hole .sc-t{border-left-color:rgba(255,255,255,.2)}
+.sc-hole{background:var(--pine);color:var(--onpine)} .sc-hole .sc-l,.sc-hole .sc-t{color:#E2C277} .sc-hole .sc-t{border-left-color:rgba(255,255,255,.2)}
 .sc-par{font-weight:700} .sc-si,.sc-yds{color:var(--turf);font-size:11.5px} .sc-yds{font-size:10.5px}
 .sc-gross{min-height:38px;background:color-mix(in srgb,var(--paper) 50%,var(--page))}
 .sc-gross .sc-l{color:var(--ink)}
@@ -4861,7 +4902,7 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 .sc-pc b{width:auto;height:auto;font-weight:700;font-size:12.5px;color:var(--turf)}
 .sc-pc.up b{color:#2F7A4A} .sc-pc.dn b{color:#A33A2A}
 .sc-tv.team b{color:#2F7A4A}
-.sc-tot{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;padding:8px 10px;background:var(--ink);color:var(--page);border-radius:12px;border:0}
+.sc-tot{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;padding:8px 10px;background:var(--pine);color:var(--onpine);border-radius:12px;border:0}
 .sc-tot .sc-l{color:#E2C277;flex:0 0 auto}
 .sc-tv{display:grid;text-align:left!important}
 .sc-tv b{font-size:18px;line-height:1.1} .sc-tv small{font-size:11.5px;color:#C9D2C3}
@@ -4997,7 +5038,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261028-1349';
+const BUILD = '20261028-1415';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -7409,8 +7450,15 @@ function clubhouse(T, now) {
 
   const out = [];
 
-  /* THE CUP FIRST. It is the only one of the six with a clock on it — points
-     that can still change hands this session — so it is the headline. */
+  /* THE TEAM COMPETITION FIRST: the main event. The cup is second. */
+  const pairs = pairsBoard(T, now);
+  out.push({ id: 'pairs', label: 'Team Competition', state: pairs.length ? (live ? 'live' : 'open') : 'empty',
+    who: pairs.length ? pairs[0].name : null, fig: pairs.length ? pairs[0].totalStr + ' pts' : null,
+    tone: pairs.length ? 'pts' : '',
+    thru: thru(pairs), by: margin(pairs, 'total'),
+    runner: pairs.length > 1 ? pairs[1].name : null,
+    note: pairs.length ? null : 'Opens once a counting round is under way' });
+
   const R = ryderData(T, now);
   const played = R.sessions.reduce((n, s) => n + s.matches.filter(m => m.done).length, 0);
   const total = R.sessions.reduce((n, s) => n + s.matches.length, 0);
@@ -7421,14 +7469,6 @@ function clubhouse(T, now) {
     note: !total ? 'Put golfers in both squads'
         : played === total ? 'All matches in'
         : (total - played) + ' match' + (total - played === 1 ? '' : 'es') + ' still out' });
-
-  const pairs = pairsBoard(T, now);
-  out.push({ id: 'pairs', label: 'Team Competition', state: pairs.length ? (live ? 'live' : 'open') : 'empty',
-    who: pairs.length ? pairs[0].name : null, fig: pairs.length ? pairs[0].totalStr + ' pts' : null,
-    tone: pairs.length ? 'pts' : '',
-    thru: thru(pairs), by: margin(pairs, 'total'),
-    runner: pairs.length > 1 ? pairs[1].name : null,
-    note: pairs.length ? null : 'Opens once a counting round is under way' });
 
   const mvp = mvpBoard(T, now);
   out.push({ id: 'mvp', label: 'MVP', state: mvp.length ? (live ? 'live' : 'open') : 'empty',
@@ -8780,6 +8820,7 @@ const SOCIAL = /^(chat|market|notes)\//;
 const PHOTO = /^photos\//;
 const POLL_LIVE_MS = 180000;  // the net under a live socket: every three minutes (the socket brings everything; this only catches what it dropped)
 const POLL_DOWN_MS = 15000;   // the socket is down, so the poll is the update
+const POLL_LOW_MS = 600000;   // low power: no socket, and a look every ten minutes while the book is open on screen
 const hidden = () => typeof document !== 'undefined' && document.visibilityState === 'hidden';
 const RETRY_MS = 4000;        // a stranded outbox tries again this soon, then waits longer each time it fails
 const RETRY_MAX_MS = 60000;   // ... but never longer than a minute, and a signal coming back is tried at once
@@ -8843,6 +8884,8 @@ function createSupabaseDb(opts) {
   const docWatch = new Map();      // path -> Set(cb)
   const collWatch = new Map();     // prefix -> Set({cb, err})
   let live = false;                // is the socket actually delivering?
+  let lowPower = false;            // the moon: no socket, the slow poll
+  let stopListen = null;           // closes the socket, while one is open
   let lastSeen = null;             // newest updated_at we have applied
   let closed = false;
   let pollTimer = null, retryTimer = null;
@@ -9095,7 +9138,18 @@ function createSupabaseDb(opts) {
     if (closed) return;
     clearTimeout(pollTimer); pollTimer = null;
     if (hidden()) return;
-    pollTimer = setTimeout(async () => { await sweep(); armPoll(); }, ms != null ? ms : (live ? POLL_LIVE_MS : POLL_DOWN_MS));
+    pollTimer = setTimeout(async () => { await sweep(); armPoll(); }, ms != null ? ms : (lowPower ? POLL_LOW_MS : live ? POLL_LIVE_MS : POLL_DOWN_MS));
+  }
+  /* LOW POWER. The socket is the thing that keeps a phone's radio awake, so
+     it is closed, and the poll — the one query — runs every ten minutes
+     instead. Turning it off opens the socket again and looks at once. */
+  function setLowPower(on) {
+    on = !!on;
+    if (on === lowPower) return;
+    lowPower = on;
+    if (closed) return;
+    if (on) { if (stopListen) { stopListen(); stopListen = null; } live = false; armPoll(); }
+    else { if (!stopListen) stopListen = listen(); soon(); }
   }
   const soon = () => armPoll(800);
   if (typeof document !== 'undefined') {
@@ -9219,11 +9273,13 @@ function createSupabaseDb(opts) {
 
     /** Opened once, after the subscriptions are registered. */
     start() {
-      const stop = listen();
+      if (!lowPower) stopListen = listen();
       armPoll();
       armRetry();
-      return () => { stop(); };
+      return () => { if (stopListen) { stopListen(); stopListen = null; } };
     },
+    setLowPower,
+    get lowPower() { return lowPower; },
 
     close() {
       closed = true;
@@ -9469,6 +9525,7 @@ function createStore(onChange) {
   let localAt = null;           // when that copy was last written
   let landedCb = null;          // told when a write that waited for a signal gets through
   let takeConfigLater = () => {};   // the config reader, once connect() has made it
+  let lowPower = false;             // the moon's choice, passed to the database when it opens
   /* THE PIN THIS PHONE HOLDS. The server checks it on every write to the
      tournament's own rows; the phone never checks it itself any more. */
   let currentPin = '';
@@ -9485,7 +9542,7 @@ function createStore(onChange) {
 
   const notify = () => {
     keepLocal();                 // the device keeps its own copy of whatever it knows
-    onChange(T, { ready, mode, status, saveState, lastSavedAt, settled, backend, fromDevice, localAt, deniedAt, deniedPath,
+    onChange(T, { ready, mode, status, saveState, lastSavedAt, settled, backend, fromDevice, localAt, deniedAt, deniedPath, lowPower,
                   /* the phone's own log waits too, but nobody is waiting for it */
                   pending: ((db && db.pendingPaths) ? db.pendingPaths() : []).filter(x => !x.startsWith('diag/')).length,
                   waiting: (db && db.pendingPaths) ? db.pendingPaths() : [],
@@ -9744,6 +9801,7 @@ function createStore(onChange) {
       ));
     }
     ready = true; notify();
+    if (db.setLowPower) db.setLowPower(lowPower);   // the moon's choice, before the socket opens
     if (db.start) db.start();          // the live socket, the poll behind it, the outbox
     confirmRoster();
 
@@ -10446,6 +10504,9 @@ function createStore(onChange) {
            set pin(v) { currentPin = String(v || ''); if (db && db.pinChanged) db.pinChanged(); },
            get deniedAt() { return deniedAt; },
            get deniedPath() { return deniedPath; },
+           /* low power: the socket closed and the book looking every ten minutes */
+           setLowPower(on) { lowPower = !!on; if (db && db.setLowPower) db.setLowPower(lowPower); notify(); },
+           get lowPower() { return lowPower; },
            /* the player PINs, for the master PIN this phone holds; with no
               server the digits sit beside each name already */
            async namePins() {
@@ -10597,6 +10658,7 @@ const UI = {
   feelDraft: null,      // the word they are typing on it: {rid, h, v}
   upload: { queue: [], err: '' },
   role: 'viewer',
+  mode: 'day',          // 'day', 'night', or 'low': the moon in the masthead
   boardTab: 'home',     // the six games at once; a board is something you open
   boardRound: 'r1',
   bookHole: 0,
@@ -10650,6 +10712,49 @@ const ROLE_KEY = 'union-invitational:role';
    again against the book every time the book changes. A role saved while
    the PINs were off, or under a PIN that has since been changed, proves
    nothing and the phone goes back to reading. */
+/* ---- THE MOON ----
+   One button in the masthead, on every screen. A tap goes Day, Night, Low
+   power, Day. Night is the pine palette. Low power is night with the live
+   socket closed and the book looking every ten minutes instead of three,
+   photos waiting for a tap, the pictures dimmed, nothing moving, and the
+   minute clock stopped. The phone remembers, and nothing changes the mode
+   but the button. */
+const MODE_KEY = 'union-invitational:mode';
+const MODES = ['day', 'night', 'low'];
+const MODE_WORD = { day: 'Day', night: 'Night', low: 'Low power' };
+function loadMode() {
+  try { const m = localStorage.getItem(MODE_KEY); if (MODES.includes(m)) UI.mode = m; } catch (e) { /* no memory on this phone */ }
+}
+function applyMode() {
+  const low = UI.mode === 'low', night = UI.mode !== 'day';
+  if (typeof document !== 'undefined') {
+    document.documentElement.classList.toggle('night', night);
+    document.documentElement.classList.toggle('low', low);
+    const t = document.querySelector('meta[name=theme-color]'); if (t) t.setAttribute('content', night ? '#0B110D' : '#3E5C43');
+  }
+  if (store && store.setLowPower) store.setLowPower(low);
+}
+function setMode(m) {
+  if (!MODES.includes(m) || m === UI.mode) return;
+  const wasLow = UI.mode === 'low';
+  UI.mode = m;
+  try { localStorage.setItem(MODE_KEY, m); } catch (e) { /* nothing */ }
+  applyMode();
+  if (wasLow) setTimeout(sendParked, 300);     // the photos that waited go now
+  flash(m === 'low' ? 'Low power: looking every 10 minutes, photos wait for a tap.' : m === 'night' ? 'Night.' : 'Day.');
+}
+const MOON_SVG = { day: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M5.3 18.7 7 17M17 7l1.7-1.7"/></svg>',
+  night: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M14.5 2.6a9.5 9.5 0 1 0 6.9 14.2 8 8 0 0 1-6.9-14.2z"/></svg>' };
+function moonBtn(extra) {
+  const next = MODES[(MODES.indexOf(UI.mode) + 1) % MODES.length];
+  return `<button class="moonbtn${extra ? ' ' + extra : ''}" data-act="modeCycle" title="${MODE_WORD[UI.mode]} — tap for ${MODE_WORD[next].toLowerCase()}"
+    aria-label="${MODE_WORD[UI.mode]}. Tap for ${MODE_WORD[next].toLowerCase()}"${extra ? ' tabindex="-1"' : ''}>${MOON_SVG[UI.mode === 'day' ? 'day' : 'night']}<i class="dot"></i></button>`;
+}
+function lowLine() {
+  if (UI.mode !== 'low') return '';
+  const w = UI.upload.queue.filter(u => u.waiting).length;
+  return `<div class="lowline" role="status">🔋 Low power · looking every 10 min${w ? ' · ' + w + ' photo' + (w === 1 ? '' : 's') + ' waiting' : ' · photos wait'}<button data-act="modeDay">Turn off</button></div>`;
+}
 function saveRole(role, pin) {
   try { localStorage.setItem(ROLE_KEY, JSON.stringify({ role, pin: String(pin || '') })); } catch (e) { /* storage blocked */ }
   if (store) { store.pin = pin; store.patchPush({ master: role === 'master' }); }   // the writes carry it; the server judges it; alerts go to the master's phone
@@ -10975,15 +11080,14 @@ function scrBoards() {
 
 /* ---- the front page ----
    Every game, and where it stands, without scrolling and without tapping.
-   The Cup is given the pine because it is the only one of the six with a
-   clock on it: points that can still change hands this session. */
+   The Team Competition is first and in the pine: it is the main event. */
 function boardsHome() {
   const cards = E.clubhouse(T, now);
   const live = E.countingRounds(T).find(r => E.phaseOf(T, r.id, now) === 'live');
   return `<h2 class="head bh">Boards${live
     ? ` <span class="bh-s">— ${esc(live.short === 'Practice' ? 'Practice' : 'Round ' + live.short.slice(1))} is live</span>`
     : ''}</h2>
-  <div class="club">${cards.map(c => c.kind === 'cup' ? cupCard(c) : gameCard(c)).join('')}</div>`;
+  <div class="club">${cards.map(c => c.kind === 'cup' ? cupCard(c, 'boardTab', true) : gameCard(c, 'boardTab', c.id === 'pairs' ? 'cc--main' : '')).join('')}</div>`;
 }
 
 /* `plain` draws it on the paper like any other game — the front page keeps
@@ -12000,7 +12104,7 @@ setInterval(() => {
   if (!UI.recapOpen || document.hidden || Date.now() < slideHeld) return;
   const tr = document.querySelector('.rh-track');
   if (!tr || (+tr.dataset.n || 0) < 2) return;
-  if (matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (UI.mode === 'low' || (matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
   const n = +tr.dataset.n, next = ((UI.recapSlide || 0) + 1) % n;
   tr.scrollTo({ left: next * tr.clientWidth, behavior: next ? 'smooth' : 'auto' });
 }, 4500);
@@ -13400,6 +13504,7 @@ async function sendParked() {
       if (!u) { u = { id: item.id, rid: item.rid, hole: item.hole, name: item.name, pct: 30, err: '', waiting: false }; UI.upload.queue.push(u); }
       if (typeof navigator !== 'undefined' && navigator.onLine === false) { u.waiting = true; continue; }
       if (!loaded()) { u.waiting = true; continue; }                   // the book is still opening
+      if (UI.mode === 'low' && !u.force) { u.waiting = true; continue; }   // low power: photos go on a tap, or when it is turned off
       u.waiting = false; u.err = ''; u.pct = 45; render();
       try {
         const supa = store4.kind === 'supabase';
@@ -13443,8 +13548,9 @@ function photoWaiting(rid) {
   const q = UI.upload.queue.filter(u => u.rid === rid);
   if (!q.length) return '';
   const waiting = q.filter(u => u.waiting).length, going = q.length - waiting;
+  const low = UI.mode === 'low' && (typeof navigator === 'undefined' || navigator.onLine !== false);
   return `<span class="phq${waiting ? ' wait' : ''}">${going ? `Sending ${going} photo${going === 1 ? '' : 's'}…` : ''}${going && waiting ? ' · ' : ''}${
-    waiting ? `${waiting} waiting for signal — they go up by themselves` : ''}</span>`;
+    waiting ? (low ? `${waiting} waiting: low power is on. <button class="sendnow" data-act="photoSendNow">Send now</button>` : `${waiting} waiting for signal — they go up by themselves`) : ''}</span>`;
 }
 const CAM_SVG = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l1.6-2.4h6.8L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.6"/></svg>';
 /** The waiting line, under the plate, only while something is waiting. */
@@ -17278,8 +17384,10 @@ function paint() {
         <div class="lbl">Next Tee Time</div>
         <div class="val num">${nt ? esc(nt.day.dow) + ' ' + esc(E.to12(nt.time)) + ' — ' + esc(nt.round.short === 'Practice' ? 'Practice' : 'Round ' + nt.round.short.slice(1)) : '—'}</div>
       </div>
+      ${moonBtn('')}
       ${manageDial(role)}
     </header>
+    ${lowLine()}
     ${datelineRail()}
     <div class="rule-heavy"></div>
     ${UI.deniedNote ? `<div class="loadbar bad">${esc(UI.deniedNote)} <button class="rm" data-act="signIn">Sign in</button></div>` : ''}
@@ -17627,6 +17735,7 @@ function stickyTop(role) {
       tabindex="-1"><img class="ts-c" src="${IMG.crest}" alt=""></button>` : ''}
     <span class="ts-n">Union Invitational</span>
     ${when ? `<span class="ts-t num">${esc(when)}</span>` : ''}
+    ${moonBtn('ts-m')}
     ${dialMark(role, n, 'ts-d')}
   </div>`;
 }
@@ -18841,6 +18950,9 @@ function onClick(e) {
     }
     case 'whoPinGo': whoPinGo(); return;
     case 'guestJoin': guestJoin(); return;
+    case 'modeCycle': setMode(MODES[(MODES.indexOf(UI.mode) + 1) % MODES.length]); render(); return;
+    case 'modeDay': setMode('day'); render(); return;
+    case 'photoSendNow': UI.upload.queue.forEach(u => { u.force = true; }); sendParked(); render(); return;
     case 'pinsReload': namePinsLoad(true); render(); return;
     case 'pinReset': {
       if (!canAdmin()) return;
@@ -20262,10 +20374,11 @@ function boot() {
   /* The clock on the page reads in minutes, so a minute is often enough,
      and nobody is reading it from a pocket. Nothing here touches the
      network. */
-  setInterval(() => { if (document.visibilityState === 'hidden') return; now = E.nowLocal(); render(); }, 60000);
+  setInterval(() => { if (document.visibilityState === 'hidden' || UI.mode === 'low') return; now = E.nowLocal(); render(); }, 60000);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { now = E.nowLocal(); dropKeyboard(); resetViewport(); render(); } });
   window.addEventListener('pageshow', () => { dropKeyboard(); resetViewport(); });
   render();
+  loadMode(); applyMode();
   store.connect();
 }
 
@@ -20281,7 +20394,7 @@ __m_app.boot();
 /* Register the worker that makes the book work with no signal. It is the
    whole point of installing it: Belek is five hours of walking and everyone
    is roaming. A failure here must never stop the page loading. */
-var BOOK_BUILD = '20261028-1349';
+var BOOK_BUILD = '20261028-1415';
 var swReg = null;
 /* the book is never shown inside somebody else's page, where a tap could be
    aimed at a button they have put under the finger */

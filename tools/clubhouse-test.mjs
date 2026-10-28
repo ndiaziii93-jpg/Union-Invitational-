@@ -176,10 +176,10 @@ ok('without a finger being moved', fits.allSeen && fits.at === 0, true);
 ok('and it never scrolls sideways either', await p.evaluate(
   () => document.documentElement.scrollWidth - document.documentElement.clientWidth <= 1), true);
 
-/* The Cup is the only one of the six with a clock on it, so it leads. */
-ok('the Cup is the first card', await p.evaluate(
-  () => document.querySelector('.cc').classList.contains('cc--cup')), true);
-ok('with a flag at each end of its score', await p.locator('.cc--cup svg').count(), 2);
+/* The Team Competition is the main event, so it leads, in the pine. */
+ok('the Team Competition is the first card, in the pine', await p.evaluate(
+  () => document.querySelector('.cc').classList.contains('cc--main') && document.querySelector('.cc').dataset.a === 'pairs'), true);
+ok('the Cup is second, on the paper, with a flag at each end of its score', [await p.locator('.cc').nth(1).getAttribute('data-a'), await p.locator('.cc--cupq svg').count()], ['ryder', 2]);
 
 /* A card is an ANSWER, not a label. */
 const team = p.locator('.cc', { hasText: 'Team Competition' });

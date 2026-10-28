@@ -163,6 +163,7 @@ export function createStore(onChange) {
   let localAt = null;           // when that copy was last written
   let landedCb = null;          // told when a write that waited for a signal gets through
   let takeConfigLater = () => {};   // the config reader, once connect() has made it
+  let lowPower = false;             // the moon's choice, passed to the database when it opens
   /* THE PIN THIS PHONE HOLDS. The server checks it on every write to the
      tournament's own rows; the phone never checks it itself any more. */
   let currentPin = '';
@@ -179,7 +180,7 @@ export function createStore(onChange) {
 
   const notify = () => {
     keepLocal();                 // the device keeps its own copy of whatever it knows
-    onChange(T, { ready, mode, status, saveState, lastSavedAt, settled, backend, fromDevice, localAt, deniedAt, deniedPath,
+    onChange(T, { ready, mode, status, saveState, lastSavedAt, settled, backend, fromDevice, localAt, deniedAt, deniedPath, lowPower,
                   /* the phone's own log waits too, but nobody is waiting for it */
                   pending: ((db && db.pendingPaths) ? db.pendingPaths() : []).filter(x => !x.startsWith('diag/')).length,
                   waiting: (db && db.pendingPaths) ? db.pendingPaths() : [],
@@ -438,6 +439,7 @@ export function createStore(onChange) {
       ));
     }
     ready = true; notify();
+    if (db.setLowPower) db.setLowPower(lowPower);   // the moon's choice, before the socket opens
     if (db.start) db.start();          // the live socket, the poll behind it, the outbox
     confirmRoster();
 
@@ -1140,6 +1142,9 @@ export function createStore(onChange) {
            set pin(v) { currentPin = String(v || ''); if (db && db.pinChanged) db.pinChanged(); },
            get deniedAt() { return deniedAt; },
            get deniedPath() { return deniedPath; },
+           /* low power: the socket closed and the book looking every ten minutes */
+           setLowPower(on) { lowPower = !!on; if (db && db.setLowPower) db.setLowPower(lowPower); notify(); },
+           get lowPower() { return lowPower; },
            /* the player PINs, for the master PIN this phone holds; with no
               server the digits sit beside each name already */
            async namePins() {

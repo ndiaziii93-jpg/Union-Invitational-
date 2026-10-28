@@ -1501,8 +1501,15 @@ export function clubhouse(T, now) {
 
   const out = [];
 
-  /* THE CUP FIRST. It is the only one of the six with a clock on it — points
-     that can still change hands this session — so it is the headline. */
+  /* THE TEAM COMPETITION FIRST: the main event. The cup is second. */
+  const pairs = pairsBoard(T, now);
+  out.push({ id: 'pairs', label: 'Team Competition', state: pairs.length ? (live ? 'live' : 'open') : 'empty',
+    who: pairs.length ? pairs[0].name : null, fig: pairs.length ? pairs[0].totalStr + ' pts' : null,
+    tone: pairs.length ? 'pts' : '',
+    thru: thru(pairs), by: margin(pairs, 'total'),
+    runner: pairs.length > 1 ? pairs[1].name : null,
+    note: pairs.length ? null : 'Opens once a counting round is under way' });
+
   const R = ryderData(T, now);
   const played = R.sessions.reduce((n, s) => n + s.matches.filter(m => m.done).length, 0);
   const total = R.sessions.reduce((n, s) => n + s.matches.length, 0);
@@ -1513,14 +1520,6 @@ export function clubhouse(T, now) {
     note: !total ? 'Put golfers in both squads'
         : played === total ? 'All matches in'
         : (total - played) + ' match' + (total - played === 1 ? '' : 'es') + ' still out' });
-
-  const pairs = pairsBoard(T, now);
-  out.push({ id: 'pairs', label: 'Team Competition', state: pairs.length ? (live ? 'live' : 'open') : 'empty',
-    who: pairs.length ? pairs[0].name : null, fig: pairs.length ? pairs[0].totalStr + ' pts' : null,
-    tone: pairs.length ? 'pts' : '',
-    thru: thru(pairs), by: margin(pairs, 'total'),
-    runner: pairs.length > 1 ? pairs[1].name : null,
-    note: pairs.length ? null : 'Opens once a counting round is under way' });
 
   const mvp = mvpBoard(T, now);
   out.push({ id: 'mvp', label: 'MVP', state: mvp.length ? (live ? 'live' : 'open') : 'empty',

@@ -382,6 +382,24 @@ function open(fake) {
   db.close();
 }
 
+/* ---- low power: no socket, the slow poll --------------------------------- */
+{
+  console.log('\nlow power');
+  mem.clear();
+  const fake = fakeSupabase();
+  const db = open(fake);
+  db.start();
+  ok('the socket is open as the book starts', [fake.state.subscribed, db.lowPower], [true, false]);
+  db.setLowPower(true);
+  ok('low power closes it', [fake.state.subscribed, db.lowPower, db.live], [false, true, false]);
+  await db.doc('photos/pz').set({ id: 'pz', rid: 'r1', url: 'https://example.supabase.co/storage/v1/object/public/photos/pz.jpg' });
+  ok('writes still go at once', fake.rows.has('photos/pz'), true);
+  db.setLowPower(false);
+  await wait(900);
+  ok('turning it off opens the socket again', [fake.state.subscribed, db.lowPower], [true, false]);
+  db.close();
+}
+
 /* ---- refusing to pretend ------------------------------------------------ */
 {
   console.log('\nwhen there is no project at all');
