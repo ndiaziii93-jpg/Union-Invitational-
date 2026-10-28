@@ -297,6 +297,9 @@ begin
   insert into public.docs (path, doc, writer)
   values ('chat/id_' || p_pid, jsonb_build_object('id', 'id_' || p_pid, 'k', 'id', 'pid', p_pid, 'at', (extract(epoch from now()) * 1000)::bigint,
                                                   'dev', p_who, 'hash', crypt(p_pin, gen_salt('bf', 6))), p_who);
+  /* a name taken is a thing the commissioner should see: the one time a
+     name is claimed by the wrong phone is before its owner arrives */
+  perform public.log_security('signin', 'chat/id_' || p_pid, p_who, p_pid, 'claimed the name ' || p_pid);
   return 'ok';
 end $$;
 grant execute on function public.claim_name(text, text, text) to anon, authenticated;
@@ -395,6 +398,15 @@ begin
       if held is not null and held->>'dev' is distinct from p_who then why := 'tried to replace another phone''s post';
       elsif p_doc->>'dev' is distinct from p_who then why := 'a post carrying another phone''s id';
       elsif (p_doc->>'k') in ('m', 'o', 'q', 't') and p_doc->>'pid' is distinct from p_pid then why := 'a post signed as ' || coalesce(p_doc->>'pid', '?') || ' by ' || p_pid;
+      /* a trade or an order with numbers no honest ticket could carry: the
+         price is worked out on the phone, so the server keeps it within
+         the bounds of a beer ledger and the history keeps every one */
+      elsif p_doc->>'k' = 't' and not (
+              coalesce((p_doc->>'cost')::numeric, 0) between -50 and 50
+              and coalesce((p_doc->>'n')::numeric, 0) between -5000 and 5000
+              and sign(coalesce((p_doc->>'cost')::numeric, 0)) = sign(coalesce((p_doc->>'n')::numeric, 0))
+              and abs(coalesce((p_doc->>'n')::numeric, 0)) >= abs(coalesce((p_doc->>'cost')::numeric, 0)) * 0.99) then why := 'a trade with numbers no ticket could carry';
+      elsif p_doc->>'k' = 'o' and not (coalesce((p_doc->>'stake')::numeric, 0) between 0 and 50) then why := 'an order with a stake no ticket could carry';
       elsif p_doc->>'k' = 'r' and p_doc->>'by' is not null and p_doc->>'by' <> p_pid then why := 'a ruling asked in another name';
       end if;
     end if;
@@ -511,7 +523,7 @@ as $$
 declare p text;
 begin
   p := case when tg_op = 'DELETE' then old.path else new.path end;
-  if p !~ '^(config|people|pairs|scores|bbb|recaps)/' then return null; end if;
+  if p !~ '^(config|people|pairs|scores|bbb|recaps|market)/' then return null; end if;
   if tg_op = 'UPDATE' and old.doc = new.doc then return null; end if;
   insert into public.docs_history (path, op, before, after, writer)
   values (p, tg_op, case when tg_op = 'INSERT' then null else old.doc end, case when tg_op = 'DELETE' then null else new.doc end,
@@ -621,7 +633,17 @@ begin
   /* a photo: anyone adds one; a change can only be a heart (hv_<phone>);
      taking one down goes through photo_delete */
   if p ~ '^photos/' then
-    if tg_op = 'INSERT' then return new; end if;
+    if tg_op = 'INSERT' then
+      /* a photo points at the book's own store and nowhere else: a link
+         that ran script when tapped would otherwise be one insert away */
+      if jsonb_typeof(new.doc) = 'object'
+         and coalesce(new.doc->>'url', '') ~ '^https://[a-z0-9]+\.supabase\.co/storage/v1/object/public/'
+         and (new.doc->>'thumb' is null or new.doc->>'thumb' ~ '^https://[a-z0-9]+\.supabase\.co/storage/v1/object/public/') then
+        return new;
+      end if;
+      perform public.log_security('direct', p, new.writer, null, 'a photo row pointing outside the book''s store');
+      return null;
+    end if;
     if tg_op = 'UPDATE' then
       select coalesce(bool_and(k like 'hv\_%' or k in ('rev', 'id')), true) into only_sent
         from jsonb_object_keys(new.doc) k where new.doc->k is distinct from old.doc->k;

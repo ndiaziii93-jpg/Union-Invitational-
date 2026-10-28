@@ -153,6 +153,10 @@ Both use the project's service key, which Supabase gives every function on
 its own — nothing to add. The Anthropic console's spend limit stays the
 backstop.
 
+One dashboard setting worth two minutes: Storage → the `photos` bucket →
+edit → set a file size limit (5 MB) and allowed MIME types (`image/*`), so
+the public key cannot fill the free allowance with anything but pictures.
+
 Still worth knowing: the bleachers sign with the phone they registered on
 rather than a PIN, and a phone's id is its own to choose, so a block keeps
 someone out rather than locking them out for good.

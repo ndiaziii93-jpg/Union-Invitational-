@@ -94,7 +94,15 @@ async function seal(payload: string, p256dh: string, auth: string): Promise<Uint
 /** One notification to one phone. Resolves to the push service's status. */
 type Keys = { publicKey: string; privateKey: string; subject: string };
 type Sub = { endpoint: string; keys: { p256dh: string; auth: string } };
+/* A push goes to a push service and nowhere else. The address comes from a
+   row any phone can write, so without this the function could be pointed
+   at any URL on the internet with a signed POST. */
+const PUSH_HOSTS = /^([a-z0-9-]+\.)*(googleapis\.com|push\.apple\.com|push\.services\.mozilla\.com|notify\.windows\.com|push\.samsungosp\.com)$/;
+function pushService(endpoint: string): boolean {
+  try { const u = new URL(endpoint); return u.protocol === 'https:' && PUSH_HOSTS.test(u.hostname); } catch { return false; }
+}
 async function sendPush(sub: Sub, payload: string, keys: Keys): Promise<number> {
+  if (!pushService(sub.endpoint)) return 400;
   const body = await seal(payload, sub.keys.p256dh, sub.keys.auth);
   const token = await vapidToken(sub.endpoint, keys.publicKey, keys.privateKey, keys.subject);
   const res = await fetch(sub.endpoint, {

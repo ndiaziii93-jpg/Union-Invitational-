@@ -186,6 +186,9 @@ FOOT = """
    is roaming. A failure here must never stop the page loading. */
 var BOOK_BUILD = '__STAMP__';
 var swReg = null;
+/* the book is never shown inside somebody else's page, where a tap could be
+   aimed at a button they have put under the finger */
+try { if (window.top !== window.self) { window.top.location = window.self.location; } } catch (e) { document.documentElement.style.display = 'none'; }
 if ('serviceWorker' in navigator) {
   /* THE PAGE ON THE PHONE OPENS FIRST, ALWAYS. The worker serves the copy it
      holds and fetches the newer one behind it, so the book is on screen in

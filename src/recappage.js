@@ -83,7 +83,8 @@ export function renderRecap(T, rid, IMG, opts) {
   const mvpRace = r.counts ? E.mvpBoard(T, now).map(x => { const f = field.find(y => y.id === x.id); return { ...x, today: f ? f.net : null, todayRaw: f ? f.raw : null }; }) : [];
   const bbbWeek = E.bbbBoard(T);
   const bbbDay = E.bbbRoundBoard(T, rid).map(x => { const w = bbbWeek.find(y => y.id === x.id); return { ...x, week: w ? w.pts : null }; });
-  const snaps = Object.values(T.photos || {}).filter(p => p && p.rid === rid && p.url).sort((a, b) => (b.at || 0) - (a.at || 0));
+  const web = u => /^https?:\/\//i.test(String(u || ''));
+  const snaps = Object.values(T.photos || {}).filter(p => p && p.rid === rid && web(p.url)).map(p => ({ ...p, thumb: web(p.thumb) ? p.thumb : '' })).sort((a, b) => (b.at || 0) - (a.at || 0));
   const slides = snaps.length ? snaps.slice(0, 15)
     : IMG['course_' + course.key] ? [{ url: IMG['course_' + course.key], caption: course.name, course: true }] : [];
   const top = table[0];
