@@ -311,9 +311,10 @@ ok('the picker is kept out of the redrawn tree', await p.evaluate(
    living inside that tree is destroyed and remade over and over, so the file
    lands on an element no longer in the document, the event has nothing to
    bubble to, and not one line runs. */
+await p.locator('[data-act="photoPick"]').first().click(); await p.waitForTimeout(250);   // the book's own sheet first, off an iPhone
 const [chooser] = await Promise.all([
   p.waitForEvent('filechooser'),
-  p.locator('[data-act="photoPick"]').first().click(),
+  p.locator('[data-act="photoLib"]').click(),
 ]);
 for (let i = 0; i < 4; i++) {                    // the store, polling, all the while
   await p.evaluate(() => window.__forceRender && window.__forceRender());

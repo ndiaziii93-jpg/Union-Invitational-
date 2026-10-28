@@ -2654,19 +2654,29 @@ function shrink(file, max = 1600, quality = 0.82) {
    one tap, one shot; the library opens the phone's photos, where several can
    be picked at once. Both inputs live outside #app, made once, for the
    reason above. The hole the reader is standing on goes with the picture. */
-let picker = null;
+const pickers = {};
 let pickerRid = null;
 let pickerHole = null;
 
-function pickerFor() {
+/* TWO WAYS IN. An iPhone's file box asks on its own — Take Photo, Photo
+   Library, Choose File — so one box without `capture` is the whole sheet.
+   An Android phone's does not: without `capture` it opens the gallery and
+   the camera is nowhere, and with it the camera opens and the gallery is
+   nowhere. So there are two boxes, one with `capture` and one without,
+   and on Android the book puts up its own small sheet to choose between
+   them, which is what the iPhone had all along. */
+function pickerFor(kind) {
   if (typeof document === 'undefined') return null;
-  if (picker) return picker;
+  const k = kind === 'camera' ? 'camera' : 'library';
+  if (pickers[k]) return pickers[k];
   const el = document.createElement('input');
   el.type = 'file';
   el.accept = 'image/*';
-  el.multiple = true;              // no `capture`: the phone asks, camera or library
+  if (k === 'camera') { el.setAttribute('capture', 'environment'); el.multiple = false; }
+  else el.multiple = true;
   el.style.display = 'none';
   el.setAttribute('aria-hidden', 'true');
+  el.dataset.pick = k;
   el.addEventListener('change', () => {
     const taken = Array.from(el.files || []);
     const rid = pickerRid, hole = pickerHole;
@@ -2674,10 +2684,21 @@ function pickerFor() {
     if (rid) addPhotos(rid, taken, hole);
   });
   document.body.appendChild(el);
-  picker = el;
+  pickers[k] = el;
   return el;
 }
 function makePicker() { return pickerFor('library'); }
+/** The small sheet an Android phone gets: the camera, or the photos already on it. */
+function photoSrcHtml() {
+  return `<div class="scrim" data-act="modalScrim"><div class="modal photosrc" role="dialog" aria-modal="true" aria-label="Add a photo">
+    ${modalBanner('Add a photo', 'From the round')}
+    <div class="ps-ways">
+      <button class="btn ps-way" data-act="photoTake"><span class="ps-ic" aria-hidden="true">📷</span><b>Take a photo</b><small>Opens the camera</small></button>
+      <button class="btn ghost ps-way" data-act="photoLib"><span class="ps-ic" aria-hidden="true">🖼️</span><b>From your photos</b><small>Pick one or more you already have</small></button>
+    </div>
+    <div class="acts"><button class="btn ghost" data-act="modalCancel">Cancel</button></div>
+  </div></div>`;
+}
 
 let upSeq = 0;
 
@@ -6629,13 +6650,15 @@ function paint() {
   ${chatFab()}
   ${tabBar()}
   ${stickyTop(role)}
-  ${UI.modal && UI.modal.kind !== 'pick' ? modalHtml() : ''}
+  ${UI.modal && UI.modal.kind !== 'pick' && UI.modal.kind !== 'photosrc' ? modalHtml() : ''}
   ${/* a picker opened from inside a window lies over that window, which
         stays drawn beneath it with the select the choice goes into */ ''}
   ${UI.modal && UI.modal.kind === 'pick' && UI.modal.parent ? modalOf(UI.modal.parent) : ''}
   ${askPanel()}
   ${recapPanel()}
-  ${UI.modal && UI.modal.kind === 'pick' ? pickHtml(UI.modal) : ''}`;
+  ${UI.modal && UI.modal.kind === 'pick' ? pickHtml(UI.modal) : ''}
+  ${/* the camera-or-photos sheet is asked for from the recap too, so it sits over it */ ''}
+  ${UI.modal && UI.modal.kind === 'photosrc' ? photoSrcHtml() : ''}`;
 
   /* NOTHING CHANGED, NOTHING IS TOUCHED. Most redraws are the book hearing
      that nothing happened — a quiet poll, a forecast already shown. Building
@@ -7813,6 +7836,7 @@ function modalHtml() {
        : UI.modal.kind === 'ruling' ? rulingSheetHtml()
        : UI.modal.kind === 'card' ? cardSheetHtml()
        : UI.modal.kind === 'hist' ? histModalHtml()
+       : UI.modal.kind === 'photosrc' ? photoSrcHtml()
        : UI.modal.kind === 'hole' ? holeModalHtml()
        : UI.modal.kind === 'setup' ? setupModalHtml()
        : UI.modal.kind === 'add' ? addModalHtml()
@@ -8069,10 +8093,20 @@ function onClick(e) {
       pickerRid = a;
       pickerHole = b == null || b === '' ? null : +b;
       /* the click has to happen inside the tap itself, or the phone refuses
-         to open its camera or its photos */
-      pickerFor().click();
+         to open its camera or its photos. An iPhone's box asks camera or
+         library itself; everything else is asked by the book first. */
+      if (onIOS()) { pickerFor('library').click(); render(); return; }
+      UI.modal = { kind: 'photosrc', back: UI.modal && UI.modal.kind ? UI.modal : null };
       render();
       return;
+    case 'photoTake':
+    case 'photoLib': {
+      const back = UI.modal && UI.modal.back;
+      UI.modal = back || null;
+      pickerFor(act === 'photoTake' ? 'camera' : 'library').click();
+      render();
+      return;
+    }
     case 'photoAlbum': UI.photoAlbum = a; render(); return;
     /* ---- the chat ---- */
     case 'chatRoom': UI.chatRoom = a; UI.chatRe = null; render(); return;

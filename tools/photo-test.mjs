@@ -40,8 +40,13 @@ await p.goto('file://' + S + '/photo.html'); await p.waitForTimeout(3500);
 await toEntry();
 
 const cam = () => p.locator('.holeplate .hp-cam').first();
+/* This harness is not an iPhone, so the book puts up its own sheet first —
+   the camera, or the photos already on the phone — and the phone's chooser
+   opens from that. */
+const viaSheet = async (click, way = 'photoLib') => { await click(); await p.waitForTimeout(250);
+  return (await Promise.all([p.waitForEvent('filechooser'), p.locator('[data-act="' + way + '"]').click()]))[0]; };
 const snap = async () => { await cam().scrollIntoViewIfNeeded(); await p.evaluate(() => scrollBy(0, -120)); await p.waitForTimeout(200);
-  return (await Promise.all([p.waitForEvent('filechooser'), cam().click()]))[0]; };
+  return viaSheet(() => cam().click()); };
 console.log('\na golfer on Score Entry');
 ok('the gold camera is on the hole’s plate', await p.locator('.holeplate .hp-cam').count(), 1);
 ok('and says which hole', await cam().getAttribute('aria-label'), 'Add a photo of hole 1: take one or choose one');
@@ -97,7 +102,7 @@ ok('the course album opens first, every photo marked with its hole',
 console.log('\nthe trip, apart from the golf');
 await p.locator('[data-act="photoAlbum"][data-a="trip"]').click(); await p.waitForTimeout(400);
 ok('the trip album starts empty, and says how to add', await p.locator('.pg-empty').count(), 1);
-let [tc] = await Promise.all([p.waitForEvent('filechooser'), p.locator('.pg-fab').click()]);
+let tc = await viaSheet(() => p.locator('.pg-fab').click());
 ok('its camera hands to the phone too', await tc.element().getAttribute('capture'), null);
 await tc.setFiles(pic('dinner.png')); await p.waitForTimeout(1500);
 const tripRows = await p.evaluate(() => Object.values(window.__T.photos).filter(x => x && x.rid === 'trip').map(x => ({ hole: x.hole, day: x.day })));
@@ -132,10 +137,11 @@ await r.evaluate(() => { window.__T.config.pins = { master: '9991', s1: '9992', 
 await r.waitForTimeout(600);
 for (let i = 0; i < 6; i++) { const d = r.locator('.scrim [data-act="modalCancel"]'); if (await d.count()) { await d.first().click({ force: true }); await r.waitForTimeout(200); } else break; }
 ok('a ref gets the same gold camera on the plate', await r.locator('.holeplate .hp-cam').count(), 1);
-ok('and no sheet of ours in between', await r.locator('.camicon, .camsheet').count(), 0);
 await r.locator('.holeplate .hp-cam').scrollIntoViewIfNeeded(); await r.evaluate(() => scrollBy(0, -120));
-const [rc] = await Promise.all([r.waitForEvent('filechooser'), r.locator('.holeplate .hp-cam').click()]);
-ok('which goes straight to the phone', await rc.element().getAttribute('capture'), null);
+await r.locator('.holeplate .hp-cam').click(); await r.waitForTimeout(250);
+ok('on a phone that is not an iPhone, the book asks: the camera, or the photos', await r.locator('.photosrc .ps-way').count(), 2);
+const [rc] = await Promise.all([r.waitForEvent('filechooser'), r.locator('[data-act="photoTake"]').click()]);
+ok('and the camera is the camera, straight to the phone\'s', await rc.element().getAttribute('capture'), 'environment');
 
 ok('no errors on the way', errs, []);
 await b.close();

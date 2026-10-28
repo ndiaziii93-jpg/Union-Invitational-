@@ -2054,6 +2054,12 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
 .histlist .hl-what{font-size:14px;color:var(--ink);grid-column:1}
 .histlist .btn{grid-column:2;grid-row:1/3}
 .histmodal .lede{font-size:14px}
+/* the camera or the photos: two big ways in, for a phone whose file box asks nothing */
+.ps-ways{display:grid;gap:10px;margin:14px 0 4px}
+.ps-way{display:grid;grid-template-columns:40px 1fr;grid-template-rows:auto auto;column-gap:12px;align-items:center;text-align:left;padding:14px 16px;min-height:64px;border-radius:16px}
+.ps-way .ps-ic{grid-row:1/3;font-size:26px;line-height:1}
+.ps-way b{font-size:16px}
+.ps-way small{font-size:12.5px;opacity:.8;font-weight:400}
 
 /* On a phone the roster was a 900px table on a 390px screen: you had to drag
    it sideways to reach Band and Remove, and the drag fought the page. Each
