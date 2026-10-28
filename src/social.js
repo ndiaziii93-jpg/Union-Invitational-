@@ -370,6 +370,43 @@ function payout(p, result) {
   return 0;
 }
 
+/** THE BETS THAT HAVE SETTLED, AND WHAT THEY PAID. One entry a bet (a
+ *  who-card counts once, when every name on it has settled), with everyone
+ *  who had a beer on it: what they put on, what came back, and the
+ *  difference. Newest settled first. */
+export function cashed(T, now) {
+  const all = markets(T, now), tr = trades(T);
+  const groups = {};
+  for (const m of all) {
+    if (!m.result) continue;
+    const key = m.group || m.id;
+    const g = groups[key] || (groups[key] = { key, id: m.qid || m.id, q: m.groupQ || m.q, group: !!m.group, custom: !!m.custom, markets: [],
+      settledBy: m.settledBy || null, settledAt: m.settledAt || 0, result: null, winners: [] });
+    g.markets.push(m);
+    if (m.settledAt && m.settledAt > g.settledAt) g.settledAt = m.settledAt;
+    if (m.group) { if (m.result === 'yes' && m.who) g.winners.push(m.who); if (m.result === 'void') g.result = 'void'; }
+    else g.result = m.result;
+  }
+  const out = [];
+  for (const g of Object.values(groups)) {
+    if (g.group) {
+      if (all.some(x => x.group === g.key && !x.result)) continue;      // still names to settle on the card
+      if (!g.result) g.result = g.winners.length ? 'who' : 'none';
+    }
+    const lines = {};
+    for (const m of g.markets) {
+      const P = {};
+      for (const t of tr) { if (t.m !== m.id) continue; const p = P[t.pid] || (P[t.pid] = { yes: 0, no: 0, spent: 0 }); p[t.side] += t.n; p.spent += t.cost; }
+      for (const [pid, p] of Object.entries(P)) { const l = lines[pid] || (lines[pid] = { pid, paid: 0, spent: 0 }); l.paid += payout(p, m.result); l.spent += p.spent; }
+    }
+    const people = Object.values(lines).map(l => ({ pid: l.pid, paid: round4(l.paid), spent: round4(l.spent), net: round4(l.paid - l.spent) }))
+      .filter(l => Math.abs(l.spent) > 1e-4 || l.paid > 1e-4).sort((a, b) => b.net - a.net);
+    if (!people.length) continue;                                       // nobody had a beer on it
+    out.push({ ...g, people, won: people.filter(l => l.net > 1e-4), lost: people.filter(l => l.net < -1e-4) });
+  }
+  return out.sort((a, b) => (b.settledAt || 0) - (a.settledAt || 0));
+}
+
 /** Cash in hand, positions at today's prices, and what that adds up to. */
 export function account(T, pid, now, all) {
   const ms = all || markets(T, now), byId = Object.fromEntries(ms.map(m => [m.id, m]));

@@ -112,6 +112,15 @@ function fakeSupabase() {
             rows.set(args.p_path, { path: args.p_path, doc: args.p_merge ? { ...((held || {}).doc || {}), ...args.p_doc } : args.p_doc, writer: args.p_who, updated_at: stamp() });
             return { error: null };
           }
+          if (name === 'photo_patch') {
+            const held = rows.get(args.p_path);
+            if (!held) return { data: 'denied: no such photo', error: null };
+            const owner = role === 'master' || held.doc.dev === args.p_who;
+            const bad = Object.keys(args.p_fields).find(k => !(k === 'rev' || k === 'id' || k === 'hv_' + args.p_who || (owner && ['rid', 'hole', 'day', 'caption'].includes(k))));
+            if (bad) return { data: 'denied: PIN not accepted: not yours to change', error: null };
+            rows.set(args.p_path, { ...held, doc: { ...held.doc, ...args.p_fields }, writer: args.p_who, updated_at: stamp() });
+            return { data: 'ok', error: null };
+          }
           if (name === 'photo_delete') {
             const held = rows.get(args.p_path);
             if (held && role !== 'master' && held.doc.dev !== args.p_who) return { data: 'denied: PIN not accepted: not yours to remove', error: null };

@@ -134,7 +134,7 @@ ok('it opens on the bets', await p.locator('.xm-top .head').innerText(), 'Bets')
 
 console.log('\nall in beers');
 ok('everyone starts on twenty beers', (await p.locator('.xm-bal').innerText()).trim(), '🍺 20 · My bets');
-ok('tabs: the week, a tab a round, off the course, ours', await p.locator('.xm-tabs button').evaluateAll(b => b.map(x => x.dataset.a)), ['week', 'r1', 'r2', 'r3', 'off', 'ours']);
+ok('tabs: the week, a tab a round, off the course, ours', await p.locator('.xm-tabs button').evaluateAll(b => b.map(x => x.dataset.a)), ['week', 'r1', 'r2', 'r3', 'off', 'ours', 'cashed']);
 ok('it opens on the round being played, live', [await p.locator('.xm-tabs button.on').getAttribute('data-a'), await p.locator('.xm-plate b').innerText(), await p.locator('.xm-plate .k').textContent()], ['r1', 'Round 1 · Thu 29 Oct', '● Live now']);
 await tap('[data-act="xTab"][data-a="week"]');
 const qs = await p.locator('.xm-c .xm-ct b').allInnerTexts();
@@ -218,6 +218,10 @@ ok('then it is settled, by name', (await p.locator('.xm-done').innerText()).repl
 await tap('.xm-back');
 ok('a settled bet stays on its tab, under Settled', [await p.locator('.xm-tabs button.on').getAttribute('data-a'), await p.locator('.xm-subh').innerText(),
   await p.locator('.xm-subh ~ .xm-c .xm-ct b').allInnerTexts()], ['ours', 'SETTLED', ['Will Ray V wear the pink trousers on Sunday?']]);
+await tap('[data-act="xTab"][data-a="cashed"]');
+ok('Cashed lists the settled bet, what it came in as, and who said so', [await p.locator('.xm-cash .xc-q').allInnerTexts(), await p.locator('.xm-cash .xc-res b').innerText(), /settled by Jennifer D/.test(await p.locator('.xm-cash .xc-res small').innerText())],
+  [['Will Ray V wear the pink trousers on Sunday?'], 'Yes', true]);
+ok('and what it paid: her quarter on Yes at 25% came back as a beer', (await p.locator('.xm-cash .xc-lines li').allInnerTexts()).map(t => t.replace(/\s+/g, ' ').trim()), ['🏆 Jennifer D cashed 1 🍺 put on ¼ · +¾']);
 await tap('[data-act="xTab"][data-a="r1"]');
 ok('Round 1 shows what the book settled itself as it happened: Robby B’s birdie on the 4th and Ray V’s ball in the water',
   await p.locator('.xm-c:has(.xm-res.yes) .xm-ct b').allInnerTexts().then(x => x.sort()), ['Who birdies a par 3?', 'Who finds the water?']);

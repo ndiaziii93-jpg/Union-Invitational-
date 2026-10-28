@@ -1035,6 +1035,21 @@ export function createStore(onChange) {
     catch (e) { return false; }
   }
 
+  /** Put a photo in another round (or the trip), on another hole or none. */
+  async function movePhoto(id, fields) {
+    if (tooEarly()) return false;
+    const prev = T.photos[id];
+    if (!prev) return false;
+    const r = Math.max(Date.now(), (rev['photos/' + id] || 0) + 1);
+    const patch = { rid: fields.rid, hole: fields.hole == null ? null : fields.hole, day: fields.day || null, rev: r };
+    rev['photos/' + id] = r;
+    T.photos[id] = { ...prev, ...patch };
+    notify();
+    if (mode === 'local') { saveLocal(); return true; }
+    try { const landed = (await db.doc('photos/' + id).update(patch)) !== false; if (landed) { saveState = 'saved'; lastSavedAt = Date.now(); } notify(); return landed; }
+    catch (e) { status = 'error'; saveState = 'error'; notify(); return false; }
+  }
+
   async function dropPhoto(id) {
     if (tooEarly()) return false;
     delete T.photos[id];
@@ -1106,7 +1121,7 @@ export function createStore(onChange) {
     } catch (e) { status = 'error'; saveState = 'error'; notify(); return false; }
   }
 
-  return { T, connect, writeConfig, writeCard, writeBbb, writeNote, writeRecap, writePhoto, heartPhoto, dropPhoto, putSocial, patchSocial, dropSocial, writePush, resetScores, resave, note,
+  return { T, connect, writeConfig, writeCard, writeBbb, writeNote, writeRecap, writePhoto, heartPhoto, movePhoto, dropPhoto, putSocial, patchSocial, dropSocial, writePush, resetScores, resave, note,
            get deviceId() { return deviceId; },
            writePerson, writeAllPeople, addPerson, removePerson,
            writePair, addPair, removePair, movePlayer, movePairBy,

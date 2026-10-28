@@ -34,7 +34,7 @@ const ORIGIN = 'http://127.0.0.1:' + site.address().port;
 const rows = new Map();
 let clock = Date.parse('2026-10-23T09:00:00Z');
 const stamp = () => new Date(clock += 7).toISOString();
-const notified = [], reacted = [];
+const notified = [], reacted = [], settled = [];
 const PUBLIC_KEY = 'BOrgVLcDzyfIySbuNUuAXqfZKA7prk4rZNqAH0cyOKKFDHtOmS6vtGsy1bmxiO8M3t6ISvx9pTSsVFBrw4TIPxo';
 async function supabase(route) {
   const req = route.request(), url = new URL(req.url()), method = req.method();
@@ -43,7 +43,7 @@ async function supabase(route) {
   if (url.pathname === '/functions/v1/notify') {
     if (method === 'GET') return send({ publicKey: PUBLIC_KEY });
     const body = JSON.parse(req.postData() || '{}');
-    if (body.rx) reacted.push(body); else notified.push(body.path);
+    if (body.rx) reacted.push(body); else if (body.settled) settled.push(body.path); else notified.push(body.path);
     return send({ sent: 1 });
   }
   /* the server's gate for the chat: a signed post lands, a name is proved */
@@ -159,6 +159,11 @@ await p.locator('[data-act="xCreate"]').click(); await p.waitForTimeout(1500);
 const bet = [...rows.keys()].find(k => k.startsWith('market/q'));
 ok('the bet is in the book, Ray V tagged on it', ((rows.get(bet) || {}).doc || {}).tags, ['g6']);
 ok('and the notify function is asked to tell him', notified.includes(bet), true);
+await p.locator('[data-act="xSettle"][data-b="yes"]').first().click(); await p.waitForTimeout(300);
+await p.locator('.scrim [data-act="confirmOk"]').first().click(); await p.waitForTimeout(1200);
+ok('settling it is in the book', ((rows.get(bet) || {}).doc || {}).result, 'yes');
+ok('and the notify function is asked to tell the whole group it paid out', settled, [bet]);
+await p.locator('.xm-back').first().click(); await p.waitForTimeout(300);
 
 console.log('\na notification arriving');
 const cdp = await ctx.newCDPSession(p);

@@ -258,6 +258,13 @@ export function createSupabaseDb(opts) {
         } catch (e) { error = e; }
         if (error && noGate(error)) gated = false; else if (error) throw error;
       }
+      /* a photo's own fields — its round, its hole, a heart — go through the
+         photo gate, which lets a phone change only what is its own */
+      if (!gated && PHOTO.test(path) && merge) {
+        let error = null;
+        try { await gate(bound(sb.rpc('photo_patch', { p_path: path, p_fields: doc, p_role_pin: pin(), p_who: deviceId || null }))); gated = true; }
+        catch (e) { if (!noGate(e)) throw e; error = e; }
+      }
       if (gated) { /* landed through the gate */ } else if (merge) {
         const { error } = await bound(sb.rpc('merge_doc', { p: path, patch: doc, who: deviceId || null }));
         if (error) throw error;

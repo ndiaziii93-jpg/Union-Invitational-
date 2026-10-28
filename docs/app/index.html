@@ -2114,6 +2114,25 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
 .ps-way .ps-ic{grid-row:1/3;font-size:26px;line-height:1}
 .ps-way b{font-size:16px}
 .ps-way small{font-size:12.5px;opacity:.8;font-weight:400}
+/* moving a photo: the round, the hole */
+.pv-own{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+.pv-mv{background:none;border:0;color:var(--page);opacity:.85;font-size:13px;padding:8px 4px;text-decoration:underline;text-underline-offset:3px}
+.pm-pic{display:flex;align-items:center;gap:12px;margin:12px 0 4px;font-size:13px;color:var(--turf)}
+.pm-pic img{width:64px;height:48px;object-fit:cover;border-radius:8px;border:1px solid var(--rule)}
+.calc-chips.holes .chip{min-width:34px;padding:4px 0;text-align:center}
+/* cashed: who hit, and what it paid */
+.xm-cash .xc-q{font-weight:600;font-size:15.5px;line-height:1.35}
+.xm-cash .xc-res{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;margin:6px 0 8px}
+.xm-cash .xc-res b{color:var(--green)}
+.xm-cash .xc-res small{font-size:12px;color:var(--turf)}
+.xm-cash.hit .xc-res b{color:#8C6B2F}
+.xc-lines{list-style:none;margin:0;padding:0;border-top:1px solid var(--rule)}
+.xc-lines li{display:grid;grid-template-columns:1fr auto;gap:0 10px;padding:7px 0;border-bottom:1px solid var(--rule);align-items:baseline}
+.xc-lines .w{font-weight:600}
+.xc-lines .n{font-weight:700;text-align:right}
+.xc-lines small{grid-column:1/3;font-size:12px;color:var(--turf)}
+.xc-lines li.won .n{color:#2F7A4A}
+.xc-lines li.lost .n{color:var(--flag)}
 
 /* On a phone the roster was a 900px table on a 390px screen: you had to drag
    it sideways to reach Band and Remove, and the drag fought the page. Each
@@ -4973,7 +4992,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261028-1235';
+const BUILD = '20261028-1253';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -7969,6 +7988,43 @@ function payout(p, result) {
   return 0;
 }
 
+/** THE BETS THAT HAVE SETTLED, AND WHAT THEY PAID. One entry a bet (a
+ *  who-card counts once, when every name on it has settled), with everyone
+ *  who had a beer on it: what they put on, what came back, and the
+ *  difference. Newest settled first. */
+function cashed(T, now) {
+  const all = markets(T, now), tr = trades(T);
+  const groups = {};
+  for (const m of all) {
+    if (!m.result) continue;
+    const key = m.group || m.id;
+    const g = groups[key] || (groups[key] = { key, id: m.qid || m.id, q: m.groupQ || m.q, group: !!m.group, custom: !!m.custom, markets: [],
+      settledBy: m.settledBy || null, settledAt: m.settledAt || 0, result: null, winners: [] });
+    g.markets.push(m);
+    if (m.settledAt && m.settledAt > g.settledAt) g.settledAt = m.settledAt;
+    if (m.group) { if (m.result === 'yes' && m.who) g.winners.push(m.who); if (m.result === 'void') g.result = 'void'; }
+    else g.result = m.result;
+  }
+  const out = [];
+  for (const g of Object.values(groups)) {
+    if (g.group) {
+      if (all.some(x => x.group === g.key && !x.result)) continue;      // still names to settle on the card
+      if (!g.result) g.result = g.winners.length ? 'who' : 'none';
+    }
+    const lines = {};
+    for (const m of g.markets) {
+      const P = {};
+      for (const t of tr) { if (t.m !== m.id) continue; const p = P[t.pid] || (P[t.pid] = { yes: 0, no: 0, spent: 0 }); p[t.side] += t.n; p.spent += t.cost; }
+      for (const [pid, p] of Object.entries(P)) { const l = lines[pid] || (lines[pid] = { pid, paid: 0, spent: 0 }); l.paid += payout(p, m.result); l.spent += p.spent; }
+    }
+    const people = Object.values(lines).map(l => ({ pid: l.pid, paid: round4(l.paid), spent: round4(l.spent), net: round4(l.paid - l.spent) }))
+      .filter(l => Math.abs(l.spent) > 1e-4 || l.paid > 1e-4).sort((a, b) => b.net - a.net);
+    if (!people.length) continue;                                       // nobody had a beer on it
+    out.push({ ...g, people, won: people.filter(l => l.net > 1e-4), lost: people.filter(l => l.net < -1e-4) });
+  }
+  return out.sort((a, b) => (b.settledAt || 0) - (a.settledAt || 0));
+}
+
 /** Cash in hand, positions at today's prices, and what that adds up to. */
 function account(T, pid, now, all) {
   const ms = all || markets(T, now), byId = Object.fromEntries(ms.map(m => [m.id, m]));
@@ -8047,7 +8103,7 @@ function history(m, tr) {
   return pts;
 }
 
-return {moments, LIQ, DAILY, STEP, floor4, round4, LONG_LIQ, book, chance, quote, sharesFor, saleOf, sharesToRaise, cents, invalidate, trades, orders, teamGolfers, tripPeople, suggested, markets, about, granted, positions, holders, account, standings, makeTrade, sidePrice, depth, history};
+return {moments, LIQ, DAILY, STEP, floor4, round4, LONG_LIQ, book, chance, quote, sharesFor, saleOf, sharesToRaise, cents, invalidate, trades, orders, teamGolfers, tripPeople, suggested, markets, about, granted, positions, holders, cashed, account, standings, makeTrade, sidePrice, depth, history};
 })();
 
 const __m_holes3d = (function(){
@@ -8924,6 +8980,13 @@ function createSupabaseDb(opts) {
             : sb.rpc('social_write', signed(path, { p_doc: doc, p_merge: !!merge }))));
         } catch (e) { error = e; }
         if (error && noGate(error)) gated = false; else if (error) throw error;
+      }
+      /* a photo's own fields — its round, its hole, a heart — go through the
+         photo gate, which lets a phone change only what is its own */
+      if (!gated && PHOTO.test(path) && merge) {
+        let error = null;
+        try { await gate(bound(sb.rpc('photo_patch', { p_path: path, p_fields: doc, p_role_pin: pin(), p_who: deviceId || null }))); gated = true; }
+        catch (e) { if (!noGate(e)) throw e; error = e; }
       }
       if (gated) { /* landed through the gate */ } else if (merge) {
         const { error } = await bound(sb.rpc('merge_doc', { p: path, patch: doc, who: deviceId || null }));
@@ -10266,6 +10329,21 @@ function createStore(onChange) {
     catch (e) { return false; }
   }
 
+  /** Put a photo in another round (or the trip), on another hole or none. */
+  async function movePhoto(id, fields) {
+    if (tooEarly()) return false;
+    const prev = T.photos[id];
+    if (!prev) return false;
+    const r = Math.max(Date.now(), (rev['photos/' + id] || 0) + 1);
+    const patch = { rid: fields.rid, hole: fields.hole == null ? null : fields.hole, day: fields.day || null, rev: r };
+    rev['photos/' + id] = r;
+    T.photos[id] = { ...prev, ...patch };
+    notify();
+    if (mode === 'local') { saveLocal(); return true; }
+    try { const landed = (await db.doc('photos/' + id).update(patch)) !== false; if (landed) { saveState = 'saved'; lastSavedAt = Date.now(); } notify(); return landed; }
+    catch (e) { status = 'error'; saveState = 'error'; notify(); return false; }
+  }
+
   async function dropPhoto(id) {
     if (tooEarly()) return false;
     delete T.photos[id];
@@ -10337,7 +10415,7 @@ function createStore(onChange) {
     } catch (e) { status = 'error'; saveState = 'error'; notify(); return false; }
   }
 
-  return { T, connect, writeConfig, writeCard, writeBbb, writeNote, writeRecap, writePhoto, heartPhoto, dropPhoto, putSocial, patchSocial, dropSocial, writePush, resetScores, resave, note,
+  return { T, connect, writeConfig, writeCard, writeBbb, writeNote, writeRecap, writePhoto, heartPhoto, movePhoto, dropPhoto, putSocial, patchSocial, dropSocial, writePush, resetScores, resave, note,
            get deviceId() { return deviceId; },
            writePerson, writeAllPeople, addPerson, removePerson,
            writePair, addPair, removePair, movePlayer, movePairBy,
@@ -12024,7 +12102,24 @@ function photoViewHtml() {
       <button class="pv-heart${mine ? ' on' : ''}" data-act="photoHeart" data-a="${esc(ph.id)}" aria-pressed="${mine}" aria-label="${mine ? 'Take your heart back' : 'Heart this photo'}">
         <span>${mine ? '♥' : '♡'}</span>${n}</button>
     </div>
-    ${ownsPhoto(ph) ? `<button class="pv-rm" data-act="photoDrop1" data-a="${esc(ph.id)}">Remove this photo</button>` : ''}
+    ${ownsPhoto(ph) ? `<div class="pv-own"><button class="pv-mv" data-act="photoMove" data-a="${esc(ph.id)}">Move to another round</button><button class="pv-rm" data-act="photoDrop1" data-a="${esc(ph.id)}">Remove this photo</button></div>` : ''}
+  </div></div>`;
+}
+/* A PHOTO CAN CHANGE ITS ROUND. Pictures are added when there is signal,
+   which is often the next day, and a Tuesday photograph added on Wednesday
+   lands in Wednesday's round. Whoever added it (or the master PIN) moves it:
+   the round or the trip, and the hole if there was one. */
+function photoMoveHtml() {
+  const m = UI.modal, ph = T.photos[m.id];
+  if (!ph) return '';
+  const rid = m.rid || ph.rid || TRIP, hole = m.hole === undefined ? (ph.hole == null ? null : ph.hole) : m.hole;
+  const holes = rid === TRIP ? [] : E.courseOf(T, rid).holes;
+  return `<div class="scrim" data-act="modalScrim"><div class="modal phmove" role="dialog" aria-modal="true" aria-label="Move this photo">
+    ${modalBanner('Move this photo', 'Which round it belongs to')}
+    <div class="pm-pic"><img src="${esc(safeUrl(ph.thumb) || ph.url)}" alt=""><span>${esc(ph.byName || 'Someone')}</span></div>
+    <div class="calc-row"><span class="calc-l">Round</span><div class="chiprow calc-chips">${D.ROUNDS.map(r => `<button class="chip${rid === r.id ? ' on' : ''}" data-act="photoMoveRid" data-a="${r.id}">${esc(r.short)}</button>`).join('')}<button class="chip${rid === TRIP ? ' on' : ''}" data-act="photoMoveRid" data-a="${TRIP}">The trip</button></div></div>
+    ${holes.length ? `<div class="calc-row"><span class="calc-l">Hole</span><div class="chiprow calc-chips holes"><button class="chip${hole == null ? ' on' : ''}" data-act="photoMoveHole" data-a="">None</button>${holes.map((h, i) => `<button class="chip${hole === i ? ' on' : ''}" data-act="photoMoveHole" data-a="${i}">${h.n}</button>`).join('')}</div></div>` : ''}
+    <div class="acts"><button class="btn ghost" data-act="modalCancel">Cancel</button><button class="btn" data-act="photoMoveGo">Move it</button></div>
   </div></div>`;
 }
 
@@ -12617,7 +12712,8 @@ function xTabsHtml(all, on) {
   const tabs = [['week', 'The week', 'MVP · teams · cup']]
     .concat(xRounds().map(r => { const ph = E.phaseOf(T, r.id, now), d = E.dayOf(r.dayIdx);
       return [r.id, roomName(r.id), ph === 'live' ? '<span class="live">Live</span>' : ph === 'final' ? 'Settled' : ph === 'today' ? 'Today' : esc(d.dow.slice(0, 3) + ' ' + d.date)]; }))
-    .concat([['off', 'Off the course', 'Pool · bar'], ['ours', 'Ours', (n => n ? n + ' made' : 'Make one')(new Set(all.filter(m => m.custom).map(m => m.qid || m.id)).size)]]);
+    .concat([['off', 'Off the course', 'Pool · bar'], ['ours', 'Ours', (n => n ? n + ' made' : 'Make one')(new Set(all.filter(m => m.custom).map(m => m.qid || m.id)).size)],
+             ['cashed', 'Cashed', (n => n ? n + ' paid out' : 'Nothing yet')(X.cashed(T, now).length)]]);
   return `<nav class="xm-tabs nos" role="tablist" aria-label="Which bets">${tabs.map(([k, l, sub]) =>
     `<button role="tab" aria-selected="${on === k}" class="${on === k ? 'on' : ''}" data-act="xTab" data-a="${k}"><b>${esc(l)}</b><small>${sub}</small></button>`).join('')}</nav>`;
 }
@@ -12633,7 +12729,8 @@ function xPlate(tab, n) {
   }
   const P = { week: ['All week · settles after Round 3', 'The week', 'MVP, the teams, the cup, the big shots'],
     off: ['Settled by the commissioner', 'Off the course', 'Golfers, the gallery and the refs'],
-    ours: ['Made by the group', 'Ours', 'Settled by whoever made it, or the commissioner'] }[tab] || ['', '', ''];
+    ours: ['Made by the group', 'Ours', 'Settled by whoever made it, or the commissioner'],
+    cashed: ['Settled, and what it paid', 'Cashed', 'Who hit, and the beers that came back'] }[tab] || ['', '', ''];
   return `<div class="xm-plate"><span class="k">${P[0]}</span><b>${P[1]}</b><span>${P[2]} · ${n} bet${n === 1 ? '' : 's'}</span></div>`;
 }
 /** Beers to the quarter, the way they are poured: ¼, 1½, 12¾. */
@@ -12770,6 +12867,8 @@ function xList() {
       + (keys.map(k => { const here = mine.filter(m => xTabOf(m) === k); return here.length ? `<div class="xm-subh">${esc(name(k))}</div>` + cardsOf(here).join('') : ''; }).join('')
         || `<p class="pg-empty">No bets about ${esc(nameOf(who))} yet. Make one.</p>`)
       + `<button class="xm-new" data-act="xView" data-a="new"><span aria-hidden="true">＋</span> Make your own bet</button>`;
+  } else if (tab === 'cashed') {
+    body = xPlate(tab, X.cashed(T, now).length) + xCashed();
   } else {
     /* a who-card stays whole: it moves under Settled once every name on it has settled */
     const here = all.filter(m => xTabOf(m) === tab);
@@ -12792,6 +12891,25 @@ function xList() {
   ${st.length ? `<section class="xm-sec"><div class="pg-h"><b>Sharpest in the group</b><span>tap a name for their bets</span></div>
     ${st.map((s, i) => xStRow(s, i)).join('')}</section>` : ''}
   <p class="pg-note">The chance moves as people bet: the book always takes the other side, so every bet goes on straight away.</p>`;
+}
+/* ---- Cashed: who hit, and what it paid ----
+   A settled bet with nobody on it is not news. One card a bet: the question,
+   what it came in as and who said so, then everyone who had a beer on it —
+   what came back against what went on. Beers to the quarter, as everywhere. */
+function xCashed() {
+  const list = X.cashed(T, now);
+  if (!list.length) return `<p class="pg-empty">Nothing has paid out yet. A bet lands here the moment it settles.</p>`;
+  const when = ms => ms ? sinceOf(ms) : 'by the book';
+  const resultOf = g => g.result === 'void' ? 'Void — everyone got their beers back'
+    : g.result === 'who' ? 'It was ' + g.winners.map(nameOf).join(' and ')
+    : g.result === 'none' ? 'Nobody' : g.result === 'yes' ? 'Yes' : g.result === 'no' ? 'No' : g.result;
+  return list.map(g => `<article class="xm-c xm-cash${g.won.length ? ' hit' : ''}">
+    <div class="xc-q">${esc(g.q)}</div>
+    <div class="xc-res"><b>${esc(resultOf(g))}</b><small>settled ${g.settledBy ? 'by ' + esc(g.settledBy) + ' · ' : ''}${esc(when(g.settledAt))}</small></div>
+    <ul class="xc-lines">${g.people.map(l => `<li class="${l.net > 1e-4 ? 'won' : l.net < -1e-4 ? 'lost' : 'even'}"><span class="w">${l.net > 1e-4 ? '🏆 ' : ''}${esc(nameOf(l.pid))}</span>
+      <span class="n num">${l.net > 1e-4 ? 'cashed ' + beer(l.paid) + ' 🍺' : l.net < -1e-4 ? 'lost ' + beer(-l.net) + ' 🍺' : 'got ' + beer(l.paid) + ' 🍺 back'}</span>
+      <small>${l.net > 1e-4 ? 'put on ' + beer(l.spent) + ' · +' + beer(l.net) : l.net < -1e-4 ? 'put on ' + beer(l.spent) : 'all square'}</small></li>`).join('')}</ul>
+  </article>`).join('');
 }
 /** Filter by person: everyone on the trip, then the bleachers. */
 function xAboutRow(all) {
@@ -13023,7 +13141,7 @@ function phFig(ph) {
       <img src="${esc(safeUrl(ph.thumb) || ph.url)}" alt="${esc(ph.caption || 'From the round')}" loading="lazy"
         onerror="this.closest('figure').classList.add('broken')"></a>
     <figcaption>${ph.hole != null ? `<b class="phh">Hole ${ph.hole + 1}</b> ` : ''}${esc(ph.byName || 'Someone')}${ownsPhoto(ph) ? `
-      <button class="rm" data-act="photoDrop1" data-a="${esc(ph.id)}">Remove</button>` : ''}</figcaption>
+      <button class="rm" data-act="photoMove" data-a="${esc(ph.id)}">Move</button><button class="rm" data-act="photoDrop1" data-a="${esc(ph.id)}">Remove</button>` : ''}</figcaption>
   </figure>`;
 }
 
@@ -17140,7 +17258,7 @@ function paint() {
   ${chatFab()}
   ${tabBar()}
   ${stickyTop(role)}
-  ${UI.modal && UI.modal.kind !== 'pick' && UI.modal.kind !== 'photosrc' ? modalHtml() : ''}
+  ${UI.modal && UI.modal.kind !== 'pick' && UI.modal.kind !== 'photosrc' && UI.modal.kind !== 'phmove' ? modalHtml() : ''}
   ${/* a picker opened from inside a window lies over that window, which
         stays drawn beneath it with the select the choice goes into */ ''}
   ${UI.modal && UI.modal.kind === 'pick' && UI.modal.parent ? modalOf(UI.modal.parent) : ''}
@@ -17148,7 +17266,8 @@ function paint() {
   ${recapPanel()}
   ${UI.modal && UI.modal.kind === 'pick' ? pickHtml(UI.modal) : ''}
   ${/* the camera-or-photos sheet is asked for from the recap too, so it sits over it */ ''}
-  ${UI.modal && UI.modal.kind === 'photosrc' ? photoSrcHtml() : ''}`;
+  ${UI.modal && UI.modal.kind === 'photosrc' ? photoSrcHtml() : ''}
+  ${UI.modal && UI.modal.kind === 'phmove' ? photoMoveHtml() : ''}`;
 
   /* NOTHING CHANGED, NOTHING IS TOUCHED. Most redraws are the book hearing
      that nothing happened — a quiet poll, a forecast already shown. Building
@@ -18327,6 +18446,7 @@ function modalHtml() {
        : UI.modal.kind === 'card' ? cardSheetHtml()
        : UI.modal.kind === 'hist' ? histModalHtml()
        : UI.modal.kind === 'photosrc' ? photoSrcHtml()
+       : UI.modal.kind === 'phmove' ? photoMoveHtml()
        : UI.modal.kind === 'hole' ? holeModalHtml()
        : UI.modal.kind === 'setup' ? setupModalHtml()
        : UI.modal.kind === 'add' ? addModalHtml()
@@ -18598,6 +18718,20 @@ function onClick(e) {
       return;
     }
     case 'photoAlbum': UI.photoAlbum = a; render(); return;
+    case 'photoMove': { const ph = T.photos[a]; if (!ph || !ownsPhoto(ph)) return; UI.modal = { kind: 'phmove', id: a, rid: ph.rid || TRIP, hole: ph.hole == null ? null : ph.hole, back: UI.modal }; render(); return; }
+    case 'photoMoveRid': if (UI.modal && UI.modal.kind === 'phmove') { UI.modal.rid = a; UI.modal.hole = null; render(); } return;
+    case 'photoMoveHole': if (UI.modal && UI.modal.kind === 'phmove') { UI.modal.hole = a === '' ? null : +a; render(); } return;
+    case 'photoMoveGo': {
+      const m = UI.modal; if (!m || m.kind !== 'phmove') return;
+      const ph = T.photos[m.id]; if (!ph || !ownsPhoto(ph)) return;
+      /* the trip album is kept by day: a round's photo moved there keeps that round's day */
+      const fields = { rid: m.rid, hole: m.rid === TRIP ? null : m.hole, day: m.rid === TRIP ? (photoDay(ph) || null) : null };
+      store.movePhoto(m.id, fields);
+      const back = m.back && m.back.kind === 'photo' ? { ...m.back, list: m.rid === TRIP ? TRIP : 'course' } : (m.back || null);
+      UI.modal = back; UI.photoAlbum = m.rid === TRIP ? TRIP : 'course';
+      flash('Moved to ' + (m.rid === TRIP ? 'the trip' : roomName(m.rid)) + (fields.hole != null ? ', hole ' + (fields.hole + 1) : '') + '.');
+      render(); return;
+    }
     /* ---- the chat ---- */
     case 'chatRoom': UI.chatRoom = a; UI.chatRe = null; render(); return;
     case 'chatOpen':
@@ -18803,7 +18937,7 @@ function onClick(e) {
           + ' Everyone will see that ' + who + ' settled it.',
         ok: b === 'void' ? 'Void it' : 'It was ' + nameOf(b),
         onOk: () => { store.patchSocial('market', a, b === 'void' ? { void: true, winners: null, settledName: who, settledAt: Date.now() }
-          : { winners: [b], void: false, settledName: who, settledAt: Date.now() }); flash('Settled. Payouts are in everyone’s beers.'); } };
+          : { winners: [b], void: false, settledName: who, settledAt: Date.now() }).then(okd => { if (okd) notifyOthers('market/' + a, { settled: true }); }); flash('Settled. Payouts are in everyone’s beers.'); } };
       render(); return;
     }
     case 'xCreate': {
@@ -18839,7 +18973,7 @@ function onClick(e) {
           : 'Everyone who backed ' + word + ' is paid what their bet pays; everyone else loses theirs.')
           + ' Everyone will see that ' + who + ' settled it.',
         ok: b === 'void' ? 'Void it' : 'Settle ' + word,
-        onOk: () => { store.patchSocial('market', a, { result: b, settledName: who, settledAt: Date.now() }); flash('Settled. Payouts are in everyone’s beers.'); } };
+        onOk: () => { console.log('DBG onOk'); store.patchSocial('market', a, { result: b, settledName: who, settledAt: Date.now() }).then(okd => { console.log('DBG okd ' + okd + ' ' + (store && store.backend)); if (okd) notifyOthers('market/' + a, { settled: true }); }, e => console.log('DBG err ' + e)); flash('Settled. Payouts are in everyone’s beers.'); } };
       render(); return;
     }
     case 'xDelete': {
@@ -20094,7 +20228,7 @@ __m_app.boot();
 /* Register the worker that makes the book work with no signal. It is the
    whole point of installing it: Belek is five hours of walking and everyone
    is roaming. A failure here must never stop the page loading. */
-var BOOK_BUILD = '20261028-1235';
+var BOOK_BUILD = '20261028-1253';
 var swReg = null;
 /* the book is never shown inside somebody else's page, where a tap could be
    aimed at a button they have put under the finger */

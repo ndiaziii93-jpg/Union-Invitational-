@@ -604,6 +604,39 @@ begin
 end $$;
 grant execute on function public.photo_delete(text, text, text) to anon, authenticated;
 
+-- a photo's own fields: anyone hearts it (their own heart); whoever put it
+-- up, or the master PIN, moves it to another round or hole
+create or replace function public.photo_patch(p_path text, p_fields jsonb, p_role_pin text, p_who text default null)
+returns text
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare held jsonb; r text; owner boolean; k text; bad text := null;
+begin
+  if p_path !~ '^photos/[A-Za-z0-9_.-]{1,80}$' or jsonb_typeof(p_fields) <> 'object' then return 'denied: PIN not accepted for that row'; end if;
+  if public.is_blocked(p_who) then return 'denied: PIN not accepted: this phone is blocked for a while'; end if;
+  select doc into held from public.docs where path = p_path;
+  if held is null then return 'denied: no such photo'; end if;
+  r := case when p_role_pin ~ '^[0-9]{4,8}$' then public.pin_role(p_role_pin, p_who) else null end;
+  owner := r = 'master' or (p_who is not null and held->>'dev' = p_who);
+  for k in select jsonb_object_keys(p_fields) loop
+    if k in ('rev', 'id') then continue; end if;
+    if k = 'hv_' || coalesce(p_who, '') then continue; end if;
+    if owner and k in ('rid', 'hole', 'day', 'caption') then continue; end if;
+    bad := k;
+  end loop;
+  if bad is not null then
+    perform public.log_security('denied', p_path, p_who, null, 'tried to change ' || bad || ' on another phone''s photo');
+    return 'denied: PIN not accepted: not yours to change';
+  end if;
+  if p_fields ? 'rid' and p_fields->>'rid' !~ '^(practice|r1|r2|r3|trip)$' then return 'denied: no such round'; end if;
+  if p_fields ? 'hole' and p_fields->>'hole' is not null and (p_fields->>'hole') !~ '^(1?[0-7]|[0-9])$' then return 'denied: no such hole'; end if;
+  update public.docs set doc = doc || p_fields, writer = coalesce(p_who, writer) where path = p_path;
+  return 'ok';
+end $$;
+grant execute on function public.photo_patch(text, jsonb, text, text) to anon, authenticated;
+
 -- the files themselves stay where they are: nothing with the public key
 -- removes one. A photo taken down is taken off the page; the file is
 -- cleared by the commissioner from the Storage tab if it ever matters.

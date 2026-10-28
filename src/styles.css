@@ -2038,6 +2038,25 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
 .ps-way .ps-ic{grid-row:1/3;font-size:26px;line-height:1}
 .ps-way b{font-size:16px}
 .ps-way small{font-size:12.5px;opacity:.8;font-weight:400}
+/* moving a photo: the round, the hole */
+.pv-own{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+.pv-mv{background:none;border:0;color:var(--page);opacity:.85;font-size:13px;padding:8px 4px;text-decoration:underline;text-underline-offset:3px}
+.pm-pic{display:flex;align-items:center;gap:12px;margin:12px 0 4px;font-size:13px;color:var(--turf)}
+.pm-pic img{width:64px;height:48px;object-fit:cover;border-radius:8px;border:1px solid var(--rule)}
+.calc-chips.holes .chip{min-width:34px;padding:4px 0;text-align:center}
+/* cashed: who hit, and what it paid */
+.xm-cash .xc-q{font-weight:600;font-size:15.5px;line-height:1.35}
+.xm-cash .xc-res{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;margin:6px 0 8px}
+.xm-cash .xc-res b{color:var(--green)}
+.xm-cash .xc-res small{font-size:12px;color:var(--turf)}
+.xm-cash.hit .xc-res b{color:#8C6B2F}
+.xc-lines{list-style:none;margin:0;padding:0;border-top:1px solid var(--rule)}
+.xc-lines li{display:grid;grid-template-columns:1fr auto;gap:0 10px;padding:7px 0;border-bottom:1px solid var(--rule);align-items:baseline}
+.xc-lines .w{font-weight:600}
+.xc-lines .n{font-weight:700;text-align:right}
+.xc-lines small{grid-column:1/3;font-size:12px;color:var(--turf)}
+.xc-lines li.won .n{color:#2F7A4A}
+.xc-lines li.lost .n{color:var(--flag)}
 
 /* On a phone the roster was a 900px table on a 390px screen: you had to drag
    it sideways to reach Band and Remove, and the drag fought the page. Each

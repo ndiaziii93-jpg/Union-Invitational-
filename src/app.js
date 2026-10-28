@@ -1587,7 +1587,24 @@ function photoViewHtml() {
       <button class="pv-heart${mine ? ' on' : ''}" data-act="photoHeart" data-a="${esc(ph.id)}" aria-pressed="${mine}" aria-label="${mine ? 'Take your heart back' : 'Heart this photo'}">
         <span>${mine ? '♥' : '♡'}</span>${n}</button>
     </div>
-    ${ownsPhoto(ph) ? `<button class="pv-rm" data-act="photoDrop1" data-a="${esc(ph.id)}">Remove this photo</button>` : ''}
+    ${ownsPhoto(ph) ? `<div class="pv-own"><button class="pv-mv" data-act="photoMove" data-a="${esc(ph.id)}">Move to another round</button><button class="pv-rm" data-act="photoDrop1" data-a="${esc(ph.id)}">Remove this photo</button></div>` : ''}
+  </div></div>`;
+}
+/* A PHOTO CAN CHANGE ITS ROUND. Pictures are added when there is signal,
+   which is often the next day, and a Tuesday photograph added on Wednesday
+   lands in Wednesday's round. Whoever added it (or the master PIN) moves it:
+   the round or the trip, and the hole if there was one. */
+function photoMoveHtml() {
+  const m = UI.modal, ph = T.photos[m.id];
+  if (!ph) return '';
+  const rid = m.rid || ph.rid || TRIP, hole = m.hole === undefined ? (ph.hole == null ? null : ph.hole) : m.hole;
+  const holes = rid === TRIP ? [] : E.courseOf(T, rid).holes;
+  return `<div class="scrim" data-act="modalScrim"><div class="modal phmove" role="dialog" aria-modal="true" aria-label="Move this photo">
+    ${modalBanner('Move this photo', 'Which round it belongs to')}
+    <div class="pm-pic"><img src="${esc(safeUrl(ph.thumb) || ph.url)}" alt=""><span>${esc(ph.byName || 'Someone')}</span></div>
+    <div class="calc-row"><span class="calc-l">Round</span><div class="chiprow calc-chips">${D.ROUNDS.map(r => `<button class="chip${rid === r.id ? ' on' : ''}" data-act="photoMoveRid" data-a="${r.id}">${esc(r.short)}</button>`).join('')}<button class="chip${rid === TRIP ? ' on' : ''}" data-act="photoMoveRid" data-a="${TRIP}">The trip</button></div></div>
+    ${holes.length ? `<div class="calc-row"><span class="calc-l">Hole</span><div class="chiprow calc-chips holes"><button class="chip${hole == null ? ' on' : ''}" data-act="photoMoveHole" data-a="">None</button>${holes.map((h, i) => `<button class="chip${hole === i ? ' on' : ''}" data-act="photoMoveHole" data-a="${i}">${h.n}</button>`).join('')}</div></div>` : ''}
+    <div class="acts"><button class="btn ghost" data-act="modalCancel">Cancel</button><button class="btn" data-act="photoMoveGo">Move it</button></div>
   </div></div>`;
 }
 
@@ -2180,7 +2197,8 @@ function xTabsHtml(all, on) {
   const tabs = [['week', 'The week', 'MVP · teams · cup']]
     .concat(xRounds().map(r => { const ph = E.phaseOf(T, r.id, now), d = E.dayOf(r.dayIdx);
       return [r.id, roomName(r.id), ph === 'live' ? '<span class="live">Live</span>' : ph === 'final' ? 'Settled' : ph === 'today' ? 'Today' : esc(d.dow.slice(0, 3) + ' ' + d.date)]; }))
-    .concat([['off', 'Off the course', 'Pool · bar'], ['ours', 'Ours', (n => n ? n + ' made' : 'Make one')(new Set(all.filter(m => m.custom).map(m => m.qid || m.id)).size)]]);
+    .concat([['off', 'Off the course', 'Pool · bar'], ['ours', 'Ours', (n => n ? n + ' made' : 'Make one')(new Set(all.filter(m => m.custom).map(m => m.qid || m.id)).size)],
+             ['cashed', 'Cashed', (n => n ? n + ' paid out' : 'Nothing yet')(X.cashed(T, now).length)]]);
   return `<nav class="xm-tabs nos" role="tablist" aria-label="Which bets">${tabs.map(([k, l, sub]) =>
     `<button role="tab" aria-selected="${on === k}" class="${on === k ? 'on' : ''}" data-act="xTab" data-a="${k}"><b>${esc(l)}</b><small>${sub}</small></button>`).join('')}</nav>`;
 }
@@ -2196,7 +2214,8 @@ function xPlate(tab, n) {
   }
   const P = { week: ['All week · settles after Round 3', 'The week', 'MVP, the teams, the cup, the big shots'],
     off: ['Settled by the commissioner', 'Off the course', 'Golfers, the gallery and the refs'],
-    ours: ['Made by the group', 'Ours', 'Settled by whoever made it, or the commissioner'] }[tab] || ['', '', ''];
+    ours: ['Made by the group', 'Ours', 'Settled by whoever made it, or the commissioner'],
+    cashed: ['Settled, and what it paid', 'Cashed', 'Who hit, and the beers that came back'] }[tab] || ['', '', ''];
   return `<div class="xm-plate"><span class="k">${P[0]}</span><b>${P[1]}</b><span>${P[2]} · ${n} bet${n === 1 ? '' : 's'}</span></div>`;
 }
 /** Beers to the quarter, the way they are poured: ¼, 1½, 12¾. */
@@ -2333,6 +2352,8 @@ function xList() {
       + (keys.map(k => { const here = mine.filter(m => xTabOf(m) === k); return here.length ? `<div class="xm-subh">${esc(name(k))}</div>` + cardsOf(here).join('') : ''; }).join('')
         || `<p class="pg-empty">No bets about ${esc(nameOf(who))} yet. Make one.</p>`)
       + `<button class="xm-new" data-act="xView" data-a="new"><span aria-hidden="true">＋</span> Make your own bet</button>`;
+  } else if (tab === 'cashed') {
+    body = xPlate(tab, X.cashed(T, now).length) + xCashed();
   } else {
     /* a who-card stays whole: it moves under Settled once every name on it has settled */
     const here = all.filter(m => xTabOf(m) === tab);
@@ -2355,6 +2376,25 @@ function xList() {
   ${st.length ? `<section class="xm-sec"><div class="pg-h"><b>Sharpest in the group</b><span>tap a name for their bets</span></div>
     ${st.map((s, i) => xStRow(s, i)).join('')}</section>` : ''}
   <p class="pg-note">The chance moves as people bet: the book always takes the other side, so every bet goes on straight away.</p>`;
+}
+/* ---- Cashed: who hit, and what it paid ----
+   A settled bet with nobody on it is not news. One card a bet: the question,
+   what it came in as and who said so, then everyone who had a beer on it —
+   what came back against what went on. Beers to the quarter, as everywhere. */
+function xCashed() {
+  const list = X.cashed(T, now);
+  if (!list.length) return `<p class="pg-empty">Nothing has paid out yet. A bet lands here the moment it settles.</p>`;
+  const when = ms => ms ? sinceOf(ms) : 'by the book';
+  const resultOf = g => g.result === 'void' ? 'Void — everyone got their beers back'
+    : g.result === 'who' ? 'It was ' + g.winners.map(nameOf).join(' and ')
+    : g.result === 'none' ? 'Nobody' : g.result === 'yes' ? 'Yes' : g.result === 'no' ? 'No' : g.result;
+  return list.map(g => `<article class="xm-c xm-cash${g.won.length ? ' hit' : ''}">
+    <div class="xc-q">${esc(g.q)}</div>
+    <div class="xc-res"><b>${esc(resultOf(g))}</b><small>settled ${g.settledBy ? 'by ' + esc(g.settledBy) + ' · ' : ''}${esc(when(g.settledAt))}</small></div>
+    <ul class="xc-lines">${g.people.map(l => `<li class="${l.net > 1e-4 ? 'won' : l.net < -1e-4 ? 'lost' : 'even'}"><span class="w">${l.net > 1e-4 ? '🏆 ' : ''}${esc(nameOf(l.pid))}</span>
+      <span class="n num">${l.net > 1e-4 ? 'cashed ' + beer(l.paid) + ' 🍺' : l.net < -1e-4 ? 'lost ' + beer(-l.net) + ' 🍺' : 'got ' + beer(l.paid) + ' 🍺 back'}</span>
+      <small>${l.net > 1e-4 ? 'put on ' + beer(l.spent) + ' · +' + beer(l.net) : l.net < -1e-4 ? 'put on ' + beer(l.spent) : 'all square'}</small></li>`).join('')}</ul>
+  </article>`).join('');
 }
 /** Filter by person: everyone on the trip, then the bleachers. */
 function xAboutRow(all) {
@@ -2586,7 +2626,7 @@ function phFig(ph) {
       <img src="${esc(safeUrl(ph.thumb) || ph.url)}" alt="${esc(ph.caption || 'From the round')}" loading="lazy"
         onerror="this.closest('figure').classList.add('broken')"></a>
     <figcaption>${ph.hole != null ? `<b class="phh">Hole ${ph.hole + 1}</b> ` : ''}${esc(ph.byName || 'Someone')}${ownsPhoto(ph) ? `
-      <button class="rm" data-act="photoDrop1" data-a="${esc(ph.id)}">Remove</button>` : ''}</figcaption>
+      <button class="rm" data-act="photoMove" data-a="${esc(ph.id)}">Move</button><button class="rm" data-act="photoDrop1" data-a="${esc(ph.id)}">Remove</button>` : ''}</figcaption>
   </figure>`;
 }
 
@@ -6703,7 +6743,7 @@ function paint() {
   ${chatFab()}
   ${tabBar()}
   ${stickyTop(role)}
-  ${UI.modal && UI.modal.kind !== 'pick' && UI.modal.kind !== 'photosrc' ? modalHtml() : ''}
+  ${UI.modal && UI.modal.kind !== 'pick' && UI.modal.kind !== 'photosrc' && UI.modal.kind !== 'phmove' ? modalHtml() : ''}
   ${/* a picker opened from inside a window lies over that window, which
         stays drawn beneath it with the select the choice goes into */ ''}
   ${UI.modal && UI.modal.kind === 'pick' && UI.modal.parent ? modalOf(UI.modal.parent) : ''}
@@ -6711,7 +6751,8 @@ function paint() {
   ${recapPanel()}
   ${UI.modal && UI.modal.kind === 'pick' ? pickHtml(UI.modal) : ''}
   ${/* the camera-or-photos sheet is asked for from the recap too, so it sits over it */ ''}
-  ${UI.modal && UI.modal.kind === 'photosrc' ? photoSrcHtml() : ''}`;
+  ${UI.modal && UI.modal.kind === 'photosrc' ? photoSrcHtml() : ''}
+  ${UI.modal && UI.modal.kind === 'phmove' ? photoMoveHtml() : ''}`;
 
   /* NOTHING CHANGED, NOTHING IS TOUCHED. Most redraws are the book hearing
      that nothing happened — a quiet poll, a forecast already shown. Building
@@ -7890,6 +7931,7 @@ function modalHtml() {
        : UI.modal.kind === 'card' ? cardSheetHtml()
        : UI.modal.kind === 'hist' ? histModalHtml()
        : UI.modal.kind === 'photosrc' ? photoSrcHtml()
+       : UI.modal.kind === 'phmove' ? photoMoveHtml()
        : UI.modal.kind === 'hole' ? holeModalHtml()
        : UI.modal.kind === 'setup' ? setupModalHtml()
        : UI.modal.kind === 'add' ? addModalHtml()
@@ -8161,6 +8203,20 @@ function onClick(e) {
       return;
     }
     case 'photoAlbum': UI.photoAlbum = a; render(); return;
+    case 'photoMove': { const ph = T.photos[a]; if (!ph || !ownsPhoto(ph)) return; UI.modal = { kind: 'phmove', id: a, rid: ph.rid || TRIP, hole: ph.hole == null ? null : ph.hole, back: UI.modal }; render(); return; }
+    case 'photoMoveRid': if (UI.modal && UI.modal.kind === 'phmove') { UI.modal.rid = a; UI.modal.hole = null; render(); } return;
+    case 'photoMoveHole': if (UI.modal && UI.modal.kind === 'phmove') { UI.modal.hole = a === '' ? null : +a; render(); } return;
+    case 'photoMoveGo': {
+      const m = UI.modal; if (!m || m.kind !== 'phmove') return;
+      const ph = T.photos[m.id]; if (!ph || !ownsPhoto(ph)) return;
+      /* the trip album is kept by day: a round's photo moved there keeps that round's day */
+      const fields = { rid: m.rid, hole: m.rid === TRIP ? null : m.hole, day: m.rid === TRIP ? (photoDay(ph) || null) : null };
+      store.movePhoto(m.id, fields);
+      const back = m.back && m.back.kind === 'photo' ? { ...m.back, list: m.rid === TRIP ? TRIP : 'course' } : (m.back || null);
+      UI.modal = back; UI.photoAlbum = m.rid === TRIP ? TRIP : 'course';
+      flash('Moved to ' + (m.rid === TRIP ? 'the trip' : roomName(m.rid)) + (fields.hole != null ? ', hole ' + (fields.hole + 1) : '') + '.');
+      render(); return;
+    }
     /* ---- the chat ---- */
     case 'chatRoom': UI.chatRoom = a; UI.chatRe = null; render(); return;
     case 'chatOpen':
@@ -8366,7 +8422,7 @@ function onClick(e) {
           + ' Everyone will see that ' + who + ' settled it.',
         ok: b === 'void' ? 'Void it' : 'It was ' + nameOf(b),
         onOk: () => { store.patchSocial('market', a, b === 'void' ? { void: true, winners: null, settledName: who, settledAt: Date.now() }
-          : { winners: [b], void: false, settledName: who, settledAt: Date.now() }); flash('Settled. Payouts are in everyone’s beers.'); } };
+          : { winners: [b], void: false, settledName: who, settledAt: Date.now() }).then(okd => { if (okd) notifyOthers('market/' + a, { settled: true }); }); flash('Settled. Payouts are in everyone’s beers.'); } };
       render(); return;
     }
     case 'xCreate': {
@@ -8402,7 +8458,7 @@ function onClick(e) {
           : 'Everyone who backed ' + word + ' is paid what their bet pays; everyone else loses theirs.')
           + ' Everyone will see that ' + who + ' settled it.',
         ok: b === 'void' ? 'Void it' : 'Settle ' + word,
-        onOk: () => { store.patchSocial('market', a, { result: b, settledName: who, settledAt: Date.now() }); flash('Settled. Payouts are in everyone’s beers.'); } };
+        onOk: () => { store.patchSocial('market', a, { result: b, settledName: who, settledAt: Date.now() }).then(okd => { if (okd) notifyOthers('market/' + a, { settled: true }); }); flash('Settled. Payouts are in everyone’s beers.'); } };
       render(); return;
     }
     case 'xDelete': {

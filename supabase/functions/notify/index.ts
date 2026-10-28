@@ -124,8 +124,8 @@ async function handler(req: Request): Promise<Response> {
   if (req.method === 'GET') return json({ publicKey: keys.publicKey });
   if (req.method !== 'POST') return json({ error: 'bad_request' }, 405);
 
-  let path = '', rx = '', body: any = null;
-  try { body = await req.json(); path = String(body?.path || ''); rx = String(body?.rx || ''); } catch { /* falls through */ }
+  let path = '', rx = '', body: any = null, settled = false;
+  try { body = await req.json(); path = String(body?.path || ''); rx = String(body?.rx || ''); settled = body?.settled === true; } catch { /* falls through */ }
 
   /* a row of the security log, from the database's own webhook */
   const secret = Deno.env.get('SECURITY_WEBHOOK_SECRET') || '';
@@ -165,7 +165,7 @@ async function handler(req: Request): Promise<Response> {
   /* ONCE. A message is passed on one time, however often the function is
      asked: the mark is made with the service key, which no phone holds, so
      nobody can make a message buzz the whole trip again and again. */
-  if (!rx) {
+  if (!rx && !settled) {
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
     if (serviceKey) {
       if (m.notified_at) return json({ sent: 0, already: true });
@@ -200,6 +200,52 @@ async function handler(req: Request): Promise<Response> {
       } catch (e) { console.error('push', String(e).slice(0, 200)); }
     }));
     return json({ sent: rsent });
+  }
+  /* A BET HAS SETTLED. Who hit, and what it paid, worked out from the trades
+     in the book — never from the caller — and sent to everyone once. */
+  if (isBet && settled) {
+    const done = m.void === true || !!m.result || (Array.isArray(m.winners) && m.winners.length > 0);
+    if (!done) return json({ sent: 0, open: true });
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+    const asOwner = serviceKey ? createClient(Deno.env.get('SUPABASE_URL') || '', serviceKey, { auth: { persistSession: false } }) : null;
+    if (m.settled_notified) return json({ sent: 0, already: true });
+    if (asOwner) await asOwner.rpc('merge_doc', { p: path, patch: { settled_notified: Date.now() }, who: 'notify' });
+    const qid = path.slice('market/'.length);
+    const { data: trows } = await db.from('docs').select('doc').like('path', 'market/t%');
+    const { data: prows } = await db.from('docs').select('path,doc').like('path', 'people/%');
+    const names: Record<string, string> = {};
+    (prows || []).forEach((r: { path: string; doc: any }) => { names[r.path.slice('people/'.length)] = String(r.doc?.display || r.doc?.name || ''); });
+    const { data: grows } = await db.from('docs').select('doc').like('path', 'chat/guest_%');
+    (grows || []).forEach((r: { doc: any }) => { if (r.doc?.pid) names[String(r.doc.pid)] = String(r.doc.name || ''); });
+    const winners: string[] = Array.isArray(m.winners) ? m.winners.map(String) : [];
+    const isVoid = m.void === true || m.result === 'void';
+    const rounds = (x: number) => Math.round(x * 4) / 4;
+    const paid: Record<string, number> = {}, spent: Record<string, number> = {};
+    for (const r of trows || []) {
+      const t = r.doc; if (!t || t.k !== 't' || !t.m || !t.pid) continue;
+      const mid = String(t.m);
+      let onThis = false, win = false;
+      if (mid === qid) { onThis = true; win = isVoid ? false : t.side === m.result; }
+      else if (mid.startsWith(qid + '__')) { onThis = true; const w = mid.slice(qid.length + 2); win = isVoid ? false : (winners.includes(w) ? t.side === 'yes' : t.side === 'no'); }
+      if (!onThis) continue;
+      spent[t.pid] = (spent[t.pid] || 0) + Number(t.cost || 0);
+      if (isVoid) paid[t.pid] = (paid[t.pid] || 0) + Math.max(0, Number(t.cost || 0));
+      else if (win) paid[t.pid] = (paid[t.pid] || 0) + Number(t.n || 0);
+    }
+    const beer = (n: number) => { const q = Math.round(Math.abs(n) * 4), w = Math.floor(q / 4), f = ['', '¼', '½', '¾'][q % 4]; return (w || !f ? String(w) : '') + f; };
+    const hits = Object.keys(paid).map(p => ({ p, paid: rounds(paid[p]), net: rounds(paid[p] - (spent[p] || 0)) })).filter(x => x.net > 1e-4).sort((a, b) => b.net - a.net);
+    const what = isVoid ? 'Void' : winners.length ? 'It was ' + winners.map(w => names[w] || 'someone').join(' and ') : m.result === 'yes' ? 'Yes' : 'No';
+    const line = hits.length ? hits.slice(0, 4).map(x => (names[x.p] || 'Someone') + ' cashed ' + beer(x.paid) + ' 🍺').join(', ') + (hits.length > 4 ? ' and more' : '') : (isVoid ? 'Everyone got their beers back' : 'Nobody hit it');
+    const settledPayload = JSON.stringify({ title: '🏆 Bet settled: ' + what, body: (String(m.q).slice(0, 120) + ' — ' + line).slice(0, 240), bet: qid, tag: 'settled-' + qid });
+    const { data: ssubs } = await db.from('docs').select('path,doc').like('path', 'push/%');
+    let ssent = 0;
+    await Promise.all((ssubs || []).map(async (r: { path: string; doc: any }) => {
+      const s = r.doc;
+      if (!s || !s.on || !s.sub || !s.sub.endpoint) return;
+      try { const status = await sendPush(s.sub, settledPayload, keys); if (status === 404 || status === 410) { await db.from('docs').delete().eq('path', r.path); } else if (status < 300) ssent++; }
+      catch (e) { console.error('push', String(e).slice(0, 200)); }
+    }));
+    return json({ sent: ssent, settled: true });
   }
   /* a bet goes only to the people it is about */
   const onIt: string[] = isBet ? [].concat(m.tags || [], m.opts || []).map(String) : [];
