@@ -565,6 +565,20 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 .ptstab tr.pts3 .pn,.ptstab tr.pts4 .pn,.ptstab tr.pts5 .pn{color:#2F7A4A}
 .ptstab tr.pts0 .pn{color:var(--flag)}
 .ptsbox .pb-n{margin:8px 0 0;font-size:13px;color:var(--turf);line-height:1.45}
+.ptstab tr.ptsw .pn{color:#2F7A4A}
+.ptstab .pn.word{font-size:15px;font-weight:600;color:var(--turf)}
+/* the grids: gross against par by strokes received; the handicaps on the roster */
+.ptsgrid{width:100%;border-collapse:collapse}
+.ptsgrid th{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--turf);font-weight:600;text-align:center;padding:4px 0 6px;border-bottom:1px solid var(--ink)}
+.ptsgrid th:first-child{text-align:left}
+.ptsgrid td{padding:7px 4px;border-top:1px solid var(--rule);font-size:15px;vertical-align:baseline;text-align:center}
+.ptsgrid tr:first-child td{border-top:0}
+.ptsgrid .pk{text-align:left;font-weight:600;white-space:nowrap;padding-left:0}
+.ptsgrid .pv{text-align:left;color:var(--turf);font-style:italic;font-size:14px}
+.ptsgrid .pn{font-weight:700;font-size:18px}
+.ptsgrid .pn.pts3,.ptsgrid .pn.pts4,.ptsgrid .pn.pts5{color:#2F7A4A}
+.ptsgrid .pn.pts0{color:var(--flag)}
+.ptsgrid.hcp .pn{font-size:17px}
 .rule-item summary{padding:15px 0;cursor:pointer;display:flex;gap:12px;align-items:baseline;list-style:none}
 .rule-item summary::-webkit-details-marker{display:none}
 .rule-item summary .nm{flex:1 1 auto;font-size:20px;font-weight:600}
@@ -5062,6 +5076,12 @@ const RULES = [
   { id: 'ryder', name: 'Ryder Cup — UK vs USA', tag: 'Squad match play laid over the same scorecards. No extra golf.',
     when: 'Singles all three sessions — Thursday, Friday and Sunday.',
     won: 'Most match points across the three sessions. One point per match, half each if all square.',
+    /* how a point is earned, on one card: the hole, the match, the cup */
+    table: { title: 'How the points come', note: 'Net score on a hole is your strokes after the ones your full handicap gives you there are taken off. The pairs do not come into it: the cup is you against one opponent.',
+      rows: [['Win a hole', 'lower net score than your opponent', '1 up'], ['Halve a hole', 'the same net score', 'as you were'],
+             ['Win the match', 'more holes up than there are holes left, or ahead after the 18th', '1 pt'],
+             ['Halve the match', 'all square after the 18th', '½ pt each'], ['Lose the match', 'your opponent gets the point', '0 pts'],
+             ['Win the cup', '6½ of the 12 points across the three sessions', 'the cup']] },
     body: [
       'Every golfer belongs to a squad — UK or USA — set on the Ryder Cup screen. The matches are scored off the identical cards that feed everything else. No extra golf, no separate card.',
       'Every session is head-to-head net singles: one UK golfer against one USA golfer, hole by hole, match play. Thursday and Friday run alongside the team Stableford rounds; Sunday runs alongside the championship final. You play your own ball in the cup whatever the day’s team format is.',
@@ -6612,7 +6632,7 @@ function clubhouse(T, now) {
   const R = ryderData(T, now);
   const played = R.sessions.reduce((n, s) => n + s.matches.filter(m => m.done).length, 0);
   const total = R.sessions.reduce((n, s) => n + s.matches.length, 0);
-  const toWin = total ? Math.floor(total / 2) + (total % 2 ? 0.5 : 1) : null;
+  const toWin = total ? total / 2 + 0.5 : null;     // the first score past half: 6½ of 12, 6 of 11
   out.push({ id: 'ryder', kind: 'cup', label: 'Ryder Cup',
     state: total && played === total ? 'closed' : played ? 'live' : 'open',
     uk: R.ukTotal, usa: R.usaTotal, outstanding: total - played, toWin,

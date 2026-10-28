@@ -5045,8 +5045,9 @@ function scrRules() {
     <div class="rule-body">
       <div class="meta"><div><b>When</b>${esc(r.when)}</div><div><b>How it is won</b>${esc(r.won)}</div></div>
       ${r.table ? `<div class="ptsbox"><div class="pb-t">${esc(r.table.title)}</div>
-        <table class="ptstab"><tbody>${r.table.rows.map(([k, v, n]) => `<tr class="pts${n}"><td class="pk">${esc(k)}</td><td class="pv">${esc(v)}</td><td class="pn num">${esc(n)}<small>${n === '1' ? 'pt' : 'pts'}</small></td></tr>`).join('')}</tbody></table>
+        <table class="ptstab"><tbody>${r.table.rows.map(([k, v, n]) => { const num = /^\d+$/.test(n); return `<tr class="${num ? 'pts' + n : /^0/.test(n) ? 'pts0' : /^1 pt|^½/.test(n) ? 'ptsw' : ''}"><td class="pk">${esc(k)}</td><td class="pv">${esc(v)}</td><td class="pn num${num || /^(½|0|1)/.test(n) ? '' : ' word'}">${esc(num ? n : n.replace(/ ?pts?( each)?$/, ''))}<small>${num ? (n === '1' ? 'pt' : 'pts') : (n.match(/pts?( each)?$/) || [''])[0]}</small></td></tr>`; }).join('')}</tbody></table>
         <p class="pb-n">${esc(r.table.note)}</p></div>` : ''}
+      ${r.id === 'pairs' ? hcpTables() : ''}
       ${r.body.map(p => `<p>${esc(p)}</p>`).join('')}
       <p class="eg"><b style="font-family:var(--mono);font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--turf);display:block;font-style:normal">Worked example</b>${esc(r.example)}</p>
     </div></details>`).join('')}
@@ -5213,6 +5214,28 @@ function securityPanel() {
     ${UI.histAll && UI.histAll.err ? `<p class="xm-err">${esc(UI.histAll.err)}</p>` : ''}
     ${UI.histAll && UI.histAll.rows ? (UI.histAll.rows.length ? `<ul class="seclog hist">${UI.histAll.rows.map(r => `<li>${esc(histWhen(r.at))} · ${esc(r.path)}${r.writer ? ' · phone ' + esc(r.writer) : ''} · ${esc(histDiff(r.path, r.before, r.after))}</li>`).join('')}</ul>` : '<p class="empty">Nothing kept yet.</p>') : ''}
   </div>`;
+}
+/* THE SAME POINTS FOR EVERYONE; THE STROKES ARE WHAT DIFFER. A net par is
+   two points whoever makes it. What the handicap decides is how many
+   strokes come off on a given hole, which turns one gross score into
+   different net scores — so a gross 5 on a par 4 is a bogey for one golfer
+   and a net par for the next. Two tables say it: gross against par by the
+   strokes received there, and what each handicap on the roster gets. */
+function hcpTables() {
+  const grid = [['Two under par', -2], ['One under (birdie)', -1], ['Par', 0], ['One over (bogey)', 1], ['Two over', 2], ['Three over', 3]];
+  const pts = (over, st) => Math.max(0, 2 - (over - st));
+  const a = E.teamAllowance(T);
+  const hcps = [...new Set(E.golfers(T).map(g => g.band).filter(b => b != null).concat(E.BANDS))].sort((x, y) => x - y);
+  const line = h => { const p = E.playingHcp(h, a); const extra = p > 18 ? p - 18 : 0;
+    return p === 0 ? 'no strokes' : extra ? 'one a hole, two on index 1–' + extra : p === 18 ? 'one a hole' : 'one on index 1–' + p + (p < 18 ? ', none on ' + (p === 17 ? '18' : (p + 1) + '–18') : ''); };
+  return `<div class="ptsbox"><div class="pb-t">Your gross score, and the points it is worth</div>
+    <table class="ptsgrid"><thead><tr><th>On the hole you took</th><th>no stroke</th><th>1 stroke</th><th>2 strokes</th></tr></thead>
+    <tbody>${grid.map(([k, over]) => `<tr><td class="pk">${esc(k)}</td>${[0, 1, 2].map(st => { const n = pts(over, st); return `<td class="pn num pts${n}">${n}</td>`; }).join('')}</tr>`).join('')}</tbody></table>
+    <p class="pb-n">The same table for everyone: what differs is the strokes you get on the hole, which your handicap decides. A gross 5 on a par 4 is a bogey (1 point) with no stroke there and a net par (2 points) with one.</p></div>
+  <div class="ptsbox"><div class="pb-t">What each handicap gets in the team game (${a}%)</div>
+    <table class="ptsgrid hcp"><thead><tr><th>Handicap</th><th>Team game</th><th>Strokes, by stroke index</th></tr></thead>
+    <tbody>${hcps.map(h => `<tr><td class="pk num">${h}</td><td class="pn num">${E.playingHcp(h, a)}</td><td class="pv">${esc(line(h))}</td></tr>`).join('')}</tbody></table>
+    <p class="pb-n">Stroke index 1 is the hardest hole, 18 the easiest; the strokes fall on the hardest holes first. Your scorecard shows a dot on each hole where you get one. The MVP and the cup use the full handicap.</p></div>`;
 }
 function scrSetup() {
   if (!canAdmin()) return `<h2 class="head">Setup</h2><p class="empty">The master PIN opens this screen.</p>

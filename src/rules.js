@@ -66,6 +66,12 @@ export const RULES = [
   { id: 'ryder', name: 'Ryder Cup — UK vs USA', tag: 'Squad match play laid over the same scorecards. No extra golf.',
     when: 'Singles all three sessions — Thursday, Friday and Sunday.',
     won: 'Most match points across the three sessions. One point per match, half each if all square.',
+    /* how a point is earned, on one card: the hole, the match, the cup */
+    table: { title: 'How the points come', note: 'Net score on a hole is your strokes after the ones your full handicap gives you there are taken off. The pairs do not come into it: the cup is you against one opponent.',
+      rows: [['Win a hole', 'lower net score than your opponent', '1 up'], ['Halve a hole', 'the same net score', 'as you were'],
+             ['Win the match', 'more holes up than there are holes left, or ahead after the 18th', '1 pt'],
+             ['Halve the match', 'all square after the 18th', '½ pt each'], ['Lose the match', 'your opponent gets the point', '0 pts'],
+             ['Win the cup', '6½ of the 12 points across the three sessions', 'the cup']] },
     body: [
       'Every golfer belongs to a squad — UK or USA — set on the Ryder Cup screen. The matches are scored off the identical cards that feed everything else. No extra golf, no separate card.',
       'Every session is head-to-head net singles: one UK golfer against one USA golfer, hole by hole, match play. Thursday and Friday run alongside the team Stableford rounds; Sunday runs alongside the championship final. You play your own ball in the cup whatever the day’s team format is.',

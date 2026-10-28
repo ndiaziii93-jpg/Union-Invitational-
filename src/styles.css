@@ -511,6 +511,20 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 .ptstab tr.pts3 .pn,.ptstab tr.pts4 .pn,.ptstab tr.pts5 .pn{color:#2F7A4A}
 .ptstab tr.pts0 .pn{color:var(--flag)}
 .ptsbox .pb-n{margin:8px 0 0;font-size:13px;color:var(--turf);line-height:1.45}
+.ptstab tr.ptsw .pn{color:#2F7A4A}
+.ptstab .pn.word{font-size:15px;font-weight:600;color:var(--turf)}
+/* the grids: gross against par by strokes received; the handicaps on the roster */
+.ptsgrid{width:100%;border-collapse:collapse}
+.ptsgrid th{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--turf);font-weight:600;text-align:center;padding:4px 0 6px;border-bottom:1px solid var(--ink)}
+.ptsgrid th:first-child{text-align:left}
+.ptsgrid td{padding:7px 4px;border-top:1px solid var(--rule);font-size:15px;vertical-align:baseline;text-align:center}
+.ptsgrid tr:first-child td{border-top:0}
+.ptsgrid .pk{text-align:left;font-weight:600;white-space:nowrap;padding-left:0}
+.ptsgrid .pv{text-align:left;color:var(--turf);font-style:italic;font-size:14px}
+.ptsgrid .pn{font-weight:700;font-size:18px}
+.ptsgrid .pn.pts3,.ptsgrid .pn.pts4,.ptsgrid .pn.pts5{color:#2F7A4A}
+.ptsgrid .pn.pts0{color:var(--flag)}
+.ptsgrid.hcp .pn{font-size:17px}
 .rule-item summary{padding:15px 0;cursor:pointer;display:flex;gap:12px;align-items:baseline;list-style:none}
 .rule-item summary::-webkit-details-marker{display:none}
 .rule-item summary .nm{flex:1 1 auto;font-size:20px;font-weight:600}

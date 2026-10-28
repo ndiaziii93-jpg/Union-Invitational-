@@ -1506,7 +1506,7 @@ export function clubhouse(T, now) {
   const R = ryderData(T, now);
   const played = R.sessions.reduce((n, s) => n + s.matches.filter(m => m.done).length, 0);
   const total = R.sessions.reduce((n, s) => n + s.matches.length, 0);
-  const toWin = total ? Math.floor(total / 2) + (total % 2 ? 0.5 : 1) : null;
+  const toWin = total ? total / 2 + 0.5 : null;     // the first score past half: 6½ of 12, 6 of 11
   out.push({ id: 'ryder', kind: 'cup', label: 'Ryder Cup',
     state: total && played === total ? 'closed' : played ? 'live' : 'open',
     uk: R.ukTotal, usa: R.usaTotal, outstanding: total - played, toWin,
