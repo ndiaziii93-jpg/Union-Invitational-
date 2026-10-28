@@ -139,7 +139,7 @@ ok('it opens on the round being played, live', [await p.locator('.xm-tabs button
 await tap('[data-act="xTab"][data-a="week"]');
 const qs = await p.locator('.xm-c .xm-ct b').allInnerTexts();
 ok('the week holds the bets that run all week, a who-card for each anyone question', ['Who wins MVP?', 'Who wins the Team Competition?', 'Will the United Kingdom win the Ryder Cup?',
-  'Who makes a hole in one this week?', 'Who makes an eagle this week?', 'Who plays the most shots of the hole this week?'].every(q => qs.includes(q)) && !qs.some(q => /Round|pool/.test(q)), true);
+  'Who makes a hole in one this week?', 'Who makes an eagle this week?'].every(q => qs.includes(q)) && !qs.some(q => /Round|pool/.test(q)), true);
 await tap('[data-act="xTab"][data-a="r2"]');
 ok('a round’s tab says which round, and its bets drop the “Round 2:”', [await p.locator('.xm-plate b').innerText(), (await p.locator('.xm-c .xm-ct b').allInnerTexts()).sort()],
   ['Round 2 · Fri 30 Oct', ['Who birdies a par 3?', 'Who finds the water?', 'Who finishes under par, net?', 'Who three-putts?']]);

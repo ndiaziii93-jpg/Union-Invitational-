@@ -1140,7 +1140,7 @@ function feelBar() {
       <button class="fb-skip" data-act="feelSkip" data-a="${rid}" data-b="${cur}">Skip</button></div>
     <div class="fb-chips">${feelPicker(rid, cur, on, m => `<button class="fb-chip ${m.tone}${on.includes(m.key) ? ' on' : ''}"
       data-act="feelMark" data-a="${m.key}" data-b="${cur}" data-c="${rid}" aria-pressed="${on.includes(m.key)}"><b>${esc(m.label)}</b><span>${esc(m.hint)}</span></button>`)}</div>
-    <div class="fb-row"><input class="field fb-word" id="feelText" data-b="${cur}" data-c="${rid}" maxlength="140"
+    <div class="fb-row"><input class="field fb-word" id="feelText" data-b="${cur}" data-c="${rid}" maxlength="140" autocomplete="off"
         placeholder="A word on it, if you want one…" value="${esc(text)}" aria-label="A word on hole ${hole.n}">
       <button class="btn fb-done" data-act="feelDone" data-a="${rid}" data-b="${cur}">Done</button></div>
   </aside>`;
@@ -2436,7 +2436,7 @@ function xList() {
   ${xAboutRow(all)}
   ${xTabsHtml(all, who ? null : tab)}
   ${body}
-  ${st.length ? `<section class="xm-sec"><div class="pg-h"><b>Sharpest in the group</b><span>tap a name for their bets</span></div>
+  ${st.length ? `<section class="xm-sec"><div class="pg-h"><b>Beer standings</b><span>who is up and who is down, open bets counted at today’s chances · tap a name</span></div>
     ${st.map((s, i) => xStRow(s, i)).join('')}</section>` : ''}
   <p class="pg-note">The chance moves as people bet: the book always takes the other side, so every bet goes on straight away.</p>`;
 }
@@ -3813,7 +3813,7 @@ function scrMine(rid) {
 
   <label class="minesay">
     <span class="sublede">Anything worth saying about hole ${hole.n}?</span>
-    <input class="field" id="mineText" data-act="mineText" data-b="${h}"
+    <input class="field" id="mineText" data-act="mineText" data-b="${h}" autocomplete="off"
       maxlength="140" placeholder="Tried to cut the corner. Did not cut the corner."
       value="${esc(text)}">
   </label>
@@ -5442,7 +5442,8 @@ function scrSetup() {
         ? `<button class="chip" data-act="unlockRound" data-a="${r.id}">Reopen</button>`
         : c.state === 'open'
           ? `<button class="chip" data-act="lockRound" data-a="${r.id}">Lock</button>`
-          : `<button class="chip" data-act="openRound" data-a="${r.id}">Open</button>`}</span></div>`;
+          : `<button class="chip" data-act="openRound" data-a="${r.id}">Open</button>`}${
+        UI.role === 'master' || !D.PINS_ENABLED ? `<button class="chip" data-act="resetRound" data-a="${r.id}">Clear</button>` : ''}</span></div>`;
   }).join('')}</div>
 
   <h3 class="sub">Start over</h3>
@@ -6981,6 +6982,13 @@ function paint() {
     if (i && document.activeElement !== i) { i.focus(); const n = i.value.length; try { i.setSelectionRange(n, n); } catch (e) { /* not a text box */ } } }
   else if (UI.modal && UI.modal.kind === 'add') { const i = document.getElementById('addName'); if (i) i.focus(); }
   else restoreFocus(focused);
+  /* A HOLE'S BOX HOLDS THAT HOLE'S LINE AND NOTHING ELSE. The box is rebuilt
+     with the hole, but a phone can hand the old text back to a field of the
+     same name; what the book drew is what the box shows. */
+  for (const id of ['mineText', 'feelText']) {
+    const f = document.getElementById(id);
+    if (f && f.value !== (f.getAttribute('value') || '')) f.value = f.getAttribute('value') || '';
+  }
 
   persistDraft();
 
@@ -7358,7 +7366,7 @@ function feelSheet(rid, h, hole) {
     : `<p class="lede">Yours, not the card's. The scorer's marks say what happened; this says what it felt like, and the recap reads both.</p>
       <div class="h3chips">${feelPicker(rid, h, on, m => `<button class="h3chip ${m.tone}${on.includes(m.key) ? ' on' : ''}"
         data-act="tglMine" data-a="${m.key}" data-b="${h}" aria-pressed="${on.includes(m.key)}"><b>${esc(m.label)}</b><span>${esc(m.hint)}</span></button>`)}</div>
-      <input class="field h3word" id="mineText" data-act="mineText" data-b="${h}" maxlength="140"
+      <input class="field h3word" id="mineText" data-act="mineText" data-b="${h}" maxlength="140" autocomplete="off"
         placeholder="A word on the hole, if you want one…" value="${esc(text)}" aria-label="A word on hole ${hole.n}">
       <div class="acts"><button class="btn" data-act="artFeel">Done</button></div>`}
   </div>`;
@@ -8986,10 +8994,16 @@ function onClick(e) {
       saveMe(UI.me);
       render();
       return;
-    case 'mineHole':
+    case 'mineHole': {
+      /* the line typed on the hole being left is kept, whether or not the
+         box got its blur first; the next hole's box starts empty */
+      const f = document.getElementById('mineText');
+      if (f && f.dataset.b != null) UI.mineDraft = { rid: UI.entryRound, h: +f.dataset.b, v: f.value };
+      if (UI.mineDraft) commitMine();
       UI.mineHole = +a;
       render();
       return;
+    }
     /* One mood for the round, and tapping the one already on takes it off —
        a mis-tap needs a way back and there is nothing here worth confirming. */
     case 'setMood': {
@@ -9221,6 +9235,10 @@ function onClick(e) {
       }, e => { UI.pinNote = /PIN/.test(String(e && e.message || '')) ? 'The server did not accept this phone\'s master PIN' : 'Could not reach the book — try again with a signal'; render(); });
       return;
     }
+    case 'resetRound':
+      askPinStrict('Clear ' + E.roundDef(a).short, 'Every card, bingo mark, note and report for ' + E.roundDef(a).short + ' only, on every device, and the round goes back to not yet open. The tee times and the nominated holes stay. Enter the master PIN.', 'Clear ' + E.roundDef(a).short,
+        role => { if (role !== 'master') return; store.resetRound(a).then(okd => flash(okd ? E.roundDef(a).short + ' cleared. Open it when you are ready.' : 'Could not clear it: no signal, or the PIN was not accepted.')); });
+      return;
     case 'resetScores':
       askPinStrict('Clear every score', 'Every card, point, note and report for every round, on every device. The roster, bands, pairs and calendar stay. Enter the master PIN.', 'Clear scores',
         role => { if (role !== 'master') return; store.resetScores(); UI.screen = 'today'; });

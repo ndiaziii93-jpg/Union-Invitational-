@@ -268,13 +268,6 @@ export function suggested(T, now) {
       rules: n => `Settles Yes the moment a ref marks ${n} for a three-putt in ${R}. No once it is locked. Only what the refs mark counts.`,
       settle: pid => (pid ? his('putt3', pid, r.id) : any('putt3', r.id)) ? 'yes' : fin ? 'no' : null });
   }
-  /* most shots of the hole, across the week: settles once it is all over */
-  const shots = Object.fromEntries(gs.map(g => [g.id, ROUNDS.reduce((n, r) => n + F[r.id][g.id].shots, 0)]));
-  const most = Math.max(0, ...Object.values(shots));
-  who({ group: 'shots', groupQ: 'Who plays the most shots of the hole this week?', each: 's_shots', p0: Math.max(3, Math.round(100 / Math.max(1, gs.length))),
-    q: n => `Will ${n} play the most shots of the hole this week?`,
-    rules: n => `Settles once Round 3 is locked, from the refs’ “shot of the hole” marks: Yes if ${n} has the most. A tie pays everyone tied; if nobody was marked, it is void.`,
-    settle: pid => !done ? null : most === 0 ? 'void' : shots[pid] === most ? 'yes' : 'no' });
 
   L.push({ id: 's_dinner', cat: 'trip', q: 'Will the closing dinner run past midnight?', p0: 60, settler: 'commish',
     rules: 'Settled by the commissioner: Yes if anyone from the group is still at the table after 12:00 am on Monday 2 November.' });

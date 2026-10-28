@@ -4937,7 +4937,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261028-1634';
+const BUILD = '20261028-1722';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -7830,13 +7830,6 @@ function suggested(T, now) {
       rules: n => `Settles Yes the moment a ref marks ${n} for a three-putt in ${R}. No once it is locked. Only what the refs mark counts.`,
       settle: pid => (pid ? his('putt3', pid, r.id) : any('putt3', r.id)) ? 'yes' : fin ? 'no' : null });
   }
-  /* most shots of the hole, across the week: settles once it is all over */
-  const shots = Object.fromEntries(gs.map(g => [g.id, ROUNDS.reduce((n, r) => n + F[r.id][g.id].shots, 0)]));
-  const most = Math.max(0, ...Object.values(shots));
-  who({ group: 'shots', groupQ: 'Who plays the most shots of the hole this week?', each: 's_shots', p0: Math.max(3, Math.round(100 / Math.max(1, gs.length))),
-    q: n => `Will ${n} play the most shots of the hole this week?`,
-    rules: n => `Settles once Round 3 is locked, from the refs’ “shot of the hole” marks: Yes if ${n} has the most. A tie pays everyone tied; if nobody was marked, it is void.`,
-    settle: pid => !done ? null : most === 0 ? 'void' : shots[pid] === most ? 'yes' : 'no' });
 
   L.push({ id: 's_dinner', cat: 'trip', q: 'Will the closing dinner run past midnight?', p0: 60, settler: 'commish',
     rules: 'Settled by the commissioner: Yes if anyone from the group is still at the table after 12:00 am on Monday 2 November.' });
@@ -10360,6 +10353,35 @@ function createStore(onChange) {
    *  the photo rows go too; the files
    *  behind them stay in the bucket, unreferenced. This is what is pressed
    *  the night before the trip to wipe the practice scores. */
+  /** One round back to the start: its cards, bingo, notes and report gone,
+   *  its state back to not yet open; tee times and nominated holes kept. */
+  async function resetRound(rid) {
+    if (tooEarly() || !rid) return false;
+    const fresh = defaultConfig();
+    const c = JSON.parse(JSON.stringify(T.config));
+    const was = (c.rounds || {})[rid] || {};
+    const base = (fresh.rounds || {})[rid] || {};
+    c.rounds = c.rounds || {};
+    c.rounds[rid] = { ...base, tees: was.tees || base.tees || [], ctpHole: was.ctpHole != null ? was.ctpHole : base.ctpHole, ldHole: was.ldHole != null ? was.ldHole : base.ldHole };
+    const mine = (coll, k) => coll === 'bbb' || coll === 'recaps' ? k === rid : k.startsWith(rid + '__');
+    const gone = [];
+    for (const coll of ['scores', 'bbb', 'notes', 'recaps']) {
+      for (const k of Object.keys(T[coll] || {})) if (mine(coll, k)) { delete T[coll][k]; delete rev[coll + '/' + k]; gone.push(coll + '/' + k); }
+    }
+    T.config = c;
+    bump('config', T.config);
+    notify();
+    if (mode === 'local') { saveLocal(); return true; }
+    try {
+      await db.doc('config/tournament').set(configOnly(T.config));
+      for (const coll of ['scores', 'bbb', 'notes', 'recaps']) {
+        const got = await db.collection(coll).get();
+        for (const d of got.docs) if (mine(coll, d.id)) await db.doc(coll + '/' + d.id).delete();
+      }
+      saveState = 'saved'; lastSavedAt = Date.now(); notify();
+      return true;
+    } catch (e) { status = 'error'; saveState = 'error'; notify(); return false; }
+  }
   async function resetScores() {
     if (tooEarly()) return false;
     const fresh = defaultConfig();
@@ -10384,7 +10406,7 @@ function createStore(onChange) {
     } catch (e) { status = 'error'; saveState = 'error'; notify(); return false; }
   }
 
-  return { T, connect, writeConfig, writeCard, writeBbb, writeNote, writeRecap, writePhoto, heartPhoto, movePhoto, dropPhoto, putSocial, patchSocial, dropSocial, writePush, resetScores, resave, note,
+  return { T, connect, writeConfig, writeCard, writeBbb, writeNote, writeRecap, writePhoto, heartPhoto, movePhoto, dropPhoto, putSocial, patchSocial, dropSocial, writePush, resetScores, resetRound, resave, note,
            get deviceId() { return deviceId; },
            writePerson, writeAllPeople, addPerson, removePerson,
            writePair, addPair, removePair, movePlayer, movePairBy,
@@ -11635,7 +11657,7 @@ function feelBar() {
       <button class="fb-skip" data-act="feelSkip" data-a="${rid}" data-b="${cur}">Skip</button></div>
     <div class="fb-chips">${feelPicker(rid, cur, on, m => `<button class="fb-chip ${m.tone}${on.includes(m.key) ? ' on' : ''}"
       data-act="feelMark" data-a="${m.key}" data-b="${cur}" data-c="${rid}" aria-pressed="${on.includes(m.key)}"><b>${esc(m.label)}</b><span>${esc(m.hint)}</span></button>`)}</div>
-    <div class="fb-row"><input class="field fb-word" id="feelText" data-b="${cur}" data-c="${rid}" maxlength="140"
+    <div class="fb-row"><input class="field fb-word" id="feelText" data-b="${cur}" data-c="${rid}" maxlength="140" autocomplete="off"
         placeholder="A word on it, if you want one…" value="${esc(text)}" aria-label="A word on hole ${hole.n}">
       <button class="btn fb-done" data-act="feelDone" data-a="${rid}" data-b="${cur}">Done</button></div>
   </aside>`;
@@ -12931,7 +12953,7 @@ function xList() {
   ${xAboutRow(all)}
   ${xTabsHtml(all, who ? null : tab)}
   ${body}
-  ${st.length ? `<section class="xm-sec"><div class="pg-h"><b>Sharpest in the group</b><span>tap a name for their bets</span></div>
+  ${st.length ? `<section class="xm-sec"><div class="pg-h"><b>Beer standings</b><span>who is up and who is down, open bets counted at today’s chances · tap a name</span></div>
     ${st.map((s, i) => xStRow(s, i)).join('')}</section>` : ''}
   <p class="pg-note">The chance moves as people bet: the book always takes the other side, so every bet goes on straight away.</p>`;
 }
@@ -14308,7 +14330,7 @@ function scrMine(rid) {
 
   <label class="minesay">
     <span class="sublede">Anything worth saying about hole ${hole.n}?</span>
-    <input class="field" id="mineText" data-act="mineText" data-b="${h}"
+    <input class="field" id="mineText" data-act="mineText" data-b="${h}" autocomplete="off"
       maxlength="140" placeholder="Tried to cut the corner. Did not cut the corner."
       value="${esc(text)}">
   </label>
@@ -15937,7 +15959,8 @@ function scrSetup() {
         ? `<button class="chip" data-act="unlockRound" data-a="${r.id}">Reopen</button>`
         : c.state === 'open'
           ? `<button class="chip" data-act="lockRound" data-a="${r.id}">Lock</button>`
-          : `<button class="chip" data-act="openRound" data-a="${r.id}">Open</button>`}</span></div>`;
+          : `<button class="chip" data-act="openRound" data-a="${r.id}">Open</button>`}${
+        UI.role === 'master' || !D.PINS_ENABLED ? `<button class="chip" data-act="resetRound" data-a="${r.id}">Clear</button>` : ''}</span></div>`;
   }).join('')}</div>
 
   <h3 class="sub">Start over</h3>
@@ -17476,6 +17499,13 @@ function paint() {
     if (i && document.activeElement !== i) { i.focus(); const n = i.value.length; try { i.setSelectionRange(n, n); } catch (e) { /* not a text box */ } } }
   else if (UI.modal && UI.modal.kind === 'add') { const i = document.getElementById('addName'); if (i) i.focus(); }
   else restoreFocus(focused);
+  /* A HOLE'S BOX HOLDS THAT HOLE'S LINE AND NOTHING ELSE. The box is rebuilt
+     with the hole, but a phone can hand the old text back to a field of the
+     same name; what the book drew is what the box shows. */
+  for (const id of ['mineText', 'feelText']) {
+    const f = document.getElementById(id);
+    if (f && f.value !== (f.getAttribute('value') || '')) f.value = f.getAttribute('value') || '';
+  }
 
   persistDraft();
 
@@ -17853,7 +17883,7 @@ function feelSheet(rid, h, hole) {
     : `<p class="lede">Yours, not the card's. The scorer's marks say what happened; this says what it felt like, and the recap reads both.</p>
       <div class="h3chips">${feelPicker(rid, h, on, m => `<button class="h3chip ${m.tone}${on.includes(m.key) ? ' on' : ''}"
         data-act="tglMine" data-a="${m.key}" data-b="${h}" aria-pressed="${on.includes(m.key)}"><b>${esc(m.label)}</b><span>${esc(m.hint)}</span></button>`)}</div>
-      <input class="field h3word" id="mineText" data-act="mineText" data-b="${h}" maxlength="140"
+      <input class="field h3word" id="mineText" data-act="mineText" data-b="${h}" maxlength="140" autocomplete="off"
         placeholder="A word on the hole, if you want one…" value="${esc(text)}" aria-label="A word on hole ${hole.n}">
       <div class="acts"><button class="btn" data-act="artFeel">Done</button></div>`}
   </div>`;
@@ -19481,10 +19511,16 @@ function onClick(e) {
       saveMe(UI.me);
       render();
       return;
-    case 'mineHole':
+    case 'mineHole': {
+      /* the line typed on the hole being left is kept, whether or not the
+         box got its blur first; the next hole's box starts empty */
+      const f = document.getElementById('mineText');
+      if (f && f.dataset.b != null) UI.mineDraft = { rid: UI.entryRound, h: +f.dataset.b, v: f.value };
+      if (UI.mineDraft) commitMine();
       UI.mineHole = +a;
       render();
       return;
+    }
     /* One mood for the round, and tapping the one already on takes it off —
        a mis-tap needs a way back and there is nothing here worth confirming. */
     case 'setMood': {
@@ -19716,6 +19752,10 @@ function onClick(e) {
       }, e => { UI.pinNote = /PIN/.test(String(e && e.message || '')) ? 'The server did not accept this phone\'s master PIN' : 'Could not reach the book — try again with a signal'; render(); });
       return;
     }
+    case 'resetRound':
+      askPinStrict('Clear ' + E.roundDef(a).short, 'Every card, bingo mark, note and report for ' + E.roundDef(a).short + ' only, on every device, and the round goes back to not yet open. The tee times and the nominated holes stay. Enter the master PIN.', 'Clear ' + E.roundDef(a).short,
+        role => { if (role !== 'master') return; store.resetRound(a).then(okd => flash(okd ? E.roundDef(a).short + ' cleared. Open it when you are ready.' : 'Could not clear it: no signal, or the PIN was not accepted.')); });
+      return;
     case 'resetScores':
       askPinStrict('Clear every score', 'Every card, point, note and report for every round, on every device. The roster, bands, pairs and calendar stay. Enter the master PIN.', 'Clear scores',
         role => { if (role !== 'master') return; store.resetScores(); UI.screen = 'today'; });

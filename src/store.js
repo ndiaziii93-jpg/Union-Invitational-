@@ -1099,6 +1099,35 @@ export function createStore(onChange) {
    *  the photo rows go too; the files
    *  behind them stay in the bucket, unreferenced. This is what is pressed
    *  the night before the trip to wipe the practice scores. */
+  /** One round back to the start: its cards, bingo, notes and report gone,
+   *  its state back to not yet open; tee times and nominated holes kept. */
+  async function resetRound(rid) {
+    if (tooEarly() || !rid) return false;
+    const fresh = defaultConfig();
+    const c = JSON.parse(JSON.stringify(T.config));
+    const was = (c.rounds || {})[rid] || {};
+    const base = (fresh.rounds || {})[rid] || {};
+    c.rounds = c.rounds || {};
+    c.rounds[rid] = { ...base, tees: was.tees || base.tees || [], ctpHole: was.ctpHole != null ? was.ctpHole : base.ctpHole, ldHole: was.ldHole != null ? was.ldHole : base.ldHole };
+    const mine = (coll, k) => coll === 'bbb' || coll === 'recaps' ? k === rid : k.startsWith(rid + '__');
+    const gone = [];
+    for (const coll of ['scores', 'bbb', 'notes', 'recaps']) {
+      for (const k of Object.keys(T[coll] || {})) if (mine(coll, k)) { delete T[coll][k]; delete rev[coll + '/' + k]; gone.push(coll + '/' + k); }
+    }
+    T.config = c;
+    bump('config', T.config);
+    notify();
+    if (mode === 'local') { saveLocal(); return true; }
+    try {
+      await db.doc('config/tournament').set(configOnly(T.config));
+      for (const coll of ['scores', 'bbb', 'notes', 'recaps']) {
+        const got = await db.collection(coll).get();
+        for (const d of got.docs) if (mine(coll, d.id)) await db.doc(coll + '/' + d.id).delete();
+      }
+      saveState = 'saved'; lastSavedAt = Date.now(); notify();
+      return true;
+    } catch (e) { status = 'error'; saveState = 'error'; notify(); return false; }
+  }
   async function resetScores() {
     if (tooEarly()) return false;
     const fresh = defaultConfig();
@@ -1123,7 +1152,7 @@ export function createStore(onChange) {
     } catch (e) { status = 'error'; saveState = 'error'; notify(); return false; }
   }
 
-  return { T, connect, writeConfig, writeCard, writeBbb, writeNote, writeRecap, writePhoto, heartPhoto, movePhoto, dropPhoto, putSocial, patchSocial, dropSocial, writePush, resetScores, resave, note,
+  return { T, connect, writeConfig, writeCard, writeBbb, writeNote, writeRecap, writePhoto, heartPhoto, movePhoto, dropPhoto, putSocial, patchSocial, dropSocial, writePush, resetScores, resetRound, resave, note,
            get deviceId() { return deviceId; },
            writePerson, writeAllPeople, addPerson, removePerson,
            writePair, addPair, removePair, movePlayer, movePairBy,
