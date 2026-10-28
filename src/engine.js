@@ -1584,7 +1584,9 @@ export function holeCells(T, roundId, pair) {
 
 /* ---------- setup readiness ---------- */
 
-export function setupIssues(T) {
+/* `serverPins`: the PINs live on the server, set from its SQL editor, and the
+   config no longer carries them or the flag that said they were changed. */
+export function setupIssues(T, serverPins) {
   const out = [];
   const noBand = golfers(T).filter(g => g.band == null);
   if (noBand.length) out.push({
@@ -1609,7 +1611,7 @@ export function setupIssues(T) {
     text: (unver.length === 2 ? 'Both course cards are' : unver[0] + '\u2019s card is') + ' not verified. Every net score on '
         + (unver.length === 2 ? 'them' : 'it') + ' is provisional until par and stroke index are confirmed.',
   });
-  if (PINS_ENABLED && !T.config.pinsChanged) out.push({
+  if (PINS_ENABLED && !T.config.pinsChanged && !serverPins) out.push({
     id: 'pins', screen: 'setup', cta: 'Change PINs',
     text: 'The scoring PINs are still the factory defaults. Change them before the first round.',
   });

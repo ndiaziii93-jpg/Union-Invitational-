@@ -177,7 +177,8 @@ await shut();
 /* The watch: a phone holding the master PIN has the security panel and the
    bar; with no signal the panel says so rather than showing nothing. */
 console.log('\nthe watch, on the master\'s phone');
-await p.evaluate(() => { localStorage.setItem('union-invitational:role', JSON.stringify({ role: 'master', pin: '123456' })); window.__UI.role = 'master'; window.__UI.screen = 'setup'; window.__forceRender(); });
+/* the chat sheet from the section above is closed first: the Setup pop-up that used to close it over no longer comes up when the server holds the PINs */
+await p.evaluate(() => { localStorage.setItem('union-invitational:role', JSON.stringify({ role: 'master', pin: '123456' })); window.__UI.role = 'master'; window.__UI.screen = 'setup'; window.__UI.modal = null; window.__forceRender(); });
 await p.waitForTimeout(400); await shut();
 ok('Setup carries a Security panel for the master PIN', await p.locator('.secpanel').count(), 1);
 await p.locator('[data-act="secRefresh"]').click({ force: true }); await p.waitForTimeout(3000);

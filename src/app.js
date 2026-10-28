@@ -235,6 +235,8 @@ function markFeelSeen(rid, h) {
 const loaded = () => meta.settled !== false || !!meta.fromDevice;
 const canEdit = () => loaded() && (!D.PINS_ENABLED || S.ROLES[UI.role].canEdit);
 const canAdmin = () => loaded() && (!D.PINS_ENABLED || S.ROLES[UI.role].canAdmin);
+/* what is still to settle; with the book on its server the PINs are the server's, not a setup step */
+const setupIssues = () => E.setupIssues(T, !!(store && store.backend === 'supabase'));
 /* The week is the master reviewer's once PINs are armed: a scorer's PIN
    scores, it does not move dinner. With PINs off, anyone who can score may
    change the week until it is locked. */
@@ -5427,7 +5429,7 @@ function scrSetup() {
   if (!canAdmin()) return `<h2 class="head">Setup</h2><p class="empty">The master PIN opens this screen.</p>
     <button class="btn" data-act="signIn">Enter PIN</button>`;
   const p = store && store.backend === 'supabase' ? { master: true, s1: true, s2: true } : (T.config.pins || {});
-  const outstanding = E.setupIssues(T).length;
+  const outstanding = setupIssues().length;
   return `${manageHead('Setup', 'Manage \u00B7 master reviewer', [
       [D.PINS_ENABLED ? 'On' : 'Off', 'PINs', !D.PINS_ENABLED],
       [store && store.backend === 'supabase' ? 'Server' : 'Phone', 'Checked by'],
@@ -6332,7 +6334,7 @@ function manageModalHtml() {
       <span class="mg-go" aria-hidden="true">&rsaquo;</span></button>
     <div class="mglist">
       ${manageRows().map(([id, label, note]) => {
-        const n = id === 'setup' ? E.setupIssues(T).length : 0;
+        const n = id === 'setup' ? setupIssues().length : 0;
         return `<button class="mg-row${here === id ? ' on' : ''}" data-act="${manageAct(id)}" data-a="${id === 'setup' && !canAdmin() ? 'all' : id}">
           <span class="mg-w"><span class="mg-t">${esc(label)}</span>
             <span class="mg-n">${esc(note)}</span></span>
@@ -7051,7 +7053,7 @@ const SETUP_SCOPES = {
 
 function setupModalHtml() {
   const scope = SETUP_SCOPES[(UI.modal && UI.modal.scope) || 'all'] || SETUP_SCOPES.all;
-  const issues = E.setupIssues(T).filter(i => !scope.only || scope.only.includes(i.id));
+  const issues = setupIssues().filter(i => !scope.only || scope.only.includes(i.id));
   if (!issues.length) {
     return `<div class="scrim" data-act="modalScrim"><div class="modal" role="dialog" aria-modal="true" aria-label="Setup complete">
       ${modalBanner('Nothing outstanding', 'Setup')}<p>${esc(scope.clear)}</p>
@@ -7175,7 +7177,7 @@ function datelineRail() {
  * is handled.
  */
 function stickyTop(role) {
-  const n = E.setupIssues(T).length;
+  const n = setupIssues().length;
   const nt = E.nextTee(T, now);
   const when = nt ? (nt.day.iso === now.iso ? '' : nt.day.dow.slice(0, 3) + ' ') + E.to12(nt.time) : '';
   /* The shield on the strip is the same door as the shield on the
@@ -7486,7 +7488,7 @@ function stopGps() {
  * the band.
  */
 function manageDial(role) {
-  return dialMark(role, E.setupIssues(T).length, '');
+  return dialMark(role, setupIssues().length, '');
 }
 
 /* The same mark twice: once on the nameplate, once on the strip that stays
@@ -8277,7 +8279,7 @@ function onClick(e) {
         goTo(a); UI.modal = null;
         if (!UI.entrySeen) {
           UI.entrySeen = true;
-          if (E.setupIssues(T).some(i => SETUP_SCOPES.entry.only.includes(i.id))) UI.modal = { kind: 'setup', scope: 'entry' };
+          if (setupIssues().some(i => SETUP_SCOPES.entry.only.includes(i.id))) UI.modal = { kind: 'setup', scope: 'entry' };
         }
         render();
         return;
@@ -8287,7 +8289,7 @@ function onClick(e) {
         goTo(a); UI.modal = null;
         if (a === 'entry' && !UI.entrySeen) {
           UI.entrySeen = true;
-          if (E.setupIssues(T).some(i => SETUP_SCOPES.entry.only.includes(i.id))) UI.modal = { kind: 'setup', scope: 'entry' };
+          if (setupIssues().some(i => SETUP_SCOPES.entry.only.includes(i.id))) UI.modal = { kind: 'setup', scope: 'entry' };
         }
       });
       return;
@@ -9734,7 +9736,7 @@ export function boot() {
       UI.setupSeen = true;
       const saved = loadRole();
       if (saved && S.ROLES[saved.role] && saved.role !== 'viewer') UI.role = saved.role;
-      if (E.setupIssues(T).length) UI.modal = { kind: 'setup' };
+      if (setupIssues().length) UI.modal = { kind: 'setup' };
     }
     checkRole();
     render();
