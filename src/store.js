@@ -1099,6 +1099,16 @@ export function createStore(onChange) {
    *  the photo rows go too; the files
    *  behind them stay in the bucket, unreferenced. This is what is pressed
    *  the night before the trip to wipe the practice scores. */
+  /** A round's groups back on the booked first tee, eight minutes apart; the groups themselves stay. */
+  async function resetTees(rid) {
+    if (tooEarly() || !rid) return false;
+    const def = ROUNDS.find(r => r.id === rid);
+    if (!def) return false;
+    return writeConfig(c => {
+      const r = c.rounds[rid]; if (!r) return;
+      r.tees = (r.tees || []).map((t, i) => ({ ...t, time: i === 0 || (t.players || []).length || t.time ? plusMins(def.firstTee, TEE_GAP_MIN * i) : null }));
+    });
+  }
   /** One round back to the start: its cards, bingo, notes and report gone,
    *  its state back to not yet open; tee times and nominated holes kept. */
   async function resetRound(rid) {
@@ -1152,7 +1162,7 @@ export function createStore(onChange) {
     } catch (e) { status = 'error'; saveState = 'error'; notify(); return false; }
   }
 
-  return { T, connect, writeConfig, writeCard, writeBbb, writeNote, writeRecap, writePhoto, heartPhoto, movePhoto, dropPhoto, putSocial, patchSocial, dropSocial, writePush, resetScores, resetRound, resave, note,
+  return { T, connect, writeConfig, writeCard, writeBbb, writeNote, writeRecap, writePhoto, heartPhoto, movePhoto, dropPhoto, putSocial, patchSocial, dropSocial, writePush, resetScores, resetRound, resetTees, resave, note,
            get deviceId() { return deviceId; },
            writePerson, writeAllPeople, addPerson, removePerson,
            writePair, addPair, removePair, movePlayer, movePairBy,

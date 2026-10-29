@@ -284,7 +284,7 @@ console.log('\nthe panel on Today');
   T.notes = {};
   for (const id of ['a', 'b']) {
     const c = blankCard();
-    for (let h = 0; h < 18; h++) c.raw[h] = COURSES.olympos.holes[h].par + 1;
+    for (let h = 0; h < 18; h++) c.raw[h] = COURSES.aspendos.holes[h].par + 1;
     T.scores['r1__' + id] = c;
   }
   const before = {

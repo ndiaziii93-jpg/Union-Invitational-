@@ -81,8 +81,11 @@ export const PAIRS = [
    feed the championship. Every round starts closed and empty. */
 export const ROUNDS = [
   { id: 'practice', label: 'Practice — Get Loose Foursomes', full: 'Practice — Get Loose Foursomes', short: 'Practice', dayIdx: 2, course: 'aspendos', format: 'Get Loose — Foursomes',     counts: false, firstTee: '08:30', noMulligans: false },
-  { id: 'r1',       label: 'Round 1 — Team Stableford',      full: 'Round 1 — Four-ball Stableford team play', short: 'R1',       dayIdx: 4, course: 'olympos',  format: 'Better Ball',               counts: true,  firstTee: '08:30', noMulligans: false },
-  { id: 'r2',       label: 'Round 2 — Team Stableford',      full: 'Round 2 — Four-ball Stableford team play', short: 'R2',       dayIdx: 5, course: 'aspendos', format: 'Better Ball',               counts: true,  firstTee: '12:15', noMulligans: false },
+  /* Thursday's Olympos tee was moved by the resort to Saturday 8:40, so the
+     counting rounds run Friday (Aspendos, 12:15 as booked), Saturday
+     (Olympos, 8:40) and Sunday. Thursday is a day off the course. */
+  { id: 'r1',       label: 'Round 1 — Team Stableford',      full: 'Round 1 — Four-ball Stableford team play', short: 'R1',       dayIdx: 5, course: 'aspendos', format: 'Better Ball',               counts: true,  firstTee: '12:15', noMulligans: false },
+  { id: 'r2',       label: 'Round 2 — Team Stableford',      full: 'Round 2 — Four-ball Stableford team play', short: 'R2',       dayIdx: 6, course: 'olympos',  format: 'Better Ball',               counts: true,  firstTee: '08:40', noMulligans: false },
   { id: 'r3',       label: 'Round 3 — Championship Final',   full: 'Round 3 — Championship Final', short: 'R3',       dayIdx: 7, course: 'olympos',  format: 'Better Ball — championship final', counts: true, firstTee: '12:15', noMulligans: true },
 ];
 

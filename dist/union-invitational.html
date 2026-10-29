@@ -4944,7 +4944,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261028-1929';
+const BUILD = '20261029-0441';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -5014,8 +5014,11 @@ const PAIRS = [
    feed the championship. Every round starts closed and empty. */
 const ROUNDS = [
   { id: 'practice', label: 'Practice — Get Loose Foursomes', full: 'Practice — Get Loose Foursomes', short: 'Practice', dayIdx: 2, course: 'aspendos', format: 'Get Loose — Foursomes',     counts: false, firstTee: '08:30', noMulligans: false },
-  { id: 'r1',       label: 'Round 1 — Team Stableford',      full: 'Round 1 — Four-ball Stableford team play', short: 'R1',       dayIdx: 4, course: 'olympos',  format: 'Better Ball',               counts: true,  firstTee: '08:30', noMulligans: false },
-  { id: 'r2',       label: 'Round 2 — Team Stableford',      full: 'Round 2 — Four-ball Stableford team play', short: 'R2',       dayIdx: 5, course: 'aspendos', format: 'Better Ball',               counts: true,  firstTee: '12:15', noMulligans: false },
+  /* Thursday's Olympos tee was moved by the resort to Saturday 8:40, so the
+     counting rounds run Friday (Aspendos, 12:15 as booked), Saturday
+     (Olympos, 8:40) and Sunday. Thursday is a day off the course. */
+  { id: 'r1',       label: 'Round 1 — Team Stableford',      full: 'Round 1 — Four-ball Stableford team play', short: 'R1',       dayIdx: 5, course: 'aspendos', format: 'Better Ball',               counts: true,  firstTee: '12:15', noMulligans: false },
+  { id: 'r2',       label: 'Round 2 — Team Stableford',      full: 'Round 2 — Four-ball Stableford team play', short: 'R2',       dayIdx: 6, course: 'olympos',  format: 'Better Ball',               counts: true,  firstTee: '08:40', noMulligans: false },
   { id: 'r3',       label: 'Round 3 — Championship Final',   full: 'Round 3 — Championship Final', short: 'R3',       dayIdx: 7, course: 'olympos',  format: 'Better Ball — championship final', counts: true, firstTee: '12:15', noMulligans: true },
 ];
 
@@ -5079,7 +5082,7 @@ const __m_rules = (function(){
 
 const RULES = [
   { id: 'pairs', name: 'Team Competition', tag: 'The main event. Fixed pairs, four-ball Stableford: points, not strokes.',
-    when: 'Rounds 1–3 (Thu, Fri, Sun). Sunday is the final.',
+    when: 'Rounds 1–3 (Fri, Sat, Sun). Sunday is the final.',
     won: 'Most Stableford points across the three counting rounds.',
     /* the points, on one card: net score against par on the hole, after the
        strokes the team-game handicap gives there are taken off */
@@ -5090,7 +5093,7 @@ const RULES = [
       'You and your partner each play your own ball on every hole, and each of you scores the hole in points against par, with your strokes taken off first: net bogey 1 point, net par 2, net birdie 3, net eagle 4, an albatross 5. Worse than net bogey is nought — so once you cannot make net bogey, pick up and walk; the hole is nought either way and the group keeps moving (Rule 21.1). The better of your two points is the team’s score for the hole; the other is thrown away (Rule 23).',
       'The handicap in this game is the USGA’s for the format: 85% of your handicap, rounded to the nearest stroke (Rules of Handicapping, Appendix C, Four-Ball Stableford). A 20 plays off 17, a 25 off 21, a 30 off 26. The team’s handicap is the two of those together, and what it buys is where each partner’s strokes land — one a hole up to the number, a second on the lowest stroke indexes for anything over eighteen. The MVP and the cup still use the full handicap.',
       'Why points: a blow-up costs you a hole, never the round. A 9 is nought, the same as a 7 — and your partner’s par is still 2 for the team. The triple-bogey cap is a pace rule for the card and the MVP; Stableford needs no cap.',
-      'The points add up across Thursday, Friday and Sunday. Tuesday’s practice round feeds nothing.',
+      'The points add up across Friday, Saturday and Sunday. Tuesday’s practice round feeds nothing.',
       'Tie: shared until the final; a tie after Sunday is settled by the better Sunday round, then the back nine, in points.',
     ],
     example: 'Hole 7, par 5, stroke index 3. Norberto III (handicap 20, 17 in the team game) takes 6 gross, receives 1 stroke: net 5, par, 2 points. Norberto Jr. (handicap 25, 21 in the team game) takes 7 gross, receives 2 strokes: net 5, par, 2 points. The team scores 2. Had Jr. taken 9 — nought — the team still scores III’s 2.' },
@@ -5103,7 +5106,7 @@ const RULES = [
       'It runs independently of the pairs: you can carry your pair and lose the MVP, or ride your partner all week and win it.',
       'Tie: better Sunday round, then the back nine.',
     ],
-    example: 'Manuel P plays off band 25, so he receives 25 strokes across the round. A 92 gross on Thursday is net 67 — five under a par 72. That is his MVP number for the day regardless of what Matt D scored.' },
+    example: 'Manuel P plays off band 25, so he receives 25 strokes across the round. A 92 gross on Friday is net 67 — five under a par 72. That is his MVP number for the day regardless of what Matt D scored.' },
 
   { id: 'bbb', name: 'Bingo Bango Bongo', tag: 'Three points a hole for being first, closest, and done.',
     when: 'Rounds 1–3. 54 points a round, 162 in all.',
@@ -5134,10 +5137,10 @@ const RULES = [
       'A marker walks out with the current leader’s name on it. Beat it and the marker moves.',
       'Tie: measured again; a true tie shares the prize.',
     ],
-    example: 'Thursday, nominated hole 16. DP finds the fairway at 260 m; Devin O goes past him but into the rough. DP keeps the marker.' },
+    example: 'Friday, nominated hole 16. DP finds the fairway at 260 m; Devin O goes past him but into the rough. DP keeps the marker.' },
 
   { id: 'ryder', name: 'Ryder Cup — UK vs USA', tag: 'Squad match play laid over the same scorecards. No extra golf.',
-    when: 'Singles all three sessions — Thursday, Friday and Sunday.',
+    when: 'Singles all three sessions — Friday, Saturday and Sunday.',
     won: 'Most match points across the three sessions. One point per match, half each if all square.',
     /* how a point is earned, on one card: the hole, the match, the cup */
     table: { title: 'How the points come', note: 'Net score on a hole is your strokes after the ones your full handicap gives you there are taken off. The pairs do not come into it: the cup is you against one opponent.',
@@ -5147,7 +5150,7 @@ const RULES = [
              ['Win the cup', '6½ of the 12 points across the three sessions', 'the cup']] },
     body: [
       'Every golfer belongs to a squad — UK or USA — set on the Ryder Cup screen. The matches are scored off the identical cards that feed everything else. No extra golf, no separate card.',
-      'Every session is head-to-head net singles: one UK golfer against one USA golfer, hole by hole, match play. Thursday and Friday run alongside the team Stableford rounds; Sunday runs alongside the championship final. You play your own ball in the cup whatever the day’s team format is.',
+      'Every session is head-to-head net singles: one UK golfer against one USA golfer, hole by hole, match play. Friday and Saturday run alongside the team Stableford rounds; Sunday runs alongside the championship final. You play your own ball in the cup whatever the day’s team format is.',
       'A hole is won like this. Take the gross. Cap it at triple bogey first — a blow-up hole counts as par plus three and no worse. Then take off the strokes your band gives on that hole’s stroke index. Lower net takes the hole; equal nets halve it. Tap the result on any match to see that working, hole by hole.',
       'The match closes the moment the lead is bigger than the holes left — that is what “3&2” means, three up with two to play. Otherwise it runs to the 18th. Win the match and your squad takes a point; all square after eighteen and it is half each. A match still on the course is worth nothing yet, which is why the boards say how many are still out.',
       'With four a side that is four matches a session and twelve points across the week, so six and a half wins the cup. The draw is redrawn each session, so you do not meet the same opponent twice. If the squads are uneven, the bigger squad rotates: whoever sits out on Thursday is in on Friday, and everyone plays at least twice.',
@@ -5156,7 +5159,7 @@ const RULES = [
       'Match play notation: “2 up” means two holes ahead with holes left. “All square” is level. “Dormie” is up by exactly the number left.',
       'Tie: if the cup finishes level, it is shared — and argued about at Mandatory Team Beers.',
     ],
-    example: 'Thursday singles, hole 9 at Olympos — par 4, stroke index 5. Duncan W plays off band 25 and receives two strokes there; Ray V plays off band 20 and receives one. Duncan takes 6 gross, net 4. Ray takes 5 gross, net 4. The hole is halved, and the five gross beat the six for nothing. Duncan closes the match 3&2 on the 16th: one point to the United Kingdom.' },
+    example: 'Saturday singles, hole 9 at Olympos — par 4, stroke index 5. Duncan W plays off band 25 and receives two strokes there; Ray V plays off band 20 and receives one. Duncan takes 6 gross, net 4. Ray takes 5 gross, net 4. The hole is halved, and the five gross beat the six for nothing. Duncan closes the match 3&2 on the 16th: one point to the United Kingdom.' },
 ];
 
 const RELIEF = {
@@ -5178,7 +5181,7 @@ const RELIEF = {
      is measured by all week. */
   bandNote: 'Give yourself a handicap for Tuesday. The practice round is scored gross and feeds nothing, so it '
     + 'costs you nothing to be wrong — and the Practice Day board reads every card back and says whether the '
-    + 'handicap you chose is the one you should take into Thursday. A scorer settles them before Round 1, and '
+    + 'handicap you chose is the one you should take into Friday. A scorer settles them before Round 1, and '
     + 'after that they are fixed for the week.',
 };
 
@@ -10377,6 +10380,16 @@ function createStore(onChange) {
    *  the photo rows go too; the files
    *  behind them stay in the bucket, unreferenced. This is what is pressed
    *  the night before the trip to wipe the practice scores. */
+  /** A round's groups back on the booked first tee, eight minutes apart; the groups themselves stay. */
+  async function resetTees(rid) {
+    if (tooEarly() || !rid) return false;
+    const def = ROUNDS.find(r => r.id === rid);
+    if (!def) return false;
+    return writeConfig(c => {
+      const r = c.rounds[rid]; if (!r) return;
+      r.tees = (r.tees || []).map((t, i) => ({ ...t, time: i === 0 || (t.players || []).length || t.time ? plusMins(def.firstTee, TEE_GAP_MIN * i) : null }));
+    });
+  }
   /** One round back to the start: its cards, bingo, notes and report gone,
    *  its state back to not yet open; tee times and nominated holes kept. */
   async function resetRound(rid) {
@@ -10430,7 +10443,7 @@ function createStore(onChange) {
     } catch (e) { status = 'error'; saveState = 'error'; notify(); return false; }
   }
 
-  return { T, connect, writeConfig, writeCard, writeBbb, writeNote, writeRecap, writePhoto, heartPhoto, movePhoto, dropPhoto, putSocial, patchSocial, dropSocial, writePush, resetScores, resetRound, resave, note,
+  return { T, connect, writeConfig, writeCard, writeBbb, writeNote, writeRecap, writePhoto, heartPhoto, movePhoto, dropPhoto, putSocial, patchSocial, dropSocial, writePush, resetScores, resetRound, resetTees, resave, note,
            get deviceId() { return deviceId; },
            writePerson, writeAllPeople, addPerson, removePerson,
            writePair, addPair, removePair, movePlayer, movePairBy,
@@ -11389,7 +11402,7 @@ function bandModalHtml() {
     role="dialog" aria-modal="true" aria-label="The handicap read">
     ${modalBanner('The handicap read', 'Practice Day · the audition')}
     <p class="br-lede">A handicap IS the strokes you receive, so it is right when your net lands near level par.
-    This holds how far over par each card actually went — capped at triple bogey, exactly as Thursday will cap it,
+    This holds how far over par each card actually went — capped at triple bogey, exactly as Friday will cap it,
     and projected to eighteen if the round was short — against the handicap that golfer chose.
     <b>It is a read, not a ruling.</b> One round is thin evidence and the handicap is a scorer&rsquo;s to set.</p>
     ${mine && (s.moves || s.unset)
@@ -11459,7 +11472,7 @@ function boardPractice() {
   <h3 class="sub">The day's card</h3>
   <p class="lede" style="margin-bottom:0">Scored gross, so a golfer with no band yet still has a card; under each raw score is the
   same round net, with the band’s strokes and the triple-bogey cap, for anyone who has a band. What the day is
-  for is the handicap read under it: whether the handicap you chose is the one to take into Thursday.</p>
+  for is the handicap read under it: whether the handicap you chose is the one to take into Friday.</p>
   <div class="rows pboard" style="margin-top:8px">
     <div class="rowhead"><span class="p-pos">#</span><span class="p-who">Golfer</span>
       <span class="p-band">Hcp</span>
@@ -16036,7 +16049,7 @@ function scrSetup() {
         : c.state === 'open'
           ? `<button class="chip" data-act="lockRound" data-a="${r.id}">Lock</button>`
           : `<button class="chip" data-act="openRound" data-a="${r.id}">Open</button>`}${
-        UI.role === 'master' || !D.PINS_ENABLED ? `<button class="chip" data-act="resetRound" data-a="${r.id}">Clear</button>` : ''}</span></div>`;
+        UI.role === 'master' || !D.PINS_ENABLED ? `<button class="chip" data-act="resetRound" data-a="${r.id}">Clear</button><button class="chip" data-act="resetTees" data-a="${r.id}" title="Put the groups back on the booked first tee, ${esc(E.to12(r.firstTee))}, eight minutes apart">Times to ${esc(E.to12(r.firstTee))}</button>` : ''}</span></div>`;
   }).join('')}</div>
 
   <h3 class="sub">Start over</h3>
@@ -19848,6 +19861,13 @@ function onClick(e) {
         UI.pinNote = /^PIN not accepted/.test(m) ? 'The server did not accept this phone\'s master PIN' + (/not the master phone|blocked/.test(m) ? ': ' + m.replace(/^PIN not accepted:?\s*/, '') : '')
           : /\bPIN\b|digits|denied/i.test(m) ? 'The server said no: ' + m : 'Could not reach the book — try again with a signal'; render(); });
       return;
+    }
+    case 'resetTees': {
+      const r = E.roundDef(a);
+      UI.modal = { kind: 'confirm', eyebrow: 'Tee times', title: 'Put ' + r.short + ' back on ' + E.to12(r.firstTee) + '?',
+        note: 'The groups stay as they are; their times become ' + E.to12(r.firstTee) + ' and then eight minutes apart, as booked. Everyone sees the new times.',
+        ok: 'Set the times', onOk: () => { store.resetTees(a).then(okd => flash(okd ? r.short + ' tees off at ' + E.to12(r.firstTee) + '.' : 'Could not change the times: no signal, or not the master PIN.')); } };
+      render(); return;
     }
     case 'resetRound':
       askPinStrict('Clear ' + E.roundDef(a).short, 'Every card, bingo mark, note and report for ' + E.roundDef(a).short + ' only, on every device, and the round goes back to not yet open. The tee times and the nominated holes stay. Enter the master PIN.', 'Clear ' + E.roundDef(a).short,

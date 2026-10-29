@@ -135,14 +135,14 @@ ok('it opens on the bets', await p.locator('.xm-top .head').innerText(), 'Bets')
 console.log('\nall in beers');
 ok('everyone starts on twenty beers', (await p.locator('.xm-bal').innerText()).trim(), '🍺 20 · My bets');
 ok('tabs: the week, a tab a round, off the course, ours', await p.locator('.xm-tabs button').evaluateAll(b => b.map(x => x.dataset.a)), ['week', 'r1', 'r2', 'r3', 'off', 'ours', 'cashed']);
-ok('it opens on the round being played, live', [await p.locator('.xm-tabs button.on').getAttribute('data-a'), await p.locator('.xm-plate b').innerText(), await p.locator('.xm-plate .k').textContent()], ['r1', 'Round 1 · Thu 29 Oct', '● Live now']);
+ok('it opens on the round being played, live', [await p.locator('.xm-tabs button.on').getAttribute('data-a'), await p.locator('.xm-plate b').innerText(), await p.locator('.xm-plate .k').textContent()], ['r1', 'Round 1 · Fri 30 Oct', '● Live now']);
 await tap('[data-act="xTab"][data-a="week"]');
 const qs = await p.locator('.xm-c .xm-ct b').allInnerTexts();
 ok('the week holds the bets that run all week, a who-card for each anyone question', ['Who wins MVP?', 'Who wins the Team Competition?', 'Will the United Kingdom win the Ryder Cup?',
   'Who makes a hole in one this week?', 'Who makes an eagle this week?'].every(q => qs.includes(q)) && !qs.some(q => /Round|pool/.test(q)), true);
 await tap('[data-act="xTab"][data-a="r2"]');
 ok('a round’s tab says which round, and its bets drop the “Round 2:”', [await p.locator('.xm-plate b').innerText(), (await p.locator('.xm-c .xm-ct b').allInnerTexts()).sort()],
-  ['Round 2 · Fri 30 Oct', ['Who birdies a par 3?', 'Who finds the water?', 'Who finishes under par, net?', 'Who three-putts?']]);
+  ['Round 2 · Sat 31 Oct', ['Who birdies a par 3?', 'Who finds the water?', 'Who finishes under par, net?', 'Who three-putts?']]);
 await shot('round-tab');
 await tap('[data-act="xTab"][data-a="week"]');
 ok('no money anywhere: chances, not cents', (await p.locator('#app').innerText()).includes('¢'), false);

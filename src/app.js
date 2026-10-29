@@ -844,7 +844,7 @@ function bandModalHtml() {
     role="dialog" aria-modal="true" aria-label="The handicap read">
     ${modalBanner('The handicap read', 'Practice Day · the audition')}
     <p class="br-lede">A handicap IS the strokes you receive, so it is right when your net lands near level par.
-    This holds how far over par each card actually went — capped at triple bogey, exactly as Thursday will cap it,
+    This holds how far over par each card actually went — capped at triple bogey, exactly as Friday will cap it,
     and projected to eighteen if the round was short — against the handicap that golfer chose.
     <b>It is a read, not a ruling.</b> One round is thin evidence and the handicap is a scorer&rsquo;s to set.</p>
     ${mine && (s.moves || s.unset)
@@ -914,7 +914,7 @@ function boardPractice() {
   <h3 class="sub">The day's card</h3>
   <p class="lede" style="margin-bottom:0">Scored gross, so a golfer with no band yet still has a card; under each raw score is the
   same round net, with the band’s strokes and the triple-bogey cap, for anyone who has a band. What the day is
-  for is the handicap read under it: whether the handicap you chose is the one to take into Thursday.</p>
+  for is the handicap read under it: whether the handicap you chose is the one to take into Friday.</p>
   <div class="rows pboard" style="margin-top:8px">
     <div class="rowhead"><span class="p-pos">#</span><span class="p-who">Golfer</span>
       <span class="p-band">Hcp</span>
@@ -5491,7 +5491,7 @@ function scrSetup() {
         : c.state === 'open'
           ? `<button class="chip" data-act="lockRound" data-a="${r.id}">Lock</button>`
           : `<button class="chip" data-act="openRound" data-a="${r.id}">Open</button>`}${
-        UI.role === 'master' || !D.PINS_ENABLED ? `<button class="chip" data-act="resetRound" data-a="${r.id}">Clear</button>` : ''}</span></div>`;
+        UI.role === 'master' || !D.PINS_ENABLED ? `<button class="chip" data-act="resetRound" data-a="${r.id}">Clear</button><button class="chip" data-act="resetTees" data-a="${r.id}" title="Put the groups back on the booked first tee, ${esc(E.to12(r.firstTee))}, eight minutes apart">Times to ${esc(E.to12(r.firstTee))}</button>` : ''}</span></div>`;
   }).join('')}</div>
 
   <h3 class="sub">Start over</h3>
@@ -9303,6 +9303,13 @@ function onClick(e) {
         UI.pinNote = /^PIN not accepted/.test(m) ? 'The server did not accept this phone\'s master PIN' + (/not the master phone|blocked/.test(m) ? ': ' + m.replace(/^PIN not accepted:?\s*/, '') : '')
           : /\bPIN\b|digits|denied/i.test(m) ? 'The server said no: ' + m : 'Could not reach the book — try again with a signal'; render(); });
       return;
+    }
+    case 'resetTees': {
+      const r = E.roundDef(a);
+      UI.modal = { kind: 'confirm', eyebrow: 'Tee times', title: 'Put ' + r.short + ' back on ' + E.to12(r.firstTee) + '?',
+        note: 'The groups stay as they are; their times become ' + E.to12(r.firstTee) + ' and then eight minutes apart, as booked. Everyone sees the new times.',
+        ok: 'Set the times', onOk: () => { store.resetTees(a).then(okd => flash(okd ? r.short + ' tees off at ' + E.to12(r.firstTee) + '.' : 'Could not change the times: no signal, or not the master PIN.')); } };
+      render(); return;
     }
     case 'resetRound':
       askPinStrict('Clear ' + E.roundDef(a).short, 'Every card, bingo mark, note and report for ' + E.roundDef(a).short + ' only, on every device, and the round goes back to not yet open. The tee times and the nominated holes stay. Enter the master PIN.', 'Clear ' + E.roundDef(a).short,

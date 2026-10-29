@@ -75,7 +75,7 @@ await p.goto(BASE + 'recap/?r=r1'); await p.waitForSelector('.rechead', { timeou
 ok('it read the book once', asked, 1);
 ok('a whole document, that fits a phone', [await p.evaluate(() => !!document.doctype), await p.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth <= 1)], [true, true]);
 ok('the headline is on the front, over the photos', await text('.rhero .rechead'), 'Ray V birdies the second and the water takes the rest');
-ok('with the round, the course and the day', await text('.rh-k'), 'Round 1 of 3 · Cullinan Olympos · Thursday 29 Oct');
+ok('with the round, the course and the day', await text('.rh-k'), 'Round 1 of 3 · Cullinan Aspendos · Friday 30 Oct');
 ok('the photos of the round slide across the top, newest first', [await p.locator('.rh-slide').count(), await p.locator('.rh-slide').first().getAttribute('data-by')], [2, 'Drea']);
 ok('the tiles: leading pair in points, the swing, the cards in', (await texts('.rtile .rt-l')), ['Leading pair', 'Swing of the day', 'Cards in']);
 ok('the leading pair’s tile is points with raw beside', /^Leading pair ?\d+ ?pts ?[+−E]\d* raw ?Ray V & Drea$/.test(await text('.rtile')), true);

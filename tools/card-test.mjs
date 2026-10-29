@@ -3,7 +3,7 @@
    par and index, strokes received, gross and net, the marks, the nines
    added up, while the round is still going. A team on the Team board opens
    both cards side by side with the better ball picked out.
-   The phone's clock is set to Thursday 29 October, Round 1 under way.
+   The phone's clock is set to Friday 30 October, Round 1 under way.
    Run: node tools/card-test.mjs */
 import { chromium } from 'playwright';
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -25,7 +25,7 @@ const shut = async () => { for (let i = 0; i < 6; i++) { const d = p.locator('.s
 const tap = async sel => { await p.locator(sel).first().click(); await p.waitForTimeout(300); };
 const text = async sel => (await p.locator(sel).first().innerText()).replace(/\s+/g, ' ').trim();
 
-await p.clock.install({ time: new Date('2026-10-29T08:00:00Z') });
+await p.clock.install({ time: new Date('2026-10-30T10:00:00Z') });
 await p.goto('file://' + S + '/card.html'); await p.waitForTimeout(3500); await shut();
 /* Round 1 live: Ray V (hcp 20) nine holes in with a birdie, a water ball and a pick-up; Drea (hcp 25) six holes in */
 await p.evaluate(() => { const T = window.__T;
@@ -41,7 +41,7 @@ await p.evaluate(() => { const T = window.__T;
   T.scores['practice__g6'] = card([5, 3, 5, 4, 6, 4, 5, 3, 4, 5, 5, 4, 3, 5, 4, 5, 3, 6]);
   window.__UI.screen = 'boards'; window.__UI.boardTab = 'mvp'; window.__forceRender(); });
 await p.waitForTimeout(400); await shut();
-const course = await p.evaluate(() => { const c = window.__T.config.courses.olympos; return { par: c.holes.map(h => h.par), si: c.holes.map(h => h.si) }; });
+const course = await p.evaluate(() => { const c = window.__T.config.courses.aspendos; return { par: c.holes.map(h => h.par), si: c.holes.map(h => h.si) }; });
 
 console.log('\nfrom the MVP board');
 ok('every name on the MVP board is a button', await p.locator('.bdr.mvp .namebtn').count(), await p.locator('.bdr.mvp').count());
