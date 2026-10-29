@@ -114,7 +114,7 @@ console.log('\nthe week tells you about the round, it does not set it');
 ok('no tee picker anywhere on the week', await p.locator('.teetimes, .teeblock, .timepick').count(), 0);
 ok('the four days with golf are marked on the week', await p.locator('.wk.golf').count(), 4);
 /* A line opens the day, and the round on the day opens the round. */
-await tap(p.locator('.wk[data-a="4"]')); await p.waitForTimeout(600);
+await tap(p.locator('.wk[data-a="5"]')); await p.waitForTimeout(600);   /* Friday: the first counting round */
 ok('a day opens in full', await p.locator('.dsmodal').count(), 1);
 ok('with the round at the head of it', await p.locator('.dsmodal [data-act="roundOpen"]').count(), 1);
 await tap(p.locator('.dsmodal [data-act="roundOpen"]'));
@@ -123,7 +123,7 @@ ok('the round window opens', await p.locator('.rdmodal').count(), 1);
 ok('under the name of the round',
   (await p.locator('.rdmodal .mb-t').innerText()).includes('Round 1'), true);
 ok('with the day and the course on it',
-  (await p.locator('.rdmodal .mb-s').innerText()).toLowerCase().includes('olympos'), true);
+  (await p.locator('.rdmodal .mb-s').innerText()).toLowerCase().includes('aspendos'), true);
 ok('it is branded like every other window', await p.locator('.rdmodal .mb-c').count(), 1);
 ok('it shows every group going out', await p.locator('.rdmodal .rd-row').count(), 3);
 ok('with a time on each', await p.evaluate(

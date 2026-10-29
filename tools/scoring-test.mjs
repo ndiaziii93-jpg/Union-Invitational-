@@ -319,8 +319,8 @@ console.log('\nthe panel on Today');
   ok('the team board is untouched',
     E.pairsBoard(T, E.nowLocal()).map(r => r.totalStr), before.pairs);
   ok('and the card itself still reads the same',
-    T.scores.r1__a.raw.slice(0, 3), [COURSES.olympos.holes[0].par + 1,
-      COURSES.olympos.holes[1].par + 1, COURSES.olympos.holes[2].par + 1]);
+    T.scores.r1__a.raw.slice(0, 3), [COURSES.aspendos.holes[0].par + 1,
+      COURSES.aspendos.holes[1].par + 1, COURSES.aspendos.holes[2].par + 1]);
 
   console.log('\nwhat a golfer said about their own round');
   const n = blankNote('r1', 'b');

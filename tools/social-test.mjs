@@ -35,8 +35,9 @@ await p.evaluate(() => {
   T.config.rounds.r1.state = 'open';
   const card = (raw, marks = {}) => ({ raw: raw.concat(Array(18 - raw.length).fill(null)), by: Object.fromEntries(raw.map((_, i) => [i, 's1'])),
     at: Object.fromEntries(raw.map((_, i) => [i, t0 + i * 600000])), marks, mF: false, mB: false, bb: false });
-  T.scores['r1__g7'] = card([4, 3, 5, 2, 5, 4, 5, 3, 4]);
-  T.scores['r1__g6'] = card([5, 4, 6, 4, 6, 5, 6, 4, 5], { 6: ['water'] });
+  /* Aspendos: par 4 4 3 4 5 4 3 4 5 — Robby level par but for a 2 on the par-3 third; Ray a bogey a hole */
+  T.scores['r1__g7'] = card([4, 4, 2, 4, 5, 4, 3, 4, 5]);
+  T.scores['r1__g6'] = card([5, 5, 4, 5, 6, 5, 4, 5, 6], { 6: ['water'] });
   T.config.rounds.r1.turn = { g0: { at: t0 + 9 * 600000 } };
   window.__UI.chatRoom = 'r1';
   window.__forceRender();
@@ -51,7 +52,7 @@ ok('a room for each round and one for the trip', await p.locator('.ch-rooms butt
 ok('the score is pinned at the top', await p.locator('.ch-plate').count(), 1);
 const evs = await p.locator('.ch-ev .ch-evw b').allInnerTexts();
 ok('the book posted the birdie, the water and the turn by itself, newest first',
-  evs, ['Group 1 makes the turn', 'Ray V found the water on the 7th', 'Robby B birdies the 4th']);
+  evs, ['Group 1 makes the turn', 'Ray V found the water on the 7th', 'Robby B birdies the 3rd']);
 ok('before a name is chosen, it asks', await p.locator('.ch-post [data-act="whoOpen"].btn').count(), 1);
 await tap('.ch-post [data-act="whoOpen"]');
 ok('anyone on the trip can be chosen, gallery included', await p.locator('.who-c button').count(), 23);
@@ -227,7 +228,7 @@ ok('and what it paid: her quarter on Yes at 25% came back as a beer', (await p.l
 await tap('[data-act="xTab"][data-a="week"]');
 ok('once settled it sits under Settled on the week as well', (await p.locator('.xm-subh:has-text("Settled") ~ .xm-c .xm-ct b').allInnerTexts()).includes('Will Ray V wear the pink trousers on Sunday?'), true);
 await tap('[data-act="xTab"][data-a="r1"]');
-ok('Round 1 shows what the book settled itself as it happened: Robby B’s birdie on the 4th and Ray V’s ball in the water',
+ok('Round 1 shows what the book settled itself as it happened: Robby B’s birdie on the 3rd and Ray V’s ball in the water',
   await p.locator('.xm-c:has(.xm-res.yes) .xm-ct b').allInnerTexts().then(x => x.sort()), ['Who birdies a par 3?', 'Who finds the water?']);
 ok('for Anyone and for the golfer who did it, the rest still open', (await p.locator('.xm-c:has-text("Who finds the water") .xm-mo:has(.xm-res)').allInnerTexts()).map(t => t.replace(/\s+/g, ' ').trim()).sort(), ['Anyone Settled Yes', 'Ray V Settled Yes']);
 

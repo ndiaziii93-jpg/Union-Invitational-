@@ -56,7 +56,7 @@ const rayGroup = await p.evaluate(() => window.__UI.entryTee);
 console.log('\non the scorecard');
 ok('every golfer on the hole has a ruling button', await p.locator('.prow .rl-btn').count() > 0 && await p.locator('.prow .rl-btn').count() === await p.locator('.prow').count(), true);
 await tap('.rl-btn[data-a="g6"]');
-ok('it opens knowing who, which hole and what they have left', (await p.locator('.rlsheet .mbanner').innerText()).replace(/\s+/g, ' ').trim(), '⚖️ Ray V · Hole 7 ROUND 2 · PAR 3 · FRONT MULLIGAN LEFT');
+ok('it opens knowing who, which hole and what they have left', (await p.locator('.rlsheet .mbanner').innerText()).replace(/\s+/g, ' ').trim(), '⚖️ Ray V · Hole 7 ROUND 2 · PAR 5 · FRONT MULLIGAN LEFT');
 await tap('.rl-chips button[data-a="water"]');
 ok('picking what happened starts the question', await p.locator('#rulingQ').inputValue(), 'Ray V’s ball went in the water. What are the options?');
 await tap('[data-act="ruleAsk"]');
@@ -73,7 +73,7 @@ await shot('ruling-answer');
 const sent = await p.evaluate(() => window.__asked[0]);
 ok('Claude was sent the Rules to follow and the shape to answer in', [/Rules of Golf in force/.test(sent), /VERDICT:/.test(sent), /E-5/.test(sent)], [true, true, true]);
 ok('the Union’s house rules', [/Triple bogey maximum/.test(sent), /Breakfast ball/.test(sent), /one per nine/.test(sent)], [true, true, true]);
-ok('and the situation: hole, par, cap, player, mulligans', [/Hole 7, par 3, stroke index \d+\. The most anyone can score here is 6/.test(sent), /Player: Ray V/.test(sent),
+ok('and the situation: hole, par, cap, player, mulligans', [/Hole 7, par 5, stroke index \d+\. The most anyone can score here is 8/.test(sent), /Player: Ray V/.test(sent),
   /front-nine one is unused/.test(sent), /front nine/.test(sent), /Ball in the water/.test(sent), /Ray V’s ball went in the water/.test(sent)], [true, true, true, true, true, true]);
 
 console.log('\nthe next step on the card');

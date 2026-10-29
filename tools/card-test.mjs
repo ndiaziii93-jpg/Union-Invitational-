@@ -46,7 +46,7 @@ const course = await p.evaluate(() => { const c = window.__T.config.courses.aspe
 console.log('\nfrom the MVP board');
 ok('every name on the MVP board is a button', await p.locator('.bdr.mvp .namebtn').count(), await p.locator('.bdr.mvp').count());
 await tap('.bdr.mvp .namebtn:has-text("Ray V")');
-ok('tapping Ray V opens his card for the round being played', [await p.locator('.cardsheet').count(), await text('.cardsheet .mbanner')], [1, 'Ray V ROUND 1 · CULLINAN OLYMPOS · WHITE TEES · THU 29 OCT · LIVE']);
+ok('tapping Ray V opens his card for the round being played', [await p.locator('.cardsheet').count(), await text('.cardsheet .mbanner')], [1, 'Ray V ROUND 1 · CULLINAN ASPENDOS · WHITE TEES · FRI 30 OCT · LIVE']);
 const labels = async () => (await p.locator('.sc-nine').first().locator('.sc-r .sc-l').allInnerTexts()).map(t => t.toUpperCase());
 const col = async (h, sel) => (await p.locator(`.sc-gross .sc-c[data-h="${h}"]`).first().evaluate((e, sel) => sel ? e.querySelector(sel) && e.querySelector(sel).textContent.trim() : e.className, sel));
 ok('holes run across, the nines one under the other, eighteen cells with nine filled', [await p.locator('.sc-nine').count(), await p.locator('.sc-gross .sc-c').count(), await p.locator('.sc-gross .sc-c.has').count()], [2, 18, 9]);
@@ -91,7 +91,7 @@ ok('the practice board opens the practice card', await text('.cs-rounds button.o
 await shut();
 await p.evaluate(() => { window.__UI.recapOpen = true; window.__UI.recap = { rid: 'r1', busy: false, err: '', stream: '', edit: false, view: 'report' }; window.__forceRender(); }); await p.waitForTimeout(500);
 await tap('.recfield .namebtn:has-text("Drea")');
-ok('and Every card in the recap opens that golfer’s', await text('.cardsheet .mbanner'), 'Drea ROUND 1 · CULLINAN OLYMPOS · WHITE TEES · THU 29 OCT · LIVE');
+ok('and Every card in the recap opens that golfer’s', await text('.cardsheet .mbanner'), 'Drea ROUND 1 · CULLINAN ASPENDOS · WHITE TEES · FRI 30 OCT · LIVE');
 ok('with her handicap and how far she is on the tile', /^Drea · hcp 25 · team 21 \d+ gross .* · thru 6$/i.test(await text('.cs-tile')), true);
 await shut();
 

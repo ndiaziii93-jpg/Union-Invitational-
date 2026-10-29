@@ -257,7 +257,7 @@ await p.locator('.scrim [data-act="modalCancel"]').click(); await p.waitForTimeo
 console.log('\nand it is every window, not the one that was complained about');
 for (const [what, open] of [['Manage', async () => p.locator('.masthead .dial').click()],
                             ['a round', async () => { await bar('Calendar');
-                              await p.locator('.wk[data-a="4"]').click(); await p.waitForTimeout(500);
+                              await p.locator('.wk[data-a="5"]').click(); await p.waitForTimeout(500);
                               await p.locator('.dsmodal [data-act="roundOpen"]').click(); }]]) {
   await open(); await p.waitForTimeout(750);
   ok(what + ' wears the same pine', await p.evaluate(
