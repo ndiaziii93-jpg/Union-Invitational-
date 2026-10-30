@@ -5,7 +5,7 @@
  * where sand is, trees down the sides. The window draws it live and lays the
  * yardages over it.
  *
- * WHAT IS REAL AND WHAT IS NOT. The length is the card's — the white tees,
+ * WHAT IS REAL AND WHAT IS NOT. The length is the card's — the yellow tees, the group's,
  * in metres — and the par is the card's. The SHAPE of a hole is only real
  * once somebody has traced it; until then it is drawn from the card, a
  * plausible hole of that length and par, bending the way its number says,
@@ -45,11 +45,11 @@ function seedOf(key, n) {
  *  survey or a drawing from the card. */
 export function model(courseKey, hole) {
   const shaped = SHAPES[courseKey + '_' + hole.n];
-  if (shaped) return { ...shaped, key: courseKey + '_' + hole.n, par: hole.par, len: shaped.len || hole.mW, traced: true };
+  if (shaped) return { ...shaped, key: courseKey + '_' + hole.n, par: hole.par, len: hole.mY || shaped.len || hole.mW, traced: true };
   const drawn = TRACED[courseKey + '_' + hole.n];
   if (drawn) return fromDrawing(courseKey, hole, drawn);
   const r = rng(seedOf(courseKey, hole.n));
-  const L = Math.max(90, hole.mW || (hole.par === 3 ? 150 : hole.par === 5 ? 480 : 360));
+  const L = Math.max(90, hole.mY || hole.mW || (hole.par === 3 ? 150 : hole.par === 5 ? 480 : 360));
   const s = r() < .5 ? -1 : 1;              // which way it bends
   let cl, fw, bunkers;
   if (hole.par === 3) {
@@ -81,7 +81,7 @@ export function model(courseKey, hole) {
  * drawing stands them, and the ground reaches as far each side as the
  * turf, the water and the trees do. */
 function fromDrawing(courseKey, hole, d) {
-  const L = Math.max(90, hole.mW || (hole.par === 3 ? 150 : hole.par === 5 ? 480 : 360));
+  const L = Math.max(90, hole.mY || hole.mW || (hole.par === 3 ? 150 : hole.par === 5 ? 480 : 360));
   const n = d.half.length, at = t => Math.max(0, Math.min(n - 1, t * n - .5));
   const fwHalf = d.half.map(h => Math.max(8, Math.min(24, h * L * .62)));
   /* the lakes, each its own outline from the drawing, in [t, metres] */

@@ -1406,7 +1406,6 @@ export function recapInput(T, rid, now) {
   /* what the golfers said: the marks the ref made and the feelings the
      golfers kept, hole by hole, beside the scores they go with */
   L.push(...feelBlock(T, rid));
-  L.push(...chatBlock(T, rid));
 
   L.push('\nPLAYER IDS (use these exactly in pairNotes and honours)');
   golfers(T).forEach(p => L.push('- ' + p.id + ' = ' + p.display));

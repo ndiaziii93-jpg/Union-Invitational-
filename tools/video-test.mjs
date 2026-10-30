@@ -32,7 +32,7 @@ await cam.scrollIntoViewIfNeeded(); await p.evaluate(() => scrollBy(0, -120)); a
 await cam.click(); await p.waitForTimeout(250);
 const [chooser] = await Promise.all([p.waitForEvent('filechooser'), p.locator('[data-act="photoLib"]').click()]);
 console.log('\nthe same button takes a clip');
-ok('the picker offers videos as well as pictures', await chooser.element().getAttribute('accept'), 'image/*,video/*');
+ok('the picker offers videos as well as pictures, MP4 by name', /video\/\*.*\.mp4/.test(await chooser.element().getAttribute('accept')), true);
 await chooser.setFiles([{ name: 'tee.mp4', mimeType: 'video/mp4', buffer: MP4 }, { name: 'green.png', mimeType: 'image/png', buffer: PNG }]); await p.waitForTimeout(12000);
 ok('both are in the book, on the hole, the clip marked as one', await rows(), [{ kind: 'video', url: 'blob-1.mp4', hole: 0 }, { kind: 'photo', url: 'blob-2.jpg', hole: 0 }]);
 ok('the clip went up as it was, the picture shrunk to a jpeg', await p.evaluate(() => window.__ups.map(u => u.kind + ':' + u.type)), ['video:video/mp4', 'photo:image/jpeg']);
@@ -45,13 +45,21 @@ await p.locator('.btab[data-a="photos"]').click(); await p.waitForTimeout(500);
 ok('the clip\'s tile wears a play mark, the picture\'s does not', [await p.locator('.pg-t.video .pg-play').count(), await p.locator('.pg-t:not(.video) .pg-play').count()], [1, 0]);
 await p.locator('.pg-t.video').click(); await p.waitForTimeout(400);
 ok('tapping it opens a player, not a picture', [await p.locator('.pviewer video[controls]').count(), await p.locator('.pviewer img').count()], [1, 0]);
-ok('that points at the clip', await p.locator('.pviewer video').getAttribute('src'), 'blob-1.mp4');
+ok('that points at the clip, as an MP4', [await p.locator('.pviewer video source').getAttribute('src'), await p.locator('.pviewer video source').getAttribute('type')], ['blob-1.mp4', 'video/mp4']);
 await shut();
 
 console.log('\nin the recap');
 await p.evaluate(() => { window.__UI.recapOpen = true; window.__UI.recap = { rid: window.__UI.entryRound, busy: false, err: '', stream: '', edit: false, view: 'report' }; window.__forceRender(); }); await p.waitForTimeout(600);
 ok('the front shows the photograph only', [await p.locator('.rh-slide').count(), await p.locator('.rh-slide img').first().getAttribute('src')], [1, 'blob-2.jpg']);
 ok('and the strip has both, the clip with its play mark', [await p.locator('.phstrip .ph').count(), await p.locator('.phstrip .ph.video .pg-play').count()], [2, 1]);
+
+console.log('\nan MP4 the phone hands over with no type');
+await p.evaluate(() => { window.__UI.screen = 'entry'; window.__UI.modal = null; window.__UI.recapOpen = false; window.__forceRender(); }); await p.waitForTimeout(500); await shut();
+await cam.scrollIntoViewIfNeeded(); await p.evaluate(() => scrollBy(0, -120)); await p.waitForTimeout(200);
+await cam.click(); await p.waitForTimeout(250);
+const [c3] = await Promise.all([p.waitForEvent('filechooser'), p.locator('[data-act="photoLib"]').click()]);
+await c3.setFiles([{ name: 'drive.mp4', mimeType: 'application/octet-stream', buffer: MP4 }]); await p.waitForTimeout(10000);
+ok('is taken as a clip, and stored as an MP4', await p.evaluate(() => { const u = window.__ups[window.__ups.length - 1]; const r = Object.values(window.__T.photos).sort((a, b) => b.at - a.at)[0]; return [u.kind, r.kind, r.mime]; }), ['video', 'video', 'video/mp4']);
 
 console.log('\ntoo big a clip');
 await p.evaluate(() => { window.__UI.recapOpen = false; window.__UI.screen = 'entry'; window.__UI.modal = null; window.__forceRender(); }); await p.waitForTimeout(500); await shut();
@@ -61,7 +69,7 @@ const [c2] = await Promise.all([p.waitForEvent('filechooser'), p.locator('[data-
 writeFileSync(S + '/long.mp4', Buffer.alloc(81 * 1024 * 1024));   // too big for the book, and for a buffer: handed over as a file
 await c2.setFiles([S + '/long.mp4']); await p.waitForTimeout(1500);
 ok('is turned away with the limit named', /keep clips under 80 MB/.test(await p.evaluate(() => window.__UI.upload.err)), true);
-ok('and nothing more is in the book', (await rows()).length, 2);
+ok('and nothing more is in the book', (await rows()).length, 3);
 ok('no errors on the way', errs, []);
 await b.close();
 console.log(fails.length ? '\n' + fails.length + ' FAILED: ' + fails.join(', ') : '\nall good');

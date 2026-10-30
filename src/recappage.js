@@ -98,7 +98,7 @@ export function renderRecap(T, rid, IMG, opts) {
     return `<figure class="rinline"><img src="${esc(ph.url)}" alt="${esc(ph.caption || 'From the round')}" loading="lazy" decoding="async">
       <figcaption>${esc(ph.caption || (ph.hole != null ? 'Hole ' + (ph.hole + 1) : 'From the round'))}${ph.byName ? ' · 📷 ' + esc(ph.byName) : ''}</figcaption></figure>`;
   };
-  const voiceHtml = v => `<blockquote class="rvoice"><p>“${esc(v.text)}”</p><cite>— ${esc(v.who || 'From the chat')}</cite></blockquote>`;
+  const voiceHtml = v => `<blockquote class="rvoice"><p>“${esc(v.text)}”</p><cite>— ${esc(v.who || 'From My round')}</cite></blockquote>`;
   const inlineVoice = i => { const v = ((body && body.voices) || [])[i]; return v ? voiceHtml(v) : ''; };
   const roundName = x => x.short === 'Practice' ? 'Practice day' : (x.full || x.short);
   const next = D.ROUNDS[D.ROUNDS.findIndex(x => x.id === rid) + 1];

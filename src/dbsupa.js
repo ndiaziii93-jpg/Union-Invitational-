@@ -616,6 +616,7 @@ export function createSupabaseFiles(opts) {
       const video = !!(opts && opts.kind === 'video');
       const mime = (opts && opts.mime) || blob.type || (video ? 'video/mp4' : 'image/jpeg');
       const ext = video ? ({ 'video/quicktime': '.mov', 'video/mp4': '.mp4', 'video/webm': '.webm', 'video/x-m4v': '.m4v' }[mime] || '.mp4') : '.jpg';
+      /* a clip is stored as the type it is, so the bucket's own type list and every phone's player both know it */
       const k = base + ext;
       const { error } = await store.upload(k, blob, { contentType: mime, upsert: false });
       if (error) throw new Error(error.message || 'upload failed');

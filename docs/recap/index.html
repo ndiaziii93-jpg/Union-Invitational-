@@ -6639,7 +6639,6 @@ function recapInput(T, rid, now) {
   /* what the golfers said: the marks the ref made and the feelings the
      golfers kept, hole by hole, beside the scores they go with */
   L.push(...feelBlock(T, rid));
-  L.push(...chatBlock(T, rid));
 
   L.push('\nPLAYER IDS (use these exactly in pairNotes and honours)');
   golfers(T).forEach(p => L.push('- ' + p.id + ' = ' + p.display));
@@ -7609,6 +7608,7 @@ function createSupabaseFiles(opts) {
       const video = !!(opts && opts.kind === 'video');
       const mime = (opts && opts.mime) || blob.type || (video ? 'video/mp4' : 'image/jpeg');
       const ext = video ? ({ 'video/quicktime': '.mov', 'video/mp4': '.mp4', 'video/webm': '.webm', 'video/x-m4v': '.m4v' }[mime] || '.mp4') : '.jpg';
+      /* a clip is stored as the type it is, so the bucket's own type list and every phone's player both know it */
       const k = base + ext;
       const { error } = await store.upload(k, blob, { contentType: mime, upsert: false });
       if (error) throw new Error(error.message || 'upload failed');
@@ -9047,7 +9047,7 @@ function renderRecap(T, rid, IMG, opts) {
     return `<figure class="rinline"><img src="${esc(ph.url)}" alt="${esc(ph.caption || 'From the round')}" loading="lazy" decoding="async">
       <figcaption>${esc(ph.caption || (ph.hole != null ? 'Hole ' + (ph.hole + 1) : 'From the round'))}${ph.byName ? ' · 📷 ' + esc(ph.byName) : ''}</figcaption></figure>`;
   };
-  const voiceHtml = v => `<blockquote class="rvoice"><p>“${esc(v.text)}”</p><cite>— ${esc(v.who || 'From the chat')}</cite></blockquote>`;
+  const voiceHtml = v => `<blockquote class="rvoice"><p>“${esc(v.text)}”</p><cite>— ${esc(v.who || 'From My round')}</cite></blockquote>`;
   const inlineVoice = i => { const v = ((body && body.voices) || [])[i]; return v ? voiceHtml(v) : ''; };
   const roundName = x => x.short === 'Practice' ? 'Practice day' : (x.full || x.short);
   const next = D.ROUNDS[D.ROUNDS.findIndex(x => x.id === rid) + 1];

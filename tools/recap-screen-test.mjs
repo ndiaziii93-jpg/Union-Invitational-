@@ -89,7 +89,7 @@ const MOCK = () => { window.claude = { use: async n => {
                   'The punctuation came on 14, holed from the fairway bunker.'],
       swing: { value: '4 shots', caption: 'opened between the leaders and third across holes 12 to 16.' },
       pairNotes: { p1: 'Three pars from the 12th and the day was theirs.' },
-      voices: [{ who: 'Ray V', text: 'Bring goggles tomorrow' }, { who: 'Duncan W', text: 'I never miss from there' }],   // the second was never said
+      voices: [{ who: 'Ray V', text: 'Bring goggles tomorrow' }, { who: 'Duncan W', text: 'I never miss from there' }, { who: 'Duncan W', text: 'Only in the chat' }],   // the second was never said; the third only in the chat
       honours: [{ slot: 'shot_of_the_day', winner: 'g1', citation: 'Holed out from the fairway bunker on 14.' },
                 { slot: 'honest_scorecard', winner: 'g2', citation: 'Wrote down the eight without negotiation.' }],
     };
@@ -140,8 +140,10 @@ await p.waitForTimeout(500);
 ok('every golfer has a band', await p.locator('[data-act="setBand"].on').count(), nb);
 await tab('Today');
 
-/* the gallery had its say in the chat while the round was played */
-await p.evaluate(() => { for (const rid of ['practice', 'r1', 'r2', 'r3']) window.__T.chat['mx_' + rid] = { id: 'mx_' + rid, k: 'm', rid, pid: 'g6', name: 'Ray V', text: 'Bring goggles tomorrow', at: Date.now(), dev: 'dx' }; });
+/* Ray V kept his own account of the round in My round; somebody else said something in the chat */
+await p.evaluate(() => { for (const rid of ['practice', 'r1', 'r2', 'r3']) {
+  window.__T.notes[rid + '__g6'] = { rid, pid: 'g6', say: 'Bring goggles tomorrow', text: {}, marks: {}, at: {}, owns: [] };
+  window.__T.chat['mx_' + rid] = { id: 'mx_' + rid, k: 'm', rid, pid: 'g1', name: 'Duncan W', text: 'Only in the chat', at: Date.now(), dev: 'dx' }; } });
 console.log('\nthe panel follows the round');
 ok('nothing played yet', await line(), "Today's round hasn't started.");
 await p.locator('.recapbtn').click(); await p.waitForTimeout(700);
@@ -187,8 +189,8 @@ ok('the finished panel pulses for attention', await p.locator('.recapbtn.ready')
   el => getComputedStyle(el).animationName), 'recappulse');
 await p.locator('.recapbtn').click(); await p.waitForTimeout(1600);
 ok('it opens over the page, not instead of it', await p.locator('.recapbox').count(), 1);
-ok('the writer was handed the round\'s chat', await p.evaluate(() => String(window.__prompt || '').includes('THE ROUND\'S CHAT') && String(window.__prompt || '').includes('Bring goggles tomorrow')), true);
-ok('a pull-quote somebody really said is set in the report; one nobody said is not', await p.locator('.rvoice').evaluateAll(es => es.map(e => e.textContent.replace(/\s+/g, ' ').trim())), ['“Bring goggles tomorrow”— Ray V']);
+ok('the writer was handed what the golfers said in My round, and not the chat', await p.evaluate(() => [String(window.__prompt || '').includes('Bring goggles tomorrow'), String(window.__prompt || '').includes('Only in the chat')]), [true, false]);
+ok('a pull-quote from My round is set in the report; one nobody said, and one only in the chat, are not', await p.locator('.rvoice').evaluateAll(es => es.map(e => e.textContent.replace(/\s+/g, ' ').trim())), ['“Bring goggles tomorrow”— Ray V']);
 /* Opening it is the ask — nobody presses a second button to read the day. */
 ok('and it wrote itself without a second click',
   (await p.locator('.rechead').innerText()).startsWith('Aspendos waited'), true);

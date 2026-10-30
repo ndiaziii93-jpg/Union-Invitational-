@@ -41,6 +41,6 @@ ok('and the hole is one piece of ground across it', m('aspendos', 3).grounds.len
 ok('the closest-to-the-pin holes on the card are par threes', ['olympos', 'aspendos'].every(k => COURSES[k].holes.some(h => h.par === 3)), true);
 ok('the two courses are not the same holes', JSON.stringify(m('olympos', 1).cl) !== JSON.stringify(m('aspendos', 1).cl), true);
 ok('no bunker sits in the water', holes.every(([k, h]) => { const x = model(k, h); return x.bunkers.every(b => !x.wet(b.t, b.d)); }), true);
-ok('and the length is still the card\'s', m('olympos', 5).len, COURSES.olympos.holes[4].mW);
+ok('and the length is the card\'s, from the yellow tees the group plays', m('olympos', 5).len, COURSES.olympos.holes[4].mY);
 console.log(fails.length ? '\n' + fails.length + ' FAILED: ' + fails.join(', ') : '\nall good');
 process.exit(fails.length ? 1 : 0);
