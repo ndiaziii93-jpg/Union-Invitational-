@@ -4970,7 +4970,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261030-1756';
+const BUILD = '20261030-1759';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -7963,7 +7963,12 @@ function markets(T, now) {
       }
       continue;
     }
-    out.push({ ...base, id: r.id, qid: r.id, q: r.q, p0: r.p0 || 50, tags: Array.isArray(r.tags) ? r.tags.slice() : [],
+    /* OVER OR UNDER. Underneath it is Yes and No — Over is Yes — so the
+       pricing, the payouts and the settling are the ones every bet uses;
+       only the words change. The line is set by whoever makes it. */
+    const ou = r.ou && isFinite(+r.ou.line) ? { line: +r.ou.line } : null;
+    const lineWord = n => { const w = Math.floor(n), h = n - w; return h >= 0.5 - 1e-9 && h < 0.5 + 1e-9 ? (w + '½') : String(n); };
+    out.push({ ...base, id: r.id, qid: r.id, ou, q: ou ? `Over or under ${lineWord(ou.line)}: ${String(r.q || '').replace(/\?+$/, '')}?` : r.q, p0: r.p0 || 50, tags: Array.isArray(r.tags) ? r.tags.slice() : [],
       result: r.result || null, settledBy: r.result ? r.settledName : null, settledAt: r.settledAt || null });
   }
   return (memoMarkets = out);
@@ -13033,9 +13038,11 @@ function spark(pts, h = 40) {
   return `<svg class="xm-sp ${up ? 'up' : 'dn'}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" style="height:${h}px" aria-hidden="true">
     <polygon points="0,${h} ${xy.map(p => p.join(',')).join(' ')} ${w},${h}"/><polyline points="${xy.map(p => p.join(',')).join(' ')}"/></svg>`;
 }
+/** What a side is called on this bet: Over and Under on an over/under, Yes and No otherwise. */
+const sw = (m, side) => (m && m.ou) ? (side === 'yes' ? 'Over' : 'Under') : (side === 'yes' ? 'Yes' : 'No');
 function resultTag(m) {
   if (!m.result) return '';
-  const t = m.result === 'yes' ? 'Yes' : m.result === 'no' ? 'No' : 'Void';
+  const t = m.result === 'void' ? 'Void' : sw(m, m.result);
   return `<span class="xm-res ${esc(m.result)}">Settled ${t}</span>`;
 }
 /** What a quarter beer on a side pays at today's chance — the number that
@@ -13048,8 +13055,8 @@ function xCard(m, tr) {
       <span class="xm-ch"><strong>${m.result ? (m.result === 'void' ? '—' : m.result === 'yes' ? '100%' : '0%') : X.cents(p) + '%'}</strong><small>chance</small></span></button>
     ${tagChips(m)}
     ${m.result ? resultTag(m) : (pts.length > 1 ? spark(pts, 34) : '') + `<div class="xm-yn">
-      <button class="y" data-act="xOpen" data-a="${esc(m.id)}" data-b="yes">Yes <small>${X.sidePrice(q, 'yes')}%</small></button>
-      <button class="n" data-act="xOpen" data-a="${esc(m.id)}" data-b="no">No <small>${X.sidePrice(q, 'no')}%</small></button></div>`}
+      <button class="y" data-act="xOpen" data-a="${esc(m.id)}" data-b="yes">${sw(m, 'yes')} <small>${X.sidePrice(q, 'yes')}%</small></button>
+      <button class="n" data-act="xOpen" data-a="${esc(m.id)}" data-b="no">${sw(m, 'no')} <small>${X.sidePrice(q, 'no')}%</small></button></div>`}
     ${backLine(m.id)}
     <div class="xm-v"><span>${beer(volumeOf(m.id, tr))} 🍺 bet${m.custom ? ' · by ' + esc(m.byName || 'someone') : ''}</span>
       ${m.result || !d ? '' : `<span class="xm-d ${d > 0 ? 'up' : 'dn'}">${d > 0 ? '▲' : '▼'} ${Math.abs(d)} since open</span>`}</div>
@@ -13082,16 +13089,16 @@ function backers(id, side) {
   return names + (hs.length > 3 ? ` +${hs.length - 3}` : '');
 }
 function backLine(id) {
-  const y = backers(id, 'yes'), n = backers(id, 'no');
-  return y || n ? `<div class="xm-bk">${y ? `<span><b class="y">Yes</b> ${y}</span>` : ''}${n ? `<span><b class="n">No</b> ${n}</span>` : ''}</div>` : '';
+  const y = backers(id, 'yes'), n = backers(id, 'no'), mk = xFind(id);
+  return y || n ? `<div class="xm-bk">${y ? `<span><b class="y">${sw(mk, 'yes')}</b> ${y}</span>` : ''}${n ? `<span><b class="n">${sw(mk, 'no')}</b> ${n}</span>` : ''}</div>` : '';
 }
 /** One line of the table, and under it, once tapped, what they have on. */
 function xStRow(s, i) {
   const open = UI.xWho === s.pid;
   const live = s.rows.filter(r => !r.settled), done = s.rows.filter(r => r.settled);
-  const side = r => r.yes >= r.no ? 'Yes' : 'No';
+  const side = r => sw(r.m, r.yes >= r.no ? 'yes' : 'no');
   const item = r => `<button class="xm-pb" data-act="xOpen" data-a="${esc(r.m.id)}"><span>${esc(mName(r.m))}</span>
-      <em><b class="${side(r) === 'Yes' ? 'y' : 'n'}">${side(r)}</b> ${beer(Math.max(0, r.spent))} 🍺 in · ${r.settled
+      <em><b class="${r.yes >= r.no ? 'y' : 'n'}">${side(r)}</b> ${beer(Math.max(0, r.spent))} 🍺 in · ${r.settled
         ? (r.paid > 0 ? `<i class="up">won ${beer(r.paid)}</i>` : '<i class="dn">lost</i>')
         : `worth ${beer(r.value)}`}</em></button>`;
   return `<button class="xm-st${open ? ' on' : ''}" data-act="xWho" data-a="${esc(s.pid)}" aria-expanded="${open}">
@@ -13185,7 +13192,7 @@ function xFixHtml(m, sibs, tr) {
   if (!fixer()) return '';
   const mine = tr.filter(t => t.m === m.id && t.id).slice().reverse();
   const others = m.group ? sibs.filter(x => x.id !== m.id) : [];
-  const word = s => s === 'yes' ? 'Yes' : 'No';
+  const word = s => sw(m, s);
   return `<details class="xm-fix"><summary><span class="xm-eye">Fix a bet · commissioner</span></summary>
     ${m.custom ? `<button class="xm-link" data-act="xEditQ" data-a="${esc(m.qid || m.id)}">Edit the wording</button>` : ''}
     ${mine.length ? mine.map(t => `<div class="xm-fixrow">
@@ -13209,7 +13216,7 @@ function xRefit(id, toM, toSide) {
   if (!(k > 0)) { flash('That bet could not be re-priced.'); return; }
   store.putSocial('market', id, { ...t, m: m.id, side, n: k, px: X.cents(t.cost / k), fixedBy: 'the commissioner', fixedAt: Date.now() });
   UI.xFixMove = null;
-  flash('Fixed: ' + nameOf(t.pid) + '’s ' + beer(t.cost) + ' 🍺 is on ' + (side === 'yes' ? 'Yes' : 'No') + (m.group ? ' · ' + m.label : '') + '.');
+  flash('Fixed: ' + nameOf(t.pid) + '’s ' + beer(t.cost) + ' 🍺 is on ' + sw(m, side) + (m.group ? ' · ' + m.label : '') + '.');
 }
 function xEditHtml() {
   const md = UI.modal, r = (T.market || {})[md.id] || {};
@@ -13217,6 +13224,8 @@ function xEditHtml() {
     ${modalBanner('Edit the wording', 'Fix a bet · commissioner')}
     <label class="calc-l" for="xEdQ" style="display:block;margin-top:14px">The question</label>
     <input id="xEdQ" class="field" maxlength="120" autocomplete="off" value="${esc(r.q || '')}" style="width:100%">
+    ${r.ou ? `<label class="calc-l" for="xEdL" style="display:block;margin-top:12px">The line</label>
+    <input id="xEdL" class="field" inputmode="decimal" maxlength="7" autocomplete="off" value="${esc(String(r.ou.line))}" style="width:100%">` : ''}
     <label class="calc-l" for="xEdR" style="display:block;margin-top:12px">How it is settled</label>
     <textarea id="xEdR" class="field" maxlength="400" rows="3" style="width:100%">${esc(r.rules || '')}</textarea>
     <div class="acts" style="margin-top:14px"><button class="btn ghost" data-act="modalCancel">Cancel</button><button class="btn" data-act="xEditGo" data-a="${esc(md.id)}">Save</button></div>
@@ -13233,7 +13242,7 @@ function xCashed() {
   const when = ms => ms ? sinceOf(ms) : 'by the book';
   const resultOf = g => g.result === 'void' ? 'Void — everyone got their beers back'
     : g.result === 'who' ? 'It was ' + g.winners.map(nameOf).join(' and ')
-    : g.result === 'none' ? 'Nobody' : g.result === 'yes' ? 'Yes' : g.result === 'no' ? 'No' : g.result;
+    : g.result === 'none' ? 'Nobody' : g.result === 'yes' || g.result === 'no' ? sw(g.markets[0], g.result) : g.result;
   return list.map(g => `<article class="xm-c xm-cash${g.won.length ? ' hit' : ''}">
     <div class="xc-q">${esc(g.q)}</div>
     <div class="xc-res"><b>${esc(resultOf(g))}</b><small>settled ${g.settledBy ? 'by ' + esc(g.settledBy) + ' · ' : ''}${esc(when(g.settledAt))}</small></div>
@@ -13258,19 +13267,19 @@ function xTicket(m, q) {
   const worth = X.round4(X.saleOf(q, t.side, held));
   const sp = X.sidePrice(q, t.side);
   const lim = t.lim || sp;
-  const word = t.side === 'yes' ? 'Yes' : 'No';
+  const word = sw(m, t.side);
   const resting = t.type === 'limit' && t.act === 'buy' && lim < sp;
   const pays = t.act === 'buy' ? (resting ? X.round4(t.beers * 100 / lim) : X.round4(X.sharesFor(q, t.side, t.beers))) : 0;
   const stepper = (label, v) => `<div class="xm-stp"><span>${label}</span><span class="ctl"><button data-act="xT" data-a="beers" data-b="-1" aria-label="A quarter less">−</button><b class="num">${beer(v)} 🍺</b><button data-act="xT" data-a="beers" data-b="1" aria-label="A quarter more">+</button></span></div>`;
   return `<div class="xm-tk">
     <div class="xm-seg"><button class="${t.act === 'buy' ? 'on' : ''}" data-act="xT" data-a="act" data-b="buy">Bet</button><button class="${t.act === 'sell' ? 'on' : ''}" data-act="xT" data-a="act" data-b="sell">Cash out</button></div>
-    <div class="xm-seg"><button class="y${t.side === 'yes' ? ' on' : ''}" data-act="xT" data-a="side" data-b="yes">Yes · ${X.sidePrice(q, 'yes')}%</button><button class="n${t.side === 'no' ? ' on' : ''}" data-act="xT" data-a="side" data-b="no">No · ${X.sidePrice(q, 'no')}%</button></div>
+    <div class="xm-seg"><button class="y${t.side === 'yes' ? ' on' : ''}" data-act="xT" data-a="side" data-b="yes">${sw(m, 'yes')} · ${X.sidePrice(q, 'yes')}%</button><button class="n${t.side === 'no' ? ' on' : ''}" data-act="xT" data-a="side" data-b="no">${sw(m, 'no')} · ${X.sidePrice(q, 'no')}%</button></div>
     ${t.act === 'buy' ? `
       <div class="xm-seg"><button class="${t.type === 'market' ? 'on' : ''}" data-act="xT" data-a="type" data-b="market">Now</button><button class="${t.type === 'limit' ? 'on' : ''}" data-act="xT" data-a="type" data-b="limit">At a chance I set</button></div>
       ${t.type === 'limit' ? `<div class="xm-stp"><span>When ${word} is at or under</span><span class="ctl"><button data-act="xT" data-a="lim" data-b="-1" aria-label="Lower">−</button><b class="num">${lim}%</b><button data-act="xT" data-a="lim" data-b="1" aria-label="Higher">+</button></span></div>` : ''}
       ${stepper('Your bet', t.beers)}
       <div class="xm-q">${[0.25, 0.5, 1, 2].map(b => `<button class="${t.beers === b ? 'on' : ''}" data-act="xT" data-a="set" data-b="${b}">${beer(b)} 🍺</button>`).join('')}</div>
-      <div class="xm-kv"><span>Pays if ${esc(t.side === 'yes' ? (m.label || 'Yes') : 'No')}</span><b class="up">${beer(pays)} 🍺</b></div>
+      <div class="xm-kv"><span>Pays if ${esc(t.side === 'yes' ? (m.label || sw(m, 'yes')) : sw(m, 'no'))}</span><b class="up">${beer(pays)} 🍺</b></div>
       <div class="xm-kv"><span>That’s</span><b>${signed(pays - t.beers)} 🍺 on your ${beer(t.beers)}</b></div>`
     : `
       <p class="xm-note">${held > 1e-6 ? `Your ${word} is worth <b>${beer(worth)} 🍺</b> right now.` : `You have nothing on ${word} here.`}</p>
@@ -13304,23 +13313,23 @@ function xMarketHtml(m) {
       <h3 class="xm-h3">${esc(m.q)}</h3>` : tagChips(m)}
     ${m.result ? `<div class="xm-done">${resultTag(m)}<span>${m.settledBy ? 'by ' + esc(m.settledBy) : ''}${m.settledAt ? ' · ' + esc(clockOf(m.settledAt)) : ''}</span></div>`
       : `<div class="xm-big"><strong class="num">${X.cents(p)}%</strong>${d ? `<span class="xm-d ${d > 0 ? 'up' : 'dn'}">${d > 0 ? '▲' : '▼'} ${Math.abs(d)} since open</span>` : '<span class="xm-d">chance of Yes · nothing bet yet</span>'}</div>
-         <p class="xm-note">A ¼ 🍺 on Yes pays ${quarterPays(q, 'yes')} 🍺; on No, ${quarterPays(q, 'no')} 🍺.</p>
+         <p class="xm-note">A ¼ 🍺 on ${sw(m, 'yes')} pays ${quarterPays(q, 'yes')} 🍺; on ${sw(m, 'no')}, ${quarterPays(q, 'no')} 🍺.</p>
          ${pts.length > 1 ? spark(pts, 70) : ''}`}
-    ${pos && (pos.spent > 0 || yes || no) ? `<div class="xm-mine">Your bets: ${[yes ? 'pays ' + beer(yes) + ' 🍺 if Yes' : '', no ? 'pays ' + beer(no) + ' 🍺 if No' : ''].filter(Boolean).join(', ') || 'cashed out'}
+    ${pos && (pos.spent > 0 || yes || no) ? `<div class="xm-mine">Your bets: ${[yes ? 'pays ' + beer(yes) + ' 🍺 if ' + sw(m, 'yes') : '', no ? 'pays ' + beer(no) + ' 🍺 if ' + sw(m, 'no') : ''].filter(Boolean).join(', ') || 'cashed out'}
       · put on ${beer(Math.max(0, pos.spent))} 🍺${m.result ? '' : ` · worth ${beer(X.round4(X.saleOf(q, 'yes', pos.yes) + X.saleOf(q, 'no', pos.no)))} 🍺 now`}</div>` : ''}
     ${m.result ? '' : xTicket(m, q)}
     <span class="xm-eye">Waiting to go on</span>
-    <div class="xm-ob">${lv(dp.yes, 'y', 'On Yes, at')}${lv(dp.no, 'n', 'On No, at')}</div>
+    <div class="xm-ob">${lv(dp.yes, 'y', 'On ' + sw(m, 'yes') + ', at')}${lv(dp.no, 'n', 'On ' + sw(m, 'no') + ', at')}</div>
     ${recent.length ? `<span class="xm-eye">Latest bets</span><div class="xm-tk xm-trades">${recent.map(t =>
-      `<div class="xm-kv"><span>${esc(nameOf(t.pid))}${guestTag(t.pid)} ${t.cost > 0 ? 'put ' + beer(t.cost) + ' 🍺 on' : 'cashed out ' + beer(-t.cost) + ' 🍺 of'} ${t.side === 'yes' ? 'Yes' : 'No'}</span><b>${t.px}% · ${esc(sinceOf(t.at))}</b></div>`).join('')}</div>` : ''}
+      `<div class="xm-kv"><span>${esc(nameOf(t.pid))}${guestTag(t.pid)} ${t.cost > 0 ? 'put ' + beer(t.cost) + ' 🍺 on' : 'cashed out ' + beer(-t.cost) + ' 🍺 of'} ${sw(m, t.side)}</span><b>${t.px}% · ${esc(sinceOf(t.at))}</b></div>`).join('')}</div>` : ''}
     ${xFixHtml(m, sibs, tr)}
     <span class="xm-eye">Rules</span>
     <div class="xm-rules">${m.rules ? esc(m.rules) + ' ' : ''}A bet that comes true pays out in beers, to the quarter; one that doesn’t pays nothing. ${settlerLine(m)}</div>
     ${m.whoCustom ? xSettleWhoHtml(m, sibs) : ''}
     ${canSettle(m) && !m.result && !m.whoCustom ? `<div class="xm-settle"><span class="xm-eye">Settle it</span><div class="xm-q">
-        <button data-act="xSettle" data-a="${esc(m.id)}" data-b="yes">It happened: Yes</button>
-        <button data-act="xSettle" data-a="${esc(m.id)}" data-b="no">It didn’t: No</button>
-        <button data-act="xSettle" data-a="${esc(m.id)}" data-b="void">Void, give it all back</button></div></div>` : ''}
+        <button data-act="xSettle" data-a="${esc(m.id)}" data-b="yes">${m.ou ? 'It went over' : 'It happened: Yes'}</button>
+        <button data-act="xSettle" data-a="${esc(m.id)}" data-b="no">${m.ou ? 'It went under' : 'It didn’t: No'}</button>
+        <button data-act="xSettle" data-a="${esc(m.id)}" data-b="void">${m.ou ? 'Landed on the line: void, all back' : 'Void, give it all back'}</button></div></div>` : ''}
     ${canSettle(m) && m.result && !m.whoCustom && (T.market || {})[m.id] && (T.market || {})[m.id].result
       ? `<button class="xm-link" data-act="xSettle" data-a="${esc(m.id)}" data-b="">Undo the settlement</button>` : ''}
     ${m.custom && canSettle(m) && !tr.some(t => (m.whoCustom ? sibs.some(x => x.id === t.m) : t.m === m.id)) ? `<button class="xm-link danger" data-act="xDelete" data-a="${esc(m.qid || m.id)}">Delete this bet</button>` : ''}
@@ -13349,7 +13358,7 @@ function xPortfolio() {
   const open = acc.rows.filter(r => !r.settled), done = acc.rows.filter(r => r.settled);
   const ords = X.orders(T).filter(o => o.pid === me && o.state === 'open');
   const all = xAll();
-  const paysLine = r => [r.yes > 1e-6 ? 'pays ' + beer(X.round4(r.yes)) + ' if Yes' : '', r.no > 1e-6 ? 'pays ' + beer(X.round4(r.no)) + ' if No' : ''].filter(Boolean).join(' · ');
+  const paysLine = r => [r.yes > 1e-6 ? 'pays ' + beer(X.round4(r.yes)) + ' if ' + sw(r.m, 'yes') : '', r.no > 1e-6 ? 'pays ' + beer(X.round4(r.no)) + ' if ' + sw(r.m, 'no') : ''].filter(Boolean).join(' · ');
   return `${xBack()}
   <div class="xm-page"><h2 class="xm-h">${esc(nameOf(me))}’s bets</h2>
     <div class="xm-tk">
@@ -13364,30 +13373,33 @@ function xPortfolio() {
         <span class="xm-note">${paysLine(r)} · put on ${beer(r.spent)} · worth ${beer(r.value)}</span>
         <button data-act="xSellFrom" data-a="${esc(r.m.id)}" data-b="${r.yes > 1e-6 ? 'yes' : 'no'}">Cash out</button></div>`; }).join('') : '<p class="xm-note">Nothing open.</p>'}</div>
     ${ords.length ? `<span class="xm-eye">Waiting to go on</span><div class="xm-tk">${ords.map(o => { const m = all.find(x => x.id === o.m);
-      return `<div class="xm-kv"><span>${beer(o.stake || 0)} 🍺 on ${o.side === 'yes' ? 'Yes' : 'No'} · ${esc(m ? mName(m) : 'a bet')} · at ${o.lim}%</span><button class="xm-x" data-act="xCancel" data-a="${esc(o.id)}">Cancel</button></div>`; }).join('')}</div>` : ''}
+      return `<div class="xm-kv"><span>${beer(o.stake || 0)} 🍺 on ${sw(m, o.side)} · ${esc(m ? mName(m) : 'a bet')} · at ${o.lim}%</span><button class="xm-x" data-act="xCancel" data-a="${esc(o.id)}">Cancel</button></div>`; }).join('')}</div>` : ''}
     ${done.length ? `<span class="xm-eye">Settled</span><div class="xm-tk">${done.map(r => { const pl = r.paid - r.spent;
       return `<div class="xm-kv"><span>${esc(mName(r.m))} ${resultTag(r.m)}</span><b class="${pl >= 0 ? 'up' : 'dn'}">${signed(pl)} 🍺</b></div>`; }).join('')}</div>` : ''}
     <button class="xm-link" data-act="whoOpen">Not ${esc(nameOf(me))}? Change name</button>
   </div>`;
 }
 function xNewHtml() {
-  const n = UI.xNew || (UI.xNew = { q: '', rules: '', cat: 'trip', p0: 50, kind: 'yn', ppl: [] });
-  const who = n.kind === 'who';
+  const n = UI.xNew || (UI.xNew = { q: '', rules: '', cat: 'trip', p0: 50, kind: 'yn', ppl: [], line: '' });
+  const who = n.kind === 'who', ou = n.kind === 'ou';
   const ppl = X.tripPeople(T).concat(allGuests().filter(g => !g.removed).sort((a, b) => (a.at || 0) - (b.at || 0)).map(g => ({ id: g.pid, display: g.name })));
   return `${xBack()}
   <div class="xm-page"><h2 class="xm-h">Make your own bet</h2>
     <p class="xm-note">Everyone can bet on it; you or the commissioner settle it, and everyone sees who did and when.</p>
-    <div class="xm-f"><span>What kind</span><div class="xm-seg"><button class="${who ? '' : 'on'}" data-act="xN" data-a="kind" data-b="yn">Yes or no</button><button class="${who ? 'on' : ''}" data-act="xN" data-a="kind" data-b="who">Who will it be?</button></div></div>
-    <label class="xm-f"><span>The question</span>
-      <input id="xQ" type="text" maxlength="120" autocomplete="off" placeholder="${who ? 'Who’s last to breakfast on Friday?' : 'Will Ray V wear the pink trousers on Sunday?'}" value="${esc(n.q)}"></label>
+    <div class="xm-f"><span>What kind</span><div class="xm-seg"><button class="${!who && !ou ? 'on' : ''}" data-act="xN" data-a="kind" data-b="yn">Yes or no</button><button class="${who ? 'on' : ''}" data-act="xN" data-a="kind" data-b="who">Who will it be?</button><button class="${ou ? 'on' : ''}" data-act="xN" data-a="kind" data-b="ou">Over or under</button></div></div>
+    <label class="xm-f"><span>${ou ? 'What’s being counted' : 'The question'}</span>
+      <input id="xQ" type="text" maxlength="120" autocomplete="off" placeholder="${who ? 'Who’s last to breakfast on Friday?' : ou ? 'Ray V’s gross score in Round 3' : 'Will Ray V wear the pink trousers on Sunday?'}" value="${esc(n.q)}"></label>
+    ${ou ? `<label class="xm-f"><span>The line</span>
+      <input id="xLine" type="text" inputmode="decimal" maxlength="7" autocomplete="off" placeholder="92.5" value="${esc(n.line || '')}">
+      <small class="xm-note">Use a half, like 92.5, and there is no tie: 93 or more is Over, 92 or fewer is Under. On a whole number, landing on it is void and everyone gets their beers back.</small></label>` : ''}
     <div class="xm-f"><span>${who ? 'The answers: pick the people' : 'Who’s it about? <small>(tag them; optional)</small>'}</span>
       <div class="xm-ppl">${ppl.map(p => `<button class="${n.ppl.includes(p.id) ? 'on' : ''}" data-act="xN" data-a="ppl" data-b="${esc(p.id)}" aria-pressed="${n.ppl.includes(p.id)}">${esc(p.display)}${p.role === 'golfer' ? '' : whoTag(p.id)}</button>`).join('')}</div>
       <small class="xm-note">${who ? (n.ppl.length >= 2 ? `${n.ppl.length} people, ${Math.round(100 / n.ppl.length)}% each to start. The group’s bets move them from there.` : 'Pick two or more.')
         : 'Anyone tagged gets a buzz, and it shows when someone filters the bets by them.'}</small></div>
     <label class="xm-f"><span>How it’s settled <small>(optional)</small></span>
-      <input id="xRules" type="text" maxlength="200" autocomplete="off" placeholder="${who ? 'Whoever sits down last, by the breakfast clock.' : 'Yes if he’s wearing them on the first tee.'}" value="${esc(n.rules)}"></label>
+      <input id="xRules" type="text" maxlength="200" autocomplete="off" placeholder="${who ? 'Whoever sits down last, by the breakfast clock.' : ou ? 'His gross as signed on the card, triple-bogey cap and all.' : 'Yes if he’s wearing them on the first tee.'}" value="${esc(n.rules)}"></label>
     <div class="xm-f"><span>About</span><div class="xm-seg"><button class="${n.cat === 'golf' ? 'on' : ''}" data-act="xN" data-a="cat" data-b="golf">The golf</button><button class="${n.cat === 'trip' ? 'on' : ''}" data-act="xN" data-a="cat" data-b="trip">The trip</button></div></div>
-    ${who ? '' : `<div class="xm-f"><span>How likely, to start</span><div class="xm-q">${[10, 25, 50, 75, 90].map(v => `<button class="${n.p0 === v ? 'on' : ''}" data-act="xN" data-a="p0" data-b="${v}">${v}%</button>`).join('')}</div>
+    ${who || ou ? '' : `<div class="xm-f"><span>How likely, to start</span><div class="xm-q">${[10, 25, 50, 75, 90].map(v => `<button class="${n.p0 === v ? 'on' : ''}" data-act="xN" data-a="p0" data-b="${v}">${v}%</button>`).join('')}</div>
       <small class="xm-note">Your best guess. It opens with Yes at ${n.p0}%; the group’s bets move it from there.</small></div>`}
     ${UI.xErr ? `<p class="xm-err">${esc(UI.xErr)}</p>` : ''}
     ${whoAmI() ? `<button class="btn xm-go" data-act="xCreate">Open the bet</button><p class="xm-note">Made by ${esc(nameOf(whoAmI()))}${isGuest(whoAmI()) ? ', from the bleachers, so the commissioner settles it' : ''}.</p>`
@@ -13403,7 +13415,7 @@ function xSubmit() {
     if (t.beers > X.account(T, me, now).cash + 1e-9) { UI.xErr = `You have ${beer(X.account(T, me, now).cash)} 🍺 to bet with.`; render(); return; }
     const id = 'o' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
     store.putSocial('market', id, { k: 'o', m: m.id, pid: me, dev: myDev(), side: t.side, stake: t.beers, lim: t.lim, at: Date.now(), state: 'open' });
-    landed(m, '✓ Waiting to go on', `${beer(t.beers)} 🍺 on ${t.side === 'yes' ? 'Yes' : 'No'} · ${mName(m)}`, `Goes on by itself once it comes down to ${t.lim}%.`);
+    landed(m, '✓ Waiting to go on', `${beer(t.beers)} 🍺 on ${sw(m, t.side)} · ${mName(m)}`, `Goes on by itself once it comes down to ${t.lim}%.`);
     return;
   }
   const held = (X.positions(T, me)[m.id] || {})[t.side] || 0;
@@ -13415,7 +13427,7 @@ function xSubmit() {
   store.putSocial('market', id, { ...r.doc, dev: myDev(), at: Date.now() });
   t.lim = null;
   landed(m, t.act === 'buy' ? '✓ Bet placed' : '✓ Cashed out', t.act === 'buy'
-    ? `${beer(r.doc.cost)} 🍺 on ${t.side === 'yes' ? 'Yes' : 'No'} · ${mName(m)}` : `${beer(-r.doc.cost)} 🍺 back · ${mName(m)}`,
+    ? `${beer(r.doc.cost)} 🍺 on ${sw(m, t.side)} · ${mName(m)}` : `${beer(-r.doc.cost)} 🍺 back · ${mName(m)}`,
     t.act === 'buy' ? `Pays ${beer(X.round4(r.doc.n))} 🍺 if it comes in.` : 'Back in your beers now.');
 }
 /** Done on a bet's page: back to the list, at that bet, with word of it. */
@@ -19427,8 +19439,8 @@ function onClick(e) {
     }
     case 'xN': {
       const n = UI.xNew; if (!n) return;
-      const fq = document.getElementById('xQ'), fr = document.getElementById('xRules');
-      if (fq) n.q = fq.value; if (fr) n.rules = fr.value;
+      const fq = document.getElementById('xQ'), fr = document.getElementById('xRules'), fl = document.getElementById('xLine');
+      if (fq) n.q = fq.value; if (fr) n.rules = fr.value; if (fl) n.line = fl.value;
       if (a === 'ppl') n.ppl = n.ppl.includes(b) ? n.ppl.filter(x => x !== b) : n.ppl.concat(b);
       else n[a] = a === 'p0' ? +b : b;
       UI.xErr = ''; render(); return;
@@ -19451,16 +19463,20 @@ function onClick(e) {
     case 'xCreate': {
       const n = UI.xNew, me = whoAmI();
       if (!n || !me || !store) return;
-      const fq = document.getElementById('xQ'), fr = document.getElementById('xRules');
-      if (fq) n.q = fq.value; if (fr) n.rules = fr.value;
+      const fq = document.getElementById('xQ'), fr = document.getElementById('xRules'), fl = document.getElementById('xLine');
+      if (fq) n.q = fq.value; if (fr) n.rules = fr.value; if (fl) n.line = fl.value;
       let q = String(n.q || '').trim().replace(/\s+/g, ' ');
+      const ouLine = n.kind === 'ou' ? parseFloat(String(n.line || '').replace(',', '.').replace('½', '.5')) : null;
+      if (n.kind === 'ou' && !(ouLine >= 0 && ouLine < 10000)) { UI.xErr = 'Set the line: a number, like 92.5.'; render(); return; }
       if (q.length < 8) { UI.xErr = n.kind === 'who' ? 'Write the question out in full: who will it be, and for what?' : 'Write the question out in full, so everyone knows what Yes means.'; render(); return; }
       if (n.kind === 'who' && n.ppl.length < 2) { UI.xErr = 'Pick at least two people as the answers.'; render(); return; }
-      if (!/\?$/.test(q)) q += '?';
+      if (n.kind === 'ou') q = q.replace(/\?+$/, ''); else if (!/\?$/.test(q)) q += '?';
       const id = 'q' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
       const doc = { k: 'q', q, rules: String(n.rules || '').trim().slice(0, 200), cat: n.cat === 'golf' ? 'golf' : 'trip',
         pid: me, byName: nameOf(me), dev: myDev(), at: Date.now(), result: null };
-      if (n.kind === 'who') doc.opts = n.ppl.slice(0, 23); else { doc.p0 = n.p0 || 50; doc.tags = n.ppl.slice(0, 23); }
+      if (n.kind === 'who') doc.opts = n.ppl.slice(0, 23);
+      else if (n.kind === 'ou') { doc.ou = { line: Math.round(ouLine * 2) / 2 }; doc.p0 = 50; doc.tags = n.ppl.slice(0, 23); }
+      else { doc.p0 = n.p0 || 50; doc.tags = n.ppl.slice(0, 23); }
       store.putSocial('market', id, doc).then(landed => { if (landed && n.ppl.length) notifyOthers('market/' + id); });
       UI.xNew = null; UI.xErr = '';
       X.invalidate();
@@ -19475,7 +19491,7 @@ function onClick(e) {
       if (!m || !canSettle(m) || !store) return;
       if (!b) { store.patchSocial('market', a, { result: null, settledName: null, settledAt: null }); render(); return; }
       const who = whoAmI() ? nameOf(whoAmI()) : 'the commissioner';
-      const word = b === 'yes' ? 'Yes' : b === 'no' ? 'No' : 'void';
+      const word = b === 'void' ? 'void' : sw(m, b);
       UI.modal = { kind: 'confirm', eyebrow: 'Settle a bet', title: b === 'void' ? 'Void this bet?' : 'Settle it ' + word + '?',
         note: (m.group ? m.groupQ + ' ' + m.label : m.q) + ' ' + (b === 'void' ? 'Everyone gets back what they paid.'
           : 'Everyone who backed ' + word + ' is paid what their bet pays; everyone else loses theirs.')
@@ -19502,7 +19518,11 @@ function onClick(e) {
       if (!fixer()) return;
       const q = ((document.getElementById('xEdQ') || {}).value || '').trim(), rules = ((document.getElementById('xEdR') || {}).value || '').trim();
       if (q.length < 4) { flash('The question needs a few words.'); return; }
-      store.patchSocial('market', a, { q: /\?$/.test(q) ? q : q + '?', rules, editedBy: 'the commissioner', editedAt: Date.now() });
+      const held = (T.market || {})[a] || {};
+      const fl = document.getElementById('xEdL'), ln = fl ? parseFloat(String(fl.value).replace(',', '.').replace('½', '.5')) : null;
+      if (held.ou && !(ln >= 0 && ln < 10000)) { flash('Set the line: a number, like 92.5.'); return; }
+      store.patchSocial('market', a, held.ou ? { q: q.replace(/\?+$/, ''), ou: { line: Math.round(ln * 2) / 2 }, rules, editedBy: 'the commissioner', editedAt: Date.now() }
+        : { q: /\?$/.test(q) ? q : q + '?', rules, editedBy: 'the commissioner', editedAt: Date.now() });
       UI.modal = null; flash('Wording saved.'); render(); return;
     }
     case 'xDelete': {

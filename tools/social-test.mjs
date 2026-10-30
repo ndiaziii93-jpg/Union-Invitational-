@@ -242,6 +242,22 @@ ok('Cashed lists the settled bet, what it came in as, and who said so', [await p
 ok('and what it paid: her quarter on Yes at 25% came back as a beer', (await p.locator('.xm-cash .xc-lines li').allInnerTexts()).map(t => t.replace(/\s+/g, ' ').trim()), ['🏆 Jennifer D cashed 1 🍺 put on ¼ · +¾']);
 await tap('[data-act="xTab"][data-a="week"]');
 ok('once settled it sits under Settled on the week as well', (await p.locator('.xm-subh:has-text("Settled") ~ .xm-c .xm-ct b').allInnerTexts()).includes('Will Ray V wear the pink trousers on Sunday?'), true);
+console.log('\nover or under');
+await tap('[data-act="xTab"][data-a="ours"]');
+await tap('[data-act="xView"][data-a="new"]');
+await tap('[data-act="xN"][data-a="kind"][data-b="ou"]');
+ok('the form asks what is counted, and the line', [await p.locator('#xLine').count(), await p.locator('[data-act="xN"][data-a="p0"]').count()], [1, 0]);
+await p.locator('#xQ').fill('Ray V’s gross score in Round 3');
+await p.locator('#xLine').fill('92.5');
+await tap('[data-act="xCreate"]');
+ok('it opens as an over/under on the line', await p.locator('.xm-h').innerText(), 'Over or under 92½: Ray V’s gross score in Round 3?');
+ok('and is bet on Over or Under', (await p.locator('.xm-tk [data-act="xT"][data-a="side"]').allInnerTexts()).map(t => t.split(' ·')[0]), ['Over', 'Under']);
+ok('the line is kept on the bet', await p.evaluate(() => Object.values(window.__T.market).filter(r => r.k === 'q' && r.ou).map(r => r.ou.line)), [92.5]);
+await tap('[data-act="xSettle"][data-b="yes"]');
+ok('settling says it went over', await p.locator('.scrim .mbanner, .scrim h2, .scrim').first().innerText().then(t => /Over/.test(t)), true);
+await tap('.scrim [data-act="confirmOk"]');
+ok('and it reads as settled Over', /Settled Over/.test((await p.locator('.xm-done').innerText()).replace(/\s+/g, ' ')), true);
+await tap('.xm-back');
 await tap('[data-act="xTab"][data-a="r1"]');
 ok('Round 1 shows what the book settled itself as it happened: Robby B’s birdie on the 3rd and Ray V’s ball in the water',
   await p.locator('.xm-c:has(.xm-res.yes) .xm-ct b').allInnerTexts().then(x => x.sort()), ['Who birdies a par 3?', 'Who finds the water?']);

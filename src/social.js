@@ -312,7 +312,12 @@ export function markets(T, now) {
       }
       continue;
     }
-    out.push({ ...base, id: r.id, qid: r.id, q: r.q, p0: r.p0 || 50, tags: Array.isArray(r.tags) ? r.tags.slice() : [],
+    /* OVER OR UNDER. Underneath it is Yes and No — Over is Yes — so the
+       pricing, the payouts and the settling are the ones every bet uses;
+       only the words change. The line is set by whoever makes it. */
+    const ou = r.ou && isFinite(+r.ou.line) ? { line: +r.ou.line } : null;
+    const lineWord = n => { const w = Math.floor(n), h = n - w; return h >= 0.5 - 1e-9 && h < 0.5 + 1e-9 ? (w + '½') : String(n); };
+    out.push({ ...base, id: r.id, qid: r.id, ou, q: ou ? `Over or under ${lineWord(ou.line)}: ${String(r.q || '').replace(/\?+$/, '')}?` : r.q, p0: r.p0 || 50, tags: Array.isArray(r.tags) ? r.tags.slice() : [],
       result: r.result || null, settledBy: r.result ? r.settledName : null, settledAt: r.settledAt || null });
   }
   return (memoMarkets = out);
