@@ -176,6 +176,8 @@ export function createSupabaseDb(opts) {
   }
   function queue(path, op, doc) {
     const q = readOutbox();
+    /* a bingo mark: one entry a hole and group, later marks folding in */
+    if (op === 'bbb') { const held = q[path]; q[path] = { op: 'bbb', doc: { ...doc, cell: { ...((held && held.op === 'bbb' && held.doc.cell) || {}), ...doc.cell } }, at: Date.now() }; writeOutbox(q); waiting.add(path); say('queued'); armRetry(); return; }
     /* One entry per path. A set replaces whatever was waiting; a merge folds
        into a waiting set or merge so the order it eventually lands in cannot
        matter. A delete wipes the lot. */
@@ -232,7 +234,8 @@ export function createSupabaseDb(opts) {
       for (const path of paths) {
         const job = q[path];
         const done = job.op === 'delete' ? await rawDelete(path, true)
-                                         : await rawWrite(path, job.doc, job.op === 'merge', true);
+                   : job.op === 'bbb' ? await rawBbb(job.doc, true)
+                                      : await rawWrite(path, job.doc, job.op === 'merge', true);
         if (done || done === null) {
           unqueue(path, job.at);
           if (done) say('landed', path);
@@ -286,6 +289,26 @@ export function createSupabaseDb(opts) {
       if (denied(e)) { if (!fromOutbox) queue(path, merge ? 'merge' : 'set', doc); say('denied', path); return fromOutbox ? 'denied' : false; }
       if (refused(e)) { say('refused'); return fromOutbox ? null : false; }
       if (!fromOutbox) queue(path, merge ? 'merge' : 'set', doc);
+      say('offline');
+      return false;
+    }
+  }
+
+  /* A BINGO MARK, ON ITS HOLE ALONE. The server folds it into the row it
+     holds; nothing else on the row is touched, so two refs marking two
+     groups from two phones never put each other's marks back. 'nogate'
+     when the server has no such function yet: the caller writes the row. */
+  async function rawBbb(m, fromOutbox) {
+    const key = 'bbb/' + m.rid + '#' + m.h + '#' + m.gid;
+    try {
+      await gate(bound(sb.rpc('bbb_mark', { p_rid: m.rid, p_hole: m.h, p_group: m.gid, p_cell: m.cell, p_pin: pin(), p_who: deviceId || null })));
+      say('saved');
+      return true;
+    } catch (e) {
+      if (noGate(e)) return fromOutbox ? null : 'nogate';
+      if (denied(e)) { if (!fromOutbox) queue(key, 'bbb', m); say('denied', 'bbb/' + m.rid); return fromOutbox ? 'denied' : false; }
+      if (refused(e)) { say('refused'); return fromOutbox ? null : false; }
+      if (!fromOutbox) queue(key, 'bbb', m);
       say('offline');
       return false;
     }
@@ -474,6 +497,8 @@ export function createSupabaseDb(opts) {
       return data === true;
     },
 
+    /** One bingo mark: {rid, h, gid, cell}. true landed, false waits in the outbox, 'nogate' means write the row instead. */
+    bbbMark(m) { return rawBbb(m, false); },
     doc(path) {
       return {
         async get() {

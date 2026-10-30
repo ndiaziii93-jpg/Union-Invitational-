@@ -312,6 +312,60 @@ begin
 end $$;
 grant execute on function public.set_pin(text, text, text, text) to anon, authenticated;
 
+-- ---- A BINGO MARK LANDS ON ITS OWN HOLE --------------------------------------
+-- The bingo is one row a round, and two refs mark it from two phones. A
+-- whole-row write from a phone that had not yet heard the other's marks
+-- put the other's marks back the way that phone remembered them: gone.
+-- So a mark is written here, on its hole and its group alone, into
+-- whatever the row holds by then; nothing else on the row is touched.
+create or replace function public.bbb_mark(p_rid text, p_hole int, p_group text, p_cell jsonb, p_pin text, p_who text default null)
+returns text
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare r text; st text; d jsonb; cell jsonb; g jsonb; legacy jsonb; k text; bad text := null;
+begin
+  if p_rid !~ '^[A-Za-z0-9_.-]{1,40}$' or p_hole is null or p_hole < 0 or p_hole > 17 or p_group !~ '^t[0-9]{1,2}$' or jsonb_typeof(p_cell) <> 'object' then
+    return 'denied: PIN not accepted for that row';
+  end if;
+  for k in select jsonb_object_keys(p_cell) loop if k not in ('bingo', 'bango', 'bongo') then bad := k; end if; end loop;
+  if bad is not null then return 'denied: a bingo mark is bingo, bango or bongo'; end if;
+  if public.is_blocked(p_who) then return 'denied: PIN not accepted: this phone is blocked for a while'; end if;
+  r := public.pin_role(p_pin, p_who);
+  if r = 'throttled' then return 'denied: Too many PIN attempts. Wait a minute and try again.'; end if;
+  if r is null then
+    perform public.log_security('denied', 'bbb/' || p_rid, p_who, null, 'bingo mark with a wrong or missing role PIN');
+    return 'denied: PIN not accepted';
+  end if;
+  if r <> 'master' then
+    select doc->'rounds'->p_rid->>'state' into st from public.docs where path = 'config/tournament';
+    if st is distinct from 'open' then
+      perform public.log_security('denied', 'bbb/' || p_rid, p_who, null, 'a scorer PIN (' || r || ') marked the bingo while the round is ' || coalesce(st, 'not set up') || ': that needs the master PIN');
+      return 'denied: PIN not accepted: that needs the master PIN';
+    end if;
+  end if;
+  select doc into d from public.docs where path = 'bbb/' || p_rid;
+  if d is null or jsonb_typeof(d->'holes') <> 'array' then
+    d := jsonb_build_object('holes', (select jsonb_agg(jsonb_build_object('bingo', null, 'bango', null, 'bongo', null)) from generate_series(1, 18)));
+  end if;
+  cell := coalesce(d->'holes'->p_hole, '{}'::jsonb);
+  g := coalesce(cell->'g', '{}'::jsonb);
+  /* a hole marked before the groups were kept apart: what was on it belongs to the first group to write it now */
+  if not (cell ? 'g') then
+    select jsonb_object_agg(k2, cell->k2) into legacy from jsonb_object_keys(cell) k2
+     where k2 in ('bingo', 'bango', 'bongo') and jsonb_typeof(cell->k2) <> 'null';
+    if legacy is not null then g := g || jsonb_build_object(p_group, legacy); end if;
+  end if;
+  g := jsonb_set(g, array[p_group], coalesce(g->p_group, '{}'::jsonb) || p_cell);
+  cell := (cell - 'bingo' - 'bango' - 'bongo') || jsonb_build_object('g', g);
+  d := jsonb_set(d, array['holes', p_hole::text], cell);
+  insert into public.docs (path, doc, writer) values ('bbb/' || p_rid, d, p_who)
+  on conflict (path) do update set doc = excluded.doc, writer = excluded.writer;
+  return 'ok';
+end $$;
+grant execute on function public.bbb_mark(text, int, text, jsonb, text, text) to anon, authenticated;
+
 -- ---- a name and its PIN ----------------------------------------------------
 -- THE PLAYER PINS, FOR THE COMMISSIONER. The book checks a name's PIN
 -- against a hash and never needs the digits; the commissioner does, when

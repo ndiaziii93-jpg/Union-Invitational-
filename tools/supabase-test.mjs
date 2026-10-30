@@ -132,6 +132,16 @@ function fakeSupabase() {
             if (held && role !== 'master' && held.doc.dev !== args.p_who) return { data: 'denied: PIN not accepted: not yours to remove', error: null };
             rows.delete(args.p_path); return { data: 'ok', error: null };
           }
+          if (name === 'bbb_mark') {
+            state.gated.push([name, 'bbb/' + args.p_rid, args.p_pin]);
+            if (!role) return { error: { code: '42501', message: 'PIN not accepted' } };
+            const path = 'bbb/' + args.p_rid, held = rows.get(path);
+            const d = held ? JSON.parse(JSON.stringify(held.doc)) : { holes: Array.from({ length: 18 }, () => ({ bingo: null, bango: null, bongo: null })) };
+            const cell = d.holes[args.p_hole] = d.holes[args.p_hole] || {};
+            cell.g = cell.g || {}; cell.g[args.p_group] = { ...(cell.g[args.p_group] || {}), ...args.p_cell };
+            rows.set(path, { path, doc: d, writer: args.p_who, updated_at: stamp() });
+            return { data: 'ok', error: null };
+          }
           if (name === 'write_doc' || name === 'delete_doc') {
             state.gated.push([name, args.p_path, args.p_pin]);
             if (!role) return { error: { code: '42501', message: 'PIN not accepted' } };
@@ -384,6 +394,29 @@ function open(fake) {
   await wait(40);
   ok('the echo changes nothing', seen[seen.length - 1], []);
   ok('really gone from the table', fake.rows.has('pairs/p9'), false);
+  db.close();
+}
+
+/* ---- a bingo mark lands on its hole alone --------------------------------- */
+{
+  console.log('\ntwo refs, two groups, one bingo row');
+  mem.clear();
+  const fake = fakeSupabase();
+  const db = open(fake);
+  db.start();
+  myPin = '2000';
+  ok('a mark goes as a mark, not as the row', [await db.bbbMark({ rid: 'r1', h: 3, gid: 't0', cell: { bingo: 'g1' } }), fake.state.gated.filter(g => g[0] === 'bbb_mark').length], [true, 1]);
+  /* the other ref's phone, which has never heard of group 1's mark, marks group 2 on the same hole */
+  await db.bbbMark({ rid: 'r1', h: 3, gid: 't1', cell: { bango: 'g5' } });
+  await db.bbbMark({ rid: 'r1', h: 3, gid: 't0', cell: { bongo: 'g2' } });
+  ok('both groups\' marks are on the hole, nothing overwritten', fake.rows.get('bbb/r1').doc.holes[3].g, { t0: { bingo: 'g1', bongo: 'g2' }, t1: { bango: 'g5' } });
+  fake.state.offline = true;
+  ok('with no signal a mark waits', [await db.bbbMark({ rid: 'r1', h: 4, gid: 't0', cell: { bingo: 'g1' } }), db.pendingPaths()], [false, ['bbb/r1#4#t0']]);
+  await db.bbbMark({ rid: 'r1', h: 4, gid: 't0', cell: { bango: 'g2' } });
+  ok('a second mark on the same hole folds into it', db.pendingPaths(), ['bbb/r1#4#t0']);
+  fake.state.offline = false;
+  await wait(4500);
+  ok('and both land together when the signal is back', [db.pendingPaths(), fake.rows.get('bbb/r1').doc.holes[4].g], [[], { t0: { bingo: 'g1', bango: 'g2' } }]);
   db.close();
 }
 

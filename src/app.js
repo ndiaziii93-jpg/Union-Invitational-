@@ -3668,20 +3668,8 @@ function commitDraft(role) {
       else { c.by[h] = role; c.at[h] = Date.now(); }
     });
   }
-  if (Object.keys(d.bbb).length) store.writeBbb(d.rid, x => {
-    const cell = x.holes[h];
-    const gid = d.gid || curGroupId(d.rid);
-    if (!cell.g) {
-      // first per-group write to this hole: whatever was already on it
-      // belongs to whoever is writing now, so it is not simply dropped
-      cell.g = {};
-      const legacy = {};
-      let any = false;
-      for (const k of E.BBB_SLOTS) if (cell[k]) { legacy[k] = cell[k]; any = true; delete cell[k]; }
-      if (any) cell.g[gid] = legacy;
-    }
-    cell.g[gid] = { ...(cell.g[gid] || {}), ...d.bbb };
-  });
+  /* the marks go on the hole and the group alone, so two refs on two phones never overwrite each other's holes */
+  if (Object.keys(d.bbb).length) store.markBbb(d.rid, h, d.gid || curGroupId(d.rid), d.bbb);
   UI.draft = null;
 }
 

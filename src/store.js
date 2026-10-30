@@ -1079,6 +1079,31 @@ export function createStore(onChange) {
     catch (e) { status = 'error'; saveState = 'error'; notify(); return false; }
   }
 
+  /** A ref's marks on one hole for one group: on the phone at once, and on
+   *  the server as a mark on that hole alone, never as the whole row. */
+  async function markBbb(roundId, h, gid, fields) {
+    if (tooEarly()) return false;
+    const b = T.bbb[roundId] ? { holes: T.bbb[roundId].holes.map(x => ({ ...x })) } : blankBbb();
+    const cell = b.holes[h] = { ...(b.holes[h] || {}) };
+    if (!cell.g) {
+      /* first per-group write to this hole: whatever was on it belongs to whoever is writing now */
+      cell.g = {};
+      const legacy = {}; let any = false;
+      for (const k of ['bingo', 'bango', 'bongo']) if (cell[k]) { legacy[k] = cell[k]; any = true; }
+      for (const k of ['bingo', 'bango', 'bongo']) delete cell[k];
+      if (any) cell.g[gid] = legacy;
+    } else cell.g = { ...cell.g };
+    cell.g[gid] = { ...(cell.g[gid] || {}), ...fields };
+    bump('bbb/' + roundId, b);
+    T.bbb[roundId] = b;
+    notify();
+    if (mode === 'local') { saveLocal(); return true; }
+    try {
+      const r = db.bbbMark ? await db.bbbMark({ rid: roundId, h, gid, cell: fields }) : 'nogate';
+      if (r === 'nogate') await db.doc('bbb/' + roundId).set(b);     // the server has no gate for a mark yet: the row, as before
+      return r !== false;
+    } catch (e) { status = 'error'; notify(); return false; }
+  }
   async function writeBbb(roundId, mutate) {
     if (tooEarly()) return false;
     const b = T.bbb[roundId] ? { holes: T.bbb[roundId].holes.map(h => ({ ...h })) } : blankBbb();
@@ -1162,7 +1187,7 @@ export function createStore(onChange) {
     } catch (e) { status = 'error'; saveState = 'error'; notify(); return false; }
   }
 
-  return { T, connect, writeConfig, writeCard, writeBbb, writeNote, writeRecap, writePhoto, heartPhoto, movePhoto, dropPhoto, putSocial, patchSocial, dropSocial, writePush, resetScores, resetRound, resetTees, resave, note,
+  return { T, connect, writeConfig, writeCard, writeBbb, writeNote, writeRecap, writePhoto, heartPhoto, movePhoto, dropPhoto, markBbb, putSocial, patchSocial, dropSocial, writePush, resetScores, resetRound, resetTees, resave, note,
            get deviceId() { return deviceId; },
            writePerson, writeAllPeople, addPerson, removePerson,
            writePair, addPair, removePair, movePlayer, movePairBy,
