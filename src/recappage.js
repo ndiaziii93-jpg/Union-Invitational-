@@ -93,11 +93,13 @@ export function renderRecap(T, rid, IMG, opts) {
   const shared = opts.shared || sharedRounds(T);
   const tm = ms => { try { return E.to12(new Date(ms + D.TZ_OFFSET_MIN * 60000).toISOString().slice(11, 16)); } catch (e) { return ''; } };
   const inlinePhoto = i => {
-    const ph = i === 0 ? stills[1] : i === 2 ? stills[2] : null;
+    const ph = stills[i + 1] || null;
     if (!ph) return '';
     return `<figure class="rinline"><img src="${esc(ph.url)}" alt="${esc(ph.caption || 'From the round')}" loading="lazy" decoding="async">
       <figcaption>${esc(ph.caption || (ph.hole != null ? 'Hole ' + (ph.hole + 1) : 'From the round'))}${ph.byName ? ' · 📷 ' + esc(ph.byName) : ''}</figcaption></figure>`;
   };
+  const voiceHtml = v => `<blockquote class="rvoice"><p>“${esc(v.text)}”</p><cite>— ${esc(v.who || 'From the chat')}</cite></blockquote>`;
+  const inlineVoice = i => { const v = ((body && body.voices) || [])[i]; return v ? voiceHtml(v) : ''; };
   const roundName = x => x.short === 'Practice' ? 'Practice day' : (x.full || x.short);
   const next = D.ROUNDS[D.ROUNDS.findIndex(x => x.id === rid) + 1];
   const nextTee = next && E.roundCfg(T, next.id).tees && E.roundCfg(T, next.id).tees[0] && E.roundCfg(T, next.id).tees[0].time;
@@ -145,7 +147,8 @@ export function renderRecap(T, rid, IMG, opts) {
         </div>
         <div class="artbody">
         ${body && body.narrative ? body.narrative.filter(x => x && x.trim())
-            .map((x, i) => `<p class="recpara${i === 0 ? ' lead' : ''}">${esc(x)}</p>${inlinePhoto(i)}`).join('')
+            .map((x, i) => `<p class="recpara${i === 0 ? ' lead' : ''}">${esc(x)}</p>${i < body.narrative.length - 1 ? inlinePhoto(i) + inlineVoice(i) : ''}`).join('')
+            + ((body.voices || []).length > body.narrative.length - 1 ? (body.voices || []).slice(Math.max(body.narrative.length - 1, 0)).map(voiceHtml).join('') : '')
           : st.complete ? `<p class="recpara">${rec && rec.body ? 'The report is written and will be shared by the commissioner.' : 'The report has not been written yet.'} The standings below are live.</p>`
           : `<p class="recpara">The standings below are live. The report is written once every card is in.</p>`}
         </div>

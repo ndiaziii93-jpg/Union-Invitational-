@@ -1,5 +1,5 @@
 /* The Union Invitational — offline shell.
-   Build 20261030-1709.
+   Build 20261030-1727.
 
    THE COPY ON THE PHONE IS THE ONE THAT OPENS. A page served network-first
    does not fail on a weak signal, it crawls — and a phone on one bar sat on
@@ -18,7 +18,7 @@
    Anything that is not a GET — every score, every photo — is left entirely
    alone. Writes are the store's business, and it queues them itself. */
 
-const CACHE = 'union-20261030-1709';
+const CACHE = 'union-20261030-1727';
 const PICTURES = 'union-pictures';
 const SHELL = ['./', './index.html', './manifest.webmanifest',
                './icon-192.png', './icon-512.png', './apple-touch-icon.png',
