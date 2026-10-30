@@ -1486,6 +1486,7 @@ function recapPanel() {
  *  first and the third, the second and third newest (the newest is on the
  *  front). */
 function inlinePhoto(snaps, i) {
+  const stills = snaps.filter(p => !isVideo(p));          // the inline pictures are photographs; clips are in the strip
   const ph = i === 0 ? stills[1] : i === 2 ? stills[2] : null;
   if (!ph) return '';
   return `<figure class="rinline"><img src="${esc(ph.url)}" alt="${esc(ph.caption || 'From the round')}" loading="lazy" decoding="async">
@@ -6814,6 +6815,7 @@ function render() {
   catch (err) {
     // The screen is the least of it: a throw here used to abort whatever write
     // was in flight. Record it, and let the save carry on.
+    try { console.error('RENDER FAILED', err); } catch (e2) { /* no console */ }
     if (store && store.note) store.note('RENDER FAILED', String((err && (err.stack || err.message)) || err).slice(0, 220));
     else throw err;
   }
