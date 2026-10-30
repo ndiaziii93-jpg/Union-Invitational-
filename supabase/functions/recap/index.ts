@@ -22,7 +22,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const MODEL = 'claude-opus-5';
 const MAX_PROMPT = 60_000;      // a whole day's cards is a few thousand characters
-const MAX_TOKENS = 4_000;       // a headline, three paragraphs and the honours
+const MAX_TOKENS = 6_000;       // a headline, eight to ten paragraphs, the voices and the honours
 
 /* The book is installed on phones, so the function is called from a browser
    and needs to answer the preflight. */

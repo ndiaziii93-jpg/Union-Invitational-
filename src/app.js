@@ -2458,6 +2458,57 @@ function xList() {
     ${st.map((s, i) => xStRow(s, i)).join('')}</section>` : ''}
   <p class="pg-note">The chance moves as people bet: the book always takes the other side, so every bet goes on straight away.</p>`;
 }
+/* ---- FIXING BETS, FOR THE COMMISSIONER ----
+   Somebody backed the wrong side, or the wrong name on a who-card, or
+   wrote the question badly. The master PIN puts it right on the bet's own
+   page: every bet on it, with Switch side, Move to another name, and
+   Remove (the beers go back); and, on a bet the group made, its wording.
+   A switched or moved bet keeps its stake and is priced as if it had gone
+   on that side in the first place. The person is not asked; it stays
+   theirs, and says it was fixed. */
+const fixer = () => canAdmin() && (!D.PINS_ENABLED || UI.role === 'master');
+function xFixHtml(m, sibs, tr) {
+  if (!fixer()) return '';
+  const mine = tr.filter(t => t.m === m.id && t.id).slice().reverse();
+  const others = m.group ? sibs.filter(x => x.id !== m.id) : [];
+  const word = s => s === 'yes' ? 'Yes' : 'No';
+  return `<details class="xm-fix"><summary><span class="xm-eye">Fix a bet · commissioner</span></summary>
+    ${m.custom ? `<button class="xm-link" data-act="xEditQ" data-a="${esc(m.qid || m.id)}">Edit the wording</button>` : ''}
+    ${mine.length ? mine.map(t => `<div class="xm-fixrow">
+      <span class="w"><b>${esc(nameOf(t.pid))}</b> ${t.cost > 0 ? beer(t.cost) + ' 🍺 on ' : 'cashed out ' + beer(-t.cost) + ' 🍺 of '}${word(t.side)}${t.fixedAt ? ' <small>· fixed</small>' : ''}</span>
+      <span class="b">${t.cost > 0 ? `<button class="chip" data-act="xFixSide" data-a="${esc(t.id)}">Switch to ${word(t.side === 'yes' ? 'no' : 'yes')}</button>` : ''}
+        ${t.cost > 0 && others.length ? `<button class="chip" data-act="xFixMovePick" data-a="${esc(t.id)}">Move to…</button>` : ''}
+        <button class="chip danger" data-act="xFixDrop" data-a="${esc(t.id)}">Remove</button></span>
+      ${UI.xFixMove === t.id ? `<span class="mv">${others.map(x => `<button class="chip" data-act="xFixMove" data-a="${esc(t.id)}" data-b="${esc(x.id)}">${esc(x.label)}</button>`).join('')}</span>` : ''}
+    </div>`).join('') : '<p class="xm-none">Nobody has bet on this one yet.</p>'}
+  </details>`;
+}
+/** A bet put back on the book as if it had gone on that side, or that name, in the first place. */
+function xRefit(id, toM, toSide) {
+  const t = (T.market || {})[id];
+  if (!t || !fixer()) return;
+  const m = xFind(toM || t.m);
+  if (!m) return;
+  const side = toSide || t.side;
+  const q = X.book(m, X.trades(T).filter(x => x.id !== id));
+  const k = X.sharesFor(q, side, t.cost);
+  if (!(k > 0)) { flash('That bet could not be re-priced.'); return; }
+  store.putSocial('market', id, { ...t, m: m.id, side, n: k, px: X.cents(t.cost / k), fixedBy: 'the commissioner', fixedAt: Date.now() });
+  UI.xFixMove = null;
+  flash('Fixed: ' + nameOf(t.pid) + '’s ' + beer(t.cost) + ' 🍺 is on ' + (side === 'yes' ? 'Yes' : 'No') + (m.group ? ' · ' + m.label : '') + '.');
+}
+function xEditHtml() {
+  const md = UI.modal, r = (T.market || {})[md.id] || {};
+  return `<div class="scrim" data-act="modalScrim"><div class="modal" role="dialog" aria-modal="true" aria-label="Edit the wording">
+    ${modalBanner('Edit the wording', 'Fix a bet · commissioner')}
+    <label class="calc-l" for="xEdQ" style="display:block;margin-top:14px">The question</label>
+    <input id="xEdQ" class="field" maxlength="120" autocomplete="off" value="${esc(r.q || '')}" style="width:100%">
+    <label class="calc-l" for="xEdR" style="display:block;margin-top:12px">How it is settled</label>
+    <textarea id="xEdR" class="field" maxlength="400" rows="3" style="width:100%">${esc(r.rules || '')}</textarea>
+    <div class="acts" style="margin-top:14px"><button class="btn ghost" data-act="modalCancel">Cancel</button><button class="btn" data-act="xEditGo" data-a="${esc(md.id)}">Save</button></div>
+  </div></div>`;
+}
+
 /* ---- Cashed: who hit, and what it paid ----
    A settled bet with nobody on it is not news. One card a bet: the question,
    what it came in as and who said so, then everyone who had a beer on it —
@@ -2548,6 +2599,7 @@ function xMarketHtml(m) {
     <div class="xm-ob">${lv(dp.yes, 'y', 'On Yes, at')}${lv(dp.no, 'n', 'On No, at')}</div>
     ${recent.length ? `<span class="xm-eye">Latest bets</span><div class="xm-tk xm-trades">${recent.map(t =>
       `<div class="xm-kv"><span>${esc(nameOf(t.pid))}${guestTag(t.pid)} ${t.cost > 0 ? 'put ' + beer(t.cost) + ' 🍺 on' : 'cashed out ' + beer(-t.cost) + ' 🍺 of'} ${t.side === 'yes' ? 'Yes' : 'No'}</span><b>${t.px}% · ${esc(sinceOf(t.at))}</b></div>`).join('')}</div>` : ''}
+    ${xFixHtml(m, sibs, tr)}
     <span class="xm-eye">Rules</span>
     <div class="xm-rules">${m.rules ? esc(m.rules) + ' ' : ''}A bet that comes true pays out in beers, to the quarter; one that doesn’t pays nothing. ${settlerLine(m)}</div>
     ${m.whoCustom ? xSettleWhoHtml(m, sibs) : ''}
@@ -8146,6 +8198,7 @@ function modalHtml() {
        : UI.modal.kind === 'card' ? cardSheetHtml()
        : UI.modal.kind === 'hist' ? histModalHtml()
        : UI.modal.kind === 'bbbfix' ? bbbFixHtml()
+       : UI.modal.kind === 'xedit' ? xEditHtml()
        : UI.modal.kind === 'photosrc' ? photoSrcHtml()
        : UI.modal.kind === 'phmove' ? photoMoveHtml()
        : UI.modal.kind === 'hole' ? holeModalHtml()
@@ -8695,6 +8748,27 @@ function onClick(e) {
         ok: b === 'void' ? 'Void it' : 'Settle ' + word,
         onOk: () => { store.patchSocial('market', a, { result: b, settledName: who, settledAt: Date.now() }).then(okd => { if (okd) notifyOthers('market/' + a, { settled: true }); }); flash('Settled. Payouts are in everyone’s beers.'); } };
       render(); return;
+    }
+    case 'xFixMovePick': if (!fixer()) return; UI.xFixMove = UI.xFixMove === a ? null : a; render(); return;
+    case 'xFixMove': xRefit(a, b, null); render(); return;
+    case 'xFixSide': { const t = (T.market || {})[a]; if (!t || !fixer()) return;
+      const to = t.side === 'yes' ? 'no' : 'yes';
+      UI.modal = { kind: 'confirm', eyebrow: 'Fix a bet', title: 'Switch ' + nameOf(t.pid) + '’s bet to ' + (to === 'yes' ? 'Yes' : 'No') + '?',
+        note: 'The same ' + beer(t.cost) + ' 🍺, priced as if it had gone on ' + (to === 'yes' ? 'Yes' : 'No') + ' in the first place. It stays ' + nameOf(t.pid) + '’s bet and shows as fixed.',
+        ok: 'Switch it', onOk: () => { xRefit(a, null, to); render(); } };
+      render(); return; }
+    case 'xFixDrop': { const t = (T.market || {})[a]; if (!t || !fixer()) return;
+      UI.modal = { kind: 'confirm', eyebrow: 'Fix a bet', title: 'Remove ' + nameOf(t.pid) + '’s bet?',
+        note: t.cost > 0 ? 'The ' + beer(t.cost) + ' 🍺 goes back to ' + nameOf(t.pid) + ', who can bet again.' : 'The cash-out is undone and the bet is back as it was.',
+        ok: 'Remove it', onOk: () => { store.dropSocial('market', a); flash('Removed.'); render(); } };
+      render(); return; }
+    case 'xEditQ': if (!fixer()) return; UI.modal = { kind: 'xedit', id: a, back: UI.modal }; render(); return;
+    case 'xEditGo': {
+      if (!fixer()) return;
+      const q = ((document.getElementById('xEdQ') || {}).value || '').trim(), rules = ((document.getElementById('xEdR') || {}).value || '').trim();
+      if (q.length < 4) { flash('The question needs a few words.'); return; }
+      store.patchSocial('market', a, { q: /\?$/.test(q) ? q : q + '?', rules, editedBy: 'the commissioner', editedAt: Date.now() });
+      UI.modal = null; flash('Wording saved.'); render(); return;
     }
     case 'xDelete': {
       const m = xAll().find(x => x.qid === a);
@@ -9654,7 +9728,8 @@ const RECAP_RULES = [
   '- If you want to say somebody holed out from somewhere, the card must show that hole.',
   '- Ribbing is affectionate: the golf, the choices, the confidence, the excuses. Never anyone\'s body, job, family or money.',
   '- Do not single out the same player for a ribbing more than twice in the whole piece.',
-  '- Quote the golfers\' own words from WHAT THE GOLFERS SAID ABOUT THEIR OWN ROUNDS, verbatim and attributed, from at least three different people where the card has them.',
+  '- Quote the golfers\' own words from WHAT THE GOLFERS SAID ABOUT THEIR OWN ROUNDS, verbatim and attributed, from at least six different people where the card has them, and as many of them as you can.',
+  '- Every paragraph lands at least one jab or joke. Give each pair, and anyone with a story on the card, their moment.',
   '- Never mention a player\'s handicap band as a criticism. It is a number of strokes, not a verdict.',
   '',
   'THE MARKS, AND HOW FAR THEY GO:',
@@ -9676,8 +9751,8 @@ const RECAP_RULES = [
   '  better" and a seven that was "the wrong club" are two different stories.',
   '  Where the field agrees a hole robbed them, the hole is the character.',
   '',
-  '- Four or five paragraphs of roughly 50 to 80 words each.',
-  '- "voices": up to four short lines lifted WORD FOR WORD from WHAT THE GOLFERS SAID ABOUT THEIR OWN ROUNDS, each with who said it.',
+  '- Eight to ten paragraphs of roughly 70 to 100 words each: a long read, the back page of the Sunday paper.',
+  '- "voices": up to eight short lines lifted WORD FOR WORD from WHAT THE GOLFERS SAID ABOUT THEIR OWN ROUNDS, each with who said it, from as many different people as possible.',
   '  They are set between the paragraphs as pull-quotes. Copy them exactly; a line that is not on the card is thrown away.',
   '- At least two honours must be winnable by somebody having a bad round.',
   '',
@@ -9686,7 +9761,7 @@ const RECAP_RULES = [
   'Use the exact player and pair ids given at the end of the card.',
   '',
   'Reply with JSON only. No preamble, no code fence, no commentary. This shape:',
-  '{"headline":"one line","narrative":["para","para","para","para"],',
+  '{"headline":"one line","narrative":["para","para","para","para","para","para","para","para"],',
   ' "voices":[{"who":"Ray V","text":"exact words from what he said about his round"}],',
   ' "swing":{"value":"4 shots","caption":"one sentence"},',
   ' "pairNotes":{"p1":"one line"},',
@@ -9705,7 +9780,7 @@ function realVoices(voices, rid) {
     if (n.say) said.push(squash(n.say));
     Object.values(n.text || {}).forEach(t => said.push(squash(t)));
   }
-  return (voices || []).filter(v => { const t = squash(v.text); return t.length >= 3 && said.some(s => s.includes(t)); }).slice(0, 4);
+  return (voices || []).filter(v => { const t = squash(v.text); return t.length >= 3 && said.some(s => s.includes(t)); }).slice(0, 8);
 }
 function parseRecap(raw) {
   let t = String(raw || '').trim();
@@ -9716,8 +9791,8 @@ function parseRecap(raw) {
   if (!v || typeof v !== 'object') throw new Error('not an object');
   return {
     headline: String(v.headline || '').slice(0, 160),
-    narrative: (Array.isArray(v.narrative) ? v.narrative : []).slice(0, 5).map(x => String(x)),
-    voices: (Array.isArray(v.voices) ? v.voices : []).slice(0, 6).map(x => ({ who: String((x && x.who) || '').slice(0, 40), text: String((x && x.text) || '').slice(0, 220) })).filter(x => x.text),
+    narrative: (Array.isArray(v.narrative) ? v.narrative : []).slice(0, 12).map(x => String(x)),
+    voices: (Array.isArray(v.voices) ? v.voices : []).slice(0, 12).map(x => ({ who: String((x && x.who) || '').slice(0, 40), text: String((x && x.text) || '').slice(0, 220) })).filter(x => x.text),
     swing: v.swing && typeof v.swing === 'object'
       ? { value: String(v.swing.value || ''), caption: String(v.swing.caption || '') } : null,
     pairNotes: v.pairNotes && typeof v.pairNotes === 'object'

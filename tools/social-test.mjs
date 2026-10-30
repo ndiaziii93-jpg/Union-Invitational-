@@ -172,6 +172,21 @@ ok('betting moves the chance', await p.locator('.xm-c:has-text("Ryder Cup") .xm-
 ok('and her name goes on the card', (await p.locator('.xm-c:has-text("Ryder Cup") .xm-bk').innerText()).replace(/\s+/g, ' ').trim(), 'Yes Jennifer D');
 ok('the bet is two beers in the book', await p.evaluate(() => Object.values(window.__T.market).filter(r => r.k === 't').map(t => [t.side, t.cost])), [['yes', 2]]);
 ok('the balance drops by exactly two', (await p.locator('.xm-bal').innerText()).trim(), '🍺 18 · My bets');
+
+console.log('\nthe commissioner fixes a bet');
+await p.locator('.xm-c:has-text("Ryder Cup") .xm-ct').first().click(); await p.waitForTimeout(400);
+ok('the bet page carries a fix panel for the commissioner', await p.locator('.xm-fix').count(), 1);
+await p.locator('.xm-fix summary').click(); await p.waitForTimeout(200);
+const ryder = () => p.evaluate(() => Object.values(window.__T.market).filter(r => r.k === 't' && r.cost > 0).map(t => [t.side, t.cost, !!t.fixedAt]));
+const nBefore = await p.evaluate(() => Object.values(window.__T.market).find(r => r.k === 't' && r.cost > 0).n);
+await tap('.xm-fix [data-act="xFixSide"]'); await tap('.scrim [data-act="confirmOk"]');
+ok('Switch side moves the same two beers to No, marked as fixed', await ryder(), [['no', 2, true]]);
+await p.locator('.xm-fix summary').click({ force: true }).catch(() => {}); await p.waitForTimeout(200);
+if (!(await p.locator('.xm-fix[open]').count())) await p.locator('.xm-fix summary').click();
+await tap('.xm-fix [data-act="xFixSide"]'); await tap('.scrim [data-act="confirmOk"]');
+ok('and back again, priced exactly as it first went on', [await ryder(), await p.evaluate(() => Object.values(window.__T.market).find(r => r.k === 't' && r.cost > 0).n)], [[['yes', 2, true]], nBefore]);
+await tap('.xm-back');
+ok('the balance is untouched by a fix', (await p.locator('.xm-bal').innerText()).trim(), '🍺 18 · My bets');
 await p.locator('.xm-c:has-text("Ryder Cup") .xm-yn .y').click(); await p.waitForTimeout(400);
 await tap('[data-act="xT"][data-a="act"][data-b="sell"]');
 ok('cash out says what it is worth, in quarters', /Your Yes is worth [0-9¼½¾]+ 🍺 right now/.test(await p.locator('.xm-tk').first().innerText()), true);
