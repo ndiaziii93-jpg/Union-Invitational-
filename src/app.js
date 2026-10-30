@@ -699,6 +699,7 @@ function boardBbb() {
   const rows = E.bbbBoard(T);
   const banked = rows.reduce((n, r) => n + r.pts, 0);
   return `<div class="titlerow"><h2 class="head">Bingo Bango Bongo</h2><button class="rulelink" data-act="goRule" data-a="bbb">Full rules</button></div>
+  ${canAdmin() && store && store.backend === 'supabase' ? `<p class="pnote" style="max-width:none;margin:0 0 10px">Marks gone missing? <button class="rm" data-act="bbbFix" data-a="${esc(E.countingRounds(T).find(r => E.phaseOf(T, r.id, now) === 'live') ? E.countingRounds(T).find(r => E.phaseOf(T, r.id, now) === 'live').id : (UI.boardRound || 'r1'))}">Recover marks from the book’s history</button></p>` : ''}
 
   ${leadPlate({ eyebrow: 'Leading', live: !!banked,
     who: rows.length ? rows[0].name : null,
@@ -5092,6 +5093,37 @@ function histDiff(path, before, after) {
   if (path === 'config/tournament') { const o = []; for (const k of new Set([...Object.keys(before || {}), ...Object.keys(after || {})])) if (k !== 'rev' && JSON.stringify(before && before[k]) !== JSON.stringify(after && after[k])) o.push(k); return o.length ? o.join(', ') + ' changed' : 'changed'; }
   return 'changed';
 }
+/* RECOVERING MARKS. The bingo row keeps every version; this reads them all
+   for a round, finds every slot that was once marked and is empty now, and
+   puts the names back one hole at a time, through the same gate a ref's
+   mark goes through. What the row holds now is never overwritten. */
+function bbbFixOpen(rid) {
+  UI.modal = { kind: 'bbbfix', rid, busy: true, rows: null, err: '', done: 0 };
+  render();
+  store.historyRecent('bbb/' + rid).then(rows => {
+    const m = UI.modal; if (!m || m.kind !== 'bbbfix' || m.rid !== rid) return;
+    const versions = (rows || []).map(r => r.after ? { ...r.after, at: r.at } : null).filter(Boolean);
+    m.versions = versions.length; m.rows = E.bbbMissing(T.bbb[rid], versions); m.busy = false; render();
+  }, e => { const m = UI.modal; if (!m || m.kind !== 'bbbfix') return; m.busy = false; m.rows = []; m.err = /PIN/.test(String(e && e.message || '')) ? 'The server did not accept this phone’s master PIN.' : 'Could not read the history: no signal.'; render(); });
+}
+function bbbFixHtml() {
+  const m = UI.modal, r = E.roundDef(m.rid);
+  const groupName = gid => (/^[tg](\d+)$/.exec(gid) ? 'Group ' + (+RegExp.$1 + 1) : gid);
+  const rows = m.rows || [];
+  const byHole = {};
+  rows.forEach(x => { (byHole[x.h] = byHole[x.h] || []).push(x); });
+  return `<div class="scrim" data-act="modalScrim"><div class="modal histmodal" role="dialog" aria-modal="true" aria-label="Recover marks">
+    ${modalBanner('Recover marks', 'Bingo Bango Bongo · ' + (r ? r.short : m.rid))}
+    <div class="chiprow" style="margin:10px 0">${E.countingRounds(T).map(x => `<button class="chip${x.id === m.rid ? ' on' : ''}" data-act="bbbFixRound" data-a="${x.id}">${esc(x.short)}</button>`).join('')}</div>
+    <p class="lede">Every version of this round’s bingo row the book has kept, against the row as it is now. A name below was marked once and is not on the row today. Putting them back changes nothing that is on the row now.</p>
+    ${m.err ? `<p class="xm-err">${esc(m.err)}</p>` : ''}
+    ${m.busy ? '<p class="empty">Reading the history…</p>'
+      : !rows.length ? `<p class="empty">${m.done ? m.done + ' put back. ' : ''}Nothing missing: every mark the history holds${m.versions ? ' (' + m.versions + ' versions)' : ''} is on the row.</p>`
+      : `<ul class="histlist bbbfix">${Object.keys(byHole).map(h => `<li><span class="hl-when">Hole ${+h + 1}</span><span class="hl-what">${byHole[h].map(x => `${esc(groupName(x.gid))} · ${x.slot} <b>${esc(nameOf(x.pid))}</b>${x.at ? ' <small>(' + esc(histWhen(x.at)) + ')</small>' : ''}`).join('<br>')}</span></li>`).join('')}</ul>
+        <div class="acts"><button class="btn ghost" data-act="modalCancel">Leave it</button><button class="btn" data-act="bbbFixGo">Put ${rows.length} mark${rows.length === 1 ? '' : 's'} back</button></div>`}
+    ${!m.busy && !rows.length ? `<div class="acts"><button class="btn ghost" data-act="modalCancel">Done</button></div>` : ''}
+  </div></div>`;
+}
 function histModalHtml() {
   const h = UI.hist || {};
   const rows = h.rows || [];
@@ -8099,6 +8131,7 @@ function modalHtml() {
        : UI.modal.kind === 'ruling' ? rulingSheetHtml()
        : UI.modal.kind === 'card' ? cardSheetHtml()
        : UI.modal.kind === 'hist' ? histModalHtml()
+       : UI.modal.kind === 'bbbfix' ? bbbFixHtml()
        : UI.modal.kind === 'photosrc' ? photoSrcHtml()
        : UI.modal.kind === 'phmove' ? photoMoveHtml()
        : UI.modal.kind === 'hole' ? holeModalHtml()
@@ -8472,6 +8505,21 @@ function onClick(e) {
       const pids = (pr.members || []).filter(id => E.person(T, id)); if (!pids.length) return;
       UI.modal = { kind: 'card', pair: pr.id, pids, rid: cardRoundFor(pids, b || null) }; render(); return; }
     case 'cardRound': if (UI.modal && UI.modal.kind === 'card') { UI.modal.rid = a; render(); } return;
+    case 'bbbFix': if (!canAdmin()) return; bbbFixOpen(a); return;
+    case 'bbbFixRound': if (UI.modal && UI.modal.kind === 'bbbfix') bbbFixOpen(a); return;
+    case 'bbbFixGo': {
+      const m = UI.modal; if (!m || m.kind !== 'bbbfix' || !canAdmin() || !(m.rows || []).length) return;
+      const rows = m.rows, rid = m.rid;
+      /* one write a hole and group, the slots together */
+      const cells = {};
+      rows.forEach(x => { const k = x.h + '|' + x.gid; (cells[k] = cells[k] || { h: x.h, gid: x.gid, cell: {} }).cell[x.slot] = x.pid; });
+      m.busy = true; render();
+      Promise.all(Object.values(cells).map(c => store.markBbb(rid, c.h, c.gid, c.cell))).then(() => {
+        flash(rows.length + ' mark' + (rows.length === 1 ? '' : 's') + ' put back on ' + roomName(rid) + '.');
+        const again = UI.modal; if (again && again.kind === 'bbbfix' && again.rid === rid) { again.done = rows.length; bbbFixOpen(rid); UI.modal.done = rows.length; }
+      });
+      return;
+    }
     case 'histOpen': if (!canAdmin()) return; UI.modal = { kind: 'hist', back: UI.modal }; histLoad(a); UI.hist.title = b || a; render(); return;
     case 'histRevert': {
       if (!canAdmin() || !UI.hist) return;

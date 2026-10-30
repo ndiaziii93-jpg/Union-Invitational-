@@ -313,7 +313,26 @@ console.log('\nthe panel on Today');
   ok('a golfer nobody marked reads as nought marked, not nought happened',
     E.markCoverage(T, 'r1', 'c'), { played: 0, marked: 0 });
 
-  console.log('\nand none of it counts');
+  console.log('\nwhat the history holds that the row does not');
+  {
+    const cell = (t0, t1) => ({ g: { ...(t0 ? { t0 } : {}), ...(t1 ? { t1 } : {}) } });
+    const nowDoc = { holes: Array.from({ length: 18 }, () => ({})) };
+    nowDoc.holes[3] = cell(null, { bango: 'b' });                                   // hole 4: group 2's mark survived, group 1's did not
+    nowDoc.holes[9] = cell({ bingo: 'c' }, null);                                   // hole 10: group 1's bingo is there, bango and bongo gone
+    const older = { at: '2026-10-30T09:00:00Z', holes: Array.from({ length: 18 }, () => ({})) };
+    older.holes[3] = cell({ bingo: 'a', bango: 'b', bongo: 'c' }, null);
+    older.holes[9] = cell({ bingo: 'a', bango: 'b' }, null);
+    const newer = { at: '2026-10-30T10:00:00Z', holes: Array.from({ length: 18 }, () => ({})) };
+    newer.holes[3] = cell({ bingo: 'a' }, { bango: 'b' });
+    newer.holes[9] = cell({ bingo: 'c', bongo: 'd' }, null);
+    const miss = E.bbbMissing(nowDoc, [newer, older]);                              // newest first, as the book hands them over
+    ok('every slot once marked and empty now, with the newest name it had',
+      miss.map(x => [x.h + 1, x.gid, x.slot, x.pid]), [[4, 't0', 'bingo', 'a'], [4, 't0', 'bango', 'b'], [4, 't0', 'bongo', 'c'], [10, 't0', 'bongo', 'd'], [10, 't0', 'bango', 'b']]);
+    ok('and never a slot the row still holds', miss.some(x => x.h === 9 && x.slot === 'bingo'), false);
+    ok('nothing missing reads as nothing', E.bbbMissing(older, [older]), []);
+  }
+
+console.log('\nand none of it counts');
   ok('the MVP board is untouched',
     E.mvpBoard(T, E.nowLocal()).map(r => r.name + r.totalStr), before.mvp);
   ok('the team board is untouched',

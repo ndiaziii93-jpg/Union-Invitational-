@@ -658,6 +658,31 @@ export function mvpBoard(T, now) {
    scoring two groups on the same hole overwrote each other. Each group keeps
    its own set now; a hole written in the old shape still counts. */
 export const BBB_SLOTS = ['bingo', 'bango', 'bongo'];
+/* WHAT THE HISTORY HOLDS THAT THE ROW DOES NOT. Every version of a round's
+   bingo row the book has kept, newest first, against the row as it is now:
+   each slot on each hole and group that was once marked and is empty now,
+   with the newest name the history has for it. A slot the row still holds
+   is never on the list, whatever the history says it was before. */
+export function bbbMissing(current, versions) {
+  const out = [];
+  const cur = (current && current.holes) || [];
+  for (let h = 0; h < 18; h++) {
+    const seen = {};
+    for (const v of versions || []) {
+      const cell = v && v.holes && v.holes[h];
+      const g = cell && cell.g;
+      if (!g) continue;
+      for (const gid of Object.keys(g)) for (const slot of BBB_SLOTS) {
+        const pid = g[gid] && g[gid][slot];
+        if (!pid || seen[gid + '|' + slot]) continue;
+        seen[gid + '|' + slot] = true;
+        const now = cur[h] && cur[h].g && cur[h].g[gid] ? cur[h].g[gid][slot] : null;
+        if (!now) out.push({ h, gid, slot, pid, at: v.at || null });
+      }
+    }
+  }
+  return out;
+}
 
 export function bbbMarks(cell) {
   if (!cell) return [];

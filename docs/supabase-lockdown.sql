@@ -718,7 +718,7 @@ begin
   select coalesce(jsonb_agg(to_jsonb(x) order by x.at desc), '[]'::jsonb) into ev
     from (select id, at, path, op, before, after, writer from public.docs_history
            where p_path is null or path = p_path
-           order by at desc limit greatest(1, least(p_limit, 300))) x;
+           order by at desc limit greatest(1, least(p_limit, 1000))) x;   -- a round's bingo row alone can run to hundreds of versions
   return jsonb_build_object('rows', ev);
 end $$;
 grant execute on function public.history_recent(text, text, text, int) to anon, authenticated;

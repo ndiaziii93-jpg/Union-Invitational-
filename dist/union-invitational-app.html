@@ -4981,7 +4981,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261030-1435';
+const BUILD = '20261030-1456';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -6555,6 +6555,31 @@ function mvpBoard(T, now) {
    scoring two groups on the same hole overwrote each other. Each group keeps
    its own set now; a hole written in the old shape still counts. */
 const BBB_SLOTS = ['bingo', 'bango', 'bongo'];
+/* WHAT THE HISTORY HOLDS THAT THE ROW DOES NOT. Every version of a round's
+   bingo row the book has kept, newest first, against the row as it is now:
+   each slot on each hole and group that was once marked and is empty now,
+   with the newest name the history has for it. A slot the row still holds
+   is never on the list, whatever the history says it was before. */
+function bbbMissing(current, versions) {
+  const out = [];
+  const cur = (current && current.holes) || [];
+  for (let h = 0; h < 18; h++) {
+    const seen = {};
+    for (const v of versions || []) {
+      const cell = v && v.holes && v.holes[h];
+      const g = cell && cell.g;
+      if (!g) continue;
+      for (const gid of Object.keys(g)) for (const slot of BBB_SLOTS) {
+        const pid = g[gid] && g[gid][slot];
+        if (!pid || seen[gid + '|' + slot]) continue;
+        seen[gid + '|' + slot] = true;
+        const now = cur[h] && cur[h].g && cur[h].g[gid] ? cur[h].g[gid][slot] : null;
+        if (!now) out.push({ h, gid, slot, pid, at: v.at || null });
+      }
+    }
+  }
+  return out;
+}
 
 function bbbMarks(cell) {
   if (!cell) return [];
@@ -7606,7 +7631,7 @@ function roundToPar(T, roundId, pid) {
   return { tp, thru };
 }
 
-return {nowLocal, dayOf, hhmmToMin, to12, TEE_GAP_MIN, plusMins, to24, BANDS, HCP_MAX, strokesFor, bandTotal, fmtToPar, capFor, capped, person, golfers, roundDef, roundCfg, courseByKey, courseOf, scoreKey, card, pairName, phaseOf, phaseLabel, hasScores, countingRounds, playerNet, pairHole, TEAM_ALLOWANCE, teamAllowance, playingHcp, teamStrokesFor, stablefordPts, playerPts, pairPts, pairPtsThru, playerPtsThru, playerGross, grossThru, PAIRS_PER_GROUP, teeTime, teeTimes, groups, finishGroups, groupThru18, groupDone, groupsOut, TURN_HOLES, toParThru, groupAtTurn, turnAt, turnGroups, turnSnapshot, practiceBoard, nearestBand, bandRead, practiceBbb, bandsLocked, pairsBoard, gapOf, mvpBoard, BBB_SLOTS, bbbMarks, MARKS, MARK_KEYS, MOODS, OWNS, moodLabel, ownLabels, OWN_MARKS, OWN_KEYS, holeMarks, selfLog, selfMarks, markCoverage, markTally, markLine, scoreName, feelWhy, feelAsks, feelTally, feelBlock, bbbRoundBoard, bbbBoard, roundComplete, brief, roundBrief, recapRound, roundStanding, ribbon, pairRoundBoard, recapTable, recapField, swingOfTheDay, sideGames, recapInput, matchPlay, matchDetail, ryderData, clubhouse, toneOf, holeCells, setupIssues, nextTee, fixtures, nextFixture, TEE_CHOICES, TEE_PRIV, teePrivilege, roundToPar};
+return {nowLocal, dayOf, hhmmToMin, to12, TEE_GAP_MIN, plusMins, to24, BANDS, HCP_MAX, strokesFor, bandTotal, fmtToPar, capFor, capped, person, golfers, roundDef, roundCfg, courseByKey, courseOf, scoreKey, card, pairName, phaseOf, phaseLabel, hasScores, countingRounds, playerNet, pairHole, TEAM_ALLOWANCE, teamAllowance, playingHcp, teamStrokesFor, stablefordPts, playerPts, pairPts, pairPtsThru, playerPtsThru, playerGross, grossThru, PAIRS_PER_GROUP, teeTime, teeTimes, groups, finishGroups, groupThru18, groupDone, groupsOut, TURN_HOLES, toParThru, groupAtTurn, turnAt, turnGroups, turnSnapshot, practiceBoard, nearestBand, bandRead, practiceBbb, bandsLocked, pairsBoard, gapOf, mvpBoard, BBB_SLOTS, bbbMissing, bbbMarks, MARKS, MARK_KEYS, MOODS, OWNS, moodLabel, ownLabels, OWN_MARKS, OWN_KEYS, holeMarks, selfLog, selfMarks, markCoverage, markTally, markLine, scoreName, feelWhy, feelAsks, feelTally, feelBlock, bbbRoundBoard, bbbBoard, roundComplete, brief, roundBrief, recapRound, roundStanding, ribbon, pairRoundBoard, recapTable, recapField, swingOfTheDay, sideGames, recapInput, matchPlay, matchDetail, ryderData, clubhouse, toneOf, holeCells, setupIssues, nextTee, fixtures, nextFixture, TEE_CHOICES, TEE_PRIV, teePrivilege, roundToPar};
 })();
 
 const __m_social = (function(){
@@ -9177,7 +9202,7 @@ function createSupabaseDb(opts) {
     },
     /** Every earlier version of a row (or of everything), for the master PIN. */
     async historyRecent(master, path) {
-      const { data, error } = await bound(sb.rpc('history_recent', { p_pin: String(master || ''), p_path: path || null, p_who: deviceId || null, p_limit: path ? 100 : 60 }));
+      const { data, error } = await bound(sb.rpc('history_recent', { p_pin: String(master || ''), p_path: path || null, p_who: deviceId || null, p_limit: path ? 400 : 60 }));
       if (error) throw error;
       if (!data || data.denied) { const e = new Error('PIN not accepted'); e.code = '42501'; throw e; }
       return data.rows || [];
@@ -11349,6 +11374,7 @@ function boardBbb() {
   const rows = E.bbbBoard(T);
   const banked = rows.reduce((n, r) => n + r.pts, 0);
   return `<div class="titlerow"><h2 class="head">Bingo Bango Bongo</h2><button class="rulelink" data-act="goRule" data-a="bbb">Full rules</button></div>
+  ${canAdmin() && store && store.backend === 'supabase' ? `<p class="pnote" style="max-width:none;margin:0 0 10px">Marks gone missing? <button class="rm" data-act="bbbFix" data-a="${esc(E.countingRounds(T).find(r => E.phaseOf(T, r.id, now) === 'live') ? E.countingRounds(T).find(r => E.phaseOf(T, r.id, now) === 'live').id : (UI.boardRound || 'r1'))}">Recover marks from the book’s history</button></p>` : ''}
 
   ${leadPlate({ eyebrow: 'Leading', live: !!banked,
     who: rows.length ? rows[0].name : null,
@@ -15742,6 +15768,37 @@ function histDiff(path, before, after) {
   if (path === 'config/tournament') { const o = []; for (const k of new Set([...Object.keys(before || {}), ...Object.keys(after || {})])) if (k !== 'rev' && JSON.stringify(before && before[k]) !== JSON.stringify(after && after[k])) o.push(k); return o.length ? o.join(', ') + ' changed' : 'changed'; }
   return 'changed';
 }
+/* RECOVERING MARKS. The bingo row keeps every version; this reads them all
+   for a round, finds every slot that was once marked and is empty now, and
+   puts the names back one hole at a time, through the same gate a ref's
+   mark goes through. What the row holds now is never overwritten. */
+function bbbFixOpen(rid) {
+  UI.modal = { kind: 'bbbfix', rid, busy: true, rows: null, err: '', done: 0 };
+  render();
+  store.historyRecent('bbb/' + rid).then(rows => {
+    const m = UI.modal; if (!m || m.kind !== 'bbbfix' || m.rid !== rid) return;
+    const versions = (rows || []).map(r => r.after ? { ...r.after, at: r.at } : null).filter(Boolean);
+    m.versions = versions.length; m.rows = E.bbbMissing(T.bbb[rid], versions); m.busy = false; render();
+  }, e => { const m = UI.modal; if (!m || m.kind !== 'bbbfix') return; m.busy = false; m.rows = []; m.err = /PIN/.test(String(e && e.message || '')) ? 'The server did not accept this phone’s master PIN.' : 'Could not read the history: no signal.'; render(); });
+}
+function bbbFixHtml() {
+  const m = UI.modal, r = E.roundDef(m.rid);
+  const groupName = gid => (/^[tg](\d+)$/.exec(gid) ? 'Group ' + (+RegExp.$1 + 1) : gid);
+  const rows = m.rows || [];
+  const byHole = {};
+  rows.forEach(x => { (byHole[x.h] = byHole[x.h] || []).push(x); });
+  return `<div class="scrim" data-act="modalScrim"><div class="modal histmodal" role="dialog" aria-modal="true" aria-label="Recover marks">
+    ${modalBanner('Recover marks', 'Bingo Bango Bongo · ' + (r ? r.short : m.rid))}
+    <div class="chiprow" style="margin:10px 0">${E.countingRounds(T).map(x => `<button class="chip${x.id === m.rid ? ' on' : ''}" data-act="bbbFixRound" data-a="${x.id}">${esc(x.short)}</button>`).join('')}</div>
+    <p class="lede">Every version of this round’s bingo row the book has kept, against the row as it is now. A name below was marked once and is not on the row today. Putting them back changes nothing that is on the row now.</p>
+    ${m.err ? `<p class="xm-err">${esc(m.err)}</p>` : ''}
+    ${m.busy ? '<p class="empty">Reading the history…</p>'
+      : !rows.length ? `<p class="empty">${m.done ? m.done + ' put back. ' : ''}Nothing missing: every mark the history holds${m.versions ? ' (' + m.versions + ' versions)' : ''} is on the row.</p>`
+      : `<ul class="histlist bbbfix">${Object.keys(byHole).map(h => `<li><span class="hl-when">Hole ${+h + 1}</span><span class="hl-what">${byHole[h].map(x => `${esc(groupName(x.gid))} · ${x.slot} <b>${esc(nameOf(x.pid))}</b>${x.at ? ' <small>(' + esc(histWhen(x.at)) + ')</small>' : ''}`).join('<br>')}</span></li>`).join('')}</ul>
+        <div class="acts"><button class="btn ghost" data-act="modalCancel">Leave it</button><button class="btn" data-act="bbbFixGo">Put ${rows.length} mark${rows.length === 1 ? '' : 's'} back</button></div>`}
+    ${!m.busy && !rows.length ? `<div class="acts"><button class="btn ghost" data-act="modalCancel">Done</button></div>` : ''}
+  </div></div>`;
+}
 function histModalHtml() {
   const h = UI.hist || {};
   const rows = h.rows || [];
@@ -18749,6 +18806,7 @@ function modalHtml() {
        : UI.modal.kind === 'ruling' ? rulingSheetHtml()
        : UI.modal.kind === 'card' ? cardSheetHtml()
        : UI.modal.kind === 'hist' ? histModalHtml()
+       : UI.modal.kind === 'bbbfix' ? bbbFixHtml()
        : UI.modal.kind === 'photosrc' ? photoSrcHtml()
        : UI.modal.kind === 'phmove' ? photoMoveHtml()
        : UI.modal.kind === 'hole' ? holeModalHtml()
@@ -19122,6 +19180,21 @@ function onClick(e) {
       const pids = (pr.members || []).filter(id => E.person(T, id)); if (!pids.length) return;
       UI.modal = { kind: 'card', pair: pr.id, pids, rid: cardRoundFor(pids, b || null) }; render(); return; }
     case 'cardRound': if (UI.modal && UI.modal.kind === 'card') { UI.modal.rid = a; render(); } return;
+    case 'bbbFix': if (!canAdmin()) return; bbbFixOpen(a); return;
+    case 'bbbFixRound': if (UI.modal && UI.modal.kind === 'bbbfix') bbbFixOpen(a); return;
+    case 'bbbFixGo': {
+      const m = UI.modal; if (!m || m.kind !== 'bbbfix' || !canAdmin() || !(m.rows || []).length) return;
+      const rows = m.rows, rid = m.rid;
+      /* one write a hole and group, the slots together */
+      const cells = {};
+      rows.forEach(x => { const k = x.h + '|' + x.gid; (cells[k] = cells[k] || { h: x.h, gid: x.gid, cell: {} }).cell[x.slot] = x.pid; });
+      m.busy = true; render();
+      Promise.all(Object.values(cells).map(c => store.markBbb(rid, c.h, c.gid, c.cell))).then(() => {
+        flash(rows.length + ' mark' + (rows.length === 1 ? '' : 's') + ' put back on ' + roomName(rid) + '.');
+        const again = UI.modal; if (again && again.kind === 'bbbfix' && again.rid === rid) { again.done = rows.length; bbbFixOpen(rid); UI.modal.done = rows.length; }
+      });
+      return;
+    }
     case 'histOpen': if (!canAdmin()) return; UI.modal = { kind: 'hist', back: UI.modal }; histLoad(a); UI.hist.title = b || a; render(); return;
     case 'histRevert': {
       if (!canAdmin() || !UI.hist) return;

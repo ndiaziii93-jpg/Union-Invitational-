@@ -466,7 +466,7 @@ export function createSupabaseDb(opts) {
     },
     /** Every earlier version of a row (or of everything), for the master PIN. */
     async historyRecent(master, path) {
-      const { data, error } = await bound(sb.rpc('history_recent', { p_pin: String(master || ''), p_path: path || null, p_who: deviceId || null, p_limit: path ? 100 : 60 }));
+      const { data, error } = await bound(sb.rpc('history_recent', { p_pin: String(master || ''), p_path: path || null, p_who: deviceId || null, p_limit: path ? 400 : 60 }));
       if (error) throw error;
       if (!data || data.denied) { const e = new Error('PIN not accepted'); e.code = '42501'; throw e; }
       return data.rows || [];
