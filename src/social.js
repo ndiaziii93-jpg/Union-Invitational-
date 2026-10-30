@@ -294,8 +294,12 @@ export function markets(T, now) {
   if (memoMarkets) return memoMarkets;
   const held = T.market || {};
   const out = suggested(T, now).map(m => {
-    const s = held[m.id];
-    return { ...m, mine: false, result: (s && s.result) || m.result || null,
+    const s = held[m.id], gs = m.group ? held['grp_' + m.group] : null;
+    /* the commissioner may reword one of the book's own bets: the wording
+       and the rules are kept beside its settlement, the scoring stays the book's */
+    return { ...m, mine: false, q: (s && s.qText) || m.q, rules: (s && s.rulesText) || (gs && gs.rulesText) || m.rules,
+      groupQ: m.group ? ((gs && gs.qText) || m.groupQ) : m.groupQ,
+      result: (s && s.result) || m.result || null,
       settledBy: s && s.result ? s.settledName : (m.result ? 'the book' : null), settledAt: s && s.result ? s.settledAt : null };
   });
   const nm = pid => (E.person(T, pid) || {}).display || 'Someone';

@@ -4757,6 +4757,19 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 .pu-ways .btn small{font-weight:400;opacity:.8;font-size:12.5px}
 .sc-c.pu{position:relative}
 .sc-c.pu::after{content:"PU";position:absolute;right:1px;bottom:0;font-size:8px;font-weight:700;letter-spacing:.04em;color:var(--flag)}
+/* the bet editor */
+.xm-edit{display:inline-flex;align-items:center;gap:4px;margin:6px 0 0;padding:5px 10px;border-radius:999px;border:1px solid var(--gold);background:none;color:var(--gold);font:inherit;font-size:12.5px;font-weight:700;cursor:pointer}
+.xm-editbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 0 12px;padding:8px 12px;border:1px dashed var(--gold);border-radius:12px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);font-weight:700}
+.xm-editbar .btn{text-transform:none;letter-spacing:0;min-height:40px;padding:8px 14px}
+.xbmodal .field{width:100%}
+.xbmodal .calc-l{display:block;margin:12px 0 4px}
+.xb-sec{border-top:1px solid var(--rule);padding:12px 0 6px;margin-top:10px}
+.xb-sec:first-of-type{border-top:0}
+.xb-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 10px;align-items:center;padding:9px 0;border-top:1px solid var(--hair)}
+.xb-row .w small{color:var(--gold);font-weight:700}
+.xb-row .b{display:flex;gap:6px}
+.xb-row .chip.danger,.btn.danger{color:var(--flag);border-color:var(--flag)}
+.xb-ed{grid-column:1/-1;background:var(--paper);border-radius:12px;padding:6px 12px 12px}
 .xm-fix{margin:14px 0;border:1px dashed var(--rule);border-radius:12px;padding:6px 12px 10px}
 .xm-fix summary{cursor:pointer;list-style:none;padding:6px 0}
 .xm-fix summary::-webkit-details-marker{display:none}
@@ -4786,7 +4799,11 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 .metarail{font-size:12.5px;letter-spacing:0;text-transform:none}
 .metarail span:first-child{font-weight:700}
 .rinline{margin:18px 0;break-inside:avoid}
-.rinline img{width:100%;max-height:420px;object-fit:cover;border-radius:14px;display:block;box-shadow:0 0 0 .5px var(--shadow)}
+/* THE PHOTO KEEPS ITS SPACE BEFORE IT LOADS. Every redraw makes the pictures
+   afresh, and a picture with no height until it arrives shortened the report
+   by a screen or more for a moment — enough to throw a reader reading the
+   bottom of it back up the page. A fixed shape, and the page never moves. */
+.rinline img{width:100%;aspect-ratio:3/2;height:auto;max-height:420px;object-fit:cover;border-radius:14px;display:block;box-shadow:0 0 0 .5px var(--shadow);background:var(--sunk)}
 .rinline figcaption{margin-top:6px;font-size:13px;color:var(--turf)}
 .rectable .rowhead .rawh{display:block}
 .rectable .rt-n .rawv,.rectable .rt-t .rawv{display:block}
@@ -4999,7 +5016,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261030-1759';
+const BUILD = '20261030-1813';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -7974,8 +7991,12 @@ function markets(T, now) {
   if (memoMarkets) return memoMarkets;
   const held = T.market || {};
   const out = suggested(T, now).map(m => {
-    const s = held[m.id];
-    return { ...m, mine: false, result: (s && s.result) || m.result || null,
+    const s = held[m.id], gs = m.group ? held['grp_' + m.group] : null;
+    /* the commissioner may reword one of the book's own bets: the wording
+       and the rules are kept beside its settlement, the scoring stays the book's */
+    return { ...m, mine: false, q: (s && s.qText) || m.q, rules: (s && s.rulesText) || (gs && gs.rulesText) || m.rules,
+      groupQ: m.group ? ((gs && gs.qText) || m.groupQ) : m.groupQ,
+      result: (s && s.result) || m.result || null,
       settledBy: s && s.result ? s.settledName : (m.result ? 'the book' : null), settledAt: s && s.result ? s.settledAt : null };
   });
   const nm = pid => (E.person(T, pid) || {}).display || 'Someone';
@@ -13082,6 +13103,7 @@ function xCard(m, tr) {
   return `<article class="xm-c${UI.xLand === m.id ? ' land' : ''}" id="xc-${esc(m.id)}">
     <button class="xm-ct" data-act="xOpen" data-a="${esc(m.id)}"><b>${esc(m.q)}</b>
       <span class="xm-ch"><strong>${m.result ? (m.result === 'void' ? '—' : m.result === 'yes' ? '100%' : '0%') : X.cents(p) + '%'}</strong><small>chance</small></span></button>
+    ${fixer() ? `<button class="xm-edit" data-act="xBet" data-a="${esc(m.id)}" aria-label="Edit this bet">✎ Edit</button>` : ''}
     ${tagChips(m)}
     ${m.result ? resultTag(m) : (pts.length > 1 ? spark(pts, 34) : '') + `<div class="xm-yn">
       <button class="y" data-act="xOpen" data-a="${esc(m.id)}" data-b="yes">${sw(m, 'yes')} <small>${X.sidePrice(q, 'yes')}%</small></button>
@@ -13107,6 +13129,7 @@ function xGroupCard(list, tr) {
       return y || n ? `<small class="xm-bk">${y ? '🍺 ' + y : ''}${y && n ? ' · ' : ''}${n ? 'against: ' + n : ''}</small>` : ''; })()}</span>${m.result ? resultTag(m)
       : `<em>${X.cents(p)}%</em><button data-act="xOpen" data-a="${esc(m.id)}" data-b="yes">Yes</button>`}</div>`).join('')}
     ${rows.length > 4 ? `<button class="xm-more" data-act="xMore" data-a="${UI.xMore === g.group ? '' : esc(g.group)}">${UI.xMore === g.group ? 'Show fewer' : 'All ' + rows.length}</button>` : ''}
+    ${fixer() ? `<button class="xm-edit" data-act="xBet" data-a="${esc(rows[0].m.id)}" aria-label="Edit this bet">✎ Edit</button>` : ''}
     <div class="xm-v"><span>${beer(vol)} 🍺 bet</span><span>${how}</span></div>
   </article>`;
 }
@@ -13247,6 +13270,71 @@ function xRefit(id, toM, toSide) {
   UI.xFixMove = null;
   flash('Fixed: ' + nameOf(t.pid) + '’s ' + beer(t.cost) + ' 🍺 is on ' + sw(m, side) + (m.group ? ' · ' + m.label : '') + '.');
 }
+/* ---- THE BET EDITOR, FOR THE COMMISSIONER ----
+   One window for everything about a bet: how it reads, its rules, its line,
+   who it is about or who the answers are, what it is about, the chance it
+   opened at — and every bet anybody put on it: whose it is, which side,
+   how much, which name. A bet put right is priced as if it had gone on that
+   way in the first place, stays the person's, and shows as fixed. A bet the
+   group made can be deleted, with everybody's beers given back. */
+function xBetSibs(m) { return m.group ? xAll().filter(x => x.group === m.group) : [m]; }
+function xBetRead(md) {
+  const v = id => { const e = document.getElementById(id); return e ? e.value : null; };
+  for (const [k, id] of [['q', 'xbQ'], ['rules', 'xbR'], ['line', 'xbL'], ['tStake', 'xtS'], ['tPid', 'xtP'], ['tM', 'xtM']]) { const x = v(id); if (x != null) md[k] = x; }
+}
+function xBetHtml() {
+  const md = UI.modal, m = xFind(md.id);
+  if (!m) return '';
+  const r = m.custom ? ((T.market || {})[m.qid] || {}) : null;
+  const sibs = xBetSibs(m);
+  const bets = X.trades(T).filter(t => t.id && sibs.some(x => x.id === t.m)).slice().reverse();
+  const people = X.tripPeople(T).concat(allGuests().filter(g => !g.removed).map(g => ({ id: g.pid, display: g.name })));
+  const who = !!m.whoCustom, ou = !!(r && r.ou);
+  const q0 = m.custom ? (r.q || '') : (m.group ? m.groupQ : m.q);
+  const qv = md.q != null ? md.q : q0, rv = md.rules != null ? md.rules : (m.custom ? (r.rules || '') : (m.rules || ''));
+  const lv = md.line != null ? md.line : (ou ? String(r.ou.line) : '');
+  const chip = (on, act, a, label) => `<button class="chip${on ? ' on' : ''}" data-act="${act}" data-a="${esc(a)}">${esc(label)}</button>`;
+  const editing = md.edit ? (T.market || {})[md.edit] : null;
+  const tSide = md.tSide || (editing ? editing.side : 'yes');
+  const tMid = md.tM || (editing ? editing.m : '');
+  return `<div class="scrim" data-act="modalScrim"><div class="modal xbmodal" role="dialog" aria-modal="true" aria-label="Edit this bet">
+    ${modalBanner('Edit this bet', 'Commissioner')}
+    <section class="xb-sec"><span class="xm-eye">How it reads</span>
+      <label class="calc-l" for="xbQ">${ou ? 'What’s being counted' : m.group ? 'The question on the card' : 'The question'}</label>
+      <input id="xbQ" class="field" maxlength="140" autocomplete="off" value="${esc(qv)}">
+      ${ou ? `<label class="calc-l" for="xbL">The line</label><input id="xbL" class="field" inputmode="decimal" maxlength="7" autocomplete="off" value="${esc(lv)}">` : ''}
+      <label class="calc-l" for="xbR">How it is settled</label>
+      <textarea id="xbR" class="field" maxlength="400" rows="3">${esc(rv)}</textarea>
+      ${m.custom ? `<label class="calc-l">About</label><div class="chiprow">${chip((md.cat || r.cat) === 'golf', 'xBetCat', 'golf', 'The golf')}${chip((md.cat || r.cat) !== 'golf', 'xBetCat', 'trip', 'The trip')}</div>
+        <label class="calc-l">${who ? 'The answers' : 'Who it’s about'}</label>
+        <div class="xm-ppl">${people.map(p => `<button class="${md.ppl.includes(p.id) ? 'on' : ''}" data-act="xBetPpl" data-a="${esc(p.id)}">${esc(p.display)}</button>`).join('')}</div>
+        ${!who && !ou ? `<label class="calc-l">The chance it opened at</label><div class="chiprow">${[10, 25, 50, 75, 90].map(v => chip((md.p0 || r.p0 || 50) === v, 'xBetP0', String(v), v + '%')).join('')}</div>` : ''}`
+        : `<p class="pnote" style="max-width:none">One of the book’s own bets: the words and the rules are yours to change; the scores still settle it.</p>`}
+      <div class="acts" style="margin-top:12px"><button class="btn" data-act="xBetSave">Save how it reads</button></div>
+    </section>
+    <section class="xb-sec"><span class="xm-eye">Every bet on it · ${bets.length}</span>
+      ${bets.length ? bets.map(t => { const tm = xFind(t.m) || m; const open = md.edit === t.id;
+        return `<div class="xb-row${open ? ' open' : ''}">
+          <span class="w"><b>${esc(nameOf(t.pid))}</b> ${t.cost > 0 ? beer(t.cost) + ' 🍺 on ' : 'cashed out ' + beer(-t.cost) + ' 🍺 of '}${esc(sw(tm, t.side))}${m.group ? ' · ' + esc(tm.label || '') : ''}${t.fixedAt ? ' <small>· fixed</small>' : ''}</span>
+          <span class="b">${t.cost > 0 ? `<button class="chip" data-act="xBetTrade" data-a="${open ? '' : esc(t.id)}">${open ? 'Close' : 'Edit'}</button>` : ''}<button class="chip danger" data-act="xBetDrop" data-a="${esc(t.id)}">Remove</button></span>
+          ${open ? `<div class="xb-ed">
+            <label class="calc-l" for="xtP">Whose bet</label>
+            <select id="xtP" class="field">${people.map(p => `<option value="${esc(p.id)}"${(md.tPid || t.pid) === p.id ? ' selected' : ''}>${esc(p.display)}</option>`).join('')}</select>
+            ${m.group ? `<label class="calc-l" for="xtM">On which name</label><select id="xtM" class="field">${sibs.map(x => `<option value="${esc(x.id)}"${tMid === x.id ? ' selected' : ''}>${esc(x.label || x.q)}</option>`).join('')}</select>` : ''}
+            <label class="calc-l">Which side</label>
+            <div class="chiprow">${chip(tSide === 'yes', 'xtSide', 'yes', sw(tm, 'yes'))}${chip(tSide === 'no', 'xtSide', 'no', sw(tm, 'no'))}</div>
+            <label class="calc-l" for="xtS">How many beers</label>
+            <input id="xtS" class="field" inputmode="decimal" maxlength="5" autocomplete="off" value="${esc(md.tStake != null ? md.tStake : String(t.cost))}">
+            <div class="acts" style="margin-top:10px"><button class="btn" data-act="xtSave">Save this bet</button></div>
+          </div>` : ''}
+        </div>`; }).join('') : '<p class="xm-none">Nobody has bet on it yet.</p>'}
+    </section>
+    ${m.custom ? `<section class="xb-sec">${md.confirmDel
+      ? `<p class="xm-err">Delete “${esc(q0)}” and every bet on it? Everyone’s beers go back.</p><div class="acts"><button class="btn ghost" data-act="xBetDelete" data-a="no">Keep it</button><button class="btn danger" data-act="xBetDeleteGo">Delete it</button></div>`
+      : `<button class="xm-link danger" data-act="xBetDelete" data-a="yes">Delete this bet</button>`}</section>` : ''}
+    <div class="acts"><button class="btn ghost" data-act="modalCancel">Done</button></div>
+  </div></div>`;
+}
 function xEditHtml() {
   const md = UI.modal, r = (T.market || {})[md.id] || {};
   return `<div class="scrim" data-act="modalScrim"><div class="modal" role="dialog" aria-modal="true" aria-label="Edit the wording">
@@ -13335,6 +13423,7 @@ function xMarketHtml(m) {
   <div class="xm-page">
     <span class="xm-eye">${m.cat === 'trip' ? 'The trip' : 'Golf'} · ${beer(volumeOf(m.id, tr))} 🍺 bet${m.custom ? ' · made by ' + esc(m.byName || 'someone') : ''}</span>
     <h2 class="xm-h">${esc(m.group ? m.groupQ : m.q)}</h2>
+    ${fixer() ? `<div class="xm-editbar"><span>Commissioner</span><button class="btn" data-act="xBet" data-a="${esc(m.id)}">✎ Edit this bet</button></div>` : ''}
     ${m.group ? `<div class="xm-pick nos" role="tablist" aria-label="Who">${sibs.map(x => ({ x, px: X.chance(X.book(x, tr)) }))
         .sort((a, b) => (b.x.any ? 1 : 0) - (a.x.any ? 1 : 0) || b.px - a.px).map(({ x, px }) =>
       `<button role="tab" aria-selected="${x.id === m.id}" class="${x.id === m.id ? 'on' : ''}${x.result ? ' done ' + x.result : ''}" data-act="xOpen" data-a="${esc(x.id)}">
@@ -13351,7 +13440,6 @@ function xMarketHtml(m) {
     <div class="xm-ob">${lv(dp.yes, 'y', 'On ' + sw(m, 'yes') + ', at')}${lv(dp.no, 'n', 'On ' + sw(m, 'no') + ', at')}</div>
     ${recent.length ? `<span class="xm-eye">Latest bets</span><div class="xm-tk xm-trades">${recent.map(t =>
       `<div class="xm-kv"><span>${esc(nameOf(t.pid))}${guestTag(t.pid)} ${t.cost > 0 ? 'put ' + beer(t.cost) + ' 🍺 on' : 'cashed out ' + beer(-t.cost) + ' 🍺 of'} ${sw(m, t.side)}</span><b>${t.px}% · ${esc(sinceOf(t.at))}</b></div>`).join('')}</div>` : ''}
-    ${xFixHtml(m, sibs, tr)}
     <span class="xm-eye">Rules</span>
     <div class="xm-rules">${m.rules ? esc(m.rules) + ' ' : ''}A bet that comes true pays out in beers, to the quarter; one that doesn’t pays nothing. ${settlerLine(m)}</div>
     ${m.whoCustom ? xSettleWhoHtml(m, sibs) : ''}
@@ -18974,6 +19062,7 @@ function modalHtml() {
        : UI.modal.kind === 'hist' ? histModalHtml()
        : UI.modal.kind === 'bbbfix' ? bbbFixHtml()
        : UI.modal.kind === 'xedit' ? xEditHtml()
+       : UI.modal.kind === 'xbet' ? xBetHtml()
        : UI.modal.kind === 'pickup' ? pickupHtml()
        : UI.modal.kind === 'photosrc' ? photoSrcHtml()
        : UI.modal.kind === 'phmove' ? photoMoveHtml()
@@ -19528,6 +19617,83 @@ function onClick(e) {
         ok: b === 'void' ? 'Void it' : 'Settle ' + word,
         onOk: () => { store.patchSocial('market', a, { result: b, settledName: who, settledAt: Date.now() }).then(okd => { if (okd) notifyOthers('market/' + a, { settled: true }); }); flash('Settled. Payouts are in everyone’s beers.'); } };
       render(); return;
+    }
+    case 'xBet': {
+      if (!fixer()) return;
+      const m = xFind(a); if (!m) return;
+      const r = m.custom ? ((T.market || {})[m.qid] || {}) : null;
+      UI.modal = { kind: 'xbet', id: m.id, ppl: r ? (Array.isArray(r.opts) ? r.opts.slice() : Array.isArray(r.tags) ? r.tags.slice() : []) : [], cat: r ? r.cat : null, p0: r ? r.p0 : null, edit: null };
+      render(); return;
+    }
+    case 'xBetPpl': { const md = UI.modal; if (!md || md.kind !== 'xbet') return; xBetRead(md); md.ppl = md.ppl.includes(a) ? md.ppl.filter(x => x !== a) : md.ppl.concat(a); render(); return; }
+    case 'xBetCat': { const md = UI.modal; if (!md || md.kind !== 'xbet') return; xBetRead(md); md.cat = a; render(); return; }
+    case 'xBetP0': { const md = UI.modal; if (!md || md.kind !== 'xbet') return; xBetRead(md); md.p0 = +a; render(); return; }
+    case 'xBetTrade': { const md = UI.modal; if (!md || md.kind !== 'xbet') return; xBetRead(md); md.edit = a || null; md.tSide = null; md.tStake = null; md.tPid = null; md.tM = null; render(); return; }
+    case 'xtSide': { const md = UI.modal; if (!md || md.kind !== 'xbet') return; xBetRead(md); md.tSide = a; render(); return; }
+    case 'xtSave': {
+      const md = UI.modal; if (!md || md.kind !== 'xbet' || !fixer()) return;
+      xBetRead(md);
+      const t = (T.market || {})[md.edit]; if (!t) return;
+      const mid = md.tM || t.m, m2 = xFind(mid); if (!m2) return;
+      const side = md.tSide || t.side;
+      const cost = Math.round(parseFloat(String(md.tStake != null ? md.tStake : t.cost).replace(',', '.').replace('¼', '.25').replace('½', '.5').replace('¾', '.75')) * 4) / 4;
+      if (!(cost >= 0.25 && cost <= 50)) { flash('A bet is a quarter beer to fifty.'); return; }
+      const q = X.book(m2, X.trades(T).filter(x => x.id !== t.id));
+      const k = X.sharesFor(q, side, cost);
+      if (!(k > 0)) { flash('That bet could not be priced.'); return; }
+      const pid = md.tPid || t.pid;
+      store.putSocial('market', t.id, { ...t, pid, m: m2.id, side, cost, n: k, px: X.cents(cost / k), fixedBy: 'the commissioner', fixedAt: Date.now() });
+      md.edit = null; md.tSide = null; md.tStake = null; md.tPid = null; md.tM = null;
+      flash('Saved: ' + nameOf(pid) + '’s ' + beer(cost) + ' 🍺 on ' + sw(m2, side) + (m2.group ? ' · ' + m2.label : '') + '.');
+      render(); return;
+    }
+    case 'xBetDrop': {
+      const md = UI.modal; if (!md || md.kind !== 'xbet' || !fixer()) return;
+      xBetRead(md);
+      if (md.dropAsk !== a) { md.dropAsk = a; flash('Tap Remove again to take that bet off and give the beers back.'); render(); return; }
+      md.dropAsk = null; store.dropSocial('market', a); flash('Removed. The beers are back.'); render(); return;
+    }
+    case 'xBetSave': {
+      const md = UI.modal; if (!md || md.kind !== 'xbet' || !fixer()) return;
+      xBetRead(md);
+      const m = xFind(md.id); if (!m) return;
+      const q = String(md.q != null ? md.q : '').trim().replace(/\s+/g, ' '), rules = String(md.rules || '').trim().slice(0, 400);
+      if (q.length < 4) { flash('The question needs a few words.'); return; }
+      if (m.custom) {
+        const r = (T.market || {})[m.qid] || {};
+        const fields = { rules, cat: md.cat === 'golf' ? 'golf' : 'trip', editedBy: 'the commissioner', editedAt: Date.now() };
+        if (r.ou) {
+          const ln = parseFloat(String(md.line != null ? md.line : r.ou.line).replace(',', '.').replace('½', '.5'));
+          if (!(ln >= 0 && ln < 10000)) { flash('Set the line: a number, like 92.5.'); return; }
+          fields.ou = { line: Math.round(ln * 2) / 2 }; fields.q = q.replace(/\?+$/, '');
+        } else fields.q = /\?$/.test(q) ? q : q + '?';
+        if (Array.isArray(r.opts)) {
+          const gone = r.opts.filter(w => !md.ppl.includes(w));
+          const held = gone.filter(w => X.trades(T).some(t => t.m === m.qid + '__' + w));
+          if (held.length) { flash(held.map(nameOf).join(', ') + ' already has bets on it: fix or remove those first.'); return; }
+          if (md.ppl.length < 2) { flash('A who-bet needs two answers or more.'); return; }
+          fields.opts = md.ppl.slice(0, 23);
+        } else {
+          fields.tags = md.ppl.slice(0, 23);
+          if (!r.ou && md.p0) fields.p0 = md.p0;
+        }
+        store.patchSocial('market', m.qid, fields);
+      } else if (m.group) {
+        store.patchSocial('market', 'grp_' + m.group, { qText: q, rulesText: rules, editedBy: 'the commissioner', editedAt: Date.now() });
+      } else {
+        store.patchSocial('market', m.id, { qText: q, rulesText: rules, editedBy: 'the commissioner', editedAt: Date.now() });
+      }
+      md.q = null; md.rules = null; md.line = null;
+      flash('Saved.'); render(); return;
+    }
+    case 'xBetDelete': { const md = UI.modal; if (!md || md.kind !== 'xbet') return; xBetRead(md); md.confirmDel = a === 'yes'; render(); return; }
+    case 'xBetDeleteGo': {
+      const md = UI.modal; if (!md || md.kind !== 'xbet' || !fixer()) return;
+      const m = xFind(md.id); if (!m || !m.custom) return;
+      const ids = xBetSibs(m).map(x => x.id);
+      for (const r of Object.values(T.market || {})) if (r && (r.k === 't' || r.k === 'o') && ids.includes(r.m)) store.dropSocial('market', r.id);
+      store.dropSocial('market', m.qid);
+      UI.modal = null; UI.xView = null; flash('Deleted, and everyone’s beers are back.'); render(); return;
     }
     case 'xFixMovePick': if (!fixer()) return; UI.xFixMove = UI.xFixMove === a ? null : a; render(); return;
     case 'xFixMove': xRefit(a, b, null); render(); return;
@@ -20866,7 +21032,8 @@ function boot() {
   /* The clock on the page reads in minutes, so a minute is often enough,
      and nobody is reading it from a pocket. Nothing here touches the
      network. */
-  setInterval(() => { if (document.visibilityState === 'hidden' || UI.mode === 'low') return; now = E.nowLocal(); render(); }, 60000);
+  /* nothing on the recap turns on the minute: while it is open the clock leaves it be */
+  setInterval(() => { if (document.visibilityState === 'hidden' || UI.mode === 'low' || UI.recapOpen) return; now = E.nowLocal(); render(); }, 60000);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { now = E.nowLocal(); dropKeyboard(); resetViewport(); render(); } });
   window.addEventListener('pageshow', () => { dropKeyboard(); resetViewport(); });
   render();
