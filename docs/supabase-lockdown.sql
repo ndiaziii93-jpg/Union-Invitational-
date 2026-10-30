@@ -890,10 +890,13 @@ update public.docs
 -- delete from public.docs where path like 'chat/id\_%';
 
 -- ---- the PINs themselves: TYPE THEM IN, RUN, THEN CLEAR THIS QUERY ----------
-insert into public.pins (role, hash) values
-  ('master', crypt('TYPE-THE-MASTER-PIN-HERE',   gen_salt('bf', 8))),
-  ('s1',     crypt('TYPE-SCORER-1-PIN-HERE',     gen_salt('bf', 8))),
-  ('s2',     crypt('TYPE-SCORER-2-PIN-HERE',     gen_salt('bf', 8)))
+-- A placeholder left as it is changes nothing: only a PIN typed in is set.
+insert into public.pins (role, hash)
+select role, crypt(pin, gen_salt('bf', 8)) from (values
+  ('master', 'TYPE-THE-MASTER-PIN-HERE'),
+  ('s1',     'TYPE-SCORER-1-PIN-HERE'),
+  ('s2',     'TYPE-SCORER-2-PIN-HERE')) as p(role, pin)
+ where pin !~ '^TYPE-'
 on conflict (role) do update set hash = excluded.hash, changed_at = now();
 
 -- ---- THE MASTER PHONE: TYPE THIS PHONE'S ID IN ------------------------------
