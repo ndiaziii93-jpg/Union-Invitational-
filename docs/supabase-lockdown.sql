@@ -326,8 +326,9 @@ set search_path = public, extensions
 as $$
 declare r text; st text; d jsonb; cell jsonb; g jsonb; legacy jsonb; k text; bad text := null;
 begin
-  if p_rid !~ '^[A-Za-z0-9_.-]{1,40}$' or p_hole is null or p_hole < 0 or p_hole > 17 or p_group !~ '^t[0-9]{1,2}$' or jsonb_typeof(p_cell) <> 'object' then
-    return 'denied: PIN not accepted for that row';
+  -- a group is g0, g1… (by pairs) or t0, t1… (by tee); anything else is not a bingo row, and says so without the word PIN
+  if p_rid !~ '^[A-Za-z0-9_.-]{1,40}$' or p_hole is null or p_hole < 0 or p_hole > 17 or p_group !~ '^[gt][0-9]{1,2}$' or jsonb_typeof(p_cell) <> 'object' then
+    return 'denied: not a bingo row';
   end if;
   for k in select jsonb_object_keys(p_cell) loop if k not in ('bingo', 'bango', 'bongo') then bad := k; end if; end loop;
   if bad is not null then return 'denied: a bingo mark is bingo, bango or bongo'; end if;

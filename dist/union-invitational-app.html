@@ -4981,7 +4981,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261030-1609';
+const BUILD = '20261030-1643';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -8946,7 +8946,7 @@ function createSupabaseDb(opts) {
   /* The gate said no to THIS PHONE'S PIN. Not a dead signal, not a rule the
      book is breaking: a write that will go the moment someone signs in with
      a PIN the server accepts. It stays in the outbox, and the screen is told. */
-  const denied = e => !!e && /PIN/.test(String(e.message || ''));
+  const denied = e => !!e && /PIN/.test(String(e.message || '')) && !/for that row/.test(String(e.message || ''));
   /* The gate is not built yet (the lockdown SQL has not been run): the book
      writes the way it did before, directly, until it is. So the build and
      the SQL can go in in either order without a phone's writes stranding. */
@@ -9034,6 +9034,23 @@ function createSupabaseDb(opts) {
      holds; nothing else on the row is touched, so two refs marking two
      groups from two phones never put each other's marks back. 'nogate'
      when the server has no such function yet: the caller writes the row. */
+  /* The row, written whole, with this mark folded into the copy the server
+     last sent: what a server without (or with an older) bbb_mark gets. */
+  async function bbbByRow(m, fromOutbox) {
+    const path = 'bbb/' + m.rid;
+    const held = ((cache.get(path) || {}).doc) || { holes: Array.from({ length: 18 }, () => ({ bingo: null, bango: null, bongo: null })) };
+    const d = JSON.parse(JSON.stringify(held));
+    d.holes = d.holes || [];
+    const cell = d.holes[m.h] = d.holes[m.h] || {};
+    if (!cell.g) {
+      cell.g = {};
+      const legacy = {}; let any = false;
+      for (const k of ['bingo', 'bango', 'bongo']) { if (cell[k]) { legacy[k] = cell[k]; any = true; } delete cell[k]; }
+      if (any) cell.g[m.gid] = legacy;
+    }
+    cell.g[m.gid] = { ...(cell.g[m.gid] || {}), ...m.cell };
+    return rawWrite(path, d, false, fromOutbox);
+  }
   async function rawBbb(m, fromOutbox) {
     const key = 'bbb/' + m.rid + '#' + m.h + '#' + m.gid;
     try {
@@ -9041,7 +9058,8 @@ function createSupabaseDb(opts) {
       say('saved');
       return true;
     } catch (e) {
-      if (noGate(e)) return fromOutbox ? null : 'nogate';
+      /* no bbb_mark on the server, or the first one, which took only t-groups: the row, as before */
+      if (noGate(e) || /for that row|not a bingo row/.test(String(e && e.message || ''))) return fromOutbox ? bbbByRow(m, true) : 'nogate';
       if (denied(e)) { if (!fromOutbox) queue(key, 'bbb', m); say('denied', 'bbb/' + m.rid); return fromOutbox ? 'denied' : false; }
       if (refused(e)) { say('refused'); return fromOutbox ? null : false; }
       if (!fromOutbox) queue(key, 'bbb', m);

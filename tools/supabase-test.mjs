@@ -134,6 +134,8 @@ function fakeSupabase() {
           }
           if (name === 'bbb_mark') {
             state.gated.push([name, 'bbb/' + args.p_rid, args.p_pin]);
+            /* the first bbb_mark took t-groups only, and said so with the word PIN */
+            if (state.oldBbb && !/^t\d/.test(args.p_group)) return { data: 'denied: PIN not accepted for that row', error: null };
             if (!role) return { error: { code: '42501', message: 'PIN not accepted' } };
             const path = 'bbb/' + args.p_rid, held = rows.get(path);
             const d = held ? JSON.parse(JSON.stringify(held.doc)) : { holes: Array.from({ length: 18 }, () => ({ bingo: null, bango: null, bongo: null })) };
@@ -410,6 +412,12 @@ function open(fake) {
   await db.bbbMark({ rid: 'r1', h: 3, gid: 't1', cell: { bango: 'g5' } });
   await db.bbbMark({ rid: 'r1', h: 3, gid: 't0', cell: { bongo: 'g2' } });
   ok('both groups\' marks are on the hole, nothing overwritten', fake.rows.get('bbb/r1').doc.holes[3].g, { t0: { bingo: 'g1', bongo: 'g2' }, t1: { bango: 'g5' } });
+  ok('a group named by its pairs (g0) lands the same way', [await db.bbbMark({ rid: 'r1', h: 5, gid: 'g0', cell: { bingo: 'g1' } }), fake.rows.get('bbb/r1').doc.holes[5].g], [true, { g0: { bingo: 'g1' } }]);
+  fake.state.oldBbb = true;                                         // the server still has the first bbb_mark
+  const said0 = said.length;
+  ok('on the first bbb_mark a g-group falls back to the row, and lands', [await db.bbbMark({ rid: 'r1', h: 6, gid: 'g1', cell: { bango: 'g6' } }), fake.rows.get('bbb/r1').doc.holes[6].g], ['nogate', undefined]);
+  ok('and is never taken for a refused PIN', said.slice(said0).includes('denied'), false);
+  fake.state.oldBbb = false;
   fake.state.offline = true;
   ok('with no signal a mark waits', [await db.bbbMark({ rid: 'r1', h: 4, gid: 't0', cell: { bingo: 'g1' } }), db.pendingPaths()], [false, ['bbb/r1#4#t0']]);
   await db.bbbMark({ rid: 'r1', h: 4, gid: 't0', cell: { bango: 'g2' } });
