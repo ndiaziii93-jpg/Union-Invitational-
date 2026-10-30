@@ -2848,7 +2848,8 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
 }
 @media (max-width:720px){
   .ph,.ph img,.ph.pending{width:132px}
-  .ph img{height:92px}
+  .ph img,.ph .ph-blank{height:92px}
+  .ph .ph-blank{width:132px}
   .metarail{gap:14px;font-size:13px}
 }
 
@@ -4232,6 +4233,12 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
   .pg-grid.two.odd > .pg-t:first-child{grid-column:span 2;aspect-ratio:auto} }
 .pg-t{position:relative;display:block;aspect-ratio:1;border:0;padding:0;border-radius:9px;overflow:hidden;background:var(--sunk);cursor:pointer;width:100%}
 .pg-t img{width:100%;height:100%;object-fit:cover;display:block}
+/* a clip: its poster, or a dark tile, with a play mark either way */
+.pg-t.video{background:#0B110D}
+.pg-play{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:40px;height:40px;border-radius:50%;background:rgba(11,17,13,.72);color:#E2C277;display:grid;place-items:center;font-size:16px;padding-left:3px;pointer-events:none;box-shadow:0 0 0 1.5px rgba(226,194,119,.7)}
+.ph.video a{position:relative;display:block}
+.ph .ph-blank{display:block;width:150px;height:104px;background:#0B110D;border:1px solid var(--rule)}
+.pv-img video{max-width:100%;max-height:calc(100dvh - 210px);border-radius:6px;background:#000}
 .pg-t.broken img{opacity:0}
 .pg-hb{position:absolute;left:6px;top:6px;font-size:10.5px;font-weight:700;letter-spacing:.06em;background:rgba(16,22,17,.8);color:#E2C277;border-radius:999px;padding:2px 7px}
 .pg-hc{position:absolute;right:6px;top:6px;font-size:11.5px;font-weight:700;background:rgba(16,22,17,.75);color:#fff;border-radius:999px;padding:2px 7px}
@@ -4264,6 +4271,7 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
 .pv-top button{background:none;border:0;font:inherit;font-size:17px;font-weight:600;color:#E2C277;padding:10px 4px;cursor:pointer}
 .pv-img{position:relative;flex:1;display:grid;place-items:center;min-height:0;touch-action:pan-y}
 .pv-img img{max-width:100%;max-height:calc(100dvh - 210px);object-fit:contain;border-radius:6px}
+html.low video{filter:grayscale(1) brightness(.45)}
 .pv-nav{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;border:0;
   background:rgba(255,255,255,.14);color:#fff;font-size:26px;line-height:1;cursor:pointer}
 .pv-nav.l{left:0} .pv-nav.r{right:0}
@@ -5095,8 +5103,10 @@ const SUPABASE_KEY = 'sb_publishable_g8feql6XYrOP60S6bFNz9A_rTKMPrZw';
 const PHOTO_BUCKET = 'photos';
 const PHOTO_MAX = 1600;
 const THUMB_MAX = 420;
+/* a clip from the phone goes up as it is — nothing on a phone can shrink a video — so there is a ceiling */
+const VIDEO_MAX_MB = 80;
 
-return {SUPABASE_URL, SUPABASE_KEY, PHOTO_BUCKET, PHOTO_MAX, THUMB_MAX};
+return {SUPABASE_URL, SUPABASE_KEY, PHOTO_BUCKET, PHOTO_MAX, THUMB_MAX, VIDEO_MAX_MB};
 })();
 
 const __m_rules = (function(){
@@ -7503,10 +7513,13 @@ function createSupabaseFiles(opts) {
   return {
     kind: 'supabase',
     /** @returns {{key, url, thumbKey, thumbUrl, sizeBytes}} */
-    async upload(blob, thumb) {
+    async upload(blob, thumb, opts) {
       const base = stamp();
-      const k = base + '.jpg';
-      const { error } = await store.upload(k, blob, { contentType: blob.type || 'image/jpeg', upsert: false });
+      const video = !!(opts && opts.kind === 'video');
+      const mime = (opts && opts.mime) || blob.type || (video ? 'video/mp4' : 'image/jpeg');
+      const ext = video ? ({ 'video/quicktime': '.mov', 'video/mp4': '.mp4', 'video/webm': '.webm', 'video/x-m4v': '.m4v' }[mime] || '.mp4') : '.jpg';
+      const k = base + ext;
+      const { error } = await store.upload(k, blob, { contentType: mime, upsert: false });
       if (error) throw new Error(error.message || 'upload failed');
       const out = {
         key: k,
@@ -8898,14 +8911,15 @@ function renderRecap(T, rid, IMG, opts) {
   const bbbDay = E.bbbRoundBoard(T, rid).map(x => { const w = bbbWeek.find(y => y.id === x.id); return { ...x, week: w ? w.pts : null }; });
   const web = u => /^https?:\/\//i.test(String(u || ''));
   const snaps = Object.values(T.photos || {}).filter(p => p && p.rid === rid && web(p.url)).map(p => ({ ...p, thumb: web(p.thumb) ? p.thumb : '' })).sort((a, b) => (b.at || 0) - (a.at || 0));
-  const slides = snaps.length ? snaps.slice(0, 15)
+  const stills = snaps.filter(p => p.kind !== 'video');    // the front and the inline pictures are photographs; clips are in the strip
+  const slides = stills.length ? stills.slice(0, 15)
     : IMG['course_' + course.key] ? [{ url: IMG['course_' + course.key], caption: course.name, course: true }] : [];
   const top = table[0];
   const shots = st.field;
   const shared = opts.shared || sharedRounds(T);
   const tm = ms => { try { return E.to12(new Date(ms + D.TZ_OFFSET_MIN * 60000).toISOString().slice(11, 16)); } catch (e) { return ''; } };
   const inlinePhoto = i => {
-    const ph = i === 0 ? snaps[1] : i === 2 ? snaps[2] : null;
+    const ph = i === 0 ? stills[1] : i === 2 ? stills[2] : null;
     if (!ph) return '';
     return `<figure class="rinline"><img src="${esc(ph.url)}" alt="${esc(ph.caption || 'From the round')}" loading="lazy" decoding="async">
       <figcaption>${esc(ph.caption || (ph.hole != null ? 'Hole ' + (ph.hole + 1) : 'From the round'))}${ph.byName ? ' · 📷 ' + esc(ph.byName) : ''}</figcaption></figure>`;
@@ -9067,9 +9081,9 @@ function renderRecap(T, rid, IMG, opts) {
         <span class="rnote">${snaps.length ? snaps.length + ' photo' + (snaps.length === 1 ? '' : 's') + '. Tap one to open it full size.' : 'No photos from this round yet.'}</span>
       </div>
       <div class="phstrip">
-        ${snaps.map(ph => `<figure class="ph">
-          <a href="${esc(ph.url)}" target="_blank" rel="noopener" aria-label="Open this photo full size">
-            <img src="${esc(ph.thumb || ph.url)}" alt="${esc(ph.caption || 'From the round')}" loading="lazy"></a>
+        ${snaps.map(ph => `<figure class="ph${ph.kind === 'video' ? ' video' : ''}">
+          <a href="${esc(ph.url)}" target="_blank" rel="noopener" aria-label="${ph.kind === 'video' ? 'Play this clip' : 'Open this photo full size'}">
+            ${ph.kind === 'video' && !ph.thumb ? '<span class="ph-blank"></span>' : `<img src="${esc(ph.thumb || ph.url)}" alt="${esc(ph.caption || 'From the round')}" loading="lazy">`}${ph.kind === 'video' ? '<span class="pg-play" aria-hidden="true">▶</span>' : ''}</a>
           <figcaption>${ph.hole != null ? `<b class="phh">Hole ${ph.hole + 1}</b> ` : ''}${esc(ph.byName || 'Someone')}</figcaption>
         </figure>`).join('')}
       </div>

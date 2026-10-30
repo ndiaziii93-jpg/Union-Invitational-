@@ -23,3 +23,5 @@ export const SUPABASE_KEY = '__SUPABASE_KEY__';
 export const PHOTO_BUCKET = 'photos';
 export const PHOTO_MAX = 1600;
 export const THUMB_MAX = 420;
+/* a clip from the phone goes up as it is — nothing on a phone can shrink a video — so there is a ceiling */
+export const VIDEO_MAX_MB = 80;

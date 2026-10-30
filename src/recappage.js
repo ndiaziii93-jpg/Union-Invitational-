@@ -85,14 +85,15 @@ export function renderRecap(T, rid, IMG, opts) {
   const bbbDay = E.bbbRoundBoard(T, rid).map(x => { const w = bbbWeek.find(y => y.id === x.id); return { ...x, week: w ? w.pts : null }; });
   const web = u => /^https?:\/\//i.test(String(u || ''));
   const snaps = Object.values(T.photos || {}).filter(p => p && p.rid === rid && web(p.url)).map(p => ({ ...p, thumb: web(p.thumb) ? p.thumb : '' })).sort((a, b) => (b.at || 0) - (a.at || 0));
-  const slides = snaps.length ? snaps.slice(0, 15)
+  const stills = snaps.filter(p => p.kind !== 'video');    // the front and the inline pictures are photographs; clips are in the strip
+  const slides = stills.length ? stills.slice(0, 15)
     : IMG['course_' + course.key] ? [{ url: IMG['course_' + course.key], caption: course.name, course: true }] : [];
   const top = table[0];
   const shots = st.field;
   const shared = opts.shared || sharedRounds(T);
   const tm = ms => { try { return E.to12(new Date(ms + D.TZ_OFFSET_MIN * 60000).toISOString().slice(11, 16)); } catch (e) { return ''; } };
   const inlinePhoto = i => {
-    const ph = i === 0 ? snaps[1] : i === 2 ? snaps[2] : null;
+    const ph = i === 0 ? stills[1] : i === 2 ? stills[2] : null;
     if (!ph) return '';
     return `<figure class="rinline"><img src="${esc(ph.url)}" alt="${esc(ph.caption || 'From the round')}" loading="lazy" decoding="async">
       <figcaption>${esc(ph.caption || (ph.hole != null ? 'Hole ' + (ph.hole + 1) : 'From the round'))}${ph.byName ? ' · 📷 ' + esc(ph.byName) : ''}</figcaption></figure>`;
@@ -254,9 +255,9 @@ export function renderRecap(T, rid, IMG, opts) {
         <span class="rnote">${snaps.length ? snaps.length + ' photo' + (snaps.length === 1 ? '' : 's') + '. Tap one to open it full size.' : 'No photos from this round yet.'}</span>
       </div>
       <div class="phstrip">
-        ${snaps.map(ph => `<figure class="ph">
-          <a href="${esc(ph.url)}" target="_blank" rel="noopener" aria-label="Open this photo full size">
-            <img src="${esc(ph.thumb || ph.url)}" alt="${esc(ph.caption || 'From the round')}" loading="lazy"></a>
+        ${snaps.map(ph => `<figure class="ph${ph.kind === 'video' ? ' video' : ''}">
+          <a href="${esc(ph.url)}" target="_blank" rel="noopener" aria-label="${ph.kind === 'video' ? 'Play this clip' : 'Open this photo full size'}">
+            ${ph.kind === 'video' && !ph.thumb ? '<span class="ph-blank"></span>' : `<img src="${esc(ph.thumb || ph.url)}" alt="${esc(ph.caption || 'From the round')}" loading="lazy">`}${ph.kind === 'video' ? '<span class="pg-play" aria-hidden="true">▶</span>' : ''}</a>
           <figcaption>${ph.hole != null ? `<b class="phh">Hole ${ph.hole + 1}</b> ` : ''}${esc(ph.byName || 'Someone')}</figcaption>
         </figure>`).join('')}
       </div>

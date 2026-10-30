@@ -568,10 +568,13 @@ export function createSupabaseFiles(opts) {
   return {
     kind: 'supabase',
     /** @returns {{key, url, thumbKey, thumbUrl, sizeBytes}} */
-    async upload(blob, thumb) {
+    async upload(blob, thumb, opts) {
       const base = stamp();
-      const k = base + '.jpg';
-      const { error } = await store.upload(k, blob, { contentType: blob.type || 'image/jpeg', upsert: false });
+      const video = !!(opts && opts.kind === 'video');
+      const mime = (opts && opts.mime) || blob.type || (video ? 'video/mp4' : 'image/jpeg');
+      const ext = video ? ({ 'video/quicktime': '.mov', 'video/mp4': '.mp4', 'video/webm': '.webm', 'video/x-m4v': '.m4v' }[mime] || '.mp4') : '.jpg';
+      const k = base + ext;
+      const { error } = await store.upload(k, blob, { contentType: mime, upsert: false });
       if (error) throw new Error(error.message || 'upload failed');
       const out = {
         key: k,

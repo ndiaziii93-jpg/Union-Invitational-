@@ -1237,10 +1237,11 @@ function recapPanel() {
      added to this round, and until there is one, the course the round was
      played on — which alternates from round to round of its own accord. */
   const snaps = photosFor(rid);
+  const stills = snaps.filter(p => !isVideo(p));          // the front and the inline pictures are photographs; clips are in the strip
   /* THE FRONT CYCLES. Every photo of the round, newest first, sliding by on
      their own and swipeable; the headline stays put over them. Until anyone
      adds one, the course the round was played on. */
-  const slides = snaps.length ? snaps.slice(0, 15)
+  const slides = stills.length ? stills.slice(0, 15)
     : IMG['course_' + course.key] ? [{ url: IMG['course_' + course.key], caption: course.name, course: true }] : [];
   const at = Math.min(UI.recapSlide || 0, Math.max(slides.length - 1, 0));
   const field = E.recapField(T, rid);
@@ -1484,7 +1485,7 @@ function recapPanel() {
  *  first and the third, the second and third newest (the newest is on the
  *  front). */
 function inlinePhoto(snaps, i) {
-  const ph = i === 0 ? snaps[1] : i === 2 ? snaps[2] : null;
+  const ph = i === 0 ? stills[1] : i === 2 ? stills[2] : null;
   if (!ph) return '';
   return `<figure class="rinline"><img src="${esc(ph.url)}" alt="${esc(ph.caption || 'From the round')}" loading="lazy" decoding="async">
     <figcaption>${esc(ph.caption || (ph.hole != null ? 'Hole ' + (ph.hole + 1) : 'From the round'))}${ph.byName ? ' · 📷 ' + esc(ph.byName) : ''}</figcaption></figure>`;
@@ -1566,9 +1567,10 @@ function courseTarget() {
 const dayName = iso => { const d = D.DAYS.find(x => x.iso === iso); return d ? d : { dow: iso, date: '' }; };
 function pgTile(ph, list) {
   const n = hearts(ph);
-  return `<button class="pg-t" data-act="photoView" data-a="${esc(ph.id)}" data-b="${esc(list)}"
-      aria-label="${esc(isTrip(ph) ? 'Photo' : 'Hole ' + (ph.hole + 1))} by ${esc(ph.byName || 'someone')}${n ? ', ' + n + ' heart' + (n === 1 ? '' : 's') : ''}">
-    <img src="${esc(safeUrl(ph.thumb) || ph.url)}" alt="" loading="lazy" onerror="this.closest('.pg-t').classList.add('broken')">
+  return `<button class="pg-t${isVideo(ph) ? ' video' : ''}" data-act="photoView" data-a="${esc(ph.id)}" data-b="${esc(list)}"
+      aria-label="${esc(isVideo(ph) ? 'Clip' : isTrip(ph) ? 'Photo' : 'Hole ' + (ph.hole + 1))} by ${esc(ph.byName || 'someone')}${n ? ', ' + n + ' heart' + (n === 1 ? '' : 's') : ''}">
+    ${isVideo(ph) && !safeUrl(ph.thumb) ? '' : `<img src="${esc(safeUrl(ph.thumb) || ph.url)}" alt="" loading="lazy" onerror="this.closest('.pg-t').classList.add('broken')">`}
+    ${isVideo(ph) ? '<span class="pg-play" aria-hidden="true">▶</span>' : ''}
     ${!isTrip(ph) && ph.hole != null ? `<span class="pg-hb">HOLE ${ph.hole + 1}</span>` : ''}
     ${n ? `<span class="pg-hc${iHeart(ph) ? ' mine' : ''}">♥ ${n}</span>` : ''}
     <span class="pg-by">${esc(ph.byName || 'Someone')}</span></button>`;
@@ -1626,7 +1628,8 @@ function photoViewHtml() {
     <div class="pv-top"><span>${list.length > 1 ? (i + 1) + ' of ' + list.length : ''}</span><button data-act="modalCancel">Done</button></div>
     <div class="pv-img" data-swipe="${esc(prev || '')}|${esc(next || '')}|${esc(m.list)}">
       ${prev ? `<button class="pv-nav l" data-act="photoView" data-a="${esc(prev)}" data-b="${esc(m.list)}" aria-label="Previous photo">‹</button>` : ''}
-      <img src="${esc(ph.url)}" alt="${esc(where)}, taken by ${esc(ph.byName || 'someone')}">
+      ${isVideo(ph) ? `<video controls playsinline preload="metadata" src="${esc(ph.url)}"${safeUrl(ph.thumb) ? ` poster="${esc(ph.thumb)}"` : ''} aria-label="${esc(where)}, by ${esc(ph.byName || 'someone')}"></video>`
+        : `<img src="${esc(ph.url)}" alt="${esc(where)}, taken by ${esc(ph.byName || 'someone')}">`}
       ${next ? `<button class="pv-nav r" data-act="photoView" data-a="${esc(next)}" data-b="${esc(m.list)}" aria-label="Next photo">›</button>` : ''}
     </div>
     <div class="pv-foot">
@@ -2692,10 +2695,10 @@ function phFig(ph) {
      scrolling a week of the trip does not pull a hundred megabytes through
      resort wifi. A photograph stored before thumbnails shows as it always
      did. */
-  return `<figure class="ph">
-    <a href="${esc(ph.url)}" target="_blank" rel="noopener" aria-label="Open this photo full size">
-      <img src="${esc(safeUrl(ph.thumb) || ph.url)}" alt="${esc(ph.caption || 'From the round')}" loading="lazy"
-        onerror="this.closest('figure').classList.add('broken')"></a>
+  return `<figure class="ph${isVideo(ph) ? ' video' : ''}">
+    <a href="${esc(ph.url)}" target="_blank" rel="noopener" aria-label="${isVideo(ph) ? 'Play this clip' : 'Open this photo full size'}">
+      ${isVideo(ph) && !safeUrl(ph.thumb) ? '<span class="ph-blank"></span>' : `<img src="${esc(safeUrl(ph.thumb) || ph.url)}" alt="${esc(ph.caption || 'From the round')}" loading="lazy"
+        onerror="this.closest('figure').classList.add('broken')">`}${isVideo(ph) ? '<span class="pg-play" aria-hidden="true">▶</span>' : ''}</a>
     <figcaption>${ph.hole != null ? `<b class="phh">Hole ${ph.hole + 1}</b> ` : ''}${esc(ph.byName || 'Someone')}${ownsPhoto(ph) ? `
       <button class="rm" data-act="photoMove" data-a="${esc(ph.id)}">Move</button><button class="rm" data-act="photoDrop1" data-a="${esc(ph.id)}">Remove</button>` : ''}</figcaption>
   </figure>`;
@@ -2782,7 +2785,7 @@ function pickerFor(kind) {
   if (pickers[k]) return pickers[k];
   const el = document.createElement('input');
   el.type = 'file';
-  el.accept = 'image/*';
+  el.accept = 'image/*,video/*';
   if (k === 'camera') { el.setAttribute('capture', 'environment'); el.multiple = false; }
   else el.multiple = true;
   el.style.display = 'none';
@@ -2822,8 +2825,41 @@ let upSeq = 0;
    actually decode then fails in shrink(), loudly, with a reason. Deciding
    whether something is a picture is the decoder's job, not a guess made from
    a string the phone did not bother to fill in. */
+const isVideo = ph => !!ph && ph.kind === 'video';
+/** A video file, by type or, failing that, by name. */
+function looksLikeAVideo(f) {
+  if (!f) return false;
+  if (f.type && /^video\//i.test(f.type)) return true;
+  return !f.type && /\.(mov|mp4|m4v|webm)$/i.test(f.name || '');
+}
+/* THE POSTER. A clip's first clear frame, drawn small, so the strip and the
+   tiles have a picture to show and the clip itself is only pulled when it
+   is tapped. A phone that cannot decode the clip gives no poster, and the
+   tile shows a plain play mark instead. */
+function videoPoster(file, max = CFG.THUMB_MAX) {
+  return new Promise(resolve => {
+    let done = false;
+    const end = v => { if (done) return; done = true; try { URL.revokeObjectURL(url); } catch (e) { /* nothing */ } resolve(v); };
+    const url = URL.createObjectURL(file);
+    const v = document.createElement('video');
+    v.muted = true; v.playsInline = true; v.preload = 'auto'; v.src = url;
+    const timer = setTimeout(() => end(null), 8000);
+    v.addEventListener('error', () => { clearTimeout(timer); end(null); });
+    v.addEventListener('loadeddata', () => { try { v.currentTime = Math.min(0.5, (v.duration || 1) / 2); } catch (e) { end(null); } });
+    v.addEventListener('seeked', () => {
+      try {
+        const s = Math.min(1, max / Math.max(v.videoWidth || 1, v.videoHeight || 1));
+        const c = document.createElement('canvas');
+        c.width = Math.max(1, Math.round((v.videoWidth || 1) * s)); c.height = Math.max(1, Math.round((v.videoHeight || 1) * s));
+        c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+        c.toBlob(b => { clearTimeout(timer); end(b || null); }, 'image/jpeg', 0.7);
+      } catch (e) { clearTimeout(timer); end(null); }
+    });
+  });
+}
 function looksLikeAPicture(f) {
   if (!f) return false;
+  if (looksLikeAVideo(f)) return true;                      // a clip goes up as it is
   if (f.type && /^image\//i.test(f.type)) return true;
   if (f.type && !/^image\//i.test(f.type)) return false;   // a PDF is a no
   return true;                                              // no type at all: try it
@@ -2874,7 +2910,7 @@ async function addPhotos(rid, files, hole) {
   if (!all.length) { UI.upload.err = 'The picker did not hand over a file.'; render(); return; }
   const list = all.filter(looksLikeAPicture);
   if (!list.length) {
-    UI.upload.err = 'That was not a picture the book could read ('
+    UI.upload.err = 'That was not a picture or a clip the book could read ('
       + all.map(f => f.type || 'no type').join(', ') + ').';
     render();
     return;
@@ -2885,18 +2921,20 @@ async function addPhotos(rid, files, hole) {
   const who = (me || E.person(T, UI.role) || {}).display || 'Someone';
   UI.upload.err = '';
   for (const f of list) {
-    const u = { id: 'u' + Date.now().toString(36) + (++upSeq), rid, hole: hole == null ? null : +hole, name: f.name || 'Photo', pct: 5, err: '', waiting: false };
+    const video = looksLikeAVideo(f);
+    const u = { id: 'u' + Date.now().toString(36) + (++upSeq), rid, hole: hole == null ? null : +hole, name: f.name || (video ? 'Clip' : 'Photo'), pct: 5, err: '', waiting: false };
     UI.upload.queue.push(u);
     render();
     try {
-      const small = await shrink(f, CFG.PHOTO_MAX);
-      const thumb = supa ? await shrink(f, CFG.THUMB_MAX, 0.7).catch(() => null) : null;
+      if (video && f.size > CFG.VIDEO_MAX_MB * 1024 * 1024) throw new Error('that clip is ' + Math.round(f.size / 1048576) + ' MB; keep clips under ' + CFG.VIDEO_MAX_MB + ' MB');
+      const small = video ? f : await shrink(f, CFG.PHOTO_MAX);
+      const thumb = video ? (supa ? await videoPoster(f) : null) : supa ? await shrink(f, CFG.THUMB_MAX, 0.7).catch(() => null) : null;
       u.pct = 30;
-      await parkPhoto({ id: u.id, rid, hole: u.hole, name: u.name, by: UI.role, byName: who, at: Date.now(), day: now.iso, small, thumb });
+      await parkPhoto({ id: u.id, rid, hole: u.hole, name: u.name, by: UI.role, byName: who, at: Date.now(), day: now.iso, small, thumb, kind: video ? 'video' : 'photo', mime: f.type || '' });
     } catch (e) {
       const why = (e && (e.message || e.code)) ? String(e.message || e.code) : 'could not be read';
       u.err = why.slice(0, 60); u.pct = 100;
-      UI.upload.err = 'That photo could not be read: ' + why.slice(0, 120);
+      UI.upload.err = (video ? 'That clip could not be taken: ' : 'That photo could not be read: ') + why.slice(0, 120);
       if (store && store.note) store.note('photo FAILED', (f.name || '?') + ' — ' + why);
       render();
       continue;
@@ -2925,7 +2963,7 @@ async function sendParked() {
       u.waiting = false; u.err = ''; u.pct = 45; render();
       try {
         const supa = store4.kind === 'supabase';
-        const up = supa ? await store4.upload(item.small, item.thumb) : await store4.upload(item.small);
+        const up = supa ? await store4.upload(item.small, item.thumb, { kind: item.kind || 'photo', mime: item.mime || '' }) : await store4.upload(item.small, null, { kind: item.kind || 'photo', mime: item.mime || '' });
         u.pct = 85; render();
         const id = 'ph' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
         /* The file is in the bucket by now. The row that points at it is a
@@ -2933,6 +2971,7 @@ async function sendParked() {
            loading, so the answer is checked rather than assumed. */
         const kept = await store.writePhoto(id, {
           rid: item.rid, hole: item.hole == null ? null : item.hole, url: up.url, thumb: up.thumbUrl || null, at: item.at || Date.now(),
+          kind: item.kind || 'photo', mime: item.mime || null,
           assetId: up.id || null, key: up.key || null, thumbKey: up.thumbKey || null,
           by: item.by, byName: item.byName, dev: myDev(), day: item.day || null, bytes: up.sizeBytes || (item.small && item.small.size) || 0,
         });
