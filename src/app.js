@@ -3670,9 +3670,26 @@ function setFirstTee(round, t) {
 
 function draftFor(rid, h) {
   if (!UI.draft || UI.draft.rid !== rid || UI.draft.hole !== h) {
-    UI.draft = { rid, hole: h, strokes: {}, bbb: {}, gid: curGroupId(rid) };
+    UI.draft = { rid, hole: h, strokes: {}, bbb: {}, pu: {}, gid: curGroupId(rid) };
   }
+  if (!UI.draft.pu) UI.draft.pu = {};      // a draft kept on the phone from before pick-ups
   return UI.draft;
+}
+const ordinal = n => n + ({ 1: 'st', 2: 'nd', 3: 'rd' }[(n % 100 > 10 && n % 100 < 14) ? 0 : n % 10] || 'th');
+/* The rounds a triple asks in: Round 1 was played before the rule and stands as scored. */
+const PICKUP_ROUNDS = ['r2', 'r3'];
+function pickupHtml() {
+  const md = UI.modal, hole = E.courseOf(T, md.rid).holes[md.h], who = nameOf(md.pid);
+  const first = who.split(' ')[0];
+  return `<div class="scrim" data-in="1"><div class="modal pumodal" role="alertdialog" aria-modal="true" aria-label="Holed out or picked up">
+    ${modalBanner('Triple bogey on the ' + ordinal(hole.n), who + ' · ' + md.v + ' on a par ' + hole.par)}
+    <p class="lede" style="margin:16px 0 14px">Did ${esc(first)} hole out, or pick up at the cap?</p>
+    <div class="pu-ways">
+      <button class="btn ghost" data-act="pickupAns" data-a="holed">Holed out<small>a true triple</small></button>
+      <button class="btn" data-act="pickupAns" data-a="pu">Picked up<small>at the cap, still out there · 0 team points</small></button>
+    </div>
+    <p class="pnote" style="max-width:none;margin:14px 0 2px;text-align:center">Asked on every triple. The card shows ${md.v} either way.</p>
+  </div></div>`;
 }
 function draftDirty() {
   const d = UI.draft;
@@ -3732,6 +3749,9 @@ function commitDraft(role) {
       c.raw[h] = v;
       if (v == null) { delete c.by[h]; delete c.at[h]; }
       else { c.by[h] = role; c.at[h] = Date.now(); }
+      c.pu = c.pu || {};
+      if (v == null || (d.pu && d.pu[pid] === false)) delete c.pu[h];
+      else if (d.pu && d.pu[pid] === true) c.pu[h] = true;
     });
   }
   /* the marks go on the hole and the group alone, so two refs on two phones never overwrite each other's holes */
@@ -5063,7 +5083,7 @@ function cardRows(rid, pid) {
     const cap = E.capFor(hole.par, T.config.capOver), gross = raw == null ? null : Math.min(raw, cap);
     const net = gross == null || st == null ? null : gross - st;
     const pts = E.playerPts(T, rid, pid, h);
-    return { n: hole.n, par: hole.par, si: hole.si, st, raw, gross, net, pts, capped: raw != null && raw > cap, marks: E.holeMarks(T, rid, pid, h) };
+    return { n: hole.n, par: hole.par, si: hole.si, st, raw, gross, net, pts, capped: raw != null && raw > cap, pu: !!(c.pu && c.pu[h]), marks: E.holeMarks(T, rid, pid, h) };
   });
   const sum = (from, to, k) => rows.slice(from, to).reduce((a, r) => a + (r[k] == null ? 0 : r[k]), 0);
   const thru = rows.reduce((a, r, i) => (r.gross != null ? i + 1 : a), 0);
@@ -5097,7 +5117,7 @@ function cardSheetHtml() {
      for a bogey, two for worse, and a dot in the corner for each stroke the
      handicap gives on that hole. */
   const glyph = (gross, par) => gross == null ? '' : gross - par <= -2 ? ' g2' : gross - par === -1 ? ' g1' : gross === par ? '' : gross - par === 1 ? ' b1' : ' b2';
-  const grossCell = row => `<span class="sc-c${row.raw == null ? '' : ' has'}${glyph(row.gross, row.par)}${row.capped ? ' capped' : ''}" data-h="${row.n}">${row.st ? `<em class="sc-dots" aria-label="${row.st} stroke${row.st === 1 ? '' : 's'}">${'•'.repeat(Math.min(row.st, 3))}</em>` : ''}<b class="num">${row.raw == null ? '' : row.raw}</b>${row.marks.length ? `<i>${row.marks.map(k => MARK_GLYPH[k] || '').join('')}</i>` : ''}</span>`;
+  const grossCell = row => `<span class="sc-c${row.raw == null ? '' : ' has'}${glyph(row.gross, row.par)}${row.capped ? ' capped' : ''}${row.pu ? ' pu' : ''}" data-h="${row.n}"${row.pu ? ' title="Picked up"' : ''}>${row.st ? `<em class="sc-dots" aria-label="${row.st} stroke${row.st === 1 ? '' : 's'}">${'•'.repeat(Math.min(row.st, 3))}</em>` : ''}<b class="num">${row.raw == null ? '' : row.raw}</b>${row.marks.length ? `<i>${row.marks.map(k => MARK_GLYPH[k] || '').join('')}</i>` : ''}</span>`;
   const netCell = row => `<span class="sc-c sc-nc${row.net == null ? '' : ' has'}" data-h="${row.n}"><b class="num">${row.net == null ? '' : row.net}</b></span>`;
   /* a team's row is its Stableford points: the better partner's on each hole */
   const bestOf = i => { const ns = cards.map(x => x.rows[i].pts).filter(v => v != null); return ns.length ? Math.max(...ns) : null; };
@@ -8199,6 +8219,7 @@ function modalHtml() {
        : UI.modal.kind === 'hist' ? histModalHtml()
        : UI.modal.kind === 'bbbfix' ? bbbFixHtml()
        : UI.modal.kind === 'xedit' ? xEditHtml()
+       : UI.modal.kind === 'pickup' ? pickupHtml()
        : UI.modal.kind === 'photosrc' ? photoSrcHtml()
        : UI.modal.kind === 'phmove' ? photoMoveHtml()
        : UI.modal.kind === 'hole' ? holeModalHtml()
@@ -9174,18 +9195,37 @@ function onClick(e) {
       let v = Math.round(+b);
       if (!(v >= 1)) return;
       if (v > cap) v = cap;
-      draftFor(rid, h).strokes[a] = v;
+      const dr = draftFor(rid, h);
+      dr.strokes[a] = v;
       /* the pad walks on to the next golfer of its own accord, and closes
          after the last: four scores, four taps */
       const list = padList(rid);
       const at = list.findIndex(x => x.id === a);
-      UI.pad = at >= 0 && list[at + 1] ? list[at + 1].id : null;
+      const next = at >= 0 && list[at + 1] ? list[at + 1].id : null;
+      /* A TRIPLE ASKS. From Round 2 the cap is still the most anyone scores,
+         but a golfer who picked up there scores nothing in the team game.
+         The scorer says which, every time; the pad waits for the answer. */
+      if (v === cap && PICKUP_ROUNDS.includes(rid)) {
+        UI.pad = null;
+        UI.modal = { kind: 'pickup', rid, h, pid: a, v, next };
+        break;
+      }
+      dr.pu[a] = false;                      // not a triple: no pick-up on this hole
+      UI.pad = next;
       break;
     }
     case 'clearHole': {
       if (!canEdit() || E.roundCfg(T, rid).state !== 'open') return;
       if (cardClosed(rid) || closedFor(rid, a)) return;
-      draftFor(rid, UI.entryHole).strokes[a] = null;
+      { const dr = draftFor(rid, UI.entryHole); dr.strokes[a] = null; dr.pu[a] = false; }
+      break;
+    }
+    case 'pickupAns': {
+      const md = UI.modal; if (!md || md.kind !== 'pickup') return;
+      const dr = draftFor(md.rid, md.h);
+      dr.pu[md.pid] = a === 'pu';
+      UI.modal = null;
+      UI.pad = md.next;
       break;
     }
     /* The ref's read of the hole. The sheet stays open while marks go in —
@@ -9730,6 +9770,7 @@ const RECAP_RULES = [
   '- Do not single out the same player for a ribbing more than twice in the whole piece.',
   '- Quote the golfers\' own words from WHAT THE GOLFERS SAID ABOUT THEIR OWN ROUNDS, verbatim and attributed, from at least six different people where the card has them, and as many of them as you can.',
   '- Every paragraph lands at least one jab or joke. Give each pair, and anyone with a story on the card, their moment.',
+  '- Have jokes of your own, not only theirs: off the scores themselves — a blow-up, a pick-up at the cap, a run of pars, a partner carrying a partner, a bet that went west — and off the gap between what a golfer wrote and what he scored.',
   '- Never mention a player\'s handicap band as a criticism. It is a number of strokes, not a verdict.',
   '',
   'THE MARKS, AND HOW FAR THEY GO:',

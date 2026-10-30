@@ -171,6 +171,10 @@ export function stablefordPts(net, par) { return net == null ? null : Math.max(0
 export function playerPts(T, roundId, pid, h) {
   const c = card(T, roundId, pid);
   if (!c || c.raw[h] == null) return null;
+  /* PICKED UP. The card keeps the capped triple, for the MVP and the cup,
+     but a golfer who picked up at the cap did not finish the hole, and in
+     the team game an unfinished hole scores nothing. */
+  if (c.pu && c.pu[h]) return 0;
   const hole = courseOf(T, roundId).holes[h];
   const s = teamStrokesFor(T, (person(T, pid) || {}).band, hole.si);
   if (s == null) return null;
@@ -1398,6 +1402,8 @@ export function recapInput(T, rid, now) {
   if (sg.ld) L.push('- Longest drive, hole ' + sg.ld.hole + ': ' + sg.ld.who + ' ' + sg.ld.note);
   if (sg.bbb) L.push('- Bingo Bango Bongo: ' + sg.bbb.who + ' ' + sg.bbb.note);
   L.push('- Triple-bogey cap hit ' + sg.caps + ' times today.');
+  const pus = golfers(T).map(p => { const c = card(T, rid, p.id); const hs = c && c.pu ? Object.keys(c.pu).filter(k => c.pu[k]).map(k => +k + 1) : []; return hs.length ? p.display + ' (hole' + (hs.length > 1 ? 's ' : ' ') + hs.join(', ') + ')' : null; }).filter(Boolean);
+  if (pus.length) L.push('- Picked up at the cap, still out on the hole, and scored nothing for it in the team game: ' + pus.join('; ') + '.');
 
   const sw = swingOfTheDay(T, rid);
   if (sw) L.push('\nSWING: the leaders took ' + sw.shots + ' points out of third place between holes '

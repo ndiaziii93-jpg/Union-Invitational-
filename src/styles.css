@@ -4747,6 +4747,12 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 .rh-slide img{width:100%;height:100%;object-fit:cover;object-position:50% 40%;display:block}
 /* the group's own words, between the paragraphs */
 /* fixing a bet: the commissioner's panel on a bet's page */
+/* holed out or picked up */
+.pu-ways{display:grid;gap:10px}
+.pu-ways .btn{width:100%;min-height:60px;font-size:17px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.pu-ways .btn small{font-weight:400;opacity:.8;font-size:12.5px}
+.sc-c.pu{position:relative}
+.sc-c.pu::after{content:"PU";position:absolute;right:1px;bottom:0;font-size:8px;font-weight:700;letter-spacing:.04em;color:var(--flag)}
 .xm-fix{margin:14px 0;border:1px dashed var(--rule);border-radius:12px;padding:6px 12px 10px}
 .xm-fix summary{cursor:pointer;list-style:none;padding:6px 0}
 .xm-fix summary::-webkit-details-marker{display:none}

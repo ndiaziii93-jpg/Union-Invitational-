@@ -941,7 +941,7 @@ export function createStore(onChange) {
     const key = roundId + '__' + pid;
     const prev = T.scores[key];
     const c = prev
-      ? { ...blankCard(), ...prev, raw: [...prev.raw], by: { ...(prev.by || {}) }, at: { ...(prev.at || {}) }, marks: { ...(prev.marks || {}) } }
+      ? { ...blankCard(), ...prev, raw: [...prev.raw], by: { ...(prev.by || {}) }, at: { ...(prev.at || {}) }, marks: { ...(prev.marks || {}) }, pu: { ...(prev.pu || {}) } }
       : blankCard();
     mutate(c);
     bump('scores/' + key, c);

@@ -235,6 +235,17 @@ console.log('\nthe panel on Today');
   st = E.roundStanding(T, 'r1');
   ok('every card in is complete', st.complete, true);
   ok('and the recap is for that round', E.recapRound(T, E.nowLocal()), 'r1');
+
+  console.log('\nholed out, or picked up at the cap');
+  const g = T.config.people.find(p => p.band != null && p.band >= 25) || T.config.people.find(p => p.band != null);
+  g.band = 30;
+  const h2 = holes.findIndex(h => E.teamStrokesFor(T, 30, h.si) >= 2);           // a hole a 30 gets two strokes on
+  const c = T.scores['r1__' + g.id];
+  c.raw[h2] = E.capFor(holes[h2].par, T.config.capOver);
+  ok('a true triple where he gets two strokes is a net bogey: a point', E.playerPts(T, 'r1', g.id, h2), 1);
+  c.pu = { [h2]: true };
+  ok('picked up at the cap, the same 7 scores nothing in the team game', E.playerPts(T, 'r1', g.id, h2), 0);
+  ok('and the card still holds the capped score, for the MVP and the cup', c.raw[h2], E.capFor(holes[h2].par, T.config.capOver));
 }
 
 /* ---------- the cup leaves nobody out ---------- */
