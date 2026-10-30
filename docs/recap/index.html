@@ -7801,7 +7801,14 @@ function createStore(onChange) {
   // the change the user just made — so it is ignored.
   const rev = {};
   const bump = (path, doc) => { doc.rev = Math.max(doc.rev || 0, rev[path] || 0) + 1; rev[path] = doc.rev; };
-  const fresher = (path, doc) => ((doc && doc.rev) || 0) >= (rev[path] || 0);
+  /* THE BINGO ROW IS THE SERVER'S. Marks are folded into it on the server,
+     one hole at a time, so the copy the server sends is always the whole
+     truth — unless this phone still has marks of its own on the way, in
+     which case its copy (which holds them) stands until they land. Judged
+     by version alone, a phone that had marked a hole kept its own copy for
+     good and never saw the other group's marks again. */
+  const bbbPending = path => !!(db && db.pendingPaths && db.pendingPaths().some(p => p === path || p.startsWith(path + '#')));
+  const fresher = (path, doc) => (/^bbb\//.test(path) && !bbbPending(path)) || ((doc && doc.rev) || 0) >= (rev[path] || 0);
 
   const notify = () => {
     keepLocal();                 // the device keeps its own copy of whatever it knows

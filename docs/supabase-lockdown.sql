@@ -361,6 +361,8 @@ begin
   g := jsonb_set(g, array[p_group], coalesce(g->p_group, '{}'::jsonb) || p_cell);
   cell := (cell - 'bingo' - 'bango' - 'bongo') || jsonb_build_object('g', g);
   d := jsonb_set(d, array['holes', p_hole::text], cell);
+  -- the row's version moves on with every mark, so every phone takes it as newer
+  d := jsonb_set(d, array['rev'], to_jsonb(coalesce((d->>'rev')::numeric, 0) + 1));
   insert into public.docs (path, doc, writer) values ('bbb/' || p_rid, d, p_who)
   on conflict (path) do update set doc = excluded.doc, writer = excluded.writer;
   return 'ok';
