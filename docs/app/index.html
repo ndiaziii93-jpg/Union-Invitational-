@@ -5088,7 +5088,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261030-1813';
+const BUILD = '20261030-1832';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -13361,10 +13361,12 @@ function xBetHtml() {
   const sibs = xBetSibs(m);
   const bets = X.trades(T).filter(t => t.id && sibs.some(x => x.id === t.m)).slice().reverse();
   const people = X.tripPeople(T).concat(allGuests().filter(g => !g.removed).map(g => ({ id: g.pid, display: g.name })));
-  const who = !!m.whoCustom, ou = !!(r && r.ou);
+  const kind0 = r ? (Array.isArray(r.opts) && r.opts.length ? 'who' : r.ou ? 'ou' : 'yn') : null;
+  const kind = md.btype || kind0, who = kind === 'who', ou = kind === 'ou';
+  const crossing = r && (kind === 'who') !== (kind0 === 'who');           // to or from a who-bet: the bets on it cannot follow
   const q0 = m.custom ? (r.q || '') : (m.group ? m.groupQ : m.q);
   const qv = md.q != null ? md.q : q0, rv = md.rules != null ? md.rules : (m.custom ? (r.rules || '') : (m.rules || ''));
-  const lv = md.line != null ? md.line : (ou ? String(r.ou.line) : '');
+  const lv = md.line != null ? md.line : (r && r.ou ? String(r.ou.line) : '');
   const chip = (on, act, a, label) => `<button class="chip${on ? ' on' : ''}" data-act="${act}" data-a="${esc(a)}">${esc(label)}</button>`;
   const editing = md.edit ? (T.market || {})[md.edit] : null;
   const tSide = md.tSide || (editing ? editing.side : 'yes');
@@ -13372,6 +13374,11 @@ function xBetHtml() {
   return `<div class="scrim" data-act="modalScrim"><div class="modal xbmodal" role="dialog" aria-modal="true" aria-label="Edit this bet">
     ${modalBanner('Edit this bet', 'Commissioner')}
     <section class="xb-sec"><span class="xm-eye">How it reads</span>
+      ${m.custom ? `<label class="calc-l">What kind</label>
+        <div class="chiprow">${chip(kind === 'yn', 'xBetKind', 'yn', 'Yes or no')}${chip(kind === 'who', 'xBetKind', 'who', 'Who will it be?')}${chip(kind === 'ou', 'xBetKind', 'ou', 'Over or under')}</div>
+        ${crossing && bets.length ? `<p class="xm-err" style="margin:8px 0 0">${bets.length} bet${bets.length === 1 ? ' is' : 's are'} on it as ${kind0 === 'who' ? 'names' : 'Yes and No'}, and ${bets.length === 1 ? 'it' : 'they'} can’t carry over to ${kind === 'who' ? 'names' : 'Yes and No'}. Give the beers back first, then save.
+          <button class="xm-link danger" data-act="xBetClear">${md.clearAsk ? 'Tap again: give every beer back' : 'Give everyone’s beers back'}</button></p>`
+          : crossing ? '' : kind !== kind0 ? `<p class="pnote" style="max-width:none;margin:8px 0 0">${kind === 'ou' ? 'Yes becomes Over and No becomes Under' : 'Over becomes Yes and Under becomes No'}; every bet on it stays as it is.</p>` : ''}` : ''}
       <label class="calc-l" for="xbQ">${ou ? 'What’s being counted' : m.group ? 'The question on the card' : 'The question'}</label>
       <input id="xbQ" class="field" maxlength="140" autocomplete="off" value="${esc(qv)}">
       ${ou ? `<label class="calc-l" for="xbL">The line</label><input id="xbL" class="field" inputmode="decimal" maxlength="7" autocomplete="off" value="${esc(lv)}">` : ''}
@@ -19698,6 +19705,16 @@ function onClick(e) {
       render(); return;
     }
     case 'xBetPpl': { const md = UI.modal; if (!md || md.kind !== 'xbet') return; xBetRead(md); md.ppl = md.ppl.includes(a) ? md.ppl.filter(x => x !== a) : md.ppl.concat(a); render(); return; }
+    case 'xBetKind': { const md = UI.modal; if (!md || md.kind !== 'xbet') return; xBetRead(md); md.btype = a; md.clearAsk = false; render(); return; }
+    case 'xBetClear': {
+      const md = UI.modal; if (!md || md.kind !== 'xbet' || !fixer()) return;
+      xBetRead(md);
+      if (!md.clearAsk) { md.clearAsk = true; render(); return; }
+      const m = xFind(md.id); if (!m) return;
+      const ids = xBetSibs(m).map(x => x.id);
+      for (const r of Object.values(T.market || {})) if (r && (r.k === 't' || r.k === 'o') && ids.includes(r.m)) store.dropSocial('market', r.id);
+      md.clearAsk = false; flash('Every bet on it is off, and the beers are back. Now save.'); render(); return;
+    }
     case 'xBetCat': { const md = UI.modal; if (!md || md.kind !== 'xbet') return; xBetRead(md); md.cat = a; render(); return; }
     case 'xBetP0': { const md = UI.modal; if (!md || md.kind !== 'xbet') return; xBetRead(md); md.p0 = +a; render(); return; }
     case 'xBetTrade': { const md = UI.modal; if (!md || md.kind !== 'xbet') return; xBetRead(md); md.edit = a || null; md.tSide = null; md.tStake = null; md.tPid = null; md.tM = null; render(); return; }
@@ -19733,23 +19750,36 @@ function onClick(e) {
       if (q.length < 4) { flash('The question needs a few words.'); return; }
       if (m.custom) {
         const r = (T.market || {})[m.qid] || {};
+        const kind0 = Array.isArray(r.opts) && r.opts.length ? 'who' : r.ou ? 'ou' : 'yn', kind = md.btype || kind0;
         const fields = { rules, cat: md.cat === 'golf' ? 'golf' : 'trip', editedBy: 'the commissioner', editedAt: Date.now() };
-        if (r.ou) {
-          const ln = parseFloat(String(md.line != null ? md.line : r.ou.line).replace(',', '.').replace('½', '.5'));
+        /* to or from a who-bet, nothing placed on it can follow: those bets go first */
+        if ((kind === 'who') !== (kind0 === 'who')) {
+          if (X.trades(T).some(t => xBetSibs(m).some(x => x.id === t.m))) { flash('Give the beers on it back first: the bets on it can’t carry over.'); render(); return; }
+          if (r.result || r.void || (Array.isArray(r.winners) && r.winners.length)) { flash('Undo the settlement first.'); return; }
+        }
+        if (kind === 'ou') {
+          const ln = parseFloat(String(md.line != null ? md.line : (r.ou ? r.ou.line : '')).replace(',', '.').replace('½', '.5'));
           if (!(ln >= 0 && ln < 10000)) { flash('Set the line: a number, like 92.5.'); return; }
           fields.ou = { line: Math.round(ln * 2) / 2 }; fields.q = q.replace(/\?+$/, '');
-        } else fields.q = /\?$/.test(q) ? q : q + '?';
-        if (Array.isArray(r.opts)) {
-          const gone = r.opts.filter(w => !md.ppl.includes(w));
+        } else { fields.ou = null; fields.q = /\?$/.test(q) ? q : q + '?'; }
+        if (kind === 'who') {
+          const gone = (Array.isArray(r.opts) ? r.opts : []).filter(w => !md.ppl.includes(w));
           const held = gone.filter(w => X.trades(T).some(t => t.m === m.qid + '__' + w));
           if (held.length) { flash(held.map(nameOf).join(', ') + ' already has bets on it: fix or remove those first.'); return; }
-          if (md.ppl.length < 2) { flash('A who-bet needs two answers or more.'); return; }
-          fields.opts = md.ppl.slice(0, 23);
+          if (md.ppl.length < 2) { flash('A who-bet needs two answers or more: pick the people.'); return; }
+          fields.opts = md.ppl.slice(0, 23); fields.tags = null;
         } else {
-          fields.tags = md.ppl.slice(0, 23);
-          if (!r.ou && md.p0) fields.p0 = md.p0;
+          fields.opts = null; fields.tags = md.ppl.slice(0, 23);
+          if (kind === 'yn') fields.p0 = md.p0 || r.p0 || 50; else fields.p0 = 50;
         }
+        const sibIds = xBetSibs(m).map(x => x.id);
         store.patchSocial('market', m.qid, fields);
+        X.invalidate();
+        /* a who-bet is one bet a name: the page and the editor follow it to its first name, or back to the one bet */
+        const stays = kind === 'who' ? fields.opts.some(w => m.id === m.qid + '__' + w) : kind0 !== 'who';
+        const nextId = stays ? m.id : kind === 'who' ? m.qid + '__' + fields.opts[0] : m.qid;
+        if (UI.xView && UI.xView !== nextId && sibIds.includes(UI.xView) && !(kind === 'who' && fields.opts.some(w => UI.xView === m.qid + '__' + w))) UI.xView = nextId;
+        md.id = nextId; md.btype = null;
       } else if (m.group) {
         store.patchSocial('market', 'grp_' + m.group, { qText: q, rulesText: rules, editedBy: 'the commissioner', editedAt: Date.now() });
       } else {
@@ -21125,7 +21155,7 @@ __m_app.boot();
 /* Register the worker that makes the book work with no signal. It is the
    whole point of installing it: Belek is five hours of walking and everyone
    is roaming. A failure here must never stop the page loading. */
-var BOOK_BUILD = '20261030-1813';
+var BOOK_BUILD = '20261030-1832';
 var swReg = null;
 /* the book is never shown inside somebody else's page, where a tap could be
    aimed at a button they have put under the finger */
