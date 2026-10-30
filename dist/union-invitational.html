@@ -2512,7 +2512,7 @@ html:has(.page.scoring){scroll-padding-top:136px;scroll-padding-bottom:110px}
   background:var(--page);border-radius:14px;min-height:60px}
 .recapbtn .rb-t{display:block;font-size:18px;font-weight:700;color:var(--turf)}
 .recapbtn .rb-s{display:block;font-size:14px;color:var(--turf);margin-top:2px}
-.recapbtn:disabled{opacity:.55;cursor:not-allowed}
+.recapbtn.idle{opacity:.7}
 /* it lights up only when every card for the day is in */
 /* It lights in the pine every band is drawn in, with the glow in gold. */
 .recapbtn.ready{background:var(--pine);border-color:var(--pine);border-radius:14px}
@@ -4952,7 +4952,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261030-1456';
+const BUILD = '20261030-1544';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -11715,7 +11715,7 @@ function recapButton() {
   const st = recapState(rid);
   const lit = st.key === 'ready' || st.key === 'togen';
   return `<div class="recapwrap">
-    <button class="recapbtn${lit ? ' ready' : ''}" data-act="recapOpen" data-a="${rid}"${st.key === 'idle' ? ' disabled' : ''}>
+    <button class="recapbtn${lit ? ' ready' : ''}${st.key === 'idle' ? ' idle' : ''}" data-act="recapOpen" data-a="${rid}">
       <span class="rb-w">
         <span class="rb-t">The Day's Recap</span>
         <span class="rb-s">${esc(st.line)}</span>
@@ -19030,7 +19030,7 @@ function onClick(e) {
       /* Opening it is the ask. A finished round with nothing written yet
          starts writing itself — nobody should have to press a second button
          to be told what happened on a day they played. */
-      if (!T.recaps[a] || !T.recaps[a].body) writeRecap(a, false);
+      if ((!T.recaps[a] || !T.recaps[a].body) && E.roundStanding(T, a).started) writeRecap(a, false);
       return;
     case 'photoPick':
       pickerRid = a;

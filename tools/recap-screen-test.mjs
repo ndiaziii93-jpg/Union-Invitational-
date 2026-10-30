@@ -141,7 +141,9 @@ await tab('Today');
 
 console.log('\nthe panel follows the round');
 ok('nothing played yet', await line(), "Today's round hasn't started.");
-ok('and it cannot be opened', await p.locator('.recapbtn[disabled]').count(), 1);
+await p.locator('.recapbtn').click(); await p.waitForTimeout(700);
+ok('it still opens, and says so rather than writing a report for nothing', [await p.locator('#recapBox').count(), await p.locator('#recapBox .rb-s').innerText()], [1, 'This round has not started.']);
+await p.locator('button[data-act="recapClose"]').click(); await p.waitForTimeout(400);
 
 // one card part-way in
 await tab('Score Entry');

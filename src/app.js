@@ -1069,7 +1069,7 @@ function recapButton() {
   const st = recapState(rid);
   const lit = st.key === 'ready' || st.key === 'togen';
   return `<div class="recapwrap">
-    <button class="recapbtn${lit ? ' ready' : ''}" data-act="recapOpen" data-a="${rid}"${st.key === 'idle' ? ' disabled' : ''}>
+    <button class="recapbtn${lit ? ' ready' : ''}${st.key === 'idle' ? ' idle' : ''}" data-act="recapOpen" data-a="${rid}">
       <span class="rb-w">
         <span class="rb-t">The Day's Recap</span>
         <span class="rb-s">${esc(st.line)}</span>
@@ -8384,7 +8384,7 @@ function onClick(e) {
       /* Opening it is the ask. A finished round with nothing written yet
          starts writing itself — nobody should have to press a second button
          to be told what happened on a day they played. */
-      if (!T.recaps[a] || !T.recaps[a].body) writeRecap(a, false);
+      if ((!T.recaps[a] || !T.recaps[a].body) && E.roundStanding(T, a).started) writeRecap(a, false);
       return;
     case 'photoPick':
       pickerRid = a;
