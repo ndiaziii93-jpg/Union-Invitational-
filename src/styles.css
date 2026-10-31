@@ -5022,3 +5022,4 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 
 /* above the recap panel, which is drawn later at the same level */
 .scrim.pvscrim,.scrim.rswapscrim{z-index:80}
+.rvoice cite .rv-h{font-weight:600;letter-spacing:.04em;color:var(--gold)}

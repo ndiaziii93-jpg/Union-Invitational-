@@ -5076,6 +5076,7 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 
 /* above the recap panel, which is drawn later at the same level */
 .scrim.pvscrim,.scrim.rswapscrim{z-index:80}
+.rvoice cite .rv-h{font-weight:600;letter-spacing:.04em;color:var(--gold)}
 
 </style>
 <style>
@@ -9404,15 +9405,24 @@ function renderRecap(T, rid, IMG, opts) {
   const dayIso = (E.dayOf(r.dayIdx) || {}).iso || '';
   const tripDay = p => p.day || (p.at ? new Date(p.at + 3 * 3600e3).toISOString().slice(0, 10) : '');
   const pool = stills.concat(Object.values(T.photos || {}).filter(p => p && p.rid === 'trip' && web(p.url) && p.kind !== 'video' && dayIso && tripDay(p) === dayIso));
+  /* the same placing as the book: a picked photo stays; beside a quote written on a hole, a photograph from that hole; then the next along, none twice */
+  const voiceAt = k => { const vs = (body && body.voices) || []; return vs.some(x => x.para) ? vs.find(x => +x.para === k + 1) : vs[k]; };
+  const slotsN = body ? Math.max(0, (body.narrative || []).filter(x => x && x.trim()).length - 1) : 0;
+  const placed = (() => {
+    const out = Array(slotsN).fill(null), used = new Set(), pics = (body && body.pics) || {};
+    for (let k = 0; k < slotsN; k++) { const c = pics[k] ? pool.find(p => p.id === pics[k]) : null; if (c) { out[k] = c; used.add(c.id); } }
+    for (let k = 0; k < slotsN; k++) { if (out[k]) continue; const v = voiceAt(k); if (v && v.hole != null) { const c = stills.find(p => p.hole === v.hole && !used.has(p.id)); if (c) { out[k] = c; used.add(c.id); } } }
+    for (let k = 0; k < slotsN; k++) { if (out[k]) continue; let at = k + 1; while (at < stills.length && used.has(stills[at].id)) at++; if (stills[at]) { out[k] = stills[at]; used.add(stills[at].id); } }
+    return out;
+  })();
   const inlinePhoto = i => {
-    const picked = body && body.pics && body.pics[i];
-    const ph = (picked && pool.find(p => p.id === picked)) || stills[i + 1] || null;
+    const ph = placed[i] || null;
     if (!ph) return '';
     const cap = ph.caption || (ph.hole != null ? 'Hole ' + (ph.hole + 1) : 'From the round');
     return `<figure class="rinline"><button class="rin-open" data-full="${esc(ph.url)}" data-cap="${esc(cap + (ph.byName ? ' · 📷 ' + ph.byName : ''))}" aria-label="Open this photo full screen"><img src="${esc(ph.url)}" alt="${esc(ph.caption || 'From the round')}" loading="lazy" decoding="async"></button>
       <figcaption>${esc(cap)}${ph.byName ? ' · 📷 ' + esc(ph.byName) : ''}</figcaption></figure>`;
   };
-  const voiceHtml = v => `<blockquote class="rvoice"><p>“${esc(v.text)}”</p><cite>— ${esc(v.who || 'From My round')}</cite></blockquote>`;
+  const voiceHtml = v => `<blockquote class="rvoice"><p>“${esc(v.text)}”</p><cite>— ${esc(v.who || 'From My round')}${v.hole != null ? ` <span class="rv-h">· hole ${+v.hole + 1}</span>` : ''}</cite></blockquote>`;
   const inlineVoice = i => {
     const vs = (body && body.voices) || [];
     const v = vs.some(x => x.para) ? vs.find(x => +x.para === i + 1) : vs[i];

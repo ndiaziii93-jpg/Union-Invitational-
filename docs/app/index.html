@@ -5098,6 +5098,7 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 
 /* above the recap panel, which is drawn later at the same level */
 .scrim.pvscrim,.scrim.rswapscrim{z-index:80}
+.rvoice cite .rv-h{font-weight:600;letter-spacing:.04em;color:var(--gold)}
 
 </style>
 <div id="app"></div>
@@ -5225,7 +5226,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261031-1519';
+const BUILD = '20261031-1905';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -12466,6 +12467,7 @@ function recapTop() {
 function recapPanel() {
   if (!UI.recapOpen) return '';
   const rid = UI.recap.rid || E.recapRound(T, now);
+  recapBackfill(rid, (T.recaps[rid] || {}).body);
   const r = E.roundDef(rid) || {};
   const day = E.dayOf(r.dayIdx || 0);
   const course = E.courseOf(T, rid);
@@ -12736,7 +12738,7 @@ function recapPanel() {
 
 /** The group's own words, set between the paragraphs as a pull-quote. */
 function voiceHtml(v) {
-  return `<blockquote class="rvoice"><p>“${esc(v.text)}”</p><cite>— ${esc(v.who || 'From My round')}</cite></blockquote>`;
+  return `<blockquote class="rvoice"><p>“${esc(v.text)}”</p><cite>— ${esc(v.who || 'From My round')}${v.hole != null ? ` <span class="rv-h">· hole ${+v.hole + 1}</span>` : ''}</cite></blockquote>`;
 }
 /** Quotes with no paragraph to sit beside (tagged past the end, or more than there are paragraphs): they close the article. */
 function voicesLeft(body) {
@@ -12762,11 +12764,31 @@ function recapPool(rid) {
   const trip = day ? Object.values(T.photos || {}).filter(p => p && isTrip(p) && safeUrl(p.url) && !isVideo(p) && photoDay(p) === day) : [];
   return photosFor(rid).filter(p => !isVideo(p)).concat(trip).sort((a, b) => (b.at || 0) - (a.at || 0));
 }
-function recapSlotPhoto(rid, body, i) {
-  const picked = body && body.pics && body.pics[i];
-  const chosen = picked ? recapPool(rid).find(p => p.id === picked) : null;
-  return chosen || photosFor(rid).filter(p => !isVideo(p))[i + 1] || null;
+/* WHICH PHOTOGRAPH GOES WHERE. One the commissioner picked stays. Beside a
+   quote written on a hole, a photograph taken on that same hole, if there is
+   one. Every other slot takes the next photograph along, none used twice. */
+function recapAssign(rid, body) {
+  const n = body ? (body.narrative || []).filter(x => x && x.trim()).length : 0, slots = Math.max(0, n - 1);
+  const pool = recapPool(rid), stills = photosFor(rid).filter(p => !isVideo(p));
+  const out = Array(slots).fill(null), used = new Set(), pics = (body && body.pics) || {};
+  for (let k = 0; k < slots; k++) { const c = pics[k] ? pool.find(p => p.id === pics[k]) : null; if (c) { out[k] = c; used.add(c.id); } }
+  for (let k = 0; k < slots; k++) {
+    if (out[k]) continue;
+    const v = voiceFor(body, k);
+    if (v && v.hole != null) { const c = stills.find(p => p.hole === v.hole && !used.has(p.id)); if (c) { out[k] = c; used.add(c.id); } }
+  }
+  /* each of the rest takes the photograph at its own place in the round (the front of the
+     report has the newest), moving along only if that one is already used elsewhere: so
+     swapping one slot changes that slot and no other */
+  for (let k = 0; k < slots; k++) {
+    if (out[k]) continue;
+    let at = k + 1;
+    while (at < stills.length && used.has(stills[at].id)) at++;
+    if (stills[at]) { out[k] = stills[at]; used.add(stills[at].id); }
+  }
+  return out;
 }
+function recapSlotPhoto(rid, body, i) { return recapAssign(rid, body)[i] || null; }
 function inlinePhoto(snaps, i, body, rid) {
   const ph = recapSlotPhoto(rid, body, i);
   if (!ph) return '';
@@ -21647,7 +21669,8 @@ const RECAP_RULES = [
   '',
   '- THE SHAPE, as in the standard report if one is shown: eight to ten paragraphs of roughly 70 to 100 words each. The first gives the result and the leaders. The next two or three give the stretch that decided the day and who made it. Then one paragraph for each pair or golfer with a story on the card. One is the Ryder Cup. The last looks to the next round.',
   '- A photo of the round sits under every paragraph, and a pull-quote under the photo, so each paragraph should be about one thing a picture and a quote can sit beside.',
-  '- "voices": up to eight short lines lifted WORD FOR WORD from WHAT THE GOLFERS SAID ABOUT THEIR OWN ROUNDS, each with who said it, from as many different people as possible, and each with "para": the number of the paragraph it belongs beside (the one it quotes or answers).',
+  '- A QUOTE BELONGS TO THE HOLE IT WAS WRITTEN ON. The golfers\' notes are listed hole by hole. Where a line you want to quote was written on a hole, the paragraph beside it is about THAT hole: name the hole and the score on it, then let the quote answer. The photo under that paragraph will be one taken on the same hole.',
+  '- "voices": up to eight short lines lifted WORD FOR WORD from WHAT THE GOLFERS SAID ABOUT THEIR OWN ROUNDS, each with who said it, from as many different people as possible, and each with "para": the number of the paragraph about the same hole (or, for a line about the whole round, the paragraph about the day).',
   '  They are set under the paragraphs as pull-quotes (never under the last one). Copy them exactly; a line that is not on the card is thrown away.',
   '- At least two honours must be winnable by somebody having a bad round.',
   '',
@@ -21668,14 +21691,43 @@ const RECAP_RULES = [
  *  golfer's own My round notes for this round, compared without case or
  *  spacing. The chat is not a source. */
 const squash = s => String(s || '').toLowerCase().replace(/[“”"‘’']/g, '').replace(/\s+/g, ' ').trim();
-function realVoices(voices, rid) {
-  const said = [];
+/** Where a line was written: the golfer and the hole (null for a line about the whole round), from the notes themselves. */
+function voiceSource(text, rid) {
+  const t = squash(text);
+  if (t.length < 3) return null;
+  let found = null;
   for (const n of Object.values(T.notes || {})) {
     if (!n || n.rid !== rid) continue;
-    if (n.say) said.push(squash(n.say));
-    Object.values(n.text || {}).forEach(t => said.push(squash(t)));
+    for (const [h, line] of Object.entries(n.text || {})) if (squash(line).includes(t)) return { pid: n.pid, hole: +h };
+    if (!found && n.say && squash(n.say).includes(t)) found = { pid: n.pid, hole: null };
   }
-  return (voices || []).filter(v => { const t = squash(v.text); return t.length >= 3 && said.some(s => s.includes(t)); }).slice(0, 8);
+  return found;
+}
+/* A QUOTE BELONGS TO THE HOLE IT WAS WRITTEN ON. The golfer and the hole are
+   read from the note the words came from, whatever the writer said they were. */
+function realVoices(voices, rid) {
+  const out = [];
+  for (const v of voices || []) {
+    const src = voiceSource(v.text, rid);
+    if (!src) continue;                                   // a line nobody wrote is thrown away
+    out.push({ ...v, who: (E.person(T, src.pid) || {}).display || v.who, hole: src.hole });
+  }
+  return out.slice(0, 8);
+}
+/** A report written before quotes knew their hole: fill it in, once, for an editor, from the notes. */
+const recapFilled = new Set();
+function recapBackfill(rid, body) {
+  if (!body || !(body.voices || []).some(v => v.hole === undefined) || recapFilled.has(rid)) return;
+  if (!canEdit() || !loaded() || !store || !Object.keys(T.notes || {}).length) return;
+  recapFilled.add(rid);
+  setTimeout(() => store.writeRecap(rid, r => {
+    if (!r.body) return;
+    r.body.voices = (r.body.voices || []).map(v => {
+      if (v.hole !== undefined) return v;
+      const src = voiceSource(v.text, rid);
+      return { ...v, who: src ? ((E.person(T, src.pid) || {}).display || v.who) : v.who, hole: src ? src.hole : null };
+    });
+  }), 0);
 }
 function parseRecap(raw) {
   let t = String(raw || '').trim();
@@ -21754,7 +21806,7 @@ function recapStandard(rid) {
     + 'the banter, the quotes and the jokes of its own. It is about a different day: never reuse its facts, its jokes, its lines or its phrasing.\n---\n' + text.slice(0, 9000) + '\n---';
 }
 const recapExtras = story => '\n\nTHE STORY IS ALREADY WRITTEN (below, numbered, for reference only: do not repeat or rewrite it).\n' + story.map((p, i) => '[' + (i + 1) + '] ' + p).join('\n\n')
-  + '\n\nFOR THIS ANSWER, THE EXTRAS ONLY. For each voice, "para" is the number above of the paragraph it belongs beside (never the last one), and no two voices share a paragraph. Reply with JSON only, in this shape: {"voices":[{"who":"Ray V","para":3,"text":"exact words"}],"swing":{"value":"4 shots","caption":"one sentence"},"pairNotes":{"p1":"one line"},"honours":[{"slot":"shot_of_the_day","winner":"g1","citation":"one or two sentences"}]}. No headline and no narrative.';
+  + '\n\nFOR THIS ANSWER, THE EXTRAS ONLY. For each voice, "para" is the number above of the paragraph that is about the same hole the line was written on, or about the day for a line about the whole round (never the last one), and no two voices share a paragraph. Prefer lines written on a hole. Reply with JSON only, in this shape: {"voices":[{"who":"Ray V","para":3,"text":"exact words"}],"swing":{"value":"4 shots","caption":"one sentence"},"pairNotes":{"p1":"one line"},"honours":[{"slot":"shot_of_the_day","winner":"g1","citation":"one or two sentences"}]}. No headline and no narrative.';
 /* THE STORY, CARRIED ON. Cut off part-way, the paragraphs that finished are
    kept and the writer is asked to pick up from the next one, so a long day
    still gets the whole long read: each answer stays small enough to fit. */
@@ -22072,7 +22124,7 @@ __m_app.boot();
 /* Register the worker that makes the book work with no signal. It is the
    whole point of installing it: Belek is five hours of walking and everyone
    is roaming. A failure here must never stop the page loading. */
-var BOOK_BUILD = '20261031-1519';
+var BOOK_BUILD = '20261031-1905';
 var swReg = null;
 /* the book is never shown inside somebody else's page, where a tap could be
    aimed at a button they have put under the finger */

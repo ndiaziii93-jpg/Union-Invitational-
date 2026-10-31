@@ -22,7 +22,8 @@ const SEED = () => {
   for (let k = 1; k <= 8; k++) T.photos['p' + k] = mk('p' + k, { hole: k });
   T.photos.t1 = mk('t1', { rid: 'trip', hole: null, day: '2026-10-31' });          // the trip, the same day
   T.photos.t2 = mk('t2', { rid: 'trip', hole: null, day: '2026-10-29' });          // the trip, another day: never offered
-  T.recaps.r2 = { rid: 'r2', status: 'published', at: now, body: { headline: 'A report', narrative: [1, 2, 3, 4, 5].map(n => window.__para(n)), voices: [], swing: null, pairNotes: {}, honours: [] } };
+  T.recaps.r2 = { rid: 'r2', status: 'published', at: now, body: { headline: 'A report', narrative: [1, 2, 3, 4, 5].map(n => window.__para(n)), swing: null, pairNotes: {}, honours: [],
+    voices: [{ who: 'Ray V', para: 3, hole: 7, text: 'Hole eight was a nightmare.' }, { who: 'Drea', para: 1, hole: null, text: 'A day for the ages.' }] } };
 };
 const server = createServer((req, res) => {
   let p = decodeURIComponent(req.url.split('?')[0]); if (p.endsWith('/')) p += 'index.html';
@@ -50,6 +51,12 @@ await p.evaluate(() => { Object.assign(window.__UI, { recapOpen: true, recap: { 
 await p.waitForTimeout(500);
 const slotImgs = () => p.locator('.artbody .rinline img').evaluateAll(es => es.map(e => decodeURIComponent(e.src).match(/>(\w+)<\/text>/)[1]));
 const tap = async sel => { await p.locator(sel).first().click(); await p.waitForTimeout(250); };
+
+console.log('\na quote belongs to the hole it was written on');
+ok('its hole is on it', await p.locator('.rvoice cite').evaluateAll(es => es.map(e => e.textContent.replace(/\s+/g, ' ').trim())), ['— Drea', '— Ray V · hole 8']);
+const hoty = await slotImgs();
+ok('and the photograph above a quote written on a hole is one taken on that hole (paragraph 3, hole 8 is p7)', hoty[2], 'p7');
+ok('a slot with no hole-quote takes the photograph at its own place, and none repeats', [hoty[0], hoty[1], hoty[3]], ['p2', 'p3', 'p5']);
 
 console.log('\nthe article');
 const before = await slotImgs();
