@@ -1251,6 +1251,7 @@ function recapPanel() {
   const mvpRace = r.counts ? E.mvpBoard(T, now).map(x => { const f = field.find(y => y.id === x.id); return { ...x, today: f ? f.net : null, todayRaw: f ? f.raw : null }; }) : [];
   const bbbWeek = E.bbbBoard(T);
   const bbbDay = E.bbbRoundBoard(T, rid).map(x => { const w = bbbWeek.find(y => y.id === x.id); return { ...x, week: w ? w.pts : null }; });
+  const cup = r.counts ? E.ryderRecap(T, rid, now) : null;
   const shots = st.field;
   const top = table && table[0];
 
@@ -1395,6 +1396,8 @@ function recapPanel() {
     </div>`).join('') : '<p class="empty">No cards in yet.</p>'}
   </div>
   <p class="legend">${r.counts ? 'Four-ball Stableford: the better partner’s points on each hole, off ' + E.teamAllowance(T) + '% of each handicap — the more the better. ' : 'The practice day counts for nothing, so there is no running total. '}Under each figure is raw, the better ball’s strokes as written against par.</p>
+
+  ${recapCupHtml(cup, esc)}
 
   <h3 class="sub">Every card</h3>
   ${field.length ? `<div class="rows rectable recfield" style="margin-top:8px">
@@ -3166,6 +3169,22 @@ function photoNote(rid) {
    but the group lives in WhatsApp, so the words go there too: the headline,
    the three paragraphs, the swing and the honours, as plain text with the
    book's address at the foot. Everyone who can read the report can send it. */
+/** The Ryder Cup in a recap: the session's singles, the session score and
+ *  the cup after it. The recap page draws the same thing (recappage.js). */
+function recapCupHtml(cup, esc) {
+  if (!cup || !cup.matches.length) return '';
+  const h = n => (Number.isInteger(n) ? String(n) : Math.floor(n) + '\u00BD');
+  return `<h3 class="sub">Ryder Cup</h3>
+  <div class="reccupline"><span>🇬🇧 <b class="num">${h(cup.uk)}</b> – <b class="num">${h(cup.usa)}</b> 🇺🇸 today</span>
+    <span class="rc-wk">The cup: United Kingdom <b class="num">${h(cup.ukWeek)}</b> – <b class="num">${h(cup.usaWeek)}</b> United States</span></div>
+  <div class="rows rectable reccup" style="margin-top:8px">
+    ${cup.matches.map(m => `<div class="row">
+      <span class="who rc-a${m.done && m.side === 'UK' ? ' won' : ''}">🇬🇧 ${esc(m.a)}</span>
+      <span class="rc-r${m.done && m.side === 'UK' ? ' uk' : m.done && m.side === 'USA' ? ' usa' : ''}">${esc(m.done ? (m.side ? m.status : 'Halved') : m.thru ? (m.up ? Math.abs(m.up) + ' up' : 'A/S') + ' · ' + m.thru : '—')}</span>
+      <span class="who rc-b${m.done && m.side === 'USA' ? ' won' : ''}">${esc(m.b)} 🇺🇸</span></div>`).join('')}
+  </div>
+  <p class="legend">Singles match play on the same cards, net: a point a match, half each for a halve.${cup.sitting && cup.sitting.length ? ' Sitting out: ' + esc(cup.sitting.join(', ')) + '.' : ''}${cup.next && cup.next.matches.length ? ' Next session: ' + esc(cup.next.matches.map(m => m.a + ' v ' + m.b).join(' · ')) + '.' : ''}</p>`;
+}
 function recapText(rid) {
   const rec = T.recaps[rid]; const b = rec && rec.body; if (!b) return '';
   const r = E.roundDef(rid) || {}; const d = E.dayOf(r.dayIdx || 0) || {};
@@ -3175,12 +3194,21 @@ function recapText(rid) {
   if (b.headline) L.push('', '*' + b.headline + '*');
   (b.narrative || []).forEach(para => L.push('', para));
   if (b.swing && b.swing.value) L.push('', 'Swing of the day: ' + b.swing.value + (b.swing.caption ? ' \u2014 ' + b.swing.caption : ''));
+  const cup = r.counts ? E.ryderRecap(T, rid, now) : null;
+  if (cup && cup.matches.length) { L.push('', 'Ryder Cup \u2014 UK ' + cup.uk + ', USA ' + cup.usa + ' today; the cup ' + cup.ukWeek + '\u2013' + cup.usaWeek); cup.matches.forEach(m => L.push('\u2022 ' + E.matchLine(m))); }
   const hs = (b.honours || []).filter(h => h.winner);
   if (hs.length) { L.push('', 'Honours'); hs.forEach(h => { const lab = (HONOURS.find(x => x.slot === h.slot) || {}).label || h.slot; L.push('\u2022 ' + lab + ' \u2014 ' + who(h.winner) + (h.citation ? ': ' + h.citation : '')); }); }
   const pn = Object.entries(b.pairNotes || {}).filter(([, v]) => v);
   if (pn.length) { L.push('', 'The pairs'); pn.forEach(([id, v]) => L.push('\u2022 ' + who(id) + ': ' + v)); }
   L.push('', 'The day’s recap, with the photos and the tables: ' + recapLink(rid));
   return L.join('\n');
+}
+/** "🏆 Ryder Cup: UK 3–1 USA" for the message that goes to the group. */
+function cupShareLine(rid) {
+  const r = E.roundDef(rid) || {}; const cup = r.counts ? E.ryderRecap(T, rid, now) : null;
+  if (!cup || !cup.matches.some(m => m.done)) return '';
+  const lead = cup.ukWeek > cup.usaWeek ? 'United Kingdom lead' : cup.usaWeek > cup.ukWeek ? 'United States lead' : 'all square';
+  return `🇬🇧🇺🇸 Ryder Cup: UK ${cup.uk}–${cup.usa} USA today · ${lead} ${cup.ukWeek}–${cup.usaWeek}`;
 }
 /** The recap's own page on the public site: one link a round. */
 const recapLink = rid => D.SITE_URL + 'recap/?r=' + encodeURIComponent(rid);
@@ -3191,7 +3219,7 @@ function recapShare(rid) {
   const r = E.roundDef(rid) || {}; const st = E.roundStanding(T, rid); const course = E.courseOf(T, rid);
   const name = r.short === 'Practice' ? 'The practice day' : 'Round ' + String(r.short || '').slice(1);
   return [`⛳ ${name} at ${course.name} is in the books${st.complete ? ' — every card is in.' : '.'}`,
-    b.headline ? `*${b.headline}*` : '', '',
+    b.headline ? `*${b.headline}*` : '', cupShareLine(rid), '',
     'Read all about it — the report, the scores and the photos 👉 ' + recapLink(rid)].filter((x, i) => x || i === 2).join('\n');
 }
 const HONOURS = [
@@ -9962,6 +9990,7 @@ const RECAP_RULES = [
   '- Every paragraph lands at least one jab or joke. Give each pair, and anyone with a story on the card, their moment.',
   '- Have jokes of your own, not only theirs: off the scores themselves — a blow-up, a pick-up at the cap, a run of pars, a partner carrying a partner, a bet that went west — and off the gap between what a golfer wrote and what he scored.',
   '- Never mention a player\'s handicap band as a criticism. It is a number of strokes, not a verdict.',
+  '- Give the Ryder Cup a paragraph of its own: every singles result from the RYDER CUP block, who won and by how much, the session score and the cup after it, and rib the losing squad. If the block gives the next session\'s draw, end that paragraph on the grudge matches to come.',
   '',
   'THE MARKS, AND HOW FAR THEY GO:',
   '- The card may carry marks a ref made — three-putts, out of bounds, water,',

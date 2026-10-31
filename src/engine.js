@@ -1396,6 +1396,15 @@ export function recapInput(T, rid, now) {
   recapTable(T, rid, now).forEach(x => L.push('- ' + x.id + ' ' + x.name + ': today '
     + (x.today == null ? '-' : x.today + ' pts') + ', total ' + (x.total == null ? '-' : x.total + ' pts')));
 
+  const cup = ryderRecap(T, rid, now);
+  if (cup && cup.matches.length) {
+    L.push('\nRYDER CUP (United Kingdom v United States: singles match play on the same cards, net; a win is a point, a halve half each)');
+    cup.matches.forEach(m => L.push('- ' + matchLine(m)));
+    if (cup.sitting && cup.sitting.length) L.push('- Sitting this session: ' + cup.sitting.join(', ') + '.');
+    L.push('Session: UK ' + cup.uk + ', USA ' + cup.usa + '. The cup after this round: UK ' + cup.ukWeek + ', USA ' + cup.usaWeek + '.');
+    if (cup.next) L.push('Next session (' + cup.next.label + '): ' + cup.next.matches.map(m => m.a + ' v ' + m.b).join('; ') + '.');
+  }
+
   const sg = sideGames(T, rid);
   L.push('\nSIDE GAMES');
   if (sg.ctp) L.push('- Closest to the pin, hole ' + sg.ctp.hole + ': ' + sg.ctp.who + ' ' + sg.ctp.note);
@@ -1429,7 +1438,7 @@ export function matchPlay(sideA, sideB) {
     thru = h + 1;
     if (a < b) up++; else if (b < a) up--;
     const remaining = 18 - thru;
-    if (Math.abs(up) > remaining) { result = Math.abs(up) + '&' + remaining; break; }
+    if (Math.abs(up) > remaining) { result = Math.abs(up) + (remaining ? '&' + remaining : ' up'); break; }
   }
   let status;
   if (result) status = result;
@@ -1470,7 +1479,7 @@ export function matchDetail(T, rid, aId, bId) {
       aNet: na, bNet: nb, took, up,
     });
     const left = 18 - thru;
-    if (Math.abs(up) > left) { result = Math.abs(up) + '&' + left; closedAt = holes[h].n; break; }
+    if (Math.abs(up) > left) { result = Math.abs(up) + (left ? '&' + left : ' up'); closedAt = holes[h].n; break; }
   }
   const done = result != null || thru === 18;
   return {
@@ -1482,6 +1491,26 @@ export function matchDetail(T, rid, aId, bId) {
        nothing yet — that is the point of saying how many are still out. */
     points: !done ? null : up === 0 ? { uk: 0.5, usa: 0.5 } : up > 0 ? { uk: 1, usa: 0 } : { uk: 0, usa: 1 },
   };
+}
+
+/** The cup as a round's recap tells it: that round's singles, the session
+ *  score, and the cup as it stood once the session was in. Later sessions
+ *  are left out, so an old recap still reads as it did on the night. */
+export function ryderRecap(T, rid, now) {
+  const R = ryderData(T, now);
+  const i = R.sessions.findIndex(s => s.id === rid);
+  if (i < 0) return null;
+  const upTo = R.sessions.slice(0, i + 1);
+  return { ...R.sessions[i],
+    ukWeek: upTo.reduce((a, s) => a + s.uk, 0), usaWeek: upTo.reduce((a, s) => a + s.usa, 0),
+    next: R.sessions[i + 1] || null, unassigned: R.unassigned };
+}
+/** One match in words: "DP (UK) beat Ray V (USA) 6&5". */
+export function matchLine(m) {
+  const lead = m.up > 0 ? m.a : m.b;
+  return m.a + ' (UK) v ' + m.b + ' (USA): '
+    + (m.done ? (m.side ? lead + ' won ' + m.status : 'halved')
+      : !m.thru ? 'not started' : (m.up === 0 ? 'all square' : lead + ' ' + Math.abs(m.up) + ' up') + ' thru ' + m.thru);
 }
 
 export function ryderData(T, now) {

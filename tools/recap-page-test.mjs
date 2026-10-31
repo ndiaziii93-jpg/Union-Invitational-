@@ -43,7 +43,8 @@ await seed.goto('file://' + S + '/recap-src.html'); await seed.waitForTimeout(30
 const rows = await seed.evaluate(BASE => {
   const T = window.__T;
   const card = raw => ({ raw: raw.concat(Array(18 - raw.length).fill(null)), by: Object.fromEntries(raw.map((_, i) => [i, 's1'])), at: {}, marks: {}, mF: false, mB: false, bb: false });
-  const people = T.config.people.map(x => ({ ...x, band: { g1: 20, g2: 25, g6: 20, s4: 25 }[x.id] || x.band, role: x.id === 's4' ? 'golfer' : x.role }));
+  const people = T.config.people.map(x => ({ ...x, band: { g1: 20, g2: 25, g6: 20, s4: 25 }[x.id] || x.band, role: x.id === 's4' ? 'golfer' : x.role,
+    location: { g1: 'UK', g2: 'UK', g6: 'USA', s4: 'USA' }[x.id] || null }));
   const cfg = { ...T.config, people: [], pairs: [], rosterInDocs: true, rev: 3 };
   cfg.rounds = { ...cfg.rounds, r1: { ...cfg.rounds.r1, state: 'open', ctpHole: 5, ctpWinner: 'g6' } };
   const out = [{ path: 'config/tournament', doc: cfg }];
@@ -85,6 +86,9 @@ ok('two pairs: no swing to report, and the tile says so', [await p.locator('.swi
 ok('the leaders’ hole by hole', await p.locator('.ribcell').count(), 18);
 ok('the Pairs Championship in points, the writer’s note on a pair under its name', [await texts('.rectable').then(t => t[0].includes('pts · raw')), await text('.rectable .row.lead .rt-who')], [true, 'Ray V & DreaSteady from Drea, fireworks from Ray.']);
 ok('every card, with handicaps', (await texts('.recfield .row .rt-who')).slice(0, 2), ['Ray Vhcp 20 · thru 9', 'Norberto IIIhcp 20 · thru 9']);
+ok('the Ryder Cup: a row a singles match, UK on the left, and the cup score', [await p.locator('.reccup .row').count(), (await texts('.reccup .rc-a')).every(t => t.startsWith('🇬🇧')),
+  /The cup: United Kingdom \d+ – \d+ United States/.test(await text('.reccupline'))], [2, true, true]);
+ok('it sits after the Pairs Championship and before every card', await p.evaluate(() => [...document.querySelectorAll('h3.sub')].map(h => h.textContent.trim()).filter(t => /Pairs|Ryder|Every card/.test(t))), ['Pairs Championship', 'Ryder Cup', 'Every card']);
 ok('the MVP race and the Bingo', [await p.locator('.recmvp .row').count(), (await texts('.recbbb .row .rt-who'))[0]], [4, 'Norberto III0 bingo · 6 bango · 0 bongo']);
 ok('the honours and the side games', [await text('.honour .rt-v'), await text('.recapcols .row .rt-v')], ['Ray V', 'Ray V']);
 ok('closest to the pin read off the round', (await texts('.recapcols .row')).some(t => /Closest to the pin, 5 Ray V/.test(t)), true);

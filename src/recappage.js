@@ -28,6 +28,21 @@ export const HONOURS = [
 ];
 
 /** The book, put together from its documents the way the store does it. */
+/** The Ryder Cup in the recap, as the book draws it (app.js recapCupHtml). */
+function cupHtml(cup) {
+  if (!cup || !cup.matches.length) return '';
+  const h = n => (Number.isInteger(n) ? String(n) : Math.floor(n) + '\u00BD');
+  return `<h3 class="sub">Ryder Cup</h3>
+    <div class="reccupline"><span>🇬🇧 <b class="num">${h(cup.uk)}</b> – <b class="num">${h(cup.usa)}</b> 🇺🇸 today</span>
+      <span class="rc-wk">The cup: United Kingdom <b class="num">${h(cup.ukWeek)}</b> – <b class="num">${h(cup.usaWeek)}</b> United States</span></div>
+    <div class="rows rectable reccup" style="margin-top:8px">
+      ${cup.matches.map(m => `<div class="row">
+        <span class="who rc-a${m.done && m.side === 'UK' ? ' won' : ''}">🇬🇧 ${esc(m.a)}</span>
+        <span class="rc-r${m.done && m.side === 'UK' ? ' uk' : m.done && m.side === 'USA' ? ' usa' : ''}">${esc(m.done ? (m.side ? m.status : 'Halved') : m.thru ? (m.up ? Math.abs(m.up) + ' up' : 'A/S') + ' · ' + m.thru : '—')}</span>
+        <span class="who rc-b${m.done && m.side === 'USA' ? ' won' : ''}">${esc(m.b)} 🇺🇸</span></div>`).join('')}
+    </div>
+    <p class="legend">Singles match play on the same cards, net: a point a match, half each for a halve.${cup.sitting && cup.sitting.length ? ' Sitting out: ' + esc(cup.sitting.join(', ')) + '.' : ''}${cup.next && cup.next.matches.length ? ' Next session: ' + esc(cup.next.matches.map(m => m.a + ' v ' + m.b).join(' · ')) + '.' : ''}</p>`;
+}
 export function assemble(rows) {
   const T = { config: defaultConfig(), scores: {}, bbb: {}, recaps: {}, photos: {}, notes: {}, chat: {}, market: {} };
   const people = [], pairs = [];
@@ -83,6 +98,7 @@ export function renderRecap(T, rid, IMG, opts) {
   const mvpRace = r.counts ? E.mvpBoard(T, now).map(x => { const f = field.find(y => y.id === x.id); return { ...x, today: f ? f.net : null, todayRaw: f ? f.raw : null }; }) : [];
   const bbbWeek = E.bbbBoard(T);
   const bbbDay = E.bbbRoundBoard(T, rid).map(x => { const w = bbbWeek.find(y => y.id === x.id); return { ...x, week: w ? w.pts : null }; });
+  const cup = r.counts ? E.ryderRecap(T, rid, now) : null;
   const web = u => /^https?:\/\//i.test(String(u || ''));
   const snaps = Object.values(T.photos || {}).filter(p => p && p.rid === rid && web(p.url)).map(p => ({ ...p, thumb: web(p.thumb) ? p.thumb : '' })).sort((a, b) => (b.at || 0) - (a.at || 0));
   const stills = snaps.filter(p => p.kind !== 'video');    // the front and the inline pictures are photographs; clips are in the strip
@@ -185,6 +201,8 @@ export function renderRecap(T, rid, IMG, opts) {
       </div>`).join('') : '<p class="empty">No cards in yet.</p>'}
     </div>
     <p class="legend">${r.counts ? 'Four-ball Stableford: the better partner’s points on each hole, off ' + E.teamAllowance(T) + '% of each handicap — the more the better. ' : 'The practice day counts for nothing, so there is no running total. '}Under each figure is raw, the better ball’s strokes as written against par.</p>
+
+    ${cupHtml(cup)}
 
     <h3 class="sub">Every card</h3>
     ${field.length ? `<div class="rows rectable recfield" style="margin-top:8px">
