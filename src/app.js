@@ -5297,7 +5297,8 @@ function cardRows(rid, pid) {
     const cap = E.capFor(hole.par, T.config.capOver), gross = raw == null ? null : Math.min(raw, cap);
     const net = gross == null || st == null ? null : gross - st;
     const pts = E.playerPts(T, rid, pid, h);
-    return { n: hole.n, par: hole.par, si: hole.si, st, raw, gross, net, pts, capped: raw != null && raw > cap, pu: !!(c.pu && c.pu[h]), marks: E.holeMarks(T, rid, pid, h) };
+    const tst = g.band == null ? null : E.teamStrokesFor(T, g.band, hole.si);
+    return { n: hole.n, par: hole.par, si: hole.si, st, tst, raw, gross, net, pts, capped: raw != null && raw > cap, pu: !!(c.pu && c.pu[h]), marks: E.holeMarks(T, rid, pid, h) };
   });
   const sum = (from, to, k) => rows.slice(from, to).reduce((a, r) => a + (r[k] == null ? 0 : r[k]), 0);
   const thru = rows.reduce((a, r, i) => (r.gross != null ? i + 1 : a), 0);
@@ -5331,7 +5332,14 @@ function cardSheetHtml() {
      for a bogey, two for worse, and a dot in the corner for each stroke the
      handicap gives on that hole. */
   const glyph = (gross, par) => gross == null ? '' : gross - par <= -2 ? ' g2' : gross - par === -1 ? ' g1' : gross === par ? '' : gross - par === 1 ? ' b1' : ' b2';
-  const grossCell = row => `<span class="sc-c${row.raw == null ? '' : ' has'}${glyph(row.gross, row.par)}${row.capped ? ' capped' : ''}${row.pu ? ' pu' : ''}" data-h="${row.n}"${row.pu ? ' title="Picked up"' : ''}>${row.st ? `<em class="sc-dots" aria-label="${row.st} stroke${row.st === 1 ? '' : 's'}">${'•'.repeat(Math.min(row.st, 3))}</em>` : ''}<b class="num">${row.raw == null ? '' : row.raw}</b>${row.marks.length ? `<i>${row.marks.map(k => MARK_GLYPH[k] || '').join('')}</i>` : ''}</span>`;
+  /* ONE THING A CELL. The strokes, the ref's marks and the pick-up used to
+     be pinned into the corners of the score's own box, where on a phone
+     they ran into the box beside it. Each has a row of its own now, so the
+     points can be followed down a column: gross, less the team strokes,
+     against par. */
+  const grossCell = row => `<span class="sc-c${row.raw == null ? '' : ' has'}${glyph(row.gross, row.par)}${row.capped ? ' capped' : ''}" data-h="${row.n}"><b class="num">${row.raw == null ? '' : row.raw}</b></span>`;
+  const figCell = (v, played, h) => `<span class="sc-c sc-fc${played ? '' : ' later'}" data-h="${h}"><b class="num">${v == null ? '' : v === 0 ? '·' : v}</b></span>`;
+  const noteCell = row => `<span class="sc-c sc-mc" data-h="${row.n}">${row.pu ? '<em class="pu">PU</em>' : ''}${row.marks.map(k => `<em>${MARK_GLYPH[k] || ''}</em>`).join('')}</span>`;
   const netCell = row => `<span class="sc-c sc-nc${row.net == null ? '' : ' has'}" data-h="${row.n}"><b class="num">${row.net == null ? '' : row.net}</b></span>`;
   /* a team's row is its Stableford points: the better partner's on each hole */
   const bestOf = i => { const ns = cards.map(x => x.rows[i].pts).filter(v => v != null); return ns.length ? Math.max(...ns) : null; };
@@ -5344,9 +5352,17 @@ function cardSheetHtml() {
       <div class="sc-r sc-par"><span class="sc-l">Par</span>${idx.map(i => `<span class="num">${rows0[i].par}</span>`).join('')}<span class="sc-t num">${cards[0][k].par}</span></div>
       <div class="sc-r sc-si"><span class="sc-l">Index</span>${idx.map(i => `<span class="num">${rows0[i].si}</span>`).join('')}<span class="sc-t"></span></div>
       <div class="sc-r sc-yds"><span class="sc-l">Metres</span>${idx.map(i => `<span class="num">${course.holes[i].mY}</span>`).join('')}<span class="sc-t num">${idx.reduce((a, i) => a + (course.holes[i].mY || 0), 0)}</span></div>
-      ${cards.map(x => `<div class="sc-r sc-gross"><span class="sc-l">${pair ? esc(initialsOf(x.g.display)) : 'Gross'}</span>${idx.map(i => grossCell(x.rows[i])).join('')}<span class="sc-t num">${x[k].gross == null ? '' : x[k].gross}</span></div>
-        <div class="sc-r sc-net"><span class="sc-l">${pair ? 'net' : 'Net'}</span>${idx.map(i => netCell(x.rows[i])).join('')}<span class="sc-t num">${x[k].net == null ? '' : x[k].net}</span></div>
-        ${pair || r.counts ? `<div class="sc-r sc-pts"><span class="sc-l">${pair ? 'pts' : 'Pts'}</span>${idx.map(i => ptsCell(x.rows[i])).join('')}<span class="sc-t num">${x[k].pts == null ? '' : x[k].pts}</span></div>` : ''}`).join('')}
+      ${cards.map(x => {
+        const notes = idx.some(i => x.rows[i].pu || x.rows[i].marks.length);
+        const played = i => x.rows[i].raw != null;
+        const tstSum = idx.reduce((a, i) => a + (played(i) && x.rows[i].tst ? x.rows[i].tst : 0), 0);
+        return `<div class="sc-r sc-gross${pair ? ' who' : ''}"><span class="sc-l"${pair ? ` title="${esc(x.g.display)}"` : ''}>${pair ? esc(initialsOf(x.g.display)) : 'Gross'}</span>${idx.map(i => grossCell(x.rows[i])).join('')}<span class="sc-t num">${x[k].gross == null ? '' : x[k].gross}</span></div>
+        ${notes ? `<div class="sc-r sc-notes"><span class="sc-l">Notes</span>${idx.map(i => noteCell(x.rows[i])).join('')}<span class="sc-t"></span></div>` : ''}
+        ${pair ? '' : `<div class="sc-r sc-st"><span class="sc-l">Strokes</span>${idx.map(i => figCell(x.rows[i].st, played(i), x.rows[i].n)).join('')}<span class="sc-t num">${x[k].played ? idx.reduce((a, i) => a + (played(i) && x.rows[i].st ? x.rows[i].st : 0), 0) : ''}</span></div>
+        <div class="sc-r sc-net"><span class="sc-l">Net</span>${idx.map(i => netCell(x.rows[i])).join('')}<span class="sc-t num">${x[k].net == null ? '' : x[k].net}</span></div>`}
+        ${pair || r.counts ? `<div class="sc-r sc-st team"><span class="sc-l">Team str.</span>${idx.map(i => figCell(x.rows[i].tst, played(i), x.rows[i].n)).join('')}<span class="sc-t num">${x[k].played ? tstSum : ''}</span></div>
+        <div class="sc-r sc-pts"><span class="sc-l">Points</span>${idx.map(i => ptsCell(x.rows[i])).join('')}<span class="sc-t num">${x[k].pts == null ? '' : x[k].pts}</span></div>` : ''}`;
+      }).join('')}
       ${pair ? `<div class="sc-r sc-best"><span class="sc-l">Team</span>${idx.map(i => { const v = bestOf(i); return `<span class="sc-c sc-bc${v == null ? '' : ' has'}" data-h="${rows0[i].n}"><b class="num">${v == null ? '' : v}</b></span>`; }).join('')}<span class="sc-t num">${bestSum == null ? '' : bestSum}</span></div>` : ''}
     </div>`;
   };
@@ -5357,9 +5373,25 @@ function cardSheetHtml() {
       ${rounds.length > 1 ? `<div class="cs-rounds nos">${rounds.map(id => `<button class="${id === rid ? 'on' : ''}" data-act="cardRound" data-a="${id}">${esc(roomName(id))}</button>`).join('')}</div>` : ''}
       <div class="cs-tiles">${cards.map((x, i) => `<div class="cs-tile"><span>${esc(x.g.display)}${x.g.band != null ? ' · hcp ' + x.g.band + (pair || r.counts ? ' · team ' + x.teamHcp : '') : ' · no handicap'}</span><b class="num">${x.all.gross == null ? '—' : x.all.gross}</b><small>${tp[i] ? 'gross ' + E.fmtToPar(tp[i][0]) + (tp[i][1] != null ? ' · net ' + E.fmtToPar(tp[i][1]) : '') : 'no holes yet'}${x.thru && x.thru < 18 ? ' · thru ' + x.thru : x.thru === 18 ? ' · 18 holes' : ''}</small></div>`).join('')}</div>
       <div class="sc-card">${nine(0, 'out', 'Out')}${nine(9, 'back', 'In')}
-        <div class="sc-r sc-tot"><span class="sc-l">Total</span>${cards.map(x => `<span class="sc-tv"><b>${pair ? esc(initialsOf(x.g.display)) + ' ' : ''}${x.all.gross == null ? '—' : x.all.gross}</b><small>net ${x.all.net == null ? '—' : x.all.net} · par ${x.all.par}${x.all.pts != null && (pair || r.counts) ? ' · ' + x.all.pts + ' pts' : ''}</small></span>`).join('')}${
+        <div class="sc-r sc-tot"><span class="sc-l">Total</span>${cards.map(x => `<span class="sc-tv"><b>${pair ? esc(initialsOf(x.g.display)) + ' ' : ''}${x.all.gross == null ? '—' : x.all.gross}${x.all.pts != null && (pair || r.counts) ? ' · ' + x.all.pts + ' pts' : ''}</b><small>${x.all.gross == null ? 'no holes yet' : (x.thru < 18 ? 'thru ' + x.thru + ' · ' : '') + 'gross ' + E.fmtToPar(x.all.gross - x.all.parPlayed) + (x.all.net != null ? ' · net ' + x.all.net + ' (' + E.fmtToPar(x.all.net - x.all.parPlayed) + ')' : '')}</small></span>`).join('')}${
           pair ? `<span class="sc-tv team"><b>Team ${[0, 9].reduce((a, from) => { const v = Array.from({ length: 9 }, (_, i) => bestOf(from + i)).filter(v => v != null); return v.length ? (a == null ? 0 : a) + v.reduce((p, q) => p + q, 0) : a; }, null) ?? '—'} pts</b><small>better partner, each hole</small></span>` : ''}</div></div>
-      <p class="cs-key"><span class="sc-k g1">4</span> birdie <span class="sc-k g2">3</span> eagle <span class="sc-k b1">5</span> bogey <span class="sc-k b2">6</span> double or worse · <b>•</b> a stroke received · <b>≈</b> water · <b>OB</b> out of bounds · <b>3·</b> three-putt · <b>★</b> shot of the hole · net is off the gross capped at par + ${T.config.capOver}${pair || r.counts ? ' · pts are Stableford points in the team game, off ' + E.teamAllowance(T) + '% of the handicap (team ' + cards.map(x => x.teamHcp == null ? '—' : x.teamHcp).join(' and ') + ')' : ''}${spent.length ? ' · ' + esc(spent.join(' · ')) : ''}</p>
+      <div class="cs-key">
+        <div class="ck-row"><span><i class="sc-k g2">3</i>eagle</span><span><i class="sc-k g1">4</i>birdie</span><span><i class="sc-k b1">5</i>bogey</span><span><i class="sc-k b2">6</i>double or worse</span></div>
+        <div class="ck-row ck-notes"><span><b>≈</b>water</span><span><b>OB</b>out of bounds</span><span><b>3·</b>three-putt</span><span><b>★</b>shot of the hole</span><span><b class="pu">PU</b>picked up</span></div>
+        ${spent.length ? `<div class="ck-spent">Used: ${esc(spent.join(' · '))}</div>` : ''}
+      </div>
+      <div class="cs-how">
+        <h4>How the numbers are worked out</h4>
+        <dl>
+          ${pair ? '' : `<div><dt>Net</dt><dd>Gross, capped at par + ${T.config.capOver}, less the <b>Strokes</b> row: the full handicap${cards[0].g.band != null ? ' (' + cards[0].g.band + ')' : ''} spread over the holes by index. It is what the MVP is decided on.</dd></div>`}
+          ${pair || r.counts ? `<div><dt>Points</dt><dd>Gross, capped at par + ${T.config.capOver}, less the <b>Team str.</b> row: ${E.teamAllowance(T)}% of the handicap (${cards.map(x => (pair ? x.g.display + ' ' : '') + (x.teamHcp == null ? '—' : x.teamHcp)).join(', ')}). Then scored against par:</dd></div>` : ''}
+        </dl>
+        ${pair || r.counts ? `<div class="cs-pt" role="table" aria-label="Points for the net score against par">
+          <div role="row"><span role="columnheader">Net score</span><span role="cell">Double or worse</span><span role="cell">Bogey</span><span role="cell">Par</span><span role="cell">Birdie</span><span role="cell">Eagle</span></div>
+          <div role="row"><span role="columnheader">Points</span><b role="cell">0</b><b role="cell">1</b><b role="cell">2</b><b role="cell">3</b><b role="cell">4</b></div>
+        </div>
+        <p class="cs-pfoot">A hole picked up scores 0.${pair ? ' The team takes the better partner’s points on each hole.' : ''}</p>` : ''}
+      </div>
     </div>
     <div class="acts">${!pair && canAdmin() && store && store.backend === 'supabase' ? `<button class="btn ghost" data-act="histOpen" data-a="scores/${esc(rid)}__${esc(pids[0])}" data-b="${esc(title)} · ${esc(roomName(rid))}">History</button>` : ''}<button class="btn ghost" data-act="modalCancel">Close</button></div>
   </div></div>`;

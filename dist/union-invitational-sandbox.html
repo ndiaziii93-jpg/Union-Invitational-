@@ -4755,8 +4755,6 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 .pu-ways{display:grid;gap:10px}
 .pu-ways .btn{width:100%;min-height:60px;font-size:17px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
 .pu-ways .btn small{font-weight:400;opacity:.8;font-size:12.5px}
-.sc-c.pu{position:relative}
-.sc-c.pu::after{content:"PU";position:absolute;right:1px;bottom:0;font-size:8px;font-weight:700;letter-spacing:.04em;color:var(--flag)}
 /* the bet editor */
 .xm-edit{display:inline-flex;align-items:center;gap:4px;margin:6px 0 0;padding:5px 10px;border-radius:999px;border:1px solid var(--gold);background:none;color:var(--gold);font:inherit;font-size:12.5px;font-weight:700;cursor:pointer}
 .xm-editbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 0 12px;padding:8px 12px;border:1px dashed var(--gold);border-radius:12px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);font-weight:700}
@@ -4855,7 +4853,7 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 .sc-r{display:grid;grid-template-columns:44px repeat(9,minmax(0,1fr)) 40px;align-items:center;gap:1px;padding:0 6px;min-height:26px;border-top:1px solid var(--hair);font-size:13px}
 .sc-r:first-child{border-top:0}
 .sc-r > span{text-align:center;min-width:0}
-.sc-l{text-align:left!important;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--turf);font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sc-l{text-align:left!important;font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--turf);font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sc-t{font-weight:800;border-left:1px solid var(--rule);min-height:26px;display:inline-grid;place-items:center}
 .sc-hole{background:var(--pine);color:var(--onpine)} .sc-hole .sc-l,.sc-hole .sc-t{color:#E2C277} .sc-hole .sc-t{border-left-color:rgba(255,255,255,.2)}
 .sc-par{font-weight:700} .sc-si,.sc-yds{color:var(--turf);font-size:11.5px} .sc-yds{font-size:10.5px}
@@ -4866,12 +4864,10 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 .sc-c{position:relative;display:inline-grid;place-items:center;height:32px}
 .sc-c b{display:inline-grid;place-items:center;width:24px;height:24px;font-size:14.5px;font-weight:700;border-radius:3px;box-sizing:border-box}
 .sc-c.g1 b{border:1.6px solid #2F7A4A;border-radius:50%}
-.sc-c.g2 b{border:1.6px solid #8C6B2F;border-radius:50%;box-shadow:0 0 0 2px var(--page),0 0 0 3.4px #8C6B2F;color:#8C6B2F}
+.sc-c.g2 b{border:1.6px solid #8C6B2F;border-radius:50%;box-shadow:inset 0 0 0 1.6px var(--page),inset 0 0 0 3px #8C6B2F;color:#8C6B2F}
 .sc-c.b1 b{border:1.6px solid var(--flag)}
-.sc-c.b2 b{border:1.6px solid var(--flag);box-shadow:0 0 0 2px var(--page),0 0 0 3.4px var(--flag)}
+.sc-c.b2 b{border:1.6px solid var(--flag);box-shadow:inset 0 0 0 1.6px var(--page),inset 0 0 0 3px var(--flag)}
 .sc-c.capped b{text-decoration:underline dotted}
-.sc-dots{position:absolute;top:1px;left:2px;font-style:normal;font-size:9px;line-height:1;letter-spacing:-1px;color:var(--turf)}
-.sc-c i{position:absolute;bottom:0;right:1px;font-style:normal;font-size:8.5px;font-weight:800;color:#2F5D7A;line-height:1}
 .sc-nc b{width:auto;height:auto;font-weight:600;font-size:12.5px;color:var(--turf)}
 .sc-best{background:#DDEBDD;color:#2F7A4A} .sc-best .sc-l{color:#2F7A4A}
 .sc-bc b{width:auto;height:auto;font-weight:800;font-size:13.5px;color:#2F7A4A}
@@ -4879,16 +4875,52 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 .sc-pts{background:#F3EFE4}
 .sc-pc b{width:auto;height:auto;font-weight:700;font-size:12.5px;color:var(--turf)}
 .sc-pc.up b{color:#2F7A4A} .sc-pc.dn b{color:#A33A2A}
-.sc-tv.team b{color:#2F7A4A}
-.sc-tot{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;padding:8px 10px;background:var(--pine);color:var(--onpine);border-radius:12px;border:0}
-.sc-tot .sc-l{color:#E2C277;flex:0 0 auto}
+.sc-tv.team b{color:#9FD3A8}
+.sc-tot{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px 16px;align-items:start;padding:10px 12px;background:var(--pine);color:var(--onpine);border-radius:12px;border:0}
+.sc-tot .sc-l{color:#E2C277;grid-column:1/-1}
 .sc-tv{display:grid;text-align:left!important}
 .sc-tv b{font-size:18px;line-height:1.1} .sc-tv small{font-size:11.5px;color:#C9D2C3}
 .sc-k{display:inline-grid;place-items:center;width:20px;height:20px;font-size:11.5px;font-weight:700;border-radius:3px;margin:0 2px 0 4px;vertical-align:-5px;box-sizing:border-box}
 .sc-k.g1{border:1.4px solid #2F7A4A;border-radius:50%} .sc-k.g2{border:1.4px solid #8C6B2F;border-radius:50%;box-shadow:0 0 0 1.5px var(--paper),0 0 0 2.6px #8C6B2F;color:#8C6B2F}
 .sc-k.b1{border:1.4px solid var(--flag)} .sc-k.b2{border:1.4px solid var(--flag);box-shadow:0 0 0 1.5px var(--paper),0 0 0 2.6px var(--flag)}
-.cs-key{margin:0;font-size:12.5px;color:var(--turf);line-height:1.7}
-@media (max-width:420px){ .sc-r{grid-template-columns:36px repeat(9,minmax(0,1fr)) 34px;padding:0 4px;font-size:12px} .sc-c b{width:22px;height:22px;font-size:13.5px} .sc-l{font-size:9.5px} .sc-yds{display:none} }
+/* the rows a card is worked out by: strokes, team strokes, the ref's notes */
+.sc-st{min-height:22px;font-size:12px;color:var(--turf);background:color-mix(in srgb,var(--paper) 25%,var(--page))}
+.sc-st .sc-t{font-weight:600;min-height:22px}
+.sc-st.team{border-top:1px dashed var(--hair)}
+.sc-fc{height:22px} .sc-fc b{width:auto;height:auto;font-size:12px;font-weight:600;color:var(--turf)}
+.sc-fc.later b{opacity:.45}
+.sc-notes{min-height:20px;border-top:0;background:color-mix(in srgb,var(--paper) 50%,var(--page))}
+.sc-notes .sc-t{min-height:20px}
+.sc-mc{height:20px;display:flex;justify-content:center;align-items:center;gap:1px;overflow:hidden}
+.sc-mc em{font-style:normal;font-size:10.5px;font-weight:800;color:#2F5D7A;line-height:1}
+.sc-mc em.pu{color:var(--flag);font-size:9.5px;letter-spacing:.02em}
+.sc-gross.who .sc-l{text-transform:none;letter-spacing:0;font-size:11px}
+.sc-pts .sc-l,.sc-pts .sc-t{color:var(--ink)}
+/* the key, laid out as a key */
+.cs-key{display:grid;gap:8px;font-size:13px;color:var(--turf)}
+.ck-row{display:flex;flex-wrap:wrap;gap:6px 14px}
+.ck-row > span{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.ck-row .sc-k{margin:0;font-style:normal;color:var(--ink)}
+.ck-notes b{display:inline-grid;place-items:center;min-width:22px;height:20px;padding:0 3px;border-radius:5px;background:var(--page);box-shadow:inset 0 0 0 1px var(--hair);font-size:11px;font-weight:800;color:#2F5D7A}
+.ck-notes b.pu{color:var(--flag)}
+.ck-spent{font-size:12.5px}
+.cs-how{background:var(--page);border-radius:12px;box-shadow:0 0 0 .5px var(--shadow);padding:12px 12px 10px;display:grid;gap:8px}
+.cs-how h4{margin:0;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);font-weight:800}
+.cs-how dl{margin:0;display:grid;gap:6px}
+.cs-how dl > div{display:grid;grid-template-columns:52px 1fr;gap:8px;align-items:baseline}
+.cs-how dt{font-weight:800;font-size:13px;color:var(--ink)}
+.cs-how dd{margin:0;font-size:13px;line-height:1.45;color:var(--turf)}
+.cs-how dd b{color:var(--ink)}
+.cs-pt{display:grid;border-radius:10px;overflow:hidden;box-shadow:0 0 0 1px var(--hair)}
+.cs-pt > div{display:grid;grid-template-columns:62px repeat(5,minmax(0,1fr));align-items:center}
+.cs-pt > div + div{border-top:1px solid var(--hair)}
+.cs-pt span,.cs-pt b{padding:6px 2px;text-align:center;font-size:11.5px;line-height:1.2}
+.cs-pt [role=columnheader]{text-align:left;padding-left:8px;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:800;color:var(--turf)}
+.cs-pt > div:first-child{background:color-mix(in srgb,var(--paper) 50%,var(--page));color:var(--turf)}
+.cs-pt b{font-size:15px;color:var(--ink)}
+.cs-pfoot{margin:0;font-size:12.5px;color:var(--turf)}
+@media (max-width:420px){ .sc-r{grid-template-columns:36px repeat(9,minmax(0,1fr)) 34px;padding:0 4px;font-size:12px} .sc-c b{width:22px;height:22px;font-size:13.5px} .sc-l{font-size:9.5px;letter-spacing:.02em} .sc-yds{display:none}
+  .sc-r{grid-template-columns:58px repeat(9,minmax(0,1fr)) 32px} .sc-gross .sc-c b{width:21px;height:21px;font-size:13px} }
 
 /* the Ryder Cup in the day's recap: UK name · result · USA name */
 .reccupline{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 14px;margin-top:6px;font-size:16px;color:var(--turf)}
@@ -5023,7 +5055,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261031-0856';
+const BUILD = '20261031-0936';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -16180,7 +16212,8 @@ function cardRows(rid, pid) {
     const cap = E.capFor(hole.par, T.config.capOver), gross = raw == null ? null : Math.min(raw, cap);
     const net = gross == null || st == null ? null : gross - st;
     const pts = E.playerPts(T, rid, pid, h);
-    return { n: hole.n, par: hole.par, si: hole.si, st, raw, gross, net, pts, capped: raw != null && raw > cap, pu: !!(c.pu && c.pu[h]), marks: E.holeMarks(T, rid, pid, h) };
+    const tst = g.band == null ? null : E.teamStrokesFor(T, g.band, hole.si);
+    return { n: hole.n, par: hole.par, si: hole.si, st, tst, raw, gross, net, pts, capped: raw != null && raw > cap, pu: !!(c.pu && c.pu[h]), marks: E.holeMarks(T, rid, pid, h) };
   });
   const sum = (from, to, k) => rows.slice(from, to).reduce((a, r) => a + (r[k] == null ? 0 : r[k]), 0);
   const thru = rows.reduce((a, r, i) => (r.gross != null ? i + 1 : a), 0);
@@ -16214,7 +16247,14 @@ function cardSheetHtml() {
      for a bogey, two for worse, and a dot in the corner for each stroke the
      handicap gives on that hole. */
   const glyph = (gross, par) => gross == null ? '' : gross - par <= -2 ? ' g2' : gross - par === -1 ? ' g1' : gross === par ? '' : gross - par === 1 ? ' b1' : ' b2';
-  const grossCell = row => `<span class="sc-c${row.raw == null ? '' : ' has'}${glyph(row.gross, row.par)}${row.capped ? ' capped' : ''}${row.pu ? ' pu' : ''}" data-h="${row.n}"${row.pu ? ' title="Picked up"' : ''}>${row.st ? `<em class="sc-dots" aria-label="${row.st} stroke${row.st === 1 ? '' : 's'}">${'•'.repeat(Math.min(row.st, 3))}</em>` : ''}<b class="num">${row.raw == null ? '' : row.raw}</b>${row.marks.length ? `<i>${row.marks.map(k => MARK_GLYPH[k] || '').join('')}</i>` : ''}</span>`;
+  /* ONE THING A CELL. The strokes, the ref's marks and the pick-up used to
+     be pinned into the corners of the score's own box, where on a phone
+     they ran into the box beside it. Each has a row of its own now, so the
+     points can be followed down a column: gross, less the team strokes,
+     against par. */
+  const grossCell = row => `<span class="sc-c${row.raw == null ? '' : ' has'}${glyph(row.gross, row.par)}${row.capped ? ' capped' : ''}" data-h="${row.n}"><b class="num">${row.raw == null ? '' : row.raw}</b></span>`;
+  const figCell = (v, played, h) => `<span class="sc-c sc-fc${played ? '' : ' later'}" data-h="${h}"><b class="num">${v == null ? '' : v === 0 ? '·' : v}</b></span>`;
+  const noteCell = row => `<span class="sc-c sc-mc" data-h="${row.n}">${row.pu ? '<em class="pu">PU</em>' : ''}${row.marks.map(k => `<em>${MARK_GLYPH[k] || ''}</em>`).join('')}</span>`;
   const netCell = row => `<span class="sc-c sc-nc${row.net == null ? '' : ' has'}" data-h="${row.n}"><b class="num">${row.net == null ? '' : row.net}</b></span>`;
   /* a team's row is its Stableford points: the better partner's on each hole */
   const bestOf = i => { const ns = cards.map(x => x.rows[i].pts).filter(v => v != null); return ns.length ? Math.max(...ns) : null; };
@@ -16227,9 +16267,17 @@ function cardSheetHtml() {
       <div class="sc-r sc-par"><span class="sc-l">Par</span>${idx.map(i => `<span class="num">${rows0[i].par}</span>`).join('')}<span class="sc-t num">${cards[0][k].par}</span></div>
       <div class="sc-r sc-si"><span class="sc-l">Index</span>${idx.map(i => `<span class="num">${rows0[i].si}</span>`).join('')}<span class="sc-t"></span></div>
       <div class="sc-r sc-yds"><span class="sc-l">Metres</span>${idx.map(i => `<span class="num">${course.holes[i].mY}</span>`).join('')}<span class="sc-t num">${idx.reduce((a, i) => a + (course.holes[i].mY || 0), 0)}</span></div>
-      ${cards.map(x => `<div class="sc-r sc-gross"><span class="sc-l">${pair ? esc(initialsOf(x.g.display)) : 'Gross'}</span>${idx.map(i => grossCell(x.rows[i])).join('')}<span class="sc-t num">${x[k].gross == null ? '' : x[k].gross}</span></div>
-        <div class="sc-r sc-net"><span class="sc-l">${pair ? 'net' : 'Net'}</span>${idx.map(i => netCell(x.rows[i])).join('')}<span class="sc-t num">${x[k].net == null ? '' : x[k].net}</span></div>
-        ${pair || r.counts ? `<div class="sc-r sc-pts"><span class="sc-l">${pair ? 'pts' : 'Pts'}</span>${idx.map(i => ptsCell(x.rows[i])).join('')}<span class="sc-t num">${x[k].pts == null ? '' : x[k].pts}</span></div>` : ''}`).join('')}
+      ${cards.map(x => {
+        const notes = idx.some(i => x.rows[i].pu || x.rows[i].marks.length);
+        const played = i => x.rows[i].raw != null;
+        const tstSum = idx.reduce((a, i) => a + (played(i) && x.rows[i].tst ? x.rows[i].tst : 0), 0);
+        return `<div class="sc-r sc-gross${pair ? ' who' : ''}"><span class="sc-l"${pair ? ` title="${esc(x.g.display)}"` : ''}>${pair ? esc(initialsOf(x.g.display)) : 'Gross'}</span>${idx.map(i => grossCell(x.rows[i])).join('')}<span class="sc-t num">${x[k].gross == null ? '' : x[k].gross}</span></div>
+        ${notes ? `<div class="sc-r sc-notes"><span class="sc-l">Notes</span>${idx.map(i => noteCell(x.rows[i])).join('')}<span class="sc-t"></span></div>` : ''}
+        ${pair ? '' : `<div class="sc-r sc-st"><span class="sc-l">Strokes</span>${idx.map(i => figCell(x.rows[i].st, played(i), x.rows[i].n)).join('')}<span class="sc-t num">${x[k].played ? idx.reduce((a, i) => a + (played(i) && x.rows[i].st ? x.rows[i].st : 0), 0) : ''}</span></div>
+        <div class="sc-r sc-net"><span class="sc-l">Net</span>${idx.map(i => netCell(x.rows[i])).join('')}<span class="sc-t num">${x[k].net == null ? '' : x[k].net}</span></div>`}
+        ${pair || r.counts ? `<div class="sc-r sc-st team"><span class="sc-l">Team str.</span>${idx.map(i => figCell(x.rows[i].tst, played(i), x.rows[i].n)).join('')}<span class="sc-t num">${x[k].played ? tstSum : ''}</span></div>
+        <div class="sc-r sc-pts"><span class="sc-l">Points</span>${idx.map(i => ptsCell(x.rows[i])).join('')}<span class="sc-t num">${x[k].pts == null ? '' : x[k].pts}</span></div>` : ''}`;
+      }).join('')}
       ${pair ? `<div class="sc-r sc-best"><span class="sc-l">Team</span>${idx.map(i => { const v = bestOf(i); return `<span class="sc-c sc-bc${v == null ? '' : ' has'}" data-h="${rows0[i].n}"><b class="num">${v == null ? '' : v}</b></span>`; }).join('')}<span class="sc-t num">${bestSum == null ? '' : bestSum}</span></div>` : ''}
     </div>`;
   };
@@ -16240,9 +16288,25 @@ function cardSheetHtml() {
       ${rounds.length > 1 ? `<div class="cs-rounds nos">${rounds.map(id => `<button class="${id === rid ? 'on' : ''}" data-act="cardRound" data-a="${id}">${esc(roomName(id))}</button>`).join('')}</div>` : ''}
       <div class="cs-tiles">${cards.map((x, i) => `<div class="cs-tile"><span>${esc(x.g.display)}${x.g.band != null ? ' · hcp ' + x.g.band + (pair || r.counts ? ' · team ' + x.teamHcp : '') : ' · no handicap'}</span><b class="num">${x.all.gross == null ? '—' : x.all.gross}</b><small>${tp[i] ? 'gross ' + E.fmtToPar(tp[i][0]) + (tp[i][1] != null ? ' · net ' + E.fmtToPar(tp[i][1]) : '') : 'no holes yet'}${x.thru && x.thru < 18 ? ' · thru ' + x.thru : x.thru === 18 ? ' · 18 holes' : ''}</small></div>`).join('')}</div>
       <div class="sc-card">${nine(0, 'out', 'Out')}${nine(9, 'back', 'In')}
-        <div class="sc-r sc-tot"><span class="sc-l">Total</span>${cards.map(x => `<span class="sc-tv"><b>${pair ? esc(initialsOf(x.g.display)) + ' ' : ''}${x.all.gross == null ? '—' : x.all.gross}</b><small>net ${x.all.net == null ? '—' : x.all.net} · par ${x.all.par}${x.all.pts != null && (pair || r.counts) ? ' · ' + x.all.pts + ' pts' : ''}</small></span>`).join('')}${
+        <div class="sc-r sc-tot"><span class="sc-l">Total</span>${cards.map(x => `<span class="sc-tv"><b>${pair ? esc(initialsOf(x.g.display)) + ' ' : ''}${x.all.gross == null ? '—' : x.all.gross}${x.all.pts != null && (pair || r.counts) ? ' · ' + x.all.pts + ' pts' : ''}</b><small>${x.all.gross == null ? 'no holes yet' : (x.thru < 18 ? 'thru ' + x.thru + ' · ' : '') + 'gross ' + E.fmtToPar(x.all.gross - x.all.parPlayed) + (x.all.net != null ? ' · net ' + x.all.net + ' (' + E.fmtToPar(x.all.net - x.all.parPlayed) + ')' : '')}</small></span>`).join('')}${
           pair ? `<span class="sc-tv team"><b>Team ${[0, 9].reduce((a, from) => { const v = Array.from({ length: 9 }, (_, i) => bestOf(from + i)).filter(v => v != null); return v.length ? (a == null ? 0 : a) + v.reduce((p, q) => p + q, 0) : a; }, null) ?? '—'} pts</b><small>better partner, each hole</small></span>` : ''}</div></div>
-      <p class="cs-key"><span class="sc-k g1">4</span> birdie <span class="sc-k g2">3</span> eagle <span class="sc-k b1">5</span> bogey <span class="sc-k b2">6</span> double or worse · <b>•</b> a stroke received · <b>≈</b> water · <b>OB</b> out of bounds · <b>3·</b> three-putt · <b>★</b> shot of the hole · net is off the gross capped at par + ${T.config.capOver}${pair || r.counts ? ' · pts are Stableford points in the team game, off ' + E.teamAllowance(T) + '% of the handicap (team ' + cards.map(x => x.teamHcp == null ? '—' : x.teamHcp).join(' and ') + ')' : ''}${spent.length ? ' · ' + esc(spent.join(' · ')) : ''}</p>
+      <div class="cs-key">
+        <div class="ck-row"><span><i class="sc-k g2">3</i>eagle</span><span><i class="sc-k g1">4</i>birdie</span><span><i class="sc-k b1">5</i>bogey</span><span><i class="sc-k b2">6</i>double or worse</span></div>
+        <div class="ck-row ck-notes"><span><b>≈</b>water</span><span><b>OB</b>out of bounds</span><span><b>3·</b>three-putt</span><span><b>★</b>shot of the hole</span><span><b class="pu">PU</b>picked up</span></div>
+        ${spent.length ? `<div class="ck-spent">Used: ${esc(spent.join(' · '))}</div>` : ''}
+      </div>
+      <div class="cs-how">
+        <h4>How the numbers are worked out</h4>
+        <dl>
+          ${pair ? '' : `<div><dt>Net</dt><dd>Gross, capped at par + ${T.config.capOver}, less the <b>Strokes</b> row: the full handicap${cards[0].g.band != null ? ' (' + cards[0].g.band + ')' : ''} spread over the holes by index. It is what the MVP is decided on.</dd></div>`}
+          ${pair || r.counts ? `<div><dt>Points</dt><dd>Gross, capped at par + ${T.config.capOver}, less the <b>Team str.</b> row: ${E.teamAllowance(T)}% of the handicap (${cards.map(x => (pair ? x.g.display + ' ' : '') + (x.teamHcp == null ? '—' : x.teamHcp)).join(', ')}). Then scored against par:</dd></div>` : ''}
+        </dl>
+        ${pair || r.counts ? `<div class="cs-pt" role="table" aria-label="Points for the net score against par">
+          <div role="row"><span role="columnheader">Net score</span><span role="cell">Double or worse</span><span role="cell">Bogey</span><span role="cell">Par</span><span role="cell">Birdie</span><span role="cell">Eagle</span></div>
+          <div role="row"><span role="columnheader">Points</span><b role="cell">0</b><b role="cell">1</b><b role="cell">2</b><b role="cell">3</b><b role="cell">4</b></div>
+        </div>
+        <p class="cs-pfoot">A hole picked up scores 0.${pair ? ' The team takes the better partner’s points on each hole.' : ''}</p>` : ''}
+      </div>
     </div>
     <div class="acts">${!pair && canAdmin() && store && store.backend === 'supabase' ? `<button class="btn ghost" data-act="histOpen" data-a="scores/${esc(rid)}__${esc(pids[0])}" data-b="${esc(title)} · ${esc(roomName(rid))}">History</button>` : ''}<button class="btn ghost" data-act="modalCancel">Close</button></div>
   </div></div>`;

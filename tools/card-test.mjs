@@ -50,18 +50,21 @@ ok('tapping Ray V opens his card for the round being played', [await p.locator('
 const labels = async () => (await p.locator('.sc-nine').first().locator('.sc-r .sc-l').allInnerTexts()).map(t => t.toUpperCase());
 const col = async (h, sel) => (await p.locator(`.sc-gross .sc-c[data-h="${h}"]`).first().evaluate((e, sel) => sel ? e.querySelector(sel) && e.querySelector(sel).textContent.trim() : e.className, sel));
 ok('holes run across, the nines one under the other, eighteen cells with nine filled', [await p.locator('.sc-nine').count(), await p.locator('.sc-gross .sc-c').count(), await p.locator('.sc-gross .sc-c.has').count()], [2, 18, 9]);
-ok('a row each for the hole, par, index and metres, then gross, net and the team game’s points', await labels(), ['HOLE', 'PAR', 'INDEX', 'METRES', 'GROSS', 'NET', 'PTS']);
+ok('a row each for the hole, par, index and metres, then gross, the ref’s notes, the strokes and net, and the team strokes and points', await labels(), ['HOLE', 'PAR', 'INDEX', 'METRES', 'GROSS', 'NOTES', 'STROKES', 'NET', 'TEAM STR.', 'POINTS']);
 /* the team game plays off 85% of the handicap: 20 becomes 17, one stroke a hole on index 1–17 and none on 18 */
 const tst = (hcp, si) => { const h = Math.round(hcp * 0.85); return Math.floor(h / 18) + (si <= h % 18 ? 1 : 0); };
 const pts = (gross, hcp, i) => Math.max(0, 2 + course.par[i] - (gross - tst(hcp, course.si[i])));
 ok('the points row: the 2nd, a gross 2 off 17, is a birdie or better', await p.locator('.sc-pts .sc-c[data-h="2"] b').first().innerText(), String(pts(2, 20, 1)));
 ok('and the 5th, a 9, is nought — no cap needed', await p.locator('.sc-pts .sc-c[data-h="5"] b').first().innerText(), String(pts(9, 20, 4)));
 const st2 = course.si[1] <= 2 ? 2 : 1;
-ok('the 2nd: the gross with a dot a stroke received, and the net under it', [await col(2, 'b'), (await col(2, '.sc-dots')).length, await p.locator('.sc-net .sc-c[data-h="2"] b').first().innerText()], ['2', st2, String(2 - st2)]);
+ok('the 2nd: the gross, the strokes received on its own row, and the net under it', [await col(2, 'b'), await p.locator('.sc-st:not(.team) .sc-c[data-h="2"] b').first().innerText(), await p.locator('.sc-net .sc-c[data-h="2"] b').first().innerText()], ['2', String(st2), String(2 - st2)]);
+ok('and the team strokes the points come off, on theirs', await p.locator('.sc-st.team .sc-c[data-h="2"] b').first().innerText(), String(tst(20, course.si[1]) || '·'));
+ok('nothing is drawn into the corners of a score any more', await p.locator('.sc-gross .sc-dots, .sc-gross .sc-c i').count(), 0);
 ok('and a birdie wears a circle', (await col(2)).includes(course.par[1] - 2 >= 2 ? 'g2' : 'g1'), true);
 ok('the capped 9 on the 5th wears two squares, says it was capped, and nets off the cap', [(await col(5)).includes('b2'), (await col(5)).includes('capped'), await p.locator('.sc-net .sc-c[data-h="5"] b').first().innerText()],
   [true, 9 > course.par[4] + 3, String(Math.min(9, course.par[4] + 3) - (course.si[4] <= 2 ? 2 : 1))]);
-ok('the marks sit in the corner of the cell: water and a three-putt on the 5th', await col(5, 'i'), '≈3·');
+ok('the marks have a row of their own: water and a three-putt on the 5th', (await p.locator('.sc-notes .sc-c[data-h="5"]').first().innerText()).replace(/\s+/g, ''), '≈3·');
+ok('and the key below says how the points are worked out, with a table of them', [await p.locator('.cs-how').count(), await p.locator('.cs-pt b').allInnerTexts()], [1, ['0', '1', '2', '3', '4']]);
 const grossOut = [4, 2, 6, 4, 9, 4, 5, 3, 4].reduce((a, v) => a + v, 0);
 ok('the front nine adds up at the end of the row', await p.locator('.sc-nine').first().locator('.sc-gross .sc-t').innerText(), String(grossOut));
 ok('the tile says the round so far, gross and net, and the handicap he plays off in the team game', /^Ray V · hcp 20 · team 17 \d+ gross [+−E]\d* · net [+−E]\d* · thru 9$/i.test(await text('.cs-tile')), true);
@@ -76,7 +79,7 @@ console.log('\nfrom the Team board');
 await p.evaluate(() => { window.__UI.boardTab = 'pairs'; window.__UI.boardRound = 'r1'; window.__forceRender(); }); await p.waitForTimeout(300); await shut();
 await tap('.bdr.pairs .namebtn:has-text("Ray V & Drea")');
 ok('a team opens both cards on one sheet: gross, net and points a golfer, then the team’s points', [await p.locator('.cardsheet.two').count(), await labels()],
-  [1, ['HOLE', 'PAR', 'INDEX', 'METRES', 'RV', 'NET', 'PTS', 'D', 'NET', 'PTS', 'TEAM']]);
+  [1, ['HOLE', 'PAR', 'INDEX', 'METRES', 'RV', 'NOTES', 'TEAM STR.', 'POINTS', 'D', 'TEAM STR.', 'POINTS', 'TEAM']]);
 ok('the team takes the better partner’s points on each hole', await p.locator('.sc-best .sc-c[data-h="1"] b').first().innerText(), String(Math.max(pts(4, 20, 0), pts(5, 25, 0))));
 ok('and a hole only one of them has played takes that one', await p.locator('.sc-best .sc-c[data-h="7"] b').first().innerText(), String(pts(5, 20, 6)));
 ok('the total bar adds the team’s points up', /^Team \d+ pts better partner, each hole$/.test(await text('.sc-tv.team')), true);
