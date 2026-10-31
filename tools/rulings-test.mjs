@@ -104,10 +104,24 @@ const sent2 = await p.evaluate(() => window.__asked[1]);
 ok('and Claude is told what was ruled there before', /Rulings already given on this hole today.*One penalty stroke/.test(sent2), true);
 ok('“Nothing changes” leaves the Union box out', await p.locator('.rlsheet .rl-house').count(), 0);
 ok('no water to mark on a cart-path question', await p.locator('[data-act="ruleMark"]').count(), 0);
+console.log('\na second question, typed while the book redraws');
+await p.locator('#rulingQ').click(); await p.locator('#rulingQ').fill('');
+await p.locator('#rulingQ').pressSequentially('Ball moved at add', { delay: 10 });
+const box0 = await p.locator('#rulingQ').elementHandle();
+await p.evaluate(() => { window.__forceRender(); window.__forceRender(); });   // the saved ruling echoing back, the clock ticking
+await p.locator('#rulingQ').pressSequentially('ress', { delay: 10 });
+ok('the box is not rebuilt under the thumb: same box, still focused, every letter kept',
+  [await box0.evaluate(e => e.isConnected), await p.evaluate(() => document.activeElement && document.activeElement.id), await p.locator('#rulingQ').inputValue()],
+  [true, 'rulingQ', 'Ball moved at address']);
+await setAnswer('VERDICT: One penalty stroke\nRULE: 9.4b\nOPTIONS:\n- Replace the ball.\nUNION: Nothing changes.\nCARD: Add one stroke.');
+await tap('[data-act="ruleAsk"]');
+ok('while it asks the box is read-only, not disabled (a disabled box drops the keyboard)', await p.locator('#rulingQ').evaluate(e => [e.disabled, e.readOnly]).catch(() => null), [false, true]);
+await p.waitForTimeout(1500);
+ok('and the answer lands', /One penalty stroke/.test(await p.locator('.rlsheet .rl-ans').last().innerText()), true);
 await setAnswer('VERDICT: Not a rules question.');
 await p.locator('#rulingQ').fill('Who is buying dinner?'); await tap('[data-act="ruleAsk"]'); await p.waitForTimeout(1500);
 ok('a question that isn’t about the rules is turned away, not kept', [await p.locator('.rlsheet .xm-err').innerText(), await p.evaluate(() => Object.values(window.__T.chat).filter(r => r.k === 'r').length)],
-  ['That isn’t a rules question. Ask about what happened to the ball.', 2]);
+  ['That isn’t a rules question. Ask about what happened to the ball.', 3]);
 await shut();
 
 console.log('\nwith the PINs on, as on the real app');

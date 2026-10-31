@@ -5055,7 +5055,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261031-1024';
+const BUILD = '20261031-1123';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -15242,7 +15242,7 @@ function rulingSheetHtml() {
     <span class="ps-grab dark" aria-hidden="true"><i></i></span>${modalBanner('⚖️ ' + g.display + ' · Hole ' + hole.n, roomName(rid) + ' · par ' + hole.par + ' · ' + left)}
     <div class="ps-body rl-body">
       <div class="rl-chips">${RULING_SITS.map(([k, l]) => `<button class="${m.sit === k ? 'on' : ''}" data-act="ruleSit" data-a="${k}"${m.busy ? ' disabled' : ''}>${esc(l)}</button>`).join('')}</div>
-      <div class="rl-q"><textarea id="rulingQ" rows="2" maxlength="400" placeholder="What happened? The more you say, the better the answer." ${m.busy ? 'disabled' : ''}>${esc(m.q || '')}</textarea>
+      <div class="rl-q"><textarea id="rulingQ" rows="2" maxlength="400" placeholder="What happened? The more you say, the better the answer." ${m.busy ? 'readonly' : ''}>${esc(m.q || '')}</textarea>
         <button class="btn" data-act="ruleAsk"${m.busy ? ' disabled' : ''}>${m.busy ? 'Asking…' : done ? 'Ask again' : 'Ask'}</button></div>
       ${m.err ? `<p class="xm-err">${esc(m.err)}</p>` : ''}
       ${m.busy ? `<div class="rl-ans"><div class="rl-think"><i></i><i></i><i></i> Checking the Rules and ${esc(g.display)}’s card…</div></div>` : ''}
@@ -15286,7 +15286,8 @@ async function rulingAsk() {
   if (!q) { m.err = 'Say what happened, or pick it above.'; redrawFrom('rulingQ'); return; }
   if (!askClaude) { m.err = sampleError({ code: 'not_granted' }); redrawFrom(); return; }
   if (!canAdmin() && rulingCount() >= RULING_CAP) { m.err = 'That’s ' + RULING_CAP + ' rulings from this phone today. Ask a ref, or the commissioner.'; redrawFrom(); return; }
-  m.err = ''; m.busy = true; redrawFrom();
+  const typingIn = document.activeElement === f;
+  m.err = ''; m.busy = true; redrawFrom(typingIn ? 'rulingQ' : undefined);
   try {
     const { text } = await askClaude([{ role: 'user', content: RULING_RULES + '\n\n' + rulingContext(m.rid, m.hole, m.pid, m.sit) }, { role: 'user', content: q }],
       { cache: false, modelTier: 'complex' });
@@ -15300,7 +15301,7 @@ async function rulingAsk() {
     m.err = sampleError(e);
   } finally {
     m.busy = false;
-    if (UI.modal === m) render();
+    if (UI.modal === m) { if (document.activeElement && document.activeElement.id === 'rulingQ') document.activeElement.blur(); render(); }
   }
 }
 
@@ -17804,6 +17805,11 @@ function inUse() {
      leaves the field. A textarea is left out on purpose: the Ask panel streams
      its answer into the page while the question is still focused. */
   if (el.tagName === 'INPUT' && /^(text|search|tel|number|url|email|password)$/.test(el.type)) return true;
+  /* THE RULING QUESTION, TOO. After the first answer the saved ruling echoes
+     back from the book and the clock ticks, and each redraw rebuilt the box
+     under the thumb: the keyboard went down and the second question with it.
+     Held while it is typed in; never while an answer is on its way. */
+  if (el.id === 'rulingQ' && !(UI.modal && UI.modal.busy)) return true;
   return el.tagName === 'SELECT';
 }
 /* Every surface in the book that scrolls on its own. The page itself and the
