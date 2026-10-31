@@ -1003,7 +1003,28 @@ export function createStore(onChange) {
     if (!Object.keys(cells).length && !Object.keys(card).length) return;
     try {
       const r = db.scoreMark ? await db.scoreMark({ rid: roundId, pid, cells, card }) : 'nogate';
-      if (r === 'nogate') { cardsFold = false; await db.doc('scores/' + key).set(c); }
+      if (r === 'nogate') {
+        /* no score_mark on the server: still never write a stale card over a
+           newer one. Read the card the server holds and lay only this save's
+           holes on it, so another phone's holes are kept. */
+        cardsFold = false;
+        let base = null;
+        try { const snap = await db.doc('scores/' + key).get(); base = snap && snap.exists ? body(snap) : null; } catch (e) { base = null; }
+        let out = c;
+        if (base) {
+          out = { ...blankCard(), ...base, raw: [...(base.raw || Array(18).fill(null))] };
+          for (const f of ['by', 'at', 'pu', 'marks']) out[f] = { ...(base[f] || {}) };
+          for (const [k, cell] of Object.entries(cells)) {
+            if ('raw' in cell) out.raw[+k] = cell.raw;
+            for (const f of ['by', 'at', 'pu', 'marks']) if (f in cell) { if (cell[f] == null) delete out[f][k]; else out[f][k] = cell[f]; }
+          }
+          Object.assign(out, card);
+          out.rev = Math.max(base.rev || 0, c.rev || 0) + 1;
+          rev['scores/' + key] = out.rev;
+          T.scores[key] = out; notify();
+        }
+        await db.doc('scores/' + key).set(out);
+      }
       else cardsFold = true;
       note('card ok', key);
     }
