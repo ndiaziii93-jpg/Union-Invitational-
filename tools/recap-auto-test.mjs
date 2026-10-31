@@ -123,7 +123,7 @@ const REPLY = JSON.stringify({
 const MOCK = (reply) => {
   window.__asks = 0;
   const sample = async (prompt, opts) => {
-    if (!/THE EXTRAS ONLY/.test(String(prompt))) window.__asks++;   // one report is one story; its extras ride along
+    if (!/THE EXTRAS ONLY|CARRY THE STORY ON/.test(String(prompt))) window.__asks++;   // one report is one story; its extras and carry-ons ride along
     window.__lastPrompt = String(prompt).slice(0, 4000);
     await new Promise(r => setTimeout(r, 250));
     if (opts && opts.onText) opts.onText({ text: reply });

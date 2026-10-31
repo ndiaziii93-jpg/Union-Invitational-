@@ -5204,7 +5204,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261031-1321';
+const BUILD = '20261031-1347';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -21550,7 +21550,7 @@ function parseRecap(raw) {
    day can run out of room mid-sentence: the JSON never closes and nothing
    could be read. What did arrive is still the report: the headline and
    every paragraph that finished are taken, and the rest is left out. */
-function salvageRecap(raw) {
+function salvageRecap(raw, least = 3) {
   const t = String(raw || '');
   const str = s => { try { return JSON.parse('"' + s + '"'); } catch (e) { return null; } };
   const h = /"headline"\s*:\s*"((?:[^"\\]|\\.)*)"/.exec(t);
@@ -21569,7 +21569,7 @@ function salvageRecap(raw) {
     i = re.lastIndex;
     if (/^\s*\]/.test(t.slice(i))) break;
   }
-  if (narrative.length < 3) return null;
+  if (narrative.length < least) return null;
   return { headline: h ? (str(h[1]) || '').slice(0, 160) : '', narrative: narrative.slice(0, 12), voices: [], swing: null, pairNotes: {}, honours: [] };
 }
 /* TWO ANSWERS, NOT ONE. The story and the extras (the voices, the honours,
@@ -21580,6 +21580,13 @@ const RECAP_STORY = '\n\nFOR THIS ANSWER, THE STORY ONLY. Reply with JSON only, 
   + 'Every paragraph is written out in full, as the rules above say: never a placeholder, a label or a summary of what a paragraph would say. Nothing else: no voices, honours, notes or swing in this answer.';
 const recapExtras = story => '\n\nTHE STORY IS ALREADY WRITTEN (below, for reference only: do not repeat or rewrite it).\n' + story.join('\n\n')
   + '\n\nFOR THIS ANSWER, THE EXTRAS ONLY. Reply with JSON only, in this shape: {"voices":[{"who":"Ray V","text":"exact words"}],"swing":{"value":"4 shots","caption":"one sentence"},"pairNotes":{"p1":"one line"},"honours":[{"slot":"shot_of_the_day","winner":"g1","citation":"one or two sentences"}]}. No headline and no narrative.';
+/* THE STORY, CARRIED ON. Cut off part-way, the paragraphs that finished are
+   kept and the writer is asked to pick up from the next one, so a long day
+   still gets the whole long read: each answer stays small enough to fit. */
+const RECAP_LONG = 8;
+const recapContinue = story => '\n\nTHE STORY SO FAR (paragraphs 1 to ' + story.length + ', already written: do not repeat or rewrite them).\n' + story.join('\n\n')
+  + '\n\nFOR THIS ANSWER, CARRY THE STORY ON: write the next paragraphs, from paragraph ' + (story.length + 1) + ' to paragraph 9, in the same voice, picking up exactly where it stops and finishing it. '
+  + 'Every paragraph written out in full, never a placeholder. Reply with JSON only: {"narrative":["...","..."]}.';
 /** A paragraph that is a placeholder or a label, not a paragraph. */
 const realPara = p => { const t = String(p || '').trim(); return t.length >= 40 && !/^(para(graph)?|section|part)(\s+\w+)?\.?$/i.test(t); };
 const RECAP_SHORTER = '\n\nTHIS TIME, KEEP IT SHORTER: the last answer ran out of room and was cut off. Six paragraphs of 60 to 80 words, at most five voices, '
@@ -21635,11 +21642,19 @@ async function writeRecap(rid, again, auto) {
     });
     const clean = b => { if (b) b.narrative = b.narrative.filter(realPara); return b && b.narrative.length ? b : null; };
     const read = r => { try { return clean(parseRecap(r.text)); } catch (e) { return null; } };
-    /* The story first. Cut off, or unreadable: ask once more for a tighter
-       one, and if that is cut off too, keep the paragraphs that did come back. */
-    let first = await ask(prompt + RECAP_STORY), body = first.truncated ? null : read(first), second = null;
-    if (!body) { second = await ask(prompt + RECAP_STORY + RECAP_SHORTER); body = second.truncated ? null : read(second); }
-    if (!body) body = read(second || first) || clean(salvageRecap((second || {}).text)) || clean(salvageRecap(first.text));
+    /* The story first. Cut off part-way, the paragraphs that finished are
+       kept and the writer carries on from the next one, up to twice, until
+       the day has its long read. */
+    const first = await ask(prompt + RECAP_STORY);
+    let body = read(first) || clean(salvageRecap(first.text, 1));
+    if (!body) { const again = await ask(prompt + RECAP_STORY + RECAP_SHORTER); body = read(again) || clean(salvageRecap(again.text, 1)); }
+    for (let k = 0; k < 2 && body && body.narrative.length < RECAP_LONG; k++) {
+      const more = await ask(prompt + recapContinue(body.narrative));
+      let add = null; try { add = parseRecap(more.text).narrative; } catch (e) { add = (salvageRecap(more.text, 1) || {}).narrative || null; }
+      add = (add || []).filter(realPara).filter(p => !body.narrative.includes(p));
+      if (!add.length) break;
+      body.narrative = body.narrative.concat(add).slice(0, 12);
+    }
     if (!body || !body.narrative.length) throw new Error('no narrative');
     /* Then the extras, on their own. If they never come, the story still goes out. */
     try {
@@ -21876,7 +21891,7 @@ __m_app.boot();
 /* Register the worker that makes the book work with no signal. It is the
    whole point of installing it: Belek is five hours of walking and everyone
    is roaming. A failure here must never stop the page loading. */
-var BOOK_BUILD = '20261031-1321';
+var BOOK_BUILD = '20261031-1347';
 var swReg = null;
 /* the book is never shown inside somebody else's page, where a tap could be
    aimed at a button they have put under the finger */
