@@ -116,7 +116,7 @@ const ok = (n, g, w) => { const good = JSON.stringify(g) === JSON.stringify(w);
    twice and billed for both". */
 const REPLY = JSON.stringify({
   headline: 'The wind got up on the back nine',
-  narrative: ['It was that sort of afternoon, the kind the wind writes and the golfers only sign.', 'Nobody said much on the 16th tee, which for this group is a story in itself.'],
+  narrative: ['It was that sort of afternoon, the kind the wind writes and the golfers only sign, and by the turn the leaders had four points on the field and a hole to spare.', 'Nobody said much on the 16th tee, which for this group is a story in itself, and the card shows why: a seven, a six and a pick-up in the same fourball.'],
   swing: { value: '4 shots', caption: 'between the 12th and the 15th' },
   pairNotes: {}, honours: [],
 });

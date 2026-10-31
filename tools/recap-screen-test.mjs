@@ -84,9 +84,9 @@ const MOCK = () => { window.claude = { use: async n => {
     window.__prompt = String(input);
     const body = {
       headline: 'Aspendos waited until the 12th, then took it back',
-      narrative: ['There is a moment on every golf course where the land stops being scenery.',
-                  'Duncan answered the way steady players do, which is to say invisibly.',
-                  'The punctuation came on 14, holed from the fairway bunker.'],
+      narrative: ['There is a moment on every golf course where the land stops being scenery, and at Aspendos it came on the 12th, with the leaders a shot clear and the field still in range.',
+                  'Duncan answered the way steady players do, which is to say invisibly: three pars in a row from the 12th, and no one on the card could say when it had happened.',
+                  'The punctuation came on 14, holed from the fairway bunker, a two on a par four that took the lead from one shot to three.'],
       swing: { value: '4 shots', caption: 'opened between the leaders and third across holes 12 to 16.' },
       pairNotes: { p1: 'Three pars from the 12th and the day was theirs.' },
       voices: [{ who: 'Ray V', text: 'Bring goggles tomorrow' }, { who: 'Duncan W', text: 'I never miss from there' }, { who: 'Duncan W', text: 'Only in the chat' }],   // the second was never said; the third only in the chat

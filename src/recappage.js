@@ -115,7 +115,11 @@ export function renderRecap(T, rid, IMG, opts) {
       <figcaption>${esc(ph.caption || (ph.hole != null ? 'Hole ' + (ph.hole + 1) : 'From the round'))}${ph.byName ? ' · 📷 ' + esc(ph.byName) : ''}</figcaption></figure>`;
   };
   const voiceHtml = v => `<blockquote class="rvoice"><p>“${esc(v.text)}”</p><cite>— ${esc(v.who || 'From My round')}</cite></blockquote>`;
-  const inlineVoice = i => { const v = ((body && body.voices) || [])[i]; return v ? voiceHtml(v) : ''; };
+  const inlineVoice = i => {
+    const vs = (body && body.voices) || [];
+    const v = vs.some(x => x.para) ? vs.find(x => +x.para === i + 1) : vs[i];
+    return v ? voiceHtml(v) : '';
+  };
   const roundName = x => x.short === 'Practice' ? 'Practice day' : (x.full || x.short);
   const next = D.ROUNDS[D.ROUNDS.findIndex(x => x.id === rid) + 1];
   const nextTee = next && E.roundCfg(T, next.id).tees && E.roundCfg(T, next.id).tees[0] && E.roundCfg(T, next.id).tees[0].time;
@@ -164,7 +168,12 @@ export function renderRecap(T, rid, IMG, opts) {
         <div class="artbody">
         ${body && body.narrative ? body.narrative.filter(x => x && x.trim())
             .map((x, i) => `<p class="recpara${i === 0 ? ' lead' : ''}">${esc(x)}</p>${i < body.narrative.length - 1 ? inlinePhoto(i) + inlineVoice(i) : ''}`).join('')
-            + ((body.voices || []).length > body.narrative.length - 1 ? (body.voices || []).slice(Math.max(body.narrative.length - 1, 0)).map(voiceHtml).join('') : '')
+            + (() => {
+                const vs = body.voices || [], n = (body.narrative || []).filter(x => x && x.trim()).length;
+                if (!vs.some(v => v.para)) return vs.length > n - 1 ? vs.slice(Math.max(n - 1, 0)).map(voiceHtml).join('') : '';
+                const seen = new Set();
+                return vs.filter(v => { const k = +v.para; if (k >= 1 && k <= n - 1 && !seen.has(k)) { seen.add(k); return false; } return true; }).map(voiceHtml).join('');
+              })()
           : st.complete ? `<p class="recpara">${rec && rec.body ? 'The report is written and will be shared by the commissioner.' : 'The report has not been written yet.'} The standings below are live.</p>`
           : `<p class="recpara">The standings below are live. The report is written once every card is in.</p>`}
         </div>

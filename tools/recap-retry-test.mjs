@@ -12,7 +12,7 @@ const fails = [];
 const ok = (n, g, w) => { const good = JSON.stringify(g) === JSON.stringify(w);
   console.log((good ? '  PASS  ' : '  FAIL  ') + n + '  got ' + JSON.stringify(g) + (good ? '' : '  want ' + JSON.stringify(w)));
   if (!good) fails.push(n); };
-const P = n => 'This is paragraph number ' + n + ' of the day, long enough to be a real paragraph about the golf and the banter.';
+const P = n => 'This is paragraph number ' + n + ' of the day, long enough to be a real paragraph about the golf and the banter, with a score, a hole and a name in it so that it reads as a report would.';
 const story = (ns, extra = {}) => JSON.stringify({ headline: 'DP runs away with it', narrative: ns.map(P), ...extra });
 const cutAfter = (ns, k) => { const s = story(ns); return s.slice(0, s.indexOf(P(k + 1)) + 20); };
 const extras = JSON.stringify({ voices: [], swing: { value: '4 points', caption: 'The swing.' }, pairNotes: {}, honours: [{ slot: 'round_of_the_day', winner: 'g10', citation: 'DP.' }] });
@@ -29,11 +29,14 @@ async function run(a) {
   }, a);
   const p = await ctx.newPage(); const errs = []; p.on('pageerror', e => errs.push(String(e)));
   await p.goto('file://' + S + '/retry.html'); await p.waitForTimeout(3000);
-  if (a.r1) await p.evaluate(r1 => { window.__T.recaps.r1 = { rid: 'r1', status: 'published', at: Date.now(), body: r1 }; }, a.r1);
+  if (a.r1) await p.evaluate(r1 => { window.__T.recaps.r1 = { rid: 'r1', status: 'published', at: Date.now(), body: r1 };
+    /* a later-listed long report from a day before it must not become the bar */
+    window.__T.recaps.practice = { rid: 'practice', status: 'published', at: Date.now(), body: { headline: 'Practice', narrative: Array.from({ length: 9 }, (_, i) => 'Practice paragraph ' + i + ' that is long enough to count as a real paragraph in the report, with a golfer and a hole in it.') } }; }, a.r1);
   await p.evaluate(() => { const x = document.createElement('button'); x.dataset.act = 'recapGen'; x.dataset.a = 'r2'; document.getElementById('app').appendChild(x); x.click(); });
   await p.waitForFunction(() => window.__T.recaps.r2 && window.__T.recaps.r2.body, null, { timeout: 20000 }).catch(() => {});
   await p.waitForTimeout(300);
-  const out = await p.evaluate(() => ({ std: /THE STANDARD TO MEET: the Round 1 report/.test(window.__asked[0] || '') && /Round one paragraph seven/.test(window.__asked[0] || ''), kinds: window.__asked.map(q => /THE EXTRAS ONLY/.test(q) ? 'extras' : /CARRY THE STORY ON/.test(q) ? 'more' : /KEEP IT SHORTER/.test(q) ? 'shorter' : 'story'),
+  const out = await p.evaluate(() => ({ std: /THE STANDARD TO MEET: the Round 1 report/.test(window.__asked[0] || '') && /Round one paragraph seven/.test(window.__asked[0] || '') && !/Practice paragraph/.test(window.__asked[0] || ''),
+    voice: /professional sports writer/.test(window.__asked[0] || '') && /NEVER, because it reads as machine-written/.test(window.__asked[0] || ''), kinds: window.__asked.map(q => /THE EXTRAS ONLY/.test(q) ? 'extras' : /CARRY THE STORY ON/.test(q) ? 'more' : /KEEP IT SHORTER/.test(q) ? 'shorter' : 'story'),
     from: (window.__asked.find(q => /CARRY THE STORY ON/.test(q)) || '').match(/from paragraph (\d+)/), body: (window.__T.recaps.r2 || {}).body || null }));
   await ctx.close();
   return { ...out, from: out.from ? +out.from[1] : null, errs };
@@ -69,8 +72,9 @@ ok('the story that came back is kept, not an error', len(r), 5);
 
 console.log('\nRound 1 is the standard');
 r = await run({ story: [{ text: story([1, 2, 3, 4, 5, 6, 7, 8, 9]), truncated: false }], more: [], extras,
-  r1: { headline: 'Round one', narrative: [1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => 'Round one paragraph ' + ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'][n - 1] + ', the long read the group liked, with banter and quotes.') } });
-ok('the writer is shown the Round 1 report as the bar to meet', r.std, true);
+  r1: { headline: 'Round one', narrative: [1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => 'Round one paragraph ' + ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'][n - 1] + ', the long read the group liked, with banter and quotes in it, and enough words that it counts as a proper paragraph.') } });
+ok('the writer is shown the Round 1 report as the bar to meet, not another day’s', r.std, true);
+ok('and is told to write as a professional sports writer, with the tells of machine writing ruled out', r.voice, true);
 
 console.log('\nthe writer will not carry on');
 r = await run({ story: [{ text: cutAfter([1, 2, 3, 4, 5, 6, 7, 8, 9], 4), truncated: true }], more: [{ text: 'sorry', truncated: false }], extras });

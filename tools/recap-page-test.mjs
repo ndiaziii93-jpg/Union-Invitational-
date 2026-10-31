@@ -55,7 +55,8 @@ const rows = await seed.evaluate(BASE => {
   out.push({ path: 'bbb/r1', doc: { holes: Array.from({ length: 18 }, (_, i) => i < 6 ? { g: { t0: { bingo: 'g6', bango: 'g1', bongo: i % 2 ? 'g2' : 's4' } } } : {}) } });
   out.push({ path: 'recaps/r1', doc: { rid: 'r1', status: 'published', at: Date.now(), body: {
     headline: 'Ray V birdies the second and the water takes the rest',
-    narrative: ['Round 1 at Olympos opened under a high sky.', 'By the turn the pairs were a point apart.', 'Drea’s bongo on the fourth was the shot of the morning.'],
+    narrative: ['Round 1 at Olympos opened under a high sky.', 'By the turn the pairs were a point apart.', 'Drea’s bongo on the fourth was the shot of the morning.', 'Ray V finished where he started.'],
+    voices: [{ who: 'Drea', para: 3, text: 'Bongo on the fourth, thank you very much.' }, { who: 'Ray V', para: 2, text: 'We were a point apart and I blame the greens.' }],
     swing: { value: '2 points', caption: 'the leaders pulled away over the third and fourth.' },
     pairNotes: { p3: 'Steady from Drea, fireworks from Ray.' },
     honours: [{ slot: 'shot_of_the_day', winner: 'g6', citation: 'A two on the second.' }] } } });
@@ -80,7 +81,7 @@ ok('with the round, the course and the day', await text('.rh-k'), 'Round 1 of 3 
 ok('the photos of the round slide across the top, newest first', [await p.locator('.rh-slide').count(), await p.locator('.rh-slide').first().getAttribute('data-by')], [2, 'Drea']);
 ok('the tiles: leading pair in points, the swing, the cards in', (await texts('.rtile .rt-l')), ['Leading pair', 'Swing of the day', 'Cards in']);
 ok('the leading pair’s tile is points with raw beside', /^Leading pair ?\d+ ?pts ?[+−E]\d* raw ?Ray V & Drea$/.test(await text('.rtile')), true);
-ok('the words, under a byline', [await text('.byline b'), await p.locator('.artbody .recpara').count(), await text('.artbody .recpara.lead')], ['By the Union Register', 3, 'Round 1 at Olympos opened under a high sky.']);
+ok('the words, under a byline', [await text('.byline b'), await p.locator('.artbody .recpara').count(), await text('.artbody .recpara.lead')], ['By the Union Register', 4, 'Round 1 at Olympos opened under a high sky.']);
 ok('a photo set between the paragraphs', await p.locator('.artbody .rinline').count(), 1);
 ok('two pairs: no swing to report, and the tile says so', [await p.locator('.swing').count(), await text('.rtile:nth-child(2) .rt-n')], [0, 'Not yet']);
 ok('the leaders’ hole by hole', await p.locator('.ribcell').count(), 18);
@@ -89,6 +90,9 @@ ok('every card, with handicaps', (await texts('.recfield .row .rt-who')).slice(0
 ok('the Ryder Cup: a row a singles match, UK on the left, and the cup score', [await p.locator('.reccup .row').count(), (await texts('.reccup .rc-a')).every(t => t.startsWith('🇬🇧')),
   /The cup: United Kingdom \d+ – \d+ United States/.test(await text('.reccupline'))], [2, true, true]);
 ok('it sits after the Pairs Championship and before every card', await p.evaluate(() => [...document.querySelectorAll('h3.sub')].map(h => h.textContent.trim()).filter(t => /Pairs|Ryder|Every card/.test(t))), ['Pairs Championship', 'Ryder Cup', 'Every card']);
+ok('each pull-quote sits under the paragraph it is tagged for, not in the order it was listed',
+  await p.evaluate(() => [...document.querySelectorAll('.artbody > p.recpara, .artbody > blockquote.rvoice')].map(e => e.tagName === 'P' ? 'p' : 'q:' + e.querySelector('cite').textContent.replace('— ', ''))),
+  ['p', 'p', 'q:Ray V', 'p', 'q:Drea', 'p']);
 ok('the MVP race and the Bingo', [await p.locator('.recmvp .row').count(), (await texts('.recbbb .row .rt-who'))[0]], [4, 'Norberto III0 bingo · 6 bango · 0 bongo']);
 ok('the honours and the side games', [await text('.honour .rt-v'), await text('.recapcols .row .rt-v')], ['Ray V', 'Ray V']);
 ok('closest to the pin read off the round', (await texts('.recapcols .row')).some(t => /Closest to the pin, 5 Ray V/.test(t)), true);
