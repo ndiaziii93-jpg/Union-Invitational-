@@ -5103,7 +5103,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261031-1347';
+const BUILD = '20261031-1354';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -12118,7 +12118,11 @@ function askViaFunction(url, key) {
     let body = {};
     try { body = await res.json(); } catch (e) { /* a proxy page, or nothing at all */ }
     if (!res.ok || body.error) {
-      throw { code: body.error || 'upstream_error', message: body.message || 'That did not come back.' };
+      /* say which way it failed: a timeout, an overloaded writer and an
+         account out of credit all used to read as the same sentence */
+      throw { code: body.error || 'upstream_error', status: res.status,
+              message: body.message || (res.status === 504 || res.status === 546 ? 'The writer took too long and the server stopped waiting'
+                : 'The writer did not answer (' + res.status + ')') };
     }
     const text = String(body.text || '');
     if (opts && opts.onText) opts.onText({ text, delta: text });
@@ -21548,7 +21552,9 @@ async function writeRecap(rid, again, auto) {
     let body = read(first) || clean(salvageRecap(first.text, 1));
     if (!body) { const again = await ask(prompt + RECAP_STORY + RECAP_SHORTER); body = read(again) || clean(salvageRecap(again.text, 1)); }
     for (let k = 0; k < 2 && body && body.narrative.length < RECAP_LONG; k++) {
-      const more = await ask(prompt + recapContinue(body.narrative));
+      /* a carry-on that fails leaves the story as it stands, never the error */
+      let more = null;
+      try { more = await ask(prompt + recapContinue(body.narrative)); } catch (e) { if (e && e.code === 'cancelled') throw e; break; }
       let add = null; try { add = parseRecap(more.text).narrative; } catch (e) { add = (salvageRecap(more.text, 1) || {}).narrative || null; }
       add = (add || []).filter(realPara).filter(p => !body.narrative.includes(p));
       if (!add.length) break;
@@ -21567,7 +21573,7 @@ async function writeRecap(rid, again, auto) {
        still edit it afterwards. */
     await store.writeRecap(rid, r => { r.body = body; r.status = (auto || r.status === 'published') ? 'published' : 'draft'; r.at = Date.now(); delete r.claim; });
   } catch (e) {
-    UI.recap.err = (e && e.code) ? sampleError(e)
+    UI.recap.err = (e && e.code) ? sampleError(e) + (e.code !== 'cancelled' && e.message && e.message !== 'stopped' ? ' (' + e.message + ')' : '')
       : 'The report came back in a shape the book could not read. Try again.';
   } finally {
     UI.recap.busy = false;

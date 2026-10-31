@@ -23,7 +23,7 @@ async function run(a) {
     window.__asked = []; let i = 0, j = 0;
     const fn = async input => { const q = String(input); window.__asked.push(q);
       if (/THE EXTRAS ONLY/.test(q)) return { text: a.extras, truncated: false };
-      if (/CARRY THE STORY ON/.test(q)) return a.more[Math.min(j++, a.more.length - 1)];
+      if (/CARRY THE STORY ON/.test(q)) { const m = a.more[Math.min(j++, a.more.length - 1)]; if (m === 'FAIL') throw { code: 'upstream_error', message: 'The writer took too long and the server stopped waiting' }; return m; }
       return a.story[Math.min(i++, a.story.length - 1)]; };
     window.claude = { use: async name => name === 'sample' ? fn : null };
   }, a);
@@ -60,6 +60,10 @@ ok('is asked for once, and the extras separately', [r.kinds, len(r)], [['story',
 console.log('\na placeholder where a paragraph should be');
 r = await run({ story: [{ text: JSON.stringify({ headline: 'H', narrative: [P(1), 'paragraph two', P(3), P(4), P(5), P(6), P(7), P(8), P(9)] }), truncated: false }], more: [], extras });
 ok('is dropped, the real paragraphs kept', [len(r), r.body && r.body.narrative.includes('paragraph two')], [8, false]);
+
+console.log('\nthe carry-on fails outright');
+r = await run({ story: [{ text: cutAfter([1, 2, 3, 4, 5, 6, 7, 8, 9], 5), truncated: true }], more: ['FAIL'], extras });
+ok('the story that came back is kept, not an error', len(r), 5);
 
 console.log('\nthe writer will not carry on');
 r = await run({ story: [{ text: cutAfter([1, 2, 3, 4, 5, 6, 7, 8, 9], 4), truncated: true }], more: [{ text: 'sorry', truncated: false }], extras });
