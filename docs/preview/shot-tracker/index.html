@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1D2E21">
+<meta name="robots" content="noindex">
+<link rel="icon" href="../../app/icon-192.png">
+<title>Shot Tracker Options</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap">
+<style>
+/* three phones: a ref counting each golfer's shots as they are hit */
+:root{
+  color-scheme:light;
+  --paper:#E3DBCB; --page:#EEE8D5; --sunk:#DBD2BA; --ink:#1D2E21; --ink2:#2A3D2E; --turf:#5C6B55; --green:#3E5C43;
+  --rule:#C4B896; --hair:#DCD1B4; --gold:#8C6B2F; --gold-up:#C9A253; --gold-hi:#E2C277; --sage:#9FB3A3; --flag:#9E3B2E; --yes:#2F7A4A;
+  --shadow:rgba(29,46,33,.16);
+  --serif:'Source Serif 4','Iowan Old Style',Georgia,'Times New Roman',serif;
+  --ui:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:16px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:26px 56px}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:inherit;-webkit-tap-highlight-color:transparent}
+:focus-visible{outline:2px solid var(--flag);outline-offset:2px}
+.top,.row,.dev{max-width:1260px;margin-left:auto;margin-right:auto}
+.top{display:grid;gap:10px;margin-bottom:22px}
+.top h1{margin:0;font-size:clamp(26px,4vw,34px);line-height:1.15}
+.top p{margin:0;color:var(--turf);max-width:84ch}
+.row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px;align-items:start}
+@media (max-width:1150px){.row{grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr))}}
+.opt{display:grid;gap:14px;justify-items:center;min-width:0}
+.olabel{width:100%;max-width:390px;display:flex;align-items:center;gap:12px;background:var(--ink);color:var(--page);border-radius:16px;padding:10px 14px;border-bottom:3px solid var(--gold-up);position:sticky;top:8px;z-index:50}
+.olabel b{display:inline-grid;place-items:center;width:40px;height:40px;border-radius:50%;background:var(--gold-hi);color:var(--ink);font-size:22px;font-weight:800;flex:0 0 auto}
+.olabel strong{display:block;font-size:20px;line-height:1.1}
+.olabel small{display:block;font-family:var(--ui);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--gold-hi);margin-top:2px}
+.cap{width:100%;max-width:390px}
+.cap .what{margin:0 0 8px;color:var(--turf);font-size:15px}
+.cap ul{margin:0;padding-left:18px;font-size:14.5px;display:grid;gap:3px}
+.cap .dn{margin-top:10px;font-size:13.5px;background:var(--page);border-radius:12px;padding:10px 12px;box-shadow:0 0 0 .5px var(--shadow)}
+.cap .dn b{display:block;font-family:var(--ui);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-bottom:3px}
+.reset{font-family:var(--ui);font-size:13px;font-weight:700;color:var(--ink);background:var(--page);border-radius:999px;padding:8px 14px;box-shadow:inset 0 0 0 1.5px var(--gold-up)}
+.dev{margin-top:34px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:14px}
+.dev .card{background:var(--page);border-radius:16px;padding:16px 18px;box-shadow:0 0 0 .5px var(--shadow)}
+.dev h3{margin:0 0 8px;font-size:18px}
+.dev ul{margin:0;padding-left:18px;font-size:14.5px;display:grid;gap:5px}
+.dev .rec{background:var(--ink);color:var(--page);border-bottom:3px solid var(--gold-up)}
+.dev .rec h3{color:var(--gold-hi)}
+
+/* ---- the phone: Score Entry, as the app draws it ---- */
+.phone{position:relative;width:100%;max-width:390px;height:800px;border-radius:38px;overflow:hidden;background:var(--paper);
+  box-shadow:0 0 0 9px #17211A,0 0 0 10px #3A463D,0 30px 60px rgba(16,22,17,.28);isolation:isolate;display:flex;flex-direction:column}
+.scr{flex:1 1 auto;overflow:auto;scrollbar-width:none;min-height:0;position:relative}
+.scr::-webkit-scrollbar{display:none}
+.ehd{background:var(--ink);color:var(--page);padding:50px 16px 12px;border-bottom:3px solid var(--gold-up)}
+.ehd .k{font-family:var(--ui);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-hi);font-weight:700}
+.ehd .t{display:flex;justify-content:space-between;align-items:baseline;margin-top:2px}
+.ehd .t b{font-size:22px}
+.ehd .t span{font-family:var(--ui);font-size:13px;color:var(--sage)}
+.holes{display:flex;gap:5px;margin-top:10px;overflow:hidden}
+.holes span{flex:0 0 auto;width:30px;height:30px;border-radius:8px;display:grid;place-items:center;font-family:var(--ui);font-size:12.5px;font-weight:700;background:#2B3D2F;color:var(--sage)}
+.holes span.on{background:var(--gold-hi);color:var(--ink)}
+.holes span.d{background:#3A4D3E;color:var(--page)}
+.pad{padding:12px 14px 16px;display:grid;gap:10px}
+.hint{font-family:var(--ui);font-size:12.5px;color:var(--turf);margin:0}
+.foot{flex:0 0 auto;padding:10px 14px;background:var(--paper);box-shadow:0 -1px 0 var(--hair)}
+.card-it{width:100%;font-family:var(--ui);font-size:15px;font-weight:800;border-radius:14px;padding:13px;text-align:center;background:var(--ink);color:var(--gold-hi)}
+.card-it[disabled]{background:var(--sunk);color:var(--turf);cursor:default}
+.card-it.done{background:var(--yes);color:#fff}
+.tabbar{flex:0 0 auto;display:grid;grid-template-columns:repeat(6,1fr);background:var(--ink);border-top:3px solid var(--gold-up);color:var(--sage);
+  padding:8px 4px 18px;font-family:var(--ui);font-size:10.5px;text-align:center;position:relative;z-index:30}
+.tabbar span{display:grid;gap:3px;justify-items:center}
+.tabbar span.on{color:var(--page);font-weight:700} .tabbar span.gold{color:var(--gold-up)}
+.tabbar i{display:block;width:20px;height:16px;border:1.6px solid currentColor;border-radius:4px}
+.who b{font-size:16.5px;display:block;line-height:1.2}
+.who small{font-family:var(--ui);font-size:12px;color:var(--turf)}
+.pu{font-family:var(--ui);font-size:11.5px;font-weight:800;border-radius:999px;padding:4px 9px;background:#F2DDD6;color:var(--flag);box-shadow:inset 0 0 0 1px var(--flag)}
+.toast{position:absolute;left:14px;right:14px;bottom:150px;z-index:40;background:var(--ink);color:var(--page);border-radius:14px;padding:10px 12px;font-family:var(--ui);font-size:13px;
+  box-shadow:0 10px 30px rgba(16,22,17,.3);border-bottom:3px solid var(--gold-up);animation:pop .25s ease both}
+@keyframes pop{from{transform:translateY(10px);opacity:0}to{transform:none;opacity:1}}
+@keyframes thump{40%{transform:scale(1.08)}}
+.thump{animation:thump .22s ease}
+
+/* A: a clicker on every row */
+.arow{background:var(--page);border-radius:14px;padding:10px 10px 10px 13px;box-shadow:0 0 0 .5px var(--shadow);display:flex;align-items:center;gap:8px}
+.arow .who{flex:1;min-width:0}
+.arow .minus{width:36px;height:44px;border-radius:10px;font-family:var(--ui);font-size:20px;font-weight:700;color:var(--turf);box-shadow:inset 0 0 0 1px var(--rule)}
+.arow .n{width:50px;height:50px;border-radius:12px;display:grid;place-items:center;font-family:var(--ui);font-size:24px;font-weight:800;background:var(--paper);box-shadow:inset 0 0 0 1.5px var(--rule)}
+.arow .n.live{box-shadow:inset 0 0 0 2px var(--gold-up);background:#F3E6CF}
+.arow .n.o{color:var(--flag)} .arow .n.u{color:var(--yes)}
+.arow .plus{height:50px;padding:0 14px;border-radius:12px;font-family:var(--ui);font-size:15px;font-weight:800;background:var(--ink);color:var(--gold-hi)}
+.arow.done{opacity:.6}
+
+/* B: four big buttons */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tile{position:relative;border-radius:18px;min-height:208px;padding:12px 12px 10px;background:var(--page);box-shadow:0 0 0 .5px var(--shadow),0 2px 0 var(--hair);display:flex;flex-direction:column;text-align:left}
+.tile .tn{font-size:17px;font-weight:700;line-height:1.15}
+.tile .ts{font-family:var(--ui);font-size:11.5px;color:var(--turf)}
+.tile .big{flex:1;display:grid;place-items:center;font-family:var(--ui);font-size:64px;font-weight:800;line-height:1;color:var(--ink)}
+.tile .big.o{color:var(--flag)} .tile .big.u{color:var(--yes)}
+.tile .tap{font-family:var(--ui);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);font-weight:800;text-align:center}
+.tile .und{position:absolute;top:8px;right:8px;width:34px;height:34px;border-radius:50%;font-family:var(--ui);font-size:18px;font-weight:700;color:var(--turf);background:var(--paper);box-shadow:inset 0 0 0 1px var(--rule)}
+.tile .hole-out{margin-top:6px;font-family:var(--ui);font-size:12.5px;font-weight:800;border-radius:10px;padding:8px;text-align:center;background:var(--paper);box-shadow:inset 0 0 0 1px var(--rule)}
+.tile.in{background:var(--ink);color:var(--page)}
+.tile.in .tn{color:var(--page)} .tile.in .ts{color:var(--sage)} .tile.in .big,.tile.in .big.o,.tile.in .big.u{color:var(--gold-hi)} .tile.in .tap{color:var(--sage)}
+.tile.in .hole-out{background:var(--yes);color:#fff;box-shadow:none}
+.tile.in .und{display:none}
+
+/* C: shot by shot */
+.crow{background:var(--page);border-radius:14px;padding:10px 12px;box-shadow:0 0 0 .5px var(--shadow);display:grid;gap:8px}
+.crow .hd{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.crow .tot{font-family:var(--ui);font-size:13px;color:var(--turf);text-align:right}
+.crow .tot b{display:block;font-size:24px;color:var(--ink);line-height:1}
+.trail{display:flex;gap:4px;flex-wrap:wrap;min-height:28px;align-items:center}
+.trail i{font-style:normal;font-family:var(--ui);font-size:11px;font-weight:800;border-radius:7px;padding:5px 7px;background:var(--paper);box-shadow:inset 0 0 0 1px var(--rule);color:var(--ink2)}
+.trail i.p{background:#DCE7EE;color:#2F5D7A;box-shadow:none}
+.trail i.x{background:#F2DDD6;color:var(--flag);box-shadow:none}
+.trail .none{font-family:var(--ui);font-size:12px;color:var(--turf)}
+.kinds{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}
+.kinds button{text-align:center;height:40px;border-radius:10px;font-family:var(--ui);font-size:12px;font-weight:800;background:var(--paper);box-shadow:inset 0 0 0 1px var(--rule)}
+.kinds button.p{background:#DCE7EE;color:#2F5D7A;box-shadow:none}
+.kinds button.x{background:#F2DDD6;color:var(--flag);box-shadow:none}
+.kinds button.u{color:var(--turf);font-size:16px}
+.mk{font-family:var(--ui);font-size:11.5px;font-weight:800;color:#2F5D7A}
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>A shot tracker for the refs: three ways</h1>
+  <p>Round 2, Olympos, the par-5 3rd, with Group 1 on the tee: Duncan W, DP, Matt D and Devin O. Each phone below is the ref’s Score Entry with a counter added. <b>Tap through them</b>: count everybody’s shots as they’re hit, then card the hole.</p>
+  <p>In all three, the count becomes that golfer’s score on the card when the ref cards the hole, so the ref never has to add anything up. Until then the count is kept on the ref’s phone only. It survives the phone locking and needs no signal.</p>
+</header>
+
+<div class="row">
+  <section class="opt">
+    <div class="olabel"><b>A</b><span><strong>A clicker on each row</strong><small>+ Shot beside every name</small></span></div>
+    <div class="phone" id="pA"></div>
+    <div class="cap"><p class="what">The screen the refs already use, with a <b>+ Shot</b> button and a <b>−</b> on each golfer’s row. The number in the middle counts up as they play.</p>
+      <ul><li>Nothing new to learn: same rows, same order, one new button.</li><li>All four golfers in view, so it’s easy to see who hasn’t been counted.</li><li>At the triple-bogey cap the row offers the pick-up.</li></ul>
+      <div class="dn"><b>Best for</b>Refs who like the current screen and just want the adding-up done for them.</div></div>
+    <button class="reset" data-reset="A">Start the hole again</button>
+  </section>
+  <section class="opt">
+    <div class="olabel"><b>B</b><span><strong>Four big buttons</strong><small>The whole golfer is the button</small></span></div>
+    <div class="phone" id="pB"></div>
+    <div class="cap"><p class="what">A <b>Count</b> mode: the group as four big tiles. Tap anywhere on a golfer’s tile for each shot; <b>In the hole</b> finishes them. Once all four are in, card the hole.</p>
+      <ul><li>The biggest targets: works one-thumbed, walking, in the sun.</li><li>Holed golfers go dark, so it’s obvious who’s still playing.</li><li>A small ↺ undoes a miscount.</li></ul>
+      <div class="dn"><b>Best for</b>Refs who are also playing and want to tap without looking.</div></div>
+    <button class="reset" data-reset="B">Start the hole again</button>
+  </section>
+  <section class="opt">
+    <div class="olabel"><b>C</b><span><strong>Shot by shot</strong><small>Each shot tagged as it’s hit</small></span></div>
+    <div class="phone" id="pC"></div>
+    <div class="cap"><p class="what">Each golfer gets a row of shot types: <b>Tee, Long, Chip, Putt, Penalty</b>. Each tap adds that shot to their trail. The total is the count; putts and penalties are counted too.</p>
+      <ul><li>Three putts, water and penalty strokes mark themselves, so the recap gets them.</li><li>Putts per hole and per round, for free.</li><li>The most tapping: one choice per shot, not just one tap.</li></ul>
+      <div class="dn"><b>Best for</b>A ref who enjoys it, and a recap with more to say.</div></div>
+    <button class="reset" data-reset="C">Start the hole again</button>
+  </section>
+</div>
+
+<section class="dev">
+  <div class="card rec"><h3>My pick: B, with A’s row as the fallback</h3>
+    <ul><li>The big tiles are the fastest and hardest to get wrong out on the course: every golfer is one tap, and nobody gets forgotten.</li>
+      <li>The normal score tiles and keypad stay, so a ref who forgot to count can still type the number in.</li>
+      <li>C gives the recap more to work with, but it asks for a choice on every shot. That’s a job nobody keeps up past the turn.</li></ul></div>
+  <div class="card"><h3>The same in all three</h3>
+    <ul><li>The count fills the score only when the ref cards the hole, and the ref can still change it on the keypad.</li>
+      <li>Kept on the ref’s phone until then, so no signal and no battery cost. A phone that locks mid-hole comes back to the same count.</li>
+      <li>At par + 3 it offers the pick-up, the same prompt as now.</li>
+      <li>A mulligan isn’t a shot: tap − (or ↺) for the one that didn’t count.</li>
+      <li>Refs only. Golfers scoring their own round keep the keypad they have.</li></ul></div>
+</section>
+
+<script>
+(function () {
+  var PAR = 5, CAP = PAR + 3;
+  var G = [
+    { id: 'd', name: 'Duncan W', hcp: 30, st: 2 },
+    { id: 'p', name: 'DP', hcp: 16, st: 1 },
+    { id: 'm', name: 'Matt D', hcp: 18, st: 1 },
+    { id: 'v', name: 'Devin O', hcp: 22, st: 1 }
+  ];
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function tone(n) { return !n ? '' : n < PAR ? ' u' : n > PAR ? ' o' : ''; }
+  function head(sub) {
+    var hs = ''; for (var i = 1; i <= 9; i++) hs += '<span class="' + (i < 3 ? 'd' : i === 3 ? 'on' : '') + '">' + i + '</span>';
+    return '<div class="ehd"><div class="k">Round 2 · Group 1 · ' + sub + '</div><div class="t"><b>Hole 3</b><span>Par 5 · SI 9 · picks up at ' + CAP + '</span></div><div class="holes">' + hs + '</div></div>';
+  }
+  var TABS = '<div class="tabbar"><span><i></i>Today</span><span class="on"><i></i>Scores</span><span><i></i>Bets</span><span><i></i>Boards</span><span><i></i>Calendar</span><span class="gold"><i></i>Resort</span></div>';
+  function shell(id, sub, body, foot, toast) {
+    var el = document.getElementById(id);
+    var keep = el.querySelector('.scr'); var y = keep ? keep.scrollTop : 0;
+    el.innerHTML = '<div class="scr">' + head(sub) + '<div class="pad">' + body + '</div></div>' + (toast ? '<div class="toast">' + toast + '</div>' : '') + '<div class="foot">' + foot + '</div>' + TABS;
+    el.querySelector('.scr').scrollTop = y;
+  }
+  function thump(id, sel) { var t = document.querySelector('#' + id + ' ' + sel); if (t) { t.classList.remove('thump'); void t.offsetWidth; t.classList.add('thump'); } }
+  function cardFoot(all, done, carded) {
+    if (carded) return '<button class="card-it done" disabled>✓ Hole 3 carded · on to the 4th</button>';
+    return '<button class="card-it" data-go="card"' + (all ? '' : ' disabled') + '>' + (all ? 'Card hole 3 · ' + done + ' scores' : 'Card the hole when everyone’s in') + '</button>';
+  }
+
+  /* ---- A ---- */
+  var A;
+  function resetA() { A = { n: {}, pu: {}, carded: false, toast: null }; }
+  function drawA() {
+    var rows = G.map(function (g) {
+      var n = A.n[g.id] || 0, at = n >= CAP && !A.pu[g.id];
+      return '<div class="arow' + (A.pu[g.id] ? ' done' : '') + '"><div class="who"><b>' + esc(g.name) + '</b><small>hcp ' + g.hcp + ' · +' + g.st + ' here' + (A.pu[g.id] ? ' · picked up' : '') + '</small>'
+        + (at ? '<div style="margin-top:5px"><button class="pu" data-go="pu" data-g="' + g.id + '">At the cap · pick up?</button></div>' : '') + '</div>'
+        + '<button class="minus" data-go="minus" data-g="' + g.id + '" aria-label="One less for ' + esc(g.name) + '">−</button>'
+        + '<span class="n' + (n ? ' live' : '') + '" id="An' + g.id + '">' + (n || '·') + '</span>'
+        + '<button class="plus" data-go="plus" data-g="' + g.id + '" aria-label="A shot for ' + esc(g.name) + '">+ Shot</button></div>';
+    }).join('');
+    var counted = G.filter(function (g) { return A.n[g.id]; }).length;
+    shell('pA', 'Ref', '<p class="hint">Tap <b>+ Shot</b> each time someone hits. The number is their score so far.</p>' + rows,
+      cardFoot(counted === G.length, counted, A.carded), A.toast);
+  }
+  function onA(go, g) {
+    A.toast = null;
+    if (A.carded) return;
+    if (go === 'plus' && !A.pu[g]) { A.n[g] = Math.min(CAP, (A.n[g] || 0) + 1); drawA(); thump('pA', '#An' + g); return; }
+    if (go === 'minus') { A.n[g] = Math.max(0, (A.n[g] || 0) - 1); A.pu[g] = false; }
+    if (go === 'pu') { A.pu[g] = true; A.toast = 'Picked up at ' + CAP + '. It goes on the card as PU.'; }
+    if (go === 'card') { A.carded = true; A.toast = 'Hole 3: ' + G.map(function (x) { return x.name + ' ' + (A.pu[x.id] ? 'PU' : A.n[x.id]); }).join(' · '); }
+    drawA();
+  }
+
+  /* ---- B ---- */
+  var B;
+  function resetB() { B = { n: {}, in: {}, carded: false, toast: null }; }
+  function drawB() {
+    var tiles = G.map(function (g) {
+      var n = B.n[g.id] || 0, inn = B.in[g.id];
+      return '<div class="tile' + (inn ? ' in' : '') + '" data-go="tap" data-g="' + g.id + '" role="button" aria-label="A shot for ' + esc(g.name) + '">'
+        + '<span class="tn">' + esc(g.name) + '</span><span class="ts">+' + g.st + ' here' + (n >= CAP && !inn ? ' · at the cap' : '') + '</span>'
+        + '<span class="big' + (inn ? tone(n) : '') + '" id="Bn' + g.id + '">' + n + '</span>'
+        + '<span class="tap">' + (inn ? (n >= CAP ? 'Picked up' : 'In the hole') : n ? 'Tap for a shot' : 'Tap when they hit') + '</span>'
+        + (n || inn ? '<button class="und" data-go="undo" data-g="' + g.id + '" aria-label="Undo a shot for ' + esc(g.name) + '">↺</button>' : '')
+        + '<button class="hole-out" data-go="in" data-g="' + g.id + '">' + (inn ? '✓ Holed · ' + n : n >= CAP ? 'Pick up at ' + CAP : 'In the hole') + '</button></div>';
+    }).join('');
+    var done = G.filter(function (g) { return B.in[g.id]; }).length;
+    shell('pB', 'Count', '<p class="hint">Tap a golfer each time they hit. <b>In the hole</b> when they’re done.</p><div class="grid">' + tiles + '</div>',
+      cardFoot(done === G.length, done, B.carded), B.toast);
+  }
+  function onB(go, g) {
+    B.toast = null;
+    if (B.carded) return;
+    if (go === 'tap' && !B.in[g]) { B.n[g] = Math.min(CAP, (B.n[g] || 0) + 1); drawB(); thump('pB', '#Bn' + g); return; }
+    if (go === 'undo') { if (B.in[g]) B.in[g] = false; else B.n[g] = Math.max(0, (B.n[g] || 0) - 1); }
+    if (go === 'in') { if (B.in[g]) B.in[g] = false; else if (B.n[g]) { B.in[g] = true; if (B.n[g] >= CAP) B.toast = 'Picked up at ' + CAP + '. It goes on the card as PU.'; } else B.toast = 'Count their shots first, then tap In the hole.'; }
+    if (go === 'card') { B.carded = true; B.toast = 'Hole 3: ' + G.map(function (x) { return x.name + ' ' + (B.n[x.id] >= CAP ? 'PU' : B.n[x.id]); }).join(' · '); }
+    drawB();
+  }
+
+  /* ---- C ---- */
+  var KINDS = [['T', 'Tee', ''], ['L', 'Long', ''], ['C', 'Chip', ''], ['P', 'Putt', 'p'], ['X', 'Pen', 'x']];
+  var C;
+  function resetC() { C = { s: {}, carded: false, toast: null }; G.forEach(function (g) { C.s[g.id] = []; }); }
+  function drawC() {
+    var rows = G.map(function (g) {
+      var s = C.s[g.id], n = s.length, putts = s.filter(function (k) { return k === 'P'; }).length, pen = s.filter(function (k) { return k === 'X'; }).length;
+      var marks = [putts >= 3 ? 'three-putt' : '', pen ? pen + ' penalty' : ''].filter(Boolean);
+      return '<div class="crow"><div class="hd"><div class="who"><b>' + esc(g.name) + '</b><small>+' + g.st + ' here' + (putts ? ' · ' + putts + ' putt' + (putts === 1 ? '' : 's') : '') + '</small>'
+        + (marks.length ? '<div class="mk">✓ marked: ' + marks.join(', ') + '</div>' : '') + '</div>'
+        + '<div class="tot"><b id="Cn' + g.id + '">' + (n || '·') + '</b>' + (n >= CAP ? 'pick up' : 'shots') + '</div></div>'
+        + '<div class="trail">' + (n ? s.map(function (k) { var d = KINDS.filter(function (x) { return x[0] === k; })[0]; return '<i class="' + d[2] + '">' + d[1] + '</i>'; }).join('') : '<span class="none">No shots yet</span>') + '</div>'
+        + '<div class="kinds">' + KINDS.map(function (k) { return '<button class="' + k[2] + '" data-go="add" data-k="' + k[0] + '" data-g="' + g.id + '">' + (k[0] === 'X' ? '+1 Pen' : k[1]) + '</button>'; }).join('')
+        + '</div>' + (n ? '<button class="mk" style="justify-self:start;color:var(--turf)" data-go="undo" data-g="' + g.id + '">↺ Undo last</button>' : '') + '</div>';
+    }).join('');
+    var counted = G.filter(function (g) { return C.s[g.id].length; }).length;
+    shell('pC', 'Ref', '<p class="hint">Tap the kind of shot each time someone hits.</p>' + rows, cardFoot(counted === G.length, counted, C.carded), C.toast);
+  }
+  function onC(go, g, k) {
+    C.toast = null;
+    if (C.carded) return;
+    if (go === 'add' && C.s[g].length < CAP) { C.s[g].push(k); drawC(); thump('pC', '#Cn' + g); return; }
+    if (go === 'undo') C.s[g].pop();
+    if (go === 'card') { C.carded = true; C.toast = 'Hole 3: ' + G.map(function (x) { return x.name + ' ' + (C.s[x.id].length >= CAP ? 'PU' : C.s[x.id].length); }).join(' · ') + '. Putts and marks saved too.'; }
+    drawC();
+  }
+
+  function wire(id, fn) {
+    document.getElementById(id).addEventListener('click', function (e) {
+      var t = e.target.closest('[data-go]'); if (!t) return;
+      e.stopPropagation(); fn(t.getAttribute('data-go'), t.getAttribute('data-g'), t.getAttribute('data-k'));
+    });
+  }
+  wire('pA', onA); wire('pB', onB); wire('pC', onC);
+  document.querySelectorAll('[data-reset]').forEach(function (b) {
+    b.addEventListener('click', function () { var w = b.getAttribute('data-reset');
+      if (w === 'A') { resetA(); drawA(); } else if (w === 'B') { resetB(); drawB(); } else { resetC(); drawC(); } });
+  });
+  resetA(); drawA(); resetB(); drawB(); resetC(); drawC();
+})();
+</script>
+</body>
+</html>
