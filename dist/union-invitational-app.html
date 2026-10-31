@@ -5132,7 +5132,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261031-1354';
+const BUILD = '20261031-1359';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -21508,16 +21508,33 @@ function salvageRecap(raw, least = 3) {
    the pair notes, the swing) are asked for separately: each fits easily
    under the writer's ceiling, where the whole report in one answer ran out
    of room even when asked to be short. */
-const RECAP_STORY = '\n\nFOR THIS ANSWER, THE STORY ONLY. Reply with JSON only, in this shape: {"headline":"one line","narrative":["...","..."]}. '
+/* THE STORY IN TWO HALVES. Eight to ten paragraphs in one answer is long
+   enough to hit the writer's ceiling, and slow enough to run past the
+   server's patience; five at a time is neither, and two of them make the
+   long read every time. */
+const RECAP_STORY = '\n\nFOR THIS ANSWER, THE FIRST HALF OF THE STORY: the headline and paragraphs 1 to 5 of the eight to ten. The rest follows in a second answer, so do not wrap the story up. '
+  + 'Reply with JSON only, in this shape: {"headline":"one line","narrative":["...","..."]}. '
   + 'Every paragraph is written out in full, as the rules above say: never a placeholder, a label or a summary of what a paragraph would say. Nothing else: no voices, honours, notes or swing in this answer.';
+/* THE STANDARD. The group liked the first round's report: its length, its
+   voice, its rhythm. The last long report already written is shown to the
+   writer as the bar to meet, with a warning not to borrow from it. */
+function recapStandard(rid) {
+  const order = D.ROUNDS.map(r => r.id), at = order.indexOf(rid);
+  const prev = order.slice(0, at < 0 ? order.length : at).reverse()
+    .map(id => ({ id, b: (T.recaps[id] || {}).body })).find(x => x.b && Array.isArray(x.b.narrative) && x.b.narrative.length >= 8);
+  if (!prev) return '';
+  const text = (prev.b.headline ? prev.b.headline + '\n\n' : '') + prev.b.narrative.join('\n\n');
+  return '\n\nTHE STANDARD TO MEET: the ' + roomName(prev.id) + ' report below is what the group wants every day to read like. Match its length (eight to ten paragraphs of roughly 70 to 100 words), its voice and its rhythm, '
+    + 'the banter, the quotes and the jokes of its own. It is about a different day: never reuse its facts, its jokes, its lines or its phrasing.\n---\n' + text.slice(0, 9000) + '\n---';
+}
 const recapExtras = story => '\n\nTHE STORY IS ALREADY WRITTEN (below, for reference only: do not repeat or rewrite it).\n' + story.join('\n\n')
   + '\n\nFOR THIS ANSWER, THE EXTRAS ONLY. Reply with JSON only, in this shape: {"voices":[{"who":"Ray V","text":"exact words"}],"swing":{"value":"4 shots","caption":"one sentence"},"pairNotes":{"p1":"one line"},"honours":[{"slot":"shot_of_the_day","winner":"g1","citation":"one or two sentences"}]}. No headline and no narrative.';
 /* THE STORY, CARRIED ON. Cut off part-way, the paragraphs that finished are
    kept and the writer is asked to pick up from the next one, so a long day
    still gets the whole long read: each answer stays small enough to fit. */
-const RECAP_LONG = 8;
+const RECAP_LONG = 8, RECAP_FULL = 9;
 const recapContinue = story => '\n\nTHE STORY SO FAR (paragraphs 1 to ' + story.length + ', already written: do not repeat or rewrite them).\n' + story.join('\n\n')
-  + '\n\nFOR THIS ANSWER, CARRY THE STORY ON: write the next paragraphs, from paragraph ' + (story.length + 1) + ' to paragraph 9, in the same voice, picking up exactly where it stops and finishing it. '
+  + '\n\nFOR THIS ANSWER, CARRY THE STORY ON: write the next paragraphs, from paragraph ' + (story.length + 1) + ' to paragraph ' + Math.max(RECAP_FULL, story.length + 2) + ' (or 10), in the same voice, picking up exactly where it stops, and bring the piece home. '
   + 'Every paragraph written out in full, never a placeholder. Reply with JSON only: {"narrative":["...","..."]}.';
 /** A paragraph that is a placeholder or a label, not a paragraph. */
 const realPara = p => { const t = String(p || '').trim(); return t.length >= 40 && !/^(para(graph)?|section|part)(\s+\w+)?\.?$/i.test(t); };
@@ -21564,9 +21581,13 @@ async function writeRecap(rid, again, auto) {
   recapCtl = new AbortController();
   UI.recap = { rid, busy: true, err: '', stream: '', edit: false, view: 'report' };
   render();
-  const prompt = RECAP_RULES + '\n\nTHE CARD\n' + E.recapInput(T, rid, now) + sotdForRecap(rid);
+  const card = '\n\nTHE CARD\n' + E.recapInput(T, rid, now) + sotdForRecap(rid), std = recapStandard(rid);
+  /* the server reads at most 60,000 characters, and a carry-on adds the story so far */
+  const prompt = RECAP_RULES + (RECAP_RULES.length + card.length + std.length < 42000 ? std : '') + card;
   try {
-    const ask = p => askClaude(p, {
+    /* one more go at any single answer that fails on the way, before giving up */
+    const ask = async p => { try { return await ask1(p); } catch (e) { if (e && e.code === 'cancelled') throw e; await new Promise(r => setTimeout(r, 2500)); return ask1(p); } };
+    const ask1 = p => askClaude(p, {
       signal: recapCtl.signal,
       modelTier: 'complex',
       cache: false,
@@ -21580,7 +21601,7 @@ async function writeRecap(rid, again, auto) {
     const first = await ask(prompt + RECAP_STORY);
     let body = read(first) || clean(salvageRecap(first.text, 1));
     if (!body) { const again = await ask(prompt + RECAP_STORY + RECAP_SHORTER); body = read(again) || clean(salvageRecap(again.text, 1)); }
-    for (let k = 0; k < 2 && body && body.narrative.length < RECAP_LONG; k++) {
+    for (let k = 0; k < 3 && body && body.narrative.length < RECAP_LONG; k++) {
       /* a carry-on that fails leaves the story as it stands, never the error */
       let more = null;
       try { more = await ask(prompt + recapContinue(body.narrative)); } catch (e) { if (e && e.code === 'cancelled') throw e; break; }

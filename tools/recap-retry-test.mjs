@@ -29,9 +29,11 @@ async function run(a) {
   }, a);
   const p = await ctx.newPage(); const errs = []; p.on('pageerror', e => errs.push(String(e)));
   await p.goto('file://' + S + '/retry.html'); await p.waitForTimeout(3000);
+  if (a.r1) await p.evaluate(r1 => { window.__T.recaps.r1 = { rid: 'r1', status: 'published', at: Date.now(), body: r1 }; }, a.r1);
   await p.evaluate(() => { const x = document.createElement('button'); x.dataset.act = 'recapGen'; x.dataset.a = 'r2'; document.getElementById('app').appendChild(x); x.click(); });
-  await p.waitForTimeout(1800);
-  const out = await p.evaluate(() => ({ kinds: window.__asked.map(q => /THE EXTRAS ONLY/.test(q) ? 'extras' : /CARRY THE STORY ON/.test(q) ? 'more' : /KEEP IT SHORTER/.test(q) ? 'shorter' : 'story'),
+  await p.waitForFunction(() => window.__T.recaps.r2 && window.__T.recaps.r2.body, null, { timeout: 20000 }).catch(() => {});
+  await p.waitForTimeout(300);
+  const out = await p.evaluate(() => ({ std: /THE STANDARD TO MEET: the Round 1 report/.test(window.__asked[0] || '') && /Round one paragraph seven/.test(window.__asked[0] || ''), kinds: window.__asked.map(q => /THE EXTRAS ONLY/.test(q) ? 'extras' : /CARRY THE STORY ON/.test(q) ? 'more' : /KEEP IT SHORTER/.test(q) ? 'shorter' : 'story'),
     from: (window.__asked.find(q => /CARRY THE STORY ON/.test(q)) || '').match(/from paragraph (\d+)/), body: (window.__T.recaps.r2 || {}).body || null }));
   await ctx.close();
   return { ...out, from: out.from ? +out.from[1] : null, errs };
@@ -64,6 +66,11 @@ ok('is dropped, the real paragraphs kept', [len(r), r.body && r.body.narrative.i
 console.log('\nthe carry-on fails outright');
 r = await run({ story: [{ text: cutAfter([1, 2, 3, 4, 5, 6, 7, 8, 9], 5), truncated: true }], more: ['FAIL'], extras });
 ok('the story that came back is kept, not an error', len(r), 5);
+
+console.log('\nRound 1 is the standard');
+r = await run({ story: [{ text: story([1, 2, 3, 4, 5, 6, 7, 8, 9]), truncated: false }], more: [], extras,
+  r1: { headline: 'Round one', narrative: [1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => 'Round one paragraph ' + ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'][n - 1] + ', the long read the group liked, with banter and quotes.') } });
+ok('the writer is shown the Round 1 report as the bar to meet', r.std, true);
 
 console.log('\nthe writer will not carry on');
 r = await run({ story: [{ text: cutAfter([1, 2, 3, 4, 5, 6, 7, 8, 9], 4), truncated: true }], more: [{ text: 'sorry', truncated: false }], extras });
