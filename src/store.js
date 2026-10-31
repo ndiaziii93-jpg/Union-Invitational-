@@ -182,8 +182,14 @@ export function createStore(onChange) {
      which case its copy (which holds them) stands until they land. Judged
      by version alone, a phone that had marked a hole kept its own copy for
      good and never saw the other group's marks again. */
-  const bbbPending = path => !!(db && db.pendingPaths && db.pendingPaths().some(p => p === path || p.startsWith(path + '#')));
-  const fresher = (path, doc) => (/^bbb\//.test(path) && !bbbPending(path)) || ((doc && doc.rev) || 0) >= (rev[path] || 0);
+  const bbbPending = path => !!(db && db.pendingPaths && db.pendingPaths().concat(db.busyPaths ? db.busyPaths() : []).some(p => p === path || p.startsWith(path + '#')));
+  /* A CARD IS THE SERVER'S TOO, once the server folds holes in (score_mark):
+     its copy is the whole truth unless this phone still has holes of its
+     own on the way. Before that function is in, a card goes by version. */
+  let cardsFold = false;
+  const fresher = (path, doc) => (/^bbb\//.test(path) && !bbbPending(path))
+    || (cardsFold && /^scores\//.test(path) && !bbbPending(path))
+    || ((doc && doc.rev) || 0) >= (rev[path] || 0);
 
   const notify = () => {
     keepLocal();                 // the device keeps its own copy of whatever it knows
@@ -948,7 +954,29 @@ export function createStore(onChange) {
     T.scores[key] = c;
     notify();
     if (mode === 'local') { saveLocal(); return; }
-    try { await db.doc('scores/' + key).set(c); note('card ok', key); }
+    /* only what this save changed goes: the holes, hole by hole, and the
+       card's own flags. See rawScore() in dbsupa.js. */
+    const was = prev || blankCard(), same = (x, y) => JSON.stringify(x == null ? null : x) === JSON.stringify(y == null ? null : y);
+    const cells = {}, card = {};
+    for (let h = 0; h < 18; h++) {
+      const cell = {};
+      if (!same(was.raw && was.raw[h], c.raw[h])) cell.raw = c.raw[h] == null ? null : c.raw[h];
+      for (const f of ['by', 'at', 'pu', 'marks']) { const a = (was[f] || {})[h], b = (c[f] || {})[h]; if (!same(a, b)) cell[f] = b == null ? null : b; }
+      if (Object.keys(cell).length) {
+        /* a hole goes whole: its score with who wrote it and when */
+        for (const f of ['by', 'at', 'pu', 'marks']) if (!(f in cell)) cell[f] = (c[f] || {})[h] == null ? null : c[f][h];
+        if (!('raw' in cell)) cell.raw = c.raw[h] == null ? null : c.raw[h];
+        cells[h] = cell;
+      }
+    }
+    for (const f of ['mF', 'mB', 'bb']) if (!!was[f] !== !!c[f]) card[f] = !!c[f];
+    if (!Object.keys(cells).length && !Object.keys(card).length) return;
+    try {
+      const r = db.scoreMark ? await db.scoreMark({ rid: roundId, pid, cells, card }) : 'nogate';
+      if (r === 'nogate') { cardsFold = false; await db.doc('scores/' + key).set(c); }
+      else cardsFold = true;
+      note('card ok', key);
+    }
     catch (e) { note('card FAILED', key + ' ' + (e && e.code)); status = 'error'; notify(); }
   }
 

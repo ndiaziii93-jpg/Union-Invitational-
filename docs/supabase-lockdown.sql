@@ -369,6 +369,78 @@ begin
 end $$;
 grant execute on function public.bbb_mark(text, int, text, jsonb, text, text) to anon, authenticated;
 
+-- ---- A SCORE LANDS ON ITS OWN HOLE -------------------------------------------
+-- The same arrangement as the bingo, for the cards. A card was written whole
+-- from the phone that saved it, so a phone that had not yet heard a hole
+-- written by another phone (a second ref, the commissioner's correction)
+-- put that hole back the way it remembered it: gone. So a save sends only
+-- the holes it changed, and they are folded in here, into whatever the card
+-- holds by then. The rules are write_doc's for a card: a ref's PIN while the
+-- round is open, the master PIN at any time.
+--   p_cells: {"5": {"raw": 6, "by": "s1", "at": 1730000000000, "pu": null, "marks": null}, ...}
+--   p_card:  {"mF": true} — the card's own flags, mF, mB and bb
+create or replace function public.score_mark(p_rid text, p_pid text, p_cells jsonb, p_card jsonb, p_pin text, p_who text default null)
+returns text
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare r text; st text; d jsonb; k text; f text; c jsonb; v_path text; bad text := null;
+begin
+  p_cells := coalesce(p_cells, '{}'::jsonb); p_card := coalesce(p_card, '{}'::jsonb);
+  if p_rid !~ '^[A-Za-z0-9_.-]{1,40}$' or p_pid !~ '^[A-Za-z0-9_.-]{1,40}$'
+     or jsonb_typeof(p_cells) <> 'object' or jsonb_typeof(p_card) <> 'object' then
+    return 'denied: not a score card';
+  end if;
+  for k in select jsonb_object_keys(p_cells) loop
+    if k !~ '^([0-9]|1[0-7])$' or jsonb_typeof(p_cells->k) <> 'object' then bad := k;
+    elsif jsonb_typeof(p_cells->k->'raw') = 'number' and not ((p_cells->k->>'raw')::numeric between 1 and 20) then bad := k;
+    elsif (p_cells->k) ? 'raw' and jsonb_typeof(p_cells->k->'raw') not in ('number', 'null') then bad := k;
+    end if;
+    for f in select jsonb_object_keys(p_cells->k) loop if f not in ('raw', 'by', 'at', 'pu', 'marks') then bad := k || '.' || f; end if; end loop;
+  end loop;
+  for k in select jsonb_object_keys(p_card) loop if k not in ('mF', 'mB', 'bb') or jsonb_typeof(p_card->k) <> 'boolean' then bad := k; end if; end loop;
+  if bad is not null then return 'denied: not a score card (' || bad || ')'; end if;
+  v_path := 'scores/' || p_rid || '__' || p_pid;
+  if public.is_blocked(p_who) then return 'denied: PIN not accepted: this phone is blocked for a while'; end if;
+  r := public.pin_role(p_pin, p_who);
+  if r = 'throttled' then return 'denied: Too many PIN attempts. Wait a minute and try again.'; end if;
+  if r is null then
+    perform public.log_security('denied', v_path, p_who, null, 'score with a wrong or missing role PIN');
+    return 'denied: PIN not accepted';
+  end if;
+  if r <> 'master' then
+    select doc->'rounds'->p_rid->>'state' into st from public.docs where path = 'config/tournament';
+    if st is distinct from 'open' then
+      perform public.log_security('denied', v_path, p_who, null, 'a scorer PIN (' || r || ') wrote a card while the round is ' || coalesce(st, 'not set up') || ': that needs the master PIN');
+      return 'denied: PIN not accepted: that needs the master PIN';
+    end if;
+  end if;
+  select doc into d from public.docs where path = v_path;
+  if d is null then d := '{"by":{},"at":{},"marks":{},"pu":{},"mF":false,"mB":false,"bb":false}'::jsonb; end if;
+  if jsonb_typeof(d->'raw') is distinct from 'array' then
+    d := jsonb_set(d, '{raw}', (select jsonb_agg(null::int) from generate_series(1, 18)));
+  end if;
+  for k in select jsonb_object_keys(p_cells) loop
+    c := p_cells->k;
+    if c ? 'raw' then d := jsonb_set(d, array['raw', k], c->'raw'); end if;
+    foreach f in array array['by', 'at', 'pu', 'marks'] loop
+      if c ? f then
+        if jsonb_typeof(d->f) is distinct from 'object' then d := jsonb_set(d, array[f], '{}'::jsonb); end if;
+        if jsonb_typeof(c->f) = 'null' then d := jsonb_set(d, array[f], (d->f) - k);
+        else d := jsonb_set(d, array[f], (d->f) || jsonb_build_object(k, c->f)); end if;
+      end if;
+    end loop;
+  end loop;
+  d := d || p_card;
+  -- the card's version moves on with every save, so every phone takes it as newer
+  d := jsonb_set(d, array['rev'], to_jsonb(coalesce((d->>'rev')::numeric, 0) + 1));
+  insert into public.docs (path, doc, writer) values (v_path, d, p_who)
+  on conflict (path) do update set doc = excluded.doc, writer = excluded.writer;
+  return 'ok';
+end $$;
+grant execute on function public.score_mark(text, text, jsonb, jsonb, text, text) to anon, authenticated;
+
 -- ---- a name and its PIN ----------------------------------------------------
 -- THE PLAYER PINS, FOR THE COMMISSIONER. The book checks a name's PIN
 -- against a hash and never needs the digits; the commissioner does, when

@@ -5023,7 +5023,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261031-0617';
+const BUILD = '20261031-0856';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -9017,6 +9017,10 @@ function createSupabaseDb(opts) {
   function queue(path, op, doc) {
     const q = readOutbox();
     /* a bingo mark: one entry a hole and group, later marks folding in */
+    /* a card's holes: one entry a card, later holes folding in, a later word on the same hole winning */
+    if (op === 'score') { const held = q[path]; const was = held && held.op === 'score' ? held.doc : null;
+      q[path] = { op: 'score', doc: { ...doc, cells: { ...((was && was.cells) || {}), ...doc.cells }, card: { ...((was && was.card) || {}), ...(doc.card || {}) } }, at: Date.now() };
+      writeOutbox(q); waiting.add(path); say('queued'); armRetry(); return; }
     if (op === 'bbb') { const held = q[path]; q[path] = { op: 'bbb', doc: { ...doc, cell: { ...((held && held.op === 'bbb' && held.doc.cell) || {}), ...doc.cell } }, at: Date.now() }; writeOutbox(q); waiting.add(path); say('queued'); armRetry(); return; }
     /* One entry per path. A set replaces whatever was waiting; a merge folds
        into a waiting set or merge so the order it eventually lands in cannot
@@ -9038,6 +9042,9 @@ function createSupabaseDb(opts) {
   }
   function pending() { return waiting.size; }
   function pendingPaths() { return [...waiting]; }
+  /* on the wire right now: a card being folded in is this phone's until it lands */
+  const flying = new Set();
+  function busyPaths() { return [...flying]; }
 
   /* REFUSED IS NOT OFFLINE. A write the database turns down on principle —
      its rules do not allow that path — will be turned down again on every
@@ -9075,6 +9082,7 @@ function createSupabaseDb(opts) {
         const job = q[path];
         const done = job.op === 'delete' ? await rawDelete(path, true)
                    : job.op === 'bbb' ? await rawBbb(job.doc, true)
+                   : job.op === 'score' ? await rawScore(job.doc, true)
                                       : await rawWrite(path, job.doc, job.op === 'merge', true);
         if (done || done === null) {
           unqueue(path, job.at);
@@ -9170,6 +9178,45 @@ function createSupabaseDb(opts) {
       say('offline');
       return false;
     }
+  }
+
+  /* A CARD'S HOLES, ON THEIR OWN. The same arrangement as the bingo: the
+     holes this save changed are folded into the card the server holds, so
+     a phone that had not yet heard another phone's holes cannot put them
+     back the way it remembered them. 'nogate' when the server has no
+     score_mark yet: the caller writes the card whole, as before. */
+  function scoreByRow(m, fromOutbox) {
+    const path = 'scores/' + m.rid + '__' + m.pid;
+    const held = ((cache.get(path) || {}).doc) || { raw: Array(18).fill(null), by: {}, at: {}, marks: {}, pu: {}, mF: false, mB: false, bb: false };
+    const d = JSON.parse(JSON.stringify(held));
+    d.raw = Array.isArray(d.raw) ? d.raw : Array(18).fill(null);
+    for (const [k, c] of Object.entries(m.cells || {})) {
+      if ('raw' in c) d.raw[+k] = c.raw;
+      for (const f of ['by', 'at', 'pu', 'marks']) if (f in c) { d[f] = d[f] || {}; if (c[f] == null) delete d[f][k]; else d[f][k] = c[f]; }
+    }
+    Object.assign(d, m.card || {});
+    d.rev = (d.rev || 0) + 1;
+    return rawWrite(path, d, false, fromOutbox);
+  }
+  async function rawScore(m, fromOutbox) {
+    const path = 'scores/' + m.rid + '__' + m.pid, key = path + '#score';
+    flying.add(key);
+    try {
+      await gate(bound(sb.rpc('score_mark', { p_rid: m.rid, p_pid: m.pid, p_cells: m.cells || {}, p_card: m.card || {}, p_pin: pin(), p_who: deviceId || null })));
+      flying.delete(key);
+      say('saved');
+      /* read the card back: it now holds this phone's holes and everybody else's */
+      pull({ eq: path }).then(rows => { if (rows.length) absorb(rows[0]); }).catch(() => {});
+      return true;
+    } catch (e) {
+      flying.delete(key);
+      if (noGate(e) || /not a score card/.test(String(e && e.message || ''))) return fromOutbox ? scoreByRow(m, true) : 'nogate';
+      if (denied(e)) { if (!fromOutbox) queue(key, 'score', m); say('denied', path); return fromOutbox ? 'denied' : false; }
+      if (refused(e)) { say('refused'); return fromOutbox ? null : false; }
+      if (!fromOutbox) queue(key, 'score', m);
+      say('offline');
+      return false;
+    } finally { flying.delete(key); }
   }
 
   async function rawDelete(path, fromOutbox) {
@@ -9278,6 +9325,7 @@ function createSupabaseDb(opts) {
     kind: 'supabase',
     get pending() { return pending(); },
     pendingPaths,
+    busyPaths,
     get live() { return live; },
 
     /** The role a PIN proves, asked of the server: 'master', 's1', 's2' or null. Throws with no signal. */
@@ -9357,6 +9405,8 @@ function createSupabaseDb(opts) {
 
     /** One bingo mark: {rid, h, gid, cell}. true landed, false waits in the outbox, 'nogate' means write the row instead. */
     bbbMark(m) { return rawBbb(m, false); },
+    /** One card's changed holes: {rid, pid, cells: {hole: {raw, by, at, pu, marks}}, card: {mF, mB, bb}}. */
+    scoreMark(m) { return rawScore(m, false); },
     doc(path) {
       return {
         async get() {
@@ -9678,8 +9728,14 @@ function createStore(onChange) {
      which case its copy (which holds them) stands until they land. Judged
      by version alone, a phone that had marked a hole kept its own copy for
      good and never saw the other group's marks again. */
-  const bbbPending = path => !!(db && db.pendingPaths && db.pendingPaths().some(p => p === path || p.startsWith(path + '#')));
-  const fresher = (path, doc) => (/^bbb\//.test(path) && !bbbPending(path)) || ((doc && doc.rev) || 0) >= (rev[path] || 0);
+  const bbbPending = path => !!(db && db.pendingPaths && db.pendingPaths().concat(db.busyPaths ? db.busyPaths() : []).some(p => p === path || p.startsWith(path + '#')));
+  /* A CARD IS THE SERVER'S TOO, once the server folds holes in (score_mark):
+     its copy is the whole truth unless this phone still has holes of its
+     own on the way. Before that function is in, a card goes by version. */
+  let cardsFold = false;
+  const fresher = (path, doc) => (/^bbb\//.test(path) && !bbbPending(path))
+    || (cardsFold && /^scores\//.test(path) && !bbbPending(path))
+    || ((doc && doc.rev) || 0) >= (rev[path] || 0);
 
   const notify = () => {
     keepLocal();                 // the device keeps its own copy of whatever it knows
@@ -10444,7 +10500,29 @@ function createStore(onChange) {
     T.scores[key] = c;
     notify();
     if (mode === 'local') { saveLocal(); return; }
-    try { await db.doc('scores/' + key).set(c); note('card ok', key); }
+    /* only what this save changed goes: the holes, hole by hole, and the
+       card's own flags. See rawScore() in dbsupa.js. */
+    const was = prev || blankCard(), same = (x, y) => JSON.stringify(x == null ? null : x) === JSON.stringify(y == null ? null : y);
+    const cells = {}, card = {};
+    for (let h = 0; h < 18; h++) {
+      const cell = {};
+      if (!same(was.raw && was.raw[h], c.raw[h])) cell.raw = c.raw[h] == null ? null : c.raw[h];
+      for (const f of ['by', 'at', 'pu', 'marks']) { const a = (was[f] || {})[h], b = (c[f] || {})[h]; if (!same(a, b)) cell[f] = b == null ? null : b; }
+      if (Object.keys(cell).length) {
+        /* a hole goes whole: its score with who wrote it and when */
+        for (const f of ['by', 'at', 'pu', 'marks']) if (!(f in cell)) cell[f] = (c[f] || {})[h] == null ? null : c[f][h];
+        if (!('raw' in cell)) cell.raw = c.raw[h] == null ? null : c.raw[h];
+        cells[h] = cell;
+      }
+    }
+    for (const f of ['mF', 'mB', 'bb']) if (!!was[f] !== !!c[f]) card[f] = !!c[f];
+    if (!Object.keys(cells).length && !Object.keys(card).length) return;
+    try {
+      const r = db.scoreMark ? await db.scoreMark({ rid: roundId, pid, cells, card }) : 'nogate';
+      if (r === 'nogate') { cardsFold = false; await db.doc('scores/' + key).set(c); }
+      else cardsFold = true;
+      note('card ok', key);
+    }
     catch (e) { note('card FAILED', key + ' ' + (e && e.code)); status = 'error'; notify(); }
   }
 

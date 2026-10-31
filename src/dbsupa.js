@@ -177,6 +177,10 @@ export function createSupabaseDb(opts) {
   function queue(path, op, doc) {
     const q = readOutbox();
     /* a bingo mark: one entry a hole and group, later marks folding in */
+    /* a card's holes: one entry a card, later holes folding in, a later word on the same hole winning */
+    if (op === 'score') { const held = q[path]; const was = held && held.op === 'score' ? held.doc : null;
+      q[path] = { op: 'score', doc: { ...doc, cells: { ...((was && was.cells) || {}), ...doc.cells }, card: { ...((was && was.card) || {}), ...(doc.card || {}) } }, at: Date.now() };
+      writeOutbox(q); waiting.add(path); say('queued'); armRetry(); return; }
     if (op === 'bbb') { const held = q[path]; q[path] = { op: 'bbb', doc: { ...doc, cell: { ...((held && held.op === 'bbb' && held.doc.cell) || {}), ...doc.cell } }, at: Date.now() }; writeOutbox(q); waiting.add(path); say('queued'); armRetry(); return; }
     /* One entry per path. A set replaces whatever was waiting; a merge folds
        into a waiting set or merge so the order it eventually lands in cannot
@@ -198,6 +202,9 @@ export function createSupabaseDb(opts) {
   }
   function pending() { return waiting.size; }
   function pendingPaths() { return [...waiting]; }
+  /* on the wire right now: a card being folded in is this phone's until it lands */
+  const flying = new Set();
+  function busyPaths() { return [...flying]; }
 
   /* REFUSED IS NOT OFFLINE. A write the database turns down on principle —
      its rules do not allow that path — will be turned down again on every
@@ -235,6 +242,7 @@ export function createSupabaseDb(opts) {
         const job = q[path];
         const done = job.op === 'delete' ? await rawDelete(path, true)
                    : job.op === 'bbb' ? await rawBbb(job.doc, true)
+                   : job.op === 'score' ? await rawScore(job.doc, true)
                                       : await rawWrite(path, job.doc, job.op === 'merge', true);
         if (done || done === null) {
           unqueue(path, job.at);
@@ -330,6 +338,45 @@ export function createSupabaseDb(opts) {
       say('offline');
       return false;
     }
+  }
+
+  /* A CARD'S HOLES, ON THEIR OWN. The same arrangement as the bingo: the
+     holes this save changed are folded into the card the server holds, so
+     a phone that had not yet heard another phone's holes cannot put them
+     back the way it remembered them. 'nogate' when the server has no
+     score_mark yet: the caller writes the card whole, as before. */
+  function scoreByRow(m, fromOutbox) {
+    const path = 'scores/' + m.rid + '__' + m.pid;
+    const held = ((cache.get(path) || {}).doc) || { raw: Array(18).fill(null), by: {}, at: {}, marks: {}, pu: {}, mF: false, mB: false, bb: false };
+    const d = JSON.parse(JSON.stringify(held));
+    d.raw = Array.isArray(d.raw) ? d.raw : Array(18).fill(null);
+    for (const [k, c] of Object.entries(m.cells || {})) {
+      if ('raw' in c) d.raw[+k] = c.raw;
+      for (const f of ['by', 'at', 'pu', 'marks']) if (f in c) { d[f] = d[f] || {}; if (c[f] == null) delete d[f][k]; else d[f][k] = c[f]; }
+    }
+    Object.assign(d, m.card || {});
+    d.rev = (d.rev || 0) + 1;
+    return rawWrite(path, d, false, fromOutbox);
+  }
+  async function rawScore(m, fromOutbox) {
+    const path = 'scores/' + m.rid + '__' + m.pid, key = path + '#score';
+    flying.add(key);
+    try {
+      await gate(bound(sb.rpc('score_mark', { p_rid: m.rid, p_pid: m.pid, p_cells: m.cells || {}, p_card: m.card || {}, p_pin: pin(), p_who: deviceId || null })));
+      flying.delete(key);
+      say('saved');
+      /* read the card back: it now holds this phone's holes and everybody else's */
+      pull({ eq: path }).then(rows => { if (rows.length) absorb(rows[0]); }).catch(() => {});
+      return true;
+    } catch (e) {
+      flying.delete(key);
+      if (noGate(e) || /not a score card/.test(String(e && e.message || ''))) return fromOutbox ? scoreByRow(m, true) : 'nogate';
+      if (denied(e)) { if (!fromOutbox) queue(key, 'score', m); say('denied', path); return fromOutbox ? 'denied' : false; }
+      if (refused(e)) { say('refused'); return fromOutbox ? null : false; }
+      if (!fromOutbox) queue(key, 'score', m);
+      say('offline');
+      return false;
+    } finally { flying.delete(key); }
   }
 
   async function rawDelete(path, fromOutbox) {
@@ -438,6 +485,7 @@ export function createSupabaseDb(opts) {
     kind: 'supabase',
     get pending() { return pending(); },
     pendingPaths,
+    busyPaths,
     get live() { return live; },
 
     /** The role a PIN proves, asked of the server: 'master', 's1', 's2' or null. Throws with no signal. */
@@ -517,6 +565,8 @@ export function createSupabaseDb(opts) {
 
     /** One bingo mark: {rid, h, gid, cell}. true landed, false waits in the outbox, 'nogate' means write the row instead. */
     bbbMark(m) { return rawBbb(m, false); },
+    /** One card's changed holes: {rid, pid, cells: {hole: {raw, by, at, pu, marks}}, card: {mF, mB, bb}}. */
+    scoreMark(m) { return rawScore(m, false); },
     doc(path) {
       return {
         async get() {
