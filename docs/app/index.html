@@ -4974,6 +4974,30 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 .reccup .rc-r.uk{border-color:var(--uk);color:var(--uk)}
 .reccup .rc-r.usa{border-color:var(--usa);color:var(--usa)}
 
+/* COUNT MODE: the ref counts each golfer's shots on four big tiles */
+.cmode{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--sunk);border-radius:12px;padding:3px;margin:0 0 10px}
+.cmode button{border-radius:9px;padding:9px 8px;text-align:center;font-weight:700;color:var(--turf);min-height:40px}
+.cmode button.on{background:var(--page);color:var(--ink);box-shadow:0 1px 3px rgba(16,22,17,.18)}
+.chint{margin:0 0 10px;font-size:14px;color:var(--turf)}
+.cgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.ctile{position:relative;border-radius:18px;min-height:208px;padding:12px 12px 10px;background:var(--page);
+  box-shadow:0 0 0 .5px var(--shadow),0 2px 0 var(--hair);display:flex;flex-direction:column;cursor:pointer;
+  -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.ctile:active:not(.in){transform:scale(.98)}
+.ctile .tn{font-size:17px;font-weight:700;line-height:1.15;padding-right:36px}
+.ctile .ts{font-size:12px;color:var(--turf)}
+.ctile .big{flex:1;display:grid;place-items:center;font-size:64px;font-weight:800;line-height:1;color:var(--ink)}
+.ctile .tap{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);font-weight:800;text-align:center}
+.ctile .und{position:absolute;top:8px;right:8px;width:36px;height:36px;border-radius:50%;font-size:18px;font-weight:700;
+  color:var(--turf);background:var(--paper);box-shadow:inset 0 0 0 1px var(--rule);display:grid;place-items:center}
+.ctile .cin{margin-top:6px;font-size:13px;font-weight:800;border-radius:10px;padding:9px;text-align:center;min-height:40px;
+  background:var(--paper);box-shadow:inset 0 0 0 1px var(--rule);color:var(--ink)}
+.ctile.in{background:var(--pine);color:var(--onpine);cursor:default}
+.ctile.in .tn{color:var(--onpine)} .ctile.in .ts,.ctile.in .tap{color:var(--sage-up)} .ctile.in .big{color:var(--gold-up)}
+.ctile.in .cin{background:var(--green);color:#fff;box-shadow:none}
+.ctile.in .und{background:transparent;color:var(--sage-up);box-shadow:inset 0 0 0 1px var(--sage-up)}
+.btn.cfoot{display:block;width:100%;margin-top:12px;min-height:48px;font-size:16px}
+
 </style>
 <div id="app"></div>
 <!-- The crest, and the opening it pays for, ahead of everything else. A few
@@ -5100,7 +5124,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261031-0348';
+const BUILD = '20261031-0617';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -10963,6 +10987,7 @@ const UI = {
   setupSeen: false,
   entrySeen: false,
   entryMode: 'group',   // 'group' — scoring for everybody · 'mine' — my own round
+  countMode: (() => { try { return localStorage.getItem('union-invitational:countmode') === '1'; } catch (e) { return false; } })(),
   me: null,             // which golfer this phone belongs to, for the My Round lane
   mineHole: 0,
   mineDraft: null,      // {rid, h, v} — a line being typed, held here so a
@@ -14698,6 +14723,53 @@ function draftFor(rid, h) {
 const ordinal = n => n + ({ 1: 'st', 2: 'nd', 3: 'rd' }[(n % 100 > 10 && n % 100 < 14) ? 0 : n % 10] || 'th');
 /* The rounds a triple asks in: Round 1 was played before the rule and stands as scored. */
 const PICKUP_ROUNDS = ['r2', 'r3'];
+
+/* ---- COUNTING SHOTS ----
+   A ref who is also playing cannot hold four running totals in their head
+   for five hundred yards. Count mode turns the group into four big tiles:
+   a tap on a golfer is a shot, In the hole puts the count into the hole's
+   unsaved scores exactly as the keypad would, and Save hole does the rest.
+   The counts live on this phone only, so they need no signal and survive
+   the phone locking or the page reloading; they are thrown away once the
+   hole is saved, after which the card is the truth. */
+const COUNT_KEY = 'union-invitational:count';
+let COUNTS = (() => { try { return JSON.parse(localStorage.getItem(COUNT_KEY) || '{}') || {}; } catch (e) { return {}; } })();
+function countOf(rid, h) { const k = rid + '|' + h; return COUNTS[k] || (COUNTS[k] = { n: {}, in: {}, pu: {}, at: Date.now() }); }
+function keepCounts(rid, h) {
+  if (rid != null) countOf(rid, h).at = Date.now();
+  for (const k of Object.keys(COUNTS).sort((a, b) => (COUNTS[b].at || 0) - (COUNTS[a].at || 0)).slice(20)) delete COUNTS[k];
+  try { localStorage.setItem(COUNT_KEY, JSON.stringify(COUNTS)); } catch (e) { /* full or blocked: the count still holds for this visit */ }
+}
+/** Whether a golfer is done on this hole, and on what: a count holed out,
+ *  or a score already on the card that nobody has started recounting. */
+function countState(rid, h, pid) {
+  const cs = countOf(rid, h), fixed = grossOf(rid, pid, h);
+  const counting = pid in cs.n;
+  const inn = counting ? !!cs.in[pid] : fixed != null;
+  return { cs, inn, n: counting ? cs.n[pid] : (fixed == null ? 0 : fixed), counting };
+}
+/* A count holed out but not yet saved goes back into the hole's draft if
+   the page was reloaded under it. */
+function restoreCounts(rid, h, list, cap) {
+  const cs = COUNTS[rid + '|' + h];
+  if (!cs) return;
+  for (const g of list) {
+    if (!cs.in[g.id] || !cs.n[g.id]) continue;
+    const v = Math.min(cs.n[g.id], cap);
+    const d = UI.draft;
+    if (d && d.rid === rid && d.hole === h && g.id in d.strokes) continue;
+    const c = E.card(T, rid, g.id);
+    if (c && c.raw[h] === v) continue;
+    const dr = draftFor(rid, h); dr.strokes[g.id] = v; dr.pu[g.id] = !!cs.pu[g.id];
+  }
+}
+function countUnhole(rid, h, pid) {
+  const st = countState(rid, h, pid);
+  if (!st.counting) st.cs.n[pid] = st.n;
+  st.cs.in[pid] = false; delete st.cs.pu[pid];
+  const d = UI.draft;
+  if (d && d.rid === rid && d.hole === h) { delete d.strokes[pid]; delete d.pu[pid]; }
+}
 function pickupHtml() {
   const md = UI.modal, hole = E.courseOf(T, md.rid).holes[md.h], who = nameOf(md.pid);
   const first = who.split(' ')[0];
@@ -15331,6 +15403,34 @@ function scrEntry() {
     </div>`;
   })() : '';
 
+  /* COUNT MODE: the group as four big tiles. See countOf(). */
+  const counting = editable && UI.countMode;
+  const modeSw = editable ? `<div class="cmode" role="tablist" aria-label="How to score this hole">
+    <button class="${counting ? '' : 'on'}" data-act="countMode" data-a="off" role="tab" aria-selected="${!counting}">Scores</button>
+    <button class="${counting ? 'on' : ''}" data-act="countMode" data-a="on" role="tab" aria-selected="${counting}">Count shots</button></div>` : '';
+  if (counting) restoreCounts(rid, h, list, cap);
+  const countGrid = counting ? (() => {
+    const st = list.map(g => ({ g, ...countState(rid, h, g.id) }));
+    const pu = id => { const d = UI.draft, c = E.card(T, rid, id);
+      return d && d.rid === rid && d.hole === h && id in d.pu ? !!d.pu[id] : !!(c && c.pu && c.pu[h]); };
+    const done = st.filter(x => x.inn).length;
+    return `<p class="chint">Tap a golfer each time they hit. <b>In the hole</b> when they’re done, then save the hole.</p>
+    <div class="cgrid">${st.map(({ g, inn, n }) => {
+      const sh = E.strokesFor(g.band, hole.si);
+      return `<div class="ctile${inn ? ' in' : ''}"${inn ? '' : ` data-act="cnt" data-a="${g.id}" role="button" tabindex="0"`}
+        aria-label="${esc(g.display)}: ${n} shot${n === 1 ? '' : 's'}${inn ? ', done' : '. Tap for a shot'}">
+        <span class="tn">${esc(g.display)}</span>
+        <span class="ts">${sh ? '+' + sh + ' here' : 'no shots here'}${!inn && n >= cap ? ' · at the cap' : ''}</span>
+        <span class="big num">${n}</span>
+        <span class="tap">${inn ? (n >= cap && pu(g.id) ? 'Picked up' : 'In the hole') : n ? 'Tap for a shot' : 'Tap when they hit'}</span>
+        ${n || inn ? `<button class="und" data-act="cntUndo" data-a="${g.id}" aria-label="${inn ? 'Back to counting for ' : 'One less for '}${esc(g.display)}">↺</button>` : ''}
+        <button class="cin" data-act="cntIn" data-a="${g.id}">${inn ? '✓ ' + (n >= cap && pu(g.id) ? 'Picked up' : 'Holed') + ' · ' + n : n >= cap ? 'Pick up at ' + cap : 'In the hole'}</button>
+      </div>`;
+    }).join('')}</div>
+    <button class="btn cfoot" data-act="saveHole"${done === st.length && dirty ? '' : ' disabled'}>${
+      done < st.length ? done + ' of ' + st.length + ' in the hole' : dirty ? 'Save hole ' + hole.n : 'Hole ' + hole.n + ' is on the card'}</button>`;
+  })() : '';
+
   const people = sel => `<option value="">Nobody yet</option>` + E.golfers(T).map(g =>
     `<option value="${g.id}"${sel === g.id ? ' selected' : ''}>${esc(g.display)}</option>`).join('');
   /* Bingo Bango Bongo is played inside the group, so it can only ever be won
@@ -15449,9 +15549,9 @@ function scrEntry() {
         rows follow; on anything wider the rows take the page and the hole
         stands beside them in a card that stays put while they scroll. The
         same markup, placed by the stylesheet. */ ''}
-  ${keypad}
+  ${counting ? '' : keypad}
   <div class="entrygrid">
-    <div class="egl">${rows || `<p class="empty">No golfers in this group.</p>`}${rulingLog(rid)}</div>
+    <div class="egl">${modeSw}${counting ? countGrid : rows || `<p class="empty">No golfers in this group.</p>`}${rulingLog(rid)}</div>
     <div class="egr">
       ${holePlate(rid, h, hole, course, cap, list, slotPlayers, { cam: true })}
       <div class="side-b" data-reveal="bbb">
@@ -20355,10 +20455,40 @@ function onClick(e) {
       { const dr = draftFor(rid, UI.entryHole); dr.strokes[a] = null; dr.pu[a] = false; }
       break;
     }
+    case 'countMode': {
+      UI.countMode = a === 'on'; UI.pad = null;
+      try { localStorage.setItem('union-invitational:countmode', UI.countMode ? '1' : '0'); } catch (e) { /* this visit only */ }
+      break;
+    }
+    case 'cnt': case 'cntUndo': case 'cntIn': {
+      if (!canEdit() || E.roundCfg(T, rid).state !== 'open') return;
+      if (cardClosed(rid) || closedFor(rid, a)) return;
+      const h = UI.entryHole;
+      const cap = E.capFor(E.courseOf(T, rid).holes[h].par, T.config.capOver);
+      const st = countState(rid, h, a);
+      if (act === 'cnt') {
+        if (st.inn) return;                                  // done on this hole: ↺ to recount
+        st.cs.n[a] = Math.min(cap, (st.counting ? st.n : 0) + 1);
+      } else if (act === 'cntUndo') {
+        if (st.inn) countUnhole(rid, h, a); else st.cs.n[a] = Math.max(0, st.n - 1);
+      } else if (st.inn) countUnhole(rid, h, a);
+      else {
+        if (!st.n) { keepCounts(rid, h); flash('Count their shots first, then tap In the hole.'); return; }
+        st.cs.in[a] = true;
+        const dr = draftFor(rid, h);
+        dr.strokes[a] = Math.min(st.n, cap);
+        /* a triple asks, as it does on the keypad */
+        if (st.n >= cap && PICKUP_ROUNDS.includes(rid)) { keepCounts(rid, h); UI.modal = { kind: 'pickup', rid, h, pid: a, v: cap, next: null, fromCount: true }; break; }
+        dr.pu[a] = false;
+      }
+      keepCounts(rid, h);
+      break;
+    }
     case 'pickupAns': {
       const md = UI.modal; if (!md || md.kind !== 'pickup') return;
       const dr = draftFor(md.rid, md.h);
       dr.pu[md.pid] = a === 'pu';
+      if (md.fromCount) { countOf(md.rid, md.h).pu[md.pid] = a === 'pu'; keepCounts(md.rid, md.h); }
       UI.modal = null;
       UI.pad = md.next;
       break;
@@ -20475,6 +20605,7 @@ function onClick(e) {
       askPin('Save hole ' + (h + 1), 'Enter your PIN to record these scores. Only saved holes reach the leaderboards.',
         'Save hole', role => {
           commitDraft(role);
+          if (COUNTS[rid + '|' + h]) { delete COUNTS[rid + '|' + h]; keepCounts(); }
           // walk on: a scorer saves a hole because the group has finished it
           /* Walk on to the next hole, but stay exactly where the scorer is
              looking. Being thrown back to the masthead after every hole is
@@ -21260,7 +21391,7 @@ __m_app.boot();
 /* Register the worker that makes the book work with no signal. It is the
    whole point of installing it: Belek is five hours of walking and everyone
    is roaming. A failure here must never stop the page loading. */
-var BOOK_BUILD = '20261031-0348';
+var BOOK_BUILD = '20261031-0617';
 var swReg = null;
 /* the book is never shown inside somebody else's page, where a tap could be
    aimed at a button they have put under the finger */
