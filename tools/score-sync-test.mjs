@@ -16,7 +16,7 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
 
 /* the server, as the SQL folds a card */
 const rows = new Map(); const handlers = [];
-let quiet = false, down = false, hasFold = true;
+let quiet = false, down = false, hasFold = true, deny = false;
 const stamp = () => new Date().toISOString();
 const echo = path => { if (quiet) return; const r = rows.get(path); handlers.forEach(h => h({ eventType: 'UPDATE', new: r })); };
 const offline = () => ({ data: null, error: { message: 'Failed to fetch' } });
@@ -40,7 +40,7 @@ function client() {
     from: () => ({ ...q(), upsert: async r => { if (down) return offline(); rows.set(r.path, { ...r, updated_at: stamp() }); echo(r.path); return { error: null }; }, delete: () => ({ eq: async () => ({ error: null }) }) }),
     async rpc(name, a) {
       if (down) return offline();
-      if (name === 'score_mark' && hasFold) { fold(a); return { data: 'ok', error: null }; }
+      if (name === 'score_mark' && hasFold) { if (deny) return { data: 'denied: PIN not accepted', error: null }; fold(a); return { data: 'ok', error: null }; }
       if (name === 'write_doc') { rows.set(a.p_path, { path: a.p_path, doc: a.p_doc, updated_at: stamp() }); echo(a.p_path); return { data: 'ok', error: null }; }
       if (name === 'verify_pin') return { data: 'master', error: null };
       return { data: null, error: { code: 'PGRST202', message: 'could not find the function' } };
@@ -87,6 +87,27 @@ for (let i = 0; i < 40 && b.T && JSON.parse(mem.get([...mem.keys()].find(k => /o
 ok('when the signal is back they land, beside the hole saved meanwhile', hole(rows.get('scores/r2__g1').doc.raw, 6), [5, 3, 8, 4, 6, 5]);
 await wait(300);
 ok('and both phones hold the lot', [hole(raw(a), 6), hole(raw(b), 6)], [[5, 3, 8, 4, 6, 5], [5, 3, 8, 4, 6, 5]]);
+
+console.log('\nthe server turns a save down, and the app is closed and opened again');
+deny = true;
+await b.writeCard('r2', 'g1', c => { c.raw[6] = 7; }); await wait(200);
+const box = () => JSON.parse(mem.get([...mem.keys()].find(k => /outbox/.test(k))) || '{}');
+ok('the hole waits on the phone', !!box()['scores/r2__g1#score'], true);
+const c2 = createStore(() => {}); c2.pin = '123456';
+await c2.connect(); await wait(600);
+ok('opened again, the phone still shows the hole that is waiting', hole(raw(c2), 7), [5, 3, 8, 4, 6, 5, 7]);
+await c2.writeCard('r2', 'g9', c => { c.raw[0] = 4; }); await wait(400);
+ok('and a refusal on the way out keeps it in the outbox, not thrown away', !!box()['scores/r2__g1#score'], true);
+deny = false;
+await c2.writeCard('r2', 'g9', c => { c.raw[1] = 4; }); await wait(300);
+for (let i = 0; i < 40 && box()['scores/r2__g1#score']; i++) await wait(250);
+ok('once the PIN is accepted it lands', rows.get('scores/r2__g1').doc.raw[6], 7);
+deny = true;
+await c2.writeCard('r2', 'g7', c => { c.raw[0] = 6; c.raw[1] = 5; }); await wait(200);
+const c3 = createStore(() => {}); c3.pin = '123456';
+await c3.connect(); await wait(600);
+ok('a card the server has never had still shows its waiting holes when opened again', c3.T.scores.r2__g7 ? hole(c3.T.scores.r2__g7.raw, 3) : null, [6, 5, null]);
+deny = false;
 
 console.log('\na server without score_mark yet');
 hasFold = false;

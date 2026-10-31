@@ -205,6 +205,8 @@ export function createSupabaseDb(opts) {
   /* on the wire right now: a card being folded in is this phone's until it lands */
   const flying = new Set();
   function busyPaths() { return [...flying]; }
+  /** A card's holes still waiting in the outbox, merged: {cells, card}, or null. */
+  function waitingCells(path) { const j = readOutbox()[path + '#score']; return j && j.op === 'score' ? j.doc : null; }
 
   /* REFUSED IS NOT OFFLINE. A write the database turns down on principle —
      its rules do not allow that path — will be turned down again on every
@@ -244,14 +246,16 @@ export function createSupabaseDb(opts) {
                    : job.op === 'bbb' ? await rawBbb(job.doc, true)
                    : job.op === 'score' ? await rawScore(job.doc, true)
                                       : await rawWrite(path, job.doc, job.op === 'merge', true);
+        /* 'denied' first: it is a word, and a word is truthy, so it used to
+           read as landed and the write was thrown out of the outbox */
+        if (done === 'denied') continue;    // waits for a PIN, not for a signal: the rest of the queue goes
         if (done || done === null) {
           unqueue(path, job.at);
           if (done) say('landed', path);
           /* turned down on the way out: the screen has been showing a write
              the book will never hold, so read what the book does hold */
           else pull({ eq: path }).then(rows => { if (rows.length) absorb(rows[0]); else forget(path); }).catch(() => {});
-        } else if (done === 'denied') { continue; }    // waits for a PIN, not for a signal: the rest of the queue goes
-        else { stuck = true; break; }
+        } else { stuck = true; break; }
       }
       if (stuck) { retryIn = Math.min(retryIn * 2, RETRY_MAX_MS); armRetry(); }
       else { retryIn = RETRY_MS; say('flushed'); }
@@ -365,8 +369,9 @@ export function createSupabaseDb(opts) {
       await gate(bound(sb.rpc('score_mark', { p_rid: m.rid, p_pid: m.pid, p_cells: m.cells || {}, p_card: m.card || {}, p_pin: pin(), p_who: deviceId || null })));
       flying.delete(key);
       say('saved');
-      /* read the card back: it now holds this phone's holes and everybody else's */
-      pull({ eq: path }).then(rows => { if (rows.length) absorb(rows[0]); }).catch(() => {});
+      /* read the card back: it now holds this phone's holes and everybody
+         else's. A moment later, so the outbox has let go of them first. */
+      setTimeout(() => pull({ eq: path }).then(rows => { if (rows.length) absorb(rows[0]); }).catch(() => {}), 60);
       return true;
     } catch (e) {
       flying.delete(key);
@@ -486,6 +491,7 @@ export function createSupabaseDb(opts) {
     get pending() { return pending(); },
     pendingPaths,
     busyPaths,
+    waitingCells,
     get live() { return live; },
 
     /** The role a PIN proves, asked of the server: 'master', 's1', 's2' or null. Throws with no signal. */

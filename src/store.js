@@ -187,9 +187,14 @@ export function createStore(onChange) {
      its copy is the whole truth unless this phone still has holes of its
      own on the way. Before that function is in, a card goes by version. */
   let cardsFold = false;
-  const fresher = (path, doc) => (/^bbb\//.test(path) && !bbbPending(path))
+  /* A card or a bingo row with this phone's own holes still on the way is
+     the phone's to show until they land. The versions are not kept across
+     a reload, so judged by version alone the server's copy (without them)
+     won on reopening and the holes went off the screen while they waited. */
+  const fresher = (path, doc) => !(/^(scores|bbb)\//.test(path) && bbbPending(path)) && (
+    (/^bbb\//.test(path))
     || (cardsFold && /^scores\//.test(path) && !bbbPending(path))
-    || ((doc && doc.rev) || 0) >= (rev[path] || 0);
+    || ((doc && doc.rev) || 0) >= (rev[path] || 0));
 
   const notify = () => {
     keepLocal();                 // the device keeps its own copy of whatever it knows
@@ -607,11 +612,27 @@ export function createStore(onChange) {
     catch (e) { return { ...v }; }
   }
 
+  /* The server's card with this phone's waiting holes laid over it: what
+     the card will be once they land, and so what the screen should say. */
+  function withWaiting(path, doc) {
+    const w = /^scores\//.test(path) && db && db.waitingCells ? db.waitingCells(path) : null;
+    if (!w || !doc) return null;
+    const d = { ...blankCard(), ...doc, raw: [...(doc.raw || Array(18).fill(null))] };
+    for (const f of ['by', 'at', 'pu', 'marks']) d[f] = { ...(doc[f] || {}) };
+    for (const [k, c] of Object.entries(w.cells || {})) {
+      if ('raw' in c) d.raw[+k] = c.raw;
+      for (const f of ['by', 'at', 'pu', 'marks']) if (f in c) { if (c[f] == null) delete d[f][k]; else d[f][k] = c[f]; }
+    }
+    return Object.assign(d, w.card || {});
+  }
+
   function takeRows(coll, docs, local) {
     const out = [];
     for (const d of docs) {
       const path = coll + '/' + d.id;
       const doc = body(d);
+      const over = withWaiting(path, doc);
+      if (over) { out.push(over); continue; }
       const mine = local.find(x => x.id === d.id);
       if (mine && !fresher(path, doc)) { out.push(mine); continue; }
       rev[path] = (doc && doc.rev) || 0;
@@ -629,11 +650,20 @@ export function createStore(onChange) {
       seen.add(d.id);
       const path = coll + '/' + d.id;
       const doc = body(d);
-      if (fresher(path, doc)) { rev[path] = (doc && doc.rev) || 0; next[d.id] = doc; }
+      const over = withWaiting(path, doc);
+      if (over) { next[d.id] = over; continue; }
+      if (fresher(path, doc) || local[d.id] === undefined) { rev[path] = (doc && doc.rev) || 0; next[d.id] = doc; }
       else next[d.id] = local[d.id];
     }
     for (const id of Object.keys(local)) {
-      if (!seen.has(id) && rev[coll + '/' + id]) next[id] = local[id]; // ours, not echoed yet
+      if (seen.has(id)) continue;
+      if (rev[coll + '/' + id]) next[id] = local[id];                    // ours, not echoed yet
+      else if (bbbPending(coll + '/' + id)) next[id] = withWaiting(coll + '/' + id, local[id] || blankCard()) || local[id]; // still on its way
+    }
+    /* a card the server has never had, whose first holes are still waiting */
+    if (coll === 'scores' && db && db.pendingPaths) for (const p of db.pendingPaths()) {
+      const m = /^scores\/(.+)#score$/.exec(p);
+      if (m && !(m[1] in next)) { const c = withWaiting('scores/' + m[1], blankCard()); if (c) next[m[1]] = c; }
     }
     return next;
   }
