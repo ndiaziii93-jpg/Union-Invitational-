@@ -33,7 +33,8 @@ await score(who, 7);
 ok('the sheet comes up and the pad waits', [await p.locator('.pumodal').count(), await p.evaluate(() => window.__UI.pad)], [1, null]);
 ok('it names the hole and the score', (await p.locator('.pumodal .mbanner').innerText()).replace(/\s+/g, ' '), /^Triple bogey on the 6th/.test((await p.locator('.pumodal .mbanner').innerText())) ? (await p.locator('.pumodal .mbanner').innerText()).replace(/\s+/g, ' ') : 'Triple bogey on the 6th …');
 await p.locator('.pumodal [data-act="pickupAns"][data-a="pu"]').click(); await p.waitForTimeout(300);
-ok('Picked up closes it and the pad walks on', [await p.locator('.pumodal').count(), (await p.evaluate(() => window.__UI.pad)) !== null], [0, true]);
+ok('Picked up closes it, and the pad too: the ref picks who is next', [await p.locator('.pumodal').count(), await p.evaluate(() => window.__UI.pad)], [0, null]);
+ok('the next golfer without a score is lit up for them', await p.locator('.prow.nextup').count(), 1);
 await save();
 ok('the card holds the 7, marked picked up', await card('r2', who), { raw: 7, pu: true });
 

@@ -397,7 +397,7 @@ begin
     elsif jsonb_typeof(p_cells->k->'raw') = 'number' and not ((p_cells->k->>'raw')::numeric between 1 and 20) then bad := k;
     elsif (p_cells->k) ? 'raw' and jsonb_typeof(p_cells->k->'raw') not in ('number', 'null') then bad := k;
     end if;
-    for f in select jsonb_object_keys(p_cells->k) loop if f not in ('raw', 'by', 'at', 'pu', 'marks') then bad := k || '.' || f; end if; end loop;
+    for f in select jsonb_object_keys(p_cells->k) loop if f not in ('raw', 'by', 'at', 'pu', 'marks', 'putts') then bad := k || '.' || f; end if; end loop;
   end loop;
   for k in select jsonb_object_keys(p_card) loop if k not in ('mF', 'mB', 'bb') or jsonb_typeof(p_card->k) <> 'boolean' then bad := k; end if; end loop;
   if bad is not null then return 'denied: not a score card (' || bad || ')'; end if;
@@ -424,7 +424,7 @@ begin
   for k in select jsonb_object_keys(p_cells) loop
     c := p_cells->k;
     if c ? 'raw' then d := jsonb_set(d, array['raw', k], c->'raw'); end if;
-    foreach f in array array['by', 'at', 'pu', 'marks'] loop
+    foreach f in array array['by', 'at', 'pu', 'marks', 'putts'] loop
       if c ? f then
         if jsonb_typeof(d->f) is distinct from 'object' then d := jsonb_set(d, array[f], '{}'::jsonb); end if;
         if jsonb_typeof(c->f) = 'null' then d := jsonb_set(d, array[f], (d->f) - k);

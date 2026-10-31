@@ -618,10 +618,10 @@ export function createStore(onChange) {
     const w = /^scores\//.test(path) && db && db.waitingCells ? db.waitingCells(path) : null;
     if (!w || !doc) return null;
     const d = { ...blankCard(), ...doc, raw: [...(doc.raw || Array(18).fill(null))] };
-    for (const f of ['by', 'at', 'pu', 'marks']) d[f] = { ...(doc[f] || {}) };
+    for (const f of ['by', 'at', 'pu', 'marks', 'putts']) d[f] = { ...(doc[f] || {}) };
     for (const [k, c] of Object.entries(w.cells || {})) {
       if ('raw' in c) d.raw[+k] = c.raw;
-      for (const f of ['by', 'at', 'pu', 'marks']) if (f in c) { if (c[f] == null) delete d[f][k]; else d[f][k] = c[f]; }
+      for (const f of ['by', 'at', 'pu', 'marks', 'putts']) if (f in c) { if (c[f] == null) delete d[f][k]; else d[f][k] = c[f]; }
     }
     return Object.assign(d, w.card || {});
   }
@@ -977,7 +977,7 @@ export function createStore(onChange) {
     const key = roundId + '__' + pid;
     const prev = T.scores[key];
     const c = prev
-      ? { ...blankCard(), ...prev, raw: [...prev.raw], by: { ...(prev.by || {}) }, at: { ...(prev.at || {}) }, marks: { ...(prev.marks || {}) }, pu: { ...(prev.pu || {}) } }
+      ? { ...blankCard(), ...prev, raw: [...prev.raw], by: { ...(prev.by || {}) }, at: { ...(prev.at || {}) }, marks: { ...(prev.marks || {}) }, pu: { ...(prev.pu || {}) }, putts: { ...(prev.putts || {}) } }
       : blankCard();
     mutate(c);
     bump('scores/' + key, c);
@@ -991,9 +991,10 @@ export function createStore(onChange) {
     for (let h = 0; h < 18; h++) {
       const cell = {};
       if (!same(was.raw && was.raw[h], c.raw[h])) cell.raw = c.raw[h] == null ? null : c.raw[h];
-      for (const f of ['by', 'at', 'pu', 'marks']) { const a = (was[f] || {})[h], b = (c[f] || {})[h]; if (!same(a, b)) cell[f] = b == null ? null : b; }
+      for (const f of ['by', 'at', 'pu', 'marks', 'putts']) { const a = (was[f] || {})[h], b = (c[f] || {})[h]; if (!same(a, b)) cell[f] = b == null ? null : b; }
       if (Object.keys(cell).length) {
         /* a hole goes whole: its score with who wrote it and when */
+        /* putts only when they changed: a server whose score_mark predates them turns them away */
         for (const f of ['by', 'at', 'pu', 'marks']) if (!(f in cell)) cell[f] = (c[f] || {})[h] == null ? null : c[f][h];
         if (!('raw' in cell)) cell.raw = c.raw[h] == null ? null : c.raw[h];
         cells[h] = cell;
@@ -1013,10 +1014,10 @@ export function createStore(onChange) {
         let out = c;
         if (base) {
           out = { ...blankCard(), ...base, raw: [...(base.raw || Array(18).fill(null))] };
-          for (const f of ['by', 'at', 'pu', 'marks']) out[f] = { ...(base[f] || {}) };
+          for (const f of ['by', 'at', 'pu', 'marks', 'putts']) out[f] = { ...(base[f] || {}) };
           for (const [k, cell] of Object.entries(cells)) {
             if ('raw' in cell) out.raw[+k] = cell.raw;
-            for (const f of ['by', 'at', 'pu', 'marks']) if (f in cell) { if (cell[f] == null) delete out[f][k]; else out[f][k] = cell[f]; }
+            for (const f of ['by', 'at', 'pu', 'marks', 'putts']) if (f in cell) { if (cell[f] == null) delete out[f][k]; else out[f][k] = cell[f]; }
           }
           Object.assign(out, card);
           out.rev = Math.max(base.rev || 0, c.rev || 0) + 1;

@@ -356,7 +356,7 @@ export function createSupabaseDb(opts) {
     d.raw = Array.isArray(d.raw) ? d.raw : Array(18).fill(null);
     for (const [k, c] of Object.entries(m.cells || {})) {
       if ('raw' in c) d.raw[+k] = c.raw;
-      for (const f of ['by', 'at', 'pu', 'marks']) if (f in c) { d[f] = d[f] || {}; if (c[f] == null) delete d[f][k]; else d[f][k] = c[f]; }
+      for (const f of ['by', 'at', 'pu', 'marks', 'putts']) if (f in c) { d[f] = d[f] || {}; if (c[f] == null) delete d[f][k]; else d[f][k] = c[f]; }
     }
     Object.assign(d, m.card || {});
     d.rev = (d.rev || 0) + 1;

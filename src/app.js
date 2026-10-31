@@ -462,6 +462,7 @@ const BOARDS = [['pairs',    'Team Competition',                   'Team'],
                 ['bbb',      'Bingo Bango Bongo',                  'Bingo'],
                 ['ryder',    'Ryder Cup',                          'Cup'],
                 ['prizes',   'Longest Drive & Closest to the Pin', 'Prizes'],
+                ['sotd',     'Shot of the day',                    'Shot'],
                 ['practice', 'Practice Day',                       'Practice'],
                 ['photos',   'Photos from the week',               'Photos'],
                 ['chat',     'Chat',                               'Chat']];
@@ -482,7 +483,7 @@ function scrBoards() {
         aria-label="${esc(long)}"><span class="lg">${esc(long)}</span>${esc(short)}</button>`).join('')}
   </div></div>`;
   const body = { home: boardsHome, pairs: boardPairs, mvp: boardMvp, bbb: boardBbb, ryder: scrRyder,
-                 prizes: boardPrizes, practice: boardPractice, photos: gallery1,
+                 prizes: boardPrizes, sotd: boardSotd, practice: boardPractice, photos: gallery1,
                  chat: boardChat }[UI.boardTab] || boardsHome;
   return strip + body();
 }
@@ -718,6 +719,101 @@ function boardBbb() {
   </div>
   <p class="legend">Three points a hole — first on, closest once all are on, first in. 54 a round,
   ${E.countingRounds(T).length * 54} across the week.</p>` : `<p class="empty">No points banked yet. Scorers tap the three names per hole on the Score Entry screen.</p>`}`;
+}
+
+/* ---------------- shot of the day ----------------
+   On the course a ref taps the gold ★ on any golfer who hits one and says
+   what it was: as many as they like, through the round. After the round the
+   refs go through them and each picks up to three; the three the refs picked
+   most are the shortlist. Then the vote opens to everybody, one vote a
+   phone, and the commissioner closes it. The winner is the recap's shot of
+   the day, in the ref's own words.
+   Everything is a document in the chat collection, each phone writing only
+   its own: a nomination (k 'sn'), a ref's picks (k 'ss', one a ref a round)
+   and a vote (k 'sv', one a phone a round). The stage and the winner sit on
+   the round in the config. */
+const SOTD_SHORT = 3;
+const sotdNoms = rid => Object.values(T.chat || {}).filter(r => r && r.k === 'sn' && r.rid === rid).sort((a, b) => (a.at || 0) - (b.at || 0));
+const sotdPicks = rid => Object.values(T.chat || {}).filter(r => r && r.k === 'ss' && r.rid === rid);
+const sotdVotes = rid => Object.values(T.chat || {}).filter(r => r && r.k === 'sv' && r.rid === rid);
+const sotdOf = rid => ((E.roundCfg(T, rid) || {}).sotd) || { stage: 'refs', win: null };
+const sotdRef = () => !D.PINS_ENABLED || isRef() || canAdmin();
+function sotdShortlist(rid) {
+  const noms = sotdNoms(rid), n = {};
+  for (const p of sotdPicks(rid)) for (const id of (p.picks || [])) n[id] = (n[id] || 0) + 1;
+  return noms.filter(x => n[x.id]).sort((a, b) => (n[b.id] - n[a.id]) || ((a.at || 0) - (b.at || 0))).slice(0, SOTD_SHORT).map(x => ({ ...x, picks: n[x.id] }));
+}
+function sotdTally(rid) {
+  const t = {};
+  for (const v of sotdVotes(rid)) t[v.nom] = (t[v.nom] || 0) + 1;
+  return t;
+}
+const myPicks = rid => ((T.chat || {})['ss_' + rid + '_' + myDev()] || {}).picks || [];
+const myVote = rid => ((T.chat || {})['sv_' + rid + '_' + myDev()] || {}).nom || null;
+/** What the recap writer is told about the shot of the day. */
+function sotdForRecap(rid) {
+  const win = sotdWinner(rid), noms = sotdNoms(rid);
+  if (win) return '\n\nSHOT OF THE DAY (voted by the group): ' + nameOf(win.pid) + ' (' + win.pid + '), hole ' + (win.hole + 1) + ': "' + win.t + '" (nominated by ' + (win.byName || 'a ref') + ')';
+  if (!noms.length) return '';
+  return '\n\nSHOT OF THE DAY NOMINATIONS (by the refs, not yet voted on)\n' + noms.map(x => '- ' + nameOf(x.pid) + ' (' + x.pid + '), hole ' + (x.hole + 1) + ': "' + x.t + '" (' + (x.byName || 'a ref') + ')').join('\n');
+}
+/** The voted winner, for the recap and the honours: the nomination, or null. */
+function sotdWinner(rid) { const s = sotdOf(rid); return s.stage === 'done' && s.win ? (T.chat || {})[s.win] || null : null; }
+function sotdCard(x, extra) {
+  return `<div class="sn-card"><div class="sn-h"><b>${esc(nameOf(x.pid))}</b><span>${esc(roomName(x.rid))} · hole ${x.hole + 1}</span></div>
+    <q>${esc(x.t)}</q><span class="sn-by">Nominated by ${esc(x.byName || 'a ref')}</span>${extra || ''}</div>`;
+}
+function sotdNomHtml() {
+  const m = UI.modal, hole = E.courseOf(T, m.rid).holes[m.hole];
+  const before = sotdNoms(m.rid).filter(x => x.pid === m.pid);
+  return `<div class="scrim" data-act="modalScrim"><div class="modal psheet snsheet" role="dialog" aria-modal="true" aria-label="Nominate a shot of the day">
+    <span class="ps-grab dark" aria-hidden="true"><i></i></span>${modalBanner('★ ' + nameOf(m.pid), roomName(m.rid) + ' · hole ' + hole.n + ' · par ' + hole.par + ' · shot of the day')}
+    <div class="ps-body">
+      <label class="calc-l" for="sotdText">What was the shot?</label>
+      <textarea id="sotdText" class="field" rows="3" maxlength="300" placeholder="Say what happened: the club, the lie, where it finished. It’s what everyone reads when they vote.">${esc(m.t || '')}</textarea>
+      ${m.err ? `<p class="xm-err">${esc(m.err)}</p>` : ''}
+      ${before.length ? `<div class="rl-lh">Already nominated today</div>${before.map(x => `<div class="rl-prev">Hole ${x.hole + 1} · ${esc(x.t)}</div>`).join('')}` : ''}
+    </div>
+    <div class="acts"><button class="btn ghost" data-act="modalCancel">Cancel</button><button class="btn sn-go" data-act="sotdSend">★ Nominate</button></div>
+  </div></div>`;
+}
+const sotdRounds = () => D.ROUNDS.filter(r => sotdNoms(r.id).length || E.phaseOf(T, r.id, now) !== 'upcoming');
+/** The round the board is showing: the one picked, or the latest with nominations. */
+function sotdBoardRound() {
+  const rounds = sotdRounds();
+  return UI.sotdRound && D.ROUNDS.some(r => r.id === UI.sotdRound) ? UI.sotdRound
+    : (rounds.slice().reverse().find(r => sotdNoms(r.id).length) || rounds[rounds.length - 1] || D.ROUNDS[0]).id;
+}
+function boardSotd() {
+  const rounds = sotdRounds(), rid = sotdBoardRound();
+  const s = sotdOf(rid), noms = sotdNoms(rid), short = sotdShortlist(rid), tally = sotdTally(rid), ref = sotdRef(), boss = canAdmin();
+  const chips = `<div class="cs-rounds nos">${rounds.map(r => `<button class="${r.id === rid ? 'on' : ''}" data-act="sotdRound" data-a="${r.id}">${esc(roomName(r.id))}</button>`).join('')}</div>`;
+  const stages = `<div class="sn-stage"><span class="${s.stage === 'refs' ? 'on' : ''}">1 · Refs shortlist</span><span class="${s.stage === 'vote' ? 'on' : ''}">2 · Everyone votes</span><span class="${s.stage === 'done' ? 'on' : ''}">3 · The winner</span></div>`;
+  let body = '';
+  if (!noms.length) body = `<p class="empty">No nominations for ${esc(roomName(rid))} yet. On the course, a ref taps the gold <b>★ Shot of the day</b> on a golfer’s row.</p>`;
+  else if (s.stage === 'refs') {
+    const mine = myPicks(rid);
+    body = `<p class="lede">${ref ? `Pick up to ${SOTD_SHORT}: the ones the refs pick most make the shortlist. ${mine.length} of ${SOTD_SHORT} picked.` : 'The refs are going through the nominations. The vote opens once they have a shortlist.'}</p>
+      ${noms.map(x => { const on = mine.includes(x.id), n = sotdPicks(rid).filter(p => (p.picks || []).includes(x.id)).length;
+        return sotdCard(x, ref ? `<div class="sn-v"><button class="sn-pick${on ? ' on' : ''}" data-act="sotdPick" data-a="${esc(x.id)}">${on ? '★ On your shortlist' : '☆ Shortlist it'}</button>${n ? `<span class="sn-n">${n} ref${n === 1 ? '' : 's'}</span>` : ''}</div>` : ''); }).join('')}
+      ${ref && short.length ? `<div class="sn-open"><b>The shortlist so far:</b> ${short.map(x => esc(nameOf(x.pid)) + ' (hole ' + (x.hole + 1) + ')').join(' · ')}
+        <button class="btn" data-act="sotdStage" data-a="vote">Open the vote to everyone</button></div>` : ''}`;
+  } else {
+    const list = s.stage === 'done' ? short : short;
+    const max = Math.max(1, ...list.map(x => tally[x.id] || 0)), mineV = myVote(rid), win = sotdWinner(rid);
+    body = `${win ? `<div class="sn-crown"><small>Shot of the day · ${esc(roomName(rid))}</small><b>${esc(nameOf(win.pid))}, hole ${win.hole + 1}</b><span>${esc(win.t)}</span></div>` : ''}
+      <p class="lede">${s.stage === 'vote' ? 'The refs’ shortlist. One vote a phone: tap to vote, tap again to take it back.' : 'The vote is closed.'}</p>
+      ${list.map(x => { const v = tally[x.id] || 0, on = mineV === x.id;
+        return sotdCard(x, `<div class="sn-v">${s.stage === 'vote' ? `<button class="sn-vote${on ? ' on' : ''}" data-act="sotdVote" data-a="${esc(x.id)}">${on ? '✓ Your vote' : 'Vote'}</button>` : ''}
+          <span class="sn-bar"><i style="width:${Math.round(v / max * 100)}%"></i></span><span class="sn-n">${v} vote${v === 1 ? '' : 's'}</span>
+          ${boss && s.stage === 'vote' ? `<button class="xm-link" data-act="sotdCrown" data-a="${esc(x.id)}">Crown this one</button>` : ''}</div>`); }).join('')}
+      ${boss && s.stage === 'vote' ? `<div class="sn-open"><button class="btn" data-act="sotdClose">Close the vote: most votes wins</button><button class="btn ghost" data-act="sotdStage" data-a="refs">Back to the shortlist</button></div>` : ''}
+      ${boss && s.stage === 'done' ? `<div class="sn-open"><button class="btn ghost" data-act="sotdStage" data-a="vote">Reopen the vote</button></div>` : ''}
+      ${noms.length > list.length ? `<details class="sn-all"><summary>Every nomination · ${noms.length}</summary>${noms.map(x => sotdCard(x)).join('')}</details>` : ''}`;
+  }
+  return `<h2 class="head">Shot of the day</h2>
+  <p class="lede">Nominated by the refs on the course. The refs pick a shortlist; then everyone votes.</p>
+  ${chips}${stages}${body}`;
 }
 
 function boardPrizes() {
@@ -3809,7 +3905,7 @@ function setFirstTee(round, t) {
 
 function draftFor(rid, h) {
   if (!UI.draft || UI.draft.rid !== rid || UI.draft.hole !== h) {
-    UI.draft = { rid, hole: h, strokes: {}, bbb: {}, pu: {}, gid: curGroupId(rid) };
+    UI.draft = { rid, hole: h, strokes: {}, bbb: {}, pu: {}, putts: {}, gid: curGroupId(rid) };
   }
   if (!UI.draft.pu) UI.draft.pu = {};      // a draft kept on the phone from before pick-ups
   return UI.draft;
@@ -3828,7 +3924,7 @@ const PICKUP_ROUNDS = ['r2', 'r3'];
    hole is saved, after which the card is the truth. */
 const COUNT_KEY = 'union-invitational:count';
 let COUNTS = (() => { try { return JSON.parse(localStorage.getItem(COUNT_KEY) || '{}') || {}; } catch (e) { return {}; } })();
-function countOf(rid, h) { const k = rid + '|' + h; return COUNTS[k] || (COUNTS[k] = { n: {}, in: {}, pu: {}, at: Date.now() }); }
+function countOf(rid, h) { const k = rid + '|' + h; const cs = COUNTS[k] || (COUNTS[k] = { n: {}, in: {}, pu: {}, at: Date.now() }); cs.p = cs.p || {}; cs.seq = cs.seq || {}; return cs; }
 function keepCounts(rid, h) {
   if (rid != null) countOf(rid, h).at = Date.now();
   for (const k of Object.keys(COUNTS).sort((a, b) => (COUNTS[b].at || 0) - (COUNTS[a].at || 0)).slice(20)) delete COUNTS[k];
@@ -3840,7 +3936,11 @@ function countState(rid, h, pid) {
   const cs = countOf(rid, h), fixed = grossOf(rid, pid, h);
   const counting = pid in cs.n;
   const inn = counting ? !!cs.in[pid] : fixed != null;
-  return { cs, inn, n: counting ? cs.n[pid] : (fixed == null ? 0 : fixed), counting };
+  const c = E.card(T, rid, pid), d = UI.draft;
+  const savedP = d && d.rid === rid && d.hole === h && d.putts && pid in d.putts ? d.putts[pid] : (c && c.putts && c.putts[h] != null ? c.putts[h] : null);
+  const n = counting ? cs.n[pid] : (fixed == null ? 0 : fixed);
+  const p = counting ? (cs.p[pid] || 0) : (savedP || 0);
+  return { cs, inn, n, p, t: Math.max(0, n - p), counting, knownP: counting || savedP != null };
 }
 /* A count holed out but not yet saved goes back into the hole's draft if
    the page was reloaded under it. */
@@ -3854,15 +3954,15 @@ function restoreCounts(rid, h, list, cap) {
     if (d && d.rid === rid && d.hole === h && g.id in d.strokes) continue;
     const c = E.card(T, rid, g.id);
     if (c && c.raw[h] === v) continue;
-    const dr = draftFor(rid, h); dr.strokes[g.id] = v; dr.pu[g.id] = !!cs.pu[g.id];
+    const dr = draftFor(rid, h); dr.strokes[g.id] = v; dr.pu[g.id] = !!cs.pu[g.id]; dr.putts[g.id] = cs.p[g.id] || 0;
   }
 }
 function countUnhole(rid, h, pid) {
   const st = countState(rid, h, pid);
-  if (!st.counting) st.cs.n[pid] = st.n;
+  if (!st.counting) { st.cs.n[pid] = st.n; st.cs.p[pid] = st.p; st.cs.seq[pid] = Array(st.t).fill('t').concat(Array(st.p).fill('p')); }
   st.cs.in[pid] = false; delete st.cs.pu[pid];
   const d = UI.draft;
-  if (d && d.rid === rid && d.hole === h) { delete d.strokes[pid]; delete d.pu[pid]; }
+  if (d && d.rid === rid && d.hole === h) { delete d.strokes[pid]; delete d.pu[pid]; if (d.putts) delete d.putts[pid]; }
 }
 function pickupHtml() {
   const md = UI.modal, hole = E.courseOf(T, md.rid).holes[md.h], who = nameOf(md.pid);
@@ -3938,6 +4038,13 @@ function commitDraft(role) {
       c.pu = c.pu || {};
       if (v == null || (d.pu && d.pu[pid] === false)) delete c.pu[h];
       else if (d.pu && d.pu[pid] === true) c.pu[h] = true;
+      /* the putts, when the ref counted them: kept on the hole, and three or
+         more marks the three-putt without anyone having to */
+      if (d.putts && pid in d.putts && v != null) {
+        c.putts = c.putts || {}; c.putts[h] = d.putts[pid];
+        const was = Array.isArray(c.marks[h]) ? c.marks[h] : [];
+        if (d.putts[pid] >= 3 && !was.includes('putt3')) c.marks[h] = was.concat('putt3');
+      } else if (v == null && c.putts) delete c.putts[h];
     });
   }
   /* the marks go on the hole and the group alone, so two refs on two phones never overwrite each other's holes */
@@ -4438,6 +4545,7 @@ function scrEntry() {
      the pick-up in red — and moves itself to the next golfer, so four scores
      are four taps. Mulligans, the breakfast ball and Clear live on the pad,
      not the page: the page is for reading the group. */
+  const nextUp = editable && !UI.pad ? list.find(g => grossOf(rid, g.id, h) == null) : null;
   const rows = list.map(g => {
     const raw = grossOf(rid, g.id, h);
     const st = E.strokesFor(g.band, hole.si);
@@ -4453,14 +4561,16 @@ function scrEntry() {
     const spent = [c && c.mF ? 'front mulligan used' : '', c && c.mB ? 'back mulligan used' : '', h === 0 && c && c.bb ? 'breakfast ball used' : ''].filter(Boolean);
     const tone = raw == null ? '' : capped ? ' cap' : raw < hole.par ? ' u' : raw > hole.par ? ' o' : '';
     const tile = `<span class="fig raw"><span class="v num">${raw == null ? '\u00b7' : raw}</span></span>`;
-    return `<div class="prow${pending ? ' pending' : ''}${UI.pad === g.id ? ' sel' : ''}">
+    return `<div class="prow${pending ? ' pending' : ''}${UI.pad === g.id ? ' sel' : ''}${nextUp && nextUp.id === g.id ? ' nextup' : ''}">
       <div class="pmain">
         <div class="pwho">
           <div class="nm">${esc(g.display)}${pending ? '<span class="tag">unsaved</span>' : ''}</div>
+          ${nextUp && nextUp.id === g.id ? '<div class="nexttag">Next to score</div>' : ''}
           <div class="bd num">hcp ${g.band != null ? g.band : '\u2014'} <span>${st == null ? '\u00b7' : '+' + st + ' here'}</span>${
             net != null ? ' \u00b7 net ' + net : ''}${pts != null ? ' \u00b7 <b>' + pts + ' pt' + (pts === 1 ? '' : 's') + '</b>' : ''}${tp.thru ? ' \u00b7 ' + esc(E.fmtToPar(tp.tp)) + ' thru ' + tp.thru : ''}${
             capped ? ' \u00b7 <em class="capped">picked up</em>' : ''}${spent.length ? ' \u00b7 ' + spent.join(', ') : ''}</div>
-          ${canAskRuling() ? `<button class="rl-btn" data-act="ruleOpen" data-a="${g.id}" aria-label="Ask for a ruling for ${esc(g.display)} on hole ${hole.n}">⚖️ Ruling</button>` : ''}
+          <div class="pbtns">${canAskRuling() ? `<button class="rl-btn" data-act="ruleOpen" data-a="${g.id}" aria-label="Ask for a ruling for ${esc(g.display)} on hole ${hole.n}">⚖️ Ruling</button>` : ''}
+          ${editable ? (() => { const k = sotdNoms(rid).filter(x => x.pid === g.id && x.hole === h).length; return `<button class="sn-btn${k ? ' has' : ''}" data-act="sotdOpen" data-a="${g.id}" aria-label="Nominate ${esc(g.display)} for shot of the day on hole ${hole.n}">★ ${k ? 'Nominated' : 'Shot of the day'}</button>`; })() : ''}</div>
         </div>
         ${editable
           ? `<button class="ptile${tone}" data-act="padOpen" data-a="${g.id}" aria-label="Score for ${esc(g.display)} on hole ${hole.n}${raw == null ? '' : ': ' + raw}" aria-expanded="${UI.pad === g.id}">${tile}</button>`
@@ -4477,8 +4587,6 @@ function scrEntry() {
     const g = padFor;
     const raw = grossOf(rid, g.id, h);
     const c = E.card(T, rid, g.id);
-    const at = list.findIndex(x => x.id === g.id);
-    const next = list[at + 1] || null;
     const keys = [];
     for (let n = 1; n <= cap; n++) keys.push(`<button class="key num${n === hole.par ? ' par' : ''}${n === cap ? ' cap' : ''}${n === raw ? ' on' : ''}"
       data-act="setScore" data-a="${g.id}" data-b="${n}" aria-label="${n}${n === hole.par ? ', par' : n === cap ? ', pick up' : ''}${n === raw ? ', entered' : ''}">${n}${
@@ -4493,8 +4601,7 @@ function scrEntry() {
         ${r.noMulligans ? '' : relief(g, c, 'mF', 'Front mulligan', '1 left', editable) + relief(g, c, 'mB', 'Back mulligan', '1 left', editable)}
         ${h === 0 ? relief(g, c, 'bb', 'Breakfast ball', 'Available', editable) : ''}
       </div>` : ''}
-      ${next ? `<button class="knext" data-act="padOpen" data-a="${next.id}">Next: ${esc(next.display)} \u203a</button>`
-             : `<button class="knext" data-act="padClose">That is the group \u00b7 Done</button>`}
+      <button class="knext" data-act="padClose">Close</button>
     </div>`;
   })() : '';
 
@@ -4509,15 +4616,17 @@ function scrEntry() {
     const pu = id => { const d = UI.draft, c = E.card(T, rid, id);
       return d && d.rid === rid && d.hole === h && id in d.pu ? !!d.pu[id] : !!(c && c.pu && c.pu[h]); };
     const done = st.filter(x => x.inn).length;
-    return `<p class="chint">Tap a golfer each time they hit. <b>In the hole</b> when they’re done, then save the hole.</p>
+    return `<p class="chint">Top half: a shot to the green. Bottom half: a putt. <b>In the hole</b> when they’re done, then save the hole.</p>
     <div class="cgrid">${st.map(({ g, inn, n }) => {
       const sh = E.strokesFor(g.band, hole.si);
-      return `<div class="ctile${inn ? ' in' : ''}"${inn ? '' : ` data-act="cnt" data-a="${g.id}" role="button" tabindex="0"`}
-        aria-label="${esc(g.display)}: ${n} shot${n === 1 ? '' : 's'}${inn ? ', done' : '. Tap for a shot'}">
+      const x = st.find(y => y.g.id === g.id);
+      return `<div class="ctile split${inn ? ' in' : ''}" data-a="${g.id}" aria-label="${esc(g.display)}: ${n} shot${n === 1 ? '' : 's'}${inn ? ', done' : ''}">
         <span class="tn">${esc(g.display)}</span>
-        <span class="ts">${sh ? '+' + sh + ' here' : 'no shots here'}${!inn && n >= cap ? ' · at the cap' : ''}</span>
-        <span class="big num">${n}</span>
-        <span class="tap">${inn ? (n >= cap && pu(g.id) ? 'Picked up' : 'In the hole') : n ? 'Tap for a shot' : 'Tap when they hit'}</span>
+        <button class="sn-btn mini${sotdNoms(rid).some(y => y.pid === g.id && y.hole === h) ? ' has' : ''}" data-act="sotdOpen" data-a="${g.id}" aria-label="Nominate ${esc(g.display)} for shot of the day">★</button>
+        <span class="ts">${n ? '<b class="num">' + n + '</b> · ' + (x.knownP ? x.t + ' to the green · ' + x.p + ' putt' + (x.p === 1 ? '' : 's') : 'on the card') : (sh ? '+' + sh + ' here' : 'no shots here')}${!inn && n >= cap ? ' · at the cap' : ''}</span>
+        ${inn ? `<span class="big num">${n}</span><span class="tap">${n >= cap && pu(g.id) ? 'Picked up' : 'In the hole'}</span>`
+          : `<button class="half to" data-act="cnt" data-a="${g.id}" aria-label="A shot to the green for ${esc(g.display)}"><b class="num">${x.t}</b><span>To the green</span></button>
+        <button class="half on" data-act="cntPutt" data-a="${g.id}" aria-label="A putt for ${esc(g.display)}"><b class="num">${x.p}</b><span>Putts</span></button>`}
         ${n || inn ? `<button class="und" data-act="cntUndo" data-a="${g.id}" aria-label="${inn ? 'Back to counting for ' : 'One less for '}${esc(g.display)}">↺</button>` : ''}
         <button class="cin" data-act="cntIn" data-a="${g.id}">${inn ? '✓ ' + (n >= cap && pu(g.id) ? 'Picked up' : 'Holed') + ' · ' + n : n >= cap ? 'Pick up at ' + cap : 'In the hole'}</button>
       </div>`;
@@ -5299,7 +5408,8 @@ function cardRows(rid, pid) {
     const net = gross == null || st == null ? null : gross - st;
     const pts = E.playerPts(T, rid, pid, h);
     const tst = g.band == null ? null : E.teamStrokesFor(T, g.band, hole.si);
-    return { n: hole.n, par: hole.par, si: hole.si, st, tst, raw, gross, net, pts, capped: raw != null && raw > cap, pu: !!(c.pu && c.pu[h]), marks: E.holeMarks(T, rid, pid, h) };
+    const putts = c.putts && c.putts[h] != null ? c.putts[h] : null;
+    return { n: hole.n, par: hole.par, si: hole.si, st, tst, putts, raw, gross, net, pts, capped: raw != null && raw > cap, pu: !!(c.pu && c.pu[h]), marks: E.holeMarks(T, rid, pid, h) };
   });
   const sum = (from, to, k) => rows.slice(from, to).reduce((a, r) => a + (r[k] == null ? 0 : r[k]), 0);
   const thru = rows.reduce((a, r, i) => (r.gross != null ? i + 1 : a), 0);
@@ -5358,6 +5468,7 @@ function cardSheetHtml() {
         const played = i => x.rows[i].raw != null;
         const tstSum = idx.reduce((a, i) => a + (played(i) && x.rows[i].tst ? x.rows[i].tst : 0), 0);
         return `<div class="sc-r sc-gross${pair ? ' who' : ''}"><span class="sc-l"${pair ? ` title="${esc(x.g.display)}"` : ''}>${pair ? esc(initialsOf(x.g.display)) : 'Gross'}</span>${idx.map(i => grossCell(x.rows[i])).join('')}<span class="sc-t num">${x[k].gross == null ? '' : x[k].gross}</span></div>
+        ${idx.some(i => x.rows[i].putts != null) ? `<div class="sc-r sc-st putts"><span class="sc-l">Putts</span>${idx.map(i => figCell(x.rows[i].putts, played(i), x.rows[i].n)).join('')}<span class="sc-t num">${idx.reduce((a, i) => a + (x.rows[i].putts || 0), 0)}</span></div>` : ''}
         ${notes ? `<div class="sc-r sc-notes"><span class="sc-l">Notes</span>${idx.map(i => noteCell(x.rows[i])).join('')}<span class="sc-t"></span></div>` : ''}
         ${pair ? '' : `<div class="sc-r sc-st"><span class="sc-l">Strokes</span>${idx.map(i => figCell(x.rows[i].st, played(i), x.rows[i].n)).join('')}<span class="sc-t num">${x[k].played ? idx.reduce((a, i) => a + (played(i) && x.rows[i].st ? x.rows[i].st : 0), 0) : ''}</span></div>
         <div class="sc-r sc-net"><span class="sc-l">Net</span>${idx.map(i => netCell(x.rows[i])).join('')}<span class="sc-t num">${x[k].net == null ? '' : x[k].net}</span></div>`}
@@ -6838,6 +6949,7 @@ function inUse() {
      under the thumb: the keyboard went down and the second question with it.
      Held while it is typed in; never while an answer is on its way. */
   if (el.id === 'rulingQ' && !(UI.modal && UI.modal.busy)) return true;
+  if (el.id === 'sotdText') return true;
   return el.tagName === 'SELECT';
 }
 /* Every surface in the book that scrolls on its own. The page itself and the
@@ -8467,6 +8579,7 @@ function modalHtml() {
        : UI.modal.kind === 'chat' ? chatSheetHtml()
        : UI.modal.kind === 'marks' ? markSheet(UI.modal.rid, UI.modal.hole, UI.modal.who)
        : UI.modal.kind === 'ruling' ? rulingSheetHtml()
+       : UI.modal.kind === 'sotdNom' ? sotdNomHtml()
        : UI.modal.kind === 'card' ? cardSheetHtml()
        : UI.modal.kind === 'hist' ? histModalHtml()
        : UI.modal.kind === 'bbbfix' ? bbbFixHtml()
@@ -8884,6 +8997,57 @@ function onClick(e) {
       UI.modal = { kind: 'confirm', title: 'Back to the teams’ groups?', note: 'Groups go back to two teams each, in Roster order. No score changes.', ok: 'Put them back', cancel: 'Keep these',
         onOk: () => { store.writeConfig(c => { c.rounds[a].groupOverride = null; }); } };
       render(); return;
+    }
+    case 'sotdOpen': if (!canEdit()) return; UI.pad = null; UI.modal = { kind: 'sotdNom', rid: UI.entryRound, hole: UI.entryHole, pid: a, t: '', err: '' }; render(); return;
+    case 'sotdSend': {
+      const m = UI.modal; if (!m || m.kind !== 'sotdNom' || !store) return;
+      const f = document.getElementById('sotdText'); if (f) m.t = f.value;
+      const t = String(m.t || '').trim().replace(/\s+/g, ' ');
+      if (t.length < 4) { m.err = 'Say what the shot was: it’s what everyone reads when they vote.'; render(); return; }
+      const me = whoAmI();
+      const id = 'sn' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+      store.putSocial('chat', id, { k: 'sn', rid: m.rid, hole: m.hole, pid: m.pid, t: t.slice(0, 300), by: me || null, byName: me ? nameOf(me) : (S.ROLES[UI.role] || {}).label || 'A ref', at: Date.now(), dev: myDev() });
+      dropKeyboard(); UI.modal = null; flash('★ ' + nameOf(m.pid) + ' nominated. Nominate as many as you like.'); render(); return;
+    }
+    case 'sotdRound': UI.sotdRound = a; render(); return;
+    case 'sotdPick': {
+      if (!sotdRef() || !store) return;
+      const rid2 = (T.chat[a] || {}).rid; if (!rid2) return;
+      const mine = myPicks(rid2).slice(), at = mine.indexOf(a);
+      if (at >= 0) mine.splice(at, 1); else if (mine.length >= SOTD_SHORT) { flash('Three picked already: take one off first.'); return; } else mine.push(a);
+      const me = whoAmI();
+      store.putSocial('chat', 'ss_' + rid2 + '_' + myDev(), { k: 'ss', rid: rid2, picks: mine, by: me || null, byName: me ? nameOf(me) : (S.ROLES[UI.role] || {}).label || 'A ref', at: Date.now(), dev: myDev() });
+      render(); return;
+    }
+    case 'sotdVote': {
+      if (!store) return;
+      const x = T.chat[a]; if (!x) return;
+      if (D.PINS_ENABLED && !whoAmI() && !canAdmin()) { flash('Say who you are first: the vote is one a person.'); UI.modal = { kind: 'who' }; render(); return; }
+      const id = 'sv_' + x.rid + '_' + myDev();
+      if (myVote(x.rid) === a) store.dropSocial('chat', id);
+      else { const me = whoAmI(); store.putSocial('chat', id, { k: 'sv', rid: x.rid, nom: a, by: me || null, byName: me ? nameOf(me) : 'Someone', at: Date.now(), dev: myDev() }); }
+      render(); return;
+    }
+    case 'sotdStage': {
+      const rid2 = sotdBoardRound();
+      if (!(a === 'vote' ? sotdRef() : canAdmin())) return;
+      if (a === 'vote' && !sotdShortlist(rid2).length) { flash('Shortlist at least one first.'); return; }
+      store.writeConfig(c => { c.rounds[rid2].sotd = { stage: a, win: null }; }).then(okd => { if (!okd) flash('Not saved: no signal, or not the right PIN.'); });
+      render(); return;
+    }
+    case 'sotdClose': case 'sotdCrown': {
+      if (!canAdmin()) return;
+      const rid2 = sotdBoardRound();
+      let win = a;
+      if (act === 'sotdClose') {
+        const tally = sotdTally(rid2), short = sotdShortlist(rid2);
+        const top = Math.max(0, ...short.map(x => tally[x.id] || 0)), lead = short.filter(x => (tally[x.id] || 0) === top);
+        if (!short.length) return;
+        if (lead.length > 1) { flash('A tie: ' + lead.map(x => nameOf(x.pid)).join(' and ') + '. Tap “Crown this one” on the winner.'); return; }
+        win = lead[0].id;
+      }
+      store.writeConfig(c => { c.rounds[rid2].sotd = { stage: 'done', win }; });
+      flash('★ Shot of the day: ' + nameOf((T.chat[win] || {}).pid) + '.'); render(); return;
     }
     case 'ruleOpen': UI.pad = null; UI.modal = { kind: 'ruling', rid: UI.entryRound, hole: UI.entryHole, pid: a, sit: null, q: '', busy: false, err: '', id: null }; render(); return;
     case 'ruleSit': {
@@ -9564,21 +9728,19 @@ function onClick(e) {
       if (v > cap) v = cap;
       const dr = draftFor(rid, h);
       dr.strokes[a] = v;
-      /* the pad walks on to the next golfer of its own accord, and closes
-         after the last: four scores, four taps */
-      const list = padList(rid);
-      const at = list.findIndex(x => x.id === a);
-      const next = at >= 0 && list[at + 1] ? list[at + 1].id : null;
       /* A TRIPLE ASKS. From Round 2 the cap is still the most anyone scores,
          but a golfer who picked up there scores nothing in the team game.
          The scorer says which, every time; the pad waits for the answer. */
+      /* THE PAD CLOSES. It used to walk on to the next golfer by itself; the
+         refs pick who is next, from the list, where the next golfer without
+         a score is lit up for them. */
       if (v === cap && PICKUP_ROUNDS.includes(rid)) {
         UI.pad = null;
-        UI.modal = { kind: 'pickup', rid, h, pid: a, v, next };
+        UI.modal = { kind: 'pickup', rid, h, pid: a, v, next: null };
         break;
       }
       dr.pu[a] = false;                      // not a triple: no pick-up on this hole
-      UI.pad = next;
+      UI.pad = null;
       break;
     }
     case 'clearHole': {
@@ -9592,23 +9754,34 @@ function onClick(e) {
       try { localStorage.setItem('union-invitational:countmode', UI.countMode ? '1' : '0'); } catch (e) { /* this visit only */ }
       break;
     }
-    case 'cnt': case 'cntUndo': case 'cntIn': {
+    case 'cnt': case 'cntPutt': case 'cntUndo': case 'cntIn': {
       if (!canEdit() || E.roundCfg(T, rid).state !== 'open') return;
       if (cardClosed(rid) || closedFor(rid, a)) return;
       const h = UI.entryHole;
       const cap = E.capFor(E.courseOf(T, rid).holes[h].par, T.config.capOver);
       const st = countState(rid, h, a);
-      if (act === 'cnt') {
+      if (act === 'cnt' || act === 'cntPutt') {
         if (st.inn) return;                                  // done on this hole: ↺ to recount
-        st.cs.n[a] = Math.min(cap, (st.counting ? st.n : 0) + 1);
+        const n0 = st.counting ? st.n : 0;
+        if (n0 >= cap) return;
+        st.cs.n[a] = n0 + 1;
+        (st.cs.seq[a] = st.cs.seq[a] || []).push(act === 'cntPutt' ? 'p' : 't');
+        if (act === 'cntPutt') st.cs.p[a] = (st.cs.p[a] || 0) + 1;
       } else if (act === 'cntUndo') {
-        if (st.inn) countUnhole(rid, h, a); else st.cs.n[a] = Math.max(0, st.n - 1);
+        if (st.inn) countUnhole(rid, h, a);
+        else if (st.n > 0) {
+          /* the last tap comes off, whichever half it was */
+          const last = (st.cs.seq[a] || []).pop() || (st.p > 0 && st.t === 0 ? 'p' : 't');
+          st.cs.n[a] = st.n - 1;
+          if (last === 'p') st.cs.p[a] = Math.max(0, (st.cs.p[a] || 0) - 1);
+        }
       } else if (st.inn) countUnhole(rid, h, a);
       else {
         if (!st.n) { keepCounts(rid, h); flash('Count their shots first, then tap In the hole.'); return; }
         st.cs.in[a] = true;
         const dr = draftFor(rid, h);
         dr.strokes[a] = Math.min(st.n, cap);
+        dr.putts[a] = st.p;
         /* a triple asks, as it does on the keypad */
         if (st.n >= cap && PICKUP_ROUNDS.includes(rid)) { keepCounts(rid, h); UI.modal = { kind: 'pickup', rid, h, pid: a, v: cap, next: null, fromCount: true }; break; }
         dr.pu[a] = false;
@@ -10170,6 +10343,7 @@ const RECAP_RULES = [
   '- Every paragraph lands at least one jab or joke. Give each pair, and anyone with a story on the card, their moment.',
   '- Have jokes of your own, not only theirs: off the scores themselves — a blow-up, a pick-up at the cap, a run of pars, a partner carrying a partner, a bet that went west — and off the gap between what a golfer wrote and what he scored.',
   '- Never mention a player\'s handicap band as a criticism. It is a number of strokes, not a verdict.',
+  '- If the card has a SHOT OF THE DAY voted by the group, the shot_of_the_day honour goes to that golfer, and the citation is built on the ref\'s own description. Otherwise the nominations under SHOT OF THE DAY NOMINATIONS are the best material for it.',
   '- Give the Ryder Cup a paragraph of its own: every singles result from the RYDER CUP block, who won and by how much, the session score and the cup after it, and rib the losing squad. If the block gives the next session\'s draw, end that paragraph on the grudge matches to come.',
   '',
   'THE MARKS, AND HOW FAR THEY GO:',
@@ -10285,7 +10459,7 @@ async function writeRecap(rid, again, auto) {
   recapCtl = new AbortController();
   UI.recap = { rid, busy: true, err: '', stream: '', edit: false, view: 'report' };
   render();
-  const prompt = RECAP_RULES + '\n\nTHE CARD\n' + E.recapInput(T, rid, now);
+  const prompt = RECAP_RULES + '\n\nTHE CARD\n' + E.recapInput(T, rid, now) + sotdForRecap(rid);
   try {
     const { text } = await askClaude(prompt, {
       signal: recapCtl.signal,
@@ -10440,6 +10614,7 @@ export function boot() {
   app.addEventListener('mousedown', atPress);
   app.addEventListener('input', e => {
     if (e.target && e.target.id === 'askField') UI.askText = e.target.value;
+    if (e.target && e.target.id === 'sotdText' && UI.modal && UI.modal.kind === 'sotdNom') UI.modal.t = e.target.value;
     /* a PIN half typed outlives the redraws the shared book lands */
     if (e.target && /^pin_(master|s1|s2)$/.test(e.target.id)) UI.pinDraft[e.target.id.slice(4)] = e.target.value;
     if (e.target && e.target.id === 'pinField') UI.pinTyped = e.target.value;
