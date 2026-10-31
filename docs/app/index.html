@@ -5204,7 +5204,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261031-1143';
+const BUILD = '20261031-1310';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -21541,6 +21541,36 @@ function parseRecap(raw) {
   };
 }
 
+/* A REPORT CUT OFF IN THE MIDDLE. The writer has a ceiling on how long
+   an answer may be, and the thinking it does counts against it, so a long
+   day can run out of room mid-sentence: the JSON never closes and nothing
+   could be read. What did arrive is still the report: the headline and
+   every paragraph that finished are taken, and the rest is left out. */
+function salvageRecap(raw) {
+  const t = String(raw || '');
+  const str = s => { try { return JSON.parse('"' + s + '"'); } catch (e) { return null; } };
+  const h = /"headline"\s*:\s*"((?:[^"\\]|\\.)*)"/.exec(t);
+  const at = t.search(/"narrative"\s*:\s*\[/);
+  if (at < 0) return null;
+  const narrative = [];
+  const re = /\s*,?\s*"((?:[^"\\]|\\.)*)"/y;
+  let i = t.indexOf('[', at) + 1;
+  for (;;) {
+    re.lastIndex = i;
+    const m = re.exec(t);
+    if (!m) break;
+    const v = str(m[1]);
+    if (v == null) break;
+    narrative.push(v);
+    i = re.lastIndex;
+    if (/^\s*\]/.test(t.slice(i))) break;
+  }
+  if (narrative.length < 3) return null;
+  return { headline: h ? (str(h[1]) || '').slice(0, 160) : '', narrative: narrative.slice(0, 12), voices: [], swing: null, pairNotes: {}, honours: [] };
+}
+const RECAP_SHORTER = '\n\nTHIS TIME, KEEP IT SHORTER: the last answer ran out of room and was cut off. Six paragraphs of 60 to 80 words, at most five voices, '
+  + 'one-sentence citations, and the JSON only, with nothing before or after it. Every other rule stands.';
+
 /* THE REPORT WRITES ITSELF. The phone that saves the last card starts it;
    and because that phone may have no writer, or lose its signal at the
    last putt, every phone that could have pressed the button watches too:
@@ -21583,14 +21613,19 @@ async function writeRecap(rid, again, auto) {
   render();
   const prompt = RECAP_RULES + '\n\nTHE CARD\n' + E.recapInput(T, rid, now) + sotdForRecap(rid);
   try {
-    const { text } = await askClaude(prompt, {
+    const ask = p => askClaude(p, {
       signal: recapCtl.signal,
       modelTier: 'complex',
       cache: false,
       onText: ({ text }) => { UI.recap.stream = text.slice(-400); render(); },
     });
-    const body = parseRecap(text);
-    if (!body.narrative.length) throw new Error('no narrative');
+    const read = r => { try { const b = parseRecap(r.text); return b.narrative.length ? b : null; } catch (e) { return null; } };
+    /* Cut off, or unreadable: ask once more for a tighter report, and if
+       that is cut off too, keep the paragraphs that did come back. */
+    let first = await ask(prompt), body = first.truncated ? null : read(first), second = null;
+    if (!body) { second = await ask(prompt + RECAP_SHORTER); body = second.truncated ? null : read(second); }
+    if (!body) body = read(second || first) || salvageRecap((second || {}).text) || salvageRecap(first.text);
+    if (!body || !body.narrative.length) throw new Error('no narrative');
     body.voices = realVoices(body.voices, rid);          // only words somebody really said
     /* Written by the book itself, it goes straight to the group: nobody is
        standing by to press Share at the end of a round. A commissioner can
@@ -21820,7 +21855,7 @@ __m_app.boot();
 /* Register the worker that makes the book work with no signal. It is the
    whole point of installing it: Belek is five hours of walking and everyone
    is roaming. A failure here must never stop the page loading. */
-var BOOK_BUILD = '20261031-1143';
+var BOOK_BUILD = '20261031-1310';
 var swReg = null;
 /* the book is never shown inside somebody else's page, where a tap could be
    aimed at a button they have put under the finger */
