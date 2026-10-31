@@ -4999,7 +4999,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261031-0322';
+const BUILD = '20261031-0348';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -13271,6 +13271,16 @@ function xFixHtml(m, sibs, tr) {
     </div>`).join('') : '<p class="xm-none">Nobody has bet on this one yet.</p>'}
   </details>`;
 }
+/** "Saved." only once the book has it. A save the server turned down said
+ *  "Saved." anyway, and the edit vanished at the next refresh. */
+function xBetLanded(p) {
+  const asked = Date.now();
+  Promise.resolve(p).then(ok => {
+    if (ok) return;
+    if (store.deniedAt >= asked) flash('The book did not take that edit: this phone’s master PIN was not accepted. Enter it again under Manage, then save again.');
+    else flash('Saved on this phone. It goes to the book as soon as there is signal.');
+  });
+}
 /** A bet put back on the book as if it had gone on that side, or that name, in the first place. */
 function xRefit(id, toM, toSide) {
   const t = (T.market || {})[id];
@@ -13297,6 +13307,22 @@ function xBetRead(md) {
   const v = id => { const e = document.getElementById(id); return e ? e.value : null; };
   for (const [k, id] of [['q', 'xbQ'], ['rules', 'xbR'], ['line', 'xbL'], ['tStake', 'xtS'], ['tPid', 'xtP'], ['tM', 'xtM']]) { const x = v(id); if (x != null) md[k] = x; }
 }
+/** When a bet changes to or from a who-bet, where each bet on it goes.
+ *  A yes-or-no about one person becomes that person's card on the who-bet,
+ *  and back: Yes stays Yes, on that name. Anything with nowhere to go is
+ *  refunded. Between Yes/No and Over/Under nothing moves at all. */
+function xBetCarry(m, r, kind0, kind, ppl) {
+  const sibIds = xBetSibs(m).map(x => x.id);
+  const onIt = Object.values(T.market || {}).filter(x => x && (x.k === 't' || x.k === 'o') && sibIds.includes(x.m));
+  if ((kind === 'who') === (kind0 === 'who')) return { move: [], refund: [], onIt };
+  const tags0 = Array.isArray(r.tags) ? r.tags : [];
+  const to = x => kind === 'who'
+    ? (tags0.length === 1 && ppl.includes(tags0[0]) ? m.qid + '__' + tags0[0] : null)
+    : (ppl.length === 1 && x.m === m.qid + '__' + ppl[0] ? m.qid : null);
+  const move = [], refund = [];
+  for (const x of onIt) { const t = to(x); if (t) move.push([x, t]); else refund.push(x); }
+  return { move, refund, onIt };
+}
 function xBetHtml() {
   const md = UI.modal, m = xFind(md.id);
   if (!m) return '';
@@ -13306,7 +13332,9 @@ function xBetHtml() {
   const people = X.tripPeople(T).concat(allGuests().filter(g => !g.removed).map(g => ({ id: g.pid, display: g.name })));
   const kind0 = r ? (Array.isArray(r.opts) && r.opts.length ? 'who' : r.ou ? 'ou' : 'yn') : null;
   const kind = md.btype || kind0, who = kind === 'who', ou = kind === 'ou';
-  const crossing = r && (kind === 'who') !== (kind0 === 'who');           // to or from a who-bet: the bets on it cannot follow
+  const crossing = r && (kind === 'who') !== (kind0 === 'who');           // to or from a who-bet: the bets on it move by name, or go back
+  const carry = crossing ? xBetCarry(m, r, kind0, kind, md.ppl) : null;
+  const nBets = xs => xs.filter(x => x.k === 't' && x.cost > 0).length;
   const q0 = m.custom ? (r.q || '') : (m.group ? m.groupQ : m.q);
   const qv = md.q != null ? md.q : q0, rv = md.rules != null ? md.rules : (m.custom ? (r.rules || '') : (m.rules || ''));
   const lv = md.line != null ? md.line : (r && r.ou ? String(r.ou.line) : '');
@@ -13319,8 +13347,9 @@ function xBetHtml() {
     <section class="xb-sec"><span class="xm-eye">How it reads</span>
       ${m.custom ? `<label class="calc-l">What kind</label>
         <div class="chiprow">${chip(kind === 'yn', 'xBetKind', 'yn', 'Yes or no')}${chip(kind === 'who', 'xBetKind', 'who', 'Who will it be?')}${chip(kind === 'ou', 'xBetKind', 'ou', 'Over or under')}</div>
-        ${crossing && bets.length ? `<p class="xm-err" style="margin:8px 0 0">${bets.length} bet${bets.length === 1 ? ' is' : 's are'} on it as ${kind0 === 'who' ? 'names' : 'Yes and No'}, and ${bets.length === 1 ? 'it' : 'they'} can’t carry over to ${kind === 'who' ? 'names' : 'Yes and No'}. Give the beers back first, then save.
-          <button class="xm-link danger" data-act="xBetClear">${md.clearAsk ? 'Tap again: give every beer back' : 'Give everyone’s beers back'}</button></p>`
+        ${crossing && carry.onIt.length ? `<p class="${nBets(carry.refund) ? 'xm-err' : 'pnote'}" style="max-width:none;margin:8px 0 0">${[
+            carry.move.length ? `${nBets(carry.move.map(x => x[0])) || carry.move.length} bet${carry.move.length === 1 ? '' : 's'} on it move${carry.move.length === 1 ? 's' : ''} to ${kind === 'who' ? esc(nameOf(carry.move[0][1].split('__')[1])) + '’s card' : 'the one bet'}, on the same side.` : '',
+            nBets(carry.refund) ? `${nBets(carry.refund)} bet${nBets(carry.refund) === 1 ? ' has' : 's have'} nowhere to go${kind === 'who' && (r.tags || []).length === 1 ? ' unless ' + esc(nameOf(r.tags[0])) + ' is one of the answers' : ''}: saving gives ${nBets(carry.refund) === 1 ? 'that beer' : 'those beers'} back.` : ''].filter(Boolean).join(' ')}</p>`
           : crossing ? '' : kind !== kind0 ? `<p class="pnote" style="max-width:none;margin:8px 0 0">${kind === 'ou' ? 'Yes becomes Over and No becomes Under' : 'Over becomes Yes and Under becomes No'}; every bet on it stays as it is.</p>` : ''}` : ''}
       <label class="calc-l" for="xbQ">${ou ? 'What’s being counted' : m.group ? 'The question on the card' : 'The question'}</label>
       <input id="xbQ" class="field" maxlength="140" autocomplete="off" value="${esc(qv)}">
@@ -19673,16 +19702,7 @@ function onClick(e) {
       render(); return;
     }
     case 'xBetPpl': { const md = UI.modal; if (!md || md.kind !== 'xbet') return; xBetRead(md); md.ppl = md.ppl.includes(a) ? md.ppl.filter(x => x !== a) : md.ppl.concat(a); render(); return; }
-    case 'xBetKind': { const md = UI.modal; if (!md || md.kind !== 'xbet') return; xBetRead(md); md.btype = a; md.clearAsk = false; render(); return; }
-    case 'xBetClear': {
-      const md = UI.modal; if (!md || md.kind !== 'xbet' || !fixer()) return;
-      xBetRead(md);
-      if (!md.clearAsk) { md.clearAsk = true; render(); return; }
-      const m = xFind(md.id); if (!m) return;
-      const ids = xBetSibs(m).map(x => x.id);
-      for (const r of Object.values(T.market || {})) if (r && (r.k === 't' || r.k === 'o') && ids.includes(r.m)) store.dropSocial('market', r.id);
-      md.clearAsk = false; flash('Every bet on it is off, and the beers are back. Now save.'); render(); return;
-    }
+    case 'xBetKind': { const md = UI.modal; if (!md || md.kind !== 'xbet') return; xBetRead(md); md.btype = a; md.refundAsk = false; render(); return; }
     case 'xBetCat': { const md = UI.modal; if (!md || md.kind !== 'xbet') return; xBetRead(md); md.cat = a; render(); return; }
     case 'xBetP0': { const md = UI.modal; if (!md || md.kind !== 'xbet') return; xBetRead(md); md.p0 = +a; render(); return; }
     case 'xBetTrade': { const md = UI.modal; if (!md || md.kind !== 'xbet') return; xBetRead(md); md.edit = a || null; md.tSide = null; md.tStake = null; md.tPid = null; md.tM = null; render(); return; }
@@ -19720,11 +19740,14 @@ function onClick(e) {
         const r = (T.market || {})[m.qid] || {};
         const kind0 = Array.isArray(r.opts) && r.opts.length ? 'who' : r.ou ? 'ou' : 'yn', kind = md.btype || kind0;
         const fields = { rules, cat: md.cat === 'golf' ? 'golf' : 'trip', editedBy: 'the commissioner', editedAt: Date.now() };
-        /* to or from a who-bet, nothing placed on it can follow: those bets go first */
+        /* to or from a who-bet: the bets on it move to the matching name, or go back */
+        const carry = xBetCarry(m, r, kind0, kind, md.ppl);
         if ((kind === 'who') !== (kind0 === 'who')) {
-          if (X.trades(T).some(t => xBetSibs(m).some(x => x.id === t.m))) { flash('Give the beers on it back first: the bets on it can’t carry over.'); render(); return; }
           if (r.result || r.void || (Array.isArray(r.winners) && r.winners.length)) { flash('Undo the settlement first.'); return; }
+          const back = carry.refund.filter(x => x.k === 't' && x.cost > 0).length;
+          if (back && !md.refundAsk) { md.refundAsk = true; flash('Tap Save again: ' + back + ' bet' + (back === 1 ? '' : 's') + ' on it can’t carry over and the beers go back.'); render(); return; }
         }
+        md.refundAsk = false;
         if (kind === 'ou') {
           const ln = parseFloat(String(md.line != null ? md.line : (r.ou ? r.ou.line : '')).replace(',', '.').replace('½', '.5'));
           if (!(ln >= 0 && ln < 10000)) { flash('Set the line: a number, like 92.5.'); return; }
@@ -19741,17 +19764,29 @@ function onClick(e) {
           if (kind === 'yn') fields.p0 = md.p0 || r.p0 || 50; else fields.p0 = 50;
         }
         const sibIds = xBetSibs(m).map(x => x.id);
-        store.patchSocial('market', m.qid, fields);
+        xBetLanded(store.patchSocial('market', m.qid, fields));
+        X.invalidate();
+        /* the bets follow, each re-priced on its new card as if it had gone on there in the first place */
+        const moving = new Set(carry.move.map(([x]) => x.id));
+        const placed = X.trades(T).filter(y => !moving.has(y.id));
+        for (const [x, toId] of carry.move.slice().sort((p1, p2) => (p1[0].at || 0) - (p2[0].at || 0))) {
+          const tm = xFind(toId);
+          if (x.k === 'o' || !tm) { store.patchSocial('market', x.id, { m: toId, fixedBy: 'the commissioner', fixedAt: Date.now() }); continue; }
+          const k = x.cost > 0 ? X.sharesFor(X.book(tm, placed), x.side, x.cost) : x.n;
+          const doc = { ...x, m: toId, n: k, px: x.cost > 0 && k > 0 ? X.cents(x.cost / k) : x.px, fixedBy: 'the commissioner', fixedAt: Date.now() };
+          placed.push(doc); xBetLanded(store.putSocial('market', x.id, doc));
+        }
+        for (const x of carry.refund) store.dropSocial('market', x.id);
         X.invalidate();
         /* a who-bet is one bet a name: the page and the editor follow it to its first name, or back to the one bet */
         const stays = kind === 'who' ? fields.opts.some(w => m.id === m.qid + '__' + w) : kind0 !== 'who';
-        const nextId = stays ? m.id : kind === 'who' ? m.qid + '__' + fields.opts[0] : m.qid;
+        const nextId = stays ? m.id : kind === 'who' ? (carry.move.length ? carry.move[0][1] : m.qid + '__' + fields.opts[0]) : m.qid;
         if (UI.xView && UI.xView !== nextId && sibIds.includes(UI.xView) && !(kind === 'who' && fields.opts.some(w => UI.xView === m.qid + '__' + w))) UI.xView = nextId;
         md.id = nextId; md.btype = null;
       } else if (m.group) {
-        store.patchSocial('market', 'grp_' + m.group, { qText: q, rulesText: rules, editedBy: 'the commissioner', editedAt: Date.now() });
+        xBetLanded(store.patchSocial('market', 'grp_' + m.group, { qText: q, rulesText: rules, editedBy: 'the commissioner', editedAt: Date.now() }));
       } else {
-        store.patchSocial('market', m.id, { qText: q, rulesText: rules, editedBy: 'the commissioner', editedAt: Date.now() });
+        xBetLanded(store.patchSocial('market', m.id, { qText: q, rulesText: rules, editedBy: 'the commissioner', editedAt: Date.now() }));
       }
       md.q = null; md.rules = null; md.line = null;
       flash('Saved.'); render(); return;
