@@ -3206,7 +3206,7 @@ async function addPhotos(rid, files, hole) {
     UI.upload.queue.push(u);
     render();
     try {
-      if (video && f.size > CFG.VIDEO_MAX_MB * 1024 * 1024) throw new Error('that clip is ' + Math.round(f.size / 1048576) + ' MB; keep clips under ' + CFG.VIDEO_MAX_MB + ' MB');
+      if (video && f.size > CFG.VIDEO_MAX_MB * 1024 * 1024) throw new Error('that clip is ' + Math.round(f.size / 1048576) + ' MB; the photo store takes ' + CFG.VIDEO_MAX_MB + ' MB at most, about 45 seconds of iPhone video. Trim it in Photos (Edit), then add it again');
       const small = video ? f : await shrink(f, CFG.PHOTO_MAX);
       const thumb = video ? (supa ? await videoPoster(f) : null) : supa ? await shrink(f, CFG.THUMB_MAX, 0.7).catch(() => null) : null;
       u.pct = 30;
@@ -3240,6 +3240,8 @@ async function sendParked() {
       if (typeof navigator !== 'undefined' && navigator.onLine === false) { u.waiting = true; continue; }
       if (!loaded()) { u.waiting = true; continue; }                   // the book is still opening
       if (UI.mode === 'low' && !u.force) { u.waiting = true; continue; }   // low power: photos go on a tap, or when it is turned off
+      if (u.failed && !u.retry) continue;                                   // turned down: waits for Try again, not for a signal
+      u.failed = false; u.retry = false;
       u.waiting = false; u.err = ''; u.pct = 45; render();
       try {
         const supa = store4.kind === 'supabase';
@@ -3262,8 +3264,14 @@ async function sendParked() {
       } catch (e) {
         const why = (e && (e.message || e.code)) ? String(e.message || e.code) : 'did not upload';
         const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
-        u.waiting = true;                                // kept on the phone; tried again later
-        u.err = offline ? '' : why.slice(0, 60);
+        /* TURNED DOWN IS NOT OFFLINE. A clip the photo store will not take
+           (too big, or a type it is not set to accept) used to say "waiting
+           for signal" for ever, with a perfectly good signal. It says why
+           now, and waits for Try again or Remove. */
+        const refused = !offline && uploadRefusal(why, item);
+        u.waiting = !refused;                            // kept on the phone either way
+        u.failed = !!refused;
+        u.err = offline ? '' : (refused || why.slice(0, 60));
         if (store && store.note) store.note('photo waiting', item.name + ' — ' + why);
       }
       render();
@@ -3280,9 +3288,30 @@ if (typeof window !== 'undefined') {
    the strokes it gives. One tap hands straight to the phone, whose own
    chooser offers the camera or the photo library — there is no sheet of
    ours in between. */
+/** Why the photo store turned a file down, in words, or null if it did not. */
+function uploadRefusal(why, item) {
+  const w = String(why || '');
+  const video = item && (item.kind === 'video');
+  const mb = item && item.small && item.small.size ? Math.round(item.small.size / 1048576) : null;
+  if (/exceed|too large|maximum allowed size|payload|413|entity too large/i.test(w)) return (video ? 'Clip' : 'Photo') + (mb ? ' is ' + mb + ' MB: ' : ' is ') + 'too big for the photo store (50 MB max)';
+  if (/mime|not supported|content.?type|invalid.*type|file type/i.test(w)) return 'The photo store isn’t set to take ' + (video ? 'videos' : 'this kind of file') + ' yet';
+  if (/row-level security|policy|unauthori[sz]ed|403|permission/i.test(w)) return 'The photo store turned it down (permission)';
+  if (/bucket not found|not found/i.test(w)) return 'The photo store isn’t set up';
+  return null;
+}
 function photoWaiting(rid) {
   const q = UI.upload.queue.filter(u => u.rid === rid);
   if (!q.length) return '';
+  const failed = q.filter(u => u.failed);
+  if (failed.length) {
+    const reasons = [...new Set(failed.map(u => u.err).filter(Boolean))];
+    return `<span class="phq fail">${failed.length} couldn’t go up${reasons.length ? ': ' + esc(reasons.join('; ')) : ''}.
+      <button class="sendnow" data-act="photoRetry">Try again</button> <button class="sendnow" data-act="photoDropFailed">Remove ${failed.length === 1 ? 'it' : 'them'}</button></span>`
+      + (q.length > failed.length ? photoWaitingRest(q.filter(u => !u.failed)) : '');
+  }
+  return photoWaitingRest(q);
+}
+function photoWaitingRest(q) {
   const waiting = q.filter(u => u.waiting).length, going = q.length - waiting;
   const low = UI.mode === 'low' && (typeof navigator === 'undefined' || navigator.onLine !== false);
   return `<span class="phq${waiting ? ' wait' : ''}">${going ? `Sending ${going} photo${going === 1 ? '' : 's'}…` : ''}${going && waiting ? ' · ' : ''}${
@@ -8937,6 +8966,13 @@ function onClick(e) {
     case 'modeCycle': setMode(MODES[(MODES.indexOf(UI.mode) + 1) % MODES.length]); render(); return;
     case 'modeDay': setMode('day'); render(); return;
     case 'photoSendNow': UI.upload.queue.forEach(u => { u.force = true; }); sendParked(); render(); return;
+    case 'photoRetry': UI.upload.queue.forEach(u => { if (u.failed) { u.retry = true; u.err = ''; } }); sendParked(); render(); return;
+    case 'photoDropFailed': {
+      const gone = UI.upload.queue.filter(u => u.failed);
+      gone.forEach(u => unparkPhoto(u.id));
+      UI.upload.queue = UI.upload.queue.filter(u => !u.failed);
+      flash(gone.length + ' removed from this phone.'); render(); return;
+    }
     case 'pinsReload': namePinsLoad(true); render(); return;
     case 'pinReset': {
       if (!canAdmin()) return;

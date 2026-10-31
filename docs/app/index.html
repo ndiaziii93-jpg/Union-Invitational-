@@ -4018,6 +4018,8 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
 .snaprow.ref{margin:6px 0 10px}
 .phq{flex:1 0 100%;font-size:13px;color:var(--turf)}
 .phq.wait{color:var(--gold)}
+.phq.fail{color:var(--flag);display:block;margin-bottom:6px}
+.phq.fail .sendnow{margin-left:4px}
 .camicon{margin-left:auto;display:inline-grid;place-items:center;width:40px;height:40px;border-radius:50%;
   border:1px solid var(--rule);background:var(--page);color:var(--ink);flex:0 0 auto}
 .camicon:active{background:var(--sunk)}
@@ -5204,7 +5206,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261031-1359';
+const BUILD = '20261031-1424';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -5329,7 +5331,7 @@ const PHOTO_BUCKET = 'photos';
 const PHOTO_MAX = 1600;
 const THUMB_MAX = 420;
 /* a clip from the phone goes up as it is — nothing on a phone can shrink a video — so there is a ceiling */
-const VIDEO_MAX_MB = 80;
+const VIDEO_MAX_MB = 50;   // Supabase's free plan takes no single file over 50 MB
 
 return {SUPABASE_URL, SUPABASE_KEY, PHOTO_BUCKET, PHOTO_MAX, THUMB_MAX, VIDEO_MAX_MB};
 })();
@@ -14332,7 +14334,7 @@ async function addPhotos(rid, files, hole) {
     UI.upload.queue.push(u);
     render();
     try {
-      if (video && f.size > CFG.VIDEO_MAX_MB * 1024 * 1024) throw new Error('that clip is ' + Math.round(f.size / 1048576) + ' MB; keep clips under ' + CFG.VIDEO_MAX_MB + ' MB');
+      if (video && f.size > CFG.VIDEO_MAX_MB * 1024 * 1024) throw new Error('that clip is ' + Math.round(f.size / 1048576) + ' MB; the photo store takes ' + CFG.VIDEO_MAX_MB + ' MB at most, about 45 seconds of iPhone video. Trim it in Photos (Edit), then add it again');
       const small = video ? f : await shrink(f, CFG.PHOTO_MAX);
       const thumb = video ? (supa ? await videoPoster(f) : null) : supa ? await shrink(f, CFG.THUMB_MAX, 0.7).catch(() => null) : null;
       u.pct = 30;
@@ -14366,6 +14368,8 @@ async function sendParked() {
       if (typeof navigator !== 'undefined' && navigator.onLine === false) { u.waiting = true; continue; }
       if (!loaded()) { u.waiting = true; continue; }                   // the book is still opening
       if (UI.mode === 'low' && !u.force) { u.waiting = true; continue; }   // low power: photos go on a tap, or when it is turned off
+      if (u.failed && !u.retry) continue;                                   // turned down: waits for Try again, not for a signal
+      u.failed = false; u.retry = false;
       u.waiting = false; u.err = ''; u.pct = 45; render();
       try {
         const supa = store4.kind === 'supabase';
@@ -14388,8 +14392,14 @@ async function sendParked() {
       } catch (e) {
         const why = (e && (e.message || e.code)) ? String(e.message || e.code) : 'did not upload';
         const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
-        u.waiting = true;                                // kept on the phone; tried again later
-        u.err = offline ? '' : why.slice(0, 60);
+        /* TURNED DOWN IS NOT OFFLINE. A clip the photo store will not take
+           (too big, or a type it is not set to accept) used to say "waiting
+           for signal" for ever, with a perfectly good signal. It says why
+           now, and waits for Try again or Remove. */
+        const refused = !offline && uploadRefusal(why, item);
+        u.waiting = !refused;                            // kept on the phone either way
+        u.failed = !!refused;
+        u.err = offline ? '' : (refused || why.slice(0, 60));
         if (store && store.note) store.note('photo waiting', item.name + ' — ' + why);
       }
       render();
@@ -14406,9 +14416,30 @@ if (typeof window !== 'undefined') {
    the strokes it gives. One tap hands straight to the phone, whose own
    chooser offers the camera or the photo library — there is no sheet of
    ours in between. */
+/** Why the photo store turned a file down, in words, or null if it did not. */
+function uploadRefusal(why, item) {
+  const w = String(why || '');
+  const video = item && (item.kind === 'video');
+  const mb = item && item.small && item.small.size ? Math.round(item.small.size / 1048576) : null;
+  if (/exceed|too large|maximum allowed size|payload|413|entity too large/i.test(w)) return (video ? 'Clip' : 'Photo') + (mb ? ' is ' + mb + ' MB: ' : ' is ') + 'too big for the photo store (50 MB max)';
+  if (/mime|not supported|content.?type|invalid.*type|file type/i.test(w)) return 'The photo store isn’t set to take ' + (video ? 'videos' : 'this kind of file') + ' yet';
+  if (/row-level security|policy|unauthori[sz]ed|403|permission/i.test(w)) return 'The photo store turned it down (permission)';
+  if (/bucket not found|not found/i.test(w)) return 'The photo store isn’t set up';
+  return null;
+}
 function photoWaiting(rid) {
   const q = UI.upload.queue.filter(u => u.rid === rid);
   if (!q.length) return '';
+  const failed = q.filter(u => u.failed);
+  if (failed.length) {
+    const reasons = [...new Set(failed.map(u => u.err).filter(Boolean))];
+    return `<span class="phq fail">${failed.length} couldn’t go up${reasons.length ? ': ' + esc(reasons.join('; ')) : ''}.
+      <button class="sendnow" data-act="photoRetry">Try again</button> <button class="sendnow" data-act="photoDropFailed">Remove ${failed.length === 1 ? 'it' : 'them'}</button></span>`
+      + (q.length > failed.length ? photoWaitingRest(q.filter(u => !u.failed)) : '');
+  }
+  return photoWaitingRest(q);
+}
+function photoWaitingRest(q) {
   const waiting = q.filter(u => u.waiting).length, going = q.length - waiting;
   const low = UI.mode === 'low' && (typeof navigator === 'undefined' || navigator.onLine !== false);
   return `<span class="phq${waiting ? ' wait' : ''}">${going ? `Sending ${going} photo${going === 1 ? '' : 's'}…` : ''}${going && waiting ? ' · ' : ''}${
@@ -20063,6 +20094,13 @@ function onClick(e) {
     case 'modeCycle': setMode(MODES[(MODES.indexOf(UI.mode) + 1) % MODES.length]); render(); return;
     case 'modeDay': setMode('day'); render(); return;
     case 'photoSendNow': UI.upload.queue.forEach(u => { u.force = true; }); sendParked(); render(); return;
+    case 'photoRetry': UI.upload.queue.forEach(u => { if (u.failed) { u.retry = true; u.err = ''; } }); sendParked(); render(); return;
+    case 'photoDropFailed': {
+      const gone = UI.upload.queue.filter(u => u.failed);
+      gone.forEach(u => unparkPhoto(u.id));
+      UI.upload.queue = UI.upload.queue.filter(u => !u.failed);
+      flash(gone.length + ' removed from this phone.'); render(); return;
+    }
     case 'pinsReload': namePinsLoad(true); render(); return;
     case 'pinReset': {
       if (!canAdmin()) return;
@@ -21918,7 +21956,7 @@ __m_app.boot();
 /* Register the worker that makes the book work with no signal. It is the
    whole point of installing it: Belek is five hours of walking and everyone
    is roaming. A failure here must never stop the page loading. */
-var BOOK_BUILD = '20261031-1359';
+var BOOK_BUILD = '20261031-1424';
 var swReg = null;
 /* the book is never shown inside somebody else's page, where a tap could be
    aimed at a button they have put under the finger */

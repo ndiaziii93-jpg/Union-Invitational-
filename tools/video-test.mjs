@@ -66,9 +66,9 @@ await p.evaluate(() => { window.__UI.recapOpen = false; window.__UI.screen = 'en
 await cam.scrollIntoViewIfNeeded(); await p.evaluate(() => scrollBy(0, -120)); await p.waitForTimeout(200);
 await cam.click(); await p.waitForTimeout(250);
 const [c2] = await Promise.all([p.waitForEvent('filechooser'), p.locator('[data-act="photoLib"]').click()]);
-writeFileSync(S + '/long.mp4', Buffer.alloc(81 * 1024 * 1024));   // too big for the book, and for a buffer: handed over as a file
+writeFileSync(S + '/long.mp4', Buffer.alloc(51 * 1024 * 1024));   // too big for the book, and for a buffer: handed over as a file
 await c2.setFiles([S + '/long.mp4']); await p.waitForTimeout(1500);
-ok('is turned away with the limit named', /keep clips under 80 MB/.test(await p.evaluate(() => window.__UI.upload.err)), true);
+ok('is turned away with the limit named', /takes 50 MB at most.*Trim it/.test(await p.evaluate(() => window.__UI.upload.err)), true);
 ok('and nothing more is in the book', (await rows()).length, 3);
 ok('no errors on the way', errs, []);
 await b.close();

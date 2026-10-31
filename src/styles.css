@@ -3942,6 +3942,8 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
 .snaprow.ref{margin:6px 0 10px}
 .phq{flex:1 0 100%;font-size:13px;color:var(--turf)}
 .phq.wait{color:var(--gold)}
+.phq.fail{color:var(--flag);display:block;margin-bottom:6px}
+.phq.fail .sendnow{margin-left:4px}
 .camicon{margin-left:auto;display:inline-grid;place-items:center;width:40px;height:40px;border-radius:50%;
   border:1px solid var(--rule);background:var(--page);color:var(--ink);flex:0 0 auto}
 .camicon:active{background:var(--sunk)}

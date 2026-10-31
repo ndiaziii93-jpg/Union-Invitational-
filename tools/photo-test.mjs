@@ -18,6 +18,7 @@ const MOCK = () => { window.claude = { use: async n => {
   let k = 0;
   return { upload: async blob => {
     if (!navigator.onLine) throw new Error('Failed to fetch');           // no signal: the send fails as a real one does
+    if (window.__refuse) throw new Error(window.__refuse);               // the store turns the file down
     window.__uploads = (window.__uploads || 0) + 1;
     return { id: 'a' + (++k), url: 'blob-' + Date.now() + '-' + k + '.jpg', sizeBytes: blob.size };
   } };
@@ -84,6 +85,27 @@ ok('nothing is left waiting', await p.locator('.snaprow .phq').count(), 0);
 ok('and nothing is left on the phone', await p.evaluate(() => new Promise(r => { const q = indexedDB.open('union-photos', 1);
   q.onsuccess = () => { const t = q.result.transaction('pending', 'readonly').objectStore('pending').count(); t.onsuccess = () => r(t.result); }; })), 0);
 
+console.log('\nthe photo store turns a file down, with a good signal');
+await p.evaluate(() => { window.__refuse = 'The object exceeded the maximum allowed size'; });
+chooser = await snap();
+await chooser.setFiles(pic('huge.png')); await p.waitForTimeout(1800);
+const line = () => p.locator('.snaprow .phq').first().innerText().catch(() => '');
+ok('it says it could not go up, and why: not "waiting for signal"', [/couldn’t go up: Photo .*too big for the photo store \(50 MB max\)/.test(await line()), /waiting for signal/.test(await line())], [true, false]);
+const tries = await p.evaluate(() => window.__uploads || 0);
+await p.evaluate(() => window.dispatchEvent(new Event('online'))); await p.waitForTimeout(800);
+ok('and does not keep hammering the store for it', await p.evaluate(() => window.__uploads || 0), tries);
+await p.evaluate(() => { window.__refuse = ''; });
+await p.locator('[data-act="photoRetry"]').first().click(); await p.waitForTimeout(1800);
+ok('Try again sends it once the store will take it', [(await photos()).length, await p.locator('.snaprow .phq').count()], [5, 0]);
+await p.evaluate(() => { window.__refuse = 'mime type video/quicktime is not supported'; });
+chooser = await snap();
+await chooser.setFiles(pic('wrongtype.png')); await p.waitForTimeout(1800);
+ok('a type the store is not set to take says so', /isn’t set to take/.test(await line()), true);
+await p.locator('[data-act="photoDropFailed"]').first().click(); await p.waitForTimeout(600);
+ok('and Remove takes it off the phone', [await p.locator('.snaprow .phq').count(), await p.evaluate(() => new Promise(r => { const q = indexedDB.open('union-photos', 1);
+  q.onsuccess = () => { const t = q.result.transaction('pending', 'readonly').objectStore('pending').count(); t.onsuccess = () => r(t.result); }; }))], [0, 0]);
+await p.evaluate(() => { window.__refuse = ''; });
+
 console.log('\nanother hole, another photo');
 await p.locator('[data-act="entryHole"][data-a="2"]').first().dispatchEvent('click'); await p.waitForTimeout(500); await shut();
 ok('the camera moves with the hole', await cam().getAttribute('aria-label'), 'Add a photo of hole 3: take one or choose one');
@@ -97,7 +119,7 @@ await p.locator('[data-act="go"][data-a="boards"]:visible').first().click(); awa
 await p.locator('.btab[data-a="photos"]').click(); await p.waitForTimeout(500);
 ok('Photos is a tab on Boards', await p.locator('.btab[data-a="photos"].on').count(), 1);
 ok('the course album opens first, every photo marked with its hole',
-  (await p.locator('.pg-t .pg-hb').allInnerTexts()).sort(), ['HOLE 1', 'HOLE 3', 'HOLE 7', 'HOLE 7', 'HOLE 7']);
+  (await p.locator('.pg-t .pg-hb').allInnerTexts()).sort(), ['HOLE 1', 'HOLE 1', 'HOLE 3', 'HOLE 7', 'HOLE 7', 'HOLE 7']);   // the second hole 1 is the one sent on Try again
 
 console.log('\nthe trip, apart from the golf');
 await p.locator('[data-act="photoAlbum"][data-a="trip"]').click(); await p.waitForTimeout(400);
@@ -110,7 +132,7 @@ const resortToday = new Date(Date.now() + 3 * 3600e3).toISOString().slice(0, 10)
 ok('a trip photo is kept apart, by the day at the resort, with no hole', tripRows, [{ hole: null, day: resortToday }]);
 ok('and shows in the trip album only', [await p.locator('.pg-t').count(), await p.locator('.pg-t .pg-hb').count()], [1, 0]);
 await p.locator('[data-act="photoAlbum"][data-a="course"]').click(); await p.waitForTimeout(300);
-ok('the course album still has only the golf', await p.locator('.pg-t').count(), 5);
+ok('the course album still has only the golf', await p.locator('.pg-t').count(), 6);
 
 console.log('\nhearts');
 await p.locator('[data-act="photoAlbum"][data-a="trip"]').click(); await p.waitForTimeout(300);

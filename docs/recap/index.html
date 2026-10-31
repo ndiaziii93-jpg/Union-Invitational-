@@ -3996,6 +3996,8 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
 .snaprow.ref{margin:6px 0 10px}
 .phq{flex:1 0 100%;font-size:13px;color:var(--turf)}
 .phq.wait{color:var(--gold)}
+.phq.fail{color:var(--flag);display:block;margin-bottom:6px}
+.phq.fail .sendnow{margin-left:4px}
 .camicon{margin-left:auto;display:inline-grid;place-items:center;width:40px;height:40px;border-radius:50%;
   border:1px solid var(--rule);background:var(--page);color:var(--ink);flex:0 0 auto}
 .camicon:active{background:var(--sunk)}
@@ -5255,7 +5257,7 @@ const PHOTO_BUCKET = 'photos';
 const PHOTO_MAX = 1600;
 const THUMB_MAX = 420;
 /* a clip from the phone goes up as it is — nothing on a phone can shrink a video — so there is a ceiling */
-const VIDEO_MAX_MB = 80;
+const VIDEO_MAX_MB = 50;   // Supabase's free plan takes no single file over 50 MB
 
 return {SUPABASE_URL, SUPABASE_KEY, PHOTO_BUCKET, PHOTO_MAX, THUMB_MAX, VIDEO_MAX_MB};
 })();
