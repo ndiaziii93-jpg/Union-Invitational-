@@ -116,14 +116,14 @@ const ok = (n, g, w) => { const good = JSON.stringify(g) === JSON.stringify(w);
    twice and billed for both". */
 const REPLY = JSON.stringify({
   headline: 'The wind got up on the back nine',
-  narrative: ['It was that sort of afternoon.', 'Nobody said much on the 16th tee.'],
+  narrative: ['It was that sort of afternoon, the kind the wind writes and the golfers only sign.', 'Nobody said much on the 16th tee, which for this group is a story in itself.'],
   swing: { value: '4 shots', caption: 'between the 12th and the 15th' },
   pairNotes: {}, honours: [],
 });
 const MOCK = (reply) => {
   window.__asks = 0;
   const sample = async (prompt, opts) => {
-    window.__asks++;
+    if (!/THE EXTRAS ONLY/.test(String(prompt))) window.__asks++;   // one report is one story; its extras ride along
     window.__lastPrompt = String(prompt).slice(0, 4000);
     await new Promise(r => setTimeout(r, 250));
     if (opts && opts.onText) opts.onText({ text: reply });

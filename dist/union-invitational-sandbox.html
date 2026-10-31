@@ -5103,7 +5103,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261031-1310';
+const BUILD = '20261031-1321';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -7429,7 +7429,11 @@ function recapInput(T, rid, now) {
   if (sg.ctp) L.push('- Closest to the pin, hole ' + sg.ctp.hole + ': ' + sg.ctp.who + ' ' + sg.ctp.note);
   if (sg.ld) L.push('- Longest drive, hole ' + sg.ld.hole + ': ' + sg.ld.who + ' ' + sg.ld.note);
   if (sg.bbb) L.push('- Bingo Bango Bongo: ' + sg.bbb.who + ' ' + sg.bbb.note);
-  L.push('- Triple-bogey cap hit ' + sg.caps + ' times today.');
+  /* reached, not just gone past: a pick-up is written AT the cap, so counting
+     only scores over it told the writer the cap went untouched on a day of
+     pick-ups */
+  const reached = golfers(T).reduce((a, p) => { const c = card(T, rid, p.id); return a + (c ? c.raw.filter((v, i) => v != null && v >= course.holes[i].par + T.config.capOver).length : 0); }, 0);
+  L.push('- The triple-bogey cap was reached ' + reached + ' time' + (reached === 1 ? '' : 's') + ' today' + (sg.caps ? ' (' + sg.caps + ' of them scores written above it and brought down to it)' : '') + '.');
   const pus = golfers(T).map(p => { const c = card(T, rid, p.id); const hs = c && c.pu ? Object.keys(c.pu).filter(k => c.pu[k]).map(k => +k + 1) : []; return hs.length ? p.display + ' (hole' + (hs.length > 1 ? 's ' : ' ') + hs.join(', ') + ')' : null; }).filter(Boolean);
   if (pus.length) L.push('- Picked up at the cap, still out on the hole, and scored nothing for it in the team game: ' + pus.join('; ') + '.');
 
@@ -21396,7 +21400,7 @@ const RECAP_RULES = [
   'Use the exact player and pair ids given at the end of the card.',
   '',
   'Reply with JSON only. No preamble, no code fence, no commentary. This shape:',
-  '{"headline":"one line","narrative":["para","para","para","para","para","para","para","para"],',
+  '{"headline":"one line","narrative":["the first paragraph, written out in full","the second, in full","and so on, eight to ten of them"],',
   ' "voices":[{"who":"Ray V","text":"exact words from what he said about his round"}],',
   ' "swing":{"value":"4 shots","caption":"one sentence"},',
   ' "pairNotes":{"p1":"one line"},',
@@ -21467,6 +21471,16 @@ function salvageRecap(raw) {
   if (narrative.length < 3) return null;
   return { headline: h ? (str(h[1]) || '').slice(0, 160) : '', narrative: narrative.slice(0, 12), voices: [], swing: null, pairNotes: {}, honours: [] };
 }
+/* TWO ANSWERS, NOT ONE. The story and the extras (the voices, the honours,
+   the pair notes, the swing) are asked for separately: each fits easily
+   under the writer's ceiling, where the whole report in one answer ran out
+   of room even when asked to be short. */
+const RECAP_STORY = '\n\nFOR THIS ANSWER, THE STORY ONLY. Reply with JSON only, in this shape: {"headline":"one line","narrative":["...","..."]}. '
+  + 'Every paragraph is written out in full, as the rules above say: never a placeholder, a label or a summary of what a paragraph would say. Nothing else: no voices, honours, notes or swing in this answer.';
+const recapExtras = story => '\n\nTHE STORY IS ALREADY WRITTEN (below, for reference only: do not repeat or rewrite it).\n' + story.join('\n\n')
+  + '\n\nFOR THIS ANSWER, THE EXTRAS ONLY. Reply with JSON only, in this shape: {"voices":[{"who":"Ray V","text":"exact words"}],"swing":{"value":"4 shots","caption":"one sentence"},"pairNotes":{"p1":"one line"},"honours":[{"slot":"shot_of_the_day","winner":"g1","citation":"one or two sentences"}]}. No headline and no narrative.';
+/** A paragraph that is a placeholder or a label, not a paragraph. */
+const realPara = p => { const t = String(p || '').trim(); return t.length >= 40 && !/^(para(graph)?|section|part)(\s+\w+)?\.?$/i.test(t); };
 const RECAP_SHORTER = '\n\nTHIS TIME, KEEP IT SHORTER: the last answer ran out of room and was cut off. Six paragraphs of 60 to 80 words, at most five voices, '
   + 'one-sentence citations, and the JSON only, with nothing before or after it. Every other rule stands.';
 
@@ -21518,13 +21532,20 @@ async function writeRecap(rid, again, auto) {
       cache: false,
       onText: ({ text }) => { UI.recap.stream = text.slice(-400); render(); },
     });
-    const read = r => { try { const b = parseRecap(r.text); return b.narrative.length ? b : null; } catch (e) { return null; } };
-    /* Cut off, or unreadable: ask once more for a tighter report, and if
-       that is cut off too, keep the paragraphs that did come back. */
-    let first = await ask(prompt), body = first.truncated ? null : read(first), second = null;
-    if (!body) { second = await ask(prompt + RECAP_SHORTER); body = second.truncated ? null : read(second); }
-    if (!body) body = read(second || first) || salvageRecap((second || {}).text) || salvageRecap(first.text);
+    const clean = b => { if (b) b.narrative = b.narrative.filter(realPara); return b && b.narrative.length ? b : null; };
+    const read = r => { try { return clean(parseRecap(r.text)); } catch (e) { return null; } };
+    /* The story first. Cut off, or unreadable: ask once more for a tighter
+       one, and if that is cut off too, keep the paragraphs that did come back. */
+    let first = await ask(prompt + RECAP_STORY), body = first.truncated ? null : read(first), second = null;
+    if (!body) { second = await ask(prompt + RECAP_STORY + RECAP_SHORTER); body = second.truncated ? null : read(second); }
+    if (!body) body = read(second || first) || clean(salvageRecap((second || {}).text)) || clean(salvageRecap(first.text));
     if (!body || !body.narrative.length) throw new Error('no narrative');
+    /* Then the extras, on their own. If they never come, the story still goes out. */
+    try {
+      const ex = await ask(prompt + recapExtras(body.narrative));
+      let x = null; try { x = parseRecap(ex.text); } catch (e) { x = null; }
+      if (x) { body.voices = x.voices; body.swing = x.swing; body.pairNotes = x.pairNotes; body.honours = x.honours; }
+    } catch (e) { if (e && e.code === 'cancelled') throw e; }
     body.voices = realVoices(body.voices, rid);          // only words somebody really said
     /* Written by the book itself, it goes straight to the group: nobody is
        standing by to press Share at the end of a round. A commissioner can

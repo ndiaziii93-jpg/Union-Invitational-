@@ -1410,7 +1410,11 @@ export function recapInput(T, rid, now) {
   if (sg.ctp) L.push('- Closest to the pin, hole ' + sg.ctp.hole + ': ' + sg.ctp.who + ' ' + sg.ctp.note);
   if (sg.ld) L.push('- Longest drive, hole ' + sg.ld.hole + ': ' + sg.ld.who + ' ' + sg.ld.note);
   if (sg.bbb) L.push('- Bingo Bango Bongo: ' + sg.bbb.who + ' ' + sg.bbb.note);
-  L.push('- Triple-bogey cap hit ' + sg.caps + ' times today.');
+  /* reached, not just gone past: a pick-up is written AT the cap, so counting
+     only scores over it told the writer the cap went untouched on a day of
+     pick-ups */
+  const reached = golfers(T).reduce((a, p) => { const c = card(T, rid, p.id); return a + (c ? c.raw.filter((v, i) => v != null && v >= course.holes[i].par + T.config.capOver).length : 0); }, 0);
+  L.push('- The triple-bogey cap was reached ' + reached + ' time' + (reached === 1 ? '' : 's') + ' today' + (sg.caps ? ' (' + sg.caps + ' of them scores written above it and brought down to it)' : '') + '.');
   const pus = golfers(T).map(p => { const c = card(T, rid, p.id); const hs = c && c.pu ? Object.keys(c.pu).filter(k => c.pu[k]).map(k => +k + 1) : []; return hs.length ? p.display + ' (hole' + (hs.length > 1 ? 's ' : ' ') + hs.join(', ') + ')' : null; }).filter(Boolean);
   if (pus.length) L.push('- Picked up at the cap, still out on the hole, and scored nothing for it in the team game: ' + pus.join('; ') + '.');
 
