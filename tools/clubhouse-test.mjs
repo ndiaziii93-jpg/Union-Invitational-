@@ -268,7 +268,7 @@ ok('where it stops being a way back',
 ok('every tab still carries its full name', await p.evaluate(
   () => [...document.querySelectorAll('.btab')].map(b => b.getAttribute('aria-label'))),
   ['All games', 'Team Competition', 'MVP', 'Bingo Bango Bongo', 'Ryder Cup',
-   'Longest Drive & Closest to the Pin', 'Practice Day', 'Photos from the week', 'Chat']);
+   'Longest Drive & Closest to the Pin', 'Shot of the day', 'Practice Day', 'Photos from the week', 'Chat']);
 
 /* ---------------- the strip, in two materials ----------------
  *
