@@ -5003,3 +5003,22 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 .sn-crown small{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#E2C277;font-weight:800}
 .sn-crown b{font-size:19px} .sn-crown span{font-style:italic}
 .sn-all{margin-top:14px} .sn-all summary{cursor:pointer;font-weight:700;color:var(--turf)}
+
+/* a recap's photographs: tap for full screen, and the commissioner can swap one */
+.rinline .rin-open{display:block;width:100%;padding:0;border:0;background:none;cursor:zoom-in;-webkit-tap-highlight-color:transparent}
+.rinline .rin-open img{display:block;width:100%}
+.rin-swap{margin-top:6px;font-size:12.5px;font-weight:800;border-radius:999px;padding:7px 12px;min-height:36px;background:var(--paper);box-shadow:inset 0 0 0 1px var(--rule);color:var(--ink)}
+.rswap{max-height:90vh;overflow:auto}
+.rsw-g{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:8px 0}
+.rsw-t{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;padding:0;border:0;background:var(--sunk);box-shadow:inset 0 0 0 1px var(--rule)}
+.rsw-t img{width:100%;height:100%;object-fit:cover;display:block}
+.rsw-t.on{box-shadow:0 0 0 3px var(--gold-up)}
+.rsw-t .pg-hb{position:absolute;top:4px;left:4px;font-size:9.5px;letter-spacing:.08em;font-weight:800;border-radius:999px;padding:2px 6px;background:rgba(29,46,33,.82);color:#E2C277}
+.rsw-used{position:absolute;bottom:0;left:0;right:0;font-style:normal;font-size:10px;font-weight:800;text-align:center;padding:3px;background:rgba(29,46,33,.78);color:#E2C277}
+.rfull{position:fixed;inset:0;z-index:9999;background:#0b0f0c;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:56px 12px 24px;cursor:zoom-out}
+.rfull img{max-width:100%;max-height:calc(100dvh - 130px);object-fit:contain;border-radius:6px}
+.rfull-x{position:absolute;top:12px;right:14px;background:none;border:0;font:inherit;font-size:17px;font-weight:700;color:#E2C277;padding:10px 6px}
+.rfull-cap{color:#C9D3C6;font-size:14px;text-align:center}
+
+/* above the recap panel, which is drawn later at the same level */
+.scrim.pvscrim,.scrim.rswapscrim{z-index:80}

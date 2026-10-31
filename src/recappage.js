@@ -108,11 +108,17 @@ export function renderRecap(T, rid, IMG, opts) {
   const shots = st.field;
   const shared = opts.shared || sharedRounds(T);
   const tm = ms => { try { return E.to12(new Date(ms + D.TZ_OFFSET_MIN * 60000).toISOString().slice(11, 16)); } catch (e) { return ''; } };
+  /* the commissioner can swap any slot for another photograph from that day (body.pics): the round's own, or the trip's from the same date */
+  const dayIso = (E.dayOf(r.dayIdx) || {}).iso || '';
+  const tripDay = p => p.day || (p.at ? new Date(p.at + 3 * 3600e3).toISOString().slice(0, 10) : '');
+  const pool = stills.concat(Object.values(T.photos || {}).filter(p => p && p.rid === 'trip' && web(p.url) && p.kind !== 'video' && dayIso && tripDay(p) === dayIso));
   const inlinePhoto = i => {
-    const ph = stills[i + 1] || null;
+    const picked = body && body.pics && body.pics[i];
+    const ph = (picked && pool.find(p => p.id === picked)) || stills[i + 1] || null;
     if (!ph) return '';
-    return `<figure class="rinline"><img src="${esc(ph.url)}" alt="${esc(ph.caption || 'From the round')}" loading="lazy" decoding="async">
-      <figcaption>${esc(ph.caption || (ph.hole != null ? 'Hole ' + (ph.hole + 1) : 'From the round'))}${ph.byName ? ' · 📷 ' + esc(ph.byName) : ''}</figcaption></figure>`;
+    const cap = ph.caption || (ph.hole != null ? 'Hole ' + (ph.hole + 1) : 'From the round');
+    return `<figure class="rinline"><button class="rin-open" data-full="${esc(ph.url)}" data-cap="${esc(cap + (ph.byName ? ' · 📷 ' + ph.byName : ''))}" aria-label="Open this photo full screen"><img src="${esc(ph.url)}" alt="${esc(ph.caption || 'From the round')}" loading="lazy" decoding="async"></button>
+      <figcaption>${esc(cap)}${ph.byName ? ' · 📷 ' + esc(ph.byName) : ''}</figcaption></figure>`;
   };
   const voiceHtml = v => `<blockquote class="rvoice"><p>“${esc(v.text)}”</p><cite>— ${esc(v.who || 'From My round')}</cite></blockquote>`;
   const inlineVoice = i => {
@@ -329,11 +335,30 @@ export async function boot(cfg) {
     document.title = (rec && rec.body && rec.body.headline && rec.status === 'published' ? rec.body.headline + ' · ' : '') + (r.full || 'The Day\'s Recap') + ' · The Union Invitational';
     el.innerHTML = renderRecap(T, rid, IMG, { draft: q.get('draft') === '1', shared });
     slides(el);
+    fullScreen(el);
     window.__T = T; window.__rid = rid;    // read by the tests
   } catch (e) {
     el.innerHTML = `<div class="recapbox"><div class="recaptop"><b>The Day's Recap</b><a class="rm" href="../app/">Open the book</a></div>
       <p class="empty" style="padding:28px 0">Could not read the book just now${e && e.message ? ' (' + esc(e.message) + ')' : ''}. Try again when there is a signal.</p></div>`;
   }
+}
+
+/* A tap on a photograph in the article opens it full screen; a tap, or Escape, puts it away. */
+function fullScreen(el) {
+  const close = () => { const o = document.getElementById('rfull'); if (o) o.remove(); };
+  el.addEventListener('click', e => {
+    const b = e.target.closest('[data-full]');
+    if (!b) return;
+    close();
+    const o = document.createElement('div');
+    o.id = 'rfull'; o.className = 'rfull'; o.setAttribute('role', 'dialog'); o.setAttribute('aria-modal', 'true'); o.setAttribute('aria-label', 'Photo, full screen');
+    o.innerHTML = '<button class="rfull-x" aria-label="Close">Done</button><img alt=""><div class="rfull-cap"></div>';
+    o.querySelector('img').src = b.getAttribute('data-full');
+    o.querySelector('.rfull-cap').textContent = b.getAttribute('data-cap') || '';
+    o.addEventListener('click', close);
+    document.body.appendChild(o);
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
 }
 
 /* The photographs across the top slide by on their own; a swipe takes over. */

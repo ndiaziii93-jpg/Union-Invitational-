@@ -5058,6 +5058,25 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 .sn-crown b{font-size:19px} .sn-crown span{font-style:italic}
 .sn-all{margin-top:14px} .sn-all summary{cursor:pointer;font-weight:700;color:var(--turf)}
 
+/* a recap's photographs: tap for full screen, and the commissioner can swap one */
+.rinline .rin-open{display:block;width:100%;padding:0;border:0;background:none;cursor:zoom-in;-webkit-tap-highlight-color:transparent}
+.rinline .rin-open img{display:block;width:100%}
+.rin-swap{margin-top:6px;font-size:12.5px;font-weight:800;border-radius:999px;padding:7px 12px;min-height:36px;background:var(--paper);box-shadow:inset 0 0 0 1px var(--rule);color:var(--ink)}
+.rswap{max-height:90vh;overflow:auto}
+.rsw-g{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:8px 0}
+.rsw-t{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;padding:0;border:0;background:var(--sunk);box-shadow:inset 0 0 0 1px var(--rule)}
+.rsw-t img{width:100%;height:100%;object-fit:cover;display:block}
+.rsw-t.on{box-shadow:0 0 0 3px var(--gold-up)}
+.rsw-t .pg-hb{position:absolute;top:4px;left:4px;font-size:9.5px;letter-spacing:.08em;font-weight:800;border-radius:999px;padding:2px 6px;background:rgba(29,46,33,.82);color:#E2C277}
+.rsw-used{position:absolute;bottom:0;left:0;right:0;font-style:normal;font-size:10px;font-weight:800;text-align:center;padding:3px;background:rgba(29,46,33,.78);color:#E2C277}
+.rfull{position:fixed;inset:0;z-index:9999;background:#0b0f0c;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:56px 12px 24px;cursor:zoom-out}
+.rfull img{max-width:100%;max-height:calc(100dvh - 130px);object-fit:contain;border-radius:6px}
+.rfull-x{position:absolute;top:12px;right:14px;background:none;border:0;font:inherit;font-size:17px;font-weight:700;color:#E2C277;padding:10px 6px}
+.rfull-cap{color:#C9D3C6;font-size:14px;text-align:center}
+
+/* above the recap panel, which is drawn later at the same level */
+.scrim.pvscrim,.scrim.rswapscrim{z-index:80}
+
 </style>
 <style>
 /* A page, not a window. The book raises the recap over a screen; here it is
@@ -9381,11 +9400,17 @@ function renderRecap(T, rid, IMG, opts) {
   const shots = st.field;
   const shared = opts.shared || sharedRounds(T);
   const tm = ms => { try { return E.to12(new Date(ms + D.TZ_OFFSET_MIN * 60000).toISOString().slice(11, 16)); } catch (e) { return ''; } };
+  /* the commissioner can swap any slot for another photograph from that day (body.pics): the round's own, or the trip's from the same date */
+  const dayIso = (E.dayOf(r.dayIdx) || {}).iso || '';
+  const tripDay = p => p.day || (p.at ? new Date(p.at + 3 * 3600e3).toISOString().slice(0, 10) : '');
+  const pool = stills.concat(Object.values(T.photos || {}).filter(p => p && p.rid === 'trip' && web(p.url) && p.kind !== 'video' && dayIso && tripDay(p) === dayIso));
   const inlinePhoto = i => {
-    const ph = stills[i + 1] || null;
+    const picked = body && body.pics && body.pics[i];
+    const ph = (picked && pool.find(p => p.id === picked)) || stills[i + 1] || null;
     if (!ph) return '';
-    return `<figure class="rinline"><img src="${esc(ph.url)}" alt="${esc(ph.caption || 'From the round')}" loading="lazy" decoding="async">
-      <figcaption>${esc(ph.caption || (ph.hole != null ? 'Hole ' + (ph.hole + 1) : 'From the round'))}${ph.byName ? ' · 📷 ' + esc(ph.byName) : ''}</figcaption></figure>`;
+    const cap = ph.caption || (ph.hole != null ? 'Hole ' + (ph.hole + 1) : 'From the round');
+    return `<figure class="rinline"><button class="rin-open" data-full="${esc(ph.url)}" data-cap="${esc(cap + (ph.byName ? ' · 📷 ' + ph.byName : ''))}" aria-label="Open this photo full screen"><img src="${esc(ph.url)}" alt="${esc(ph.caption || 'From the round')}" loading="lazy" decoding="async"></button>
+      <figcaption>${esc(cap)}${ph.byName ? ' · 📷 ' + esc(ph.byName) : ''}</figcaption></figure>`;
   };
   const voiceHtml = v => `<blockquote class="rvoice"><p>“${esc(v.text)}”</p><cite>— ${esc(v.who || 'From My round')}</cite></blockquote>`;
   const inlineVoice = i => {
@@ -9602,11 +9627,30 @@ async function boot(cfg) {
     document.title = (rec && rec.body && rec.body.headline && rec.status === 'published' ? rec.body.headline + ' · ' : '') + (r.full || 'The Day\'s Recap') + ' · The Union Invitational';
     el.innerHTML = renderRecap(T, rid, IMG, { draft: q.get('draft') === '1', shared });
     slides(el);
+    fullScreen(el);
     window.__T = T; window.__rid = rid;    // read by the tests
   } catch (e) {
     el.innerHTML = `<div class="recapbox"><div class="recaptop"><b>The Day's Recap</b><a class="rm" href="../app/">Open the book</a></div>
       <p class="empty" style="padding:28px 0">Could not read the book just now${e && e.message ? ' (' + esc(e.message) + ')' : ''}. Try again when there is a signal.</p></div>`;
   }
+}
+
+/* A tap on a photograph in the article opens it full screen; a tap, or Escape, puts it away. */
+function fullScreen(el) {
+  const close = () => { const o = document.getElementById('rfull'); if (o) o.remove(); };
+  el.addEventListener('click', e => {
+    const b = e.target.closest('[data-full]');
+    if (!b) return;
+    close();
+    const o = document.createElement('div');
+    o.id = 'rfull'; o.className = 'rfull'; o.setAttribute('role', 'dialog'); o.setAttribute('aria-modal', 'true'); o.setAttribute('aria-label', 'Photo, full screen');
+    o.innerHTML = '<button class="rfull-x" aria-label="Close">Done</button><img alt=""><div class="rfull-cap"></div>';
+    o.querySelector('img').src = b.getAttribute('data-full');
+    o.querySelector('.rfull-cap').textContent = b.getAttribute('data-cap') || '';
+    o.addEventListener('click', close);
+    document.body.appendChild(o);
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
 }
 
 /* The photographs across the top slide by on their own; a swipe takes over. */

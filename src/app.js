@@ -1449,7 +1449,7 @@ function recapPanel() {
           data-act="recapEdit" data-a="para" data-b="${i}"
           aria-label="Paragraph ${i + 1}" placeholder="${i >= (body.narrative || []).length ? 'Add a paragraph…' : ''}">${esc(x)}</textarea>`).join('')
         : body && body.narrative ? body.narrative.filter(x => x && x.trim())
-            .map((x, i) => `<p class="recpara${i === 0 ? ' lead' : ''}">${esc(x)}</p>${i < body.narrative.length - 1 ? inlinePhoto(snaps, i) + inlineVoice(body, i) : ''}`).join('')
+            .map((x, i) => `<p class="recpara${i === 0 ? ' lead' : ''}">${esc(x)}</p>${i < body.narrative.length - 1 ? inlinePhoto(snaps, i, body, rid) + inlineVoice(body, i) : ''}`).join('')
             + voicesLeft(body).map(v => voiceHtml(v)).join('')
         : UI.recap.busy ? `<p class="recpara thinking">${esc(UI.recap.stream || 'Reading the cards…')}</p>`
         : st.complete ? `<p class="recpara">${ed ? 'Generate the report and it will be written from today\'s cards.'
@@ -1606,12 +1606,67 @@ function voiceFor(body, i) {
 function inlineVoice(body, i) { const v = voiceFor(body, i); return v ? voiceHtml(v) : ''; }
 /** A photo of the round between every pair of paragraphs, newest after the
  *  one on the front, as many as the round has. */
-function inlinePhoto(snaps, i) {
-  const stills = snaps.filter(p => !isVideo(p));          // the inline pictures are photographs; clips are in the strip
-  const ph = stills[i + 1] || null;
+/* A RECAP'S PICTURES ARE PICKABLE. Each paragraph's photo is the next one
+   along by default; the commissioner can swap any of them for another
+   photograph taken that day, the round's own or the trip's from the same
+   date, and the choice is kept in the report (body.pics: paragraph -> photo). */
+function recapPool(rid) {
+  const r = D.ROUNDS.find(x => x.id === rid), day = r ? E.dayOf(r.dayIdx).iso : '';
+  const trip = day ? Object.values(T.photos || {}).filter(p => p && isTrip(p) && safeUrl(p.url) && !isVideo(p) && photoDay(p) === day) : [];
+  return photosFor(rid).filter(p => !isVideo(p)).concat(trip).sort((a, b) => (b.at || 0) - (a.at || 0));
+}
+function recapSlotPhoto(rid, body, i) {
+  const picked = body && body.pics && body.pics[i];
+  const chosen = picked ? recapPool(rid).find(p => p.id === picked) : null;
+  return chosen || photosFor(rid).filter(p => !isVideo(p))[i + 1] || null;
+}
+function inlinePhoto(snaps, i, body, rid) {
+  const ph = recapSlotPhoto(rid, body, i);
   if (!ph) return '';
-  return `<figure class="rinline"><img src="${esc(ph.url)}" alt="${esc(ph.caption || 'From the round')}" loading="lazy" decoding="async">
-    <figcaption>${esc(ph.caption || (ph.hole != null ? 'Hole ' + (ph.hole + 1) : 'From the round'))}${ph.byName ? ' · 📷 ' + esc(ph.byName) : ''}</figcaption></figure>`;
+  const cap = ph.caption || (ph.hole != null ? 'Hole ' + (ph.hole + 1) : 'From the round');
+  return `<figure class="rinline"><button class="rin-open" data-act="recapPhoto" data-a="${esc(rid)}" data-b="${i}" aria-label="Open this photo full screen"><img src="${esc(ph.url)}" alt="${esc(ph.caption || 'From the round')}" loading="lazy" decoding="async"></button>
+    <figcaption>${esc(cap)}${ph.byName ? ' · 📷 ' + esc(ph.byName) : ''}</figcaption>
+    ${canEdit() ? `<button class="rin-swap" data-act="recapSwap" data-a="${esc(rid)}" data-b="${i}">⇄ Swap this photo</button>` : ''}</figure>`;
+}
+function recapSlots(rid, body) {
+  const n = body ? (body.narrative || []).filter(x => x && x.trim()).length : 0, out = [];
+  for (let k = 0; k < n - 1; k++) { const p = recapSlotPhoto(rid, body, k); if (p) out.push({ k, p }); }
+  return out;
+}
+/** The recap's photograph full screen, with the others of the article a swipe away and, for the commissioner, Swap. */
+function recapPhotoHtml() {
+  const m = UI.modal, rec = T.recaps[m.rid], body = rec && rec.body;
+  const slots = recapSlots(m.rid, body), at = slots.findIndex(s => s.k === m.i);
+  if (at < 0) return '';
+  const ph = slots[at].p, prev = slots[at - 1], next = slots[at + 1];
+  const r = D.ROUNDS.find(x => x.id === ph.rid);
+  const where = isTrip(ph) ? 'The trip · ' + dayName(photoDay(ph)).dow
+    : (r ? (r.short === 'Practice' ? 'Practice' : 'Round ' + r.short.slice(1)) : '') + (ph.hole != null ? ' · hole ' + (ph.hole + 1) : '');
+  return `<div class="scrim pvscrim" data-act="modalScrim"><div class="pviewer" role="dialog" aria-modal="true" aria-label="Photo by ${esc(ph.byName || 'someone')}">
+    <div class="pv-top"><span>${slots.length > 1 ? (at + 1) + ' of ' + slots.length + ' in the report' : ''}</span><button data-act="modalCancel">Done</button></div>
+    <div class="pv-img">
+      ${prev ? `<button class="pv-nav l" data-act="recapPhoto" data-a="${esc(m.rid)}" data-b="${prev.k}" aria-label="Previous photo in the report">‹</button>` : ''}
+      <img src="${esc(ph.url)}" alt="${esc(where)}, taken by ${esc(ph.byName || 'someone')}">
+      ${next ? `<button class="pv-nav r" data-act="recapPhoto" data-a="${esc(m.rid)}" data-b="${next.k}" aria-label="Next photo in the report">›</button>` : ''}
+    </div>
+    <div class="pv-foot"><div class="pv-cap"><span class="k">${esc(where)}</span><b>Taken by ${esc(ph.byName || 'someone')}</b></div></div>
+    ${canEdit() ? `<div class="pv-own"><button class="pv-mv" data-act="recapSwap" data-a="${esc(m.rid)}" data-b="${m.i}">⇄ Swap this photo</button></div>` : ''}
+  </div></div>`;
+}
+/** Every photograph taken that day, to put in this paragraph's place. */
+function recapSwapHtml() {
+  const m = UI.modal, rec = T.recaps[m.rid], body = rec && rec.body;
+  if (!body) return '';
+  const pool = recapPool(m.rid), cur = recapSlotPhoto(m.rid, body, m.i);
+  const used = new Set(recapSlots(m.rid, body).filter(s => s.k !== m.i).map(s => s.p.id));
+  const para = String((body.narrative || []).filter(x => x && x.trim())[m.i] || '').replace(/\s+/g, ' ').slice(0, 90);
+  return `<div class="scrim rswapscrim" data-act="modalScrim"><div class="modal rswap" role="dialog" aria-modal="true" aria-label="Swap this photo">
+    ${modalBanner('Swap this photo', 'Beside paragraph ' + (m.i + 1) + (para ? ': “' + para + '…”' : ''))}
+    <p class="lede">${pool.length} photo${pool.length === 1 ? '' : 's'} from the day. Tap the one that goes here.</p>
+    <div class="rsw-g">${pool.map(p => `<button class="rsw-t${cur && cur.id === p.id ? ' on' : ''}" data-act="recapPhotoPick" data-a="${esc(p.id)}" aria-label="${esc((p.byName || 'Someone') + (p.hole != null ? ', hole ' + (p.hole + 1) : ''))}${used.has(p.id) ? ', already in the report' : ''}">
+      <img src="${esc(safeUrl(p.thumb) || p.url)}" alt="" loading="lazy" decoding="async">${p.hole != null ? `<span class="pg-hb">HOLE ${p.hole + 1}</span>` : ''}${used.has(p.id) ? '<i class="rsw-used">in the report</i>' : ''}</button>`).join('')}</div>
+    <div class="acts">${body.pics && body.pics[m.i] ? `<button class="btn ghost" data-act="recapPhotoAuto">Back to automatic</button>` : ''}<button class="btn ghost" data-act="recapPhoto" data-a="${esc(m.rid)}" data-b="${m.i}">Cancel</button></div>
+  </div></div>`;
 }
 /* THE FRONT, SLIDING. The track scrolls itself every few seconds, a swipe
    takes over and holds it for a while, and a redraw (the shared book lands
@@ -8619,6 +8674,8 @@ function modalHtml() {
        : UI.modal.kind === 'area' ? areaModalHtml()
        : UI.modal.kind === 'rinfo' ? infoModalHtml()
        : UI.modal.kind === 'photo' ? photoViewHtml()
+       : UI.modal.kind === 'rphoto' ? recapPhotoHtml()
+       : UI.modal.kind === 'rswap' ? recapSwapHtml()
        : UI.modal.kind === 'who' ? whoModalHtml()
        : UI.modal.kind === 'whopin' ? whoPinHtml()
        : UI.modal.kind === 'chat' ? chatSheetHtml()
@@ -9382,6 +9439,18 @@ function onClick(e) {
       render(); return;
     }
     case 'photoView': UI.modal = { kind: 'photo', id: a, list: b || 'course' }; render(); return;
+    case 'recapPhoto': UI.modal = { kind: 'rphoto', rid: a, i: +b }; render(); return;
+    case 'recapSwap': if (!canEdit()) return; UI.modal = { kind: 'rswap', rid: a, i: +b }; render(); return;
+    case 'recapPhotoPick': {
+      const m = UI.modal; if (!m || m.kind !== 'rswap' || !canEdit() || !store) return;
+      store.writeRecap(m.rid, r => { if (!r.body) return; r.body.pics = { ...(r.body.pics || {}), [m.i]: a }; });
+      UI.modal = { kind: 'rphoto', rid: m.rid, i: m.i }; flash('Photo swapped.'); render(); return;
+    }
+    case 'recapPhotoAuto': {
+      const m = UI.modal; if (!m || m.kind !== 'rswap' || !canEdit() || !store) return;
+      store.writeRecap(m.rid, r => { if (r.body && r.body.pics) { r.body.pics = { ...r.body.pics }; delete r.body.pics[m.i]; } });
+      UI.modal = { kind: 'rphoto', rid: m.rid, i: m.i }; flash('Back to the automatic one.'); render(); return;
+    }
     case 'photoHeart': { const ph = T.photos[a]; if (ph) store.heartPhoto(a, !iHeart(ph)); render(); return; }
     case 'photoDrop1': {
       const ph = T.photos[a] || {};
