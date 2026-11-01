@@ -5098,3 +5098,8 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 .pg-selbar .btn{padding:8px 12px;min-height:0;font-size:14px}
 @media (min-width:700px){.pg-selbar{bottom:0}}
 .pg-done{margin:12px 0 0;padding:10px 12px;border-radius:12px;background:var(--pine);color:var(--onpine);font-weight:700;font-size:14.5px}
+
+/* THE FRONT OF A RECAP IS TAPPABLE: every photograph of the round, full screen, paged */
+.rh-slide.open{cursor:zoom-in}
+.rfull-nav{position:absolute;top:50%;transform:translateY(-50%);width:48px;height:48px;border-radius:50%;border:0;background:rgba(255,255,255,.14);color:#fff;font-size:30px;line-height:1;cursor:pointer;z-index:2}
+.rfull-nav.l{left:8px}.rfull-nav.r{right:8px}

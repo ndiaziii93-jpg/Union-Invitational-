@@ -95,7 +95,7 @@ export function renderWeek(T, IMG, opts) {
   const web = u => /^https?:\/\//i.test(String(u || ''));
   const all = Object.values(T.photos || {}).filter(p => p && web(p.url) && p.kind !== 'video').map(p => ({ ...p, thumb: web(p.thumb) ? p.thumb : '' }));
   const chrono = all.slice().sort((a, b) => (a.at || 0) - (b.at || 0));
-  const slides = chrono.length <= 15 ? chrono : Array.from({ length: 15 }, (_, i) => chrono[Math.floor((i + 0.5) * chrono.length / 15)]);
+  const slides = chrono.length <= 150 ? chrono : Array.from({ length: 150 }, (_, i) => chrono[Math.floor((i + 0.5) * chrono.length / 150)]);
   const shared = opts.shared || sharedRounds(T);
   const rounds = D.ROUNDS.filter(r => r.counts);
   const pairs = E.pairsBoard(T, now), mvp = E.mvpBoard(T, now), bbb = E.bbbBoard(T), cup = E.ryderData(T, now);
@@ -136,10 +136,10 @@ export function renderWeek(T, IMG, opts) {
   return `<div class="recapbox gold" id="recapBox">
     <div class="recaptop"><b>The Tournament Recap</b><span class="rt-s">The Union Invitational · Belek</span><a class="rm" href="../app/">Open the book</a></div>
     <div class="rhero">
-      <div class="rh-track nos" data-n="${slides.length}">${slides.map((ph, i) => `<figure class="rh-slide" data-by="${esc(ph.byName || '')}">
+      <div class="rh-track nos" data-n="${slides.length}">${slides.map((ph, i) => `<figure class="rh-slide open" data-by="${esc(ph.byName || '')}" data-grp="hero" data-full="${esc(ph.url)}" data-cap="${esc((ph.hole != null ? 'Hole ' + (ph.hole + 1) : 'From the week') + (ph.byName ? ' · 📷 ' + ph.byName : ''))}">
         <img src="${esc(ph.url)}" alt="${esc(ph.caption || 'From the week')}"${i > 1 ? ' loading="lazy"' : ''} decoding="async"></figure>`).join('')}</div>
       ${slides.length > 1 ? `<span class="rh-count num" aria-live="polite">📷 <b>1</b> / ${slides.length}${slides[0].byName ? ' · ' + esc(slides[0].byName) : ''}</span>
-        <div class="rh-dots" aria-hidden="true">${slides.map((_, i) => `<i class="${i === 0 ? 'on' : ''}"></i>`).join('')}</div>` : ''}
+        ${slides.length <= 24 ? `<div class="rh-dots" aria-hidden="true">${slides.map((_, i) => `<i class="${i === 0 ? 'on' : ''}"></i>`).join('')}</div>` : ''}` : ''}
       <div class="rh-in">
         <span class="rh-k">★ The whole week · Titanic Deluxe Golf Belek · 26 Oct to 2 Nov${body && !published ? ' · Draft' : ''}</span>
         <h2 class="rechead">${body ? esc(body.headline || '') : 'The Tournament Recap'}</h2>
@@ -220,7 +220,7 @@ export function renderRecap(T, rid, IMG, opts) {
   const web = u => /^https?:\/\//i.test(String(u || ''));
   const snaps = Object.values(T.photos || {}).filter(p => p && p.rid === rid && web(p.url)).map(p => ({ ...p, thumb: web(p.thumb) ? p.thumb : '' })).sort((a, b) => (b.at || 0) - (a.at || 0));
   const stills = snaps.filter(p => p.kind !== 'video');    // the front and the inline pictures are photographs; clips are in the strip
-  const slides = stills.length ? stills.slice(0, 15)
+  const slides = stills.length ? (stills.length <= 150 ? stills : Array.from({ length: 150 }, (_, i) => stills[Math.floor((i + 0.5) * stills.length / 150)]))
     : IMG['course_' + course.key] ? [{ url: IMG['course_' + course.key], caption: course.name, course: true }] : [];
   const top = table[0];
   const shots = st.field;
@@ -264,10 +264,10 @@ export function renderRecap(T, rid, IMG, opts) {
       <a class="rm" href="../app/">Open the book</a>
     </div>
     <div class="rhero">
-      <div class="rh-track nos" data-n="${slides.length}">${slides.map((ph, i) => `<figure class="rh-slide" data-by="${esc(ph.course ? '' : ph.byName || '')}">
+      <div class="rh-track nos" data-n="${slides.length}">${slides.map((ph, i) => `<figure class="rh-slide${ph.course ? '' : ' open'}" data-by="${esc(ph.course ? '' : ph.byName || '')}"${ph.course ? '' : ` data-grp="hero" data-full="${esc(ph.url)}" data-cap="${esc((ph.hole != null ? 'Hole ' + (ph.hole + 1) : 'From the round') + (ph.byName ? ' · 📷 ' + ph.byName : ''))}"`}>
         <img src="${esc(ph.url)}" alt="${esc(ph.caption || 'From the round')}"${i > 1 ? ' loading="lazy"' : ''} decoding="async"></figure>`).join('')}</div>
       ${slides.length > 1 ? `<span class="rh-count num" aria-live="polite">📷 <b>1</b> / ${slides.length}${slides[0].byName ? ' · ' + esc(slides[0].byName) : ''}</span>
-        <div class="rh-dots" aria-hidden="true">${slides.map((_, i) => `<i class="${i === 0 ? 'on' : ''}"></i>`).join('')}</div>` : ''}
+        ${slides.length <= 24 ? `<div class="rh-dots" aria-hidden="true">${slides.map((_, i) => `<i class="${i === 0 ? 'on' : ''}"></i>`).join('')}</div>` : ''}` : ''}
       <div class="rh-in">
         <span class="rh-k">${esc(r.short === 'Practice' ? 'Practice day' : 'Round ' + String(r.short || '').slice(1) + ' of 3')} · ${esc(course.name)} · ${esc(day.dow || '')} ${esc(day.date || '')}${body && !published ? ' · Draft' : ''}</span>
         <h2 class="rechead">${body ? esc(body.headline || '') : st.complete ? 'No report yet' : esc(r.full || '')}</h2>
@@ -475,19 +475,40 @@ export async function boot(cfg) {
 /* A tap on a photograph in the article opens it full screen; a tap, or Escape, puts it away. */
 function fullScreen(el) {
   const close = () => { const o = document.getElementById('rfull'); if (o) o.remove(); };
+  let list = [], at = 0;
+  /* the ones in the same set (the front's, or the article's) are paged through with the arrows, a swipe, or the keys */
+  const show = n => {
+    const o = document.getElementById('rfull'); if (!o || !list.length) return;
+    at = (n + list.length) % list.length;
+    const b = list[at];
+    o.querySelector('img').src = b.getAttribute('data-full');
+    o.querySelector('.rfull-cap').textContent = (list.length > 1 ? (at + 1) + ' / ' + list.length + ' · ' : '') + (b.getAttribute('data-cap') || '');
+  };
   el.addEventListener('click', e => {
     const b = e.target.closest('[data-full]');
     if (!b) return;
     close();
+    const grp = b.getAttribute('data-grp') || '';
+    list = Array.from(el.querySelectorAll('[data-full]')).filter(x => (x.getAttribute('data-grp') || '') === grp);
     const o = document.createElement('div');
     o.id = 'rfull'; o.className = 'rfull'; o.setAttribute('role', 'dialog'); o.setAttribute('aria-modal', 'true'); o.setAttribute('aria-label', 'Photo, full screen');
-    o.innerHTML = '<button class="rfull-x" aria-label="Close">Done</button><img alt=""><div class="rfull-cap"></div>';
-    o.querySelector('img').src = b.getAttribute('data-full');
-    o.querySelector('.rfull-cap').textContent = b.getAttribute('data-cap') || '';
-    o.addEventListener('click', close);
+    o.innerHTML = '<button class="rfull-x" aria-label="Close">Done</button>' + (list.length > 1 ? '<button class="rfull-nav l" aria-label="Previous photo">‹</button><button class="rfull-nav r" aria-label="Next photo">›</button>' : '') + '<img alt=""><div class="rfull-cap"></div>';
+    o.addEventListener('click', ev => {
+      const nav = ev.target.closest('.rfull-nav');
+      if (nav) { ev.stopPropagation(); show(at + (nav.classList.contains('r') ? 1 : -1)); return; }
+      close();
+    });
+    let x0 = null;
+    o.addEventListener('touchstart', ev => { x0 = ev.touches[0].clientX; }, { passive: true });
+    o.addEventListener('touchend', ev => { if (x0 == null) return; const dx = ev.changedTouches[0].clientX - x0; x0 = null; if (Math.abs(dx) > 50) { ev.preventDefault(); show(at + (dx < 0 ? 1 : -1)); } });
     document.body.appendChild(o);
+    show(list.indexOf(b));
   });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') close();
+    else if (document.getElementById('rfull') && e.key === 'ArrowRight') show(at + 1);
+    else if (document.getElementById('rfull') && e.key === 'ArrowLeft') show(at - 1);
+  });
 }
 
 /* The photographs across the top slide by on their own; a swipe takes over. */

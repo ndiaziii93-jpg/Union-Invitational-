@@ -1344,11 +1344,16 @@ function weekButton() {
 function weekChipHtml() {
   return weekReady() ? `<button class="chip gold${UI.recap.rid === 'week' && UI.recap.view !== 'gallery' ? ' on' : ''}${weekGlows() ? ' glow' : ''}" data-act="recapWeek">★ The Week</button>` : '';
 }
+/** Every photograph of a recap's round (or of the whole week), for the front to cycle through and the viewer to page through. */
+function recapAlbum(rid) {
+  let all = photosFor(rid).filter(p => !isVideo(p));
+  all = rid === 'week' ? all.sort((a, b) => (a.at || 0) - (b.at || 0)) : all;      // a day newest first, as ever; the week in the order it happened
+  return all.length <= 150 ? all : Array.from({ length: 150 }, (_, i) => all[Math.floor((i + 0.5) * all.length / 150)]);
+}
 function weekPanel() {
   const rid = 'week', rec = T.recaps.week || null, body = rec && rec.body, published = !!rec && rec.status === 'published';
   const ed = canEdit(), editing = ed && !!body && UI.recap.edit, gallery = UI.recap.view === 'gallery';
-  const chrono = photosFor('week').filter(p => !isVideo(p)).sort((a, b) => (a.at || 0) - (b.at || 0));
-  const slides = chrono.length <= 15 ? chrono : Array.from({ length: 15 }, (_, i) => chrono[Math.floor((i + 0.5) * chrono.length / 15)]);
+  const slides = recapAlbum('week');
   const at = Math.min(UI.recapSlide || 0, Math.max(slides.length - 1, 0));
   const rounds = D.ROUNDS.filter(r => r.counts);
   const pairs = E.pairsBoard(T, now), mvp = E.mvpBoard(T, now), bbb = E.bbbBoard(T), cup = E.ryderData(T, now);
@@ -1366,10 +1371,10 @@ function weekPanel() {
       <button class="rm" data-act="recapClose" aria-label="Close the recap">Close</button>
     </div>
     ${gallery ? '' : `<div class="rhero">
-      <div class="rh-track nos" data-n="${slides.length}">${slides.map((ph, i) => `<figure class="rh-slide" data-by="${esc(ph.byName || '')}">
+      <div class="rh-track nos" data-n="${slides.length}">${slides.map((ph, i) => `<figure class="rh-slide open" data-by="${esc(ph.byName || '')}" data-act="recapAlbum" data-a="week" data-b="${i}">
         <img src="${esc(ph.url)}" alt="${esc(ph.caption || 'From the week')}"${i > 1 ? ' loading="lazy"' : ''} decoding="async"></figure>`).join('')}</div>
       ${slides.length > 1 ? `<span class="rh-count num" aria-live="polite">📷 <b>${at + 1}</b> / ${slides.length}${slides[at].byName ? ' · ' + esc(slides[at].byName) : ''}</span>
-        <div class="rh-dots" aria-hidden="true">${slides.map((_, i) => `<i class="${i === at ? 'on' : ''}"></i>`).join('')}</div>` : ''}
+        ${slides.length <= 24 ? `<div class="rh-dots" aria-hidden="true">${slides.map((_, i) => `<i class="${i === at ? 'on' : ''}"></i>`).join('')}</div>` : ''}` : ''}
       <div class="rh-in">
         <span class="rh-k">★ The whole week · Titanic Deluxe Golf Belek · 26 Oct to 2 Nov${body ? (published ? '' : ' · Draft') : ''}</span>
         ${editing ? '' : `<h2 class="rechead">${body ? esc(body.headline || '') : UI.recap.busy ? 'Writing the week…' : 'The Tournament Recap'}</h2>`}
@@ -1481,7 +1486,7 @@ function recapPanel() {
   /* THE FRONT CYCLES. Every photo of the round, newest first, sliding by on
      their own and swipeable; the headline stays put over them. Until anyone
      adds one, the course the round was played on. */
-  const slides = stills.length ? stills.slice(0, 15)
+  const slides = stills.length ? recapAlbum(rid)
     : IMG['course_' + course.key] ? [{ url: IMG['course_' + course.key], caption: course.name, course: true }] : [];
   const at = Math.min(UI.recapSlide || 0, Math.max(slides.length - 1, 0));
   const field = E.recapField(T, rid);
@@ -1504,10 +1509,10 @@ function recapPanel() {
       <button class="rm" data-act="recapClose" aria-label="Close the recap">Close</button>
     </div>
     ${gallery ? '' : `<div class="rhero">
-      <div class="rh-track nos" data-n="${slides.length}">${slides.map((ph, i) => `<figure class="rh-slide" data-by="${esc(ph.course ? '' : ph.byName || '')}">
+      <div class="rh-track nos" data-n="${slides.length}">${slides.map((ph, i) => `<figure class="rh-slide${ph.course ? '' : ' open'}" data-by="${esc(ph.course ? '' : ph.byName || '')}"${ph.course ? '' : ` data-act="recapAlbum" data-a="${esc(rid)}" data-b="${i}"`}>
         <img src="${esc(ph.url)}" alt="${esc(ph.caption || 'From the round')}"${i > 1 ? ' loading="lazy"' : ''} decoding="async"></figure>`).join('')}</div>
       ${slides.length > 1 ? `<span class="rh-count num" aria-live="polite">📷 <b>${at + 1}</b> / ${slides.length}${slides[at].byName ? ' · ' + esc(slides[at].byName) : ''}</span>
-        <div class="rh-dots" aria-hidden="true">${slides.map((_, i) => `<i class="${i === at ? 'on' : ''}"></i>`).join('')}</div>` : ''}
+        ${slides.length <= 24 ? `<div class="rh-dots" aria-hidden="true">${slides.map((_, i) => `<i class="${i === at ? 'on' : ''}"></i>`).join('')}</div>` : ''}` : ''}
       <div class="rh-in">
         <span class="rh-k">${esc(r.short === 'Practice' ? 'Practice day' : 'Round ' + r.short.slice(1) + ' of 3')} · ${esc(course.name)} · ${esc(day.dow)} ${esc(day.date)}${
           body ? (published ? '' : ' · Draft') : ''}</span>
@@ -1825,6 +1830,25 @@ function recapPhotoHtml() {
     </div>
     <div class="pv-foot"><div class="pv-cap"><span class="k">${esc(where)}</span><b>Taken by ${esc(ph.byName || 'someone')}</b></div></div>
     ${canEdit() ? `<div class="pv-own"><button class="pv-mv" data-act="recapSwap" data-a="${esc(m.rid)}" data-b="${m.i}">⇄ Swap this photo</button></div>` : ''}
+  </div></div>`;
+}
+/** Every photograph of the round (or the week), paged through full screen from the front. */
+function recapAlbumHtml() {
+  const m = UI.modal, list = recapAlbum(m.rid), at = Math.max(0, Math.min(list.length - 1, m.i));
+  const ph = list[at];
+  if (!ph) return '';
+  const r = D.ROUNDS.find(x => x.id === ph.rid);
+  const where = isTrip(ph) ? 'The trip · ' + dayName(photoDay(ph)).dow
+    : (r ? roomName(r.id) : '') + (ph.hole != null ? ' · hole ' + (ph.hole + 1) : '');
+  const go = n => `data-act="recapAlbum" data-a="${esc(m.rid)}" data-b="${(n + list.length) % list.length}"`;
+  return `<div class="scrim pvscrim" data-act="modalScrim"><div class="pviewer" role="dialog" aria-modal="true" aria-label="Photo ${at + 1} of ${list.length}">
+    <div class="pv-top"><span>${at + 1} of ${list.length}</span><button data-act="modalCancel">Done</button></div>
+    <div class="pv-img">
+      ${list.length > 1 ? `<button class="pv-nav l" ${go(at - 1)} aria-label="Previous photo">‹</button>` : ''}
+      <img src="${esc(ph.url)}" alt="${esc(where)}, taken by ${esc(ph.byName || 'someone')}">
+      ${list.length > 1 ? `<button class="pv-nav r" ${go(at + 1)} aria-label="Next photo">›</button>` : ''}
+    </div>
+    <div class="pv-foot"><div class="pv-cap"><span class="k">${esc(where)}</span><b>Taken by ${esc(ph.byName || 'someone')}</b></div></div>
   </div></div>`;
 }
 /** Every photograph taken that day, to put in this paragraph's place. */
@@ -9004,6 +9028,7 @@ function modalHtml() {
        : UI.modal.kind === 'rinfo' ? infoModalHtml()
        : UI.modal.kind === 'photo' ? photoViewHtml()
        : UI.modal.kind === 'rphoto' ? recapPhotoHtml()
+       : UI.modal.kind === 'ralbum' ? recapAlbumHtml()
        : UI.modal.kind === 'rswap' ? recapSwapHtml()
        : UI.modal.kind === 'who' ? whoModalHtml()
        : UI.modal.kind === 'whopin' ? whoPinHtml()
@@ -9815,6 +9840,7 @@ function onClick(e) {
     }
     case 'photoView': UI.modal = { kind: 'photo', id: a, list: b || 'course' }; render(); return;
     case 'recapPhoto': UI.modal = { kind: 'rphoto', rid: a, i: +b }; render(); return;
+    case 'recapAlbum': UI.modal = { kind: 'ralbum', rid: a, i: +b }; render(); return;
     case 'recapSwap': if (!canEdit()) return; UI.modal = { kind: 'rswap', rid: a, i: +b }; render(); return;
     case 'recapPhotoPick': {
       const m = UI.modal; if (!m || m.kind !== 'rswap' || !canEdit() || !store) return;
