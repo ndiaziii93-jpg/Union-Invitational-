@@ -94,6 +94,8 @@ const UI = {
   resortQ: '',          // what is typed in the full guide's search
   resortFocusQ: false,  // put the caret in the search once it is drawn
   photoAlbum: 'course', // the Photos page: 'course' or 'trip'
+  pgMsg: '',            // what the last move of photos did, on the Photos page
+  pgSel: null,          // Select on the Photos page: { ids: { [photoId]: true } } while it is on
   who: undefined,       // the name this phone chats and bets as; read from the device on first use
   chatRoom: null,       // which chat is open: a round, or 'trip'; null follows the day
   chatRe: null,         // the book's moment being heckled, by key
@@ -1916,14 +1918,37 @@ function courseTarget() {
 }
 const dayName = iso => { const d = D.DAYS.find(x => x.iso === iso); return d ? d : { dow: iso, date: '' }; };
 function pgTile(ph, list) {
-  const n = hearts(ph);
-  return `<button class="pg-t${isVideo(ph) ? ' video' : ''}" data-act="photoView" data-a="${esc(ph.id)}" data-b="${esc(list)}"
+  const n = hearts(ph), sel = UI.pgSel, picked = !!(sel && sel.ids[ph.id]), mine = ownsPhoto(ph);
+  return `<button class="pg-t${isVideo(ph) ? ' video' : ''}${sel ? (picked ? ' picked' : mine ? ' pickable' : ' notmine') : ''}" data-act="${sel ? 'photoSelTap' : 'photoView'}" data-a="${esc(ph.id)}" data-b="${esc(list)}"
       aria-label="${esc(isVideo(ph) ? 'Clip' : isTrip(ph) ? 'Photo' : 'Hole ' + (ph.hole + 1))} by ${esc(ph.byName || 'someone')}${n ? ', ' + n + ' heart' + (n === 1 ? '' : 's') : ''}">
     ${isVideo(ph) && !safeUrl(ph.thumb) ? '' : `<img src="${esc(safeUrl(ph.thumb) || ph.url)}" alt="" loading="lazy" onerror="this.closest('.pg-t').classList.add('broken')">`}
     ${isVideo(ph) ? '<span class="pg-play" aria-hidden="true">▶</span>' : ''}
     ${!isTrip(ph) && ph.hole != null ? `<span class="pg-hb">HOLE ${ph.hole + 1}</span>` : ''}
     ${n ? `<span class="pg-hc${iHeart(ph) ? ' mine' : ''}">♥ ${n}</span>` : ''}
+    ${sel ? `<span class="pg-ck" aria-hidden="true">${picked ? '✓' : ''}</span>` : ''}
     <span class="pg-by">${esc(ph.byName || 'Someone')}</span></button>`;
+}
+/** The photos in a pile on the Photos page: 'course:r3' is one round's, 'trip:2026-10-30' one day of the trip's. */
+function pgSection(key) {
+  const [kind, id] = String(key).split(':');
+  return allPhotos().filter(p => kind === 'course' ? (!isTrip(p) && p.rid === id) : (isTrip(p) && photoDay(p) === id));
+}
+function pgSelBar() {
+  const sel = UI.pgSel, n = sel ? Object.keys(sel.ids).length : 0;
+  return `<div class="pg-selbar"><span><b>${n}</b> selected</span>
+    <button class="btn ghost" data-act="photoSelAll">${n ? 'Clear' : 'Select all'}</button>
+    <button class="btn" data-act="photoSelMove"${n ? '' : ' disabled'}>Move…</button>
+    <button class="btn ghost" data-act="photoSelOff">Done</button></div>`;
+}
+function photoManyHtml() {
+  const m = UI.modal, ids = Object.keys((UI.pgSel && UI.pgSel.ids) || {}).filter(id => T.photos[id]);
+  const dest = m.rid;
+  return `<div class="scrim" data-act="modalScrim"><div class="modal phmove" role="dialog" aria-modal="true" aria-label="Move these photos">
+    ${modalBanner('Move ' + ids.length + ' photo' + (ids.length === 1 ? '' : 's'), 'Which round they belong to')}
+    <div class="calc-row"><span class="calc-l">To</span><div class="chiprow calc-chips">${D.ROUNDS.map(r => `<button class="chip${dest === r.id ? ' on' : ''}" data-act="photoManyRid" data-a="${r.id}">${esc(roomName(r.id))}</button>`).join('')}<button class="chip${dest === TRIP ? ' on' : ''}" data-act="photoManyRid" data-a="${TRIP}">The trip</button></div></div>
+    <p class="bk-note">${dest ? 'Photos tagged with a hole keep it when the new round is on the same course.' : 'Pick where they go.'}</p>
+    <div class="acts"><button class="btn ghost" data-act="modalCancel">Cancel</button><button class="btn" data-act="photoManyGo"${dest ? '' : ' disabled'}>Move ${ids.length}</button></div>
+  </div></div>`;
 }
 function gallery1() {
   const album = UI.photoAlbum === TRIP ? TRIP : 'course';
@@ -1936,18 +1961,18 @@ function gallery1() {
     const rounds = D.ROUNDS.slice().reverse().map(r => ({ r, list: course.filter(p => p.rid === r.id).sort(newest) })).filter(x => x.list.length);
     body = rounds.map(({ r, list }) => { const d = E.dayOf(r.dayIdx);
       return `<section class="pg-sec"><div class="pg-h"><b>${esc(r.short === 'Practice' ? 'Practice day' : 'Round ' + r.short.slice(1))}</b>
-        <span>${esc(d.dow.slice(0, 3))} ${esc(d.date)} · ${esc(E.courseOf(T, r.id).name.replace('Cullinan ', ''))} · ${list.length}</span></div>
+        <span>${esc(d.dow.slice(0, 3))} ${esc(d.date)} · ${esc(E.courseOf(T, r.id).name.replace('Cullinan ', ''))} · ${list.length}</span>${UI.pgSel ? `<button class="pg-sa" data-act="photoSelSec" data-a="course:${r.id}">${list.every(p => UI.pgSel.ids[p.id] || !ownsPhoto(p)) ? 'Clear' : 'Select all'}</button>` : ''}</div>
         <div class="pg-grid">${list.map(p => pgTile(p, 'course')).join('')}</div></section>`; }).join('')
       || '<p class="pg-empty">No photos from the course yet. The gold camera on each hole adds one, tagged with the hole.</p>';
   } else {
     const days = [...new Set(trip.map(photoDay))].sort().reverse();
     body = days.map(iso => { const list = trip.filter(p => photoDay(p) === iso).sort(newest), d = dayName(iso);
-      return `<section class="pg-sec"><div class="pg-h"><b>${esc(d.dow)}</b><span>${esc(d.date)} · ${list.length}</span></div>
+      return `<section class="pg-sec"><div class="pg-h"><b>${esc(d.dow)}</b><span>${esc(d.date)} · ${list.length}</span>${UI.pgSel ? `<button class="pg-sa" data-act="photoSelSec" data-a="trip:${iso}">${list.every(p => UI.pgSel.ids[p.id] || !ownsPhoto(p)) ? 'Clear' : 'Select all'}</button>` : ''}</div>
         <div class="pg-grid two${list.length % 2 ? ' odd' : ''}">${list.map(p => pgTile(p, TRIP)).join('')}</div></section>`; }).join('')
       || '<p class="pg-empty">Nothing from the trip yet. Dinners, the beach, the pool, the group: tap the camera to add the first.</p>';
   }
   const ct = courseTarget();
-  const fab = store4 ? `<button class="pg-fab" data-act="photoPick" data-a="${album === TRIP ? TRIP : esc(ct.rid)}" data-b="${album === TRIP || ct.hole == null ? '' : ct.hole}">
+  const fab = UI.pgSel ? pgSelBar() : store4 ? `<button class="pg-fab" data-act="photoPick" data-a="${album === TRIP ? TRIP : esc(ct.rid)}" data-b="${album === TRIP || ct.hole == null ? '' : ct.hole}">
       ${CAM_SVG}<span>${album === TRIP ? 'Add from the trip' : 'Add from the round'}</span></button>` : '';
   return `<h2 class="head" style="margin-top:14px">Photos</h2>
   ${potd ? `<button class="pg-potd" data-act="photoView" data-a="${esc(potd.ph.id)}" data-b="day">
@@ -1955,7 +1980,9 @@ function gallery1() {
       <span class="pg-pw"><span class="k">Photo of the day · ${esc(dayName(photoDay(potd.ph)).dow)}</span>
         <b>${isTrip(potd.ph) ? 'From the trip' : 'Hole ' + (potd.ph.hole + 1) + ', ' + esc(D.ROUNDS.find(r => r.id === potd.ph.rid).short === 'Practice' ? 'practice' : 'Round ' + D.ROUNDS.find(r => r.id === potd.ph.rid).short.slice(1))}</b>
         <small>Taken by ${esc(potd.ph.byName || 'someone')} · ♥ ${hearts(potd.ph)}, the most ${potd.yesterday ? 'yesterday' : 'today'}</small></span></button>` : ''}
-  ${store4 ? `<button class="pg-bulk" data-act="photoBulk"><b>Add many at once</b><span>Pick as many as you like. They sort themselves into the right round or day by when they were taken.</span></button>` : ''}
+  ${UI.pgMsg ? `<p class="pg-done" role="status">${esc(UI.pgMsg)}</p>` : ''}
+  ${UI.pgSel ? `<p class="pg-selnote">Tap photos to pick them, or Select all on a day. Moving works on photos you added (the commissioner can move any).</p>` : `<button class="pg-selbtn" data-act="photoSelOn">Select photos to move</button>`}
+  ${store4 && !UI.pgSel ? `<button class="pg-bulk" data-act="photoBulk"><b>Add many at once</b><span>Pick as many as you like. They sort themselves into the right round or day by when they were taken.</span></button>` : ''}
   <div class="pg-seg" role="tablist">
     <button role="tab" aria-selected="${album === 'course'}" class="${album === 'course' ? 'on' : ''}" data-act="photoAlbum" data-a="course">On the course<small>${course.length} photo${course.length === 1 ? '' : 's'} · by round</small></button>
     <button role="tab" aria-selected="${album === TRIP}" class="${album === TRIP ? 'on' : ''}" data-act="photoAlbum" data-a="${TRIP}">The trip<small>${trip.length} photo${trip.length === 1 ? '' : 's'} · by day</small></button>
@@ -8993,6 +9020,7 @@ function modalHtml() {
        : UI.modal.kind === 'photosrc' ? photoSrcHtml()
        : UI.modal.kind === 'phmove' ? photoMoveHtml()
        : UI.modal.kind === 'bulk' ? bulkHtml()
+       : UI.modal.kind === 'phmany' ? photoManyHtml()
        : UI.modal.kind === 'hole' ? holeModalHtml()
        : UI.modal.kind === 'setup' ? setupModalHtml()
        : UI.modal.kind === 'add' ? addModalHtml()
@@ -9262,6 +9290,43 @@ function onClick(e) {
       UI.modal = back || null;
       pickerFor(act === 'photoTake' ? 'camera' : 'library').click();
       render();
+      return;
+    }
+    case 'photoSelOn': UI.pgSel = { ids: {} }; render(); return;
+    case 'photoSelOff': UI.pgSel = null; render(); return;
+    case 'photoSelTap': { if (!UI.pgSel) return; const ph = T.photos[a]; if (!ph || !ownsPhoto(ph)) return; if (UI.pgSel.ids[a]) delete UI.pgSel.ids[a]; else UI.pgSel.ids[a] = true; render(); return; }
+    case 'photoSelSec': {
+      if (!UI.pgSel) return;
+      const list = pgSection(a).filter(ownsPhoto), all = list.length && list.every(p => UI.pgSel.ids[p.id]);
+      list.forEach(p => { if (all) delete UI.pgSel.ids[p.id]; else UI.pgSel.ids[p.id] = true; });
+      render(); return;
+    }
+    case 'photoSelAll': {
+      if (!UI.pgSel) return;
+      if (Object.keys(UI.pgSel.ids).length) UI.pgSel.ids = {};
+      else allPhotos().filter(p => (UI.photoAlbum === TRIP) === isTrip(p) && ownsPhoto(p)).forEach(p => { UI.pgSel.ids[p.id] = true; });
+      render(); return;
+    }
+    case 'photoSelMove': if (UI.pgSel && Object.keys(UI.pgSel.ids).length) { UI.modal = { kind: 'phmany', rid: null }; render(); } return;
+    case 'photoManyRid': if (UI.modal && UI.modal.kind === 'phmany') { UI.modal.rid = a; render(); } return;
+    case 'photoManyGo': {
+      const m = UI.modal; if (!m || m.kind !== 'phmany' || !m.rid || !UI.pgSel) return;
+      const ids = Object.keys(UI.pgSel.ids).filter(id => T.photos[id] && ownsPhoto(T.photos[id])), to = m.rid;
+      UI.modal = null; UI.pgSel = null; UI.pgMsg = 'Moving ' + ids.length + ' photo' + (ids.length === 1 ? '' : 's') + ' to ' + roomName(to) + '…'; render();
+      /* one after another, so the phone is not asked for a hundred writes at once */
+      (async () => {
+        let done = 0, failed = 0;
+        for (const id of ids) {
+          const ph = T.photos[id]; if (!ph) continue;
+          const sameCourse = to !== TRIP && ph.rid !== TRIP && E.courseOf(T, to).key === E.courseOf(T, ph.rid).key;
+          const fields = { rid: to, hole: sameCourse ? (ph.hole == null ? null : ph.hole) : null, day: to === TRIP ? (photoDay(ph) || null) : null };
+          const landed = await store.movePhoto(id, fields);
+          if (landed === false) failed++; else done++;
+        }
+        const msg = failed ? 'Moved ' + done + '; ' + failed + ' would not go. Select them and try again.' : 'Moved ' + done + ' to ' + roomName(to) + '.';
+        UI.pgMsg = msg; render();
+        setTimeout(() => { if (UI.pgMsg === msg) { UI.pgMsg = ''; render(); } }, 7000);
+      })();
       return;
     }
     case 'photoBulk':

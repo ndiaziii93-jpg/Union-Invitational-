@@ -5138,6 +5138,21 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 .bk-c{margin-top:8px;gap:6px}
 .bk-c .chip{padding:6px 10px;font-size:14px;min-height:0}
 
+/* SELECT MANY PHOTOS, to move them */
+.pg-selbtn{display:block;margin:10px 0 0;padding:8px 14px;border-radius:12px;border:1px solid var(--rule);background:var(--card);color:var(--pine);font-weight:700;font-size:14px;cursor:pointer}
+.pg-selnote{font-size:13.5px;color:var(--turf);margin:12px 0 0}
+.pg-sa{margin-left:auto;padding:4px 10px;border-radius:10px;border:1px solid var(--rule);background:var(--card);color:var(--pine);font-weight:700;font-size:13px;cursor:pointer}
+.pg-h{align-items:baseline}
+.pg-t.notmine{opacity:.4}
+.pg-t.picked{outline:3px solid var(--gold);outline-offset:-3px}
+.pg-ck{position:absolute;top:6px;left:6px;width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.85);border:2px solid var(--pine);color:#fff;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center}
+.pg-t.picked .pg-ck{background:var(--pine)}
+.pg-selbar{position:fixed;left:0;right:0;bottom:calc(64px + env(safe-area-inset-bottom,0px));z-index:35;display:flex;gap:8px;align-items:center;padding:10px 14px;background:var(--card);border-top:2px solid var(--gold);box-shadow:0 -6px 18px rgba(0,0,0,.18)}
+.pg-selbar span{flex:1 1 auto;font-size:15px}
+.pg-selbar .btn{padding:8px 12px;min-height:0;font-size:14px}
+@media (min-width:700px){.pg-selbar{bottom:0}}
+.pg-done{margin:12px 0 0;padding:10px 12px;border-radius:12px;background:var(--pine);color:var(--onpine);font-weight:700;font-size:14.5px}
+
 </style>
 <style>
 /* A page, not a window. The book raises the recap over a screen; here it is
