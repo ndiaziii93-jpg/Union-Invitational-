@@ -1955,6 +1955,7 @@ function gallery1() {
       <span class="pg-pw"><span class="k">Photo of the day · ${esc(dayName(photoDay(potd.ph)).dow)}</span>
         <b>${isTrip(potd.ph) ? 'From the trip' : 'Hole ' + (potd.ph.hole + 1) + ', ' + esc(D.ROUNDS.find(r => r.id === potd.ph.rid).short === 'Practice' ? 'practice' : 'Round ' + D.ROUNDS.find(r => r.id === potd.ph.rid).short.slice(1))}</b>
         <small>Taken by ${esc(potd.ph.byName || 'someone')} · ♥ ${hearts(potd.ph)}, the most ${potd.yesterday ? 'yesterday' : 'today'}</small></span></button>` : ''}
+  ${store4 ? `<button class="pg-bulk" data-act="photoBulk"><b>Add many at once</b><span>Pick as many as you like. They sort themselves into the right round or day by when they were taken.</span></button>` : ''}
   <div class="pg-seg" role="tablist">
     <button role="tab" aria-selected="${album === 'course'}" class="${album === 'course' ? 'on' : ''}" data-act="photoAlbum" data-a="course">On the course<small>${course.length} photo${course.length === 1 ? '' : 's'} · by round</small></button>
     <button role="tab" aria-selected="${album === TRIP}" class="${album === TRIP ? 'on' : ''}" data-act="photoAlbum" data-a="${TRIP}">The trip<small>${trip.length} photo${trip.length === 1 ? '' : 's'} · by day</small></button>
@@ -3284,6 +3285,7 @@ function shrink(file, max = 1600, quality = 0.82) {
 const pickers = {};
 let pickerRid = null;
 let pickerHole = null;
+let pickerBulk = false;      // the next batch is sorted into rounds and days by when it was taken
 
 /* TWO WAYS IN. An iPhone's file box asks on its own — Take Photo, Photo
    Library, Choose File — so one box without `capture` is the whole sheet.
@@ -3306,8 +3308,10 @@ function pickerFor(kind) {
   el.dataset.pick = k;
   el.addEventListener('change', () => {
     const taken = Array.from(el.files || []);
-    const rid = pickerRid, hole = pickerHole;
+    const rid = pickerRid, hole = pickerHole, many = pickerBulk;
+    pickerBulk = false;
     el.value = '';                                   // read them out before clearing, and clear before any await
+    if (many) { bulkStart(taken); return; }
     if (rid) addPhotos(rid, taken, hole);
   });
   document.body.appendChild(el);
@@ -3421,7 +3425,119 @@ const parkPhoto = item => photoDbDo('readwrite', os => os.put(item));
 const unparkPhoto = id => photoDbDo('readwrite', os => os.delete(id));
 const parkedPhotos = () => photoDbDo('readonly', os => os.getAll()).then(r => r || []);
 
-async function addPhotos(rid, files, hole) {
+/* ---------------- ADD MANY, SORTED BY DAY ----------------
+   A pile of photos from the days already played goes in at once: each one is
+   read for when it was taken (the camera's own stamp, else the phone's date
+   for the file), put with the round it was played in or the trip's day, and
+   shown in groups to check before anything is sent. A day on the course
+   before half past five is the round; the evening, and the days off, are the
+   trip. A group can be flipped to any round or the trip with one tap. */
+let bulk = null;
+const TRIP_FIRST = () => D.DAYS[0].iso, TRIP_LAST = () => D.DAYS[D.DAYS.length - 1].iso;
+/** When the camera took it, in the trip's own wall-clock, read from the JPEG's EXIF stamp; null when there is none. */
+async function exifTaken(file) {
+  try {
+    const dv = new DataView(await file.slice(0, 262144).arrayBuffer());
+    if (dv.getUint16(0) !== 0xFFD8) return null;
+    let o = 2;
+    while (o + 4 < dv.byteLength) {
+      const mk = dv.getUint16(o);
+      if (mk === 0xFFDA || (mk & 0xFF00) !== 0xFF00) return null;
+      const len = dv.getUint16(o + 2);
+      if (mk === 0xFFE1 && dv.getUint32(o + 4) === 0x45786966) {            // "Exif"
+        const t = o + 10, le = dv.getUint16(t) === 0x4949;
+        const u16 = p => dv.getUint16(p, le), u32 = p => dv.getUint32(p, le);
+        const str = p => { let s = ''; for (let i = 0; i < 19; i++) s += String.fromCharCode(dv.getUint8(p + i)); return s; };
+        const ifd = (p, want) => { const n = u16(p); const out = {}; for (let i = 0; i < n; i++) { const e = p + 2 + i * 12, tag = u16(e); if (want.includes(tag)) out[tag] = u32(e + 8); } return out; };
+        const i0 = ifd(t + u32(t + 4), [0x8769, 0x0132]);
+        const ex = i0[0x8769] != null ? ifd(t + i0[0x8769], [0x9003, 0x9004]) : {};
+        const at = ex[0x9003] != null ? ex[0x9003] : ex[0x9004] != null ? ex[0x9004] : i0[0x0132];
+        if (at == null) return null;
+        const m = /^(\d{4}):(\d\d):(\d\d) (\d\d):(\d\d):(\d\d)/.exec(str(t + at));
+        return m ? Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]) - D.TZ_OFFSET_MIN * 60000 : null;
+      }
+      o += 2 + len;
+    }
+  } catch (e) { /* no stamp the book can read */ }
+  return null;
+}
+async function takenOf(f) {
+  const ex = looksLikeAVideo(f) ? null : await exifTaken(f);
+  const ms = ex != null ? ex : (f.lastModified > 0 ? f.lastModified : null);
+  if (ms == null) return { ms: null, iso: null, min: 0, exif: false };
+  const s = new Date(ms + D.TZ_OFFSET_MIN * 60000).toISOString();
+  const iso = s.slice(0, 10);
+  if (iso < TRIP_FIRST() || iso > TRIP_LAST()) return { ms: null, iso: null, min: 0, exif: ex != null };   // not from this trip
+  return { ms, iso, min: +s.slice(11, 13) * 60 + +s.slice(14, 16), exif: ex != null };
+}
+/** Where a photo goes by default: the round if it was played that day before half past five, else the trip. */
+function bulkDestFor(t) {
+  if (!t.iso) return TRIP;
+  const r = D.ROUNDS.find(x => E.dayOf(x.dayIdx).iso === t.iso);
+  return r && t.min >= 5 * 60 && t.min < 17 * 60 + 30 ? r.id : TRIP;
+}
+async function bulkStart(files) {
+  const list = Array.from(files || []).filter(looksLikeAPicture);
+  if (!list.length) { UI.upload.err = 'None of those were pictures or clips the book could read.'; render(); return; }
+  if (!store4) { UI.upload.err = 'This copy of the book cannot store photos.'; render(); return; }
+  UI.upload.err = '';
+  bulkDrop();
+  UI.modal = { kind: 'bulk', reading: list.length };
+  render();
+  const groups = new Map();
+  for (const f of list) {
+    const t = await takenOf(f), dest = bulkDestFor(t), key = (t.iso || 'none') + '|' + dest;
+    if (!groups.has(key)) groups.set(key, { iso: t.iso, dest, items: [], thumbs: [] });
+    const g = groups.get(key);
+    g.items.push({ file: f, t });
+    if (g.thumbs.length < 4 && !looksLikeAVideo(f)) { try { g.thumbs.push(URL.createObjectURL(f)); } catch (e) { /* no preview */ } }
+  }
+  const order = [...groups.values()].sort((a, b) => (a.iso || '9') < (b.iso || '9') ? -1 : (a.iso || '9') > (b.iso || '9') ? 1 : (a.dest === TRIP) - (b.dest === TRIP));
+  if (!(UI.modal && UI.modal.kind === 'bulk')) { order.forEach(g => g.thumbs.forEach(u => { try { URL.revokeObjectURL(u); } catch (e) { /* gone */ } })); return; }   // cancelled while reading
+  bulk = { groups: order };
+  UI.modal.reading = 0;
+  render();
+}
+function bulkDrop() { if (bulk) bulk.groups.forEach(g => g.thumbs.forEach(u => { try { URL.revokeObjectURL(u); } catch (e) { /* gone */ } })); bulk = null; }
+function bulkGo() {
+  if (!bulk) return;
+  const groups = bulk.groups; bulk = null;
+  UI.modal = null;
+  render();
+  /* each group goes up under its own round, with the time each one was taken */
+  (async () => {
+    for (const g of groups) {
+      const metas = new Map(g.items.map(x => [x.file, { at: x.t.ms || 0, iso: x.t.iso || '' }]));
+      await addPhotos(g.dest, g.items.map(x => x.file), null, metas);
+      g.thumbs.forEach(u => { try { URL.revokeObjectURL(u); } catch (e) { /* gone */ } });
+    }
+  })();
+}
+function bulkHtml() {
+  const m = UI.modal;
+  if (!bulk || m.reading) {
+    return `<div class="scrim" data-act="modalScrim"><div class="modal bulk" role="dialog" aria-modal="true" aria-label="Sorting your photos">
+      ${modalBanner('Sorting your photos', 'By the day each was taken')}
+      <p class="bk-note">Reading when ${m.reading || 'each'} ${m.reading === 1 ? 'was' : 'were'} taken…</p>
+      <div class="acts"><button class="btn ghost" data-act="modalCancel">Cancel</button></div></div></div>`;
+  }
+  const total = bulk.groups.reduce((n, g) => n + g.items.length, 0);
+  const nameOfDest = id => id === TRIP ? 'The trip' : roomName(id);
+  return `<div class="scrim" data-act="modalScrim"><div class="modal bulk" role="dialog" aria-modal="true" aria-label="Add photos sorted by day">
+    ${modalBanner('Add ' + total + ' photo' + (total === 1 ? '' : 's'), 'Sorted by the day each was taken')}
+    <p class="bk-note">Check where each pile goes, change any with a tap, then add them. Nothing is sent until you do.</p>
+    <div class="bk-list">${bulk.groups.map((g, i) => { const d = g.iso ? dayName(g.iso) : null, vids = g.items.filter(x => looksLikeAVideo(x.file)).length;
+      return `<section class="bk-g">
+        <div class="bk-h"><b>${d ? esc(d.dow.slice(0, 3) + ' ' + d.date) : 'No date from this trip'}</b>
+          <span>${g.items.length} ${vids ? (vids === g.items.length ? 'clip' : 'item') : 'photo'}${g.items.length === 1 ? '' : 's'} → ${esc(nameOfDest(g.dest))}</span></div>
+        ${g.thumbs.length ? `<div class="bk-t">${g.thumbs.map(u => `<img src="${esc(u)}" alt="" onerror="this.remove()">`).join('')}</div>` : ''}
+        <div class="chiprow bk-c">${D.ROUNDS.map(r => `<button class="chip${g.dest === r.id ? ' on' : ''}" data-act="bulkDest" data-a="${i}" data-b="${r.id}">${esc(roomName(r.id))}</button>`).join('')}<button class="chip${g.dest === TRIP ? ' on' : ''}" data-act="bulkDest" data-a="${i}" data-b="${TRIP}">The trip</button></div>
+      </section>`; }).join('')}</div>
+    <div class="acts"><button class="btn ghost" data-act="modalCancel">Cancel</button><button class="btn" data-act="bulkGo">Add ${total}</button></div>
+  </div></div>`;
+}
+
+async function addPhotos(rid, files, hole, metas) {
   const all = Array.from(files || []);
   if (store && store.note) {
     store.note('photo picked', all.length + ' file(s): '
@@ -3450,7 +3566,8 @@ async function addPhotos(rid, files, hole) {
       const small = video ? f : await shrink(f, CFG.PHOTO_MAX);
       const thumb = video ? (supa ? await videoPoster(f) : null) : supa ? await shrink(f, CFG.THUMB_MAX, 0.7).catch(() => null) : null;
       u.pct = 30;
-      await parkPhoto({ id: u.id, rid, hole: u.hole, name: u.name, by: UI.role, byName: who, at: Date.now(), day: now.iso, small, thumb, kind: video ? 'video' : 'photo', mime: video ? videoMime(f) : (f.type || '') });
+      const mt = metas && metas.get(f);          // a bulk add knows when each was taken
+      await parkPhoto({ id: u.id, rid, hole: u.hole, name: u.name, by: UI.role, byName: who, at: mt && mt.at ? mt.at : Date.now(), day: mt && mt.iso ? mt.iso : now.iso, small, thumb, kind: video ? 'video' : 'photo', mime: video ? videoMime(f) : (f.type || '') });
     } catch (e) {
       const why = (e && (e.message || e.code)) ? String(e.message || e.code) : 'could not be read';
       u.err = why.slice(0, 60); u.pct = 100;
@@ -8875,6 +8992,7 @@ function modalHtml() {
        : UI.modal.kind === 'pickup' ? pickupHtml()
        : UI.modal.kind === 'photosrc' ? photoSrcHtml()
        : UI.modal.kind === 'phmove' ? photoMoveHtml()
+       : UI.modal.kind === 'bulk' ? bulkHtml()
        : UI.modal.kind === 'hole' ? holeModalHtml()
        : UI.modal.kind === 'setup' ? setupModalHtml()
        : UI.modal.kind === 'add' ? addModalHtml()
@@ -9128,6 +9246,7 @@ function onClick(e) {
       if ((!T.recaps[a] || !T.recaps[a].body) && E.roundStanding(T, a).started) writeRecap(a, false);
       return;
     case 'photoPick':
+      pickerBulk = false;
       pickerRid = a;
       pickerHole = b == null || b === '' ? null : +b;
       /* the click has to happen inside the tap itself, or the phone refuses
@@ -9145,6 +9264,12 @@ function onClick(e) {
       render();
       return;
     }
+    case 'photoBulk':
+      pickerBulk = true; pickerRid = TRIP; pickerHole = null;
+      pickerFor('library').click();
+      return;
+    case 'bulkDest': if (bulk && bulk.groups[+a]) { bulk.groups[+a].dest = b; render(); } return;
+    case 'bulkGo': bulkGo(); return;
     case 'photoAlbum': UI.photoAlbum = a; render(); return;
     case 'photoMove': { const ph = T.photos[a]; if (!ph || !ownsPhoto(ph)) return; UI.modal = { kind: 'phmove', id: a, rid: ph.rid || TRIP, hole: ph.hole == null ? null : ph.hole, back: UI.modal }; render(); return; }
     case 'photoMoveRid': if (UI.modal && UI.modal.kind === 'phmove') { UI.modal.rid = a; UI.modal.hole = null; render(); } return;
@@ -10413,7 +10538,7 @@ function onClick(e) {
       return;
 
     case 'modalOk': submitPin(); return;
-    case 'modalCancel': closeModal(); break;
+    case 'modalCancel': if (UI.modal && UI.modal.kind === 'bulk') bulkDrop(); closeModal(); break;
     case 'modalScrim': if (e.target.classList.contains('scrim')) { closeModal(); break; } return;
     default: return;
   }
