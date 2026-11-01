@@ -1364,6 +1364,84 @@ export function sideGames(T, rid) {
   };
 }
 
+/** Everything the writer is given for the TOURNAMENT recap: the final standings and how each was
+ *  reached, the Ryder Cup session by session, the prizes, what each round's own report said, the
+ *  honours handed out, and what the golfers said, round by round. Only numbers that are on a card. */
+export function weekInput(T, now) {
+  const L = [];
+  const rounds = countingRounds(T);
+  const nm = id => (person(T, id) || {}).display || '?';
+  const first = dayOf(ROUNDS[0].dayIdx), last = dayOf(rounds[rounds.length - 1].dayIdx);
+  L.push('THE TOURNAMENT: The Union Invitational, Titanic Deluxe Golf Belek, Antalya, Turkiye, 26 Oct to 2 Nov 2026. ' + rounds.length + ' counting rounds, each from the yellow tees:');
+  for (const r of ROUNDS) {
+    const c = courseOf(T, r.id), d = dayOf(r.dayIdx);
+    L.push('- ' + r.full + ', ' + c.name + ', ' + d.dow + ' ' + d.date + (r.counts ? '' : ' (practice: counts for nothing)') + '.');
+  }
+  L.push('The competitions: the Team Competition (four-ball Stableford, a pair\'s better ball on each hole, summed over the counting rounds), the MVP (the golfer\'s own net to par across the counting rounds, lowest wins), '
+    + 'Bingo Bango Bongo, and the Ryder Cup (UK against USA, singles match play, a point a match).');
+
+  const pairs = pairsBoard(T, now);
+  L.push('\nTHE TEAM COMPETITION, FINAL (Stableford points; more is better)');
+  pairs.forEach(x => {
+    const per = rounds.map(r => { const row = pairRoundBoard(T, r.id).find(y => y.id === x.id); return 'R' + r.short.slice(1) + ' ' + (row ? row.today : '-'); }).join(', ');
+    L.push('- ' + x.pos + '. ' + x.name + ' (' + x.members + '): ' + x.total + ' pts [' + per + ']');
+  });
+
+  const mvp = mvpBoard(T, now);
+  L.push('\nTHE MVP, FINAL (net to par over the counting rounds; lower is better)');
+  mvp.forEach(x => {
+    const per = rounds.map(r => { const row = recapField(T, r.id).find(y => y.id === x.id); return 'R' + r.short.slice(1) + ' ' + (row && row.net != null ? fmtToPar(row.net) : '-'); }).join(', ');
+    L.push('- ' + x.pos + '. ' + x.name + ' (handicap ' + (x.band == null ? 'not set' : x.band) + '): ' + x.totalStr + ' net, ' + x.gTotalStr + ' raw [' + per + ']');
+  });
+
+  const bbb = bbbBoard(T);
+  if (bbb.length) {
+    L.push('\nBINGO BANGO BONGO, FINAL (points)');
+    bbb.forEach(x => L.push('- ' + x.pos + '. ' + x.name + ': ' + x.pts));
+  }
+
+  const R = ryderData(T, now);
+  L.push('\nTHE RYDER CUP, FINAL: UK ' + R.ukTotal + ', USA ' + R.usaTotal);
+  for (const sess of R.sessions) {
+    L.push('- ' + sess.label + ': UK ' + sess.uk + ', USA ' + sess.usa);
+    sess.matches.forEach(m => L.push('    ' + matchLine(m)));
+    if (sess.sitting && sess.sitting.length) L.push('    sitting out: ' + sess.sitting.join(', '));
+  }
+
+  L.push('\nTHE PRIZES AND THE DAYS, ROUND BY ROUND');
+  for (const r of rounds) {
+    const sg = sideGames(T, r.id), top = pairRoundBoard(T, r.id)[0], low = recapField(T, r.id)[0], sw = swingOfTheDay(T, r.id);
+    const cap = golfers(T).reduce((a, p) => { const c = card(T, r.id, p.id); return a + (c ? c.raw.filter((v, i) => v != null && v >= courseOf(T, r.id).holes[i].par + T.config.capOver).length : 0); }, 0);
+    const pu = golfers(T).reduce((a, p) => { const c = card(T, r.id, p.id); return a + (c && c.pu ? Object.keys(c.pu).filter(k => c.pu[k]).length : 0); }, 0);
+    L.push('- Round ' + r.short.slice(1) + ': best pair ' + (top ? top.name + ' on ' + top.today + ' pts' : 'none') + '; best net ' + (low ? low.name + ' (' + fmtToPar(low.net) + ')' : 'none')
+      + (sw ? '; the swing: ' + sw.shots + ' points between holes ' + sw.fromHole + ' and ' + sw.toHole : '')
+      + (sg.ctp ? '; closest to the pin, hole ' + sg.ctp.hole + ': ' + sg.ctp.who : '') + (sg.ld ? '; longest drive, hole ' + sg.ld.hole + ': ' + sg.ld.who + (sg.ld.note ? ' (' + sg.ld.note + ')' : '') : '')
+      + '; the triple-bogey cap reached ' + cap + ' time' + (cap === 1 ? '' : 's') + (pu ? ', ' + pu + ' pick-up' + (pu === 1 ? '' : 's') : '') + '.');
+  }
+
+  /* what each day's own report said, and who it honoured: the running jokes and the story so far */
+  for (const r of ROUNDS) {
+    const rec = (T.recaps || {})[r.id], b = rec && rec.body;
+    if (!b || !Array.isArray(b.narrative) || !b.narrative.length) continue;
+    L.push('\nWHAT THE ' + r.full.toUpperCase() + ' REPORT SAID (already published: the group has read it; do not repeat it, build on it)');
+    if (b.headline) L.push('Headline: ' + b.headline);
+    L.push(b.narrative.join('\n\n').slice(0, 3600));
+    const hs = (b.honours || []).filter(h => h.winner);
+    if (hs.length) L.push('Honours that day: ' + hs.map(h => h.slot.replace(/_/g, ' ') + ': ' + nm(h.winner) + (h.citation ? ' (' + h.citation + ')' : '')).join(' | '));
+  }
+
+  /* the golfers' own words, round by round, with the hole beside each */
+  for (const r of ROUNDS) {
+    const f = feelBlock(T, r.id).join('\n');
+    if (f.trim()) L.push('\n=== ' + r.full.toUpperCase() + ': ' + f.slice(0, 4000));
+  }
+
+  L.push('\nPLAYER IDS (use these exactly in honours)');
+  golfers(T).forEach(p => L.push('- ' + p.id + ' = ' + p.display));
+  (T.config.pairs || []).forEach(p => L.push('- ' + p.id + ' = ' + pairName(T, p)));
+  return L.join('\n');
+}
+
 /** Everything the generator is given. Only numbers that are on a card. */
 export function recapInput(T, rid, now) {
   const r = roundDef(rid);

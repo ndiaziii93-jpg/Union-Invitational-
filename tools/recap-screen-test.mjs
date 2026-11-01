@@ -193,7 +193,7 @@ await p.locator('.recapbtn').click(); await p.waitForTimeout(1600);
 ok('it opens over the page, not instead of it', await p.locator('.recapbox').count(), 1);
 ok('the writer was handed what the golfers said in My round, and not the chat', await p.evaluate(() => [String(window.__prompt || '').includes('Bring goggles tomorrow'), String(window.__prompt || '').includes('Only in the chat')]), [true, false]);
 ok('a pull-quote from My round is set in the report; one nobody said, and one only in the chat, are not', await p.locator('.rvoice').evaluateAll(es => es.map(e => e.textContent.replace(/\s+/g, ' ').trim())), ['“The 14th robbed me blind”— Norberto III · hole 14', '“Bring goggles tomorrow”— Ray V']);   // the hole’s quote sits under its paragraph; the line about the whole round closes the article
-ok('a quote knows the hole it was written on, and who wrote it, from the note: not from what the writer said', await p.evaluate(() => (window.__T.recaps.r1 || window.__T.recaps.r2 || {}).body ? Object.values(window.__T.recaps).flatMap(r => (r.body && r.body.voices) || []).map(v => [v.who, v.hole]) : null), [['Ray V', null], ['Norberto III', 13]]);
+ok('a quote knows the hole it was written on, and who wrote it, from the note: not from what the writer said', await p.evaluate(() => Object.values(window.__T.recaps).flatMap(r => (r.body && r.body.voices) || []).map(v => [v.who, v.hole == null ? null : v.hole])), [['Ray V', null], ['Norberto III', 13]]);
 /* Opening it is the ask — nobody presses a second button to read the day. */
 ok('and it wrote itself without a second click',
   (await p.locator('.rechead').innerText()).startsWith('Aspendos waited'), true);

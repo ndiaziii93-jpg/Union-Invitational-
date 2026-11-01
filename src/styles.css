@@ -5023,3 +5023,32 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 /* above the recap panel, which is drawn later at the same level */
 .scrim.pvscrim,.scrim.rswapscrim{z-index:80}
 .rvoice cite .rv-h{font-weight:600;letter-spacing:.04em;color:var(--gold)}
+
+/* THE TOURNAMENT RECAP, in gold. A card at the foot of the last day's report and a chip among the days glow
+   until somebody opens it. */
+.weekcard{display:grid;gap:4px;width:100%;margin:28px 0 12px;padding:18px 20px;border-radius:20px;text-align:left;color:#3B2A08;border:0;cursor:pointer;
+  background:linear-gradient(135deg,#F7DE9A 0%,#D9B055 52%,#F2D489 100%);box-shadow:inset 0 0 0 1px #B48A2E,0 6px 18px rgba(140,107,47,.35);
+  position:relative;overflow:hidden;-webkit-tap-highlight-color:transparent}
+.weekcard::after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.55) 50%,transparent 65%);transform:translateX(-120%);pointer-events:none}
+.weekcard small{font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:800;color:#6B4D12}
+.weekcard b{font-size:26px;line-height:1.1;font-family:var(--serif)}
+.weekcard span{font-size:15px;font-style:italic;color:#4A3509}
+.weekcard em{margin-top:6px;font-style:normal;font-size:13.5px;font-weight:800;color:#3B2A08}
+.weekcard[disabled]{opacity:.7;cursor:default}
+.weekcard.glow{animation:weekglow 2.2s ease-in-out infinite}
+.weekcard.glow::after{animation:weeksheen 3.4s ease-in-out infinite}
+@keyframes weekglow{0%,100%{box-shadow:inset 0 0 0 1px #B48A2E,0 0 12px 2px rgba(242,212,137,.5)}50%{box-shadow:inset 0 0 0 1px #B48A2E,0 0 36px 12px rgba(242,212,137,.95)}}
+@keyframes weeksheen{0%,55%{transform:translateX(-120%)}100%{transform:translateX(120%)}}
+.chip.gold{background:linear-gradient(180deg,#F2D489,#D9B055);color:#3B2A08;border-color:#B48A2E;font-weight:800}
+.chip.gold.on{background:#3B2A08;color:#F2D489}
+.chip.gold.glow{animation:weekglow 2.2s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){.weekcard.glow,.chip.gold.glow{animation:none;box-shadow:inset 0 0 0 1px #B48A2E,0 0 26px 8px rgba(242,212,137,.8)}.weekcard.glow::after{animation:none}}
+.recapbox.gold{box-shadow:0 0 0 2px #C9A253,0 0 44px rgba(201,162,83,.4)}
+.recapbox.gold .recaptop{background:linear-gradient(180deg,#F6DE9A,#D9B055 60%,#C9A253);color:#3B2A08;box-shadow:inset 0 -2px 0 #B48A2E}
+.recapbox.gold .recaptop b,.recapbox.gold .recaptop .rt-s{color:#3B2A08}
+.recapbox.gold .recaptop .rm{background:#3B2A08;color:#F2D489;border-color:#3B2A08}
+.recapbox.gold .rhero{border-bottom:4px solid #C9A253}
+.recapbox.gold .rh-k{color:#F2D489}
+.recapbox.gold .byline b,.recapbox.gold .sub{color:var(--gold)}
+.recapbox.gold .recpara.lead::first-letter{color:var(--gold)}
+.recapbox.gold .rvoice{border-left-color:#C9A253}

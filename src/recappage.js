@@ -74,10 +74,128 @@ export function assemble(rows) {
 export function sharedRounds(T) {
   return D.ROUNDS.filter(x => T.recaps[x.id] && T.recaps[x.id].status === 'published').map(x => x.id);
 }
+/** The tournament recap, once the group has been given it. */
+export const weekShared = T => !!(T.recaps.week && T.recaps.week.status === 'published' && T.recaps.week.body);
+const WEEK_HONOURS = [
+  { slot: 'golfer_of_the_week', label: 'Golfer of the week' },
+  { slot: 'round_of_the_week', label: 'Round of the week' },
+  { slot: 'shot_of_the_week', label: 'Shot of the week' },
+  { slot: 'most_improved', label: 'Most improved' },
+  { slot: 'heroic_failure', label: 'Heroic failure' },
+];
+const goldCard = () => `<a class="weekcard glow" href="?r=week"><small>★ The Union Invitational · Belek</small><b>The Tournament Recap</b><span>The whole week, in one read</span><em>Read the whole week ›</em></a>`;
+
+/** The whole week, in gold: the same article as a day's, about the tournament, with the final tables under it. */
+export function renderWeek(T, IMG, opts) {
+  opts = opts || {};
+  const now = E.nowLocal();
+  const rec = T.recaps.week || null;
+  const published = !!(rec && rec.status === 'published');
+  const body = rec && (published || opts.draft) ? rec.body : null;
+  const web = u => /^https?:\/\//i.test(String(u || ''));
+  const all = Object.values(T.photos || {}).filter(p => p && web(p.url) && p.kind !== 'video').map(p => ({ ...p, thumb: web(p.thumb) ? p.thumb : '' }));
+  const chrono = all.slice().sort((a, b) => (a.at || 0) - (b.at || 0));
+  const slides = chrono.length <= 15 ? chrono : Array.from({ length: 15 }, (_, i) => chrono[Math.floor((i + 0.5) * chrono.length / 15)]);
+  const shared = opts.shared || sharedRounds(T);
+  const rounds = D.ROUNDS.filter(r => r.counts);
+  const pairs = E.pairsBoard(T, now), mvp = E.mvpBoard(T, now), bbb = E.bbbBoard(T), cup = E.ryderData(T, now);
+  const half = n => (Number.isInteger(n) ? String(n) : Math.floor(n) + '\u00BD');
+  const nm = id => (E.person(T, id) || {}).display || (() => { const pr = (T.config.pairs || []).find(x => x.id === id); return pr ? E.pairName(T, pr) : '—'; })();
+  const tm = ms => { try { return E.to12(new Date(ms + D.TZ_OFFSET_MIN * 60000).toISOString().slice(11, 16)); } catch (e) { return ''; } };
+  /* the same placing as the book: a picked photo stays; beside a quote written on a hole, a photograph from that round and hole; the rest walk through the week in order */
+  const n = body ? (body.narrative || []).filter(x => x && x.trim()).length : 0, slotsN = Math.max(0, n - 1);
+  const voiceAt = k => { const vs = (body && body.voices) || []; return vs.some(x => x.para) ? vs.find(x => +x.para === k + 1) : vs[k]; };
+  const placed = (() => {
+    const out = Array(slotsN).fill(null), used = new Set(), pics = (body && body.pics) || {};
+    for (let k = 0; k < slotsN; k++) { const c = pics[k] ? all.find(p => p.id === pics[k]) : null; if (c) { out[k] = c; used.add(c.id); } }
+    for (let k = 0; k < slotsN; k++) { if (out[k]) continue; const v = voiceAt(k); if (v && v.hole != null) { const c = all.find(p => p.hole === v.hole && p.rid === v.rid && !used.has(p.id)); if (c) { out[k] = c; used.add(c.id); } } }
+    for (let k = 0; k < slotsN; k++) {
+      if (out[k] || !chrono.length) continue;
+      let at = Math.min(chrono.length - 1, Math.floor((k + 0.5) * chrono.length / slotsN));
+      for (let m = 0; m < chrono.length && used.has(chrono[at].id); m++) at = (at + 1) % chrono.length;
+      if (!used.has(chrono[at].id)) { out[k] = chrono[at]; used.add(chrono[at].id); }
+    }
+    return out;
+  })();
+  const inlinePhoto = i => {
+    const ph = placed[i] || null;
+    if (!ph) return '';
+    const cap = ph.caption || (ph.hole != null ? 'Hole ' + (ph.hole + 1) : 'From the week');
+    return `<figure class="rinline"><button class="rin-open" data-full="${esc(ph.url)}" data-cap="${esc(cap + (ph.byName ? ' · 📷 ' + ph.byName : ''))}" aria-label="Open this photo full screen"><img src="${esc(ph.url)}" alt="${esc(ph.caption || 'From the week')}" loading="lazy" decoding="async"></button>
+      <figcaption>${esc(cap)}${ph.byName ? ' · 📷 ' + esc(ph.byName) : ''}</figcaption></figure>`;
+  };
+  const voiceHtml = v => { const rd = v.rid ? D.ROUNDS.find(x => x.id === v.rid) : null;
+    return `<blockquote class="rvoice"><p>“${esc(v.text)}”</p><cite>— ${esc(v.who || 'From My round')}${v.hole != null ? ` <span class="rv-h">· ${rd ? esc(rd.short === 'Practice' ? 'Practice' : 'R' + rd.short.slice(1)) + ' ' : ''}hole ${+v.hole + 1}</span>` : ''}</cite></blockquote>`; };
+  const left = (() => {
+    const vs = (body && body.voices) || [];
+    if (!vs.some(v => v.para)) return vs.length > n - 1 ? vs.slice(Math.max(n - 1, 0)) : [];
+    const seen = new Set();
+    return vs.filter(v => { const k = +v.para; if (k >= 1 && k <= n - 1 && !seen.has(k)) { seen.add(k); return false; } return true; });
+  })();
+  const honours = body ? (body.honours || []).filter(h => h.winner) : [];
+  return `<div class="recapbox gold" id="recapBox">
+    <div class="recaptop"><b>The Tournament Recap</b><span class="rt-s">The Union Invitational · Belek</span><a class="rm" href="../app/">Open the book</a></div>
+    <div class="rhero">
+      <div class="rh-track nos" data-n="${slides.length}">${slides.map((ph, i) => `<figure class="rh-slide" data-by="${esc(ph.byName || '')}">
+        <img src="${esc(ph.url)}" alt="${esc(ph.caption || 'From the week')}"${i > 1 ? ' loading="lazy"' : ''} decoding="async"></figure>`).join('')}</div>
+      ${slides.length > 1 ? `<span class="rh-count num" aria-live="polite">📷 <b>1</b> / ${slides.length}${slides[0].byName ? ' · ' + esc(slides[0].byName) : ''}</span>
+        <div class="rh-dots" aria-hidden="true">${slides.map((_, i) => `<i class="${i === 0 ? 'on' : ''}"></i>`).join('')}</div>` : ''}
+      <div class="rh-in">
+        <span class="rh-k">★ The whole week · Titanic Deluxe Golf Belek · 26 Oct to 2 Nov${body && !published ? ' · Draft' : ''}</span>
+        <h2 class="rechead">${body ? esc(body.headline || '') : 'The Tournament Recap'}</h2>
+      </div>
+    </div>
+    <div class="chiprow recaparch"><span class="gl">Recaps</span>
+      ${shared.map(id => { const x = E.roundDef(id) || {}; return `<a class="chip" href="?r=${esc(id)}">${esc(x.short || id)}</a>`; }).join('')}
+      <a class="chip gold on" href="?r=week">★ The Week</a></div>
+    <p class="metaline"><b>The Union Invitational</b> · ${rounds.length} counting rounds · ${E.golfers(T).length} golfers, ${(T.config.pairs || []).length} pairs · ${all.length} photos</p>
+    <div class="recapgrid">
+      <div class="recapmain">
+        <div class="arthead">${body ? `<p class="byline"><b>By the Union Register</b>${rec && rec.at ? `<span>${esc(tm(rec.at))}</span>` : ''}${published ? '' : '<span class="draftflag">Draft</span>'}</p>` : ''}</div>
+        <div class="artbody">
+        ${body && body.narrative ? body.narrative.filter(x => x && x.trim())
+            .map((x, i) => `<p class="recpara${i === 0 ? ' lead' : ''}">${esc(x)}</p>${i < n - 1 ? inlinePhoto(i) + (voiceAt(i) ? voiceHtml(voiceAt(i)) : '') : ''}`).join('') + left.map(voiceHtml).join('')
+          : `<p class="recpara">The tournament recap has not been shared yet.</p>`}
+        </div>
+      </div>
+      <aside class="recapside">
+        ${body && body.swing && body.swing.value ? `<div class="swing"><div class="sw-l">The week in a number</div><div class="sw-v num">${esc(body.swing.value)}</div><div class="sw-c">${esc(body.swing.caption || '')}</div></div>` : ''}
+      </aside>
+    </div>
+    <h3 class="sub">Worth mentioning</h3>
+    <div class="rows" style="margin-top:8px">
+      ${WEEK_HONOURS.map(h => { const won = honours.find(x => x.slot === h.slot);
+        return `<div class="row honour"><span class="who">${esc(h.label)}<small>${won && won.citation ? esc(won.citation) : 'Not awarded.'}</small></span><span class="n rt-v win">${won ? esc(nm(won.winner)) : '—'}</span></div>`; }).join('')}
+    </div>
+    <h3 class="sub">The final tables</h3>
+    <div class="rows rectable" style="margin-top:8px">
+      <div class="rowhead"><span class="rt-pos"></span><span class="rt-who">Team Competition</span><span class="rt-t">Points</span></div>
+      ${pairs.map(x => `<div class="row${x.pos === 1 ? ' lead' : ''}"><span class="pos rt-pos">${x.pos}</span>
+        <span class="who rt-who">${esc(x.name)}<small>${rounds.map(r => { const row = E.pairRoundBoard(T, r.id).find(y => y.id === x.id); return 'R' + r.short.slice(1) + ' ' + (row ? row.today : '—'); }).join(' · ')}</small></span>
+        <span class="num rt-t pts">${x.total}</span></div>`).join('')}
+    </div>
+    <div class="rows rectable" style="margin-top:14px">
+      <div class="rowhead"><span class="rt-pos"></span><span class="rt-who">MVP</span><span class="rt-t">Net<small class="rawh">net · raw</small></span></div>
+      ${mvp.map(x => `<div class="row${x.pos === 1 ? ' lead' : ''}"><span class="pos rt-pos">${x.pos}</span>
+        <span class="who rt-who">${esc(x.name)}<small>${rounds.map(r => { const row = E.recapField(T, r.id).find(y => y.id === x.id); return 'R' + r.short.slice(1) + ' ' + (row && row.net != null ? E.fmtToPar(row.net) : '—'); }).join(' · ')}</small></span>
+        <span class="num rt-t ${cls(x.total)}">${esc(x.totalStr)}<small class="rawv">${esc(x.gTotalStr)}</small></span></div>`).join('')}
+    </div>
+    ${bbb.length ? `<div class="rows rectable" style="margin-top:14px">
+      <div class="rowhead"><span class="rt-pos"></span><span class="rt-who">Bingo Bango Bongo</span><span class="rt-t">Points</span></div>
+      ${bbb.map(x => `<div class="row${x.pos === 1 ? ' lead' : ''}"><span class="pos rt-pos">${x.pos}</span><span class="who rt-who">${esc(x.name)}</span><span class="num rt-t">${x.pts}</span></div>`).join('')}
+    </div>` : ''}
+    <h3 class="sub">Ryder Cup</h3>
+    <div class="reccupline"><span>🇬🇧 <b class="num">${half(cup.ukTotal)}</b> – <b class="num">${half(cup.usaTotal)}</b> 🇺🇸</span></div>
+    <div class="rows rectable reccup" style="margin-top:8px">
+      ${cup.sessions.map(s => `<div class="row"><span class="who rc-a">${esc(s.label)}</span><span class="rc-r">UK ${half(s.uk)} – ${half(s.usa)} USA</span><span class="who rc-b"></span></div>`).join('')}
+    </div>
+  </div>`;
+}
 
 /** The whole page for one round. `IMG` holds the crest and the course pictures. */
 export function renderRecap(T, rid, IMG, opts) {
   opts = opts || {};
+  if (rid === 'week') return renderWeek(T, IMG, opts);
   const now = E.nowLocal();
   const r = E.roundDef(rid) || {};
   const day = E.dayOf(r.dayIdx || 0) || {};
@@ -171,6 +289,7 @@ export function renderRecap(T, rid, IMG, opts) {
     ${shared.length > 1 ? `<div class="chiprow recaparch">
       <span class="gl">Recaps</span>
       ${shared.map(id => { const x = E.roundDef(id) || {}; return `<a class="chip${id === rid ? ' on' : ''}" href="?r=${esc(id)}">${esc(x.short || id)}</a>`; }).join('')}
+      ${weekShared(T) ? '<a class="chip gold glow" href="?r=week">★ The Week</a>' : ''}
     </div>` : ''}
 
     <p class="metaline"><b>${esc(course.name)}</b> · ${esc(day.dow || '')} ${esc(day.date || '')} · ${esc(r.counts ? 'Four-ball Stableford' : 'Practice, counts for nothing')} · ${shots} player${shots === 1 ? '' : 's'}, ${st.pairs} pair${st.pairs === 1 ? '' : 's'}</p>
@@ -194,6 +313,7 @@ export function renderRecap(T, rid, IMG, opts) {
         </div>
       </div>
       <aside class="recapside">
+        ${weekShared(T) && rid === (D.ROUNDS.filter(x => x.counts).slice(-1)[0] || {}).id ? goldCard() : ''}
         ${sw ? `<div class="swing">
           <div class="sw-l">Swing of the day</div>
           <div class="sw-v num">${sw.shots} point${sw.shots === 1 ? '' : 's'}</div>
@@ -338,8 +458,8 @@ export async function boot(cfg) {
     const T = assemble(data);
     const shared = sharedRounds(T);
     let rid = q.get('r');
-    if (!rid || !E.roundDef(rid)) rid = shared[shared.length - 1] || E.recapRound(T, E.nowLocal());
-    const r = E.roundDef(rid) || {};
+    if (rid !== 'week' && (!rid || !E.roundDef(rid))) rid = shared[shared.length - 1] || E.recapRound(T, E.nowLocal());
+    const r = rid === 'week' ? { full: 'The Tournament Recap' } : E.roundDef(rid) || {};
     const rec = T.recaps[rid];
     document.title = (rec && rec.body && rec.body.headline && rec.status === 'published' ? rec.body.headline + ' · ' : '') + (r.full || 'The Day\'s Recap') + ' · The Union Invitational';
     el.innerHTML = renderRecap(T, rid, IMG, { draft: q.get('draft') === '1', shared });
