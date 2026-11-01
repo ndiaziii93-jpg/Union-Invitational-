@@ -5129,6 +5129,21 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 .recapbox.gold .recpara.lead::first-letter{color:var(--gold)}
 .recapbox.gold .rvoice{border-left-color:#C9A253}
 
+/* THE TOURNAMENT RECAP BUTTON on the homepage, under the day's recap: gold, set in green, with the crest in green. */
+.weekbtn{display:flex;align-items:center;gap:14px;width:100%;text-align:left;padding:15px 18px;border-radius:16px;border:0;cursor:pointer;color:var(--pine);
+  background:linear-gradient(135deg,#F7DE9A 0%,#D9B055 52%,#F2D489 100%);box-shadow:inset 0 0 0 2px var(--pine),0 6px 18px rgba(140,107,47,.35);
+  position:relative;overflow:hidden;-webkit-tap-highlight-color:transparent}
+.weekbtn::after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.55) 50%,transparent 65%);transform:translateX(-120%);pointer-events:none}
+.weekbtn .wb-k{display:block;font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:800;color:var(--pine);opacity:.8}
+.weekbtn .rb-t{display:block;font-size:19px;font-weight:700;color:var(--pine);font-family:var(--serif)}
+.weekbtn .rb-s{display:block;font-size:14.5px;font-style:italic;color:var(--pine);margin-top:2px}
+.weekbtn .rb-w{flex:1 1 auto;min-width:0}
+.weekbtn .rb-c{flex:0 0 auto;width:42px;height:auto;opacity:.85}
+.weekbtn[disabled]{opacity:.7;cursor:default}
+.weekbtn.glow{animation:weekglow 2.2s ease-in-out infinite}
+.weekbtn.glow::after{animation:weeksheen 3.4s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){.weekbtn.glow{animation:none;box-shadow:inset 0 0 0 2px var(--pine),0 0 26px 8px rgba(242,212,137,.8)}.weekbtn.glow::after{animation:none}}
+
 </style>
 <div id="app"></div>
 <!-- The crest, and the opening it pays for, ahead of everything else. A few
@@ -5255,7 +5270,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261101-0529';
+const BUILD = '20261101-0539';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -11665,6 +11680,7 @@ function scrToday() {
       <div class="club today-club">${cards.map(c => c.kind === 'cup' ? cupCard(c, 'todayCard', true)
         : gameCard(c, 'todayCard', c.id === 'pairs' ? 'cc--main' : '')).join('')}</div>
       ${recapButton()}
+      ${weekButton()}
     </div>
     <div class="tg-l">
       <div class="tsec">${isToday ? 'Today' : esc(day.dow)}<span class="r">${esc(day.dow.slice(0, 3))} ${esc(day.date)}</span></div>
@@ -12577,15 +12593,21 @@ function recapTop() {
 const WEEKSEEN_KEY = 'union-invitational:weekseen';
 const weekSeen = () => { try { return localStorage.getItem(WEEKSEEN_KEY); } catch (e) { return null; } };
 const weekGlows = () => { const w = T.recaps.week; return !(w && w.body) || weekSeen() !== String(w.at); };
-function weekCardHtml() {
-  const wk = T.recaps.week, body = wk && wk.body, ed = canEdit();
-  const busy = UI.recap.busy && UI.recap.rid === 'week';
-  const open = !!body || ed;
-  return `<button class="weekcard${weekGlows() ? ' glow' : ''}" data-act="recapWeek"${open ? '' : ' disabled'} aria-label="The Tournament Recap">
-    <small>★ The Union Invitational · Belek</small>
-    <b>The Tournament Recap</b>
-    <span>${body ? esc(body.headline || 'The whole week, in one read') : busy ? 'Being written…' : ed ? 'The whole week, in one read: tap to write it' : 'The whole week is being written up'}</span>
-    <em>${body ? 'Read the whole week ›' : ed ? 'Write it ›' : 'Coming soon'}</em></button>`;
+/** The tournament recap's own button on the homepage, under the day's recap: gold and green, glowing until it is opened. */
+function weekButton() {
+  if (!weekReady()) return '';
+  const wk = T.recaps.week, body = wk && wk.body, busy = UI.recap.busy && UI.recap.rid === 'week';
+  const line = body ? (body.headline || 'The whole week, in one read') : busy ? 'Being written…' : canEdit() ? 'The whole week, in one read: tap to write it' : 'The whole week is being written up';
+  return `<div class="recapwrap">
+    <button class="weekbtn${weekGlows() ? ' glow' : ''}" data-act="recapWeek"${body || canEdit() ? '' : ' disabled'}>
+      <span class="rb-w">
+        <span class="wb-k">★ The Union Invitational · Belek</span>
+        <span class="rb-t">The Tournament Recap</span>
+        <span class="rb-s">${esc(line)}</span>
+      </span>
+      ${IMG.crest ? `<img class="rb-c" src="${IMG.crest}" alt="">` : ''}
+    </button>
+  </div>`;
 }
 function weekChipHtml() {
   return weekReady() ? `<button class="chip gold${UI.recap.rid === 'week' && UI.recap.view !== 'gallery' ? ' on' : ''}${weekGlows() ? ' glow' : ''}" data-act="recapWeek">★ The Week</button>` : '';
@@ -12853,7 +12875,6 @@ function recapPanel() {
       </div>` : ''}
     </aside>
   </div>
-  ${rid === lastCountingId() && weekReady() && !editing ? weekCardHtml() : ''}
 
   <div class="ribwrap">
     <div class="ribhead"><span>Leaders' hole by hole</span>
@@ -20904,6 +20925,7 @@ function onClick(e) {
       if (wk && wk.body) { try { localStorage.setItem(WEEKSEEN_KEY, String(wk.at)); } catch (e) { /* glows again next time */ } }
       UI.recap = { rid: 'week', busy: false, err: '', stream: '', edit: false, view: 'report' };
       UI.recapSlide = 0;
+      UI.recapOpen = true;
       render();
       recapTop();
       /* the button said "write it": opening it for an editor starts the writing when nothing is there yet */
@@ -22484,7 +22506,7 @@ __m_app.boot();
 /* Register the worker that makes the book work with no signal. It is the
    whole point of installing it: Belek is five hours of walking and everyone
    is roaming. A failure here must never stop the page loading. */
-var BOOK_BUILD = '20261101-0529';
+var BOOK_BUILD = '20261101-0539';
 var swReg = null;
 /* the book is never shown inside somebody else's page, where a tap could be
    aimed at a button they have put under the finger */

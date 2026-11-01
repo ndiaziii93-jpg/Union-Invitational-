@@ -39,21 +39,22 @@ const shut = async () => { for (let i = 0; i < 6; i++) { const d = p.locator('.s
 await shut();
 const openRound = rid => p.evaluate(rid => { Object.assign(window.__UI, { recapOpen: true, recap: { rid, busy: false, err: '', stream: '', edit: false, view: 'report' } }); window.__forceRender(); }, rid);
 
+const home = () => p.evaluate(() => { Object.assign(window.__UI, { recapOpen: false, screen: 'today' }); window.__forceRender(); });
 console.log('\nbefore the last day has a report');
-await openRound('r3');
-ok('there is no gold card and no gold chip', [await p.locator('.weekcard').count(), await p.locator('.chip.gold').count()], [0, 0]);
+await home();
+ok('there is no tournament button on the homepage', await p.locator('.weekbtn').count(), 0);
 
 console.log('\nonce the last day’s report is written');
 await p.evaluate(() => { const T = window.__T; T.recaps.r3 = { rid: 'r3', status: 'published', at: Date.now(), body: { headline: 'Sunday at Olympos', narrative: ['A long, real paragraph about the last day at Olympos with names, holes and scores in it, enough words to count as one.'] } }; });
-await openRound('r3');
-const dump = await p.evaluate(() => ({ card: !!document.querySelector('.weekcard'), glow: !!document.querySelector('.weekcard.glow'), chip: !!document.querySelector('.chip.gold'),
-  cardText: (document.querySelector('.weekcard') || {}).textContent || '', after: (() => { const c = document.querySelector('.weekcard'), g = document.querySelector('.recapgrid'); return !!(c && g && (g.compareDocumentPosition(c) & Node.DOCUMENT_POSITION_FOLLOWING)); })() }));
-ok('a gold card sits under the report, glowing', [dump.card, dump.glow, dump.after], [true, true, true]);
-ok('and a gold chip among the days', dump.chip, true);
-ok('the card says what it is', /The Tournament Recap/.test(dump.cardText) && /Write it/.test(dump.cardText), true);
+await home();
+const dump = await p.evaluate(() => { const w = document.querySelector('.weekbtn'), r = document.querySelector('.recapbtn');
+  return { btn: !!w, glow: !!(w && w.classList.contains('glow')), text: w ? w.textContent : '', below: !!(w && r && (r.parentElement.compareDocumentPosition(w.parentElement) & Node.DOCUMENT_POSITION_FOLLOWING)), inRecap: !!(w && w.closest('.recapbox')) }; });
+ok('its own button sits on the homepage under the day’s recap button, glowing', [dump.btn, dump.below, dump.glow, dump.inRecap], [true, true, true, false]);
+ok('it says what it is', /The Tournament Recap/.test(dump.text) && /tap to write it/.test(dump.text), true);
+ok('and the recap window has no gold card in it', await (async () => { await openRound('r3'); const n = await p.locator('.weekcard').count(); await home(); return n; })(), 0);
 
 console.log('\nopening it writes the week');
-await p.locator('.weekcard').first().click();
+await p.locator('.weekbtn').first().click();
 await p.waitForFunction(() => window.__T.recaps.week && window.__T.recaps.week.body, null, { timeout: 20000 }).catch(() => {});
 await p.waitForTimeout(400);
 const wk = await p.evaluate(() => ({ body: (window.__T.recaps.week || {}).body || null, status: (window.__T.recaps.week || {}).status, asked: window.__asked.map(q => /THE EXTRAS ONLY/.test(q) ? 'extras' : /CARRY THE STORY ON/.test(q) ? 'more' : 'story'),
@@ -65,12 +66,11 @@ ok('and shared with the group, since the book wrote it', wk.status, 'published')
 const view = await p.evaluate(() => ({ gold: !!document.querySelector('.recapbox.gold'), head: (document.querySelector('.rhero .rechead') || {}).textContent, paras: document.querySelectorAll('.artbody .recpara').length,
   honours: [...document.querySelectorAll('.honour .who')].length, link: /recap\/\?r=week/.test(document.body.innerHTML) }));
 ok('it opens in gold, in the day’s own layout', [view.gold, view.head, view.paras], [true, 'Seven days, three rounds and one very sore loser', 9]);
-await p.evaluate(() => { window.__UI.recapOpen = false; window.__forceRender(); });
-await openRound('r3');
-ok('and keeps glowing until opened once it exists', await p.locator('.weekcard.glow').count(), 1);
-await p.locator('.weekcard').first().click(); await p.waitForTimeout(300);
-await openRound('r3');
-ok('opened, it stops glowing', [await p.locator('.weekcard').count(), await p.locator('.weekcard.glow').count(), await p.locator('.chip.gold.glow').count()], [1, 0, 0]);
+await home();
+ok('and keeps glowing until opened once it exists', await p.locator('.weekbtn.glow').count(), 1);
+await p.locator('.weekbtn').first().click(); await p.waitForTimeout(300);
+await home();
+ok('opened, it stops glowing', [await p.locator('.weekbtn').count(), await p.locator('.weekbtn.glow').count()], [1, 0]);
 ok('no errors in the book', errs, []);
 await ctx.close();
 

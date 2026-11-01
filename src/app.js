@@ -410,6 +410,7 @@ function scrToday() {
       <div class="club today-club">${cards.map(c => c.kind === 'cup' ? cupCard(c, 'todayCard', true)
         : gameCard(c, 'todayCard', c.id === 'pairs' ? 'cc--main' : '')).join('')}</div>
       ${recapButton()}
+      ${weekButton()}
     </div>
     <div class="tg-l">
       <div class="tsec">${isToday ? 'Today' : esc(day.dow)}<span class="r">${esc(day.dow.slice(0, 3))} ${esc(day.date)}</span></div>
@@ -1322,15 +1323,21 @@ function recapTop() {
 const WEEKSEEN_KEY = 'union-invitational:weekseen';
 const weekSeen = () => { try { return localStorage.getItem(WEEKSEEN_KEY); } catch (e) { return null; } };
 const weekGlows = () => { const w = T.recaps.week; return !(w && w.body) || weekSeen() !== String(w.at); };
-function weekCardHtml() {
-  const wk = T.recaps.week, body = wk && wk.body, ed = canEdit();
-  const busy = UI.recap.busy && UI.recap.rid === 'week';
-  const open = !!body || ed;
-  return `<button class="weekcard${weekGlows() ? ' glow' : ''}" data-act="recapWeek"${open ? '' : ' disabled'} aria-label="The Tournament Recap">
-    <small>★ The Union Invitational · Belek</small>
-    <b>The Tournament Recap</b>
-    <span>${body ? esc(body.headline || 'The whole week, in one read') : busy ? 'Being written…' : ed ? 'The whole week, in one read: tap to write it' : 'The whole week is being written up'}</span>
-    <em>${body ? 'Read the whole week ›' : ed ? 'Write it ›' : 'Coming soon'}</em></button>`;
+/** The tournament recap's own button on the homepage, under the day's recap: gold and green, glowing until it is opened. */
+function weekButton() {
+  if (!weekReady()) return '';
+  const wk = T.recaps.week, body = wk && wk.body, busy = UI.recap.busy && UI.recap.rid === 'week';
+  const line = body ? (body.headline || 'The whole week, in one read') : busy ? 'Being written…' : canEdit() ? 'The whole week, in one read: tap to write it' : 'The whole week is being written up';
+  return `<div class="recapwrap">
+    <button class="weekbtn${weekGlows() ? ' glow' : ''}" data-act="recapWeek"${body || canEdit() ? '' : ' disabled'}>
+      <span class="rb-w">
+        <span class="wb-k">★ The Union Invitational · Belek</span>
+        <span class="rb-t">The Tournament Recap</span>
+        <span class="rb-s">${esc(line)}</span>
+      </span>
+      ${IMG.crest ? `<img class="rb-c" src="${IMG.crest}" alt="">` : ''}
+    </button>
+  </div>`;
 }
 function weekChipHtml() {
   return weekReady() ? `<button class="chip gold${UI.recap.rid === 'week' && UI.recap.view !== 'gallery' ? ' on' : ''}${weekGlows() ? ' glow' : ''}" data-act="recapWeek">★ The Week</button>` : '';
@@ -1598,7 +1605,6 @@ function recapPanel() {
       </div>` : ''}
     </aside>
   </div>
-  ${rid === lastCountingId() && weekReady() && !editing ? weekCardHtml() : ''}
 
   <div class="ribwrap">
     <div class="ribhead"><span>Leaders' hole by hole</span>
@@ -9649,6 +9655,7 @@ function onClick(e) {
       if (wk && wk.body) { try { localStorage.setItem(WEEKSEEN_KEY, String(wk.at)); } catch (e) { /* glows again next time */ } }
       UI.recap = { rid: 'week', busy: false, err: '', stream: '', edit: false, view: 'report' };
       UI.recapSlide = 0;
+      UI.recapOpen = true;
       render();
       recapTop();
       /* the button said "write it": opening it for an editor starts the writing when nothing is there yet */

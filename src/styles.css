@@ -5052,3 +5052,18 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 .recapbox.gold .byline b,.recapbox.gold .sub{color:var(--gold)}
 .recapbox.gold .recpara.lead::first-letter{color:var(--gold)}
 .recapbox.gold .rvoice{border-left-color:#C9A253}
+
+/* THE TOURNAMENT RECAP BUTTON on the homepage, under the day's recap: gold, set in green, with the crest in green. */
+.weekbtn{display:flex;align-items:center;gap:14px;width:100%;text-align:left;padding:15px 18px;border-radius:16px;border:0;cursor:pointer;color:var(--pine);
+  background:linear-gradient(135deg,#F7DE9A 0%,#D9B055 52%,#F2D489 100%);box-shadow:inset 0 0 0 2px var(--pine),0 6px 18px rgba(140,107,47,.35);
+  position:relative;overflow:hidden;-webkit-tap-highlight-color:transparent}
+.weekbtn::after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.55) 50%,transparent 65%);transform:translateX(-120%);pointer-events:none}
+.weekbtn .wb-k{display:block;font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:800;color:var(--pine);opacity:.8}
+.weekbtn .rb-t{display:block;font-size:19px;font-weight:700;color:var(--pine);font-family:var(--serif)}
+.weekbtn .rb-s{display:block;font-size:14.5px;font-style:italic;color:var(--pine);margin-top:2px}
+.weekbtn .rb-w{flex:1 1 auto;min-width:0}
+.weekbtn .rb-c{flex:0 0 auto;width:42px;height:auto;opacity:.85}
+.weekbtn[disabled]{opacity:.7;cursor:default}
+.weekbtn.glow{animation:weekglow 2.2s ease-in-out infinite}
+.weekbtn.glow::after{animation:weeksheen 3.4s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){.weekbtn.glow{animation:none;box-shadow:inset 0 0 0 2px var(--pine),0 0 26px 8px rgba(242,212,137,.8)}.weekbtn.glow::after{animation:none}}
