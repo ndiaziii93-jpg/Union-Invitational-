@@ -4481,6 +4481,14 @@ function commitDraft(role) {
   const d = UI.draft;
   UI.pad = null;
   if (!d) return;
+  /* THE BOOK CANNOT TAKE A WRITE YET: it has neither loaded nor a copy on
+     this phone (a first open with no signal). The store would refuse each
+     hole and the draft would be thrown away with nothing said. Keep it, and say. */
+  if (meta && meta.backend === 'supabase' && !meta.settled && !meta.fromDevice) {
+    UI.modal = { kind: 'confirm', eyebrow: 'Not saved', title: 'The book has not opened on this phone yet',
+      note: 'The hole is kept here, unsaved. Find a bar of signal, wait for the book to load, and press Save hole again.', ok: 'OK', cancel: 'Close' };
+    return;
+  }
   const h = d.hole;
   for (const [pid, v] of Object.entries(d.strokes)) {
     if (closedFor(d.rid, pid)) continue;   // that group has finished; the card is shut
@@ -11239,6 +11247,15 @@ async function writeRecap(rid, again, auto) {
   }
 }
 
+let storeDrawPending = false;
+function storeRedraw() {
+  if (storeDrawPending) return;
+  storeDrawPending = true;
+  const go = () => { storeDrawPending = false; checkRole(); render(); fillMyOrders(); };
+  if (typeof requestAnimationFrame === 'function' && typeof document !== 'undefined' && !document.hidden) requestAnimationFrame(go);
+  else setTimeout(go, 0);
+}
+
 /* ---------------- boot ---------------- */
 
 export function boot() {
@@ -11309,9 +11326,11 @@ export function boot() {
       if (saved && S.ROLES[saved.role] && saved.role !== 'viewer') UI.role = saved.role;
       if (setupIssues().length) UI.modal = { kind: 'setup' };
     }
-    checkRole();
-    render();
-    fillMyOrders();
+    /* ONE REDRAW A FRAME. A sweep lands forty rows and said so forty times,
+       and each time the whole page was rebuilt. The state is taken at once
+       (above); the drawing waits for the next frame and happens once. A tap
+       still redraws on the spot, as it always did. */
+    storeRedraw();
   });
   const app = document.getElementById('app');
   app.addEventListener('click', onClick);

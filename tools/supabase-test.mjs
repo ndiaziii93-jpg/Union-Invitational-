@@ -57,8 +57,8 @@ function fakeSupabase() {
       select() { return api; },
       eq(col, val) { q._filters.push([col, val]); return api; },
       like(col, val) { q._like = val; return api; },
-      gt(col, val) { q._gt = val; if (col === 'updated_at') state.sweeps++; return api; },
-      order() { return api; },
+      gt(col, val) { q._gt = val; return api; },
+      order() { state.sweeps++; return api; },   // only the sweep orders by updated_at: a single read never does
       limit() { return api; },
       upsert(row) {
         return (async () => {

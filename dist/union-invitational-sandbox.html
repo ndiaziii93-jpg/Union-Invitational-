@@ -4961,7 +4961,7 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 .btn.cfoot{display:block;width:100%;margin-top:12px;min-height:48px;font-size:16px}
 
 /* the pad closes after a score; the next golfer without one glows */
-.prow.nextup{box-shadow:0 0 0 2px var(--gold-up);border-radius:14px;animation:nextglow 1.6s ease-in-out infinite}
+.prow.nextup{box-shadow:0 0 0 2px var(--gold-up);border-radius:14px;animation:nextglow 1.6s ease-in-out 6}   /* six breaths, then the still gold ring: a shadow animated all round is a screen repainted all round */
 @keyframes nextglow{50%{box-shadow:0 0 0 4px color-mix(in srgb,var(--gold-up) 55%,transparent)}}
 @media (prefers-reduced-motion:reduce){.prow.nextup{animation:none}}
 .nexttag{display:inline-block;margin:2px 0 0;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:800;color:var(--gold)}
@@ -5039,13 +5039,13 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 .weekcard span{font-size:15px;font-style:italic;color:#4A3509}
 .weekcard em{margin-top:6px;font-style:normal;font-size:13.5px;font-weight:800;color:#3B2A08}
 .weekcard[disabled]{opacity:.7;cursor:default}
-.weekcard.glow{animation:weekglow 2.2s ease-in-out infinite}
+.weekcard.glow{animation:weekglow 2.2s ease-in-out 8}
 .weekcard.glow::after{animation:weeksheen 3.4s ease-in-out infinite}
 @keyframes weekglow{0%,100%{box-shadow:inset 0 0 0 1px #B48A2E,0 0 12px 2px rgba(242,212,137,.5)}50%{box-shadow:inset 0 0 0 1px #B48A2E,0 0 36px 12px rgba(242,212,137,.95)}}
 @keyframes weeksheen{0%,55%{transform:translateX(-120%)}100%{transform:translateX(120%)}}
 .chip.gold{background:linear-gradient(180deg,#F2D489,#D9B055);color:#3B2A08;border-color:#B48A2E;font-weight:800}
 .chip.gold.on{background:#3B2A08;color:#F2D489}
-.chip.gold.glow{animation:weekglow 2.2s ease-in-out infinite}
+.chip.gold.glow{animation:weekglow 2.2s ease-in-out 8}
 @media (prefers-reduced-motion:reduce){.weekcard.glow,.chip.gold.glow{animation:none;box-shadow:inset 0 0 0 1px #B48A2E,0 0 26px 8px rgba(242,212,137,.8)}.weekcard.glow::after{animation:none}}
 .recapbox.gold{box-shadow:0 0 0 2px #C9A253,0 0 44px rgba(201,162,83,.4)}
 .recapbox.gold .recaptop{background:linear-gradient(180deg,#F6DE9A,#D9B055 60%,#C9A253);color:#3B2A08;box-shadow:inset 0 -2px 0 #B48A2E}
@@ -5068,7 +5068,7 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 .weekbtn .rb-w{flex:1 1 auto;min-width:0}
 .weekbtn .rb-c{flex:0 0 auto;width:42px;height:auto;opacity:.85}
 .weekbtn[disabled]{opacity:.7;cursor:default}
-.weekbtn.glow{animation:weekglow 2.2s ease-in-out infinite}
+.weekbtn.glow{animation:weekglow 2.2s ease-in-out 8}
 .weekbtn.glow::after{animation:weeksheen 3.4s ease-in-out infinite}
 @media (prefers-reduced-motion:reduce){.weekbtn.glow{animation:none;box-shadow:inset 0 0 0 2px var(--pine),0 0 26px 8px rgba(242,212,137,.8)}.weekbtn.glow::after{animation:none}}
 
@@ -5205,7 +5205,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261101-0629';
+const BUILD = '20261101-0701';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -9161,6 +9161,15 @@ const hidden = () => typeof document !== 'undefined' && document.visibilityState
 const RETRY_MS = 4000;        // a stranded outbox tries again this soon, then waits longer each time it fails
 const RETRY_MAX_MS = 60000;   // ... but never longer than a minute, and a signal coming back is tried at once
 const OUTBOX_KEY = 'ui.outbox.v1';
+/* THE SWEEP LOOKS BACK A LITTLE. The socket can drop a row, and the sweep is
+   the net under it; a net that starts exactly where the last look ended has
+   a gap at every edge. Half a minute of overlap costs a handful of rows
+   already held (and skipped as identical) and closes the gap. */
+const SWEEP_BACK_MS = 30000;
+/* A PHONE IN A POCKET. Hidden this long, the socket is closed: it is the one
+   thing that keeps the radio awake, and nobody is looking. The moment the
+   book is back on screen it opens again and a sweep catches up. */
+const NAP_MS = (typeof window !== 'undefined' && window.__napMs) || 20000;
 /* NOTHING WAITS FOR EVER. On one bar a request does not fail, it hangs: the
    phone sits on "Saving…" for minutes, and the write never reaches the
    outbox, where the next signal would have carried it. So every call to the
@@ -9243,12 +9252,17 @@ function createSupabaseDb(opts) {
     }
   }
 
-  function absorb(row, quiet) {
+  /* lastSeen marks how far the SWEEP has read, and only a sweep (or the
+     first load) moves it. A row from the socket, or a single card read back
+     after a save, is newer than anything swept, and moving the mark to it
+     would make the next sweep skip whatever the socket dropped in between:
+     exactly the row the sweep exists to find. */
+  function absorb(row, quiet, swept) {
     if (!row || !row.path) return false;
+    if (swept && row.updated_at && (!lastSeen || row.updated_at > lastSeen)) lastSeen = row.updated_at;
     const before = cache.get(row.path);
-    if (before && before.updated_at && row.updated_at && before.updated_at > row.updated_at) return false;
+    if (before && before.updated_at && row.updated_at && before.updated_at >= row.updated_at) return false;   // held already: nothing to redraw
     cache.set(row.path, row);
-    if (row.updated_at && (!lastSeen || row.updated_at > lastSeen)) lastSeen = row.updated_at;
     if (!quiet) fanOut(row.path);
     return true;
   }
@@ -9304,6 +9318,25 @@ function createSupabaseDb(opts) {
     if (q[path] && q[path].at === stamp) { delete q[path]; writeOutbox(q); }
     if (!q[path]) waiting.delete(path);
   }
+  /* A card's holes that just landed come out of the entry, and only those.
+     A hole saved while they were on the wire folded into the same entry
+     and moved its stamp; throwing the entry away would lose that hole, and
+     keeping it whole would send the landed ones again, over whatever
+     another phone wrote to them meanwhile. */
+  function unqueueCells(path, job) {
+    const q = readOutbox(), held = q[path];
+    if (!held) { waiting.delete(path); return; }
+    if (held.at === job.at) delete q[path];
+    else if (held.op === 'score' && job.op === 'score') {
+      const same = (x, y) => JSON.stringify(x == null ? null : x) === JSON.stringify(y == null ? null : y);
+      held.doc.cells = held.doc.cells || {}; held.doc.card = held.doc.card || {};
+      for (const [k, c] of Object.entries(job.doc.cells || {})) if (same(held.doc.cells[k], c)) delete held.doc.cells[k];
+      for (const [k, v] of Object.entries(job.doc.card || {})) if (held.doc.card[k] === v) delete held.doc.card[k];
+      if (!Object.keys(held.doc.cells).length && !Object.keys(held.doc.card).length) delete q[path];
+    }
+    writeOutbox(q);
+    if (!q[path]) waiting.delete(path);
+  }
   function pending() { return waiting.size; }
   function pendingPaths() { return [...waiting]; }
   /* on the wire right now: a card being folded in is this phone's until it lands */
@@ -9334,12 +9367,19 @@ function createSupabaseDb(opts) {
      to a minute — so a phone in a bag on the 7th is not waking its radio
      every four seconds all afternoon. Anything that suggests the signal is
      back (the phone says so, the book comes to the front) tries at once. */
+  let flushing = false, flushAgain = false;   // one flush at a time: a second would send the same entry twice
   function armRetry(now) {
     if (closed) return;
     if (now) { clearTimeout(retryTimer); retryTimer = null; retryIn = RETRY_MS; }
     if (retryTimer) return;
     retryTimer = setTimeout(async () => {
       retryTimer = null;
+      if (flushing) { flushAgain = true; return; }
+      flushing = true;
+      try { await flush(); } finally { flushing = false; if (flushAgain) { flushAgain = false; armRetry(true); } }
+    }, now ? 50 : retryIn);
+  }
+  async function flush() {
       const q = readOutbox();
       const paths = Object.keys(q);
       if (!paths.length) return;
@@ -9354,7 +9394,7 @@ function createSupabaseDb(opts) {
            read as landed and the write was thrown out of the outbox */
         if (done === 'denied') continue;    // waits for a PIN, not for a signal: the rest of the queue goes
         if (done || done === null) {
-          unqueue(path, job.at);
+          if (job.op === 'score' && done) unqueueCells(path, job); else unqueue(path, job.at);
           if (done) say('landed', path);
           /* turned down on the way out: the screen has been showing a write
              the book will never hold, so read what the book does hold */
@@ -9363,7 +9403,6 @@ function createSupabaseDb(opts) {
       }
       if (stuck) { retryIn = Math.min(retryIn * 2, RETRY_MAX_MS); armRetry(); }
       else { retryIn = RETRY_MS; say('flushed'); }
-    }, now ? 50 : retryIn);
   }
 
   /* ---------------- the wire ---------------- */
@@ -9453,8 +9492,10 @@ function createSupabaseDb(opts) {
      a phone that had not yet heard another phone's holes cannot put them
      back the way it remembered them. 'nogate' when the server has no
      score_mark yet: the caller writes the card whole, as before. */
-  function scoreByRow(m, fromOutbox) {
+  async function scoreByRow(m, fromOutbox) {
     const path = 'scores/' + m.rid + '__' + m.pid;
+    /* from the outbox there is no caller reading the server's card first: read it here, so another phone's holes are kept */
+    if (fromOutbox) { try { const rows = await pull({ eq: path }); if (rows.length) absorb(rows[0], true); } catch (e) { /* what is held will do */ } }
     const held = ((cache.get(path) || {}).doc) || { raw: Array(18).fill(null), by: {}, at: {}, marks: {}, pu: {}, mF: false, mB: false, bb: false };
     const d = JSON.parse(JSON.stringify(held));
     d.raw = Array.isArray(d.raw) ? d.raw : Array(18).fill(null);
@@ -9468,6 +9509,12 @@ function createSupabaseDb(opts) {
   }
   async function rawScore(m, fromOutbox) {
     const path = 'scores/' + m.rid + '__' + m.pid, key = path + '#score';
+    /* NOTHING OVERTAKES THE OUTBOX. Holes of this card are still waiting; a
+       save sent past them would land first, and the older word on the same
+       hole would land after it and win. The new holes fold in behind the
+       waiting ones (a later word on the same hole winning) and the lot goes
+       now: a save is as good a sign of a signal as any. */
+    if (!fromOutbox) { const held = readOutbox()[key]; if (held && held.op === 'score') { queue(key, 'score', m); armRetry(true); return false; } }
     flying.add(key);
     try {
       await gate(bound(sb.rpc('score_mark', { p_rid: m.rid, p_pid: m.pid, p_cells: m.cells || {}, p_card: m.card || {}, p_pin: pin(), p_who: deviceId || null })));
@@ -9475,7 +9522,7 @@ function createSupabaseDb(opts) {
       say('saved');
       /* read the card back: it now holds this phone's holes and everybody
          else's. A moment later, so the outbox has let go of them first. */
-      setTimeout(() => pull({ eq: path }).then(rows => { if (rows.length) absorb(rows[0]); }).catch(() => {}), 60);
+      setTimeout(() => pull({ eq: path }).then(rows => { if (rows.length) { absorb(rows[0]); fanOut(path); } }).catch(() => {}), 60);   // said again even if unchanged: the card was this phone's while it flew, and is the server's now
       return true;
     } catch (e) {
       flying.delete(key);
@@ -9524,6 +9571,7 @@ function createSupabaseDb(opts) {
 
   /* ---------------- live, and the net under it ---------------- */
 
+  let everLive = false;
   function listen() {
     let chan;
     try {
@@ -9538,7 +9586,7 @@ function createSupabaseDb(opts) {
           }
         })
         .subscribe(state => {
-          if (state === 'SUBSCRIBED') { live = true; say('live'); armPoll(); }
+          if (state === 'SUBSCRIBED') { live = true; say('live'); armPoll(); if (everLive) soon(); everLive = true; }   // back after a gap: catch up now
           else if (state === 'CHANNEL_ERROR' || state === 'TIMED_OUT' || state === 'CLOSED') {
             live = false; say('socket-down');   // not 'polling' yet: that is said when a poll actually answers
             soon();                   // the socket just went: look now, then every fifteen seconds
@@ -9550,14 +9598,17 @@ function createSupabaseDb(opts) {
 
   /* One query, indexed on updated_at, for whatever the socket did not bring.
      Cheap enough to run for the whole week and still be inside a free tier. */
+  const back = iso => { try { const t = Date.parse(iso); return isNaN(t) ? iso : new Date(t - SWEEP_BACK_MS).toISOString(); } catch (e) { return iso; } };
   async function sweep() {
     try {
       let q = bound(sb.from('docs').select('path,doc,updated_at').order('updated_at', { ascending: true }).limit(400));
-      if (lastSeen) q = q.gt('updated_at', lastSeen);
+      if (lastSeen) q = q.gt('updated_at', back(lastSeen));
       const { data, error } = await q;
       if (error) throw error;
-      (data || []).forEach(r => absorb(r));
+      (data || []).forEach(r => absorb(r, false, true));
       if (!live) say('polling');
+      /* an answer is a signal: whatever waits in the outbox goes now, without waiting for the phone to say so */
+      if (waiting.size) armRetry(true);
     } catch (e) { say('offline'); }
   }
 
@@ -9582,7 +9633,20 @@ function createSupabaseDb(opts) {
   }
   const soon = () => armPoll(800);
   if (typeof document !== 'undefined') {
-    document.addEventListener('visibilitychange', () => { if (closed) return; if (hidden()) armPoll(); else { soon(); if (waiting.size) armRetry(true); } });
+    let napTimer = null, napping = false;
+    document.addEventListener('visibilitychange', () => {
+      if (closed) return;
+      if (hidden()) {
+        armPoll();
+        clearTimeout(napTimer);
+        napTimer = setTimeout(() => { napTimer = null; if (!hidden() || closed || !stopListen) return; stopListen(); stopListen = null; live = false; napping = true; }, NAP_MS);
+      } else {
+        clearTimeout(napTimer); napTimer = null;
+        if (napping) { napping = false; if (!lowPower && !stopListen) stopListen = listen(); }
+        soon();
+        if (waiting.size) armRetry(true);
+      }
+    });
   }
   if (typeof window !== 'undefined' && window.addEventListener) {
     window.addEventListener('online', () => { if (closed) return; soon(); armRetry(true); });
@@ -9703,7 +9767,7 @@ function createSupabaseDb(opts) {
       return {
         async get() {
           const rows = await pull({ like });
-          rows.forEach(r => absorb(r, true));
+          rows.forEach(r => absorb(r, true, true));
           return rowSnap(rows);
         },
         onSnapshot(cb, err) {
@@ -9712,7 +9776,7 @@ function createSupabaseDb(opts) {
           collWatch.get(name).add(w);
           pull({ like })
             .then(rows => {
-              rows.forEach(r => absorb(r, true));
+              rows.forEach(r => absorb(r, true, true));
               cb(rowSnap(rows));
             })
             .catch(() => { if (err) err(new Error('unreachable')); });
@@ -15686,6 +15750,14 @@ function commitDraft(role) {
   const d = UI.draft;
   UI.pad = null;
   if (!d) return;
+  /* THE BOOK CANNOT TAKE A WRITE YET: it has neither loaded nor a copy on
+     this phone (a first open with no signal). The store would refuse each
+     hole and the draft would be thrown away with nothing said. Keep it, and say. */
+  if (meta && meta.backend === 'supabase' && !meta.settled && !meta.fromDevice) {
+    UI.modal = { kind: 'confirm', eyebrow: 'Not saved', title: 'The book has not opened on this phone yet',
+      note: 'The hole is kept here, unsaved. Find a bar of signal, wait for the book to load, and press Save hole again.', ok: 'OK', cancel: 'Close' };
+    return;
+  }
   const h = d.hole;
   for (const [pid, v] of Object.entries(d.strokes)) {
     if (closedFor(d.rid, pid)) continue;   // that group has finished; the card is shut
@@ -22444,6 +22516,15 @@ async function writeRecap(rid, again, auto) {
   }
 }
 
+let storeDrawPending = false;
+function storeRedraw() {
+  if (storeDrawPending) return;
+  storeDrawPending = true;
+  const go = () => { storeDrawPending = false; checkRole(); render(); fillMyOrders(); };
+  if (typeof requestAnimationFrame === 'function' && typeof document !== 'undefined' && !document.hidden) requestAnimationFrame(go);
+  else setTimeout(go, 0);
+}
+
 /* ---------------- boot ---------------- */
 
 function boot() {
@@ -22514,9 +22595,11 @@ function boot() {
       if (saved && S.ROLES[saved.role] && saved.role !== 'viewer') UI.role = saved.role;
       if (setupIssues().length) UI.modal = { kind: 'setup' };
     }
-    checkRole();
-    render();
-    fillMyOrders();
+    /* ONE REDRAW A FRAME. A sweep lands forty rows and said so forty times,
+       and each time the whole page was rebuilt. The state is taken at once
+       (above); the drawing waits for the next frame and happens once. A tap
+       still redraws on the spot, as it always did. */
+    storeRedraw();
   });
   const app = document.getElementById('app');
   app.addEventListener('click', onClick);

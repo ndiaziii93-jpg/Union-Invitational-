@@ -57,6 +57,15 @@ const hidden = () => typeof document !== 'undefined' && document.visibilityState
 const RETRY_MS = 4000;        // a stranded outbox tries again this soon, then waits longer each time it fails
 const RETRY_MAX_MS = 60000;   // ... but never longer than a minute, and a signal coming back is tried at once
 const OUTBOX_KEY = 'ui.outbox.v1';
+/* THE SWEEP LOOKS BACK A LITTLE. The socket can drop a row, and the sweep is
+   the net under it; a net that starts exactly where the last look ended has
+   a gap at every edge. Half a minute of overlap costs a handful of rows
+   already held (and skipped as identical) and closes the gap. */
+const SWEEP_BACK_MS = 30000;
+/* A PHONE IN A POCKET. Hidden this long, the socket is closed: it is the one
+   thing that keeps the radio awake, and nobody is looking. The moment the
+   book is back on screen it opens again and a sweep catches up. */
+const NAP_MS = (typeof window !== 'undefined' && window.__napMs) || 20000;
 /* NOTHING WAITS FOR EVER. On one bar a request does not fail, it hangs: the
    phone sits on "Saving…" for minutes, and the write never reaches the
    outbox, where the next signal would have carried it. So every call to the
@@ -139,12 +148,17 @@ export function createSupabaseDb(opts) {
     }
   }
 
-  function absorb(row, quiet) {
+  /* lastSeen marks how far the SWEEP has read, and only a sweep (or the
+     first load) moves it. A row from the socket, or a single card read back
+     after a save, is newer than anything swept, and moving the mark to it
+     would make the next sweep skip whatever the socket dropped in between:
+     exactly the row the sweep exists to find. */
+  function absorb(row, quiet, swept) {
     if (!row || !row.path) return false;
+    if (swept && row.updated_at && (!lastSeen || row.updated_at > lastSeen)) lastSeen = row.updated_at;
     const before = cache.get(row.path);
-    if (before && before.updated_at && row.updated_at && before.updated_at > row.updated_at) return false;
+    if (before && before.updated_at && row.updated_at && before.updated_at >= row.updated_at) return false;   // held already: nothing to redraw
     cache.set(row.path, row);
-    if (row.updated_at && (!lastSeen || row.updated_at > lastSeen)) lastSeen = row.updated_at;
     if (!quiet) fanOut(row.path);
     return true;
   }
@@ -200,6 +214,25 @@ export function createSupabaseDb(opts) {
     if (q[path] && q[path].at === stamp) { delete q[path]; writeOutbox(q); }
     if (!q[path]) waiting.delete(path);
   }
+  /* A card's holes that just landed come out of the entry, and only those.
+     A hole saved while they were on the wire folded into the same entry
+     and moved its stamp; throwing the entry away would lose that hole, and
+     keeping it whole would send the landed ones again, over whatever
+     another phone wrote to them meanwhile. */
+  function unqueueCells(path, job) {
+    const q = readOutbox(), held = q[path];
+    if (!held) { waiting.delete(path); return; }
+    if (held.at === job.at) delete q[path];
+    else if (held.op === 'score' && job.op === 'score') {
+      const same = (x, y) => JSON.stringify(x == null ? null : x) === JSON.stringify(y == null ? null : y);
+      held.doc.cells = held.doc.cells || {}; held.doc.card = held.doc.card || {};
+      for (const [k, c] of Object.entries(job.doc.cells || {})) if (same(held.doc.cells[k], c)) delete held.doc.cells[k];
+      for (const [k, v] of Object.entries(job.doc.card || {})) if (held.doc.card[k] === v) delete held.doc.card[k];
+      if (!Object.keys(held.doc.cells).length && !Object.keys(held.doc.card).length) delete q[path];
+    }
+    writeOutbox(q);
+    if (!q[path]) waiting.delete(path);
+  }
   function pending() { return waiting.size; }
   function pendingPaths() { return [...waiting]; }
   /* on the wire right now: a card being folded in is this phone's until it lands */
@@ -230,12 +263,19 @@ export function createSupabaseDb(opts) {
      to a minute — so a phone in a bag on the 7th is not waking its radio
      every four seconds all afternoon. Anything that suggests the signal is
      back (the phone says so, the book comes to the front) tries at once. */
+  let flushing = false, flushAgain = false;   // one flush at a time: a second would send the same entry twice
   function armRetry(now) {
     if (closed) return;
     if (now) { clearTimeout(retryTimer); retryTimer = null; retryIn = RETRY_MS; }
     if (retryTimer) return;
     retryTimer = setTimeout(async () => {
       retryTimer = null;
+      if (flushing) { flushAgain = true; return; }
+      flushing = true;
+      try { await flush(); } finally { flushing = false; if (flushAgain) { flushAgain = false; armRetry(true); } }
+    }, now ? 50 : retryIn);
+  }
+  async function flush() {
       const q = readOutbox();
       const paths = Object.keys(q);
       if (!paths.length) return;
@@ -250,7 +290,7 @@ export function createSupabaseDb(opts) {
            read as landed and the write was thrown out of the outbox */
         if (done === 'denied') continue;    // waits for a PIN, not for a signal: the rest of the queue goes
         if (done || done === null) {
-          unqueue(path, job.at);
+          if (job.op === 'score' && done) unqueueCells(path, job); else unqueue(path, job.at);
           if (done) say('landed', path);
           /* turned down on the way out: the screen has been showing a write
              the book will never hold, so read what the book does hold */
@@ -259,7 +299,6 @@ export function createSupabaseDb(opts) {
       }
       if (stuck) { retryIn = Math.min(retryIn * 2, RETRY_MAX_MS); armRetry(); }
       else { retryIn = RETRY_MS; say('flushed'); }
-    }, now ? 50 : retryIn);
   }
 
   /* ---------------- the wire ---------------- */
@@ -349,8 +388,10 @@ export function createSupabaseDb(opts) {
      a phone that had not yet heard another phone's holes cannot put them
      back the way it remembered them. 'nogate' when the server has no
      score_mark yet: the caller writes the card whole, as before. */
-  function scoreByRow(m, fromOutbox) {
+  async function scoreByRow(m, fromOutbox) {
     const path = 'scores/' + m.rid + '__' + m.pid;
+    /* from the outbox there is no caller reading the server's card first: read it here, so another phone's holes are kept */
+    if (fromOutbox) { try { const rows = await pull({ eq: path }); if (rows.length) absorb(rows[0], true); } catch (e) { /* what is held will do */ } }
     const held = ((cache.get(path) || {}).doc) || { raw: Array(18).fill(null), by: {}, at: {}, marks: {}, pu: {}, mF: false, mB: false, bb: false };
     const d = JSON.parse(JSON.stringify(held));
     d.raw = Array.isArray(d.raw) ? d.raw : Array(18).fill(null);
@@ -364,6 +405,12 @@ export function createSupabaseDb(opts) {
   }
   async function rawScore(m, fromOutbox) {
     const path = 'scores/' + m.rid + '__' + m.pid, key = path + '#score';
+    /* NOTHING OVERTAKES THE OUTBOX. Holes of this card are still waiting; a
+       save sent past them would land first, and the older word on the same
+       hole would land after it and win. The new holes fold in behind the
+       waiting ones (a later word on the same hole winning) and the lot goes
+       now: a save is as good a sign of a signal as any. */
+    if (!fromOutbox) { const held = readOutbox()[key]; if (held && held.op === 'score') { queue(key, 'score', m); armRetry(true); return false; } }
     flying.add(key);
     try {
       await gate(bound(sb.rpc('score_mark', { p_rid: m.rid, p_pid: m.pid, p_cells: m.cells || {}, p_card: m.card || {}, p_pin: pin(), p_who: deviceId || null })));
@@ -371,7 +418,7 @@ export function createSupabaseDb(opts) {
       say('saved');
       /* read the card back: it now holds this phone's holes and everybody
          else's. A moment later, so the outbox has let go of them first. */
-      setTimeout(() => pull({ eq: path }).then(rows => { if (rows.length) absorb(rows[0]); }).catch(() => {}), 60);
+      setTimeout(() => pull({ eq: path }).then(rows => { if (rows.length) { absorb(rows[0]); fanOut(path); } }).catch(() => {}), 60);   // said again even if unchanged: the card was this phone's while it flew, and is the server's now
       return true;
     } catch (e) {
       flying.delete(key);
@@ -420,6 +467,7 @@ export function createSupabaseDb(opts) {
 
   /* ---------------- live, and the net under it ---------------- */
 
+  let everLive = false;
   function listen() {
     let chan;
     try {
@@ -434,7 +482,7 @@ export function createSupabaseDb(opts) {
           }
         })
         .subscribe(state => {
-          if (state === 'SUBSCRIBED') { live = true; say('live'); armPoll(); }
+          if (state === 'SUBSCRIBED') { live = true; say('live'); armPoll(); if (everLive) soon(); everLive = true; }   // back after a gap: catch up now
           else if (state === 'CHANNEL_ERROR' || state === 'TIMED_OUT' || state === 'CLOSED') {
             live = false; say('socket-down');   // not 'polling' yet: that is said when a poll actually answers
             soon();                   // the socket just went: look now, then every fifteen seconds
@@ -446,14 +494,17 @@ export function createSupabaseDb(opts) {
 
   /* One query, indexed on updated_at, for whatever the socket did not bring.
      Cheap enough to run for the whole week and still be inside a free tier. */
+  const back = iso => { try { const t = Date.parse(iso); return isNaN(t) ? iso : new Date(t - SWEEP_BACK_MS).toISOString(); } catch (e) { return iso; } };
   async function sweep() {
     try {
       let q = bound(sb.from('docs').select('path,doc,updated_at').order('updated_at', { ascending: true }).limit(400));
-      if (lastSeen) q = q.gt('updated_at', lastSeen);
+      if (lastSeen) q = q.gt('updated_at', back(lastSeen));
       const { data, error } = await q;
       if (error) throw error;
-      (data || []).forEach(r => absorb(r));
+      (data || []).forEach(r => absorb(r, false, true));
       if (!live) say('polling');
+      /* an answer is a signal: whatever waits in the outbox goes now, without waiting for the phone to say so */
+      if (waiting.size) armRetry(true);
     } catch (e) { say('offline'); }
   }
 
@@ -478,7 +529,20 @@ export function createSupabaseDb(opts) {
   }
   const soon = () => armPoll(800);
   if (typeof document !== 'undefined') {
-    document.addEventListener('visibilitychange', () => { if (closed) return; if (hidden()) armPoll(); else { soon(); if (waiting.size) armRetry(true); } });
+    let napTimer = null, napping = false;
+    document.addEventListener('visibilitychange', () => {
+      if (closed) return;
+      if (hidden()) {
+        armPoll();
+        clearTimeout(napTimer);
+        napTimer = setTimeout(() => { napTimer = null; if (!hidden() || closed || !stopListen) return; stopListen(); stopListen = null; live = false; napping = true; }, NAP_MS);
+      } else {
+        clearTimeout(napTimer); napTimer = null;
+        if (napping) { napping = false; if (!lowPower && !stopListen) stopListen = listen(); }
+        soon();
+        if (waiting.size) armRetry(true);
+      }
+    });
   }
   if (typeof window !== 'undefined' && window.addEventListener) {
     window.addEventListener('online', () => { if (closed) return; soon(); armRetry(true); });
@@ -599,7 +663,7 @@ export function createSupabaseDb(opts) {
       return {
         async get() {
           const rows = await pull({ like });
-          rows.forEach(r => absorb(r, true));
+          rows.forEach(r => absorb(r, true, true));
           return rowSnap(rows);
         },
         onSnapshot(cb, err) {
@@ -608,7 +672,7 @@ export function createSupabaseDb(opts) {
           collWatch.get(name).add(w);
           pull({ like })
             .then(rows => {
-              rows.forEach(r => absorb(r, true));
+              rows.forEach(r => absorb(r, true, true));
               cb(rowSnap(rows));
             })
             .catch(() => { if (err) err(new Error('unreachable')); });
