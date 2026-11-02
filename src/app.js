@@ -11,6 +11,7 @@ import { RULES, RELIEF } from './rules.js';
 import * as R from './resort.js';
 import * as X from './social.js';
 import * as F from './feedback.js';
+import * as RP from './report.js';
 import * as W from './weather.js';
 import * as H3D from './hole3d.js';
 import * as HOLES from './holes3d.js';
@@ -101,6 +102,7 @@ const UI = {
   fbNagged: false,      // the form has come up on this open
   fbBusy: false, fbErr: '',
   fbOpen: false,        // the form is up, in its own host beside #app
+  report: { busy: false, err: '', step: '', copied: false },   // the players report being written
   fbView: null,         // the commissioner's view of the answers: { rows, busy, err, copied, at }          // Select on the Photos page: { ids: { [photoId]: true } } while it is on
   who: undefined,       // the name this phone chats and bets as; read from the device on first use
   chatRoom: null,       // which chat is open: a round, or 'trip'; null follows the day
@@ -473,6 +475,7 @@ const BOARDS = [['pairs',    'Team Competition',                   'Team'],
                 ['ryder',    'Ryder Cup',                          'Cup'],
                 ['prizes',   'Longest Drive & Closest to the Pin', 'Prizes'],
                 ['sotd',     'Shot of the day',                    'Shot'],
+                ['report',   'Players report',                     'Report'],
                 ['practice', 'Practice Day',                       'Practice'],
                 ['photos',   'Photos from the week',               'Photos'],
                 ['chat',     'Chat',                               'Chat']];
@@ -493,7 +496,7 @@ function scrBoards() {
         aria-label="${esc(long)}"><span class="lg">${esc(long)}</span>${esc(short)}</button>`).join('')}
   </div></div>`;
   const body = { home: boardsHome, pairs: boardPairs, mvp: boardMvp, bbb: boardBbb, ryder: scrRyder,
-                 prizes: boardPrizes, sotd: boardSotd, practice: boardPractice, photos: gallery1,
+                 prizes: boardPrizes, sotd: boardSotd, report: boardReport, practice: boardPractice, photos: gallery1,
                  chat: boardChat }[UI.boardTab] || boardsHome;
   return strip + body();
 }
@@ -674,6 +677,87 @@ function boardPairs() {
       </div>
     </div>
   </details>`;
+}
+
+/* ---------------- THE PLAYERS REPORT ----------------
+   The numbers are read live from every card (src/report.js) and are the
+   same on every phone and on the public page. The words — the executive
+   summary and a coach's letter to each golfer — are written once by the
+   book's writer, in batches, and kept in recaps/report for everyone. */
+const REPORT_LINK = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/recap/?r=report';
+const reportBody = () => { const r = T.recaps.report; return r && r.body && typeof r.body === 'object' ? r.body : null; };
+function boardReport() {
+  const body = reportBody(), st = UI.report || {}, ed = canEdit();
+  const done = body && body.players ? Object.keys(body.players).length : 0;
+  return `<div class="titlerow"><h2 class="head">Players report</h2></div>
+    ${ed ? `<div class="rp-tools">
+      <button class="btn" data-act="reportWrite"${st.busy ? ' disabled' : ''}>${st.busy ? 'Writing…' : body ? 'Write the coach’s notes again' : 'Write the coach’s notes'}</button>
+      ${st.busy ? '<button class="btn ghost" data-act="reportStop">Stop</button>' : ''}
+      ${body ? `<button class="btn ghost" data-act="reportShare">${st.copied ? 'Link copied' : 'Share the report'}</button>` : ''}
+    </div>` : body ? `<div class="rp-tools"><button class="btn ghost" data-act="reportShare">${st.copied ? 'Link copied' : 'Share the report'}</button></div>` : ''}
+    ${st.busy ? `<p class="rp-status">Writing ${esc(st.step || '')}… ${done ? done + ' letter' + (done === 1 ? '' : 's') + ' in so far.' : ''} It takes about half a minute a batch; the page fills in as it goes.</p>` : ''}
+    ${st.err ? `<p class="askerr">${esc(st.err)}</p>` : ''}
+    ${RP.renderReport(T, body, { now })}`;
+}
+const neverBlock = () => { const s = String(RECAP_RULES); const a = s.indexOf('NEVER, because'), b = s.indexOf('HARD RULES'); return a >= 0 && b > a ? s.slice(a, b) : ''; };
+const REPORT_RULES = () => [
+  'You are a professional sports writer who also coaches, filing the players report for a golf trip between old friends, after the last round. Every player reads it.',
+  'Two jobs. An EXECUTIVE SUMMARY of the week for the whole group, in the voice of the match reports: plain, specific, dry, built from the numbers. And a COACH\'S LETTER to each golfer, written to them ("you"): frank, warm and above all CONSTRUCTIVE. Every weakness you name comes with the one thing to do about it, in plain golf terms a club golfer can act on (course management, where to miss, lag putting, a pre-shot routine, when to lay up). Praise what the card shows deserves praise. The ribbing is affectionate and about the golf.',
+  'The numbers below are the whole truth. Every claim traces to one of them: a hole, a score, a count. Invent nothing: no shot, no conversation, no feeling the card does not show. Never mention a handicap as a criticism; handicaps are strokes, not verdicts. Where putts were not counted, say nothing about putting.',
+  'Answer with JSON only: no fences, no preamble, no commentary outside the JSON. Plain ASCII quotes inside strings must be escaped.',
+  '',
+  neverBlock(),
+].join('\n');
+const REPORT_SUMMARY_ASK = '\n\nWRITE THE EXECUTIVE SUMMARY ONLY. JSON: {"summary": [five to seven paragraphs of 60 to 100 words each]}. Open on who won what and the numbers; then the field\'s scoring; where the week was won and lost (par types, the nines, the trouble); the Ryder Cup and the bingo; who improved; and close on the two or three things the field as a whole should work on before next year, as a coach would put it.';
+const reportPlayersAsk = ids => '\n\nWRITE THE LETTERS FOR THESE GOLFERS ONLY: ' + ids.join(', ') + '. JSON: {"players": {"<id>": {"letter": [three paragraphs of 60 to 110 words, to the golfer], "three": ["three things to work on, one line each, the fix in the line"]}}}. Use each golfer\'s id as the key, exactly as given. Every golfer listed gets a letter.';
+function parseLoose(raw) {
+  let t = String(raw || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
+  const a = t.indexOf('{'), b = t.lastIndexOf('}');
+  if (a >= 0 && b > a) t = t.slice(a, b + 1);
+  const v = JSON.parse(t);
+  if (!v || typeof v !== 'object') throw new Error('not an object');
+  return v;
+}
+let reportCtl = null;
+async function writeReport() {
+  if (!canEdit() || (UI.report && UI.report.busy)) return;
+  if (!askClaude) { UI.report = { busy: false, err: sampleError({ code: 'not_granted' }), step: '' }; render(); return; }
+  const brief = RP.reportInput(T, now);
+  if (!brief.ids.length) { UI.report = { busy: false, err: 'No cards in the book yet.', step: '' }; render(); return; }
+  reportCtl = new AbortController();
+  UI.report = { busy: true, err: '', step: 'the summary' }; render();
+  const prev = reportBody();
+  const body = { v: 1, summary: (prev && prev.summary) || [], players: {}, at: Date.now() };
+  const ask1 = p => askClaude(p, { signal: reportCtl.signal, modelTier: 'complex', cache: false });
+  const ask = async p => { try { return await ask1(p); } catch (e) { if (e && e.code === 'cancelled') throw e; await new Promise(r => setTimeout(r, 2500)); return ask1(p); } };
+  const save = () => store.writeRecap('report', r => { r.body = JSON.parse(JSON.stringify(body)); r.status = 'published'; r.at = Date.now(); });
+  const rules = REPORT_RULES();
+  try {
+    const s = await ask(rules + '\n\n' + brief.field + '\n\nTHE GOLFERS, IN BRIEF\n' + brief.ids.map(id => brief.players[id].split('\n').slice(0, 2).join('\n')).join('\n') + REPORT_SUMMARY_ASK);
+    let sj = null; try { sj = parseLoose(s.text); } catch (e) { sj = null; }
+    const sum = sj && Array.isArray(sj.summary) ? sj.summary.map(x => String(x || '')).filter(x => x.trim().length > 60).slice(0, 8) : [];
+    if (sum.length) body.summary = sum;
+    await save();
+    for (let i = 0; i < brief.ids.length; i += 3) {
+      const batch = brief.ids.slice(i, i + 3);
+      UI.report.step = 'the letters, ' + (i + 1) + '\u2013' + Math.min(i + 3, brief.ids.length) + ' of ' + brief.ids.length; render();
+      const r = await ask(rules + '\n\n' + brief.fieldShort + '\n\nTHE GOLFERS\n' + batch.map(id => brief.players[id]).join('\n\n') + reportPlayersAsk(batch));
+      let pj = null; try { pj = parseLoose(r.text); } catch (e) { pj = null; }
+      const ps = pj && pj.players && typeof pj.players === 'object' ? pj.players : {};
+      for (const id of batch) {
+        const x = ps[id] || ps[(E.person(T, id) || {}).display];
+        if (!x || typeof x !== 'object') continue;
+        const letter = (Array.isArray(x.letter) ? x.letter : []).map(t => String(t || '')).filter(t => t.trim().length > 40).slice(0, 5);
+        const three = (Array.isArray(x.three) ? x.three : []).map(t => String(t || '').trim()).filter(Boolean).slice(0, 3);
+        if (letter.length) body.players[id] = { letter, three };
+      }
+      await save();
+    }
+    const missing = brief.ids.filter(id => !body.players[id]);
+    UI.report = { busy: false, err: missing.length ? 'No letter came back for ' + missing.map(id => (E.person(T, id) || {}).display || id).join(', ') + '. Write again fills the gaps.' : '', step: '' };
+  } catch (e) {
+    UI.report = { busy: false, step: '', err: e && e.code ? sampleError(e) + (e.code !== 'cancelled' && e.message && e.message !== 'stopped' ? ' (' + e.message + ')' : '') : 'The writer answered in a shape the book could not read. Try again.' };
+  } finally { reportCtl = null; render(); }
 }
 
 function boardMvp() {
@@ -9470,6 +9554,15 @@ function onClick(e) {
       return;
     }
     case 'fbOpen': fbOpen(); return;
+    case 'reportWrite': writeReport(); return;
+    case 'reportStop': if (reportCtl) reportCtl.abort(); return;
+    case 'reportShare': {
+      const text = '\uD83D\uDCCA The Union Invitational: the players report is in. Every golfer graded, a coach\u2019s letter each, and all the numbers \uD83D\uDC49 ' + REPORT_LINK;
+      const done = () => { UI.report = { ...(UI.report || {}), copied: true }; render(); setTimeout(() => { UI.report = { ...(UI.report || {}), copied: false }; render(); }, 1800); };
+      if (navigator.share) navigator.share({ text }).then(done, () => { if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, () => {}); });
+      else if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, () => {});
+      return;
+    }
     case 'fbView': UI.modal = { kind: 'fbview' }; render(); if (!(UI.fbView && UI.fbView.rows)) fbLoad(); return;
     case 'fbRefresh': fbLoad(); return;
     case 'fbCopy': {

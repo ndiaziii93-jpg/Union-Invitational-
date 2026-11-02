@@ -15,6 +15,7 @@
  * never disagree about a number. Nothing on it links to Claude.
  */
 import * as E from './engine.js';
+import { renderReport } from './report.js';
 import * as D from './data.js';
 import { defaultConfig, normPerson, normPair } from './store.js';
 
@@ -193,8 +194,24 @@ export function renderWeek(T, IMG, opts) {
 }
 
 /** The whole page for one round. `IMG` holds the crest and the course pictures. */
+export const reportShared = T => !!(T.recaps.report && T.recaps.report.status === 'published' && T.recaps.report.body);
+/** The players report as a page: the numbers for everyone, the coach's words once written. */
+export function renderReportPage(T, opts) {
+  opts = opts || {};
+  const shared = opts.shared || sharedRounds(T);
+  const rec = T.recaps.report || null, body = rec && rec.status === 'published' ? rec.body : null;
+  return `<div class="recapbox" id="recapBox">
+    <div class="recaptop"><b>The Players Report</b><span class="rt-s">The Union Invitational · Belek</span><a class="rm" href="../app/">Open the book</a></div>
+    <div class="chiprow recaparch"><span class="gl">Recaps</span>
+      ${shared.map(id => { const x = E.roundDef(id) || {}; return `<a class="chip" href="?r=${esc(id)}">${esc(x.short || id)}</a>`; }).join('')}
+      ${weekShared(T) ? '<a class="chip gold" href="?r=week">★ The Week</a>' : ''}
+      <a class="chip on" href="?r=report">Report</a></div>
+    <div class="rp-page">${renderReport(T, body, {})}</div>
+  </div>`;
+}
 export function renderRecap(T, rid, IMG, opts) {
   opts = opts || {};
+  if (rid === 'report') return renderReportPage(T, opts);
   if (rid === 'week') return renderWeek(T, IMG, opts);
   const now = E.nowLocal();
   const r = E.roundDef(rid) || {};
@@ -286,10 +303,11 @@ export function renderRecap(T, rid, IMG, opts) {
         <span class="rt-n">${st.complete ? 'All in' : st.started ? 'Still out' : 'Not started'}</span></div>
     </div>
 
-    ${shared.length > 1 ? `<div class="chiprow recaparch">
+    ${shared.length > 1 || weekShared(T) || reportShared(T) ? `<div class="chiprow recaparch">
       <span class="gl">Recaps</span>
       ${shared.map(id => { const x = E.roundDef(id) || {}; return `<a class="chip${id === rid ? ' on' : ''}" href="?r=${esc(id)}">${esc(x.short || id)}</a>`; }).join('')}
       ${weekShared(T) ? '<a class="chip gold glow" href="?r=week">★ The Week</a>' : ''}
+      ${reportShared(T) ? '<a class="chip" href="?r=report">Report</a>' : ''}
     </div>` : ''}
 
     <p class="metaline"><b>${esc(course.name)}</b> · ${esc(day.dow || '')} ${esc(day.date || '')} · ${esc(r.counts ? 'Four-ball Stableford' : 'Practice, counts for nothing')} · ${shots} player${shots === 1 ? '' : 's'}, ${st.pairs} pair${st.pairs === 1 ? '' : 's'}</p>
@@ -458,8 +476,8 @@ export async function boot(cfg) {
     const T = assemble(data);
     const shared = sharedRounds(T);
     let rid = q.get('r');
-    if (rid !== 'week' && (!rid || !E.roundDef(rid))) rid = shared[shared.length - 1] || E.recapRound(T, E.nowLocal());
-    const r = rid === 'week' ? { full: 'The Tournament Recap' } : E.roundDef(rid) || {};
+    if (rid !== 'week' && rid !== 'report' && (!rid || !E.roundDef(rid))) rid = shared[shared.length - 1] || E.recapRound(T, E.nowLocal());
+    const r = rid === 'week' ? { full: 'The Tournament Recap' } : rid === 'report' ? { full: 'The Players Report' } : E.roundDef(rid) || {};
     const rec = T.recaps[rid];
     document.title = (rec && rec.body && rec.body.headline && rec.status === 'published' ? rec.body.headline + ' · ' : '') + (r.full || 'The Day\'s Recap') + ' · The Union Invitational';
     el.innerHTML = renderRecap(T, rid, IMG, { draft: q.get('draft') === '1', shared });
