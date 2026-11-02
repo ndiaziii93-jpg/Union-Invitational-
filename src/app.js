@@ -5995,14 +5995,14 @@ function cardSheetHtml() {
      has always carried: a circle for a birdie, two for an eagle, a square
      for a bogey, two for worse, and a dot in the corner for each stroke the
      handicap gives on that hole. */
-  const glyph = (gross, par) => gross == null ? '' : gross - par <= -2 ? ' g2' : gross - par === -1 ? ' g1' : gross === par ? '' : gross - par === 1 ? ' b1' : ' b2';
+  const glyph = (gross, par) => gross == null ? '' : gross - par <= -2 ? ' g2' : gross - par === -1 ? ' g1' : gross === par ? ' p0' : gross - par === 1 ? ' b1' : gross - par === 2 ? ' b2' : ' b3';
   /* ONE THING A CELL. The strokes, the ref's marks and the pick-up used to
      be pinned into the corners of the score's own box, where on a phone
      they ran into the box beside it. Each has a row of its own now, so the
      points can be followed down a column: gross, less the team strokes,
      against par. */
-  const grossCell = row => `<span class="sc-c${row.raw == null ? '' : ' has'}${glyph(row.gross, row.par)}${row.capped ? ' capped' : ''}" data-h="${row.n}"><b class="num">${row.raw == null ? '' : row.raw}</b></span>`;
-  const figCell = (v, played, h) => `<span class="sc-c sc-fc${played ? '' : ' later'}" data-h="${h}"><b class="num">${v == null ? '' : v === 0 ? '·' : v}</b></span>`;
+  const grossCell = row => `<span class="sc-c${row.raw == null ? '' : ' has'}${glyph(row.gross, row.par)}${row.capped ? ' capped' : ''}${row.pu ? ' pu' : ''}" data-h="${row.n}"><b class="num">${row.raw == null ? '' : row.raw}</b></span>`;
+  const figCell = (v, played, h, tone) => `<span class="sc-c sc-fc${played ? '' : ' later'}${tone ? ' ' + tone : ''}" data-h="${h}"><b class="num">${v == null ? '' : v === 0 ? '·' : v}</b></span>`;
   const noteCell = row => `<span class="sc-c sc-mc" data-h="${row.n}">${row.pu ? '<em class="pu">PU</em>' : ''}${row.marks.map(k => `<em>${MARK_GLYPH[k] || ''}</em>`).join('')}</span>`;
   const netCell = row => `<span class="sc-c sc-nc${row.net == null ? '' : ' has'}" data-h="${row.n}"><b class="num">${row.net == null ? '' : row.net}</b></span>`;
   /* a team's row is its Stableford points: the better partner's on each hole */
@@ -6021,7 +6021,7 @@ function cardSheetHtml() {
         const played = i => x.rows[i].raw != null;
         const tstSum = idx.reduce((a, i) => a + (played(i) && x.rows[i].tst ? x.rows[i].tst : 0), 0);
         return `<div class="sc-r sc-gross${pair ? ' who' : ''}"><span class="sc-l"${pair ? ` title="${esc(x.g.display)}"` : ''}>${pair ? esc(initialsOf(x.g.display)) : 'Gross'}</span>${idx.map(i => grossCell(x.rows[i])).join('')}<span class="sc-t num">${x[k].gross == null ? '' : x[k].gross}</span></div>
-        ${idx.some(i => x.rows[i].putts != null) ? `<div class="sc-r sc-st putts"><span class="sc-l">Putts</span>${idx.map(i => figCell(x.rows[i].putts, played(i), x.rows[i].n)).join('')}<span class="sc-t num">${idx.reduce((a, i) => a + (x.rows[i].putts || 0), 0)}</span></div>` : ''}
+        ${idx.some(i => x.rows[i].putts != null) ? `<div class="sc-r sc-st putts"><span class="sc-l">Putts</span>${idx.map(i => figCell(x.rows[i].putts, played(i), x.rows[i].n, x.rows[i].putts >= 3 ? 'bad' : x.rows[i].putts === 1 ? 'good' : '')).join('')}<span class="sc-t num">${idx.reduce((a, i) => a + (x.rows[i].putts || 0), 0)}</span></div>` : ''}
         ${notes ? `<div class="sc-r sc-notes"><span class="sc-l">Notes</span>${idx.map(i => noteCell(x.rows[i])).join('')}<span class="sc-t"></span></div>` : ''}
         ${pair ? '' : `<div class="sc-r sc-st"><span class="sc-l">Strokes</span>${idx.map(i => figCell(x.rows[i].st, played(i), x.rows[i].n)).join('')}<span class="sc-t num">${x[k].played ? idx.reduce((a, i) => a + (played(i) && x.rows[i].st ? x.rows[i].st : 0), 0) : ''}</span></div>
         <div class="sc-r sc-net"><span class="sc-l">Net</span>${idx.map(i => netCell(x.rows[i])).join('')}<span class="sc-t num">${x[k].net == null ? '' : x[k].net}</span></div>`}
@@ -6041,7 +6041,7 @@ function cardSheetHtml() {
         <div class="sc-r sc-tot"><span class="sc-l">Total</span>${cards.map(x => `<span class="sc-tv"><b>${pair ? esc(initialsOf(x.g.display)) + ' ' : ''}${x.all.gross == null ? '—' : x.all.gross}${x.all.pts != null && (pair || r.counts) ? ' · ' + x.all.pts + ' pts' : ''}</b><small>${x.all.gross == null ? 'no holes yet' : (x.thru < 18 ? 'thru ' + x.thru + ' · ' : '') + 'gross ' + E.fmtToPar(x.all.gross - x.all.parPlayed) + (x.all.net != null ? ' · net ' + x.all.net + ' (' + E.fmtToPar(x.all.net - x.all.parPlayed) + ')' : '')}</small></span>`).join('')}${
           pair ? `<span class="sc-tv team"><b>Team ${[0, 9].reduce((a, from) => { const v = Array.from({ length: 9 }, (_, i) => bestOf(from + i)).filter(v => v != null); return v.length ? (a == null ? 0 : a) + v.reduce((p, q) => p + q, 0) : a; }, null) ?? '—'} pts</b><small>better partner, each hole</small></span>` : ''}</div></div>
       <div class="cs-key">
-        <div class="ck-row"><span><i class="sc-k g2">3</i>eagle</span><span><i class="sc-k g1">4</i>birdie</span><span><i class="sc-k b1">5</i>bogey</span><span><i class="sc-k b2">6</i>double or worse</span></div>
+        <div class="ck-row"><span><i class="sc-k g1">3</i>birdie or better</span><span><i class="sc-k p0">4</i>par</span><span><i class="sc-k b1">5</i>bogey</span><span><i class="sc-k b2">6</i>double</span><span><i class="sc-k b3">7</i>worse</span><span><i class="sc-k p0 pu">4</i>picked up</span></div>
         <div class="ck-row ck-notes"><span><b>≈</b>water</span><span><b>OB</b>out of bounds</span><span><b>3·</b>three-putt</span><span><b>★</b>shot of the hole</span><span><b class="pu">PU</b>picked up</span></div>
         ${spent.length ? `<div class="ck-spent">Used: ${esc(spent.join(' · '))}</div>` : ''}
       </div>

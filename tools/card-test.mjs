@@ -61,7 +61,7 @@ ok('the 2nd: the gross, the strokes received on its own row, and the net under i
 ok('and the team strokes the points come off, on theirs', await p.locator('.sc-st.team .sc-c[data-h="2"] b').first().innerText(), String(tst(20, course.si[1]) || '·'));
 ok('nothing is drawn into the corners of a score any more', await p.locator('.sc-gross .sc-dots, .sc-gross .sc-c i').count(), 0);
 ok('and a birdie wears a circle', (await col(2)).includes(course.par[1] - 2 >= 2 ? 'g2' : 'g1'), true);
-ok('the capped 9 on the 5th wears two squares, says it was capped, and nets off the cap', [(await col(5)).includes('b2'), (await col(5)).includes('capped'), await p.locator('.sc-net .sc-c[data-h="5"] b').first().innerText()],
+ok('the capped 9 on the 5th is red for worse, says it was capped, and nets off the cap', [(await col(5)).includes('b3'), (await col(5)).includes('capped'), await p.locator('.sc-net .sc-c[data-h="5"] b').first().innerText()],
   [true, 9 > course.par[4] + 3, String(Math.min(9, course.par[4] + 3) - (course.si[4] <= 2 ? 2 : 1))]);
 ok('the marks have a row of their own: water and a three-putt on the 5th', (await p.locator('.sc-notes .sc-c[data-h="5"]').first().innerText()).replace(/\s+/g, ''), '≈3·');
 ok('and the key below says how the points are worked out, with a table of them', [await p.locator('.cs-how').count(), await p.locator('.cs-pt b').allInnerTexts()], [1, ['0', '1', '2', '3', '4']]);

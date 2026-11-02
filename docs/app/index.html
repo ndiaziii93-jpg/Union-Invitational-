@@ -2820,14 +2820,15 @@ textarea.recedit{font-size:17px;line-height:1.62;max-width:68ch;margin-bottom:10
 .ribhead{display:flex;justify-content:space-between;align-items:baseline;gap:14px;font-size:14px;color:var(--turf)}
 .riblegend{display:inline-flex;gap:10px;align-items:center}
 .rl{display:inline-block;width:11px;height:11px;border:1px solid var(--rule);margin-right:4px;vertical-align:-1px}
-.rl.under{background:var(--pine);border-color:var(--pine)}
-.rl.level{background:var(--page)}
-.rl.over{background:var(--overtint);border-color:var(--flag)}
+.rl.under{background:var(--under);border-color:var(--under)}
+.rl.level{background:#3E5C43;border-color:#3E5C43}
+.rl.over{background:#C98B6B;border-color:#C98B6B}
 .ribbon{display:grid;grid-template-columns:repeat(18,minmax(40px,1fr));gap:3px;margin-top:8px;scroll-snap-type:x proximity}
-.ribcell{display:flex;align-items:center;justify-content:center;min-height:34px;font-size:14px;
-  border:1px solid var(--rule);background:var(--page);border-radius:2px;scroll-snap-align:center}
-.ribcell.under{background:var(--pine);border-color:var(--pine);color:var(--onpine);font-weight:700}
-.ribcell.over{background:var(--overtint);border-color:var(--flag)}
+.ribcell{display:flex;align-items:center;justify-content:center;min-height:34px;font-size:14px;font-weight:800;
+  border:0;background:var(--sunk);color:var(--turf);border-radius:8px;scroll-snap-align:center}
+.ribcell.under{background:var(--under);color:#fff}
+.ribcell.level{background:#3E5C43;color:#fff}
+.ribcell.over{background:#C98B6B;color:#fff}
 
 .rectable .row.lead{background:var(--leadtint)}
 .rectable .row:nth-child(odd of .row){background:var(--page)}
@@ -4929,18 +4930,23 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 .sc-r > span{text-align:center;min-width:0}
 .sc-l{text-align:left!important;font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--turf);font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sc-t{font-weight:800;border-left:1px solid var(--rule);min-height:26px;display:inline-grid;place-items:center}
-.sc-hole{background:var(--pine);color:var(--onpine)} .sc-hole .sc-l,.sc-hole .sc-t{color:#E2C277} .sc-hole .sc-t{border-left-color:rgba(255,255,255,.2)}
+.sc-hole{gap:2px;padding:4px 6px;border-top:0}
+.sc-hole > span{background:var(--pine);color:var(--onpine);border-radius:6px;height:26px;display:inline-grid;place-items:center;font-weight:800;font-size:13px}
+.sc-hole .sc-l{color:var(--onpine);text-align:center!important;font-size:10px}
+.sc-hole .sc-t{border-left:0;color:var(--onpine);min-height:26px}
 .sc-par{font-weight:700} .sc-si,.sc-yds{color:var(--turf);font-size:11.5px} .sc-yds{font-size:10.5px}
 .sc-gross{min-height:38px;background:color-mix(in srgb,var(--paper) 50%,var(--page))}
 .sc-gross .sc-l{color:var(--ink)}
 .sc-net{color:var(--turf);font-size:12.5px;border-top:0}
 .sc-net .sc-t{font-weight:700;color:var(--turf)}
 .sc-c{position:relative;display:inline-grid;place-items:center;height:32px}
-.sc-c b{display:inline-grid;place-items:center;width:24px;height:24px;font-size:14.5px;font-weight:700;border-radius:3px;box-sizing:border-box}
-.sc-c.g1 b{border:1.6px solid #2F7A4A;border-radius:50%}
-.sc-c.g2 b{border:1.6px solid #8C6B2F;border-radius:50%;box-shadow:inset 0 0 0 1.6px var(--page),inset 0 0 0 3px #8C6B2F;color:#8C6B2F}
-.sc-c.b1 b{border:1.6px solid var(--flag)}
-.sc-c.b2 b{border:1.6px solid var(--flag);box-shadow:inset 0 0 0 1.6px var(--page),inset 0 0 0 3px var(--flag)}
+.sc-c b{display:inline-grid;place-items:center;min-width:26px;height:26px;padding:0 2px;font-size:13.5px;font-weight:800;border-radius:6px;box-sizing:border-box}
+.sc-c.has.p0 b{background:#3E5C43;color:#fff}
+.sc-c.g1 b,.sc-c.g2 b{background:var(--under);color:#fff}
+.sc-c.b1 b{background:#9FB3A3;color:var(--pine)}
+.sc-c.b2 b{background:#C98B6B;color:#fff}
+.sc-c.b3 b{background:var(--flag);color:#fff}
+.sc-c.pu b{box-shadow:inset 0 0 0 2px var(--ink)}
 .sc-c.capped b{text-decoration:underline dotted}
 .sc-nc b{width:auto;height:auto;font-weight:600;font-size:12.5px;color:var(--turf)}
 .sc-best{background:#DDEBDD;color:#2F7A4A} .sc-best .sc-l{color:#2F7A4A}
@@ -4948,21 +4954,21 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 /* the team game's points, a row under each golfer's net: three or more is a good hole, one or none a lost one */
 .sc-pts{background:#F3EFE4}
 .sc-pc b{width:auto;height:auto;font-weight:700;font-size:12.5px;color:var(--turf)}
-.sc-pc.up b{color:#2F7A4A} .sc-pc.dn b{color:#A33A2A}
+.sc-pc.up b{color:var(--gold);font-weight:800} .sc-pc.dn b{color:var(--flag);font-weight:800}
 .sc-tv.team b{color:#9FD3A8}
 .sc-tot{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px 16px;align-items:start;padding:10px 12px;background:var(--pine);color:var(--onpine);border-radius:12px;border:0}
 .sc-tot .sc-l{color:#E2C277;grid-column:1/-1}
 .sc-tv{display:grid;text-align:left!important}
 .sc-tv b{font-size:18px;line-height:1.1} .sc-tv small{font-size:11.5px;color:#C9D2C3}
-.sc-k{display:inline-grid;place-items:center;width:20px;height:20px;font-size:11.5px;font-weight:700;border-radius:3px;margin:0 2px 0 4px;vertical-align:-5px;box-sizing:border-box}
-.sc-k.g1{border:1.4px solid #2F7A4A;border-radius:50%} .sc-k.g2{border:1.4px solid #8C6B2F;border-radius:50%;box-shadow:0 0 0 1.5px var(--paper),0 0 0 2.6px #8C6B2F;color:#8C6B2F}
-.sc-k.b1{border:1.4px solid var(--flag)} .sc-k.b2{border:1.4px solid var(--flag);box-shadow:0 0 0 1.5px var(--paper),0 0 0 2.6px var(--flag)}
+.sc-k{display:inline-grid;place-items:center;width:20px;height:20px;font-size:11.5px;font-weight:800;border-radius:5px;margin:0 2px 0 4px;vertical-align:-5px;box-sizing:border-box}
+.sc-k.g1,.sc-k.g2{background:var(--under);color:#fff} .sc-k.p0{background:#3E5C43;color:#fff} .sc-k.b1{background:#9FB3A3;color:var(--pine)} .sc-k.b2{background:#C98B6B;color:#fff} .sc-k.b3{background:var(--flag);color:#fff} .sc-k.pu{box-shadow:inset 0 0 0 2px var(--ink)}
 /* the rows a card is worked out by: strokes, team strokes, the ref's notes */
 .sc-st{min-height:22px;font-size:12px;color:var(--turf);background:color-mix(in srgb,var(--paper) 25%,var(--page))}
 .sc-st .sc-t{font-weight:600;min-height:22px}
 .sc-st.team{border-top:1px dashed var(--hair)}
 .sc-fc{height:22px} .sc-fc b{width:auto;height:auto;font-size:12px;font-weight:600;color:var(--turf)}
 .sc-fc.later b{opacity:.45}
+.sc-fc.bad b{color:var(--flag);font-weight:800} .sc-fc.good b{color:var(--gold);font-weight:800}
 .sc-notes{min-height:20px;border-top:0;background:color-mix(in srgb,var(--paper) 50%,var(--page))}
 .sc-notes .sc-t{min-height:20px}
 .sc-mc{height:20px;display:flex;justify-content:center;align-items:center;gap:1px;overflow:hidden}
@@ -5446,7 +5452,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261102-1331';
+const BUILD = '20261102-1336';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -18002,14 +18008,14 @@ function cardSheetHtml() {
      has always carried: a circle for a birdie, two for an eagle, a square
      for a bogey, two for worse, and a dot in the corner for each stroke the
      handicap gives on that hole. */
-  const glyph = (gross, par) => gross == null ? '' : gross - par <= -2 ? ' g2' : gross - par === -1 ? ' g1' : gross === par ? '' : gross - par === 1 ? ' b1' : ' b2';
+  const glyph = (gross, par) => gross == null ? '' : gross - par <= -2 ? ' g2' : gross - par === -1 ? ' g1' : gross === par ? ' p0' : gross - par === 1 ? ' b1' : gross - par === 2 ? ' b2' : ' b3';
   /* ONE THING A CELL. The strokes, the ref's marks and the pick-up used to
      be pinned into the corners of the score's own box, where on a phone
      they ran into the box beside it. Each has a row of its own now, so the
      points can be followed down a column: gross, less the team strokes,
      against par. */
-  const grossCell = row => `<span class="sc-c${row.raw == null ? '' : ' has'}${glyph(row.gross, row.par)}${row.capped ? ' capped' : ''}" data-h="${row.n}"><b class="num">${row.raw == null ? '' : row.raw}</b></span>`;
-  const figCell = (v, played, h) => `<span class="sc-c sc-fc${played ? '' : ' later'}" data-h="${h}"><b class="num">${v == null ? '' : v === 0 ? '·' : v}</b></span>`;
+  const grossCell = row => `<span class="sc-c${row.raw == null ? '' : ' has'}${glyph(row.gross, row.par)}${row.capped ? ' capped' : ''}${row.pu ? ' pu' : ''}" data-h="${row.n}"><b class="num">${row.raw == null ? '' : row.raw}</b></span>`;
+  const figCell = (v, played, h, tone) => `<span class="sc-c sc-fc${played ? '' : ' later'}${tone ? ' ' + tone : ''}" data-h="${h}"><b class="num">${v == null ? '' : v === 0 ? '·' : v}</b></span>`;
   const noteCell = row => `<span class="sc-c sc-mc" data-h="${row.n}">${row.pu ? '<em class="pu">PU</em>' : ''}${row.marks.map(k => `<em>${MARK_GLYPH[k] || ''}</em>`).join('')}</span>`;
   const netCell = row => `<span class="sc-c sc-nc${row.net == null ? '' : ' has'}" data-h="${row.n}"><b class="num">${row.net == null ? '' : row.net}</b></span>`;
   /* a team's row is its Stableford points: the better partner's on each hole */
@@ -18028,7 +18034,7 @@ function cardSheetHtml() {
         const played = i => x.rows[i].raw != null;
         const tstSum = idx.reduce((a, i) => a + (played(i) && x.rows[i].tst ? x.rows[i].tst : 0), 0);
         return `<div class="sc-r sc-gross${pair ? ' who' : ''}"><span class="sc-l"${pair ? ` title="${esc(x.g.display)}"` : ''}>${pair ? esc(initialsOf(x.g.display)) : 'Gross'}</span>${idx.map(i => grossCell(x.rows[i])).join('')}<span class="sc-t num">${x[k].gross == null ? '' : x[k].gross}</span></div>
-        ${idx.some(i => x.rows[i].putts != null) ? `<div class="sc-r sc-st putts"><span class="sc-l">Putts</span>${idx.map(i => figCell(x.rows[i].putts, played(i), x.rows[i].n)).join('')}<span class="sc-t num">${idx.reduce((a, i) => a + (x.rows[i].putts || 0), 0)}</span></div>` : ''}
+        ${idx.some(i => x.rows[i].putts != null) ? `<div class="sc-r sc-st putts"><span class="sc-l">Putts</span>${idx.map(i => figCell(x.rows[i].putts, played(i), x.rows[i].n, x.rows[i].putts >= 3 ? 'bad' : x.rows[i].putts === 1 ? 'good' : '')).join('')}<span class="sc-t num">${idx.reduce((a, i) => a + (x.rows[i].putts || 0), 0)}</span></div>` : ''}
         ${notes ? `<div class="sc-r sc-notes"><span class="sc-l">Notes</span>${idx.map(i => noteCell(x.rows[i])).join('')}<span class="sc-t"></span></div>` : ''}
         ${pair ? '' : `<div class="sc-r sc-st"><span class="sc-l">Strokes</span>${idx.map(i => figCell(x.rows[i].st, played(i), x.rows[i].n)).join('')}<span class="sc-t num">${x[k].played ? idx.reduce((a, i) => a + (played(i) && x.rows[i].st ? x.rows[i].st : 0), 0) : ''}</span></div>
         <div class="sc-r sc-net"><span class="sc-l">Net</span>${idx.map(i => netCell(x.rows[i])).join('')}<span class="sc-t num">${x[k].net == null ? '' : x[k].net}</span></div>`}
@@ -18048,7 +18054,7 @@ function cardSheetHtml() {
         <div class="sc-r sc-tot"><span class="sc-l">Total</span>${cards.map(x => `<span class="sc-tv"><b>${pair ? esc(initialsOf(x.g.display)) + ' ' : ''}${x.all.gross == null ? '—' : x.all.gross}${x.all.pts != null && (pair || r.counts) ? ' · ' + x.all.pts + ' pts' : ''}</b><small>${x.all.gross == null ? 'no holes yet' : (x.thru < 18 ? 'thru ' + x.thru + ' · ' : '') + 'gross ' + E.fmtToPar(x.all.gross - x.all.parPlayed) + (x.all.net != null ? ' · net ' + x.all.net + ' (' + E.fmtToPar(x.all.net - x.all.parPlayed) + ')' : '')}</small></span>`).join('')}${
           pair ? `<span class="sc-tv team"><b>Team ${[0, 9].reduce((a, from) => { const v = Array.from({ length: 9 }, (_, i) => bestOf(from + i)).filter(v => v != null); return v.length ? (a == null ? 0 : a) + v.reduce((p, q) => p + q, 0) : a; }, null) ?? '—'} pts</b><small>better partner, each hole</small></span>` : ''}</div></div>
       <div class="cs-key">
-        <div class="ck-row"><span><i class="sc-k g2">3</i>eagle</span><span><i class="sc-k g1">4</i>birdie</span><span><i class="sc-k b1">5</i>bogey</span><span><i class="sc-k b2">6</i>double or worse</span></div>
+        <div class="ck-row"><span><i class="sc-k g1">3</i>birdie or better</span><span><i class="sc-k p0">4</i>par</span><span><i class="sc-k b1">5</i>bogey</span><span><i class="sc-k b2">6</i>double</span><span><i class="sc-k b3">7</i>worse</span><span><i class="sc-k p0 pu">4</i>picked up</span></div>
         <div class="ck-row ck-notes"><span><b>≈</b>water</span><span><b>OB</b>out of bounds</span><span><b>3·</b>three-putt</span><span><b>★</b>shot of the hole</span><span><b class="pu">PU</b>picked up</span></div>
         ${spent.length ? `<div class="ck-spent">Used: ${esc(spent.join(' · '))}</div>` : ''}
       </div>
@@ -23728,7 +23734,7 @@ __m_app.boot();
 /* Register the worker that makes the book work with no signal. It is the
    whole point of installing it: Belek is five hours of walking and everyone
    is roaming. A failure here must never stop the page loading. */
-var BOOK_BUILD = '20261102-1331';
+var BOOK_BUILD = '20261102-1336';
 var swReg = null;
 /* the book is never shown inside somebody else's page, where a tap could be
    aimed at a button they have put under the finger */
