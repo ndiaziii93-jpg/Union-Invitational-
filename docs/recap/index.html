@@ -7817,7 +7817,7 @@ function renderReport(T, body, opts) {
   const summary = words && Array.isArray(words.summary) ? words.summary : [];
   const parMax = Math.max(0.5, ...['3', '4', '5'].map(k => Math.abs(F.byPar[k] || 0)));
   const exec = `<div class="rp-card rp-exec">
-    <div class="rp-band"><small>The Union Invitational · Belek 2026</small><h2>Executive summary</h2><p>${t.players} golfers · ${E.countingRounds(T).length} counting rounds · ${t.cards} full cards</p></div>
+    <div class="rp-band"><small>The Union Invitational · Belek 2026</small><h2>The State of the Union</h2><p>${t.players} golfers · ${E.countingRounds(T).length} counting rounds · ${t.cards} full cards</p></div>
     <div class="rp-body">
       <div class="rp-tiles">
         ${tile('Field average', t.avgGross == null ? '—' : f1(t.avgGross), 'gross, a round')}

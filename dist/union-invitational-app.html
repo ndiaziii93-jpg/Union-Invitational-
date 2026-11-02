@@ -5410,7 +5410,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261102-1453';
+const BUILD = '20261102-1519';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -9683,7 +9683,7 @@ function renderReport(T, body, opts) {
   const summary = words && Array.isArray(words.summary) ? words.summary : [];
   const parMax = Math.max(0.5, ...['3', '4', '5'].map(k => Math.abs(F.byPar[k] || 0)));
   const exec = `<div class="rp-card rp-exec">
-    <div class="rp-band"><small>The Union Invitational · Belek 2026</small><h2>Executive summary</h2><p>${t.players} golfers · ${E.countingRounds(T).length} counting rounds · ${t.cards} full cards</p></div>
+    <div class="rp-band"><small>The Union Invitational · Belek 2026</small><h2>The State of the Union</h2><p>${t.players} golfers · ${E.countingRounds(T).length} counting rounds · ${t.cards} full cards</p></div>
     <div class="rp-body">
       <div class="rp-tiles">
         ${tile('Field average', t.avgGross == null ? '—' : f1(t.avgGross), 'gross, a round')}
@@ -12690,12 +12690,15 @@ function boardPairs() {
    book's writer, in batches, and kept in recaps/report for everyone. */
 const REPORT_LINK = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/recap/?r=report';
 const reportBody = () => { const r = T.recaps.report; return r && r.body && typeof r.body === 'object' ? r.body : null; };
+/** The golfers with cards but no page yet. */
+const reportMissing = () => { const b = reportBody(); if (!b) return []; const have = b.players || {}; return RP.fieldReport(T, now).players.map(p => p.id).filter(id => !(have[id] && (have[id].letter || []).length)); };
 function boardReport() {
   const body = reportBody(), st = UI.report || {}, ed = canEdit();
   const done = body && body.players ? Object.keys(body.players).length : 0;
   return `<div class="titlerow"><h2 class="head">Players report</h2></div>
     ${ed ? `<div class="rp-tools">
-      <button class="btn" data-act="reportWrite"${st.busy ? ' disabled' : ''}>${st.busy ? 'Writing…' : body ? 'Write the coach’s notes again' : 'Write the coach’s notes'}</button>
+      ${body && !st.busy && reportMissing().length ? `<button class="btn" data-act="reportFill">Fill the ${reportMissing().length === 1 ? 'gap' : 'gaps'} (${reportMissing().length})</button>` : ''}
+      <button class="btn${body && !st.busy && reportMissing().length ? ' ghost' : ''}" data-act="reportWrite"${st.busy ? ' disabled' : ''}>${st.busy ? 'Writing…' : body ? 'Write the coach’s notes again' : 'Write the coach’s notes'}</button>
       ${st.busy ? '<button class="btn ghost" data-act="reportStop">Stop</button>' : ''}
       ${body ? `<button class="btn ghost" data-act="reportShare">${st.copied ? 'Link copied' : 'Share the report'}</button>` : ''}
     </div>` : body ? `<div class="rp-tools"><button class="btn ghost" data-act="reportShare">${st.copied ? 'Link copied' : 'Share the report'}</button></div>` : ''}
@@ -12738,43 +12741,80 @@ function parseLoose(raw) {
   return v;
 }
 let reportCtl = null;
-async function writeReport() {
+/* A PAGE AT A TIME WHEN IT HAS TO BE. The writer answers in JSON, and an
+   answer that runs past its length cannot be read, which used to lose
+   every golfer in the batch. Batches are two; an answer that will not
+   parse is combed for each golfer's own object; whoever is still missing
+   is asked for one at a time. "Fill the gaps" writes only the golfers
+   without a page and leaves the summary and the others as they are. */
+function pluckPlayer(text, id) {
+  const t = String(text || '');
+  const m = new RegExp('"' + id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '"\\s*:\\s*\\{').exec(t);
+  if (!m) return null;
+  const i = m.index + m[0].length - 1;
+  let depth = 0, inStr = false, esc = false;
+  for (let k = i; k < t.length; k++) {
+    const c = t[k];
+    if (inStr) { if (esc) esc = false; else if (c === '\\') esc = true; else if (c === '"') inStr = false; continue; }
+    if (c === '"') inStr = true; else if (c === '{') depth++; else if (c === '}') { depth--; if (depth === 0) { try { return JSON.parse(t.slice(i, k + 1)); } catch (e) { return null; } } }
+  }
+  return null;
+}
+function tidyPage(x) {
+  if (!x || typeof x !== 'object') return null;
+  const letter = (Array.isArray(x.letter) ? x.letter : []).map(t => String(t || '')).filter(t => t.trim().length > 40).slice(0, 5);
+  const three = (Array.isArray(x.three) ? x.three : []).map(t => String(t || '').trim()).filter(Boolean).slice(0, 3);
+  const read = String(x.read || '').trim().slice(0, 700);
+  return letter.length ? { read, letter, three } : null;
+}
+async function writeReport(opts) {
+  opts = opts || {};
   if (!canEdit() || (UI.report && UI.report.busy)) return;
   if (!askClaude) { UI.report = { busy: false, err: sampleError({ code: 'not_granted' }), step: '' }; render(); return; }
   const brief = RP.reportInput(T, now);
   if (!brief.ids.length) { UI.report = { busy: false, err: 'No cards in the book yet.', step: '' }; render(); return; }
+  const only = Array.isArray(opts.only) ? opts.only.filter(id => brief.ids.includes(id)) : null;
+  if (only && !only.length) return;
   reportCtl = new AbortController();
-  UI.report = { busy: true, err: '', step: 'the summary' }; render();
+  UI.report = { busy: true, err: '', step: only ? 'the pages' : 'the summary' }; render();
   const prev = reportBody();
-  const body = { v: 1, summary: (prev && prev.summary) || [], players: {}, at: Date.now() };
+  const body = only
+    ? { v: 1, summary: (prev && prev.summary) || [], players: { ...((prev && prev.players) || {}) }, at: Date.now() }
+    : { v: 1, summary: (prev && prev.summary) || [], players: {}, at: Date.now() };
   const ask1 = p => askClaude(p, { signal: reportCtl.signal, modelTier: 'complex', cache: false });
   const ask = async p => { try { return await ask1(p); } catch (e) { if (e && e.code === 'cancelled') throw e; await new Promise(r => setTimeout(r, 2500)); return ask1(p); } };
   const save = () => store.writeRecap('report', r => { r.body = JSON.parse(JSON.stringify(body)); r.status = 'published'; r.at = Date.now(); });
   const rules = REPORT_RULES();
+  const pagesFor = async ids => {
+    const r = await ask(rules + '\n\n' + brief.fieldShort + '\n\nTHE GOLFERS\n' + ids.map(id => brief.players[id]).join('\n\n') + reportPlayersAsk(ids));
+    let pj = null; try { pj = parseLoose(r.text); } catch (e) { pj = null; }
+    const ps = pj && pj.players && typeof pj.players === 'object' ? pj.players : null;
+    const got = [];
+    for (const id of ids) {
+      const x = ps ? (ps[id] || ps[(E.person(T, id) || {}).display]) : pluckPlayer(r.text, id);   // a cut-off answer still carries the pages that finished
+      const page = tidyPage(x);
+      if (page) { body.players[id] = page; got.push(id); }
+    }
+    return got;
+  };
   try {
-    const s = await ask(rules + '\n\n' + brief.field + '\n\nTHE GOLFERS, IN BRIEF\n' + brief.ids.map(id => brief.players[id].split('\n').slice(0, 2).join('\n')).join('\n') + REPORT_SUMMARY_ASK);
-    let sj = null; try { sj = parseLoose(s.text); } catch (e) { sj = null; }
-    const sum = sj && Array.isArray(sj.summary) ? sj.summary.map(x => String(x || '')).filter(x => x.trim().length > 60).slice(0, 8) : [];
-    if (sum.length) body.summary = sum;
-    await save();
-    for (let i = 0; i < brief.ids.length; i += 3) {
-      const batch = brief.ids.slice(i, i + 3);
-      UI.report.step = 'the letters, ' + (i + 1) + '\u2013' + Math.min(i + 3, brief.ids.length) + ' of ' + brief.ids.length; render();
-      const r = await ask(rules + '\n\n' + brief.fieldShort + '\n\nTHE GOLFERS\n' + batch.map(id => brief.players[id]).join('\n\n') + reportPlayersAsk(batch));
-      let pj = null; try { pj = parseLoose(r.text); } catch (e) { pj = null; }
-      const ps = pj && pj.players && typeof pj.players === 'object' ? pj.players : {};
-      for (const id of batch) {
-        const x = ps[id] || ps[(E.person(T, id) || {}).display];
-        if (!x || typeof x !== 'object') continue;
-        const letter = (Array.isArray(x.letter) ? x.letter : []).map(t => String(t || '')).filter(t => t.trim().length > 40).slice(0, 5);
-        const three = (Array.isArray(x.three) ? x.three : []).map(t => String(t || '').trim()).filter(Boolean).slice(0, 3);
-        const read = String(x.read || '').trim().slice(0, 700);
-        if (letter.length || read) body.players[id] = { read, letter, three };
-      }
+    if (!only) {
+      const s = await ask(rules + '\n\n' + brief.field + '\n\nTHE GOLFERS, IN BRIEF\n' + brief.ids.map(id => brief.players[id].split('\n').slice(0, 2).join('\n')).join('\n') + REPORT_SUMMARY_ASK);
+      let sj = null; try { sj = parseLoose(s.text); } catch (e) { sj = null; }
+      const sum = sj && Array.isArray(sj.summary) ? sj.summary.map(x => String(x || '')).filter(x => x.trim().length > 60).slice(0, 8) : [];
+      if (sum.length) body.summary = sum;
       await save();
     }
-    const missing = brief.ids.filter(id => !body.players[id]);
-    UI.report = { busy: false, err: missing.length ? 'No letter came back for ' + missing.map(id => (E.person(T, id) || {}).display || id).join(', ') + '. Write again fills the gaps.' : '', step: '' };
+    const ids = only || brief.ids;
+    for (let i = 0; i < ids.length; i += 2) {
+      const batch = ids.slice(i, i + 2);
+      UI.report.step = 'the pages, ' + (i + 1) + (batch.length > 1 ? '–' + (i + batch.length) : '') + ' of ' + ids.length; render();
+      const got = await pagesFor(batch);
+      for (const id of batch) { if (!got.includes(id)) { UI.report.step = ((E.person(T, id) || {}).display || id) + ', on their own'; render(); await pagesFor([id]); } }
+      await save();
+    }
+    const missing = ids.filter(id => !body.players[id]);
+    UI.report = { busy: false, step: '', err: missing.length ? 'No page came back for ' + missing.map(id => (E.person(T, id) || {}).display || id).join(', ') + '. Fill the gaps asks for them again.' : '' };
   } catch (e) {
     UI.report = { busy: false, step: '', err: e && e.code ? sampleError(e) + (e.code !== 'cancelled' && e.message && e.message !== 'stopped' ? ' (' + e.message + ')' : '') : 'The writer answered in a shape the book could not read. Try again.' };
   } finally { reportCtl = null; render(); }
@@ -21604,6 +21644,7 @@ function onClick(e) {
     }
     case 'fbOpen': fbOpen(); return;
     case 'reportWrite': writeReport(); return;
+    case 'reportFill': writeReport({ only: reportMissing() }); return;
     case 'reportPlayer': UI.modal = { kind: 'rplayer', pid: a }; render(); return;
     case 'reportStop': if (reportCtl) reportCtl.abort(); return;
     case 'reportShare': {

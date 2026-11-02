@@ -64,7 +64,11 @@ await ctx.addInitScript(() => {
     if (/EXECUTIVE SUMMARY ONLY/.test(q)) return { text: JSON.stringify({ summary: ['Paragraph one of the summary, long enough to count as a real paragraph about the week, with the winners and the numbers in it.', 'Paragraph two, the same, about where the week was won and lost on the par fives and the front nines.'] }), truncated: false };
     const ids = ((q.match(/PAGES FOR THESE GOLFERS ONLY: ([^.]+)\./) || [])[1] || '').split(',').map(x => x.trim()).filter(Boolean);
     const players = {}; ids.forEach(id => { players[id] = { read: 'A back-nine golfer with a front-nine problem: the swing holds, the start does not, and the par fives cost more than anything else on the card.', letter: ['Dear ' + id + ', a paragraph of coaching long enough to count, about your par fives and your front nine.', 'A second paragraph about the putting, where it was counted, and the one thing to do about it.'], three: ['Lay up on the par 5s', 'Lag putts to three feet', 'A first-tee routine'] }; });
-    return { text: JSON.stringify({ players }), truncated: false }; };
+    const json = JSON.stringify({ players });
+    /* the writer runs out of room: the answer stops part-way through the second golfer */
+    if (window.__cut && ids.length > 1) return { text: json.slice(0, json.indexOf('"' + ids[1] + '"') + 40), truncated: true };
+    if (window.__cut) return { text: 'sorry, not today', truncated: false };
+    return { text: json, truncated: false }; };
   window.claude = { use: async name => name === 'sample' ? fn : null };
 });
 const p = await ctx.newPage(); const errs = []; p.on('pageerror', e => errs.push(String(e)));
@@ -82,15 +86,23 @@ ok('a tap opens that golfer on their own, with a round summary', [await p.locato
 ok('and it fits a phone: nothing scrolls left or right', await p.evaluate(() => { const m = document.querySelector('.rplayer .ps-body'); const over = [...m.querySelectorAll('*')].filter(e => e.getBoundingClientRect().right > window.innerWidth + 1 && getComputedStyle(e).position !== 'fixed').length; return [m.scrollWidth - m.clientWidth <= 1, over]; }), [true, 0]);
 await p.locator('.rplayer [data-act="modalCancel"]').click(); await p.waitForTimeout(300);
 ok('the commissioner can write the notes; the group cannot yet share what is not there', [await p.locator('[data-act="reportWrite"]').count(), await p.locator('[data-act="reportShare"]').count()], [1, 0]);
+await p.evaluate(() => { window.__cut = true; });
 await p.locator('[data-act="reportWrite"]').click();
+await p.waitForFunction(() => { const r = window.__T.recaps.report; return r && r.body && !window.__UI.report.busy && window.__asked.length >= 3; }, null, { timeout: 30000 }).catch(() => {});
+await p.waitForTimeout(400);
+const cut = await p.evaluate(() => ({ n: Object.keys(window.__T.recaps.report.body.players).length, err: window.__UI.report.err, fill: !!document.querySelector('[data-act="reportFill"]') }));
+ok('a cut-off answer still yields the page that finished; the rest are asked for one at a time, and what is missing is said', [cut.n >= 1, /No page came back for/.test(cut.err), cut.fill], [true, true, true]);
+await p.evaluate(() => { window.__cut = false; window.__askedBefore = window.__asked.length; });
+await p.locator('[data-act="reportFill"]').click();
 await p.waitForFunction(() => { const r = window.__T.recaps.report; return r && r.body && Object.keys(r.body.players || {}).length >= 3 && !window.__UI.report.busy; }, null, { timeout: 30000 }).catch(() => {});
+ok('Fill the gaps writes only the missing pages and leaves the summary alone', await p.evaluate(() => ({ n: Object.keys(window.__T.recaps.report.body.players).length, summaryAsked: window.__asked.slice(window.__askedBefore).some(q => /EXECUTIVE SUMMARY ONLY/.test(q)), err: window.__UI.report.err })), { n: 3, summaryAsked: false, err: '' });
 await p.waitForTimeout(400);
 const got = await p.evaluate(() => ({ asked: window.__asked.map(q => /EXECUTIVE SUMMARY ONLY/.test(q) ? 'summary' : 'letters'), n: Object.keys(window.__T.recaps.report.body.players).length, status: window.__T.recaps.report.status, sum: window.__T.recaps.report.body.summary.length,
   err: window.__UI.report.err }));
 await p.locator('.rp-row').first().click(); await p.waitForTimeout(400);
 Object.assign(got, await p.evaluate(() => ({ letters: document.querySelectorAll('.rplayer .rp-p').length, three: document.querySelectorAll('.rplayer .rp-three li').length, reads: document.querySelectorAll('.rplayer .rp-read').length })));
 await p.locator('.rplayer [data-act="modalCancel"]').click(); await p.waitForTimeout(300);
-ok('the summary first, then the letters in one batch of three, kept for everyone', [got.asked, got.n, got.status, got.sum, got.err], [['summary', 'letters'], 3, 'published', 2, '']);
+ok('the summary first, then the pages, kept for everyone', [got.asked[0], got.n, got.status, got.sum, got.err], ['summary', 3, 'published', 2, '']);
 ok('and drawn on the golfer\'s page: the coach\'s read, two paragraphs and three things', [got.reads, got.letters, got.three, await p.locator('[data-act="reportShare"]').count()], [1, 2, 3, 1]);
 ok('the writer was told to be constructive and given the never-list', await p.evaluate(() => /CONSTRUCTIVE/.test(window.__asked[0]) && /NEVER, because it reads as machine-written/.test(window.__asked[0]) && /GOLFER id=/.test(window.__asked[1])), true);
 ok('no errors in the book', errs, []);
