@@ -52,7 +52,7 @@ ok('the field: two golfers, four cards, Duncan the most OB', [F.totals.players, 
 const brief = R.reportInput(T, now);
 ok('the brief for the writer carries each golfer by id, with the grades and the damage', [brief.ids, /GOLFER id=dp name=DP/.test(brief.players.dp), /four three-putts|4 three-putts/.test(brief.players.dp), /the damage: hole 1 \(par 4\) 6 ob/.test(brief.players.dp)], [['dp', 'dw'], true, true, true]);
 const html = R.renderReport(T, null, { now });
-ok('the report draws the summary and a card a golfer, the numbers alone until the words come', [(html.match(/rp-player/g) || []).length, /Not written yet/.test(html), (html.match(/class="rp-strip"/g) || []).length], [2, true, 3]);
+ok('the report draws the summary and a card a golfer, the numbers alone until the words come', [(html.match(/rp-player/g) || []).length, /Not written yet/.test(html), (html.match(/class="rp-rs"/g) || []).length], [2, true, 3]);
 
 /* ---------- in the book ---------- */
 writeFileSync(S + '/rep.html', '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head><body>' + readFileSync('dist/union-invitational-sandbox.html', 'utf8') + '</body></html>');

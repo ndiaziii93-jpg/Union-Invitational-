@@ -5276,6 +5276,50 @@ textarea.fb-in{min-height:72px;resize:vertical}
 .rp-page{padding:14px 12px 20px}
 .rp-read{margin:0 0 6px;padding:8px 12px;border-left:3px solid var(--gold-up);background:#F7F2E6;border-radius:0 10px 10px 0;font-size:15.5px;line-height:1.5;font-style:italic}
 
+/* the round summaries, in the manner of the scoring apps */
+.rp-dist{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;align-items:end;margin:6px 0 4px;padding:0 2px}
+.rp-dc{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;min-width:0}
+.rp-dbw{height:96px;width:100%;display:flex;align-items:flex-end;justify-content:center}
+.rp-dc b{font-size:15px;margin-bottom:4px}
+.rp-db{width:70%;max-width:52px;border-radius:12px;flex:0 0 auto}
+.rp-dc small{margin-top:6px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;font-weight:800;color:var(--turf)}
+.rp-dc span{font-size:13px;color:var(--ink)}
+.rp-db.under,.rp-cell.under{background:var(--under);color:#fff}
+.rp-db.par,.rp-cell.par{background:#3E5C43;color:#fff}
+.rp-db.bogey,.rp-cell.bogey{background:#9FB3A3;color:var(--pine)}
+.rp-db.double,.rp-cell.double{background:#C98B6B;color:#fff}
+.rp-db.worse,.rp-cell.worse{background:var(--flag);color:#fff}
+.rp-cell.none{background:transparent}
+.rp-sg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0 0}
+.rp-st{background:#F7F2E6;border:1px solid var(--hair);border-radius:14px;padding:12px 12px 10px;text-align:center;min-width:0}
+.rp-st small{display:block;font-size:12.5px;color:var(--turf)}
+.rp-st b{display:block;font-size:30px;line-height:1.1;margin:4px 0 2px}
+.rp-st em{display:block;font-style:normal;font-size:11.5px;color:var(--turf)}
+.rp-rs{margin:0 0 18px;padding:12px;border:1px solid var(--hair);border-radius:16px;background:#F7F2E6}
+.rp-rsh{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:6px}
+.rp-rsh b{font-size:17px}.rp-rsh span{font-size:13px;color:var(--turf)}
+.rp-hero{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center;margin:4px 0 10px}
+.rp-big small,.rp-side small{display:block;font-size:12.5px;color:var(--turf)}
+.rp-big b{display:block;font-size:64px;line-height:.95;letter-spacing:-.02em;color:var(--pine)}
+.rp-big em{display:block;font-style:normal;font-size:12.5px;color:var(--turf);margin-top:4px}
+.rp-side{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.rp-side b{display:inline-block;font-size:30px;line-height:1.1;vertical-align:middle}
+.rp-side em{display:block;font-style:normal;font-size:12px;color:var(--turf)}
+.rp-badge{display:inline-block;vertical-align:middle;margin-left:6px;padding:2px 8px;border-radius:999px;font-style:normal;font-size:13px;font-weight:800;color:#fff;background:var(--turf)}
+.rp-badge.under{background:var(--under)}.rp-badge.over{background:var(--flag)}.rp-badge.level{background:var(--pine)}
+.rp-card-sc{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -4px}
+.rp-sc{border-collapse:separate;border-spacing:2px 0;width:100%;font-size:12.5px;margin:0 0 6px;table-layout:fixed}
+.rp-sc th,.rp-sc td{text-align:center;padding:4px 0;font-variant-numeric:tabular-nums;white-space:nowrap}
+.rp-sc th.l{text-align:left;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--turf);font-weight:800;width:44px;padding-left:4px}
+.rp-sc tr.rp-sc-h th{background:var(--pine);color:var(--onpine);border-radius:6px;font-weight:800}
+.rp-sc tr.rp-sc-h th.l{color:var(--onpine)}
+.rp-sc td.dim{color:var(--turf)}
+.rp-sc td.good{color:var(--gold);font-weight:800}.rp-sc td.bad{color:var(--flag);font-weight:800}
+.rp-sc tr.rp-sc-s td{padding:3px 0}
+.rp-cell{display:inline-block;min-width:26px;height:26px;line-height:26px;border-radius:6px;font-style:normal;font-weight:800;font-size:13px}
+.rp-cell.pu{box-shadow:inset 0 0 0 2px var(--ink)}
+.rp-key .rp-cell{min-width:12px;width:12px;height:12px;line-height:12px;border-radius:3px;margin-right:3px;vertical-align:middle}
+
 </style>
 <div id="app"></div>
 <!-- The crest, and the opening it pays for, ahead of everything else. A few
@@ -5402,7 +5446,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261102-1324';
+const BUILD = '20261102-1331';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -9606,6 +9650,65 @@ const cell = h => { if (!h) return '<i class="rp-h rp-none"></i>'; const k = h.o
 const paras = (list, cls) => (list || []).filter(x => x && String(x).trim()).map((x, i) => `<p class="${cls}${i === 0 ? ' lead' : ''}">${esc(x)}</p>`).join('');
 const ordinal = n => n + (n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th');
 
+
+/* THE PIECES A ROUND SUMMARY IS MADE OF, in the manner of the scoring apps:
+   a big number with the net beside it, a bar chart of how the holes went,
+   a grid of stat cards, and the card itself with every score in colour. */
+const DIST_COLS = [['under', 'Birdie+', d => d.eagle + d.birdie], ['par', 'Par', d => d.par], ['bogey', 'Bogey', d => d.bogey], ['double', 'Double', d => d.double], ['worse', 'Worse', d => d.worse]];
+function distChart(dist, holes) {
+  const n = Math.max(1, holes);
+  const cols = DIST_COLS.map(([k, l, f]) => ({ k, l, n: f(dist), pct: Math.round(f(dist) / n * 100) }));
+  const top = Math.max(1, ...cols.map(c => c.pct));
+  return `<div class="rp-dist">${cols.map(c => `<div class="rp-dc"><b class="num">${c.pct}%</b><div class="rp-dbw"><div class="rp-db ${c.k}" style="height:${Math.max(6, Math.round(c.pct / top * 100))}%"></div></div><small>${c.l}</small><span class="num">${c.n}</span></div>`).join('')}</div>`;
+}
+const stat = (label, value, note) => `<div class="rp-st"><small>${esc(label)}</small><b class="num">${esc(value)}</b>${note ? `<em>${esc(note)}</em>` : ''}</div>`;
+function statGrid(w) {
+  const pph = w.puttHoles ? f1(w.putts / w.puttHoles) : '\u2013';
+  return `<div class="rp-sg">
+    ${stat('Putts per hole', pph, w.puttHoles ? 'on ' + w.puttHoles + ' counted holes' : 'not counted')}
+    ${stat('Putts', w.puttHoles ? String(w.putts) : '\u2013', w.puttHoles ? w.p3 + ' three-putt' + (w.p3 === 1 ? '' : 's') + ' \u00B7 ' + w.p1 + ' one-putt' + (w.p1 === 1 ? '' : 's') : 'not counted')}
+    ${stat('Out of bounds', String(w.marks.ob), w.marks.water ? w.marks.water + ' in the water' : 'balls')}
+    ${stat('Pick-ups', String(w.pu), 'holes at the cap')}
+  </div>`;
+}
+const scoreCls = h => (!h ? 'none' : h.over <= -1 ? 'under' : h.over === 0 ? 'par' : h.over === 1 ? 'bogey' : h.over === 2 ? 'double' : 'worse');
+function scorecard(T, r, pr) {
+  const holes = E.courseOf(T, r.rid).holes;
+  const band = pr.band;
+  const nine = (from, label) => {
+    const idx = Array.from({ length: 9 }, (_, i) => from + i);
+    const hs = idx.map(i => r.holes[i]);
+    const sum = f => hs.reduce((a, h) => (h ? a + f(h) : a), 0), any = f => hs.some(h => h && f(h) != null);
+    const strokes = band != null ? idx.map(i => E.strokesFor(band, holes[i].si)) : null;
+    const rows = [
+      ['Hole', idx.map(i => `<th>${i + 1}</th>`).join(''), `<th>${label}</th>`, 'rp-sc-h'],
+      ['Index', idx.map(i => `<td class="dim">${holes[i].si}</td>`).join(''), '<td></td>', ''],
+      ['Par', idx.map(i => `<td>${holes[i].par}</td>`).join(''), `<td><b>${idx.reduce((a, i) => a + holes[i].par, 0)}</b></td>`, ''],
+      ['Score', hs.map(h => `<td><i class="rp-cell ${scoreCls(h)}${h && h.pu ? ' pu' : ''}">${h ? h.raw : ''}</i></td>`).join(''), `<td><b>${hs.some(Boolean) ? sum(h => h.raw) : ''}</b></td>`, 'rp-sc-s'],
+    ];
+    if (strokes) rows.push(['Net', hs.map((h, k) => `<td class="dim">${h ? h.raw - strokes[k] : ''}</td>`).join(''), `<td class="dim">${hs.some(Boolean) ? hs.reduce((a, h, k) => (h ? a + h.raw - strokes[k] : a), 0) : ''}</td>`, '']);
+    if (any(h => h.pts)) rows.push(['Pts', hs.map(h => `<td class="${h && h.pts >= 3 ? 'good' : h && h.pts === 0 ? 'bad' : ''}">${h && h.pts != null ? h.pts : ''}</td>`).join(''), `<td><b>${sum(h => h.pts || 0)}</b></td>`, '']);
+    if (any(h => h.putts)) rows.push(['Putts', hs.map(h => `<td class="${h && h.putts >= 3 ? 'bad' : h && h.putts === 1 ? 'good' : ''}">${h && h.putts != null ? h.putts : ''}</td>`).join(''), `<td>${sum(h => h.putts || 0)}</td>`, '']);
+    return `<table class="rp-sc">${rows.map(([l, cells, tot, cls]) => `<tr class="${cls}"><th class="l">${l}</th>${cells}${tot}</tr>`).join('')}</table>`;
+  };
+  return `<div class="rp-card-sc">${nine(0, 'Out')}${r.holes.slice(9).some(Boolean) ? nine(9, 'In') : ''}</div>`;
+}
+function roundSummary(T, r, pr, now) {
+  const net = r.netToPar;
+  return `<div class="rp-rs" id="rp-${esc(pr.id)}-${esc(r.rid)}">
+    <div class="rp-rsh"><b>${esc(roundName(r.rid))}</b><span>${esc(r.course.replace('Cullinan ', ''))}${r.full ? '' : ' \u00B7 ' + r.played + ' holes'}</span></div>
+    <div class="rp-hero">
+      <div class="rp-big"><small>Score</small><b class="num">${r.gross}</b><em>${r.front} / ${r.back} \u00B7 ${sign(r.toPar)}</em></div>
+      <div class="rp-side">
+        <div><small>Net</small><b class="num">${r.netHoles ? r.par + net : '\u2013'}</b>${r.netHoles ? `<i class="rp-badge ${net < 0 ? 'under' : net > 0 ? 'over' : 'level'}">${sign(net)}</i>` : ''}</div>
+        <div><small>Points</small><b class="num">${r.pts}</b><em>${r.ptsF} / ${r.ptsB}</em></div>
+      </div>
+    </div>
+    ${scorecard(T, r, pr)}
+    ${distChart(r.dist, r.played)}
+  </div>`;
+}
+
 /** The whole report. `body` is what the writer wrote (recaps/report), or null for the numbers alone. */
 function renderReport(T, body, opts) {
   opts = opts || {};
@@ -9626,6 +9729,8 @@ function renderReport(T, body, opts) {
         ${tile('Out of bounds', String(t.ob), 'balls, the week')}
         ${tile('Pick-ups', String(t.pu), 'holes, the week')}
       </div>
+      <h3>How the holes went</h3>
+      ${distChart(F.players.reduce((d, p) => { for (const k of Object.keys(d)) d[k] += p.week.dist[k]; return d; }, { eagle: 0, birdie: 0, par: 0, bogey: 0, double: 0, worse: 0 }), t.holes)}
       <h3>Where the points came from</h3>
       ${bar('Par 3s, over par a hole', F.byPar['3'] || 0, parMax, F.byPar['3'] == null ? '—' : signF(F.byPar['3']), (F.byPar['3'] || 0) >= parMax - 0.001)}
       ${bar('Par 4s', F.byPar['4'] || 0, parMax, F.byPar['4'] == null ? '—' : signF(F.byPar['4']), (F.byPar['4'] || 0) >= parMax - 0.001)}
@@ -9654,12 +9759,15 @@ function renderReport(T, body, opts) {
         <p>${pr.band == null ? 'No handicap' : 'Handicap ' + esc(pr.band)}${pr.playing != null ? ' · plays off ' + pr.playing + ' in the team game' : ''}${pr.pair && pr.pair.partner ? ' · paired with ' + esc(pr.pair.partner) : ''}${pr.side ? ' · ' + esc(pr.side) : ''}</p></div>
       <div class="rp-body">
         <div class="rp-tiles">
-          ${tile('Best round', pr.best ? String(pr.best.gross) : '—', pr.best ? roundName(pr.best.rid) + ' · ' + sign(pr.best.toPar) : '')}
-          ${tile('Points', String(w.pts), 'the week · ' + (pr.mvp ? 'net ' + pr.mvp.totalStr : sign(w.netToPar) + ' net'))}
-          ${tile('MVP', pr.mvp ? ordinal(pr.mvp.pos) : '—', mvpNote ? 'of ' + E.mvpBoard(T, now).length : '')}
+          ${tile('Best round', pr.best ? String(pr.best.gross) : '\u2014', pr.best ? roundName(pr.best.rid) + ' \u00B7 ' + sign(pr.best.toPar) : '')}
+          ${tile('Points', String(w.pts), 'the week \u00B7 ' + (pr.mvp ? 'net ' + pr.mvp.totalStr : sign(w.netToPar) + ' net'))}
+          ${tile('MVP', pr.mvp ? ordinal(pr.mvp.pos) : '\u2014', mvpNote ? 'of ' + E.mvpBoard(T, now).length : '')}
         </div>
         <h3>The coach\u2019s read</h3>
         ${read ? `<p class="rp-read">${esc(read)}</p>` : `<p class="rp-wait">${words ? 'Being written.' : 'Not written yet.'}</p>`}
+        <h3>The week, hole by hole</h3>
+        ${distChart(w.dist, w.played)}
+        ${statGrid(w)}
         ${full.length > 1 ? `<h3>Trend</h3><div class="rp-trend">${full.map(r => `<div style="height:${Math.round(30 + 65 * (trendMax - r.gross + 2) / (trendMax - trendMin + 2))}%"><span class="num">${r.gross}</span><small>${esc(roundShort(r.rid))}</small></div>`).join('')}</div>` : ''}
         <h3>Grades</h3>
         ${GRADE_ROWS.map(([k, l]) => { const note = k === 'par3' || k === 'par4' || k === 'par5' ? (w.byPar[k.slice(3)] && w.byPar[k.slice(3)][1] ? signF(w.byPar[k.slice(3)][0] / w.byPar[k.slice(3)][1]) + ' a hole over ' + w.byPar[k.slice(3)][1] : 'none played')
@@ -9667,14 +9775,13 @@ function renderReport(T, body, opts) {
           : k === 'composure' ? (w.dist.double + w.dist.worse) + ' doubles or worse, ' + w.pu + ' pick-up' + (w.pu === 1 ? '' : 's') + ', ' + w.marks.ob + ' OB'
           : k === 'consistency' ? (pr.range != null ? 'rounds within ' + pr.range + (pr.range === 1 ? ' shot' : ' shots') : 'one full round')
           : (w.teamHoles ? 'ball counted on ' + w.counted + ' of ' + w.teamHoles + ' holes' : 'no pair');
-          return `<div class="rp-grade"><span>${esc(l)}<em>${esc(note)}</em></span><b class="rp-gl${gradeCls(g[k])}">${g[k] || '–'}</b></div>`; }).join('')}
-        <h3>The coach’s letter</h3>
+          return `<div class="rp-grade"><span>${esc(l)}<em>${esc(note)}</em></span><b class="rp-gl${gradeCls(g[k])}">${g[k] || '\u2013'}</b></div>`; }).join('')}
+        <h3>The coach\u2019s letter</h3>
         ${letter.length ? paras(letter, 'rp-p') : `<p class="rp-wait">${words ? 'Being written.' : 'Not written yet.'}</p>`}
         ${three.length ? `<div class="rp-three"><b>Three things</b><ol>${three.map(x => `<li>${esc(x)}</li>`).join('')}</ol></div>` : ''}
         <h3>Every round</h3>
-        <div class="rp-key"><span><i class="rp-h e"></i>birdie</span><span><i class="rp-h pr"></i>par</span><span><i class="rp-h bg"></i>bogey</span><span><i class="rp-h db"></i>double</span><span><i class="rp-h tr"></i>worse</span><span><i class="rp-h pu"></i>pick-up</span></div>
-        ${pr.rounds.map(r => `<div class="rp-round"><div class="rp-rh"><b>${esc(roundName(r.rid))}</b><span>${esc(r.course.replace('Cullinan ', ''))} · ${r.full ? '' : r.played + ' holes · '}<b class="num">${r.gross}</b> (${r.front} / ${r.back}) · ${r.pts} pts${r.puttHoles ? ' · ' + r.putts + ' putts' : ''}</span></div>
-          <div class="rp-strip">${r.holes.map(cell).join('')}</div></div>`).join('')}
+        <div class="rp-key"><span><i class="rp-cell under"></i>birdie</span><span><i class="rp-cell par"></i>par</span><span><i class="rp-cell bogey"></i>bogey</span><span><i class="rp-cell double"></i>double</span><span><i class="rp-cell worse"></i>worse</span><span><i class="rp-cell par pu"></i>pick-up</span></div>
+        ${pr.rounds.map(r => roundSummary(T, r, pr, now)).join('')}
         <h3>The numbers</h3>
         <table class="rp-table rp-num"><thead><tr><th></th>${pr.rounds.map(r => `<th class="r">${esc(roundShort(r.rid))}</th>`).join('')}<th class="r">Week</th></tr></thead><tbody>
           <tr><td>Gross · to par</td>${pr.rounds.map(r => `<td class="r">${r.gross} · ${sign(r.toPar)}</td>`).join('')}<td class="r">${w.gross} · ${sign(w.toPar)}</td></tr>
@@ -23621,7 +23728,7 @@ __m_app.boot();
 /* Register the worker that makes the book work with no signal. It is the
    whole point of installing it: Belek is five hours of walking and everyone
    is roaming. A failure here must never stop the page loading. */
-var BOOK_BUILD = '20261102-1324';
+var BOOK_BUILD = '20261102-1331';
 var swReg = null;
 /* the book is never shown inside somebody else's page, where a tap could be
    aimed at a button they have put under the finger */

@@ -214,6 +214,65 @@ const cell = h => { if (!h) return '<i class="rp-h rp-none"></i>'; const k = h.o
 const paras = (list, cls) => (list || []).filter(x => x && String(x).trim()).map((x, i) => `<p class="${cls}${i === 0 ? ' lead' : ''}">${esc(x)}</p>`).join('');
 const ordinal = n => n + (n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th');
 
+
+/* THE PIECES A ROUND SUMMARY IS MADE OF, in the manner of the scoring apps:
+   a big number with the net beside it, a bar chart of how the holes went,
+   a grid of stat cards, and the card itself with every score in colour. */
+const DIST_COLS = [['under', 'Birdie+', d => d.eagle + d.birdie], ['par', 'Par', d => d.par], ['bogey', 'Bogey', d => d.bogey], ['double', 'Double', d => d.double], ['worse', 'Worse', d => d.worse]];
+function distChart(dist, holes) {
+  const n = Math.max(1, holes);
+  const cols = DIST_COLS.map(([k, l, f]) => ({ k, l, n: f(dist), pct: Math.round(f(dist) / n * 100) }));
+  const top = Math.max(1, ...cols.map(c => c.pct));
+  return `<div class="rp-dist">${cols.map(c => `<div class="rp-dc"><b class="num">${c.pct}%</b><div class="rp-dbw"><div class="rp-db ${c.k}" style="height:${Math.max(6, Math.round(c.pct / top * 100))}%"></div></div><small>${c.l}</small><span class="num">${c.n}</span></div>`).join('')}</div>`;
+}
+const stat = (label, value, note) => `<div class="rp-st"><small>${esc(label)}</small><b class="num">${esc(value)}</b>${note ? `<em>${esc(note)}</em>` : ''}</div>`;
+function statGrid(w) {
+  const pph = w.puttHoles ? f1(w.putts / w.puttHoles) : '\u2013';
+  return `<div class="rp-sg">
+    ${stat('Putts per hole', pph, w.puttHoles ? 'on ' + w.puttHoles + ' counted holes' : 'not counted')}
+    ${stat('Putts', w.puttHoles ? String(w.putts) : '\u2013', w.puttHoles ? w.p3 + ' three-putt' + (w.p3 === 1 ? '' : 's') + ' \u00B7 ' + w.p1 + ' one-putt' + (w.p1 === 1 ? '' : 's') : 'not counted')}
+    ${stat('Out of bounds', String(w.marks.ob), w.marks.water ? w.marks.water + ' in the water' : 'balls')}
+    ${stat('Pick-ups', String(w.pu), 'holes at the cap')}
+  </div>`;
+}
+const scoreCls = h => (!h ? 'none' : h.over <= -1 ? 'under' : h.over === 0 ? 'par' : h.over === 1 ? 'bogey' : h.over === 2 ? 'double' : 'worse');
+function scorecard(T, r, pr) {
+  const holes = E.courseOf(T, r.rid).holes;
+  const band = pr.band;
+  const nine = (from, label) => {
+    const idx = Array.from({ length: 9 }, (_, i) => from + i);
+    const hs = idx.map(i => r.holes[i]);
+    const sum = f => hs.reduce((a, h) => (h ? a + f(h) : a), 0), any = f => hs.some(h => h && f(h) != null);
+    const strokes = band != null ? idx.map(i => E.strokesFor(band, holes[i].si)) : null;
+    const rows = [
+      ['Hole', idx.map(i => `<th>${i + 1}</th>`).join(''), `<th>${label}</th>`, 'rp-sc-h'],
+      ['Index', idx.map(i => `<td class="dim">${holes[i].si}</td>`).join(''), '<td></td>', ''],
+      ['Par', idx.map(i => `<td>${holes[i].par}</td>`).join(''), `<td><b>${idx.reduce((a, i) => a + holes[i].par, 0)}</b></td>`, ''],
+      ['Score', hs.map(h => `<td><i class="rp-cell ${scoreCls(h)}${h && h.pu ? ' pu' : ''}">${h ? h.raw : ''}</i></td>`).join(''), `<td><b>${hs.some(Boolean) ? sum(h => h.raw) : ''}</b></td>`, 'rp-sc-s'],
+    ];
+    if (strokes) rows.push(['Net', hs.map((h, k) => `<td class="dim">${h ? h.raw - strokes[k] : ''}</td>`).join(''), `<td class="dim">${hs.some(Boolean) ? hs.reduce((a, h, k) => (h ? a + h.raw - strokes[k] : a), 0) : ''}</td>`, '']);
+    if (any(h => h.pts)) rows.push(['Pts', hs.map(h => `<td class="${h && h.pts >= 3 ? 'good' : h && h.pts === 0 ? 'bad' : ''}">${h && h.pts != null ? h.pts : ''}</td>`).join(''), `<td><b>${sum(h => h.pts || 0)}</b></td>`, '']);
+    if (any(h => h.putts)) rows.push(['Putts', hs.map(h => `<td class="${h && h.putts >= 3 ? 'bad' : h && h.putts === 1 ? 'good' : ''}">${h && h.putts != null ? h.putts : ''}</td>`).join(''), `<td>${sum(h => h.putts || 0)}</td>`, '']);
+    return `<table class="rp-sc">${rows.map(([l, cells, tot, cls]) => `<tr class="${cls}"><th class="l">${l}</th>${cells}${tot}</tr>`).join('')}</table>`;
+  };
+  return `<div class="rp-card-sc">${nine(0, 'Out')}${r.holes.slice(9).some(Boolean) ? nine(9, 'In') : ''}</div>`;
+}
+function roundSummary(T, r, pr, now) {
+  const net = r.netToPar;
+  return `<div class="rp-rs" id="rp-${esc(pr.id)}-${esc(r.rid)}">
+    <div class="rp-rsh"><b>${esc(roundName(r.rid))}</b><span>${esc(r.course.replace('Cullinan ', ''))}${r.full ? '' : ' \u00B7 ' + r.played + ' holes'}</span></div>
+    <div class="rp-hero">
+      <div class="rp-big"><small>Score</small><b class="num">${r.gross}</b><em>${r.front} / ${r.back} \u00B7 ${sign(r.toPar)}</em></div>
+      <div class="rp-side">
+        <div><small>Net</small><b class="num">${r.netHoles ? r.par + net : '\u2013'}</b>${r.netHoles ? `<i class="rp-badge ${net < 0 ? 'under' : net > 0 ? 'over' : 'level'}">${sign(net)}</i>` : ''}</div>
+        <div><small>Points</small><b class="num">${r.pts}</b><em>${r.ptsF} / ${r.ptsB}</em></div>
+      </div>
+    </div>
+    ${scorecard(T, r, pr)}
+    ${distChart(r.dist, r.played)}
+  </div>`;
+}
+
 /** The whole report. `body` is what the writer wrote (recaps/report), or null for the numbers alone. */
 export function renderReport(T, body, opts) {
   opts = opts || {};
@@ -234,6 +293,8 @@ export function renderReport(T, body, opts) {
         ${tile('Out of bounds', String(t.ob), 'balls, the week')}
         ${tile('Pick-ups', String(t.pu), 'holes, the week')}
       </div>
+      <h3>How the holes went</h3>
+      ${distChart(F.players.reduce((d, p) => { for (const k of Object.keys(d)) d[k] += p.week.dist[k]; return d; }, { eagle: 0, birdie: 0, par: 0, bogey: 0, double: 0, worse: 0 }), t.holes)}
       <h3>Where the points came from</h3>
       ${bar('Par 3s, over par a hole', F.byPar['3'] || 0, parMax, F.byPar['3'] == null ? '—' : signF(F.byPar['3']), (F.byPar['3'] || 0) >= parMax - 0.001)}
       ${bar('Par 4s', F.byPar['4'] || 0, parMax, F.byPar['4'] == null ? '—' : signF(F.byPar['4']), (F.byPar['4'] || 0) >= parMax - 0.001)}
@@ -262,12 +323,15 @@ export function renderReport(T, body, opts) {
         <p>${pr.band == null ? 'No handicap' : 'Handicap ' + esc(pr.band)}${pr.playing != null ? ' · plays off ' + pr.playing + ' in the team game' : ''}${pr.pair && pr.pair.partner ? ' · paired with ' + esc(pr.pair.partner) : ''}${pr.side ? ' · ' + esc(pr.side) : ''}</p></div>
       <div class="rp-body">
         <div class="rp-tiles">
-          ${tile('Best round', pr.best ? String(pr.best.gross) : '—', pr.best ? roundName(pr.best.rid) + ' · ' + sign(pr.best.toPar) : '')}
-          ${tile('Points', String(w.pts), 'the week · ' + (pr.mvp ? 'net ' + pr.mvp.totalStr : sign(w.netToPar) + ' net'))}
-          ${tile('MVP', pr.mvp ? ordinal(pr.mvp.pos) : '—', mvpNote ? 'of ' + E.mvpBoard(T, now).length : '')}
+          ${tile('Best round', pr.best ? String(pr.best.gross) : '\u2014', pr.best ? roundName(pr.best.rid) + ' \u00B7 ' + sign(pr.best.toPar) : '')}
+          ${tile('Points', String(w.pts), 'the week \u00B7 ' + (pr.mvp ? 'net ' + pr.mvp.totalStr : sign(w.netToPar) + ' net'))}
+          ${tile('MVP', pr.mvp ? ordinal(pr.mvp.pos) : '\u2014', mvpNote ? 'of ' + E.mvpBoard(T, now).length : '')}
         </div>
         <h3>The coach\u2019s read</h3>
         ${read ? `<p class="rp-read">${esc(read)}</p>` : `<p class="rp-wait">${words ? 'Being written.' : 'Not written yet.'}</p>`}
+        <h3>The week, hole by hole</h3>
+        ${distChart(w.dist, w.played)}
+        ${statGrid(w)}
         ${full.length > 1 ? `<h3>Trend</h3><div class="rp-trend">${full.map(r => `<div style="height:${Math.round(30 + 65 * (trendMax - r.gross + 2) / (trendMax - trendMin + 2))}%"><span class="num">${r.gross}</span><small>${esc(roundShort(r.rid))}</small></div>`).join('')}</div>` : ''}
         <h3>Grades</h3>
         ${GRADE_ROWS.map(([k, l]) => { const note = k === 'par3' || k === 'par4' || k === 'par5' ? (w.byPar[k.slice(3)] && w.byPar[k.slice(3)][1] ? signF(w.byPar[k.slice(3)][0] / w.byPar[k.slice(3)][1]) + ' a hole over ' + w.byPar[k.slice(3)][1] : 'none played')
@@ -275,14 +339,13 @@ export function renderReport(T, body, opts) {
           : k === 'composure' ? (w.dist.double + w.dist.worse) + ' doubles or worse, ' + w.pu + ' pick-up' + (w.pu === 1 ? '' : 's') + ', ' + w.marks.ob + ' OB'
           : k === 'consistency' ? (pr.range != null ? 'rounds within ' + pr.range + (pr.range === 1 ? ' shot' : ' shots') : 'one full round')
           : (w.teamHoles ? 'ball counted on ' + w.counted + ' of ' + w.teamHoles + ' holes' : 'no pair');
-          return `<div class="rp-grade"><span>${esc(l)}<em>${esc(note)}</em></span><b class="rp-gl${gradeCls(g[k])}">${g[k] || '–'}</b></div>`; }).join('')}
-        <h3>The coach’s letter</h3>
+          return `<div class="rp-grade"><span>${esc(l)}<em>${esc(note)}</em></span><b class="rp-gl${gradeCls(g[k])}">${g[k] || '\u2013'}</b></div>`; }).join('')}
+        <h3>The coach\u2019s letter</h3>
         ${letter.length ? paras(letter, 'rp-p') : `<p class="rp-wait">${words ? 'Being written.' : 'Not written yet.'}</p>`}
         ${three.length ? `<div class="rp-three"><b>Three things</b><ol>${three.map(x => `<li>${esc(x)}</li>`).join('')}</ol></div>` : ''}
         <h3>Every round</h3>
-        <div class="rp-key"><span><i class="rp-h e"></i>birdie</span><span><i class="rp-h pr"></i>par</span><span><i class="rp-h bg"></i>bogey</span><span><i class="rp-h db"></i>double</span><span><i class="rp-h tr"></i>worse</span><span><i class="rp-h pu"></i>pick-up</span></div>
-        ${pr.rounds.map(r => `<div class="rp-round"><div class="rp-rh"><b>${esc(roundName(r.rid))}</b><span>${esc(r.course.replace('Cullinan ', ''))} · ${r.full ? '' : r.played + ' holes · '}<b class="num">${r.gross}</b> (${r.front} / ${r.back}) · ${r.pts} pts${r.puttHoles ? ' · ' + r.putts + ' putts' : ''}</span></div>
-          <div class="rp-strip">${r.holes.map(cell).join('')}</div></div>`).join('')}
+        <div class="rp-key"><span><i class="rp-cell under"></i>birdie</span><span><i class="rp-cell par"></i>par</span><span><i class="rp-cell bogey"></i>bogey</span><span><i class="rp-cell double"></i>double</span><span><i class="rp-cell worse"></i>worse</span><span><i class="rp-cell par pu"></i>pick-up</span></div>
+        ${pr.rounds.map(r => roundSummary(T, r, pr, now)).join('')}
         <h3>The numbers</h3>
         <table class="rp-table rp-num"><thead><tr><th></th>${pr.rounds.map(r => `<th class="r">${esc(roundShort(r.rid))}</th>`).join('')}<th class="r">Week</th></tr></thead><tbody>
           <tr><td>Gross · to par</td>${pr.rounds.map(r => `<td class="r">${r.gross} · ${sign(r.toPar)}</td>`).join('')}<td class="r">${w.gross} · ${sign(w.toPar)}</td></tr>
