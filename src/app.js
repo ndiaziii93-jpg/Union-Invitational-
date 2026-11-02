@@ -699,6 +699,15 @@ function boardReport() {
     ${st.err ? `<p class="askerr">${esc(st.err)}</p>` : ''}
     ${RP.renderReport(T, body, { now })}`;
 }
+/** One golfer's report, in a window of its own, opened from the list. */
+function reportPlayerHtml() {
+  const m = UI.modal, p = E.person(T, m.pid) || {};
+  return `<div class="scrim tcscrim" data-act="modalScrim"><div class="modal psheet cardsheet rplayer" role="dialog" aria-modal="true" aria-label="${esc(p.display || 'Player')}\u2019s report">
+    <span class="ps-grab dark" aria-hidden="true"><i></i></span>
+    <div class="ps-body rp-pbody">${RP.renderPlayer(T, reportBody(), m.pid, { now })}
+      <div class="acts"><button class="btn ghost" data-act="modalCancel">Close</button></div></div>
+  </div></div>`;
+}
 const neverBlock = () => { const s = String(RECAP_RULES); const a = s.indexOf('NEVER, because'), b = s.indexOf('HARD RULES'); return a >= 0 && b > a ? s.slice(a, b) : ''; };
 const REPORT_RULES = () => [
   'You are a professional sports writer who also coaches, filing the players report for a golf trip between old friends, after the last round. Every player reads it.',
@@ -6036,10 +6045,21 @@ function cardSheetHtml() {
     <span class="ps-grab dark" aria-hidden="true"><i></i></span>${modalBanner(title, sub)}
     <div class="ps-body cs-body">
       ${rounds.length > 1 ? `<div class="cs-rounds nos">${rounds.map(id => `<button class="${id === rid ? 'on' : ''}" data-act="cardRound" data-a="${id}">${esc(roomName(id))}</button>`).join('')}</div>` : ''}
-      <div class="cs-tiles">${cards.map((x, i) => `<div class="cs-tile"><span>${esc(x.g.display)}${x.g.band != null ? ' · hcp ' + x.g.band + (pair || r.counts ? ' · team ' + x.teamHcp : '') : ' · no handicap'}</span><b class="num">${x.all.gross == null ? '—' : x.all.gross}</b><small>${tp[i] ? 'gross ' + E.fmtToPar(tp[i][0]) + (tp[i][1] != null ? ' · net ' + E.fmtToPar(tp[i][1]) : '') : 'no holes yet'}${x.thru && x.thru < 18 ? ' · thru ' + x.thru : x.thru === 18 ? ' · 18 holes' : ''}</small></div>`).join('')}</div>
+      <div class="cs-heroes">${cards.map((x, i) => { const net = x.all.net == null ? null : tp[i][1]; return `<div class="rp-rs cs-hero">
+        <div class="rp-rsh"><b>${esc(x.g.display)}</b><span>${x.g.band != null ? 'hcp ' + esc(x.g.band) + (pair || r.counts ? ' \u00B7 team ' + x.teamHcp : '') : 'no handicap'}${x.thru ? ' \u00B7 ' + (x.thru === 18 ? '18 holes' : 'thru ' + x.thru) : ''}</span></div>
+        <div class="rp-hero">
+          <div class="rp-big"><small>Score</small><b class="num">${x.all.gross == null ? '\u2014' : x.all.gross}</b><em>${x.out.gross == null ? '\u2013' : x.out.gross} / ${x.back.gross == null ? '\u2013' : x.back.gross}${tp[i] ? ' \u00B7 ' + E.fmtToPar(tp[i][0]) : ''}</em></div>
+          <div class="rp-side">
+            <div><small>Net</small><b class="num">${x.all.net == null ? '\u2013' : x.all.net}</b>${net == null ? '' : `<i class="rp-badge ${net < 0 ? 'under' : net > 0 ? 'over' : 'level'}">${E.fmtToPar(net)}</i>`}</div>
+            <div><small>Points</small><b class="num">${x.all.pts == null ? '\u2013' : x.all.pts}</b><em>${x.out.pts == null ? '\u2013' : x.out.pts} / ${x.back.pts == null ? '\u2013' : x.back.pts}</em></div>
+          </div>
+        </div></div>`; }).join('')}</div>
       <div class="sc-card">${nine(0, 'out', 'Out')}${nine(9, 'back', 'In')}
         <div class="sc-r sc-tot"><span class="sc-l">Total</span>${cards.map(x => `<span class="sc-tv"><b>${pair ? esc(initialsOf(x.g.display)) + ' ' : ''}${x.all.gross == null ? '—' : x.all.gross}${x.all.pts != null && (pair || r.counts) ? ' · ' + x.all.pts + ' pts' : ''}</b><small>${x.all.gross == null ? 'no holes yet' : (x.thru < 18 ? 'thru ' + x.thru + ' · ' : '') + 'gross ' + E.fmtToPar(x.all.gross - x.all.parPlayed) + (x.all.net != null ? ' · net ' + x.all.net + ' (' + E.fmtToPar(x.all.net - x.all.parPlayed) + ')' : '')}</small></span>`).join('')}${
           pair ? `<span class="sc-tv team"><b>Team ${[0, 9].reduce((a, from) => { const v = Array.from({ length: 9 }, (_, i) => bestOf(from + i)).filter(v => v != null); return v.length ? (a == null ? 0 : a) + v.reduce((p, q) => p + q, 0) : a; }, null) ?? '—'} pts</b><small>better partner, each hole</small></span>` : ''}</div></div>
+      ${cards.map(x => { const d = { eagle: 0, birdie: 0, par: 0, bogey: 0, double: 0, worse: 0 }; let n = 0;
+        for (const row of x.rows) { if (row.raw == null) continue; n++; const o = row.raw - row.par; if (o <= -2) d.eagle++; else if (o === -1) d.birdie++; else if (o === 0) d.par++; else if (o === 1) d.bogey++; else if (o === 2) d.double++; else d.worse++; }
+        return n ? `<div class="cs-dist">${pair ? `<div class="rp-rsh"><b>${esc(x.g.display)}</b><span>how the holes went</span></div>` : ''}${RP.distChart(d, n)}</div>` : ''; }).join('')}
       <div class="cs-key">
         <div class="ck-row"><span><i class="sc-k g1">3</i>birdie or better</span><span><i class="sc-k p0">4</i>par</span><span><i class="sc-k b1">5</i>bogey</span><span><i class="sc-k b2">6</i>double</span><span><i class="sc-k b3">7</i>worse</span><span><i class="sc-k p0 pu">4</i>picked up</span></div>
         <div class="ck-row ck-notes"><span><b>≈</b>water</span><span><b>OB</b>out of bounds</span><span><b>3·</b>three-putt</span><span><b>★</b>shot of the hole</span><span><b class="pu">PU</b>picked up</span></div>
@@ -9272,6 +9292,7 @@ function modalHtml() {
        : UI.modal.kind === 'ruling' ? rulingSheetHtml()
        : UI.modal.kind === 'sotdNom' ? sotdNomHtml()
        : UI.modal.kind === 'card' ? cardSheetHtml()
+       : UI.modal.kind === 'rplayer' ? reportPlayerHtml()
        : UI.modal.kind === 'hist' ? histModalHtml()
        : UI.modal.kind === 'bbbfix' ? bbbFixHtml()
        : UI.modal.kind === 'xedit' ? xEditHtml()
@@ -9556,6 +9577,7 @@ function onClick(e) {
     }
     case 'fbOpen': fbOpen(); return;
     case 'reportWrite': writeReport(); return;
+    case 'reportPlayer': UI.modal = { kind: 'rplayer', pid: a }; render(); return;
     case 'reportStop': if (reportCtl) reportCtl.abort(); return;
     case 'reportShare': {
       const text = '\uD83D\uDCCA The Union Invitational: the players report is in. Every golfer graded, a coach\u2019s letter each, and all the numbers \uD83D\uDC49 ' + REPORT_LINK;

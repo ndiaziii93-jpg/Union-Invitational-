@@ -67,7 +67,7 @@ ok('the marks have a row of their own: water and a three-putt on the 5th', (awai
 ok('and the key below says how the points are worked out, with a table of them', [await p.locator('.cs-how').count(), await p.locator('.cs-pt b').allInnerTexts()], [1, ['0', '1', '2', '3', '4']]);
 const grossOut = [4, 2, 6, 4, 9, 4, 5, 3, 4].reduce((a, v) => a + v, 0);
 ok('the front nine adds up at the end of the row', await p.locator('.sc-nine').first().locator('.sc-gross .sc-t').innerText(), String(grossOut));
-ok('the tile says the round so far, gross and net, and the handicap he plays off in the team game', /^Ray V · hcp 20 · team 17 \d+ gross [+−E]\d* · net [+−E]\d* · thru 9$/i.test(await text('.cs-tile')), true);
+ok('the hero says the round so far: the score large, the nines and gross to par, the net with its badge, the handicap he plays off in the team game', /^Ray V hcp 20 · team 17 · thru 9 Score \d+ \d+ \/ – · [+−E]\d* Net \d+[+−E]\d* Points \d+ \d+ \/ –$/i.test(await text('.cs-hero')), true);
 ok('the mulligan spent is noted', /front mulligan/.test(await text('.cs-key')), true);
 await shot('card-ray');
 ok('Ray V has a practice card too, offered as a tab', await p.locator('.cs-rounds button').allInnerTexts(), ['Practice', 'Round 1']);
@@ -95,7 +95,7 @@ await shut();
 await p.evaluate(() => { window.__UI.recapOpen = true; window.__UI.recap = { rid: 'r1', busy: false, err: '', stream: '', edit: false, view: 'report' }; window.__forceRender(); }); await p.waitForTimeout(500);
 await tap('.recfield .namebtn:has-text("Drea")');
 ok('and Every card in the recap opens that golfer’s', await text('.cardsheet .mbanner'), 'Drea ROUND 1 · CULLINAN ASPENDOS · YELLOW TEES · FRI 30 OCT · LIVE');
-ok('with her handicap and how far she is on the tile', /^Drea · hcp 25 · team 21 \d+ gross .* · thru 6$/i.test(await text('.cs-tile')), true);
+ok('with her handicap and how far she is on the hero', /^Drea hcp 25 · team 21 · thru 6 Score \d+ /i.test(await text('.cs-hero')), true);
 await shut();
 
 ok('no errors on the way', errs, []);

@@ -5249,3 +5249,20 @@ textarea.fb-in{min-height:72px;resize:vertical}
 .rp-cell{display:inline-block;min-width:26px;height:26px;line-height:26px;border-radius:6px;font-style:normal;font-weight:800;font-size:13px}
 .rp-cell.pu{box-shadow:inset 0 0 0 2px var(--ink)}
 .rp-key .rp-cell{min-width:12px;width:12px;height:12px;line-height:12px;border-radius:3px;margin-right:3px;vertical-align:middle}
+
+/* the report's list of golfers, and a golfer's page as a window */
+.rp-lh{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin:4px 0 8px}
+.rp-list{margin:0 0 18px}
+.rp-row{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;width:100%;text-align:left;padding:11px 12px;margin:0 0 8px;border:1px solid var(--rule);border-radius:14px;background:var(--page);font:inherit;color:var(--ink);cursor:pointer}
+.rp-rw b{display:block;font-size:17px;font-family:var(--serif)}.rp-rw small{display:block;font-size:12.5px;color:var(--turf)}
+.rp-rg{display:flex;gap:3px}.rp-rg .rp-gl{width:24px;font-size:13px;padding:2px 0;border-radius:6px}
+.rp-go{font-size:22px;color:var(--turf)}
+.rplayer .rp-pbody{padding:8px 10px 14px}
+.rplayer .rp-card{box-shadow:none}
+.rpop{position:fixed;inset:0;z-index:9000;background:rgba(16,22,17,.55);overflow-y:auto;-webkit-overflow-scrolling:touch;padding:18px 10px 40px}
+.rpop-in{max-width:640px;margin:0 auto;position:relative}
+.rpop-x{position:sticky;top:0;z-index:2;float:right;margin:0 0 8px;padding:8px 14px;border-radius:999px;border:0;background:var(--pine);color:var(--gold-up);font:inherit;font-weight:800;cursor:pointer}
+body.rpop-open{overflow:hidden}
+.cs-heroes{display:grid;gap:10px;margin:0 0 10px}
+.cs-hero{margin:0}
+.cs-dist{margin:12px 0 4px;padding:10px 12px;border:1px solid var(--hair);border-radius:16px;background:#F7F2E6}

@@ -219,7 +219,7 @@ const ordinal = n => n + (n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th
    a big number with the net beside it, a bar chart of how the holes went,
    a grid of stat cards, and the card itself with every score in colour. */
 const DIST_COLS = [['under', 'Birdie+', d => d.eagle + d.birdie], ['par', 'Par', d => d.par], ['bogey', 'Bogey', d => d.bogey], ['double', 'Double', d => d.double], ['worse', 'Worse', d => d.worse]];
-function distChart(dist, holes) {
+export function distChart(dist, holes) {
   const n = Math.max(1, holes);
   const cols = DIST_COLS.map(([k, l, f]) => ({ k, l, n: f(dist), pct: Math.round(f(dist) / n * 100) }));
   const top = Math.max(1, ...cols.map(c => c.pct));
@@ -235,7 +235,7 @@ function statGrid(w) {
     ${stat('Pick-ups', String(w.pu), 'holes at the cap')}
   </div>`;
 }
-const scoreCls = h => (!h ? 'none' : h.over <= -1 ? 'under' : h.over === 0 ? 'par' : h.over === 1 ? 'bogey' : h.over === 2 ? 'double' : 'worse');
+export const scoreCls = h => (!h ? 'none' : h.over <= -1 ? 'under' : h.over === 0 ? 'par' : h.over === 1 ? 'bogey' : h.over === 2 ? 'double' : 'worse');
 function scorecard(T, r, pr) {
   const holes = E.courseOf(T, r.rid).holes;
   const band = pr.band;
@@ -312,7 +312,28 @@ export function renderReport(T, body, opts) {
         ${ld.mostOb && ld.mostOb.week.marks.ob ? `<tr><th>Most out of bounds</th><td>${esc(ld.mostOb.name)} ${ld.mostOb.week.marks.ob}</td></tr>` : ''}
       </tbody></table>
     </div></div>`;
-  const player = (pr, i) => {
+  const player = (pr, i) => playerCard(T, pr, i, F, words, now);
+  /* THE REPORT IS NOT ONE LONG SCROLL. The summary, then a row a golfer;
+     a tap opens that golfer on their own (a window in the book, a pop-up
+     on the page). `opts.all` draws every page in one, for printing. */
+  const row = pr => { const g = pr.grades || {}; const attr = opts.rowAttr ? opts.rowAttr(pr.id) : `data-act="reportPlayer" data-a="${esc(pr.id)}"`;
+    return `<button class="rp-row" ${attr} aria-label="Open ${esc(pr.name)}\u2019s report">
+      <span class="rp-rw"><b>${esc(pr.name)}</b><small>${pr.band == null ? 'no handicap' : 'hcp ' + esc(pr.band)}${pr.best ? ' \u00B7 best ' + pr.best.gross : ''} \u00B7 ${pr.week.pts} pts${pr.mvp ? ' \u00B7 MVP ' + ordinal(pr.mvp.pos) : ''}</small></span>
+      <span class="rp-rg">${GRADE_ROWS.slice(0, 4).map(([k]) => `<i class="rp-gl${gradeCls(g[k])}">${g[k] || '\u2013'}</i>`).join('')}</span>
+      <span class="rp-go" aria-hidden="true">\u203A</span></button>`; };
+  const list = `<div class="rp-list"><h3 class="rp-lh">The golfers</h3>${F.players.map(row).join('')}</div>`;
+  return `<div class="report">${exec}${opts.all ? F.players.map(player).join('') : list}</div>`;
+}
+/** One golfer's page, on its own. */
+export function renderPlayer(T, body, pid, opts) {
+  opts = opts || {};
+  const now = opts.now || E.nowLocal();
+  const F = fieldReport(T, now), i = F.players.findIndex(p => p.id === pid);
+  if (i < 0) return '<div class="report"><p class="rp-empty">No cards for this golfer yet.</p></div>';
+  const words = body && typeof body === 'object' ? body : null;
+  return `<div class="report">${playerCard(T, F.players[i], i, F, words, now)}</div>`;
+}
+function playerCard(T, pr, i, F, words, now) {
     const w = pr.week, g = pr.grades || {}, pw = words && words.players ? words.players[pr.id] : null;
     const letter = pw && Array.isArray(pw.letter) ? pw.letter : [], three = pw && Array.isArray(pw.three) ? pw.three : [], read = pw && pw.read ? String(pw.read) : '';
     const full = pr.rounds.filter(r => r.full);
@@ -363,6 +384,4 @@ export function renderReport(T, body, opts) {
           ${pr.playsTo != null ? `<tr><td>Handicap read</td><td class="r" colspan="${pr.rounds.length + 1}">net ${signF(pr.avgNet)} a round · played to about ${pr.playsTo}</td></tr>` : ''}
         </tbody></table>
       </div></div>`;
-  };
-  return `<div class="report">${exec}<div class="rp-jump">${F.players.map(p => `<a class="chip" href="#rp-${esc(p.id)}">${esc(p.name)}</a>`).join('')}</div>${F.players.map(player).join('')}</div>`;
 }

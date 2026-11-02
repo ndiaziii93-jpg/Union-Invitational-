@@ -52,7 +52,7 @@ ok('the field: two golfers, four cards, Duncan the most OB', [F.totals.players, 
 const brief = R.reportInput(T, now);
 ok('the brief for the writer carries each golfer by id, with the grades and the damage', [brief.ids, /GOLFER id=dp name=DP/.test(brief.players.dp), /four three-putts|4 three-putts/.test(brief.players.dp), /the damage: hole 1 \(par 4\) 6 ob/.test(brief.players.dp)], [['dp', 'dw'], true, true, true]);
 const html = R.renderReport(T, null, { now });
-ok('the report draws the summary and a card a golfer, the numbers alone until the words come', [(html.match(/rp-player/g) || []).length, /Not written yet/.test(html), (html.match(/class="rp-rs"/g) || []).length], [2, true, 3]);
+ok('the report draws the summary and a row a golfer; a golfer on their own has a round summary a round', [(html.match(/class="rp-row"/g) || []).length, /not been written yet/.test(html), (R.renderPlayer(T, null, 'dp', { now }).match(/class="rp-rs"/g) || []).length], [2, true, 2]);
 
 /* ---------- in the book ---------- */
 writeFileSync(S + '/rep.html', '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head><body>' + readFileSync('dist/union-invitational-sandbox.html', 'utf8') + '</body></html>');
@@ -76,15 +76,21 @@ await p.evaluate(([DP, DW]) => { const T = window.__T; T.config.rounds.r3.state 
   window.__forceRender(); }, [DP, DW]);
 await p.locator('[data-act="go"][data-a="boards"]:visible').first().click(); await p.waitForTimeout(500);
 await p.locator('.btab[data-a="report"]').click(); await p.waitForTimeout(600);
-ok('Boards has the Report tab, with a card a golfer and the numbers live', [await p.locator('.btab[data-a="report"].on').count(), await p.locator('.rp-player').count(), await p.locator('.rp-exec .rp-tile').count()], [1, 3, 6]);
+ok('Boards has the Report tab: the summary, then a row a golfer', [await p.locator('.btab[data-a="report"].on').count(), await p.locator('.rp-row').count(), await p.locator('.rp-player').count(), await p.locator('.rp-exec .rp-tile').count()], [1, 3, 0, 6]);
+await p.locator('.rp-row').first().click(); await p.waitForTimeout(400);
+ok('a tap opens that golfer on their own, with a round summary', [await p.locator('.rplayer .rp-player').count(), await p.locator('.rplayer .rp-rs').count(), await p.locator('.rplayer .rp-sc').count()], [1, 1, 2]);
+await p.locator('.rplayer [data-act="modalCancel"]').click(); await p.waitForTimeout(300);
 ok('the commissioner can write the notes; the group cannot yet share what is not there', [await p.locator('[data-act="reportWrite"]').count(), await p.locator('[data-act="reportShare"]').count()], [1, 0]);
 await p.locator('[data-act="reportWrite"]').click();
 await p.waitForFunction(() => { const r = window.__T.recaps.report; return r && r.body && Object.keys(r.body.players || {}).length >= 3 && !window.__UI.report.busy; }, null, { timeout: 30000 }).catch(() => {});
 await p.waitForTimeout(400);
 const got = await p.evaluate(() => ({ asked: window.__asked.map(q => /EXECUTIVE SUMMARY ONLY/.test(q) ? 'summary' : 'letters'), n: Object.keys(window.__T.recaps.report.body.players).length, status: window.__T.recaps.report.status, sum: window.__T.recaps.report.body.summary.length,
-  letters: document.querySelectorAll('.rp-player .rp-p').length, three: document.querySelectorAll('.rp-three li').length, reads: document.querySelectorAll('.rp-read').length, err: window.__UI.report.err }));
+  err: window.__UI.report.err }));
+await p.locator('.rp-row').first().click(); await p.waitForTimeout(400);
+Object.assign(got, await p.evaluate(() => ({ letters: document.querySelectorAll('.rplayer .rp-p').length, three: document.querySelectorAll('.rplayer .rp-three li').length, reads: document.querySelectorAll('.rplayer .rp-read').length })));
+await p.locator('.rplayer [data-act="modalCancel"]').click(); await p.waitForTimeout(300);
 ok('the summary first, then the letters in one batch of three, kept for everyone', [got.asked, got.n, got.status, got.sum, got.err], [['summary', 'letters'], 3, 'published', 2, '']);
-ok('and drawn: a coach\'s read, two paragraphs a letter and three things, each', [got.reads, got.letters, got.three, await p.locator('[data-act="reportShare"]').count()], [3, 6, 9, 1]);
+ok('and drawn on the golfer\'s page: the coach\'s read, two paragraphs and three things', [got.reads, got.letters, got.three, await p.locator('[data-act="reportShare"]').count()], [1, 2, 3, 1]);
 ok('the writer was told to be constructive and given the never-list', await p.evaluate(() => /CONSTRUCTIVE/.test(window.__asked[0]) && /NEVER, because it reads as machine-written/.test(window.__asked[0]) && /GOLFER id=/.test(window.__asked[1])), true);
 ok('no errors in the book', errs, []);
 await ctx.close();
@@ -101,7 +107,11 @@ const pageRows = rows.concat([{ path: 'recaps/report', doc: { rid: 'report', sta
 await q.route(/\/rest\/v1\/docs/, route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(pageRows) }));
 await q.route(/supabase\.co\/(?!rest)/, route => route.abort());
 await q.goto(BASE + 'recap/?r=report'); await q.waitForSelector('.report', { timeout: 20000 }); await q.waitForTimeout(500);
-ok('the page: the summary, a card a golfer, the letter and the grades, in the colours', [await q.locator('.rp-player').count(), await q.locator('.rp-exec .rp-p').count(), await q.locator('#rp-dp .rp-p').count(), await q.locator('#rp-dp .rp-read').count() + (await q.locator('#rp-dp .rp-gl.rp-gA').count() >= 1 ? 0 : 9), await q.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth <= 1)], [2, 1, 1, 1, true]);
+ok('the page: the summary and a row a golfer, the pages kept out of sight', [await q.locator('.rp-row').count(), await q.locator('.rp-exec .rp-p').count(), await q.locator('.rp-pops .rp-player').count(), await q.locator('#rpop').count(), await q.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth <= 1)], [2, 1, 2, 0, true]);
+await q.locator('.rp-row[data-player="dp"]').click(); await q.waitForTimeout(300);
+ok('a tap opens the golfer over the summary: the read, the letter, the grades, in the colours', [await q.locator('#rpop .rp-player').count(), await q.locator('#rpop .rp-read').count(), await q.locator('#rpop .rp-p').count(), await q.locator('#rpop .rp-gl.rp-gA').count() >= 1], [1, 1, 1, true]);
+await q.locator('#rpop .rpop-x').click(); await q.waitForTimeout(200);
+ok('and Done puts it away', await q.locator('#rpop').count(), 0);
 ok('the days are chips, the report among them', [await q.locator('.recaparch a.chip[href="?r=r3"]').count(), await q.locator('.recaparch a.chip.on[href="?r=report"]').count()], [1, 1]);
 ok('and a day\'s page points at the report once it is shared', await (async () => { await q.goto(BASE + 'recap/?r=r3'); await q.waitForSelector('.rechead', { timeout: 20000 }); return q.locator('.recaparch a.chip[href="?r=report"]').count(); })(), 1);
 ok('the page title says what it is', await (async () => { await q.goto(BASE + 'recap/?r=report'); await q.waitForSelector('.report', { timeout: 20000 }); return q.title(); })(), 'The Players Report · The Union Invitational');

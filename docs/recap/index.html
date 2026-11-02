@@ -5304,6 +5304,23 @@ textarea.fb-in{min-height:72px;resize:vertical}
 .rp-cell.pu{box-shadow:inset 0 0 0 2px var(--ink)}
 .rp-key .rp-cell{min-width:12px;width:12px;height:12px;line-height:12px;border-radius:3px;margin-right:3px;vertical-align:middle}
 
+/* the report's list of golfers, and a golfer's page as a window */
+.rp-lh{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin:4px 0 8px}
+.rp-list{margin:0 0 18px}
+.rp-row{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;width:100%;text-align:left;padding:11px 12px;margin:0 0 8px;border:1px solid var(--rule);border-radius:14px;background:var(--page);font:inherit;color:var(--ink);cursor:pointer}
+.rp-rw b{display:block;font-size:17px;font-family:var(--serif)}.rp-rw small{display:block;font-size:12.5px;color:var(--turf)}
+.rp-rg{display:flex;gap:3px}.rp-rg .rp-gl{width:24px;font-size:13px;padding:2px 0;border-radius:6px}
+.rp-go{font-size:22px;color:var(--turf)}
+.rplayer .rp-pbody{padding:8px 10px 14px}
+.rplayer .rp-card{box-shadow:none}
+.rpop{position:fixed;inset:0;z-index:9000;background:rgba(16,22,17,.55);overflow-y:auto;-webkit-overflow-scrolling:touch;padding:18px 10px 40px}
+.rpop-in{max-width:640px;margin:0 auto;position:relative}
+.rpop-x{position:sticky;top:0;z-index:2;float:right;margin:0 0 8px;padding:8px 14px;border-radius:999px;border:0;background:var(--pine);color:var(--gold-up);font:inherit;font-weight:800;cursor:pointer}
+body.rpop-open{overflow:hidden}
+.cs-heroes{display:grid;gap:10px;margin:0 0 10px}
+.cs-hero{margin:0}
+.cs-dist{margin:12px 0 4px;padding:10px 12px;border:1px solid var(--hair);border-radius:16px;background:#F7F2E6}
+
 </style>
 <style>
 /* A page, not a window. The book raises the recap over a screen; here it is
@@ -7816,7 +7833,28 @@ function renderReport(T, body, opts) {
         ${ld.mostOb && ld.mostOb.week.marks.ob ? `<tr><th>Most out of bounds</th><td>${esc(ld.mostOb.name)} ${ld.mostOb.week.marks.ob}</td></tr>` : ''}
       </tbody></table>
     </div></div>`;
-  const player = (pr, i) => {
+  const player = (pr, i) => playerCard(T, pr, i, F, words, now);
+  /* THE REPORT IS NOT ONE LONG SCROLL. The summary, then a row a golfer;
+     a tap opens that golfer on their own (a window in the book, a pop-up
+     on the page). `opts.all` draws every page in one, for printing. */
+  const row = pr => { const g = pr.grades || {}; const attr = opts.rowAttr ? opts.rowAttr(pr.id) : `data-act="reportPlayer" data-a="${esc(pr.id)}"`;
+    return `<button class="rp-row" ${attr} aria-label="Open ${esc(pr.name)}\u2019s report">
+      <span class="rp-rw"><b>${esc(pr.name)}</b><small>${pr.band == null ? 'no handicap' : 'hcp ' + esc(pr.band)}${pr.best ? ' \u00B7 best ' + pr.best.gross : ''} \u00B7 ${pr.week.pts} pts${pr.mvp ? ' \u00B7 MVP ' + ordinal(pr.mvp.pos) : ''}</small></span>
+      <span class="rp-rg">${GRADE_ROWS.slice(0, 4).map(([k]) => `<i class="rp-gl${gradeCls(g[k])}">${g[k] || '\u2013'}</i>`).join('')}</span>
+      <span class="rp-go" aria-hidden="true">\u203A</span></button>`; };
+  const list = `<div class="rp-list"><h3 class="rp-lh">The golfers</h3>${F.players.map(row).join('')}</div>`;
+  return `<div class="report">${exec}${opts.all ? F.players.map(player).join('') : list}</div>`;
+}
+/** One golfer's page, on its own. */
+function renderPlayer(T, body, pid, opts) {
+  opts = opts || {};
+  const now = opts.now || E.nowLocal();
+  const F = fieldReport(T, now), i = F.players.findIndex(p => p.id === pid);
+  if (i < 0) return '<div class="report"><p class="rp-empty">No cards for this golfer yet.</p></div>';
+  const words = body && typeof body === 'object' ? body : null;
+  return `<div class="report">${playerCard(T, F.players[i], i, F, words, now)}</div>`;
+}
+function playerCard(T, pr, i, F, words, now) {
     const w = pr.week, g = pr.grades || {}, pw = words && words.players ? words.players[pr.id] : null;
     const letter = pw && Array.isArray(pw.letter) ? pw.letter : [], three = pw && Array.isArray(pw.three) ? pw.three : [], read = pw && pw.read ? String(pw.read) : '';
     const full = pr.rounds.filter(r => r.full);
@@ -7867,11 +7905,9 @@ function renderReport(T, body, opts) {
           ${pr.playsTo != null ? `<tr><td>Handicap read</td><td class="r" colspan="${pr.rounds.length + 1}">net ${signF(pr.avgNet)} a round · played to about ${pr.playsTo}</td></tr>` : ''}
         </tbody></table>
       </div></div>`;
-  };
-  return `<div class="report">${exec}<div class="rp-jump">${F.players.map(p => `<a class="chip" href="#rp-${esc(p.id)}">${esc(p.name)}</a>`).join('')}</div>${F.players.map(player).join('')}</div>`;
 }
 
-return {roundShort, roundName, roundStats, playerReport, GRADE_ROWS, gradeOf, fieldReport, playerBrief, reportInput, renderReport};
+return {roundShort, roundName, roundStats, playerReport, GRADE_ROWS, gradeOf, fieldReport, playerBrief, reportInput, distChart, scoreCls, renderReport, renderPlayer};
 })();
 
 const __m_dbsupa = (function(){
@@ -10062,7 +10098,7 @@ return {blankCard, blankNote, blankBbb, defaultConfig, emptyState, normPerson, n
 
 const __m_recappage = (function(){
 const E = __m_engine;
-const { renderReport } = __m_report;
+const { renderReport, renderPlayer, fieldReport } = __m_report;
 const D = __m_data;
 const { defaultConfig, normPerson, normPair } = __m_store;
 /* THE RECAP, AS A PAGE ANYONE CAN OPEN.
@@ -10272,7 +10308,8 @@ function renderReportPage(T, opts) {
       ${shared.map(id => { const x = E.roundDef(id) || {}; return `<a class="chip" href="?r=${esc(id)}">${esc(x.short || id)}</a>`; }).join('')}
       ${weekShared(T) ? '<a class="chip gold" href="?r=week">★ The Week</a>' : ''}
       <a class="chip on" href="?r=report">Report</a></div>
-    <div class="rp-page">${renderReport(T, body, {})}</div>
+    <div class="rp-page">${renderReport(T, body, { rowAttr: id => `data-player="${esc(id)}"` })}</div>
+    <div class="rp-pops" hidden>${fieldReport(T, E.nowLocal()).players.map(p => `<div class="rp-pop" data-pop="${esc(p.id)}">${renderPlayer(T, body, p.id, {})}</div>`).join('')}</div>
   </div>`;
 }
 function renderRecap(T, rid, IMG, opts) {
@@ -10549,6 +10586,7 @@ async function boot(cfg) {
     el.innerHTML = renderRecap(T, rid, IMG, { draft: q.get('draft') === '1', shared });
     slides(el);
     fullScreen(el);
+    playerPops(el);
     window.__T = T; window.__rid = rid;    // read by the tests
   } catch (e) {
     el.innerHTML = `<div class="recapbox"><div class="recaptop"><b>The Day's Recap</b><a class="rm" href="../app/">Open the book</a></div>
@@ -10556,6 +10594,24 @@ async function boot(cfg) {
   }
 }
 
+/* A tap on a golfer in the players report opens their page over the summary; Done, the backdrop or Escape puts it away. */
+function playerPops(el) {
+  const close = () => { const o = document.getElementById('rpop'); if (o) o.remove(); document.body.classList.remove('rpop-open'); };
+  el.addEventListener('click', e => {
+    const b = e.target.closest('[data-player]');
+    if (!b) return;
+    const pop = el.querySelector('.rp-pop[data-pop="' + b.getAttribute('data-player').replace(/"/g, '') + '"]');
+    if (!pop) return;
+    close();
+    const o = document.createElement('div');
+    o.id = 'rpop'; o.className = 'rpop'; o.setAttribute('role', 'dialog'); o.setAttribute('aria-modal', 'true');
+    o.innerHTML = '<div class="rpop-in"><button class="rpop-x" aria-label="Close">Done</button>' + pop.innerHTML + '</div>';
+    o.addEventListener('click', ev => { if (ev.target === o || ev.target.closest('.rpop-x')) close(); });
+    document.body.appendChild(o); document.body.classList.add('rpop-open');
+    o.scrollTop = 0;
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+}
 /* A tap on a photograph in the article opens it full screen; a tap, or Escape, puts it away. */
 function fullScreen(el) {
   const close = () => { const o = document.getElementById('rfull'); if (o) o.remove(); };

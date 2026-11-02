@@ -15,7 +15,7 @@
  * never disagree about a number. Nothing on it links to Claude.
  */
 import * as E from './engine.js';
-import { renderReport } from './report.js';
+import { renderReport, renderPlayer, fieldReport } from './report.js';
 import * as D from './data.js';
 import { defaultConfig, normPerson, normPair } from './store.js';
 
@@ -206,7 +206,8 @@ export function renderReportPage(T, opts) {
       ${shared.map(id => { const x = E.roundDef(id) || {}; return `<a class="chip" href="?r=${esc(id)}">${esc(x.short || id)}</a>`; }).join('')}
       ${weekShared(T) ? '<a class="chip gold" href="?r=week">★ The Week</a>' : ''}
       <a class="chip on" href="?r=report">Report</a></div>
-    <div class="rp-page">${renderReport(T, body, {})}</div>
+    <div class="rp-page">${renderReport(T, body, { rowAttr: id => `data-player="${esc(id)}"` })}</div>
+    <div class="rp-pops" hidden>${fieldReport(T, E.nowLocal()).players.map(p => `<div class="rp-pop" data-pop="${esc(p.id)}">${renderPlayer(T, body, p.id, {})}</div>`).join('')}</div>
   </div>`;
 }
 export function renderRecap(T, rid, IMG, opts) {
@@ -483,6 +484,7 @@ export async function boot(cfg) {
     el.innerHTML = renderRecap(T, rid, IMG, { draft: q.get('draft') === '1', shared });
     slides(el);
     fullScreen(el);
+    playerPops(el);
     window.__T = T; window.__rid = rid;    // read by the tests
   } catch (e) {
     el.innerHTML = `<div class="recapbox"><div class="recaptop"><b>The Day's Recap</b><a class="rm" href="../app/">Open the book</a></div>
@@ -490,6 +492,24 @@ export async function boot(cfg) {
   }
 }
 
+/* A tap on a golfer in the players report opens their page over the summary; Done, the backdrop or Escape puts it away. */
+function playerPops(el) {
+  const close = () => { const o = document.getElementById('rpop'); if (o) o.remove(); document.body.classList.remove('rpop-open'); };
+  el.addEventListener('click', e => {
+    const b = e.target.closest('[data-player]');
+    if (!b) return;
+    const pop = el.querySelector('.rp-pop[data-pop="' + b.getAttribute('data-player').replace(/"/g, '') + '"]');
+    if (!pop) return;
+    close();
+    const o = document.createElement('div');
+    o.id = 'rpop'; o.className = 'rpop'; o.setAttribute('role', 'dialog'); o.setAttribute('aria-modal', 'true');
+    o.innerHTML = '<div class="rpop-in"><button class="rpop-x" aria-label="Close">Done</button>' + pop.innerHTML + '</div>';
+    o.addEventListener('click', ev => { if (ev.target === o || ev.target.closest('.rpop-x')) close(); });
+    document.body.appendChild(o); document.body.classList.add('rpop-open');
+    o.scrollTop = 0;
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+}
 /* A tap on a photograph in the article opens it full screen; a tap, or Escape, puts it away. */
 function fullScreen(el) {
   const close = () => { const o = document.getElementById('rfull'); if (o) o.remove(); };
