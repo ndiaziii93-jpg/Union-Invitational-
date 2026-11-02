@@ -5207,7 +5207,7 @@ textarea.fb-in{min-height:72px;resize:vertical}
 
 /* THE PLAYERS REPORT */
 .report{max-width:640px;margin:0 auto}
-.rp-card{background:var(--page);border:1px solid var(--rule);border-radius:18px;overflow:hidden;margin:0 0 18px;box-shadow:0 6px 18px rgba(0,0,0,.08)}
+.rp-card{background:var(--page);border:1px solid var(--rule);border-radius:18px;overflow:hidden;margin:0 0 18px;box-shadow:0 6px 18px rgba(0,0,0,.08);min-width:0;max-width:100%}
 .rp-band{background:var(--pine);color:var(--onpine);padding:14px 18px 12px;border-bottom:3px solid var(--gold-up)}
 .rp-band small{display:block;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold-up);font-weight:800}
 .rp-band h2{margin:3px 0 0;font-size:24px;line-height:1.1;color:var(--onpine);font-family:var(--serif)}
@@ -5215,11 +5215,11 @@ textarea.fb-in{min-height:72px;resize:vertical}
 .rp-body{padding:14px 18px 16px}
 .rp-body h3{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin:16px 0 8px;padding-top:10px;border-top:1px solid var(--rule)}
 .rp-body h3:first-child{border-top:0;padding-top:0;margin-top:0}
-.rp-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.rp-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .rp-tile{background:#F7F2E6;border:1px solid var(--hair);border-radius:12px;padding:10px 10px 8px;min-width:0}
 .rp-tile small{display:block;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--turf);font-weight:800}
-.rp-tile b{display:block;font-size:24px;line-height:1.1;margin-top:2px}
-.rp-tile em{display:block;font-style:normal;font-size:12px;color:var(--turf)}
+.rp-tile b{display:block;font-size:22px;line-height:1.1;margin-top:2px}
+.rp-tile em{display:block;font-style:normal;font-size:11.5px;color:var(--turf);overflow-wrap:anywhere}
 .rp-bar{display:grid;grid-template-columns:1fr 90px auto;gap:8px 10px;align-items:center;padding:6px 0;border-top:1px solid var(--hair);font-size:14.5px}
 .rp-bar:first-of-type{border-top:0}
 .rp-track{height:8px;background:var(--sunk);border-radius:4px;overflow:hidden}.rp-track i{display:block;height:100%;background:var(--green)}.rp-track i.r{background:var(--flag)}
@@ -5233,7 +5233,7 @@ textarea.fb-in{min-height:72px;resize:vertical}
 .rp-num td:first-child{font-size:13px;color:var(--turf)}
 .rp-grade{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:7px 0;border-top:1px solid var(--hair)}
 .rp-grade:first-of-type{border-top:0}
-.rp-grade span{font-size:15px}.rp-grade em{display:block;font-style:normal;font-size:12.5px;color:var(--turf)}
+.rp-grade span{font-size:15px;min-width:0}.rp-grade em{display:block;font-style:normal;font-size:12.5px;color:var(--turf);overflow-wrap:anywhere}
 .rp-gl{font-size:21px;font-weight:800;width:36px;text-align:center;border-radius:8px;padding:3px 0;background:var(--sunk);color:var(--turf)}
 .rp-gA{background:#3E5C43;color:#fff}.rp-gB{background:#9FB3A3;color:var(--pine)}.rp-gC{background:var(--gold-up);color:var(--pine)}.rp-gD{background:#C98B6B;color:#fff}
 .rp-trend{display:flex;gap:8px;align-items:flex-end;height:64px;margin:20px 0 22px}
@@ -5261,12 +5261,12 @@ textarea.fb-in{min-height:72px;resize:vertical}
 .rp-read{margin:0 0 6px;padding:8px 12px;border-left:3px solid var(--gold-up);background:#F7F2E6;border-radius:0 10px 10px 0;font-size:15.5px;line-height:1.5;font-style:italic}
 
 /* the round summaries, in the manner of the scoring apps */
-.rp-dist{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;align-items:end;margin:6px 0 4px;padding:0 2px}
+.rp-dist{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;align-items:end;margin:6px 0 4px;padding:0}
 .rp-dc{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;min-width:0}
 .rp-dbw{height:96px;width:100%;display:flex;align-items:flex-end;justify-content:center}
 .rp-dc b{font-size:15px;margin-bottom:4px}
 .rp-db{width:70%;max-width:52px;border-radius:12px;flex:0 0 auto}
-.rp-dc small{margin-top:6px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;font-weight:800;color:var(--turf)}
+.rp-dc small{margin-top:6px;font-size:9.5px;letter-spacing:.03em;text-transform:uppercase;font-weight:800;color:var(--turf);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rp-dc span{font-size:13px;color:var(--ink)}
 .rp-db.under,.rp-cell.under{background:var(--under);color:#fff}
 .rp-db.par,.rp-cell.par{background:#3E5C43;color:#fff}
@@ -5274,7 +5274,7 @@ textarea.fb-in{min-height:72px;resize:vertical}
 .rp-db.double,.rp-cell.double{background:#C98B6B;color:#fff}
 .rp-db.worse,.rp-cell.worse{background:var(--flag);color:#fff}
 .rp-cell.none{background:transparent}
-.rp-sg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0 0}
+.rp-sg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0 0}
 .rp-st{background:#F7F2E6;border:1px solid var(--hair);border-radius:14px;padding:12px 12px 10px;text-align:center;min-width:0}
 .rp-st small{display:block;font-size:12.5px;color:var(--turf)}
 .rp-st b{display:block;font-size:30px;line-height:1.1;margin:4px 0 2px}
@@ -5282,12 +5282,12 @@ textarea.fb-in{min-height:72px;resize:vertical}
 .rp-rs{margin:0 0 18px;padding:12px;border:1px solid var(--hair);border-radius:16px;background:#F7F2E6}
 .rp-rsh{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:6px}
 .rp-rsh b{font-size:17px}.rp-rsh span{font-size:13px;color:var(--turf)}
-.rp-hero{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center;margin:4px 0 10px}
+.rp-hero{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:center;margin:4px 0 10px}
 .rp-big small,.rp-side small{display:block;font-size:12.5px;color:var(--turf)}
-.rp-big b{display:block;font-size:64px;line-height:.95;letter-spacing:-.02em;color:var(--pine)}
+.rp-big b{display:block;font-size:56px;line-height:.95;letter-spacing:-.02em;color:var(--pine)}
 .rp-big em{display:block;font-style:normal;font-size:12.5px;color:var(--turf);margin-top:4px}
-.rp-side{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.rp-side b{display:inline-block;font-size:30px;line-height:1.1;vertical-align:middle}
+.rp-side{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;min-width:0}
+.rp-side b{display:inline-block;font-size:26px;line-height:1.1;vertical-align:middle}
 .rp-side em{display:block;font-style:normal;font-size:12px;color:var(--turf)}
 .rp-badge{display:inline-block;vertical-align:middle;margin-left:6px;padding:2px 8px;border-radius:999px;font-style:normal;font-size:13px;font-weight:800;color:#fff;background:var(--turf)}
 .rp-badge.under{background:var(--under)}.rp-badge.over{background:var(--flag)}.rp-badge.level{background:var(--pine)}
@@ -5307,11 +5307,13 @@ textarea.fb-in{min-height:72px;resize:vertical}
 /* the report's list of golfers, and a golfer's page as a window */
 .rp-lh{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin:4px 0 8px}
 .rp-list{margin:0 0 18px}
-.rp-row{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;width:100%;text-align:left;padding:11px 12px;margin:0 0 8px;border:1px solid var(--rule);border-radius:14px;background:var(--page);font:inherit;color:var(--ink);cursor:pointer}
+.rp-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;width:100%;text-align:left;padding:11px 12px;margin:0 0 8px;border:1px solid var(--rule);border-radius:14px;background:var(--page);font:inherit;color:var(--ink);cursor:pointer}
 .rp-rw b{display:block;font-size:17px;font-family:var(--serif)}.rp-rw small{display:block;font-size:12.5px;color:var(--turf)}
 .rp-rg{display:flex;gap:3px}.rp-rg .rp-gl{width:24px;font-size:13px;padding:2px 0;border-radius:6px}
 .rp-go{font-size:22px;color:var(--turf)}
-.rplayer .rp-pbody{padding:8px 10px 14px}
+.rplayer .rp-pbody{padding:8px 10px 14px;overflow-x:hidden}
+.rplayer .rp-body{padding:12px 12px 14px}
+.report,.rp-page,.rpop-in{min-width:0;overflow-x:hidden}
 .rplayer .rp-card{box-shadow:none}
 .rpop{position:fixed;inset:0;z-index:9000;background:rgba(16,22,17,.55);overflow-y:auto;-webkit-overflow-scrolling:touch;padding:18px 10px 40px}
 .rpop-in{max-width:640px;margin:0 auto;position:relative}

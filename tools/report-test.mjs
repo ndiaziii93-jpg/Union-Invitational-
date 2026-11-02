@@ -79,6 +79,7 @@ await p.locator('.btab[data-a="report"]').click(); await p.waitForTimeout(600);
 ok('Boards has the Report tab: the summary, then a row a golfer', [await p.locator('.btab[data-a="report"].on').count(), await p.locator('.rp-row').count(), await p.locator('.rp-player').count(), await p.locator('.rp-exec .rp-tile').count()], [1, 3, 0, 6]);
 await p.locator('.rp-row').first().click(); await p.waitForTimeout(400);
 ok('a tap opens that golfer on their own, with a round summary', [await p.locator('.rplayer .rp-player').count(), await p.locator('.rplayer .rp-rs').count(), await p.locator('.rplayer .rp-sc').count()], [1, 1, 2]);
+ok('and it fits a phone: nothing scrolls left or right', await p.evaluate(() => { const m = document.querySelector('.rplayer .ps-body'); const over = [...m.querySelectorAll('*')].filter(e => e.getBoundingClientRect().right > window.innerWidth + 1 && getComputedStyle(e).position !== 'fixed').length; return [m.scrollWidth - m.clientWidth <= 1, over]; }), [true, 0]);
 await p.locator('.rplayer [data-act="modalCancel"]').click(); await p.waitForTimeout(300);
 ok('the commissioner can write the notes; the group cannot yet share what is not there', [await p.locator('[data-act="reportWrite"]').count(), await p.locator('[data-act="reportShare"]').count()], [1, 0]);
 await p.locator('[data-act="reportWrite"]').click();
@@ -110,6 +111,7 @@ await q.goto(BASE + 'recap/?r=report'); await q.waitForSelector('.report', { tim
 ok('the page: the summary and a row a golfer, the pages kept out of sight', [await q.locator('.rp-row').count(), await q.locator('.rp-exec .rp-p').count(), await q.locator('.rp-pops .rp-player').count(), await q.locator('#rpop').count(), await q.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth <= 1)], [2, 1, 2, 0, true]);
 await q.locator('.rp-row[data-player="dp"]').click(); await q.waitForTimeout(300);
 ok('a tap opens the golfer over the summary: the read, the letter, the grades, in the colours', [await q.locator('#rpop .rp-player').count(), await q.locator('#rpop .rp-read').count(), await q.locator('#rpop .rp-p').count(), await q.locator('#rpop .rp-gl.rp-gA').count() >= 1], [1, 1, 1, true]);
+ok('and the pop-up fits a phone too', await q.evaluate(() => { const o = document.getElementById('rpop'); return [o.scrollWidth - o.clientWidth <= 1, [...o.querySelectorAll('*')].filter(e => e.getBoundingClientRect().right > window.innerWidth + 1).length]; }), [true, 0]);
 await q.locator('#rpop .rpop-x').click(); await q.waitForTimeout(200);
 ok('and Done puts it away', await q.locator('#rpop').count(), 0);
 ok('the days are chips, the report among them', [await q.locator('.recaparch a.chip[href="?r=r3"]').count(), await q.locator('.recaparch a.chip.on[href="?r=report"]').count()], [1, 1]);
