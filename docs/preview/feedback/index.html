@@ -39,8 +39,8 @@ textarea{min-height:76px;resize:vertical}
 .rate{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;padding:9px 0;border-top:1px solid var(--hair)}
 .rate:first-child{border-top:0}
 .rate span{font-size:15px}
-.ten{display:grid;grid-template-columns:repeat(10,1fr);gap:4px}
-.ten button{aspect-ratio:1;border-radius:8px;border:1px solid var(--rule);background:#F7F2E6;font:inherit;font-weight:700;font-size:15px;cursor:pointer;color:var(--ink)}
+.ten{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:3px}
+.ten button{aspect-ratio:1;min-width:0;padding:0;border-radius:8px;border:1px solid var(--rule);background:#F7F2E6;font:inherit;font-weight:700;font-size:15px;cursor:pointer;color:var(--ink)}
 .ten button.on{background:var(--gold-up);border-color:var(--gold);color:var(--pine)}
 .sec{margin:18px 0 8px;padding-top:12px;border-top:2px solid var(--rule)}
 .sec b{display:block;font-size:17px}
