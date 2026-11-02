@@ -62,7 +62,7 @@ await ctx.addInitScript(() => {
   window.__asked = [];
   const fn = async input => { const q = String(input); window.__asked.push(q);
     if (/EXECUTIVE SUMMARY ONLY/.test(q)) return { text: JSON.stringify({ summary: ['Paragraph one of the summary, long enough to count as a real paragraph about the week, with the winners and the numbers in it.', 'Paragraph two, the same, about where the week was won and lost on the par fives and the front nines.'] }), truncated: false };
-    const ids = ((q.match(/LETTERS FOR THESE GOLFERS ONLY: ([^.]+)\./) || [])[1] || '').split(',').map(x => x.trim()).filter(Boolean);
+    const ids = ((q.match(/PAGES FOR THESE GOLFERS ONLY: ([^.]+)\./) || [])[1] || '').split(',').map(x => x.trim()).filter(Boolean);
     const players = {}; ids.forEach(id => { players[id] = { read: 'A back-nine golfer with a front-nine problem: the swing holds, the start does not, and the par fives cost more than anything else on the card.', letter: ['Dear ' + id + ', a paragraph of coaching long enough to count, about your par fives and your front nine.', 'A second paragraph about the putting, where it was counted, and the one thing to do about it.'], three: ['Lay up on the par 5s', 'Lag putts to three feet', 'A first-tee routine'] }; });
     return { text: JSON.stringify({ players }), truncated: false }; };
   window.claude = { use: async name => name === 'sample' ? fn : null };
