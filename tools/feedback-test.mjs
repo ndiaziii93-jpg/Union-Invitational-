@@ -38,6 +38,10 @@ ok('the whole form: name, who, every star row, the four boxes, come again', [awa
 await p.locator('.fbmodal .fb-rate').nth(1).locator('.fb-star').nth(3).click(); await p.waitForTimeout(150);
 await p.locator('.fbmodal #fb_keep').fill('The bets and the recaps'); await p.waitForTimeout(150);
 ok('a star and a few words go in', [await p.locator('.fbmodal .fb-rate').nth(1).locator('.fb-star.on').count(), await p.evaluate(() => window.__UI.fb.keep)], [4, 'The bets and the recaps']);
+await p.locator('.fbmodal #fb_change').focus(); await p.keyboard.type('Earlier tee ti');
+await p.evaluate(() => { window.__render(true); window.__T.photos.zz = { id: 'zz', rid: 'trip', url: 'https://x.test/zz.jpg', at: 1 }; window.__forceRender(); }); await p.waitForTimeout(300);
+await p.keyboard.type('mes');
+ok('the book redrawing under the thumb loses neither the words, the focus nor the caret', [await p.locator('.fbmodal #fb_change').inputValue(), await p.evaluate(() => document.activeElement && document.activeElement.id), await p.locator('.fbmodal .fb-rate').nth(1).locator('.fb-star.on').count()], ['Earlier tee times', 'fb_change', 4]);
 await p.locator('.fbmodal [data-act="modalCancel"]').click(); await p.waitForTimeout(300);
 ok('Later puts it away', await p.locator('.fbmodal').count(), 0);
 ok('and Today has the card', (await p.locator('.fb-card').innerText()).includes('How was it?'), true);
@@ -58,7 +62,7 @@ ok('a new open no longer asks', [await p.locator('.fbmodal').count(), await p.lo
 
 console.log('\nchanged, and the commissioner reads it');
 await p.locator('.fb-card').click(); await p.waitForTimeout(300);
-ok('the card opens the form with the sent answers', await p.locator('.fbmodal #fb_keep').inputValue(), 'The bets and the recaps');
+ok('the card opens the form with the sent answers', [await p.locator('.fbmodal #fb_keep').inputValue(), await p.locator('.fbmodal #fb_change').inputValue()], ['The bets and the recaps', 'Earlier tee times']);
 await p.locator('.fbmodal #fb_name').fill('Ray V'); await p.locator('.fbmodal .fb-chips').nth(1).locator('.fb-chip').first().click();
 await p.locator('.fbmodal [data-act="fbSend"]').click(); await p.waitForTimeout(500);
 await p.locator('[data-act="modalCancel"]').first().click(); await p.waitForTimeout(200);

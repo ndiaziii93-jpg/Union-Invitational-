@@ -5147,6 +5147,7 @@ textarea.fb-in{min-height:72px;resize:vertical}
 .fb-tools .btn{flex:1 1 auto;padding:9px 10px;min-height:0;font-size:14px}
 .fb-thanks{text-align:center;padding:10px 0 4px}
 .fb-thanks b{display:block;font-size:22px;margin-bottom:6px}
+#fbhost .scrim{z-index:70}
 
 </style>
 <div id="app"></div>
@@ -5274,7 +5275,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261102-0408';
+const BUILD = '20261102-1244';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -11560,6 +11561,7 @@ const UI = {
   fb: null,             // the feedback form's answers, as they are typed
   fbNagged: false,      // the form has come up on this open
   fbBusy: false, fbErr: '',
+  fbOpen: false,        // the form is up, in its own host beside #app
   fbView: null,         // the commissioner's view of the answers: { rows, busy, err, copied, at }          // Select on the Photos page: { ids: { [photoId]: true } } while it is on
   who: undefined,       // the name this phone chats and bets as; read from the device on first use
   chatRoom: null,       // which chat is open: a round, or 'trip'; null follows the day
@@ -18787,8 +18789,8 @@ function feedbackModalHtml() {
     ${modalBanner('How was it?', 'The Union Invitational · Belek 2026')}
     <p class="fb-intro">${s ? 'You answered ' + esc(fbWhen(new Date(s.at).toISOString())) + '. Sending again replaces it.' : 'Two minutes. Skip anything you have no view on. Only the commissioner sees your answers.'}</p>
     <div class="fb-form">${F.formHtml(UI.fb)}</div>
-    ${UI.fbErr ? `<p class="fb-err">${esc(UI.fbErr)}</p>` : ''}
-    <div class="acts"><button class="btn ghost" data-act="modalCancel">Later</button><button class="btn" data-act="fbSend"${UI.fbBusy ? ' disabled' : ''}>${UI.fbBusy ? 'Sending…' : 'Send my answers'}</button></div>
+    <p class="fb-err"${UI.fbErr ? '' : ' hidden'}>${esc(UI.fbErr || '')}</p>
+    <div class="acts"><button class="btn ghost" data-act="modalCancel">Later</button><button class="btn" data-act="fbSend">Send my answers</button></div>
     <p class="fb-foot">Goes only to the commissioner. You can’t see anyone else’s.</p>
   </div></div>`;
 }
@@ -18820,21 +18822,64 @@ async function fbLoad() {
   catch (e) { UI.fbView = { ...(UI.fbView || {}), busy: false, err: (e && e.message) || 'Could not read the answers.' }; }
   render();
 }
+/* THE FORM IS DRAWN ONCE, OUTSIDE THE BOOK'S REDRAW. Every redraw replaces
+   the whole of #app, and the book redraws whenever the shared book lands
+   anything: a chat message, a heart, the minute ticking over. A box being
+   typed into was rebuilt under the thumb — the keyboard closed, the caret
+   went, and what was typed looked lost. So the form lives in a host of its
+   own beside #app, built when it opens and never touched until it closes.
+   Stars and chips change their own classes; the words go into UI.fb (and
+   the draft on the phone) as they are typed. */
+const fbHost = () => document.getElementById('fbhost');
+function fbOpen() {
+  UI.fb = feedbackDraft(); UI.fbErr = ''; UI.fbBusy = false;
+  let h = fbHost();
+  if (!h) {
+    h = document.createElement('div'); h.id = 'fbhost';
+    h.addEventListener('click', fbClick);
+    h.addEventListener('input', e => { const t = e.target; if (!t || !t.classList || !t.classList.contains('fb-in') || !UI.fb) return; UI.fb[t.dataset.fb] = t.value; fbPut(FB_DRAFT_KEY, UI.fb); });
+    document.body.appendChild(h);
+  }
+  h.innerHTML = feedbackModalHtml();
+  UI.fbOpen = true;
+}
+function fbClose() { const h = fbHost(); if (h) h.remove(); UI.fbOpen = false; }
+function fbClick(e) {
+  const el = e.target.closest('[data-act]');
+  if (!el) return;
+  const { act, a } = el.dataset;
+  if (act === 'modalScrim') { if (e.target.classList.contains('scrim')) fbClose(); return; }
+  if (act === 'modalCancel') { fbClose(); return; }
+  if (!UI.fb) UI.fb = feedbackDraft();
+  if (act === 'fbStar') {
+    UI.fb.stars = UI.fb.stars || {}; UI.fb.stars[el.dataset.fb] = +a;
+    el.parentNode.querySelectorAll('.fb-star').forEach((x, i) => { x.classList.toggle('on', i < +a); x.setAttribute('aria-pressed', String(i + 1 === +a)); });
+    fbPut(FB_DRAFT_KEY, UI.fb); return;
+  }
+  if (act === 'fbChip') {
+    UI.fb[el.dataset.fb] = a;
+    el.parentNode.querySelectorAll('.fb-chip').forEach(x => x.classList.toggle('on', x === el));
+    fbPut(FB_DRAFT_KEY, UI.fb); return;
+  }
+  if (act === 'fbSend') fbSend();
+}
 async function fbSend() {
+  const h = fbHost(); if (!h || UI.fbBusy) return;
   const doc = F.tidy(UI.fb || F.blank());
-  if (F.empty(doc)) { UI.fbErr = 'Nothing filled in yet.'; render(); return; }
-  UI.fbBusy = true; UI.fbErr = ''; render();
+  const err = h.querySelector('.fb-err'), btn = h.querySelector('[data-act="fbSend"]');
+  const say = t => { if (err) { err.textContent = t; err.hidden = !t; } };
+  if (F.empty(doc)) { say('Nothing filled in yet.'); return; }
+  UI.fbBusy = true; say(''); if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
   try {
     await store.feedbackSubmit(doc);
     fbPut(FB_DONE_KEY, { at: Date.now(), doc }); fbPut(FB_DRAFT_KEY, null); fbPut(FB_PEND_KEY, null);
-    UI.fbBusy = false; UI.fb = null; UI.modal = { kind: 'fbthanks' };
+    UI.fbBusy = false; UI.fb = null; fbClose(); UI.modal = { kind: 'fbthanks' }; render();
   } catch (e) {
-    UI.fbBusy = false;
-    const refused = e && (e.code === '42501');
-    if (refused) { UI.fbErr = 'The book turned it down: ' + ((e && e.message) || 'refused'); }
-    else { fbPut(FB_PEND_KEY, doc); fbPut(FB_DONE_KEY, { at: Date.now(), doc, kept: true }); fbPut(FB_DRAFT_KEY, null); UI.fb = null; UI.modal = { kind: 'fbthanks', kept: true }; }
+    UI.fbBusy = false; if (btn) { btn.disabled = false; btn.textContent = 'Send my answers'; }
+    if (e && e.code === '42501') { say('The book turned it down: ' + ((e && e.message) || 'refused')); return; }
+    fbPut(FB_PEND_KEY, doc); fbPut(FB_DONE_KEY, { at: Date.now(), doc, kept: true }); fbPut(FB_DRAFT_KEY, null);
+    UI.fb = null; fbClose(); UI.modal = { kind: 'fbthanks', kept: true }; render();
   }
-  render();
 }
 /* answers kept on the phone for want of a signal go the next time there is one */
 async function fbSendPending() {
@@ -19290,7 +19335,7 @@ function paint() {
   if (inUse()) { renderPending = true; return; }
   renderPending = false;
   /* the feedback form comes up once an open, until it has been answered, and waits for any other window to go first */
-  if (!UI.fbNagged && loaded() && feedbackLive() && !feedbackSent() && !UI.modal && !UI.recapOpen && !UI.askOpen) { UI.fbNagged = true; UI.fb = feedbackDraft(); UI.fbErr = ''; UI.modal = { kind: 'feedback' }; }
+  if (!UI.fbNagged && loaded() && feedbackLive() && !feedbackSent() && !UI.modal && !UI.recapOpen && !UI.askOpen && !UI.fbOpen) { UI.fbNagged = true; setTimeout(() => { if (!UI.modal && !UI.fbOpen) fbOpen(); }, 0); }
   wheelDone = null;       // this rebuild destroys it; the next one starts clean
   /* A turn written by somebody else's phone arrives as an ordinary change to
      the book, and the book redraws whenever it hears one — so this is where
@@ -20612,7 +20657,6 @@ function modalHtml() {
        : UI.modal.kind === 'phmove' ? photoMoveHtml()
        : UI.modal.kind === 'bulk' ? bulkHtml()
        : UI.modal.kind === 'phmany' ? photoManyHtml()
-       : UI.modal.kind === 'feedback' ? feedbackModalHtml()
        : UI.modal.kind === 'fbthanks' ? fbThanksHtml()
        : UI.modal.kind === 'fbview' ? feedbackViewHtml()
        : UI.modal.kind === 'hole' ? holeModalHtml()
@@ -20886,10 +20930,7 @@ function onClick(e) {
       render();
       return;
     }
-    case 'fbOpen': UI.fb = feedbackDraft(); UI.fbErr = ''; UI.modal = { kind: 'feedback' }; render(); return;
-    case 'fbStar': { if (!UI.fb) UI.fb = feedbackDraft(); UI.fb.stars = UI.fb.stars || {}; UI.fb.stars[el.dataset.fb] = +a; fbPut(FB_DRAFT_KEY, UI.fb); render(); return; }
-    case 'fbChip': { if (!UI.fb) UI.fb = feedbackDraft(); UI.fb[el.dataset.fb] = a; fbPut(FB_DRAFT_KEY, UI.fb); render(); return; }
-    case 'fbSend': fbSend(); return;
+    case 'fbOpen': fbOpen(); return;
     case 'fbView': UI.modal = { kind: 'fbview' }; render(); if (!(UI.fbView && UI.fbView.rows)) fbLoad(); return;
     case 'fbRefresh': fbLoad(); return;
     case 'fbCopy': {
@@ -22838,6 +22879,7 @@ function boot() {
      throws now names itself, with the line it came from. */
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
+    if (UI.fbOpen) { fbClose(); return; }
     if (UI.recapOpen) { if (recapCtl) recapCtl.abort(); UI.recapOpen = false; render(); return; }
     if (UI.askOpen) { UI.askOpen = false; render(); }
   });
@@ -22962,7 +23004,6 @@ function boot() {
   app.addEventListener('mousedown', atPress);
   app.addEventListener('input', e => {
     if (e.target && e.target.id === 'askField') UI.askText = e.target.value;
-    if (e.target && e.target.classList && e.target.classList.contains('fb-in') && UI.modal && UI.modal.kind === 'feedback') { if (!UI.fb) UI.fb = feedbackDraft(); UI.fb[e.target.dataset.fb] = e.target.value; fbPut(FB_DRAFT_KEY, UI.fb); }
     if (e.target && e.target.id === 'sotdText' && UI.modal && UI.modal.kind === 'sotdNom') UI.modal.t = e.target.value;
     /* a PIN half typed outlives the redraws the shared book lands */
     if (e.target && /^pin_(master|s1|s2)$/.test(e.target.id)) UI.pinDraft[e.target.id.slice(4)] = e.target.value;

@@ -5143,3 +5143,4 @@ textarea.fb-in{min-height:72px;resize:vertical}
 .fb-tools .btn{flex:1 1 auto;padding:9px 10px;min-height:0;font-size:14px}
 .fb-thanks{text-align:center;padding:10px 0 4px}
 .fb-thanks b{display:block;font-size:22px;margin-bottom:6px}
+#fbhost .scrim{z-index:70}
