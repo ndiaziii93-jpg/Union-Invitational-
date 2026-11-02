@@ -690,7 +690,7 @@ const reportBody = () => { const r = T.recaps.report; return r && r.body && type
 /** The golfers with cards but no page yet. */
 const reportMissing = () => { const b = reportBody(); if (!b) return []; const have = b.players || {}; return RP.fieldReport(T, now).players.map(p => p.id).filter(id => !(have[id] && (have[id].letter || []).length)); };
 function boardReport() {
-  const body = reportBody(), st = UI.report || {}, ed = canEdit();
+  const body = reportBody(), st = UI.report || {}, ed = canAdmin();   // the master PIN alone writes, fills and shares
   const done = body && body.players ? Object.keys(body.players).length : 0;
   return `<div class="titlerow"><h2 class="head">Players report</h2></div>
     ${ed ? `<div class="rp-tools">
@@ -698,7 +698,7 @@ function boardReport() {
       <button class="btn${body && !st.busy && reportMissing().length ? ' ghost' : ''}" data-act="reportWrite"${st.busy ? ' disabled' : ''}>${st.busy ? 'Writing…' : body ? 'Write the coach’s notes again' : 'Write the coach’s notes'}</button>
       ${st.busy ? '<button class="btn ghost" data-act="reportStop">Stop</button>' : ''}
       ${body ? `<button class="btn ghost" data-act="reportShare">${st.copied ? 'Link copied' : 'Share the report'}</button>` : ''}
-    </div>` : body ? `<div class="rp-tools"><button class="btn ghost" data-act="reportShare">${st.copied ? 'Link copied' : 'Share the report'}</button></div>` : ''}
+    </div>` : ''}
     ${st.busy ? `<p class="rp-status">Writing ${esc(st.step || '')}… ${done ? done + ' letter' + (done === 1 ? '' : 's') + ' in so far.' : ''} It takes about half a minute a batch; the page fills in as it goes.</p>` : ''}
     ${st.err ? `<p class="askerr">${esc(st.err)}</p>` : ''}
     ${RP.renderReport(T, body, { now })}`;
@@ -766,7 +766,7 @@ function tidyPage(x) {
 }
 async function writeReport(opts) {
   opts = opts || {};
-  if (!canEdit() || (UI.report && UI.report.busy)) return;
+  if (!canAdmin() || (UI.report && UI.report.busy)) return;
   if (!askClaude) { UI.report = { busy: false, err: sampleError({ code: 'not_granted' }), step: '' }; render(); return; }
   const brief = RP.reportInput(T, now);
   if (!brief.ids.length) { UI.report = { busy: false, err: 'No cards in the book yet.', step: '' }; render(); return; }
@@ -9641,10 +9641,11 @@ function onClick(e) {
     }
     case 'fbOpen': fbOpen(); return;
     case 'reportWrite': writeReport(); return;
-    case 'reportFill': writeReport({ only: reportMissing() }); return;
+    case 'reportFill': if (!canAdmin()) return; writeReport({ only: reportMissing() }); return;
     case 'reportPlayer': UI.modal = { kind: 'rplayer', pid: a }; render(); return;
     case 'reportStop': if (reportCtl) reportCtl.abort(); return;
     case 'reportShare': {
+      if (!canAdmin()) return;
       const text = '\uD83D\uDCCA The Union Invitational: the players report is in. Every golfer graded, a coach\u2019s letter each, and all the numbers \uD83D\uDC49 ' + REPORT_LINK;
       const done = () => { UI.report = { ...(UI.report || {}), copied: true }; render(); setTimeout(() => { UI.report = { ...(UI.report || {}), copied: false }; render(); }, 1800); };
       if (navigator.share) navigator.share({ text }).then(done, () => { if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, () => {}); });
