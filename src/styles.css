@@ -5198,3 +5198,4 @@ textarea.fb-in{min-height:72px;resize:vertical}
 .rp-tools .btn{flex:1 1 auto;min-height:0;padding:9px 10px;font-size:14px}
 .rp-status{font-size:13.5px;color:var(--turf);margin:0 0 10px;font-style:italic}
 .rp-page{padding:14px 12px 20px}
+.rp-read{margin:0 0 6px;padding:8px 12px;border-left:3px solid var(--gold-up);background:#F7F2E6;border-radius:0 10px 10px 0;font-size:15.5px;line-height:1.5;font-style:italic}

@@ -5274,6 +5274,7 @@ textarea.fb-in{min-height:72px;resize:vertical}
 .rp-tools .btn{flex:1 1 auto;min-height:0;padding:9px 10px;font-size:14px}
 .rp-status{font-size:13.5px;color:var(--turf);margin:0 0 10px;font-style:italic}
 .rp-page{padding:14px 12px 20px}
+.rp-read{margin:0 0 6px;padding:8px 12px;border-left:3px solid var(--gold-up);background:#F7F2E6;border-radius:0 10px 10px 0;font-size:15.5px;line-height:1.5;font-style:italic}
 
 </style>
 <div id="app"></div>
@@ -5401,7 +5402,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261102-1318';
+const BUILD = '20261102-1324';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -9644,7 +9645,7 @@ function renderReport(T, body, opts) {
     </div></div>`;
   const player = (pr, i) => {
     const w = pr.week, g = pr.grades || {}, pw = words && words.players ? words.players[pr.id] : null;
-    const letter = pw && Array.isArray(pw.letter) ? pw.letter : [], three = pw && Array.isArray(pw.three) ? pw.three : [];
+    const letter = pw && Array.isArray(pw.letter) ? pw.letter : [], three = pw && Array.isArray(pw.three) ? pw.three : [], read = pw && pw.read ? String(pw.read) : '';
     const full = pr.rounds.filter(r => r.full);
     const trendMax = Math.max(...full.map(r => r.gross), 1), trendMin = Math.min(...full.map(r => r.gross), trendMax - 1);
     const mvpNote = pr.mvp ? ordinal(pr.mvp.pos) + ' on the MVP board' : '';
@@ -9657,6 +9658,8 @@ function renderReport(T, body, opts) {
           ${tile('Points', String(w.pts), 'the week · ' + (pr.mvp ? 'net ' + pr.mvp.totalStr : sign(w.netToPar) + ' net'))}
           ${tile('MVP', pr.mvp ? ordinal(pr.mvp.pos) : '—', mvpNote ? 'of ' + E.mvpBoard(T, now).length : '')}
         </div>
+        <h3>The coach\u2019s read</h3>
+        ${read ? `<p class="rp-read">${esc(read)}</p>` : `<p class="rp-wait">${words ? 'Being written.' : 'Not written yet.'}</p>`}
         ${full.length > 1 ? `<h3>Trend</h3><div class="rp-trend">${full.map(r => `<div style="height:${Math.round(30 + 65 * (trendMax - r.gross + 2) / (trendMax - trendMin + 2))}%"><span class="num">${r.gross}</span><small>${esc(roundShort(r.rid))}</small></div>`).join('')}</div>` : ''}
         <h3>Grades</h3>
         ${GRADE_ROWS.map(([k, l]) => { const note = k === 'par3' || k === 'par4' || k === 'par5' ? (w.byPar[k.slice(3)] && w.byPar[k.slice(3)][1] ? signF(w.byPar[k.slice(3)][0] / w.byPar[k.slice(3)][1]) + ' a hole over ' + w.byPar[k.slice(3)][1] : 'none played')
@@ -12606,7 +12609,7 @@ const REPORT_RULES = () => [
   neverBlock(),
 ].join('\n');
 const REPORT_SUMMARY_ASK = '\n\nWRITE THE EXECUTIVE SUMMARY ONLY. JSON: {"summary": [five to seven paragraphs of 60 to 100 words each]}. Open on who won what and the numbers; then the field\'s scoring; where the week was won and lost (par types, the nines, the trouble); the Ryder Cup and the bingo; who improved; and close on the two or three things the field as a whole should work on before next year, as a coach would put it.';
-const reportPlayersAsk = ids => '\n\nWRITE THE LETTERS FOR THESE GOLFERS ONLY: ' + ids.join(', ') + '. JSON: {"players": {"<id>": {"letter": [three paragraphs of 60 to 110 words, to the golfer], "three": ["three things to work on, one line each, the fix in the line"]}}}. Use each golfer\'s id as the key, exactly as given. Every golfer listed gets a letter.';
+const reportPlayersAsk = ids => '\n\nWRITE THE LETTERS FOR THESE GOLFERS ONLY: ' + ids.join(', ') + '. JSON: {"players": {"<id>": {"read": "the coach\'s read: 40 to 70 words in the third person, the verdict on what kind of golfer this card shows, where the shots go and what the week says about them", "letter": [three paragraphs of 60 to 110 words, to the golfer], "three": ["three things to work on, one line each, the fix in the line"]}}}. Use each golfer\'s id as the key, exactly as given. Every golfer listed gets a letter.';
 function parseLoose(raw) {
   let t = String(raw || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
   const a = t.indexOf('{'), b = t.lastIndexOf('}');
@@ -12646,7 +12649,8 @@ async function writeReport() {
         if (!x || typeof x !== 'object') continue;
         const letter = (Array.isArray(x.letter) ? x.letter : []).map(t => String(t || '')).filter(t => t.trim().length > 40).slice(0, 5);
         const three = (Array.isArray(x.three) ? x.three : []).map(t => String(t || '').trim()).filter(Boolean).slice(0, 3);
-        if (letter.length) body.players[id] = { letter, three };
+        const read = String(x.read || '').trim().slice(0, 700);
+        if (letter.length || read) body.players[id] = { read, letter, three };
       }
       await save();
     }
@@ -23617,7 +23621,7 @@ __m_app.boot();
 /* Register the worker that makes the book work with no signal. It is the
    whole point of installing it: Belek is five hours of walking and everyone
    is roaming. A failure here must never stop the page loading. */
-var BOOK_BUILD = '20261102-1318';
+var BOOK_BUILD = '20261102-1324';
 var swReg = null;
 /* the book is never shown inside somebody else's page, where a tap could be
    aimed at a button they have put under the finger */

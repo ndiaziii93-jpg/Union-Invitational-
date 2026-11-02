@@ -253,7 +253,7 @@ export function renderReport(T, body, opts) {
     </div></div>`;
   const player = (pr, i) => {
     const w = pr.week, g = pr.grades || {}, pw = words && words.players ? words.players[pr.id] : null;
-    const letter = pw && Array.isArray(pw.letter) ? pw.letter : [], three = pw && Array.isArray(pw.three) ? pw.three : [];
+    const letter = pw && Array.isArray(pw.letter) ? pw.letter : [], three = pw && Array.isArray(pw.three) ? pw.three : [], read = pw && pw.read ? String(pw.read) : '';
     const full = pr.rounds.filter(r => r.full);
     const trendMax = Math.max(...full.map(r => r.gross), 1), trendMin = Math.min(...full.map(r => r.gross), trendMax - 1);
     const mvpNote = pr.mvp ? ordinal(pr.mvp.pos) + ' on the MVP board' : '';
@@ -266,6 +266,8 @@ export function renderReport(T, body, opts) {
           ${tile('Points', String(w.pts), 'the week · ' + (pr.mvp ? 'net ' + pr.mvp.totalStr : sign(w.netToPar) + ' net'))}
           ${tile('MVP', pr.mvp ? ordinal(pr.mvp.pos) : '—', mvpNote ? 'of ' + E.mvpBoard(T, now).length : '')}
         </div>
+        <h3>The coach\u2019s read</h3>
+        ${read ? `<p class="rp-read">${esc(read)}</p>` : `<p class="rp-wait">${words ? 'Being written.' : 'Not written yet.'}</p>`}
         ${full.length > 1 ? `<h3>Trend</h3><div class="rp-trend">${full.map(r => `<div style="height:${Math.round(30 + 65 * (trendMax - r.gross + 2) / (trendMax - trendMin + 2))}%"><span class="num">${r.gross}</span><small>${esc(roundShort(r.rid))}</small></div>`).join('')}</div>` : ''}
         <h3>Grades</h3>
         ${GRADE_ROWS.map(([k, l]) => { const note = k === 'par3' || k === 'par4' || k === 'par5' ? (w.byPar[k.slice(3)] && w.byPar[k.slice(3)][1] ? signF(w.byPar[k.slice(3)][0] / w.byPar[k.slice(3)][1]) + ' a hole over ' + w.byPar[k.slice(3)][1] : 'none played')

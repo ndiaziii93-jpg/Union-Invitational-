@@ -63,7 +63,7 @@ await ctx.addInitScript(() => {
   const fn = async input => { const q = String(input); window.__asked.push(q);
     if (/EXECUTIVE SUMMARY ONLY/.test(q)) return { text: JSON.stringify({ summary: ['Paragraph one of the summary, long enough to count as a real paragraph about the week, with the winners and the numbers in it.', 'Paragraph two, the same, about where the week was won and lost on the par fives and the front nines.'] }), truncated: false };
     const ids = ((q.match(/LETTERS FOR THESE GOLFERS ONLY: ([^.]+)\./) || [])[1] || '').split(',').map(x => x.trim()).filter(Boolean);
-    const players = {}; ids.forEach(id => { players[id] = { letter: ['Dear ' + id + ', a paragraph of coaching long enough to count, about your par fives and your front nine.', 'A second paragraph about the putting, where it was counted, and the one thing to do about it.'], three: ['Lay up on the par 5s', 'Lag putts to three feet', 'A first-tee routine'] }; });
+    const players = {}; ids.forEach(id => { players[id] = { read: 'A back-nine golfer with a front-nine problem: the swing holds, the start does not, and the par fives cost more than anything else on the card.', letter: ['Dear ' + id + ', a paragraph of coaching long enough to count, about your par fives and your front nine.', 'A second paragraph about the putting, where it was counted, and the one thing to do about it.'], three: ['Lay up on the par 5s', 'Lag putts to three feet', 'A first-tee routine'] }; });
     return { text: JSON.stringify({ players }), truncated: false }; };
   window.claude = { use: async name => name === 'sample' ? fn : null };
 });
@@ -82,9 +82,9 @@ await p.locator('[data-act="reportWrite"]').click();
 await p.waitForFunction(() => { const r = window.__T.recaps.report; return r && r.body && Object.keys(r.body.players || {}).length >= 3 && !window.__UI.report.busy; }, null, { timeout: 30000 }).catch(() => {});
 await p.waitForTimeout(400);
 const got = await p.evaluate(() => ({ asked: window.__asked.map(q => /EXECUTIVE SUMMARY ONLY/.test(q) ? 'summary' : 'letters'), n: Object.keys(window.__T.recaps.report.body.players).length, status: window.__T.recaps.report.status, sum: window.__T.recaps.report.body.summary.length,
-  letters: document.querySelectorAll('.rp-player .rp-p').length, three: document.querySelectorAll('.rp-three li').length, err: window.__UI.report.err }));
+  letters: document.querySelectorAll('.rp-player .rp-p').length, three: document.querySelectorAll('.rp-three li').length, reads: document.querySelectorAll('.rp-read').length, err: window.__UI.report.err }));
 ok('the summary first, then the letters in one batch of three, kept for everyone', [got.asked, got.n, got.status, got.sum, got.err], [['summary', 'letters'], 3, 'published', 2, '']);
-ok('and drawn: two paragraphs a letter, three things each', [got.letters, got.three, await p.locator('[data-act="reportShare"]').count()], [6, 9, 1]);
+ok('and drawn: a coach\'s read, two paragraphs a letter and three things, each', [got.reads, got.letters, got.three, await p.locator('[data-act="reportShare"]').count()], [3, 6, 9, 1]);
 ok('the writer was told to be constructive and given the never-list', await p.evaluate(() => /CONSTRUCTIVE/.test(window.__asked[0]) && /NEVER, because it reads as machine-written/.test(window.__asked[0]) && /GOLFER id=/.test(window.__asked[1])), true);
 ok('no errors in the book', errs, []);
 await ctx.close();
@@ -96,12 +96,12 @@ await new Promise(r => server.listen(0, '127.0.0.1', r));
 const BASE = 'http://127.0.0.1:' + server.address().port + '/';
 const ctx2 = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
 const q = await ctx2.newPage(); const errs2 = []; q.on('pageerror', e => errs2.push(String(e)));
-const pageRows = rows.concat([{ path: 'recaps/report', doc: { rid: 'report', status: 'published', at: Date.now(), body: { v: 1, summary: ['The summary paragraph, long enough to be real, with the winners and the numbers in it for the whole group to read.'], players: { dp: { letter: ['Dear DP, the letter paragraph, long enough to count, about the par fives.'], three: ['Lay up', 'Lag it', 'Routine'] } } } } },
+const pageRows = rows.concat([{ path: 'recaps/report', doc: { rid: 'report', status: 'published', at: Date.now(), body: { v: 1, summary: ['The summary paragraph, long enough to be real, with the winners and the numbers in it for the whole group to read.'], players: { dp: { read: 'The read on DP, a sentence or two.', letter: ['Dear DP, the letter paragraph, long enough to count, about the par fives.'], three: ['Lay up', 'Lag it', 'Routine'] } } } } },
   { path: 'recaps/r3', doc: { rid: 'r3', status: 'published', at: Date.now(), body: { headline: 'Sunday', narrative: ['A long enough paragraph about Sunday at Olympos with names and holes and scores in it so that it counts.'] } } }]);
 await q.route(/\/rest\/v1\/docs/, route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(pageRows) }));
 await q.route(/supabase\.co\/(?!rest)/, route => route.abort());
 await q.goto(BASE + 'recap/?r=report'); await q.waitForSelector('.report', { timeout: 20000 }); await q.waitForTimeout(500);
-ok('the page: the summary, a card a golfer, the letter and the grades, in the colours', [await q.locator('.rp-player').count(), await q.locator('.rp-exec .rp-p').count(), await q.locator('#rp-dp .rp-p').count(), await q.locator('#rp-dp .rp-gl.rp-gA').count() >= 1, await q.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth <= 1)], [2, 1, 1, true, true]);
+ok('the page: the summary, a card a golfer, the letter and the grades, in the colours', [await q.locator('.rp-player').count(), await q.locator('.rp-exec .rp-p').count(), await q.locator('#rp-dp .rp-p').count(), await q.locator('#rp-dp .rp-read').count() + (await q.locator('#rp-dp .rp-gl.rp-gA').count() >= 1 ? 0 : 9), await q.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth <= 1)], [2, 1, 1, 1, true]);
 ok('the days are chips, the report among them', [await q.locator('.recaparch a.chip[href="?r=r3"]').count(), await q.locator('.recaparch a.chip.on[href="?r=report"]').count()], [1, 1]);
 ok('and a day\'s page points at the report once it is shared', await (async () => { await q.goto(BASE + 'recap/?r=r3'); await q.waitForSelector('.rechead', { timeout: 20000 }); return q.locator('.recaparch a.chip[href="?r=report"]').count(); })(), 1);
 ok('the page title says what it is', await (async () => { await q.goto(BASE + 'recap/?r=report'); await q.waitForSelector('.report', { timeout: 20000 }); return q.title(); })(), 'The Players Report · The Union Invitational');

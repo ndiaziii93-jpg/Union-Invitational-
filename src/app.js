@@ -709,7 +709,7 @@ const REPORT_RULES = () => [
   neverBlock(),
 ].join('\n');
 const REPORT_SUMMARY_ASK = '\n\nWRITE THE EXECUTIVE SUMMARY ONLY. JSON: {"summary": [five to seven paragraphs of 60 to 100 words each]}. Open on who won what and the numbers; then the field\'s scoring; where the week was won and lost (par types, the nines, the trouble); the Ryder Cup and the bingo; who improved; and close on the two or three things the field as a whole should work on before next year, as a coach would put it.';
-const reportPlayersAsk = ids => '\n\nWRITE THE LETTERS FOR THESE GOLFERS ONLY: ' + ids.join(', ') + '. JSON: {"players": {"<id>": {"letter": [three paragraphs of 60 to 110 words, to the golfer], "three": ["three things to work on, one line each, the fix in the line"]}}}. Use each golfer\'s id as the key, exactly as given. Every golfer listed gets a letter.';
+const reportPlayersAsk = ids => '\n\nWRITE THE LETTERS FOR THESE GOLFERS ONLY: ' + ids.join(', ') + '. JSON: {"players": {"<id>": {"read": "the coach\'s read: 40 to 70 words in the third person, the verdict on what kind of golfer this card shows, where the shots go and what the week says about them", "letter": [three paragraphs of 60 to 110 words, to the golfer], "three": ["three things to work on, one line each, the fix in the line"]}}}. Use each golfer\'s id as the key, exactly as given. Every golfer listed gets a letter.';
 function parseLoose(raw) {
   let t = String(raw || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
   const a = t.indexOf('{'), b = t.lastIndexOf('}');
@@ -749,7 +749,8 @@ async function writeReport() {
         if (!x || typeof x !== 'object') continue;
         const letter = (Array.isArray(x.letter) ? x.letter : []).map(t => String(t || '')).filter(t => t.trim().length > 40).slice(0, 5);
         const three = (Array.isArray(x.three) ? x.three : []).map(t => String(t || '').trim()).filter(Boolean).slice(0, 3);
-        if (letter.length) body.players[id] = { letter, three };
+        const read = String(x.read || '').trim().slice(0, 700);
+        if (letter.length || read) body.players[id] = { read, letter, three };
       }
       await save();
     }
