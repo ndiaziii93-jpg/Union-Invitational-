@@ -368,7 +368,7 @@ function playerCard(T, pr, i, F, words, now) {
         <div class="rp-key"><span><i class="rp-cell under"></i>birdie</span><span><i class="rp-cell par"></i>par</span><span><i class="rp-cell bogey"></i>bogey</span><span><i class="rp-cell double"></i>double</span><span><i class="rp-cell worse"></i>worse</span><span><i class="rp-cell par pu"></i>pick-up</span></div>
         ${pr.rounds.map(r => roundSummary(T, r, pr, now)).join('')}
         <h3>The numbers</h3>
-        <table class="rp-table rp-num"><thead><tr><th></th>${pr.rounds.map(r => `<th class="r">${esc(roundShort(r.rid))}</th>`).join('')}<th class="r">Week</th></tr></thead><tbody>
+        <div class="rp-tbl"><table class="rp-table rp-num"><thead><tr><th></th>${pr.rounds.map(r => `<th class="r">${esc(roundShort(r.rid))}</th>`).join('')}<th class="r">Week</th></tr></thead><tbody>
           <tr><td>Gross · to par</td>${pr.rounds.map(r => `<td class="r">${r.gross} · ${sign(r.toPar)}</td>`).join('')}<td class="r">${w.gross} · ${sign(w.toPar)}</td></tr>
           <tr><td>Points (front / back)</td>${pr.rounds.map(r => `<td class="r">${r.pts} (${r.ptsF}/${r.ptsB})</td>`).join('')}<td class="r">${w.pts} (${w.ptsF}/${w.ptsB})</td></tr>
           <tr><td>Net to par</td>${pr.rounds.map(r => `<td class="r">${sign(r.netToPar)}</td>`).join('')}<td class="r">${sign(w.netToPar)}</td></tr>
@@ -382,6 +382,6 @@ function playerCard(T, pr, i, F, words, now) {
           ${pr.matches.length ? `<tr><td>Ryder Cup singles</td>${pr.rounds.map(r => { const m = pr.matches.find(x => x.rid === r.rid); return `<td class="r">${m ? (m.result === 'won' ? 'W' : m.result === 'lost' ? 'L' : m.result === 'halved' ? 'H' : '–') + (m.done && m.up ? ' ' + Math.abs(m.up) : '') : '–'}</td>`; }).join('')}<td class="r">${pr.rec.w}–${pr.rec.l}–${pr.rec.h}</td></tr>` : ''}
           ${pr.pair && pr.pair.row ? `<tr><td>Team: ${esc(pr.pair.name)}</td><td class="r" colspan="${pr.rounds.length + 1}">${ordinal(pr.pair.row.pos)} · ${pr.pair.row.total} pts</td></tr>` : ''}
           ${pr.playsTo != null ? `<tr><td>Handicap read</td><td class="r" colspan="${pr.rounds.length + 1}">net ${signF(pr.avgNet)} a round · played to about ${pr.playsTo}</td></tr>` : ''}
-        </tbody></table>
+        </tbody></table></div>
       </div></div>`;
 }
