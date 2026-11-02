@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Players report — three styles · The Union Invitational</title>
+<style>
+@font-face{font-family:'Source Serif';src:url(../../app/fonts/source-serif-latin-normal.woff2) format('woff2');font-weight:400 800;font-display:swap}
+@font-face{font-family:'Source Serif';src:url(../../app/fonts/source-serif-latin-italic.woff2) format('woff2');font-style:italic;font-weight:400 800;font-display:swap}
+:root{--paper:#E3DBCB;--page:#EEE8D5;--sunk:#DBD2BA;--ink:#1D2E21;--turf:#5C6B55;--green:#3E5C43;--rule:#C4B896;--hair:#DCD1B4;--flag:#9E3B2E;--gold:#8C6B2F;--gold-up:#C9A253;--pine:#1E3A2B;--onpine:#EFE7D2;--under:#B4892B;--serif:'Source Serif',Georgia,serif}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.45 var(--serif)}
+.top{position:sticky;top:0;z-index:5;background:var(--pine);color:var(--onpine);padding:12px 16px;border-bottom:3px solid var(--gold-up)}
+.top b{display:block;font-size:18px}.top small{display:block;font-size:12px;letter-spacing:.14em;text-transform:uppercase;opacity:.8}
+.tabs{display:flex;gap:6px;margin-top:10px}
+.tabs button{flex:1;padding:9px 6px;border-radius:10px;border:1px solid rgba(255,255,255,.25);background:transparent;color:var(--onpine);font:inherit;font-weight:700;font-size:13.5px;cursor:pointer}
+.tabs button.on{background:var(--gold-up);color:var(--pine);border-color:var(--gold-up)}
+.wrap{max-width:600px;margin:0 auto;padding:16px}
+.about{font-size:14px;color:var(--turf);margin:0 0 12px;padding:10px 12px;border-left:3px solid var(--gold-up);background:var(--page)}
+.about b{color:var(--ink)}
+.card{background:var(--page);border:1px solid var(--rule);border-radius:18px;box-shadow:0 10px 30px rgba(0,0,0,.12);overflow:hidden;margin-bottom:18px}
+.band{background:var(--pine);color:var(--onpine);padding:14px 18px 12px;border-bottom:3px solid var(--gold-up)}
+.band small{display:block;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold-up);font-weight:800}
+.band h1{margin:3px 0 0;font-size:22px;line-height:1.1}
+.band p{margin:4px 0 0;font-size:13.5px;opacity:.9;font-style:italic}
+.body{padding:14px 18px 16px}
+h3{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin:16px 0 8px;padding-top:10px;border-top:1px solid var(--rule)}
+h3:first-child{border-top:0;padding-top:0;margin-top:0}
+p{margin:0 0 10px}
+.num{font-variant-numeric:tabular-nums}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tile{background:#F7F2E6;border:1px solid var(--hair);border-radius:12px;padding:10px 10px 8px}
+.tile small{display:block;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--turf);font-weight:800}
+.tile b{display:block;font-size:24px;line-height:1.1;margin-top:2px}
+.tile em{display:block;font-style:normal;font-size:12px;color:var(--turf)}
+.grade{display:grid;grid-template-columns:1fr auto auto;gap:8px 12px;align-items:center;padding:7px 0;border-top:1px solid var(--hair)}
+.grade:first-of-type{border-top:0}
+.grade .g{font-size:22px;font-weight:800;width:34px;text-align:center;border-radius:8px;padding:2px 0}
+.gA{background:#3E5C43;color:#fff}.gB{background:#9FB3A3;color:var(--pine)}.gC{background:var(--gold-up);color:var(--pine)}.gD{background:#C98B6B;color:#fff}
+.bar{height:8px;background:var(--sunk);border-radius:4px;overflow:hidden;width:100px}.bar i{display:block;height:100%;background:var(--green)}
+.bar i.r{background:var(--flag)}
+.trend{display:flex;gap:6px;align-items:flex-end;height:60px;margin:6px 0 2px}
+.trend div{flex:1;background:var(--green);border-radius:4px 4px 0 0;position:relative;color:#fff;font-size:12px;font-weight:700;text-align:center}
+.trend div span{position:absolute;top:-18px;left:0;right:0;color:var(--ink);font-size:12px}
+.trend div small{position:absolute;bottom:-18px;left:0;right:0;color:var(--turf);font-size:11px}
+.notes li{margin:0 0 6px}
+.notes{padding-left:18px;margin:0}
+.strip{display:grid;grid-template-columns:repeat(18,1fr);gap:2px;margin:4px 0 6px}
+.strip i{display:block;height:22px;border-radius:3px;font-style:normal;font-size:10px;line-height:22px;text-align:center;color:#fff;font-weight:700}
+.e{background:#B4892B}.pr{background:#3E5C43}.bg{background:#9FB3A3;color:var(--pine)!important}.db{background:#C98B6B}.tr{background:#9E3B2E}
+.key{font-size:11.5px;color:var(--turf);display:flex;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.key i{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:middle;margin-right:3px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--turf);text-align:left;padding:6px 4px;border-bottom:1px solid var(--rule);font-weight:800}
+td{padding:6px 4px;border-bottom:1px solid var(--hair);vertical-align:top}
+td.r,th.r{text-align:right}
+td.hi{color:var(--flag);font-weight:700}td.lo{color:var(--green);font-weight:700}
+.lead{font-size:17px;line-height:1.5}
+.lead::first-letter{font-size:40px;float:left;line-height:.85;padding:4px 6px 0 0;color:var(--gold)}
+.pull{border-left:3px solid var(--gold-up);padding:4px 12px;margin:10px 0;font-style:italic;color:var(--turf)}
+.fn{font-size:12.5px;color:var(--turf);margin-top:8px}
+.stub{opacity:.55;text-align:center;padding:14px;font-style:italic}
+.hide{display:none}
+.note{font-size:13px;color:var(--turf);text-align:center;margin:14px 0 0}
+</style>
+</head>
+<body>
+<div class="top"><small>Preview · for the commissioner</small><b>The players report, three ways</b>
+  <div class="tabs"><button class="on" data-v="a">A · Report card</button><button data-v="b">B · The dossier</button><button data-v="c">C · The numbers</button></div>
+</div>
+<div class="wrap">
+
+<!-- ================= A ================= -->
+<section id="v-a">
+<p class="about"><b>A · The Report Card.</b> Tiles and grades first, words second. An executive summary you can read in a minute, then a page a player: five grades, the trend, the leak, and three coach's notes. Easiest to scan on a phone.</p>
+<div class="card">
+  <div class="band"><small>The Union Invitational · Belek 2026</small><h1>Executive summary</h1><p>11 golfers · 3 counting rounds · 33 cards</p></div>
+  <div class="body">
+    <div class="tiles">
+      <div class="tile"><small>Field average</small><b class="num">94.2</b><em>gross, per round</em></div>
+      <div class="tile"><small>Best round</small><b class="num">85</b><em>DP, Sunday</em></div>
+      <div class="tile"><small>Most improved</small><b class="num">−6</b><em>DP, R1 → R3</em></div>
+      <div class="tile"><small>Three-putts</small><b class="num">1.9</b><em>a round, where counted</em></div>
+      <div class="tile"><small>Out of bounds</small><b class="num">14</b><em>balls, the week</em></div>
+      <div class="tile"><small>Pick-ups</small><b class="num">9</b><em>holes, the week</em></div>
+    </div>
+    <h3>Where the points came from</h3>
+    <div class="grade"><span>Par 3s (net vs par)</span><div class="bar"><i style="width:70%"></i></div><span class="num">+0.4 / hole</span></div>
+    <div class="grade"><span>Par 4s</span><div class="bar"><i style="width:55%"></i></div><span class="num">+0.9 / hole</span></div>
+    <div class="grade"><span>Par 5s</span><div class="bar"><i class="r" style="width:85%"></i></div><span class="num">+1.3 / hole</span></div>
+    <div class="grade"><span>Front nine vs back</span><div class="bar"><i style="width:45%"></i></div><span class="num">back +2.1 pts</span></div>
+    <h3>Coach's read on the field</h3>
+    <ul class="notes">
+      <li><b>The par 5s are where the week was lost.</b> The field played them 1.3 over on average; the big numbers (7+) came on par 5s twice as often as anywhere else.</li>
+      <li><b>Back nines beat front nines by two points a card.</b> Slow starts: 23 of 33 cards were worse on the front. Warm-up matters more than anyone thinks.</li>
+      <li><b>Handicaps held up.</b> Net scoring averaged 2.3 over par — the bands are honest, with two exceptions noted on their pages.</li>
+    </ul>
+  </div>
+</div>
+<div class="card">
+  <div class="band"><small>Player report · 1 of 11</small><h1>DP</h1><p>Handicap 16 · plays off 14 in the team game · paired with Duncan W</p></div>
+  <div class="body">
+    <div class="tiles">
+      <div class="tile"><small>Gross</small><b class="num">85</b><em>R3 · best of the week</em></div>
+      <div class="tile"><small>Points</small><b class="num">36</b><em>R3 · 21 on the back</em></div>
+      <div class="tile"><small>Putts</small><b class="num">33</b><em>R3 · four 3-putts</em></div>
+    </div>
+    <h3>Trend</h3>
+    <div class="trend"><div style="height:30%"><span>91</span><small>R1*</small></div><div style="height:50%"><span>88</span><small>R2*</small></div><div style="height:75%"><span>85</span><small>R3</small></div></div>
+    <p class="fn" style="margin-top:22px">* R1 and R2 are illustrative on this preview; the real report reads every card.</p>
+    <h3>Grades</h3>
+    <div class="grade"><span>Par-3 play <em style="color:var(--turf);font-style:normal">· +2 over six (R3)</em></span><span class="g gA">A</span><span></span></div>
+    <div class="grade"><span>Par-4 play <em style="color:var(--turf);font-style:normal">· +5 over six</em></span><span class="g gB">B</span><span></span></div>
+    <div class="grade"><span>Par-5 play <em style="color:var(--turf);font-style:normal">· +7 over six, never better than bogey</em></span><span class="g gD">D</span><span></span></div>
+    <div class="grade"><span>Putting <em style="color:var(--turf);font-style:normal">· 33 putts, four 3-putts</em></span><span class="g gC">C</span><span></span></div>
+    <div class="grade"><span>Composure <em style="color:var(--turf);font-style:normal">· 7 pars on the back after a +10 front</em></span><span class="g gA">A</span><span></span></div>
+    <h3>Coach's notes</h3>
+    <ul class="notes">
+      <li><b>The back nine is the real golfer.</b> Seven pars in nine holes on Sunday; nothing worse than a six. If the front nine had matched it you shoot 78.</li>
+      <li><b>Par 5s are the leak.</b> Six par 5s, six sixes-or-worse. You're not losing them to the tee shot — you're going for it from 230 and making the number. Lay up to a wedge and you take four shots off instantly.</li>
+      <li><b>Four three-putts cost you four shots.</b> All from outside 30 feet. Lag to a three-foot circle; the second putt takes care of itself.</li>
+    </ul>
+  </div>
+</div>
+<p class="stub">… then Duncan W, Matt D, Devin O and the rest, one page each</p>
+</section>
+
+<!-- ================= B ================= -->
+<section id="v-b" class="hide">
+<p class="about"><b>B · The Dossier.</b> Written like the recaps: a sports-writer's executive summary, then a coach's letter to each player with the numbers folded into the prose and a short table under it. The most readable; the most words. Can be written by the same writer as the recaps, or by rules.</p>
+<div class="card">
+  <div class="band"><small>The Union Invitational · Belek 2026</small><h1>The week, in review</h1><p>Executive summary</p></div>
+  <div class="body">
+    <p class="lead">Eleven golfers, thirty-three cards and a field that averaged 94 gross and a shade over two net above par — which, for a week of this much hospitality, is the handicaps doing their job. The story of the scoring is a simple one: everybody started slowly and everybody got eaten by the par 5s. Twenty-three of the thirty-three cards were worse on the front than the back, by two points on average, and the long holes were played at 1.3 over par with twice as many sevens-or-worse as the par 4s.</p>
+    <p>The individual trend was DP's: 91, 88, 85, the only golfer to improve twice, and Sunday's 85 the low round of the week by three. Duncan's 107 on the same day was the other end of the same pairing, and the reason their team card still read 43 points is that four-ball forgives. Devin took the MVP on net consistency rather than fireworks — three rounds inside four shots of each other — and the UK won the cup on the singles.</p>
+    <div class="pull">The number that should bother everyone: 14 balls out of bounds and 9 pick-ups. That's 23 holes with no score to speak of, across a field that was otherwise competent.</div>
+    <table><tr><th></th><th class="r">R1</th><th class="r">R2</th><th class="r">R3</th></tr>
+      <tr><td>Field average gross</td><td class="r num">96.1</td><td class="r num">94.8</td><td class="r num">91.7</td></tr>
+      <tr><td>Field net vs par</td><td class="r num">+3.1</td><td class="r num">+2.4</td><td class="r num">+1.4</td></tr>
+      <tr><td>Three-putts (counted)</td><td class="r num">—</td><td class="r num">—</td><td class="r num">21</td></tr></table>
+    <p class="fn">Field numbers on this preview are illustrative; the real report reads every card in the book.</p>
+  </div>
+</div>
+<div class="card">
+  <div class="band"><small>Player report · 1 of 11</small><h1>DP</h1><p>Handicap 16 · playing 14 · paired with Duncan W</p></div>
+  <div class="body">
+    <p class="lead">You were the week's improver and you don't need telling where the shots went. Sunday's 85 split 46 and 39, and the 39 was proper golf: seven pars in nine holes, nothing worse than a six, 21 points on the back nine when your partner was going out of bounds. The front was the same swing with a different head on it — out of bounds off the first tee, two doubles, and a six on every par 5 you looked at.</p>
+    <p>That last bit is the whole report. You played six par 5s on Sunday and made six, six, six, six, six and seven. Not a par among them, and not one lost to the tee shot — you're hitting the second from 220 and making the number that second shot invites. Lay up to a full wedge on every one and you take four shots off a round without changing a thing about your swing.</p>
+    <p>The putter cost you four more: 33 putts with three-putts on 5, 7, 16 and 18, all from distance. Your lag putting, not your stroke. Get the first one inside three feet and the week's 85 is an 81, and the 81 plays to about eleven.</p>
+    <div class="pull">Three things: a tee-shot routine on the first, lay up on every par 5, lag putts to a three-foot circle. Do two of them and you're off 13 by the spring.</div>
+    <table><tr><th></th><th class="r">R1*</th><th class="r">R2*</th><th class="r">R3</th></tr>
+      <tr><td>Gross · points</td><td class="r num">91 · 29</td><td class="r num">88 · 32</td><td class="r num">85 · 36</td></tr>
+      <tr><td>Front · back</td><td class="r num">48 · 43</td><td class="r num">45 · 43</td><td class="r num">46 · 39</td></tr>
+      <tr><td>Pars · bogeys · doubles+</td><td class="r num">4 · 9 · 5</td><td class="r num">6 · 8 · 4</td><td class="r num">7 · 8 · 3</td></tr>
+      <tr><td>Par 3 / 4 / 5 (vs par)</td><td class="r num">+4 / +8 / +7</td><td class="r num">+3 / +6 / +7</td><td class="r num">+2 / +5 / +7</td></tr>
+      <tr><td>Putts · three-putts</td><td class="r num">—</td><td class="r num">—</td><td class="r num">33 · 4</td></tr>
+      <tr><td>OB · water · pick-ups</td><td class="r num">1 · 1 · 0</td><td class="r num">2 · 0 · 0</td><td class="r num">1 · 0 · 0</td></tr></table>
+    <p class="fn">* illustrative on this preview.</p>
+  </div>
+</div>
+<p class="stub">… then a letter to each of the other ten</p>
+</section>
+
+<!-- ================= C ================= -->
+<section id="v-c" class="hide">
+<p class="about"><b>C · The Numbers.</b> Dense and complete: hole-by-hole heat strips for every round, scoring distribution, par-type and index splits, putting, trouble, team contribution. The commentary is footnotes under the data. For the people who want to argue with it.</p>
+<div class="card">
+  <div class="band"><small>The Union Invitational · Belek 2026</small><h1>Executive summary</h1><p>Field of 11 · 33 cards · 594 holes</p></div>
+  <div class="body">
+    <table><tr><th>Field</th><th class="r">R1</th><th class="r">R2</th><th class="r">R3</th><th class="r">Week</th></tr>
+      <tr><td>Avg gross</td><td class="r num">96.1</td><td class="r num">94.8</td><td class="r num">91.7</td><td class="r num">94.2</td></tr>
+      <tr><td>Avg net vs par</td><td class="r num">+3.1</td><td class="r num">+2.4</td><td class="r num">+1.4</td><td class="r num">+2.3</td></tr>
+      <tr><td>Avg points</td><td class="r num">30.9</td><td class="r num">31.6</td><td class="r num">32.6</td><td class="r num">31.7</td></tr>
+      <tr><td>Birdies+ · pars</td><td class="r num">3 · 38</td><td class="r num">4 · 44</td><td class="r num">6 · 51</td><td class="r num">13 · 133</td></tr>
+      <tr><td>Doubles+ · pick-ups</td><td class="r num">61 · 4</td><td class="r num">55 · 3</td><td class="r num">47 · 2</td><td class="r num">163 · 9</td></tr>
+      <tr><td>OB · water</td><td class="r num">6 · 4</td><td class="r num">5 · 3</td><td class="r num">3 · 2</td><td class="r num">14 · 9</td></tr>
+      <tr><td>Three-putts (counted)</td><td class="r num">—</td><td class="r num">—</td><td class="r num">21</td><td class="r num">1.9 / card</td></tr></table>
+    <h3>By par type (field, net vs par per hole)</h3>
+    <table><tr><th></th><th class="r">Par 3</th><th class="r">Par 4</th><th class="r">Par 5</th><th class="r">Idx 1–6</th><th class="r">Idx 13–18</th></tr>
+      <tr><td>Week</td><td class="r num">+0.4</td><td class="r num">+0.9</td><td class="r num hi">+1.3</td><td class="r num">+1.1</td><td class="r num">+0.6</td></tr></table>
+    <h3>Leaders</h3>
+    <table><tr><th>Low gross</th><td>DP 85 (R3)</td></tr><tr><th>Low net</th><td>Devin O 70 (R2)</td></tr><tr><th>Most points, a round</th><td>Devin O 39 (R2)</td></tr><tr><th>Most improved</th><td>DP, 91 → 85</td></tr><tr><th>Most three-putts</th><td>Duncan W, 7 (R3)</td></tr><tr><th>Most OB</th><td>Duncan W, 4</td></tr></table>
+    <p class="fn">¹ Field numbers on this preview are illustrative. ² Putts exist only where a ref counted them (Sunday). ³ A pick-up scores the hole's cap.</p>
+  </div>
+</div>
+<div class="card">
+  <div class="band"><small>Player report · 1 of 11</small><h1>DP</h1><p>Hcp 16 · playing 14 · Duncan W · UK</p></div>
+  <div class="body">
+    <h3>Round 3 · Olympos · 85 (46 / 39) · 36 pts</h3>
+    <div class="key"><span><i class="e"></i>birdie</span><span><i class="pr"></i>par</span><span><i class="bg"></i>bogey</span><span><i class="db"></i>double</span><span><i class="tr"></i>triple+</span></div>
+    <div class="strip"><i class="db">6</i><i class="pr">3</i><i class="bg">6</i><i class="bg">4</i><i class="bg">6</i><i class="bg">5</i><i class="bg">6</i><i class="bg">4</i><i class="db">6</i><i class="bg">5</i><i class="pr">3</i><i class="pr">4</i><i class="pr">4</i><i class="pr">4</i><i class="pr">3</i><i class="bg">6</i><i class="pr">3</i><i class="db">7</i></div>
+    <h3>Round 2 · Olympos · 88 (45 / 43) · 32 pts *</h3>
+    <div class="strip"><i class="bg">5</i><i class="bg">4</i><i class="bg">6</i><i class="pr">3</i><i class="db">7</i><i class="pr">4</i><i class="bg">6</i><i class="bg">4</i><i class="bg">5</i><i class="pr">4</i><i class="pr">3</i><i class="bg">5</i><i class="db">6</i><i class="bg">5</i><i class="bg">4</i><i class="bg">6</i><i class="pr">3</i><i class="bg">6</i></div>
+    <h3>Round 1 · Aspendos · 91 (48 / 43) · 29 pts *</h3>
+    <div class="strip"><i class="bg">5</i><i class="db">6</i><i class="bg">4</i><i class="bg">5</i><i class="bg">6</i><i class="db">6</i><i class="pr">3</i><i class="tr">7</i><i class="db">7</i><i class="bg">5</i><i class="bg">6</i><i class="pr">4</i><i class="bg">4</i><i class="pr">4</i><i class="db">6</i><i class="bg">5</i><i class="pr">3</i><i class="db">7</i></div>
+    <h3>Scoring</h3>
+    <table><tr><th></th><th class="r">R1*</th><th class="r">R2*</th><th class="r">R3</th><th class="r">Week</th></tr>
+      <tr><td>Birdie · par · bogey · dbl · 3+</td><td class="r num">0·4·9·4·1</td><td class="r num">0·6·8·4·0</td><td class="r num">0·7·8·3·0</td><td class="r num">0·17·25·11·1</td></tr>
+      <tr><td>Par 3 / 4 / 5, vs par</td><td class="r num">+4/+8/+7</td><td class="r num">+3/+6/+7</td><td class="r num">+2/+5/+7</td><td class="r num">+9/+19/<b class="hi">+21</b></td></tr>
+      <tr><td>Idx 1–6 / 7–12 / 13–18</td><td class="r num">+8/+6/+5</td><td class="r num">+6/+6/+4</td><td class="r num">+5/+5/+4</td><td class="r num">+19/+17/+13</td></tr>
+      <tr><td>Front / back, pts</td><td class="r num">13/16</td><td class="r num">15/17</td><td class="r num">15/21</td><td class="r num">43/<b class="lo">54</b></td></tr>
+      <tr><td>Putts · 3-putts · 1-putts</td><td class="r num">—</td><td class="r num">—</td><td class="r num">33·4·4</td><td class="r num">—</td></tr>
+      <tr><td>OB · water · pick-ups</td><td class="r num">1·1·0</td><td class="r num">2·0·0</td><td class="r num">1·0·0</td><td class="r num">4·1·0</td></tr>
+      <tr><td>Ball counted for team (holes)</td><td class="r num">9</td><td class="r num">10</td><td class="r num">12</td><td class="r num">31 of 54</td></tr>
+      <tr><td>Handicap read (net vs par)</td><td class="r num">+5</td><td class="r num">+2</td><td class="r num">−1</td><td class="r num">plays to ~15</td></tr></table>
+    <p class="fn">¹ Par 5s: 18 played, 0 pars, 21 over — 46% of the week's loss on 33% of the holes. ² Back nine outscored the front by 11 points over three rounds; the first-tee hole averaged double. ³ Three-putts R3 on 5, 7, 16, 18 — all lag putts. ⁴ Handicap read suggests a 15, trending down. * R1/R2 illustrative on this preview.</p>
+  </div>
+</div>
+<p class="stub">… then ten more, the same layout</p>
+</section>
+
+<p class="note">The real report reads every card in the book (strokes, putts where counted, marks, pick-ups, bingo, matches, bets) and is drawn live in Manage for the master. Nothing on this preview is live data except DP's Round 3 card.</p>
+</div>
+<script>
+document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === b));
+  ['a', 'b', 'c'].forEach(v => document.getElementById('v-' + v).classList.toggle('hide', v !== b.dataset.v));
+  window.scrollTo(0, 0);
+}));
+</script>
+</body>
+</html>
