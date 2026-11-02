@@ -1274,7 +1274,21 @@ export function createStore(onChange) {
     } catch (e) { status = 'error'; saveState = 'error'; notify(); return false; }
   }
 
+  /* THE FEEDBACK FORM. On the shared book it goes to the server's own table;
+     a copy without one (the sandbox, a test) keeps the answers on the phone. */
+  const FB_LOCAL = 'union-invitational:feedback-local';
+  const fbLocal = () => { try { return JSON.parse(localStorage.getItem(FB_LOCAL) || '[]'); } catch (e) { return []; } };
+  async function feedbackSubmit(doc) {
+    if (backend === 'supabase' && db && db.feedbackSubmit) return db.feedbackSubmit(doc);
+    const rows = fbLocal().filter(r => r.dev !== deviceId).concat([{ dev: deviceId, at: new Date().toISOString(), doc }]);
+    try { localStorage.setItem(FB_LOCAL, JSON.stringify(rows)); } catch (e) { /* blocked */ }
+    return true;
+  }
+  async function feedbackList() { return (backend === 'supabase' && db && db.feedbackList) ? db.feedbackList() : fbLocal().slice().reverse(); }
+  async function feedbackCount() { return (backend === 'supabase' && db && db.feedbackCount) ? db.feedbackCount() : fbLocal().length; }
+
   return { T, connect, writeConfig, writeCard, writeBbb, writeNote, writeRecap, writePhoto, heartPhoto, movePhoto, dropPhoto, markBbb, putSocial, patchSocial, dropSocial, writePush, resetScores, resetRound, resetTees, resave, note,
+           feedbackSubmit, feedbackList, feedbackCount,
            get deviceId() { return deviceId; },
            writePerson, writeAllPeople, addPerson, removePerson,
            writePair, addPair, removePair, movePlayer, movePairBy,

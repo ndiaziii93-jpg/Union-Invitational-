@@ -5108,6 +5108,46 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 .rfull-nav{position:absolute;top:50%;transform:translateY(-50%);width:48px;height:48px;border-radius:50%;border:0;background:rgba(255,255,255,.14);color:#fff;font-size:30px;line-height:1;cursor:pointer;z-index:2}
 .rfull-nav.l{left:8px}.rfull-nav.r{right:8px}
 
+/* THE FEEDBACK FORM: in the book as a window, and the same on its own page */
+.modal.fbmodal,.modal.fbview{max-height:90vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.fb-intro{font-size:14.5px;color:var(--turf);margin:10px 0 4px;font-style:italic}
+.fb-q{margin:0 0 14px}
+.fb-q label,.fb-l{display:block;font-weight:700;font-size:15.5px;margin-bottom:6px}
+.fb-q label small{font-weight:400;color:var(--turf);font-size:13px}
+.fb-in{width:100%;padding:10px 12px;border:1px solid var(--rule);border-radius:10px;background:#F7F2E6;font:inherit;font-size:16px;color:var(--ink)}
+textarea.fb-in{min-height:72px;resize:vertical}
+.fb-chips{display:flex;flex-wrap:wrap;gap:6px}
+.fb-chip{padding:8px 12px;border-radius:999px;border:1px solid var(--rule);background:#F7F2E6;font:inherit;font-size:14.5px;cursor:pointer;color:var(--ink)}
+.fb-chip.on{background:var(--pine);color:var(--onpine);border-color:var(--pine)}
+.fb-sec{margin:14px 0 2px;padding-top:10px;border-top:2px solid var(--rule)}
+.fb-sec b{font-size:16px}
+.fb-rate{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;padding:7px 0;border-top:1px solid var(--hair)}
+.fb-rate>span:first-child{font-size:15px}
+.fb-stars{display:flex;gap:2px}
+.fb-star{font-size:26px;line-height:1;border:0;background:none;color:var(--sunk);cursor:pointer;padding:2px 3px;-webkit-tap-highlight-color:transparent}
+.fb-star.on{color:var(--gold-up)}
+.fb-err{color:var(--flag);font-size:14px;margin:6px 0}
+.fb-foot{font-size:12.5px;color:var(--turf);text-align:center;margin:10px 0 0}
+.fb-card{display:block;width:100%;text-align:left;margin:14px 0 0;padding:14px 16px;border-radius:16px;border:1px solid var(--gold-up);background:linear-gradient(135deg,#F7DE9A 0%,#E8CB7E 100%);color:var(--pine);cursor:pointer}
+.fb-card b{display:block;font-size:18px;font-family:var(--serif)}
+.fb-card span{display:block;font-size:14px;margin-top:2px}
+.fb-card.done{background:var(--page);border-color:var(--rule);color:var(--turf)}
+.fb-card.done b{font-size:15px;color:var(--ink)}
+.fb-sum .fb-n{font-size:15px;margin:8px 0 0}
+.fb-avg b{font-size:18px;color:var(--gold)}
+.fb-avg small{color:var(--turf)}
+.fb-one{padding:10px 0;border-top:1px solid var(--hair)}
+.fb-who b{font-size:16px}.fb-who small{color:var(--turf);font-size:13px}
+.fb-mini{display:flex;flex-wrap:wrap;gap:4px 10px;margin:4px 0 2px;font-size:12.5px;color:var(--turf)}
+.fb-mini b{color:var(--gold)}
+.fb-one p{margin:6px 0 0;font-size:14.5px;white-space:pre-wrap}
+.fb-one p i{font-style:normal;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--turf);font-weight:700}
+.fb-empty{color:var(--turf);font-style:italic}
+.fb-tools{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 0}
+.fb-tools .btn{flex:1 1 auto;padding:9px 10px;min-height:0;font-size:14px}
+.fb-thanks{text-align:center;padding:10px 0 4px}
+.fb-thanks b{display:block;font-size:22px;margin-bottom:6px}
+
 </style>
 <div id="app"></div>
 <!-- The crest, and the opening it pays for, ahead of everything else. A few
@@ -5234,7 +5274,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261101-0701';
+const BUILD = '20261102-0408';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -9129,6 +9169,97 @@ function create(mount, m, opts = {}) {
 return {available, snapshot, create};
 })();
 
+const __m_feedback = (function(){
+
+/* THE FEEDBACK FORM. One definition, drawn the same way twice: in the book,
+   as a window that comes up on every open until it is answered, and on a
+   page of its own for the link in the WhatsApp. The answers go to a table
+   only the master PIN can read (docs/supabase-feedback.sql). */
+const FORM_V = 'a';
+const WAS = [['golfer', 'A golfer'], ['spectator', 'A spectator']];
+const SECTIONS = [
+  { id: 'golf', label: 'The golf', rows: [['aspendos', 'Cullinan Aspendos'], ['olympos', 'Cullinan Olympos'], ['clubhouse', 'The clubhouse'], ['format', 'The format & side games']] },
+  { id: 'resort', label: 'The resort', rows: [['hotel', 'The hotel & rooms'], ['food', 'Food & drink'], ['evenings', 'The evenings']] },
+  { id: 'app', label: 'The app', rows: [['app_scoring', 'Scoring'], ['app_boards', 'Boards & leaderboards'], ['app_chat', 'The chat'], ['app_photos', 'Photos'], ['app_recaps', 'The recaps'], ['app_bets', 'The bets']] },
+  { id: 'org', label: 'The organisation', rows: [['organisation', 'Travel, communication, money']] },
+];
+const BOXES = [
+  ['best', 'Best moment of the week', 'One line', true],
+  ['keep', 'What should we keep?', 'The things that worked'],
+  ['change', 'What should we change?', 'What didn’t work, or could be better'],
+  ['add', 'What should we add next year?', 'New ideas: a game, a night out, a different course, anything'],
+];
+const AGAIN = [['yes', 'Yes, book me in'], ['probably', 'Probably'], ['depends', 'Depends'], ['no', 'No']];
+const STAR_LABEL = Object.fromEntries(SECTIONS.flatMap(s => s.rows));
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const blank = () => ({ v: FORM_V, name: '', was: 'golfer', stars: {}, best: '', keep: '', change: '', add: '', again: '' });
+
+/** The form's body, drawn from the answers so far. Every control carries data-fb, so the book's one click handler and the page's own can both read it. */
+function formHtml(a) {
+  a = { ...blank(), ...(a || {}) }; a.stars = a.stars || {};
+  const stars = k => `<div class="fb-stars" role="radiogroup" aria-label="${esc(STAR_LABEL[k])}">${[1, 2, 3, 4, 5].map(n =>
+    `<button type="button" class="fb-star${(a.stars[k] || 0) >= n ? ' on' : ''}" data-act="fbStar" data-fb="${k}" data-a="${n}" aria-label="${n} star${n === 1 ? '' : 's'}" aria-pressed="${a.stars[k] === n}">★</button>`).join('')}</div>`;
+  const chips = (key, opts) => `<div class="fb-chips">${opts.map(([k, l]) => `<button type="button" class="fb-chip${a[key] === k ? ' on' : ''}" data-act="fbChip" data-fb="${key}" data-a="${k}">${esc(l)}</button>`).join('')}</div>`;
+  return `<div class="fb-q"><label for="fb_name">Your name <small>(optional)</small></label><input type="text" id="fb_name" class="fb-in" data-fb="name" value="${esc(a.name)}" placeholder="Leave blank to stay anonymous" autocomplete="off" maxlength="60"></div>
+  <div class="fb-q"><span class="fb-l">I was</span>${chips('was', WAS)}</div>
+  ${SECTIONS.map(s => `<div class="fb-sec"><b>${esc(s.label)}</b></div>${s.rows.map(([k, l]) => `<div class="fb-rate"><span>${esc(l)}</span>${stars(k)}</div>`).join('')}`).join('')}
+  ${BOXES.map(([k, l, ph, one]) => `<div class="fb-q"><label for="fb_${k}">${esc(l)}</label>${one
+    ? `<input type="text" id="fb_${k}" class="fb-in" data-fb="${k}" value="${esc(a[k])}" placeholder="${esc(ph)}" autocomplete="off" maxlength="300">`
+    : `<textarea id="fb_${k}" class="fb-in" data-fb="${k}" placeholder="${esc(ph)}" rows="3" maxlength="2000">${esc(a[k])}</textarea>`}</div>`).join('')}
+  <div class="fb-q"><span class="fb-l">Would you come again?</span>${chips('again', AGAIN)}</div>`;
+}
+/** The answers, read off the drawn form: the page's way (the book keeps them in its state as they are typed). */
+function readForm(root) {
+  const a = blank();
+  root.querySelectorAll('.fb-in[data-fb]').forEach(el => { a[el.dataset.fb] = String(el.value || ''); });
+  root.querySelectorAll('.fb-chip.on[data-fb]').forEach(el => { a[el.dataset.fb] = el.dataset.a; });
+  root.querySelectorAll('.fb-stars').forEach(g => { const on = g.querySelectorAll('.fb-star.on').length, first = g.querySelector('.fb-star'); if (on && first) a.stars[first.dataset.fb] = on; });
+  return a;
+}
+/** Nothing said at all: no stars, no words, no answer on coming again. */
+const empty = a => !a || (!Object.keys(a.stars || {}).length && !['best', 'keep', 'change', 'add'].some(k => String(a[k] || '').trim()) && !a.again);
+/** What goes to the server: trimmed, capped, nothing else. */
+function tidy(a) {
+  const out = { v: FORM_V, stars: {} };
+  for (const k of ['name', 'was', 'best', 'keep', 'change', 'add', 'again']) out[k] = String((a || {})[k] || '').trim().slice(0, k === 'name' ? 60 : 2000);
+  for (const [k, n] of Object.entries((a || {}).stars || {})) if (STAR_LABEL[k] && n >= 1 && n <= 5) out.stars[k] = Math.round(n);
+  return out;
+}
+const againWord = k => ((AGAIN.find(x => x[0] === k) || [])[1] || k || '').replace(', book me in', '');
+/** The commissioner's view: an average a row, then every answer, newest first. */
+function summaryHtml(rows, when) {
+  rows = rows || [];
+  const docs = rows.map(r => r.doc || {}), n = docs.length;
+  const avg = k => { const v = docs.map(d => (d.stars || {})[k]).filter(x => x >= 1); return v.length ? [v.reduce((s, x) => s + x, 0) / v.length, v.length] : null; };
+  const spect = docs.filter(d => d.was === 'spectator').length;
+  const again = AGAIN.map(([k]) => [againWord(k), docs.filter(d => d.again === k).length]).filter(x => x[1]);
+  return `<div class="fb-sum">
+    <p class="fb-n"><b>${n}</b> answer${n === 1 ? '' : 's'}${spect ? ' · ' + spect + ' from spectator' + (spect === 1 ? '' : 's') : ''}${again.length ? ' · come again: ' + again.map(x => x[0] + ' ' + x[1]).join(', ') : ''}</p>
+    ${SECTIONS.map(s => `<div class="fb-sec"><b>${esc(s.label)}</b></div>${s.rows.map(([k, l]) => { const a = avg(k);
+      return `<div class="fb-rate"><span>${esc(l)}</span><span class="fb-avg">${a ? `<b>${a[0].toFixed(1)}</b> <small>★ · ${a[1]}</small>` : '<small>—</small>'}</span></div>`; }).join('')}`).join('')}
+    <div class="fb-sec"><b>Every answer</b></div>
+    ${rows.map(r => { const d = r.doc || {}; return `<div class="fb-one"><div class="fb-who"><b>${esc(d.name || 'Anonymous')}</b> <small>${d.was === 'spectator' ? 'spectator' : 'golfer'}${d.again ? ' · ' + esc(againWord(d.again)) : ''}${when && r.at ? ' · ' + esc(when(r.at)) : ''}</small></div>
+      ${Object.keys(d.stars || {}).length ? `<div class="fb-mini">${SECTIONS.flatMap(s => s.rows).filter(([k]) => d.stars[k]).map(([k, l]) => `<span>${esc(l)} <b>${d.stars[k]}</b></span>`).join('')}</div>` : ''}
+      ${BOXES.filter(([k]) => String(d[k] || '').trim()).map(([k, l]) => `<p><i>${esc(l)}</i><br>${esc(d[k])}</p>`).join('')}</div>`; }).join('') || '<p class="fb-empty">Nobody has answered yet.</p>'}
+  </div>`;
+}
+/** The same, as plain text, for copying out. */
+function summaryText(rows, when) {
+  const L = [];
+  for (const r of rows || []) {
+    const d = r.doc || {};
+    L.push((d.name || 'Anonymous') + ' (' + (d.was === 'spectator' ? 'spectator' : 'golfer') + (d.again ? ', come again: ' + againWord(d.again) : '') + (when && r.at ? ', ' + when(r.at) : '') + ')');
+    const st = SECTIONS.flatMap(s => s.rows).filter(([k]) => (d.stars || {})[k]).map(([k, l]) => l + ' ' + d.stars[k]);
+    if (st.length) L.push('  Stars: ' + st.join(', '));
+    for (const [k, l] of BOXES) if (String(d[k] || '').trim()) L.push('  ' + l + ' ' + d[k].trim());
+    L.push('');
+  }
+  return L.join('\n').trim();
+}
+
+return {FORM_V, WAS, SECTIONS, BOXES, AGAIN, STAR_LABEL, blank, formHtml, readForm, empty, tidy, summaryHtml, summaryText};
+})();
+
 const __m_dbsupa = (function(){
 
 /* The tournament, kept in Supabase instead of the artifact platform.
@@ -9766,6 +9897,22 @@ function createSupabaseDb(opts) {
       return data === true;
     },
 
+    /* THE FEEDBACK FORM: a phone's answers go in through feedback_submit
+       (one row a phone, a later send replacing it) and come out only through
+       feedback_list, with the master PIN. The count is anybody's. */
+    async feedbackSubmit(doc) {
+      const { data, error } = await bound(sb.rpc('feedback_submit', { p_dev: deviceId || 'none', p_doc: doc }));
+      if (error) throw error;
+      if (data !== 'ok') { const e = new Error(String(data || 'refused').replace(/^denied:\s*/, '')); e.code = '42501'; throw e; }
+      return true;
+    },
+    async feedbackList() {
+      const { data, error } = await bound(sb.rpc('feedback_list', { p_pin: pin(), p_who: deviceId || null }));
+      if (error) throw error;
+      if (!data || data.denied) { const e = new Error('The server did not accept this phone\'s master PIN.'); e.code = '42501'; throw e; }
+      return data.rows || [];
+    },
+    async feedbackCount() { const { data, error } = await bound(sb.rpc('feedback_count')); if (error) throw error; return +data || 0; },
     /** One bingo mark: {rid, h, gid, cell}. true landed, false waits in the outbox, 'nogate' means write the row instead. */
     bbbMark(m) { return rawBbb(m, false); },
     /** One card's changed holes: {rid, pid, cells: {hole: {raw, by, at, pu, marks}}, card: {mF, mB, bb}}. */
@@ -11183,7 +11330,21 @@ function createStore(onChange) {
     } catch (e) { status = 'error'; saveState = 'error'; notify(); return false; }
   }
 
+  /* THE FEEDBACK FORM. On the shared book it goes to the server's own table;
+     a copy without one (the sandbox, a test) keeps the answers on the phone. */
+  const FB_LOCAL = 'union-invitational:feedback-local';
+  const fbLocal = () => { try { return JSON.parse(localStorage.getItem(FB_LOCAL) || '[]'); } catch (e) { return []; } };
+  async function feedbackSubmit(doc) {
+    if (backend === 'supabase' && db && db.feedbackSubmit) return db.feedbackSubmit(doc);
+    const rows = fbLocal().filter(r => r.dev !== deviceId).concat([{ dev: deviceId, at: new Date().toISOString(), doc }]);
+    try { localStorage.setItem(FB_LOCAL, JSON.stringify(rows)); } catch (e) { /* blocked */ }
+    return true;
+  }
+  async function feedbackList() { return (backend === 'supabase' && db && db.feedbackList) ? db.feedbackList() : fbLocal().slice().reverse(); }
+  async function feedbackCount() { return (backend === 'supabase' && db && db.feedbackCount) ? db.feedbackCount() : fbLocal().length; }
+
   return { T, connect, writeConfig, writeCard, writeBbb, writeNote, writeRecap, writePhoto, heartPhoto, movePhoto, dropPhoto, markBbb, putSocial, patchSocial, dropSocial, writePush, resetScores, resetRound, resetTees, resave, note,
+           feedbackSubmit, feedbackList, feedbackCount,
            get deviceId() { return deviceId; },
            writePerson, writeAllPeople, addPerson, removePerson,
            writePair, addPair, removePair, movePlayer, movePairBy,
@@ -11294,12 +11455,14 @@ const { createSupabaseFiles } = __m_dbsupa;
 const { RULES, RELIEF } = __m_rules;
 const R = __m_resort;
 const X = __m_social;
+const F = __m_feedback;
 const W = __m_weather;
 const H3D = __m_hole3d;
 const HOLES = __m_holes3d;
 /* The Union Invitational — yardage book application.
    Vanilla render + delegated dispatch. Every screen is a pure function of
    (tournament state, ui state, clock). */
+
 
 
 
@@ -11393,7 +11556,11 @@ const UI = {
   resortFocusQ: false,  // put the caret in the search once it is drawn
   photoAlbum: 'course', // the Photos page: 'course' or 'trip'
   pgMsg: '',            // what the last move of photos did, on the Photos page
-  pgSel: null,          // Select on the Photos page: { ids: { [photoId]: true } } while it is on
+  pgSel: null,
+  fb: null,             // the feedback form's answers, as they are typed
+  fbNagged: false,      // the form has come up on this open
+  fbBusy: false, fbErr: '',
+  fbView: null,         // the commissioner's view of the answers: { rows, busy, err, copied, at }          // Select on the Photos page: { ids: { [photoId]: true } } while it is on
   who: undefined,       // the name this phone chats and bets as; read from the device on first use
   chatRoom: null,       // which chat is open: a round, or 'trip'; null follows the day
   chatRe: null,         // the book's moment being heckled, by key
@@ -11704,6 +11871,7 @@ function scrToday() {
     </div>
   </div>
   ${shuttleCard()}
+  ${feedbackCard()}
 
   <div class="today-grid">
     <div class="tg-r">
@@ -18594,6 +18762,91 @@ function roundModalHtml() {
   </div></div>`;
 }
 
+/* ---------------- THE FEEDBACK FORM ----------------
+   Opened by the commissioner (docs/supabase-feedback.sql, or the switch in
+   Manage), it comes up every time the book is opened until it is answered,
+   and sits on Today in between. One form a phone: sending again replaces
+   it. Only the master PIN reads the answers, in Manage. */
+const FB_LINK = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/feedback/';
+const FB_DONE_KEY = 'union-invitational:feedback', FB_DRAFT_KEY = 'union-invitational:feedback-draft', FB_PEND_KEY = 'union-invitational:feedback-pending';
+const feedbackLive = () => !!(T.config.feedback && T.config.feedback.live);
+const feedbackSent = () => { try { return JSON.parse(localStorage.getItem(FB_DONE_KEY) || 'null'); } catch (e) { return null; } };
+const fbRead = k => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } };
+const fbPut = (k, v) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* blocked */ } };
+const feedbackDraft = () => { const d = fbRead(FB_DRAFT_KEY), s = feedbackSent(); return { ...F.blank(), ...((d && typeof d === 'object') ? d : (s && s.doc) || {}) }; };
+const fbWhen = iso => { try { const d = new Date(iso); if (isNaN(d)) return ''; const l = new Date(d.getTime() + D.TZ_OFFSET_MIN * 60000).toISOString(); const day = D.DAYS.find(x => x.iso === l.slice(0, 10)); return (day ? day.dow.slice(0, 3) + ' ' : '') + E.to12(l.slice(11, 16)); } catch (e) { return ''; } };
+function feedbackCard() {
+  if (!feedbackLive() || !loaded()) return '';
+  const s = feedbackSent();
+  return s ? `<button class="fb-card done" data-act="fbOpen"><b>Thanks for your feedback</b><span>Sent ${esc(fbWhen(new Date(s.at).toISOString()))} · tap to change your answers</span></button>`
+    : `<button class="fb-card" data-act="fbOpen"><b>How was it? Two minutes.</b><span>Rate the week and tell the commissioner what to keep, change and add. Only he sees it.</span></button>`;
+}
+function feedbackModalHtml() {
+  const s = feedbackSent();
+  return `<div class="scrim" data-act="modalScrim"><div class="modal fbmodal" role="dialog" aria-modal="true" aria-label="How was it?">
+    ${modalBanner('How was it?', 'The Union Invitational · Belek 2026')}
+    <p class="fb-intro">${s ? 'You answered ' + esc(fbWhen(new Date(s.at).toISOString())) + '. Sending again replaces it.' : 'Two minutes. Skip anything you have no view on. Only the commissioner sees your answers.'}</p>
+    <div class="fb-form">${F.formHtml(UI.fb)}</div>
+    ${UI.fbErr ? `<p class="fb-err">${esc(UI.fbErr)}</p>` : ''}
+    <div class="acts"><button class="btn ghost" data-act="modalCancel">Later</button><button class="btn" data-act="fbSend"${UI.fbBusy ? ' disabled' : ''}>${UI.fbBusy ? 'Sending…' : 'Send my answers'}</button></div>
+    <p class="fb-foot">Goes only to the commissioner. You can’t see anyone else’s.</p>
+  </div></div>`;
+}
+function fbThanksHtml() {
+  return `<div class="scrim" data-act="modalScrim"><div class="modal" role="dialog" aria-modal="true" aria-label="Thank you">
+    ${modalBanner('Thank you', 'The Union Invitational')}
+    <div class="fb-thanks"><b>That’s gone to the commissioner.</b>${UI.modal.kept ? 'No signal just now, so it is kept on this phone and goes the next time the book opens with one.' : 'Tap the card on Today if you want to change anything.'}</div>
+    <div class="acts"><button class="btn" data-act="modalCancel">Close</button></div>
+  </div></div>`;
+}
+function feedbackViewHtml() {
+  const v = UI.fbView || {};
+  return `<div class="scrim" data-act="modalScrim"><div class="modal fbview" role="dialog" aria-modal="true" aria-label="Feedback">
+    ${modalBanner('Feedback', v.rows ? v.rows.length + ' answer' + (v.rows.length === 1 ? '' : 's') + (v.at ? ' · read ' + fbWhen(new Date(v.at).toISOString()) : '') : 'The answers, for you alone')}
+    <div class="fb-tools">
+      <button class="btn ghost" data-act="fbRefresh"${v.busy ? ' disabled' : ''}>${v.busy ? 'Reading…' : 'Refresh'}</button>
+      <button class="btn ghost" data-act="fbCopy"${v.rows && v.rows.length ? '' : ' disabled'}>${v.copied ? 'Copied' : 'Copy all'}</button>
+      <button class="btn ghost" data-act="fbToggle">${feedbackLive() ? 'Close the form' : 'Open the form'}</button>
+    </div>
+    <p class="fb-intro">${feedbackLive() ? 'The form is open: it comes up for everyone until they answer. The link for the WhatsApp: ' + esc(FB_LINK) : 'The form is closed. Nobody is asked, and the link says so.'}</p>
+    ${v.err ? `<p class="fb-err">${esc(v.err)}</p>` : ''}
+    ${v.rows ? F.summaryHtml(v.rows, fbWhen) : v.busy ? '' : '<p class="fb-empty">Tap Refresh to read the answers.</p>'}
+    <div class="acts"><button class="btn ghost" data-act="modalCancel">Close</button></div>
+  </div></div>`;
+}
+async function fbLoad() {
+  UI.fbView = { ...(UI.fbView || {}), busy: true, err: '', copied: false }; render();
+  try { const rows = await store.feedbackList(); UI.fbView = { rows, busy: false, err: '', at: Date.now() }; }
+  catch (e) { UI.fbView = { ...(UI.fbView || {}), busy: false, err: (e && e.message) || 'Could not read the answers.' }; }
+  render();
+}
+async function fbSend() {
+  const doc = F.tidy(UI.fb || F.blank());
+  if (F.empty(doc)) { UI.fbErr = 'Nothing filled in yet.'; render(); return; }
+  UI.fbBusy = true; UI.fbErr = ''; render();
+  try {
+    await store.feedbackSubmit(doc);
+    fbPut(FB_DONE_KEY, { at: Date.now(), doc }); fbPut(FB_DRAFT_KEY, null); fbPut(FB_PEND_KEY, null);
+    UI.fbBusy = false; UI.fb = null; UI.modal = { kind: 'fbthanks' };
+  } catch (e) {
+    UI.fbBusy = false;
+    const refused = e && (e.code === '42501');
+    if (refused) { UI.fbErr = 'The book turned it down: ' + ((e && e.message) || 'refused'); }
+    else { fbPut(FB_PEND_KEY, doc); fbPut(FB_DONE_KEY, { at: Date.now(), doc, kept: true }); fbPut(FB_DRAFT_KEY, null); UI.fb = null; UI.modal = { kind: 'fbthanks', kept: true }; }
+  }
+  render();
+}
+/* answers kept on the phone for want of a signal go the next time there is one */
+async function fbSendPending() {
+  const doc = fbRead(FB_PEND_KEY);
+  if (!doc || !store || fbPendingBusy) return;
+  fbPendingBusy = true;
+  try { await store.feedbackSubmit(doc); fbPut(FB_PEND_KEY, null); const s = feedbackSent(); if (s) fbPut(FB_DONE_KEY, { at: s.at, doc }); }
+  catch (e) { /* next time */ }
+  fbPendingBusy = false;
+}
+let fbPendingBusy = false;
+
 /** Everything that is set up once, behind one door, with the count on it. */
 function manageModalHtml() {
   const here = UI.screen;
@@ -18613,6 +18866,11 @@ function manageModalHtml() {
           ${n ? `<span class="mg-ct">${n}</span>` : ''}
           <span class="mg-go" aria-hidden="true">&rsaquo;</span></button>`;
       }).join('')}
+      ${canAdmin() ? `<button class="mg-row" data-act="fbView">
+          <span class="mg-w"><span class="mg-t">Feedback</span>
+            <span class="mg-n">${feedbackLive() ? 'The form is open · every answer, as it comes in' : 'The form is closed · read the answers'}</span></span>
+          ${UI.fbView && UI.fbView.rows ? `<span class="mg-ct">${UI.fbView.rows.length}</span>` : ''}
+          <span class="mg-go" aria-hidden="true">&rsaquo;</span></button>` : ''}
     </div>
     ${/* The two things that used to stand in the masthead all week: who the
           book thinks you are, and whether it is asking anybody for a PIN.
@@ -19031,6 +19289,8 @@ function render() {
 function paint() {
   if (inUse()) { renderPending = true; return; }
   renderPending = false;
+  /* the feedback form comes up once an open, until it has been answered, and waits for any other window to go first */
+  if (!UI.fbNagged && loaded() && feedbackLive() && !feedbackSent() && !UI.modal && !UI.recapOpen && !UI.askOpen) { UI.fbNagged = true; UI.fb = feedbackDraft(); UI.fbErr = ''; UI.modal = { kind: 'feedback' }; }
   wheelDone = null;       // this rebuild destroys it; the next one starts clean
   /* A turn written by somebody else's phone arrives as an ordinary change to
      the book, and the book redraws whenever it hears one — so this is where
@@ -20352,6 +20612,9 @@ function modalHtml() {
        : UI.modal.kind === 'phmove' ? photoMoveHtml()
        : UI.modal.kind === 'bulk' ? bulkHtml()
        : UI.modal.kind === 'phmany' ? photoManyHtml()
+       : UI.modal.kind === 'feedback' ? feedbackModalHtml()
+       : UI.modal.kind === 'fbthanks' ? fbThanksHtml()
+       : UI.modal.kind === 'fbview' ? feedbackViewHtml()
        : UI.modal.kind === 'hole' ? holeModalHtml()
        : UI.modal.kind === 'setup' ? setupModalHtml()
        : UI.modal.kind === 'add' ? addModalHtml()
@@ -20623,6 +20886,19 @@ function onClick(e) {
       render();
       return;
     }
+    case 'fbOpen': UI.fb = feedbackDraft(); UI.fbErr = ''; UI.modal = { kind: 'feedback' }; render(); return;
+    case 'fbStar': { if (!UI.fb) UI.fb = feedbackDraft(); UI.fb.stars = UI.fb.stars || {}; UI.fb.stars[el.dataset.fb] = +a; fbPut(FB_DRAFT_KEY, UI.fb); render(); return; }
+    case 'fbChip': { if (!UI.fb) UI.fb = feedbackDraft(); UI.fb[el.dataset.fb] = a; fbPut(FB_DRAFT_KEY, UI.fb); render(); return; }
+    case 'fbSend': fbSend(); return;
+    case 'fbView': UI.modal = { kind: 'fbview' }; render(); if (!(UI.fbView && UI.fbView.rows)) fbLoad(); return;
+    case 'fbRefresh': fbLoad(); return;
+    case 'fbCopy': {
+      const t = F.summaryText((UI.fbView && UI.fbView.rows) || [], fbWhen);
+      const done = () => { UI.fbView = { ...(UI.fbView || {}), copied: true }; render(); setTimeout(() => { UI.fbView = { ...(UI.fbView || {}), copied: false }; render(); }, 1800); };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done, done); else done();
+      return;
+    }
+    case 'fbToggle': { if (!canAdmin()) return; const on = !feedbackLive(); store.writeConfig(c => { c.feedback = { ...(c.feedback || {}), live: on }; }); render(); return; }
     case 'photoSelOn': UI.pgSel = { ids: {} }; render(); return;
     case 'photoSelOff': UI.pgSel = null; render(); return;
     case 'photoSelTap': { if (!UI.pgSel) return; const ph = T.photos[a]; if (!ph || !ownsPhoto(ph)) return; if (UI.pgSel.ids[a]) delete UI.pgSel.ids[a]; else UI.pgSel.ids[a] = true; render(); return; }
@@ -22595,6 +22871,7 @@ function boot() {
     });
   }
   setInterval(() => securityPoll(), 60000);          // the watch, for the master's phone
+  setTimeout(fbSendPending, 4000); window.addEventListener('online', () => setTimeout(fbSendPending, 1500));
   store = S.createStore((state, m) => {
     T = state; meta = m;
     if (UI.role === 'master' && UI.screen === 'setup' && UI.sec && UI.sec.events) {
@@ -22685,6 +22962,7 @@ function boot() {
   app.addEventListener('mousedown', atPress);
   app.addEventListener('input', e => {
     if (e.target && e.target.id === 'askField') UI.askText = e.target.value;
+    if (e.target && e.target.classList && e.target.classList.contains('fb-in') && UI.modal && UI.modal.kind === 'feedback') { if (!UI.fb) UI.fb = feedbackDraft(); UI.fb[e.target.dataset.fb] = e.target.value; fbPut(FB_DRAFT_KEY, UI.fb); }
     if (e.target && e.target.id === 'sotdText' && UI.modal && UI.modal.kind === 'sotdNom') UI.modal.t = e.target.value;
     /* a PIN half typed outlives the redraws the shared book lands */
     if (e.target && /^pin_(master|s1|s2)$/.test(e.target.id)) UI.pinDraft[e.target.id.slice(4)] = e.target.value;

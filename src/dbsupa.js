@@ -633,6 +633,22 @@ export function createSupabaseDb(opts) {
       return data === true;
     },
 
+    /* THE FEEDBACK FORM: a phone's answers go in through feedback_submit
+       (one row a phone, a later send replacing it) and come out only through
+       feedback_list, with the master PIN. The count is anybody's. */
+    async feedbackSubmit(doc) {
+      const { data, error } = await bound(sb.rpc('feedback_submit', { p_dev: deviceId || 'none', p_doc: doc }));
+      if (error) throw error;
+      if (data !== 'ok') { const e = new Error(String(data || 'refused').replace(/^denied:\s*/, '')); e.code = '42501'; throw e; }
+      return true;
+    },
+    async feedbackList() {
+      const { data, error } = await bound(sb.rpc('feedback_list', { p_pin: pin(), p_who: deviceId || null }));
+      if (error) throw error;
+      if (!data || data.denied) { const e = new Error('The server did not accept this phone\'s master PIN.'); e.code = '42501'; throw e; }
+      return data.rows || [];
+    },
+    async feedbackCount() { const { data, error } = await bound(sb.rpc('feedback_count')); if (error) throw error; return +data || 0; },
     /** One bingo mark: {rid, h, gid, cell}. true landed, false waits in the outbox, 'nogate' means write the row instead. */
     bbbMark(m) { return rawBbb(m, false); },
     /** One card's changed holes: {rid, pid, cells: {hole: {raw, by, at, pu, marks}}, card: {mF, mB, bb}}. */
