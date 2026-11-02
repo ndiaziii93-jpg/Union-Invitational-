@@ -636,8 +636,11 @@ export function createSupabaseDb(opts) {
     /* THE FEEDBACK FORM: a phone's answers go in through feedback_submit
        (one row a phone, a later send replacing it) and come out only through
        feedback_list, with the master PIN. The count is anybody's. */
-    async feedbackSubmit(doc) {
-      const { data, error } = await bound(sb.rpc('feedback_submit', { p_dev: deviceId || 'none', p_doc: doc }));
+    async feedbackSubmit(doc, pid) {
+      /* with the name this phone chose in the book, where the server knows to take it; without, as before */
+      let res = pid ? await bound(sb.rpc('feedback_submit', { p_dev: deviceId || 'none', p_doc: doc, p_pid: pid })) : null;
+      if (!res || (res.error && noGate(res.error))) res = await bound(sb.rpc('feedback_submit', { p_dev: deviceId || 'none', p_doc: doc }));
+      const { data, error } = res;
       if (error) throw error;
       if (data !== 'ok') { const e = new Error(String(data || 'refused').replace(/^denied:\s*/, '')); e.code = '42501'; throw e; }
       return true;
@@ -647,6 +650,11 @@ export function createSupabaseDb(opts) {
       if (error) throw error;
       if (!data || data.denied) { const e = new Error('The server did not accept this phone\'s master PIN.'); e.code = '42501'; throw e; }
       return data.rows || [];
+    },
+    /** Has this phone, the name it chose, or the name it typed answered already? False when the server cannot say. */
+    async feedbackDone(pid, name) {
+      try { const { data, error } = await bound(sb.rpc('feedback_done', { p_dev: deviceId || 'none', p_pid: pid || null, p_name: name || null })); if (error) throw error; return data === true; }
+      catch (e) { if (noGate(e)) return false; throw e; }
     },
     async feedbackCount() { const { data, error } = await bound(sb.rpc('feedback_count')); if (error) throw error; return +data || 0; },
     /** One bingo mark: {rid, h, gid, cell}. true landed, false waits in the outbox, 'nogate' means write the row instead. */

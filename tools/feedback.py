@@ -54,7 +54,7 @@ html,body{{margin:0;background:var(--paper);color:var(--ink)}}
 {bundle}
 (function () {{
   var F = __m_feedback, URL = {url}, KEY = {key};
-  var DONE = 'union-invitational:feedback', DRAFT = 'union-invitational:feedback-draft', DEV = 'union-invitational:device', PEND = 'union-invitational:feedback-pending';
+  var DONE = 'union-invitational:feedback', DRAFT = 'union-invitational:feedback-draft', DEV = 'union-invitational:device', PEND = 'union-invitational:feedback-pending', WHO = 'union-invitational:whoami';
   var get = function (k) {{ try {{ return localStorage.getItem(k); }} catch (e) {{ return null; }} }};
   var put = function (k, v) {{ try {{ if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); }} catch (e) {{}} }};
   var dev = get(DEV); if (!dev) {{ dev = 'd' + Math.random().toString(36).slice(2, 8); put(DEV, dev); }}
@@ -95,10 +95,17 @@ html,body{{margin:0;background:var(--paper);color:var(--ink)}}
   }}
   function post(doc) {{
     var ctl = typeof AbortController !== 'undefined' ? new AbortController() : null; if (ctl) setTimeout(function () {{ ctl.abort(); }}, 20000);
-    return fetch(URL + '/rest/v1/rpc/feedback_submit', {{ method: 'POST', headers: {{ 'content-type': 'application/json', apikey: KEY, authorization: 'Bearer ' + KEY }}, body: JSON.stringify({{ p_dev: dev, p_doc: doc }}), signal: ctl ? ctl.signal : undefined }})
+    var who = get(WHO) || '';
+    var body = who ? {{ p_dev: dev, p_doc: doc, p_pid: who }} : {{ p_dev: dev, p_doc: doc }};
+    return fetch(URL + '/rest/v1/rpc/feedback_submit', {{ method: 'POST', headers: {{ 'content-type': 'application/json', apikey: KEY, authorization: 'Bearer ' + KEY }}, body: JSON.stringify(body), signal: ctl ? ctl.signal : undefined }})
       .then(function (r) {{ return r.text().then(function (t) {{ var v; try {{ v = JSON.parse(t); }} catch (e) {{ v = t; }} if (!r.ok) {{ var e2 = new Error(typeof v === 'object' && v && v.message ? v.message : 'HTTP ' + r.status); e2.code = r.status >= 400 && r.status < 500 ? 'refused' : 'down'; throw e2; }} if (v !== 'ok') {{ var e3 = new Error(String(v).replace(/^denied:\\s*/, '')); e3.code = 'refused'; throw e3; }} return true; }}); }});
   }}
   var pend = null; try {{ pend = JSON.parse(get(PEND) || 'null'); }} catch (e) {{ pend = null; }}
+  /* the book's own word on whether this phone (or the name it chose in the book) has answered, so a form sent from the app is not asked for again here */
+  if (!sent && !pend) {{
+    fetch(URL + '/rest/v1/rpc/feedback_done', {{ method: 'POST', headers: {{ 'content-type': 'application/json', apikey: KEY, authorization: 'Bearer ' + KEY }}, body: JSON.stringify({{ p_dev: dev, p_pid: get(WHO) || null, p_name: null }}) }})
+      .then(function (r) {{ return r.ok ? r.json() : false; }}).then(function (v) {{ if (v === true && !get(DONE)) {{ sent = {{ at: Date.now(), remote: true }}; put(DONE, JSON.stringify(sent)); if (!draft) thanks(false); }} }}, function () {{}});
+  }}
   if (pend) {{ post(pend).then(function () {{ sent = {{ at: Date.now(), doc: pend }}; put(DONE, JSON.stringify(sent)); put(PEND, null); put(DRAFT, null); thanks(false); }}, function () {{ form(pend); }}); }}
   else if (sent && !draft) thanks(false);
   else form(draft || (sent && sent.doc) || null);

@@ -8563,8 +8563,11 @@ function createSupabaseDb(opts) {
     /* THE FEEDBACK FORM: a phone's answers go in through feedback_submit
        (one row a phone, a later send replacing it) and come out only through
        feedback_list, with the master PIN. The count is anybody's. */
-    async feedbackSubmit(doc) {
-      const { data, error } = await bound(sb.rpc('feedback_submit', { p_dev: deviceId || 'none', p_doc: doc }));
+    async feedbackSubmit(doc, pid) {
+      /* with the name this phone chose in the book, where the server knows to take it; without, as before */
+      let res = pid ? await bound(sb.rpc('feedback_submit', { p_dev: deviceId || 'none', p_doc: doc, p_pid: pid })) : null;
+      if (!res || (res.error && noGate(res.error))) res = await bound(sb.rpc('feedback_submit', { p_dev: deviceId || 'none', p_doc: doc }));
+      const { data, error } = res;
       if (error) throw error;
       if (data !== 'ok') { const e = new Error(String(data || 'refused').replace(/^denied:\s*/, '')); e.code = '42501'; throw e; }
       return true;
@@ -8574,6 +8577,11 @@ function createSupabaseDb(opts) {
       if (error) throw error;
       if (!data || data.denied) { const e = new Error('The server did not accept this phone\'s master PIN.'); e.code = '42501'; throw e; }
       return data.rows || [];
+    },
+    /** Has this phone, the name it chose, or the name it typed answered already? False when the server cannot say. */
+    async feedbackDone(pid, name) {
+      try { const { data, error } = await bound(sb.rpc('feedback_done', { p_dev: deviceId || 'none', p_pid: pid || null, p_name: name || null })); if (error) throw error; return data === true; }
+      catch (e) { if (noGate(e)) return false; throw e; }
     },
     async feedbackCount() { const { data, error } = await bound(sb.rpc('feedback_count')); if (error) throw error; return +data || 0; },
     /** One bingo mark: {rid, h, gid, cell}. true landed, false waits in the outbox, 'nogate' means write the row instead. */
@@ -9997,17 +10005,22 @@ function createStore(onChange) {
      a copy without one (the sandbox, a test) keeps the answers on the phone. */
   const FB_LOCAL = 'union-invitational:feedback-local';
   const fbLocal = () => { try { return JSON.parse(localStorage.getItem(FB_LOCAL) || '[]'); } catch (e) { return []; } };
-  async function feedbackSubmit(doc) {
-    if (backend === 'supabase' && db && db.feedbackSubmit) return db.feedbackSubmit(doc);
-    const rows = fbLocal().filter(r => r.dev !== deviceId).concat([{ dev: deviceId, at: new Date().toISOString(), doc }]);
+  async function feedbackSubmit(doc, pid) {
+    if (backend === 'supabase' && db && db.feedbackSubmit) return db.feedbackSubmit(doc, pid);
+    const rows = fbLocal().filter(r => r.dev !== deviceId).concat([{ dev: deviceId, pid: pid || null, at: new Date().toISOString(), doc }]);
     try { localStorage.setItem(FB_LOCAL, JSON.stringify(rows)); } catch (e) { /* blocked */ }
     return true;
+  }
+  async function feedbackDone(pid, name) {
+    if (backend === 'supabase' && db && db.feedbackDone) return db.feedbackDone(pid, name);
+    const nm = String(name || '').trim().toLowerCase();
+    return fbLocal().some(r => r.dev === deviceId || (pid && r.pid === pid) || (nm.length >= 3 && String((r.doc || {}).name || '').trim().toLowerCase() === nm));
   }
   async function feedbackList() { return (backend === 'supabase' && db && db.feedbackList) ? db.feedbackList() : fbLocal().slice().reverse(); }
   async function feedbackCount() { return (backend === 'supabase' && db && db.feedbackCount) ? db.feedbackCount() : fbLocal().length; }
 
   return { T, connect, writeConfig, writeCard, writeBbb, writeNote, writeRecap, writePhoto, heartPhoto, movePhoto, dropPhoto, markBbb, putSocial, patchSocial, dropSocial, writePush, resetScores, resetRound, resetTees, resave, note,
-           feedbackSubmit, feedbackList, feedbackCount,
+           feedbackSubmit, feedbackList, feedbackCount, feedbackDone,
            get deviceId() { return deviceId; },
            writePerson, writeAllPeople, addPerson, removePerson,
            writePair, addPair, removePair, movePlayer, movePairBy,

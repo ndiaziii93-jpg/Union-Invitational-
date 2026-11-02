@@ -102,6 +102,7 @@ const UI = {
   fbNagged: false,      // the form has come up on this open
   fbBusy: false, fbErr: '',
   fbOpen: false,        // the form is up, in its own host beside #app
+  fbChecked: null,      // asked the book whether this person answered already: null, 'pending', 'done', 'no' or 'err'
   report: { busy: false, err: '', step: '', copied: false },   // the players report being written
   fbView: null,         // the commissioner's view of the answers: { rows, busy, err, copied, at }          // Select on the Photos page: { ids: { [photoId]: true } } while it is on
   who: undefined,       // the name this phone chats and bets as; read from the device on first use
@@ -7424,7 +7425,7 @@ const fbWhen = iso => { try { const d = new Date(iso); if (isNaN(d)) return ''; 
 function feedbackCard() {
   if (!feedbackLive() || !loaded()) return '';
   const s = feedbackSent();
-  return s ? `<button class="fb-card done" data-act="fbOpen"><b>Thanks for your feedback</b><span>Sent ${esc(fbWhen(new Date(s.at).toISOString()))} · tap to change your answers</span></button>`
+  return s ? `<button class="fb-card done" data-act="fbOpen"><b>Thanks for your feedback</b><span>${s.remote ? 'Answered on another copy of the book' : 'Sent ' + esc(fbWhen(new Date(s.at).toISOString()))} · tap to change your answers</span></button>`
     : `<button class="fb-card" data-act="fbOpen"><b>How was it? Two minutes.</b><span>Rate the week and tell the commissioner what to keep, change and add. Only he sees it.</span></button>`;
 }
 function feedbackModalHtml() {
@@ -7515,8 +7516,8 @@ async function fbSend() {
   if (F.empty(doc)) { say('Nothing filled in yet.'); return; }
   UI.fbBusy = true; say(''); if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
   try {
-    await store.feedbackSubmit(doc);
-    fbPut(FB_DONE_KEY, { at: Date.now(), doc }); fbPut(FB_DRAFT_KEY, null); fbPut(FB_PEND_KEY, null);
+    await store.feedbackSubmit(doc, whoAmI() || null);
+    fbPut(FB_DONE_KEY, { at: Date.now(), doc }); fbPut(FB_DRAFT_KEY, null); fbPut(FB_PEND_KEY, null); UI.fbChecked = 'done';
     UI.fbBusy = false; UI.fb = null; fbClose(); UI.modal = { kind: 'fbthanks' }; render();
   } catch (e) {
     UI.fbBusy = false; if (btn) { btn.disabled = false; btn.textContent = 'Send my answers'; }
@@ -7525,12 +7526,28 @@ async function fbSend() {
     UI.fb = null; fbClose(); UI.modal = { kind: 'fbthanks', kept: true }; render();
   }
 }
+/* THE BOOK REMEMBERS WHO ANSWERED. A phone has one copy of the book on
+   the home screen and another in Safari, and they do not share a memory;
+   a form answered in one kept coming up in the other. So before asking,
+   the book is asked whether this phone, the name it chose, or the name
+   it typed has answered already. */
+async function fbCheckDone() {
+  if (UI.fbChecked || !store) return;
+  UI.fbChecked = 'pending';
+  const me = whoAmI(), nm = me ? nameOf(me) : '';
+  try {
+    const done = await store.feedbackDone(me || null, nm || null);
+    if (done) { if (!feedbackSent()) fbPut(FB_DONE_KEY, { at: Date.now(), remote: true }); UI.fbChecked = 'done'; }
+    else UI.fbChecked = 'no';
+  } catch (e) { UI.fbChecked = 'err'; }
+  render();
+}
 /* answers kept on the phone for want of a signal go the next time there is one */
 async function fbSendPending() {
   const doc = fbRead(FB_PEND_KEY);
   if (!doc || !store || fbPendingBusy) return;
   fbPendingBusy = true;
-  try { await store.feedbackSubmit(doc); fbPut(FB_PEND_KEY, null); const s = feedbackSent(); if (s) fbPut(FB_DONE_KEY, { at: s.at, doc }); }
+  try { await store.feedbackSubmit(doc, whoAmI() || null); fbPut(FB_PEND_KEY, null); const s = feedbackSent(); if (s) fbPut(FB_DONE_KEY, { at: s.at, doc }); }
   catch (e) { /* next time */ }
   fbPendingBusy = false;
 }
@@ -7979,7 +7996,8 @@ function paint() {
   if (inUse()) { renderPending = true; return; }
   renderPending = false;
   /* the feedback form comes up once an open, until it has been answered, and waits for any other window to go first */
-  if (!UI.fbNagged && loaded() && feedbackLive() && !feedbackSent() && !UI.modal && !UI.recapOpen && !UI.askOpen && !UI.fbOpen) { UI.fbNagged = true; setTimeout(() => { if (!UI.modal && !UI.fbOpen) fbOpen(); }, 0); }
+  if (loaded() && feedbackLive() && !feedbackSent() && !UI.fbChecked) fbCheckDone();
+  if (!UI.fbNagged && loaded() && feedbackLive() && !feedbackSent() && (UI.fbChecked === 'no' || UI.fbChecked === 'err') && !UI.modal && !UI.recapOpen && !UI.askOpen && !UI.fbOpen) { UI.fbNagged = true; setTimeout(() => { if (!UI.modal && !UI.fbOpen && !feedbackSent()) fbOpen(); }, 0); }
   wheelDone = null;       // this rebuild destroys it; the next one starts clean
   /* A turn written by somebody else's phone arrives as an ordinary change to
      the book, and the book redraws whenever it hears one — so this is where

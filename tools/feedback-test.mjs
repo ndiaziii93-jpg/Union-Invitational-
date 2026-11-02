@@ -59,6 +59,11 @@ await p.locator('[data-act="modalCancel"]').first().click(); await p.waitForTime
 ok('Today says thanks and offers a change', (await p.locator('.fb-card.done').innerText()).includes('Thanks'), true);
 await open(); await shut();
 ok('a new open no longer asks', [await p.locator('.fbmodal').count(), await p.locator('.fb-card.done').count()], [0, 1]);
+console.log('\nanother copy of the book on the same phone');
+const kept = await p.evaluate(() => { const v = localStorage.getItem('union-invitational:feedback'); localStorage.removeItem('union-invitational:feedback'); return v; });   // this copy has no memory of answering; the book has
+await open(); await shut();
+ok('the book is asked, says this phone answered, and the form stays away', [await p.locator('.fbmodal').count(), await p.evaluate(() => window.__UI.fbChecked), await p.locator('.fb-card.done').count()], [0, 'done', 1]);
+await p.evaluate(k => localStorage.setItem('union-invitational:feedback', k), kept);   // the first copy again, with its answers
 
 console.log('\nchanged, and the commissioner reads it');
 await p.locator('.fb-card').click(); await p.waitForTimeout(300);
