@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1D2E21">
+<link rel="icon" href="../../app/icon-192.png">
+<title>Photos, Three Ways</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap">
+<style>
+/* layout: three live phones of the book's Photos page, each a different way to keep the golf and the trip apart */
+:root{
+  color-scheme:light;
+  --paper:#E3DBCB; --page:#EEE8D5; --sunk:#DBD2BA; --ink:#1D2E21; --turf:#5C6B55; --green:#3E5C43;
+  --rule:#C4B896; --hair:#DCD1B4; --gold:#8C6B2F; --gold-up:#C9A253; --gold-hi:#E2C277; --sage:#9FB3A3; --flag:#9E3B2E;
+  --serif:'Source Serif 4','Iowan Old Style',Georgia,'Times New Roman',serif;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:16px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:26px 48px}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:inherit}
+:focus-visible{outline:2px solid var(--flag);outline-offset:2px}
+img{display:block;max-width:100%}
+.top{max-width:1260px;margin:0 auto 18px;display:grid;gap:10px}
+.top h1{margin:0;font-size:clamp(26px,4vw,34px);line-height:1.15;text-wrap:balance}
+.top p{margin:0;color:var(--turf);max-width:80ch}
+.both{max-width:1260px;margin:0 auto 22px;background:var(--page);border-radius:14px;padding:14px 16px;box-shadow:0 0 0 .5px rgba(29,46,33,.16)}
+.both h2{margin:0 0 6px;font-size:16px}
+.both ul{margin:0;padding-left:18px;font-size:14.5px;display:grid;gap:3px;columns:2 330px}
+.row{max-width:1260px;margin:0 auto;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px;align-items:start}
+@media (max-width:1150px){.row{grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr))}}
+.opt{display:grid;gap:14px;justify-items:center;min-width:0}
+.cap{width:100%;max-width:390px}
+.tag{display:flex;align-items:baseline;gap:10px}
+.tag b{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--ink);color:var(--gold-up);font-size:16px;flex:0 0 auto}
+.cap h2{margin:0;font-size:21px}
+.cap .what{margin:6px 0 8px;color:var(--turf);font-size:15px}
+.cap ul{margin:0;padding-left:18px;font-size:14.5px;display:grid;gap:3px}
+.cap .best{margin-top:8px;font-size:14px;color:var(--gold)}
+
+/* ---- the phone ---- */
+.phone{position:relative;width:100%;max-width:390px;height:800px;border-radius:38px;overflow:hidden;background:var(--paper);
+  box-shadow:0 0 0 9px #17211A,0 0 0 10px #3A463D,0 30px 60px rgba(16,22,17,.28);isolation:isolate;display:flex;flex-direction:column}
+.scr{flex:1 1 auto;overflow:auto;overscroll-behavior:contain;scrollbar-width:none;min-height:0;position:relative}
+.scr::-webkit-scrollbar{display:none}
+.tabbar{flex:0 0 auto;display:grid;grid-template-columns:repeat(5,1fr);background:var(--ink);border-top:3px solid var(--gold-up);color:var(--sage);padding:8px 6px 18px;font-size:11px;text-align:center;position:relative;z-index:30}
+.tabbar span{display:grid;gap:2px;justify-items:center}
+.tabbar span.on{color:var(--page)}
+.tabbar span.gold{color:var(--gold-up)}
+.tabbar i{display:block;width:20px;height:16px;border:1.6px solid currentColor;border-radius:4px}
+.games{display:flex;gap:16px;background:var(--ink);color:var(--sage);font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;padding:44px 14px 11px;border-bottom:2px solid var(--gold-up);white-space:nowrap;overflow:hidden}
+.games .on{color:var(--page);position:relative}
+.games .on::after{content:"";position:absolute;left:0;right:0;bottom:-11px;height:3px;background:var(--gold-hi);border-radius:2px 2px 0 0}
+.pad{padding:14px 14px 90px;display:grid;gap:14px}
+.h{margin:0;font-size:26px;line-height:1.1}
+.lede{margin:0;color:var(--turf);font-size:14px}
+.eyebrow{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--turf);font-weight:600}
+.sech{display:flex;align-items:baseline;justify-content:space-between;gap:8px;border-bottom:2px solid var(--ink);padding-bottom:5px}
+.sech b{font-size:17px}
+.sech span{font-size:12px;color:var(--turf)}
+.sech button{font-size:13px;color:var(--gold);font-weight:600}
+
+/* tiles */
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
+.grid.two{grid-template-columns:repeat(2,1fr)}
+.t{position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;background:var(--sunk)}
+.t img{width:100%;height:100%;object-fit:cover}
+.t.wide{grid-column:1/-1;aspect-ratio:2/1}
+.t .hb{position:absolute;left:6px;top:6px;font-size:10.5px;font-weight:700;letter-spacing:.06em;background:rgba(16,22,17,.78);color:var(--gold-hi);border-radius:999px;padding:2px 7px}
+.t .by{position:absolute;left:0;right:0;bottom:0;padding:14px 7px 5px;font-size:11px;color:#fff;background:linear-gradient(transparent,rgba(10,14,11,.75))}
+.t.add{display:grid;place-items:center;align-content:center;gap:4px;background:var(--page);box-shadow:inset 0 0 0 1.5px var(--rule);color:var(--gold);font-size:12px;font-weight:600;text-align:center}
+.t.add svg{color:var(--gold)}
+.empty{font-size:13.5px;color:var(--turf);font-style:italic;padding:2px 2px 4px}
+
+/* segmented control */
+.seg{display:grid;grid-template-columns:1fr 1fr;background:var(--page);border-radius:12px;padding:3px;box-shadow:inset 0 0 0 1px var(--rule)}
+.seg button{border-radius:9px;padding:9px 6px;text-align:center;font-weight:600;font-size:14.5px;display:grid;gap:1px}
+.seg button small{font-weight:400;font-size:11.5px;color:var(--turf)}
+.seg button.on{background:var(--ink);color:var(--page)}
+.seg button.on small{color:var(--sage)}
+
+/* the camera, floating */
+.fab{position:absolute;right:16px;bottom:86px;z-index:25;display:flex;align-items:center;gap:8px;background:var(--ink);color:var(--page);
+  border-radius:999px;padding:12px 16px 12px 13px;font-weight:600;font-size:14.5px;box-shadow:0 8px 20px rgba(16,22,17,.35);border:1.5px solid var(--gold-up)}
+.fab svg{color:var(--gold-hi)}
+
+/* B: the magazine */
+.hero{position:relative;margin:0 -14px;height:300px;overflow:hidden;background:var(--ink)}
+.hero img{width:100%;height:100%;object-fit:cover}
+.hero::after{content:"";position:absolute;inset:0;background:linear-gradient(rgba(10,14,11,.15),transparent 40%,rgba(10,14,11,.85))}
+.hero .w{position:absolute;left:16px;right:16px;bottom:14px;z-index:1;color:#fff;display:grid;gap:3px}
+.hero .w span{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-hi);font-weight:700}
+.hero .w b{font-size:22px;line-height:1.15}
+.hero .w small{font-size:12.5px;color:#E8E1C9}
+.hero .heart{position:absolute;right:14px;top:14px;z-index:2;display:flex;gap:5px;align-items:center;background:rgba(16,22,17,.6);color:#fff;border-radius:999px;padding:6px 10px;font-size:13px}
+.shelf{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 -14px;padding:0 14px;scroll-snap-type:x mandatory}
+.shelf::-webkit-scrollbar{display:none}
+.shelf .card{flex:0 0 150px;scroll-snap-align:start;display:grid;gap:5px}
+.shelf .card .t{aspect-ratio:4/5}
+.shelf .card b{font-size:13.5px;line-height:1.2}
+.shelf .card span{font-size:11.5px;color:var(--turf)}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.duo button{display:grid;gap:3px;background:var(--page);border-radius:14px;padding:12px;box-shadow:0 0 0 .5px rgba(29,46,33,.16);text-align:left}
+.duo button b{font-size:15px}
+.duo button span{font-size:12px;color:var(--turf)}
+.duo button .ic{color:var(--gold)}
+
+/* C: the journal */
+.chips{display:flex;gap:7px}
+.chip{border-radius:999px;padding:7px 13px;font-size:13.5px;background:var(--page);box-shadow:inset 0 0 0 1px var(--rule)}
+.chip.on{background:var(--ink);color:var(--page);box-shadow:none}
+.day{display:grid;gap:8px}
+.dayh{display:flex;align-items:center;gap:10px}
+.dayh .d{display:grid;place-items:center;width:44px;height:48px;border-radius:10px;background:var(--ink);color:var(--page);line-height:1}
+.dayh .d small{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--sage)}
+.dayh .d b{font-size:19px}
+.dayh .w b{display:block;font-size:16px}
+.dayh .w span{font-size:12px;color:var(--turf)}
+.lane{display:grid;gap:5px;padding-left:12px;border-left:3px solid var(--rule);margin-left:20px}
+.lane.golf{border-left-color:var(--green)}
+.lane.trip{border-left-color:var(--gold-up)}
+.lane .lt{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--green)}
+.lane.trip .lt{color:var(--gold)}
+.mason{columns:2;column-gap:5px}
+.mason .t{break-inside:avoid;margin-bottom:5px;aspect-ratio:auto}
+.mason .t img{height:auto}
+
+/* the full-screen photo, and the choose-an-album sheet */
+.viewer{position:absolute;inset:0;z-index:40;background:#0b0f0c;display:flex;flex-direction:column;animation:fade .2s ease both}
+.viewer .vt{display:flex;justify-content:space-between;align-items:center;color:#fff;padding:46px 16px 10px;font-size:14px}
+.viewer .vt button{color:var(--gold-hi);font-weight:600}
+.viewer .vi{flex:1;display:grid;place-items:center;min-height:0}
+.viewer .vi img{max-height:100%;object-fit:contain}
+.viewer .vc{color:#fff;padding:12px 16px 26px;display:grid;gap:3px}
+.viewer .vc span{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-hi);font-weight:700}
+.viewer .vc b{font-size:17px}
+.viewer .vc small{color:#C9D3C6;font-size:13px}
+.scrim{position:absolute;inset:0;z-index:40;background:rgba(16,22,17,.5);display:flex;align-items:flex-end;animation:fade .2s ease both}
+.sheet{width:100%;background:var(--page);border-radius:22px 22px 0 0;animation:rise .3s cubic-bezier(.2,.9,.28,1) both;overflow:hidden}
+.sheet .bn{background:var(--ink);color:var(--page);padding:10px 18px 13px;border-bottom:2px solid var(--gold-up)}
+.sheet .bn i{display:block;width:40px;height:5px;border-radius:3px;background:var(--sage);opacity:.7;margin:0 auto 10px}
+.sheet .bn b{font-size:18px;display:block}
+.sheet .bn span{font-size:12.5px;color:var(--sage)}
+.sheet .bd{padding:14px 16px 24px;display:grid;gap:10px}
+.pick{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-items:center;border-radius:14px;padding:12px 14px;background:var(--paper);box-shadow:inset 0 0 0 1px var(--rule);text-align:left}
+.pick .ic{grid-row:span 2;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--ink);color:var(--gold-hi)}
+.pick b{font-size:15.5px}
+.pick span{font-size:12.5px;color:var(--turf)}
+.btn{border-radius:999px;padding:11px 16px;font-weight:600;background:var(--paper);box-shadow:inset 0 0 0 1px var(--rule);text-align:center}
+.toast{position:absolute;left:16px;right:16px;bottom:96px;z-index:45;background:var(--ink);color:var(--page);border-radius:12px;padding:11px 14px;font-size:14px;border-left:3px solid var(--gold-hi);animation:fade .2s ease both}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes rise{from{transform:translateY(100%)}to{transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>Photos, three ways</h1>
+  <p>The Photos page today lists every round, even the empty ones, with thumbnails in dashed boxes and the names squeezed underneath. Each version below keeps the golf and the rest of the trip apart and lets anyone add photos from the trip at any time. The phones are live: tap a photo, and tap the camera.</p>
+  <p style="font-size:14px">The pictures are the hotel’s, standing in for the group’s own. Nothing here is in the app yet.</p>
+</header>
+
+<section class="both">
+  <h2>In all three</h2>
+  <ul>
+    <li><b>Course photos stay with the golf</b>: by round, each tagged with its hole, from the gold camera on the hole as now.</li>
+    <li><b>Trip photos get their own place</b>: by day, for the resort, dinners, the beach, the pier.</li>
+    <li>A camera on the Photos page itself: take one or pick one, and say which album it goes in.</li>
+    <li>Tap a photo for it full screen with who took it, and swipe through.</li>
+    <li>Empty rounds and days stay out of the way instead of filling the page with boxes.</li>
+    <li>Photos still wait on the phone with no signal, and go up by themselves.</li>
+  </ul>
+</section>
+
+<div class="row">
+  <section class="opt"><div class="phone" id="pA"></div>
+    <div class="cap"><div class="tag"><b>A</b><h2>Two Albums</h2></div>
+      <p class="what">One switch at the top: <b>On the course</b> or <b>The trip</b>.</p>
+      <ul><li>The course album goes by round, each photo marked with its hole.</li>
+        <li>The trip album goes by day.</li>
+        <li>The camera button adds to whichever album is open.</li></ul>
+      <p class="best">The simplest. Nobody has to think about where a photo goes.</p></div></section>
+  <section class="opt"><div class="phone" id="pB"></div>
+    <div class="cap"><div class="tag"><b>B</b><h2>The Magazine</h2></div>
+      <p class="what">A photo of the day across the top, then two rows to swipe: the course, and the trip.</p>
+      <ul><li>Photo of the day is the one with the most hearts; anyone can heart a photo.</li>
+        <li>Each row opens into its full album.</li>
+        <li>Two big buttons: <b>Add from the course</b> and <b>Add from the trip</b>.</li></ul>
+      <p class="best">The most fun to open. Good for the evenings and the recap.</p></div></section>
+  <section class="opt"><div class="phone" id="pC"></div>
+    <div class="cap"><div class="tag"><b>C</b><h2>The Journal</h2></div>
+      <p class="what">The week, day by day, with the golf and the trip as two marked lanes in each day.</p>
+      <ul><li>Green lane: the round that day, by hole. Gold lane: everything else.</li>
+        <li>Chips at the top show All, just the course, or just the trip.</li>
+        <li>The camera asks once: from the round, or from the trip?</li></ul>
+      <p class="best">Tells the story of the week. Best as a keepsake afterwards.</p></div></section>
+</div>
+
+<script>
+const IMG = n => 'img/' + n + '.jpg';
+const COURSE = [
+  { n: 'c1', rid: 'R1', hole: 3, by: 'Ray V', day: 'Thu 29' },
+  { n: 'c4', rid: 'R1', hole: 9, by: 'Duncan W', day: 'Thu 29' },
+  { n: 'c2', rid: 'Practice', hole: 5, by: 'Norberto Jr.', day: 'Tue 27' },
+  { n: 'c3', rid: 'R2', hole: 1, by: 'Matt D', day: 'Fri 30' },
+  { n: 'c5', rid: 'R2', hole: 7, by: 'Dan A', day: 'Fri 30' },
+];
+const TRIP = [
+  { n: 'pier', by: 'Jennifer D', day: 'Mon 26', cap: 'First look at the pier' },
+  { n: 'cordelia', by: 'Aimee K', day: 'Mon 26', cap: 'Check-in drinks' },
+  { n: 'pascarella', by: 'Letty D', day: 'Wed 28', cap: 'Opening dinner' },
+  { n: 'spa', by: 'Becky', day: 'Wed 28', cap: 'BeFine Spa' },
+  { n: 'noble', by: 'Gabriel P', day: 'Thu 29', cap: 'Team beers' },
+  { n: 'rivernight', by: 'Drea', day: 'Thu 29', cap: 'The river after dark' },
+  { n: 'nori', by: 'Manuel P', day: 'Thu 29', cap: 'Nori' },
+  { n: 'beach', by: 'Cary', day: 'Fri 30', cap: 'Beach morning' },
+  { n: 'mainpool', by: 'Rosa Acuna', day: 'Fri 30', cap: 'Pool before the round' },
+  { n: 'caprice', by: 'Luigi Acuna', day: 'Fri 30', cap: 'Cake at Caprice' },
+];
+const ROUNDS = [['R2', 'Round 2', 'Fri 30 Oct · Aspendos'], ['R1', 'Round 1', 'Thu 29 Oct · Olympos'], ['Practice', 'Practice', 'Tue 27 Oct · Aspendos']];
+const DAYS = [['Fri 30', 'Friday', 'Round 2'], ['Thu 29', 'Thursday', 'Round 1 · Team beers'], ['Wed 28', 'Wednesday', 'Opening dinner'], ['Tue 27', 'Tuesday', 'Practice day'], ['Mon 26', 'Monday', 'Arrival']];
+const CAM = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l1.6-2.4h6.8L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.6"/></svg>';
+const FLAG = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M6 21V3l11 4-11 4"/></svg>';
+const SUN = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.4 1.4M17.6 17.6 19 19M5 19l1.4-1.4M17.6 6.4 19 5"/></svg>';
+const tabbar = '<div class="tabbar"><span><i></i>Today</span><span><i></i>Scores</span><span class="on"><i></i>Boards</span><span><i></i>Calendar</span><span class="gold"><i></i>Resort</span></div>';
+const games = '<div class="games"><span>All</span><span>Team</span><span>MVP</span><span>Cup</span><span class="on">Photos</span></div>';
+const tile = (p, opt = {}) => `<button class="t${opt.wide ? ' wide' : ''}" data-v="${p.n}">${'hole' in p ? `<span class="hb">HOLE ${p.hole}</span>` : ''}<img src="${IMG(p.n)}" alt="${p.cap || 'Hole ' + p.hole}" loading="lazy"><span class="by">${opt.cap && p.cap ? p.cap + ' · ' : ''}${p.by}</span></button>`;
+const find = n => COURSE.find(p => p.n === n) || TRIP.find(p => p.n === n);
+function viewer(n) {
+  const p = find(n), course = 'hole' in p;
+  return `<div class="viewer"><div class="vt"><span>${course ? p.rid === 'Practice' ? 'Practice' : 'Round ' + p.rid.slice(1) : p.day}</span><button data-x="1">Done</button></div>
+    <div class="vi"><img src="${IMG(p.n)}" alt=""></div>
+    <div class="vc"><span>${course ? 'On the course · hole ' + p.hole : 'The trip · ' + p.day}</span><b>${course ? 'Hole ' + p.hole : p.cap}</b><small>Taken by ${p.by}</small></div></div>`;
+}
+const sheet = (title, sub, picks) => `<div class="scrim" data-x="1"><div class="sheet"><div class="bn"><i></i><b>${title}</b><span>${sub}</span></div><div class="bd">${picks}<button class="btn" data-x="1">Cancel</button></div></div></div>`;
+const pick = (ic, b, s, k) => `<button class="pick" data-add="${k}"><span class="ic">${ic}</span><b>${b}</b><span>${s}</span></button>`;
+const albumSheet = () => sheet('Add a photo', 'Which album is it for?',
+  pick(FLAG, 'From the round', 'Tagged with the hole you are on. Round 2, hole 9.', 'course') + pick(SUN, 'From the trip', 'Dinners, the beach, the pool, the group. Added to Friday.', 'trip'));
+const camSheet = where => sheet(where === 'course' ? 'A photo from the round' : 'A photo from the trip', 'Your phone then asks: take one, or pick from your photos.',
+  pick(CAM, 'Take a photo', 'Opens the camera', where) + pick(SUN, 'Choose from library', 'Several at once', where));
+
+function phone(id, draw, st) {
+  const el = document.getElementById(id);
+  const go = () => { const sc = el.querySelector('.scr'), top = sc ? sc.scrollTop : 0;
+    el.innerHTML = draw(st) + (st.view ? viewer(st.view) : '') + (st.sheet === 'album' ? albumSheet() : st.sheet ? camSheet(st.sheet) : '') + (st.toast ? `<div class="toast">${st.toast}</div>` : '') + tabbar;
+    const ns = el.querySelector('.scr'); if (ns) ns.scrollTop = st.keep ? top : 0; st.keep = true; };
+  el.addEventListener('click', e => {
+    const t = e.target.closest('[data-v],[data-x],[data-a],[data-add],[data-cam],[data-f],[data-heart]');
+    if (!t) return;
+    if (t.dataset.x && (t.classList.contains('scrim') ? e.target === t : true)) { st.view = null; st.sheet = null; }
+    else if (t.dataset.v) st.view = t.dataset.v;
+    else if (t.dataset.a) { st.album = t.dataset.a; st.keep = false; }
+    else if (t.dataset.f) { st.f = t.dataset.f; st.keep = false; }
+    else if (t.dataset.cam) st.sheet = t.dataset.cam;
+    else if (t.dataset.heart) st.hearts = (st.hearts || 7) + (st.hearted ? -1 : 1), st.hearted = !st.hearted;
+    else if (t.dataset.add) { st.sheet = null; st.toast = t.dataset.add === 'course' ? 'Added to Round 2, hole 9. (In the app, your phone’s camera opens here.)' : 'Added to the trip, Friday. (In the app, your phone’s camera opens here.)';
+      setTimeout(() => { st.toast = null; go(); }, 2600); }
+    go();
+  });
+  go();
+}
+
+/* ---------- A: two albums ---------- */
+phone('pA', st => {
+  const course = st.album !== 'trip';
+  const body = course
+    ? ROUNDS.map(([rid, name, sub]) => { const l = COURSE.filter(p => p.rid === rid); if (!l.length) return '';
+        return `<div class="sech"><b>${name}</b><span>${sub} · ${l.length}</span></div><div class="grid">${l.map(p => tile(p)).join('')}</div>`; }).join('')
+      + '<p class="empty">Round 3 photos appear here on Sunday.</p>'
+    : DAYS.map(([d, name, sub]) => { const l = TRIP.filter(p => p.day === d); if (!l.length) return '';
+        return `<div class="sech"><b>${name}</b><span>${sub} · ${l.length}</span></div><div class="grid two">${l.map((p, i) => tile(p, { wide: i === 0 && l.length % 2 === 1, cap: true })).join('')}</div>`; }).join('');
+  return `<div class="scr">${games}<div class="pad">
+    <h2 class="h">Photos</h2>
+    <div class="seg"><button class="${course ? 'on' : ''}" data-a="course">On the course<small>${COURSE.length} photos · by round</small></button>
+      <button class="${course ? '' : 'on'}" data-a="trip">The trip<small>${TRIP.length} photos · by day</small></button></div>
+    ${body}</div></div>
+    <button class="fab" data-cam="${course ? 'course' : 'trip'}">${CAM}${course ? 'Add from the round' : 'Add from the trip'}</button>`;
+}, { album: 'course' });
+
+/* ---------- B: the magazine ---------- */
+phone('pB', st => {
+  const hero = TRIP[5];
+  const shelf = (list, label) => `<div class="shelf">${list.map(p => `<div class="card">${tile(p)}<b>${'hole' in p ? 'Hole ' + p.hole : p.cap}</b><span>${'hole' in p ? (p.rid === 'Practice' ? 'Practice' : 'Round ' + p.rid.slice(1)) + ' · ' : p.day + ' · '}${p.by}</span></div>`).join('')}</div>`;
+  return `<div class="scr">${games}<div class="pad">
+    <div class="hero"><img src="${IMG(hero.n)}" alt="${hero.cap}"><button class="heart" data-heart="1">${st.hearted ? '♥' : '♡'} ${st.hearts || 7}</button>
+      <div class="w"><span>Photo of the day · Thursday</span><b>${hero.cap}</b><small>Taken by ${hero.by} · the most hearts yesterday</small></div></div>
+    <div class="duo"><button data-cam="course"><span class="ic">${FLAG}</span><b>Add from the course</b><span>Tagged with your hole</span></button>
+      <button data-cam="trip"><span class="ic">${SUN}</span><b>Add from the trip</b><span>Dinners, beach, the group</span></button></div>
+    <div class="sech"><b>From the course</b><button>See all ${COURSE.length} ›</button></div>
+    ${shelf(COURSE.slice().reverse())}
+    <div class="sech"><b>Around the Titanic</b><button>See all ${TRIP.length} ›</button></div>
+    ${shelf(TRIP.slice().reverse())}
+    <p class="lede">Tap the heart on any photo. Each morning the one with the most hearts becomes the photo of the day, and it goes in the day’s recap.</p>
+  </div></div>`;
+}, { hearts: 7 });
+
+/* ---------- C: the journal ---------- */
+phone('pC', st => {
+  const f = st.f || 'all';
+  const days = DAYS.map(([d, name, sub]) => {
+    const c = f === 'trip' ? [] : COURSE.filter(p => p.day === d), t = f === 'course' ? [] : TRIP.filter(p => p.day === d);
+    if (!c.length && !t.length) return '';
+    return `<div class="day"><div class="dayh"><span class="d"><small>${d.slice(0, 3)}</small><b>${d.slice(4)}</b></span><span class="w"><b>${name}</b><span>${sub}</span></span></div>
+      ${c.length ? `<div class="lane golf"><span class="lt">On the course</span><div class="grid">${c.map(p => tile(p)).join('')}</div></div>` : ''}
+      ${t.length ? `<div class="lane trip"><span class="lt">Off the course</span><div class="mason">${t.map(p => tile(p, { cap: true })).join('')}</div></div>` : ''}</div>`;
+  }).join('');
+  return `<div class="scr">${games}<div class="pad">
+    <h2 class="h">The week in photos</h2>
+    <div class="chips"><button class="chip${f === 'all' ? ' on' : ''}" data-f="all">All</button><button class="chip${f === 'course' ? ' on' : ''}" data-f="course">On the course</button><button class="chip${f === 'trip' ? ' on' : ''}" data-f="trip">The trip</button></div>
+    ${days}</div></div>
+    <button class="fab" data-cam="album">${CAM}Add a photo</button>`;
+}, { f: 'all' });
+</script>
+</body>
+</html>

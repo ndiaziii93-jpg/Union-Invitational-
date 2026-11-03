@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1D2E21">
+<link rel="icon" href="../../app/icon-192.png">
+<link rel="apple-touch-icon" href="../../app/apple-touch-icon.png">
+<style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Spectators’ Briefing</title>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap">
+<style>
+/* layout: a pine band carrying the title and the one link, then the steps on the book's cream, each a phone and its words side by side */
+:root{
+  color-scheme:light;
+  --pine:#1D2E21; --cream:#EEE8D5; --paper:#E3DBCB; --sunk:#DBD2BA; --ink:#1D2E21; --turf:#5C6B55;
+  --rule:#C4B896; --gold:#8C6B2F; --gold-up:#C9A253; --sage:#9FB3A3; --flag:#9E3B2E;
+  --serif:'Source Serif 4','Iowan Old Style',Georgia,'Times New Roman',serif;
+}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:17px;line-height:1.55}
+h1,h2,h3{margin:0;text-wrap:balance;line-height:1.15}
+p{margin:0}
+a{color:var(--gold)}
+:focus-visible{outline:2px solid var(--flag);outline-offset:3px}
+.in{max-width:980px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.band{background:var(--pine);color:var(--cream);border-bottom:3px solid var(--gold-up)}
+.band .in{padding-block:34px 30px;display:grid;gap:14px}
+.kick{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--sage);font-weight:600}
+.band h1{font-size:clamp(34px,6vw,54px);font-weight:700;letter-spacing:-.01em}
+.band h1 em{font-style:italic;font-weight:400;color:var(--gold-up)}
+.band .lede{max-width:60ch;color:#D9DFD3;font-size:18px}
+.get{display:grid;gap:10px;background:rgba(238,232,213,.07);border:1px solid rgba(201,162,83,.45);border-radius:14px;padding:14px 16px;max-width:640px}
+.get b{font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:var(--gold-up)}
+.linkrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.linkrow code{font-family:var(--serif);font-size:16px;background:var(--cream);color:var(--ink);padding:8px 12px;border-radius:10px;user-select:all;word-break:break-all;min-width:0}
+.btn{font:inherit;font-size:15px;font-weight:600;border:0;border-radius:999px;padding:9px 16px;background:var(--gold-up);color:var(--pine);cursor:pointer}
+.btn.ghost{background:transparent;color:var(--cream);box-shadow:inset 0 0 0 1px rgba(238,232,213,.4)}
+main .in{padding-block:30px 10px;display:grid;gap:34px}
+.install{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:14px}
+.card{background:var(--cream);border-radius:16px;padding:18px 18px 16px;box-shadow:0 0 0 .5px rgba(29,46,33,.16),0 2px 8px rgba(16,22,17,.06)}
+.card h3{font-size:19px;margin-bottom:8px}
+.card ol{margin:0;padding-left:20px;display:grid;gap:6px}
+.glyph{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:6px;background:var(--sunk);font-size:13px;vertical-align:-4px;margin:0 2px}
+.sec-h{display:flex;align-items:baseline;gap:12px;border-bottom:2px solid var(--pine);padding-bottom:8px}
+.sec-h h2{font-size:clamp(24px,3.4vw,30px)}
+.sec-h span{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--turf);font-weight:600}
+.step{display:grid;grid-template-columns:minmax(0,300px) minmax(0,1fr);gap:clamp(18px,4vw,44px);align-items:center}
+.step:nth-child(even){grid-template-columns:minmax(0,1fr) minmax(0,300px)}
+.step:nth-child(even) .phone{order:2}
+@media (max-width:720px){.step,.step:nth-child(even){grid-template-columns:1fr}.step:nth-child(even) .phone{order:0}}
+.phone{position:relative;justify-self:center;width:100%;max-width:290px;aspect-ratio:390/844;border-radius:34px;overflow:hidden;background:var(--pine);
+  box-shadow:0 0 0 8px #17211A,0 0 0 9px #3A463D,0 24px 50px rgba(16,22,17,.28)}
+.phone video{display:block;width:100%;height:100%;object-fit:cover;background:var(--pine)}
+.phone .len{position:absolute;right:12px;bottom:12px;font-size:12px;color:var(--cream);background:rgba(16,22,17,.7);border-radius:999px;padding:2px 9px;pointer-events:none}
+.words{display:grid;gap:12px;min-width:0}
+.num{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--pine);color:var(--gold-up);font-weight:700;font-size:17px}
+.words h3{font-size:clamp(22px,3vw,27px)}
+.words .where{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);font-weight:600}
+.words ul{margin:0;padding-left:20px;display:grid;gap:6px}
+.words p{max-width:58ch}
+.tip{background:var(--cream);border-left:3px solid var(--gold-up);border-radius:0 12px 12px 0;padding:10px 14px;font-size:15.5px;color:var(--turf)}
+.know{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:14px}
+.know .card p{font-size:15.5px;color:var(--turf)}
+.know .card h3{font-size:17.5px;margin-bottom:6px}
+footer .in{padding-block:24px 40px;display:grid;gap:8px;font-size:14px;color:var(--turf)}
+.other{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;background:var(--pine);color:var(--cream);border-radius:16px;padding:16px 18px}
+.other b{font-size:18px}
+.other a{color:var(--gold-up);font-weight:600}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+</head>
+<body>
+<header class="band"><div class="in">
+  <span class="kick">The Union Invitational · for everyone else</span>
+  <h1>The book, <em>for the gallery</em></h1>
+  <p class="lede">Follow every round as it happens, see the photos from the course, keep track of the week and find your way round the Titanic. Nothing you tap can change a score, so look around freely.</p>
+  <div class="get"><b>The book</b>
+    <div class="linkrow"><code>https://ndiaziii93-jpg.github.io/Union-Invitational-/</code><button class="btn" type="button" data-copy="https://ndiaziii93-jpg.github.io/Union-Invitational-/">Copy link</button><a class="btn ghost" href="https://ndiaziii93-jpg.github.io/Union-Invitational-/" target="_blank" rel="noopener">Open it</a></div></div>
+</div></header>
+<main><div class="in">
+  <section aria-labelledby="install-h" style="display:grid;gap:16px">
+  <div class="sec-h"><h2 id="install-h">Put the book on your phone</h2><span>Once, before you fly</span></div>
+  <div class="install">
+    <div class="card"><h3>iPhone</h3><ol>
+      <li>Open the link in <b>Safari</b>.</li>
+      <li>Tap <b>Share</b> <span class="glyph" aria-hidden="true">⇪</span> at the bottom of the screen.</li>
+      <li>Scroll down and tap <b>Add to Home Screen</b>, then <b>Add</b>.</li>
+      <li>Open it from the crest on your home screen from now on.</li></ol></div>
+    <div class="card"><h3>Android</h3><ol>
+      <li>Open the link in <b>Chrome</b>.</li>
+      <li>Tap the menu <span class="glyph" aria-hidden="true">⋮</span> at the top right.</li>
+      <li>Tap <b>Install app</b> (or <b>Add to Home screen</b>).</li>
+      <li>Open it from the crest on your home screen from now on.</li></ol></div>
+    <div class="card"><h3>Why bother</h3><p style="color:var(--turf);font-size:15.5px">Installed, the book opens full screen like any app, keeps working with no signal on the course, and updates itself when there is a new version. The first time, open it once on Wi-Fi.</p></div>
+  </div></section>
+  <section aria-labelledby="steps-h" style="display:grid;gap:30px">
+    <div class="sec-h"><h2 id="steps-h">Finding your way round</h2><span>Tap a clip to pause it</span></div>
+    <article class="step">
+    <div class="phone"><video src="n-today.mp4" poster="n-today.jpg" muted loop playsinline controls preload="metadata" aria-label="Screen recording: The front page"></video></div>
+    <div class="words"><span class="where">Today</span><h3>The front page</h3><ul><li><b>Today</b> shows the day’s round, the first tee and what is on next, with a countdown.</li><li>Below that, the live standings from every board. Tap a card to open that board.</li><li>Then the day’s plan, hour by hour.</li></ul><p class="tip">Once a round is over, <b>The Day’s Recap</b> appears here: a short write-up of how the day went.</p></div>
+  </article><article class="step">
+    <div class="phone"><video src="n-boards.mp4" poster="n-boards.jpg" muted loop playsinline controls preload="metadata" aria-label="Screen recording: Follow the scores, live"></video></div>
+    <div class="words"><span class="where">Boards</span><h3>Follow the scores, live</h3><ul><li>Tap <b>Boards</b>. The first page sums up every competition.</li><li>Along the top: <b>Team</b> (the pairs), <b>MVP</b> (the best individual), <b>Bingo</b>, the <b>Cup</b> (UK against USA) and <b>Prizes</b>.</li><li>Each table shows how many holes each player is through, and updates as holes are saved.</li></ul><p class="tip">Most boards have a <b>Full rules</b> link that explains how they are scored.</p></div>
+  </article><article class="step">
+    <div class="phone"><video src="n-photos.mp4" poster="n-photos.jpg" muted loop playsinline controls preload="metadata" aria-label="Screen recording: Photos from the course"></video></div>
+    <div class="words"><span class="where">Boards · Photos</span><h3>Photos from the course</h3><ul><li>Under <b>Boards → Photos</b>, the golfers’ and refs’ photos appear as they are taken, sorted by round.</li><li>Each one says which hole it is from. Tap one to see it full size.</li></ul></div>
+  </article><article class="step">
+    <div class="phone"><video src="n-cal.mp4" poster="n-cal.jpg" muted loop playsinline controls preload="metadata" aria-label="Screen recording: The week"></video></div>
+    <div class="words"><span class="where">Calendar</span><h3>The week</h3><ul><li><b>Calendar</b> starts with today, then every day of the trip.</li><li>Tap a day for everything on it: tee times, dinners, the ceremonies.</li></ul></div>
+  </article><article class="step">
+    <div class="phone"><video src="n-resort.mp4" poster="n-resort.jpg" muted loop playsinline controls preload="metadata" aria-label="Screen recording: The Titanic"></video></div>
+    <div class="words"><span class="where">Resort</span><h3>The Titanic</h3><ul><li>Pick what you are after, <b>Hungry, A drink, Late bite, Pools, Spa, Help</b>, and see what is open right now.</li><li>Every place has a card: the hotel’s photo, open or shut, included or extra, today’s hours and where it is. Swipe it down, or tap above it, to close.</li><li>Search finds anything: try “heated”, “Irish” or “steak”. Further down, the aerial photo shows each part of the grounds; tap one to see what is there.</li></ul><p class="tip">The package includes one à la carte dinner per seven-night stay, at Pascarella. It needs booking at reception, so book early. Guests on the five-day trip should ask reception whether theirs is included.</p></div>
+  </article>
+  </section>
+  <section aria-labelledby="know-h" style="display:grid;gap:16px">
+    <div class="sec-h"><h2 id="know-h">Good to know</h2></div>
+    <div class="know"><div class="card"><h3>It updates itself</h3><p>Scores and photos arrive on their own while the book is open. There is nothing to refresh.</p></div><div class="card"><h3>You can’t break anything</h3><p>Only the refs and the master reviewer can enter or change a score, and they need a PIN to do it.</p></div><div class="card"><h3>No signal</h3><p>Once it has been opened, the book keeps working offline and catches up when the signal is back.</p></div><div class="card"><h3>Hotel hours</h3><p>The resort has confirmed it is keeping its summer hours for our week, and the book shows those. If a time is wrong on the ground, tell a ref.</p></div></div>
+  </section>
+  <a class="other" href="../golfers/"><b>Golfers’ Briefing</b><span>Open the other briefing ›</span></a>
+</div></main>
+<footer><div class="in"><p>The Union Invitational · Titanic Deluxe Golf Belek · 26 October to 2 November 2026.</p>
+  <p>The clips use the trip's roster with made-up scores, recorded from the book on a phone.</p></div></footer>
+
+<script>
+/* each clip plays, muted, while it is on screen, and stops when it is not */
+(function () {
+  const vids = [...document.querySelectorAll('video')];
+  const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!('IntersectionObserver' in window) || still) return;
+  const io = new IntersectionObserver(es => es.forEach(e => {
+    const v = e.target;
+    if (e.isIntersecting && e.intersectionRatio > 0.55) { v.play().catch(() => {}); } else v.pause();
+  }), { threshold: [0, 0.55, 1] });
+  vids.forEach(v => io.observe(v));
+})();
+/* the link, copied */
+document.querySelectorAll('[data-copy]').forEach(b => b.addEventListener('click', () => {
+  const t = b.getAttribute('data-copy'), done = () => { b.textContent = 'Copied'; setTimeout(() => { b.textContent = 'Copy link'; }, 1600); };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done, () => sel(b));
+  else sel(b);
+}));
+function sel(b) { const c = b.parentElement.querySelector('code'); const r = document.createRange(); r.selectNodeContents(c);
+  const s = getSelection(); s.removeAllRanges(); s.addRange(r); b.textContent = 'Selected: copy it'; }
+</script>
+
+</body>
+</html>

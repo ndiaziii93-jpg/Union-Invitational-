@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1D2E21">
+<meta name="robots" content="noindex">
+<link rel="icon" href="../../app/icon-192.png">
+<title>Ref Tools Options</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap">
+<style>
+:root{
+  color-scheme:light;
+  --paper:#E3DBCB; --page:#EEE8D5; --sunk:#DBD2BA; --ink:#1D2E21; --ink2:#2A3D2E; --turf:#5C6B55; --green:#3E5C43;
+  --rule:#C4B896; --hair:#DCD1B4; --gold:#8C6B2F; --gold-up:#C9A253; --gold-hi:#E2C277; --sage:#9FB3A3; --flag:#9E3B2E; --yes:#2F7A4A; --blue:#2F5D7A;
+  --shadow:rgba(29,46,33,.16);
+  --serif:'Source Serif 4','Iowan Old Style',Georgia,'Times New Roman',serif;
+  --ui:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:16px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:26px 56px}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:inherit;-webkit-tap-highlight-color:transparent}
+textarea{font:inherit}
+:focus-visible{outline:2px solid var(--flag);outline-offset:2px}
+.top,.part,.row,.dev{max-width:1260px;margin-left:auto;margin-right:auto}
+.top{display:grid;gap:10px;margin-bottom:10px}
+.top h1{margin:0;font-size:clamp(26px,4vw,34px);line-height:1.15}
+.top p{margin:0;color:var(--turf);max-width:84ch}
+.jump{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 0}
+.jump a{font-family:var(--ui);font-size:13px;font-weight:700;color:var(--ink);background:var(--page);border-radius:999px;padding:7px 12px;text-decoration:none;box-shadow:inset 0 0 0 1px var(--rule)}
+.part{margin-top:40px;display:grid;gap:6px}
+.part h2{margin:0;font-size:26px;line-height:1.2}
+.part p{margin:0;color:var(--turf);max-width:84ch}
+.part .n{font-family:var(--ui);font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:800;color:var(--gold)}
+.row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px;align-items:start;margin-top:16px}
+@media (max-width:1150px){.row{grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr))}}
+.opt{display:grid;gap:14px;justify-items:center;min-width:0}
+.olabel{width:100%;max-width:390px;display:flex;align-items:center;gap:12px;background:var(--ink);color:var(--page);border-radius:16px;padding:10px 14px;border-bottom:3px solid var(--gold-up)}
+.olabel b{display:inline-grid;place-items:center;width:40px;height:40px;border-radius:50%;background:var(--gold-hi);color:var(--ink);font-size:20px;font-weight:800;flex:0 0 auto}
+.olabel strong{display:block;font-size:19px;line-height:1.1}
+.olabel small{display:block;font-family:var(--ui);font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--gold-hi);margin-top:2px}
+.cap{width:100%;max-width:390px}
+.cap .what{margin:0 0 8px;color:var(--turf);font-size:15px}
+.cap ul{margin:0;padding-left:18px;font-size:14.5px;display:grid;gap:3px}
+.reset{font-family:var(--ui);font-size:13px;font-weight:700;color:var(--ink);background:var(--page);border-radius:999px;padding:8px 14px;box-shadow:inset 0 0 0 1.5px var(--gold-up)}
+.dev{margin-top:40px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:14px}
+.dev .card{background:var(--page);border-radius:16px;padding:16px 18px;box-shadow:0 0 0 .5px var(--shadow)}
+.dev h3{margin:0 0 8px;font-size:18px}
+.dev ul{margin:0;padding-left:18px;font-size:14.5px;display:grid;gap:5px}
+.dev .rec{background:var(--ink);color:var(--page);border-bottom:3px solid var(--gold-up)}
+.dev .rec h3{color:var(--gold-hi)}
+
+/* the phone */
+.phone{position:relative;width:100%;max-width:390px;height:720px;border-radius:38px;overflow:hidden;background:var(--paper);
+  box-shadow:0 0 0 9px #17211A,0 0 0 10px #3A463D,0 30px 60px rgba(16,22,17,.28);isolation:isolate;display:flex;flex-direction:column}
+.scr{flex:1 1 auto;overflow:auto;scrollbar-width:none;min-height:0;position:relative}
+.scr::-webkit-scrollbar{display:none}
+.ehd{background:var(--ink);color:var(--page);padding:46px 16px 12px;border-bottom:3px solid var(--gold-up)}
+.ehd .k{font-family:var(--ui);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-hi);font-weight:700}
+.ehd .t{display:flex;justify-content:space-between;align-items:baseline;margin-top:2px}
+.ehd .t b{font-size:22px}
+.ehd .t span{font-family:var(--ui);font-size:12.5px;color:var(--sage)}
+.pad{padding:12px 14px 16px;display:grid;gap:10px}
+.hint{font-family:var(--ui);font-size:12.5px;color:var(--turf);margin:0}
+.foot{flex:0 0 auto;padding:10px 14px;background:var(--paper);box-shadow:0 -1px 0 var(--hair)}
+.save{width:100%;font-family:var(--ui);font-size:15px;font-weight:800;border-radius:14px;padding:13px;text-align:center;background:var(--ink);color:var(--gold-hi)}
+.save[disabled]{background:var(--sunk);color:var(--turf);cursor:default}
+.tabbar{flex:0 0 auto;display:grid;grid-template-columns:repeat(6,1fr);background:var(--ink);border-top:3px solid var(--gold-up);color:var(--sage);
+  padding:8px 4px 16px;font-family:var(--ui);font-size:10px;text-align:center}
+.tabbar span{display:grid;gap:3px;justify-items:center} .tabbar span.on{color:var(--page);font-weight:700} .tabbar span.gold{color:var(--gold-up)}
+.tabbar i{display:block;width:18px;height:14px;border:1.6px solid currentColor;border-radius:4px}
+.toast{position:absolute;left:14px;right:14px;bottom:128px;z-index:40;background:var(--ink);color:var(--page);border-radius:14px;padding:10px 12px;font-family:var(--ui);font-size:13px;
+  box-shadow:0 10px 30px rgba(16,22,17,.3);border-bottom:3px solid var(--gold-up);animation:pop .25s ease both}
+@keyframes pop{from{transform:translateY(10px);opacity:0}to{transform:none;opacity:1}}
+.who b{font-size:16.5px;display:block;line-height:1.2}
+.who small{font-family:var(--ui);font-size:12px;color:var(--turf)}
+.sheet{position:absolute;inset:0;z-index:60;background:rgba(16,22,17,.45);display:flex;align-items:flex-end;animation:pop .2s ease both}
+.sheet .in{width:100%;max-height:86%;overflow:auto;background:var(--paper);border-radius:22px 22px 0 0;padding:14px 14px 18px;display:grid;gap:10px}
+.sheet h4{margin:0;font-size:19px}
+.sheet .sub{font-family:var(--ui);font-size:12px;color:var(--turf)}
+.sheet textarea{width:100%;min-height:86px;border-radius:12px;border:0;box-shadow:inset 0 0 0 1px var(--rule);background:var(--page);padding:10px;font-size:15px;resize:none}
+.btns{display:flex;gap:8px}
+.btns button{flex:1;font-family:var(--ui);font-size:14px;font-weight:800;border-radius:12px;padding:11px;text-align:center;background:var(--page);box-shadow:inset 0 0 0 1px var(--rule)}
+.btns button.go{background:var(--ink);color:var(--gold-hi);box-shadow:none}
+.btns button.gold{background:var(--gold-hi);color:var(--ink);box-shadow:none}
+
+/* rows and tiles, as the ref's screen draws them */
+.prow{background:var(--page);border-radius:14px;padding:10px 12px;box-shadow:0 0 0 .5px var(--shadow);display:flex;align-items:center;gap:10px}
+.prow .who{flex:1;min-width:0}
+.tile{width:52px;height:52px;border-radius:12px;display:grid;place-items:center;font-family:var(--ui);font-size:24px;font-weight:800;background:var(--paper);box-shadow:inset 0 0 0 1.5px var(--rule)}
+.tile.set{background:var(--page);box-shadow:inset 0 0 0 1.5px var(--ink2)}
+.prow.sel{box-shadow:0 0 0 2px var(--gold-up)}
+.prow.next{animation:glow 1.4s ease-in-out infinite}
+@keyframes glow{50%{box-shadow:0 0 0 3px var(--gold-hi)}}
+.keypad{position:absolute;left:0;right:0;bottom:0;z-index:50;background:var(--ink);color:var(--page);border-radius:20px 20px 0 0;padding:12px 12px 14px;display:grid;gap:10px;animation:pop .2s ease both}
+.keypad .kh{display:flex;justify-content:space-between;align-items:baseline}
+.keypad .kh b{font-size:18px} .keypad .kh span{font-family:var(--ui);font-size:12px;color:var(--sage)}
+.keys{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.keys button{height:48px;border-radius:12px;font-family:var(--ui);font-size:20px;font-weight:800;background:#2B3D2F;color:var(--page);text-align:center;position:relative}
+.keys button.par{box-shadow:inset 0 0 0 2px var(--gold-up)}
+.keys button.cap{color:#F0A99B}
+.keys button.on{background:var(--gold-hi);color:var(--ink)}
+.keys button i{position:absolute;bottom:3px;left:0;right:0;font-style:normal;font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--sage)}
+.kclose{font-family:var(--ui);font-size:13px;font-weight:800;color:var(--gold-hi)}
+.strip{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;padding:2px}
+.strip::-webkit-scrollbar{display:none}
+.strip button{flex:0 0 auto;width:38px;height:40px;border-radius:10px;font-family:var(--ui);font-size:17px;font-weight:800;background:var(--paper);box-shadow:inset 0 0 0 1px var(--rule);text-align:center}
+.strip button.par{box-shadow:inset 0 0 0 2px var(--gold-up)}
+.strip button.cap{color:var(--flag)}
+.prow.col{flex-direction:column;align-items:stretch}
+.prow.col .top2{display:flex;align-items:center;gap:10px}
+
+/* strokes: count tiles */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ct{border-radius:18px;background:var(--page);box-shadow:0 0 0 .5px var(--shadow),0 2px 0 var(--hair);padding:10px;display:grid;gap:6px;position:relative}
+.ct .tn{font-size:16px;font-weight:700}
+.ct .tot{font-family:var(--ui);font-size:12px;color:var(--turf)}
+.ct .tot b{font-size:15px;color:var(--ink)}
+.half{border-radius:12px;display:grid;place-items:center;padding:6px 4px;text-align:center;font-family:var(--ui)}
+.half b{font-size:34px;line-height:1;font-weight:800}
+.half span{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:800}
+.half.to{background:#E6DFCB;color:var(--ink)}
+.half.on{background:#DCE7EE;color:var(--blue)}
+.half.dim{opacity:.4}
+.ct .und{position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:50%;font-size:16px;font-weight:700;color:var(--turf);background:var(--paper);box-shadow:inset 0 0 0 1px var(--rule);display:grid;place-items:center}
+.ct .done{font-family:var(--ui);font-size:12.5px;font-weight:800;border-radius:10px;padding:8px;text-align:center;background:var(--paper);box-shadow:inset 0 0 0 1px var(--rule)}
+.ct.in{background:var(--ink);color:var(--page)} .ct.in .tot{color:var(--sage)} .ct.in .tot b{color:var(--gold-hi)} .ct.in .done{background:var(--yes);color:#fff;box-shadow:none}
+.trail{display:flex;gap:4px;flex-wrap:wrap;min-height:16px}
+.trail i{width:12px;height:12px;border-radius:50%;background:var(--ink2)}
+.trail i.p{background:transparent;box-shadow:inset 0 0 0 2px var(--blue)}
+.big1{display:grid;place-items:center;font-family:var(--ui);font-size:52px;font-weight:800;line-height:1;padding:6px 0}
+.greenbtn{font-family:var(--ui);font-size:12.5px;font-weight:800;border-radius:10px;padding:8px;text-align:center;background:#DCE7EE;color:var(--blue)}
+.greenbtn.on{background:var(--blue);color:#fff}
+.putts{display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+.putts span{font-family:var(--ui);font-size:12px;font-weight:800;color:var(--blue);margin-right:2px}
+.putts button{width:40px;height:38px;border-radius:10px;font-family:var(--ui);font-size:16px;font-weight:800;background:#DCE7EE;color:var(--blue);text-align:center}
+.putts button.on{background:var(--blue);color:#fff}
+
+/* shot of the day */
+.sotd{display:inline-flex;align-items:center;gap:5px;font-family:var(--ui);font-size:12px;font-weight:800;border-radius:999px;padding:6px 10px;background:linear-gradient(180deg,#F2D489,#D9B055);color:#3B2A08;box-shadow:inset 0 0 0 1px #B48A2E,0 1px 0 rgba(0,0,0,.08)}
+.sotd.has{background:#3B2A08;color:#F2D489}
+.nom{background:var(--page);border-radius:14px;box-shadow:0 0 0 .5px var(--shadow);padding:10px 12px;display:grid;gap:5px}
+.nom .h{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.nom .h b{font-size:16px}
+.nom .h span{font-family:var(--ui);font-size:11.5px;color:var(--turf)}
+.nom q{font-style:italic;font-size:14.5px;quotes:"“" "”"}
+.nom .by{font-family:var(--ui);font-size:11.5px;color:var(--turf)}
+.nom .v{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.vote{font-family:var(--ui);font-size:12.5px;font-weight:800;border-radius:999px;padding:7px 12px;background:var(--paper);box-shadow:inset 0 0 0 1px var(--rule)}
+.vote.on{background:var(--gold-hi);box-shadow:none}
+.vote.star{background:var(--ink);color:var(--gold-hi);box-shadow:none}
+.bar{height:8px;border-radius:4px;background:var(--sunk);overflow:hidden;flex:1;min-width:60px}
+.bar i{display:block;height:100%;background:var(--gold-up)}
+.count{font-family:var(--ui);font-size:12px;font-weight:800;color:var(--gold)}
+.stage{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--sunk);border-radius:12px;padding:3px}
+.stage button{border-radius:9px;padding:8px;text-align:center;font-family:var(--ui);font-size:13px;font-weight:700;color:var(--turf)}
+.stage button.on{background:var(--page);color:var(--ink);box-shadow:0 1px 3px rgba(16,22,17,.18)}
+.crown{background:var(--ink);color:var(--page);border-radius:14px;padding:12px;border-bottom:3px solid var(--gold-up);display:grid;gap:4px}
+.crown small{font-family:var(--ui);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-hi);font-weight:800}
+.crown b{font-size:18px}
+.tag{font-family:var(--ui);font-size:10.5px;font-weight:800;border-radius:999px;padding:2px 8px;background:var(--ink);color:var(--gold-hi)}
+.tag.ref{background:#F2DDD6;color:var(--flag)}
+.lh{font-family:var(--ui);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);font-weight:800;margin-top:4px}
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>Ref tools: three ways each</h1>
+  <p>Three changes the refs asked for, with three versions of each. Every phone below works: tap through it. Group 2 on the par-4 9th at Olympos (Norberto III, Norberto Jr., Duncan W, DP).</p>
+  <nav class="jump"><a href="#strokes">1 · Shots to the green, and putts</a><a href="#sotd">2 · Shot of the day</a><a href="#pad">3 · The score pad</a></nav>
+</header>
+
+<section class="part" id="strokes">
+  <span class="n">1 of 3</span><h2>Shots to the green, and putts</h2>
+  <p>Count mode already counts every shot. These split the count in two, before the green and on it, so the card knows the putts too. The total is still the score, three putts still mark themselves, and the recap can say who putted well.</p>
+</section>
+<div class="row">
+  <section class="opt"><div class="olabel"><b>1A</b><span><strong>Two halves a tile</strong><small>Top half a shot, bottom half a putt</small></span></div>
+    <div class="phone" id="s1"></div>
+    <div class="cap"><p class="what">Each golfer's tile is split: tap the top for a shot to the green, the bottom for a putt. The score is the two added up.</p>
+      <ul><li>One tap a shot, whichever kind: no mode to remember.</li><li>Shots and putts side by side, at a glance.</li><li>Smaller targets than one big tile.</li></ul></div>
+    <button class="reset" data-reset="s1">Start the hole again</button></section>
+  <section class="opt"><div class="olabel"><b>1B</b><span><strong>"On the green" switch</strong><small>One big tile, flipped at the green</small></span></div>
+    <div class="phone" id="s2"></div>
+    <div class="cap"><p class="what">The big tile as now. When a golfer's ball is on the green, tap <b>On the green</b> and every tap after counts as a putt. Shots are dots, putts are rings.</p>
+      <ul><li>Keeps the biggest target for every tap.</li><li>One extra tap a golfer a hole.</li><li>Forget to flip it and the putts count as shots.</li></ul></div>
+    <button class="reset" data-reset="s2">Start the hole again</button></section>
+  <section class="opt"><div class="olabel"><b>1C</b><span><strong>Score, then putts</strong><small>No live counting: two numbers a hole</small></span></div>
+    <div class="phone" id="s3"></div>
+    <div class="cap"><p class="what">No counting as you go. When the hole's done, the ref puts in the score as now, then taps the number of putts on a row under it.</p>
+      <ul><li>The least to do while walking.</li><li>Works with the keypad the refs already know.</li><li>Relies on remembering the putts at the end of the hole.</li></ul></div>
+    <button class="reset" data-reset="s3">Start the hole again</button></section>
+</div>
+
+<section class="part" id="sotd">
+  <span class="n">2 of 3</span><h2>Shot of the day</h2>
+  <p>A gold <b>★ Shot of the day</b> button on every golfer, for the refs: tap it, say what happened, and it's nominated. A ref can nominate as many as they like through the round. After the round, the refs and the rest of the group go through them together and vote for the one. The winner goes into the recap.</p>
+</section>
+<div class="row">
+  <section class="opt"><div class="olabel"><b>2A</b><span><strong>One vote each</strong><small>Everyone votes, most votes wins</small></span></div>
+    <div class="phone" id="n1"></div>
+    <div class="cap"><p class="what">Nominate on the course. After the round, the <b>Shot of the day</b> board lists every nomination with what the ref wrote. Everyone, refs and group, gets one vote; the most votes wins, and the commissioner can call a tie.</p>
+      <ul><li>Simplest: one list, one vote.</li><li>The whole trip has a say.</li><li>A popular golfer can win on friends' votes.</li></ul></div>
+    <button class="reset" data-reset="n1">Start again</button></section>
+  <section class="opt"><div class="olabel"><b>2B</b><span><strong>Refs shortlist, group votes</strong><small>Two stages</small></span></div>
+    <div class="phone" id="n2"></div>
+    <div class="cap"><p class="what">First the refs go through every nomination and pick a <b>shortlist of three</b>. Then the group votes on those three. The refs keep the quality up; the group crowns it.</p>
+      <ul><li>The refs, who saw the shots, filter the list.</li><li>The group still decides.</li><li>One more step after the round.</li></ul></div>
+    <button class="reset" data-reset="n2">Start again</button></section>
+  <section class="opt"><div class="olabel"><b>2C</b><span><strong>Weighted votes</strong><small>A ref's vote counts double</small></span></div>
+    <div class="phone" id="n3"></div>
+    <div class="cap"><p class="what">One list and one vote each, as in A, but a ref's vote counts <b>twice</b>. The bars show the running count live; the commissioner closes the vote.</p>
+      <ul><li>One step, like A.</li><li>The refs' eye counts for more, without a separate shortlist.</li><li>Needs explaining once.</li></ul></div>
+    <button class="reset" data-reset="n3">Start again</button></section>
+</div>
+
+<section class="part" id="pad">
+  <span class="n">3 of 3</span><h2>The score pad: no more walking on</h2>
+  <p>Today the pad jumps to the next golfer by itself after each score. The refs want it to close once a score is picked, and to choose the next golfer themselves.</p>
+</section>
+<div class="row">
+  <section class="opt"><div class="olabel"><b>3A</b><span><strong>Pick and close</strong><small>Exactly as asked</small></span></div>
+    <div class="phone" id="k1"></div>
+    <div class="cap"><p class="what">Tap a golfer's box, tap the number, and the pad closes. Back on the list, tap whoever is next.</p>
+      <ul><li>Nothing moves on its own.</li><li>Two taps a golfer.</li><li>Nothing points at who is still to go.</li></ul></div>
+    <button class="reset" data-reset="k1">Start the hole again</button></section>
+  <section class="opt"><div class="olabel"><b>3B</b><span><strong>Pick, close, and a nudge</strong><small>The next empty golfer glows</small></span></div>
+    <div class="phone" id="k2"></div>
+    <div class="cap"><p class="what">As A, but once the pad closes the next golfer without a score <b>glows gold</b>. Nothing opens by itself; the glow is just a reminder.</p>
+      <ul><li>The ref chooses, as asked.</li><li>Hard to miss a golfer.</li><li>Still two taps a golfer.</li></ul></div>
+    <button class="reset" data-reset="k2">Start the hole again</button></section>
+  <section class="opt"><div class="olabel"><b>3C</b><span><strong>Numbers on the row</strong><small>No pad at all</small></span></div>
+    <div class="phone" id="k3"></div>
+    <div class="cap"><p class="what">No pad. Each golfer's row opens a strip of numbers under their name; tap one and the row folds back to show the score. Tap the score to change it.</p>
+      <ul><li>Everything stays on one screen.</li><li>Mulligans and the pick-up question still pop up when needed.</li><li>Smaller number buttons than the pad's.</li></ul></div>
+    <button class="reset" data-reset="k3">Start the hole again</button></section>
+</div>
+
+<section class="dev">
+  <div class="card rec"><h3>My picks: 1A, 2B, 3B</h3>
+    <ul><li><b>1A</b>: one tap a shot with nothing to remember to switch, and the putts come for free. 1B saves space but a forgotten switch counts putts as shots.</li>
+      <li><b>2B</b>: the refs saw the shots, so they pick the shortlist; the group still crowns it. 2A is the simplest if you'd rather everyone just votes.</li>
+      <li><b>3B</b>: the ref chooses who's next, as asked, and the glow stops anyone being missed.</li></ul></div>
+  <div class="card"><h3>Already fixed: the ruling keyboard</h3>
+    <ul><li>On the second question and after, the screen redrew while it was being typed, which dropped the keyboard and jumbled the text.</li>
+      <li>It now waits while the question is typed, and the box no longer goes grey while it asks.</li>
+      <li>It's live in the app now: close and reopen to get it.</li></ul></div>
+</section>
+
+<script>
+(function () {
+  var PAR = 4, CAP = 7, HOLE = 9;
+  var G = [{ id: 'a', name: 'Norberto III', st: 1 }, { id: 'b', name: 'Norberto Jr.', st: 2 }, { id: 'c', name: 'Duncan W', st: 2 }, { id: 'd', name: 'DP', st: 1 }];
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function nm(id) { return G.filter(function (g) { return g.id === id; })[0].name; }
+  var TABS = '<div class="tabbar"><span><i></i>Today</span><span class="on"><i></i>Scores</span><span><i></i>Bets</span><span><i></i>Boards</span><span><i></i>Calendar</span><span class="gold"><i></i>Resort</span></div>';
+  function head(k, t, s) { return '<div class="ehd"><div class="k">' + k + '</div><div class="t"><b>' + t + '</b><span>' + s + '</span></div></div>'; }
+  function draw(id, body, foot, extra, toast) {
+    var el = document.getElementById(id), keep = el.querySelector('.scr'), y = keep ? keep.scrollTop : 0;
+    el.innerHTML = '<div class="scr">' + body + '</div>' + (toast ? '<div class="toast">' + toast + '</div>' : '') + (foot ? '<div class="foot">' + foot + '</div>' : '') + TABS + (extra || '');
+    el.querySelector('.scr').scrollTop = y;
+  }
+  var H = head('Round 2 · Group 2 · Count', 'Hole ' + HOLE, 'Par 4 · picks up at ' + CAP);
+  var S = {};
+
+  /* ---- 1A two halves ---- */
+  S.s1 = { reset: function () { this.t = {}; this.p = {}; this.in = {}; }, render: function () {
+    var st = this, all = G.every(function (g) { return st.in[g.id]; });
+    var tiles = G.map(function (g) { var t = st.t[g.id] || 0, p = st.p[g.id] || 0, inn = st.in[g.id];
+      return '<div class="ct' + (inn ? ' in' : '') + '"><span class="tn">' + esc(g.name) + '</span><span class="tot">' + (t + p ? '<b>' + (t + p) + '</b> · ' + t + ' to the green · ' + p + ' putt' + (p === 1 ? '' : 's') : 'tap as they play') + '</span>'
+        + (t + p && !inn ? '<button class="und" data-go="und" data-g="' + g.id + '" aria-label="Undo">↺</button>' : '')
+        + '<button class="half to" data-go="t" data-g="' + g.id + '"><b>' + t + '</b><span>To the green</span></button>'
+        + '<button class="half on" data-go="p" data-g="' + g.id + '"><b>' + p + '</b><span>Putts</span></button>'
+        + '<button class="done" data-go="in" data-g="' + g.id + '">' + (inn ? '✓ Holed · ' + (t + p) : 'In the hole') + '</button></div>'; }).join('');
+    draw('s1', H + '<div class="pad"><p class="hint">Top half: a shot to the green. Bottom half: a putt.</p><div class="grid">' + tiles + '</div></div>',
+      '<button class="save"' + (all ? '' : ' disabled') + ' data-go="save">' + (all ? 'Save hole 9' : G.filter(function (g) { return st.in[g.id]; }).length + ' of 4 in the hole') + '</button>', '', st.toast);
+  }, act: function (go, g) { this.toast = null; var tot = (this.t[g] || 0) + (this.p[g] || 0);
+    if (go === 't' && !this.in[g] && tot < CAP) { this.t[g] = (this.t[g] || 0) + 1; this.last = this.last || {}; this.last[g] = 't'; }
+    if (go === 'p' && !this.in[g] && tot < CAP) { this.p[g] = (this.p[g] || 0) + 1; this.last = this.last || {}; this.last[g] = 'p'; }
+    if (go === 'und') { var k = (this.last || {})[g] === 'p' && this.p[g] ? 'p' : this.t[g] ? 't' : 'p'; this[k][g] = Math.max(0, (this[k][g] || 0) - 1); }
+    if (go === 'in') { if (this.in[g]) this.in[g] = false; else if (tot) this.in[g] = true; else this.toast = 'Count their shots first.'; }
+    if (go === 'save') { var st = this; this.toast = 'Saved: ' + G.map(function (x) { return x.name + ' ' + ((st.t[x.id] || 0) + (st.p[x.id] || 0)) + ' (' + (st.p[x.id] || 0) + ' putts)'; }).join(' · ') + (G.some(function (x) { return (st.p[x.id] || 0) >= 3; }) ? '. Three putts marked.' : ''); }
+  } };
+
+  /* ---- 1B on-the-green switch ---- */
+  S.s2 = { reset: function () { this.s = {}; this.g = {}; this.in = {}; }, render: function () {
+    var st = this, all = G.every(function (g) { return st.in[g.id]; });
+    var tiles = G.map(function (g) { var seq = st.s[g.id] || [], n = seq.length, inn = st.in[g.id], green = st.g[g.id], pu = seq.filter(function (x) { return x === 'p'; }).length;
+      return '<div class="ct' + (inn ? ' in' : '') + '"' + (inn ? '' : ' data-go="tap" data-g="' + g.id + '" role="button"') + '><span class="tn">' + esc(g.name) + '</span>'
+        + (n && !inn ? '<button class="und" data-go="und" data-g="' + g.id + '">↺</button>' : '')
+        + '<div class="big1">' + n + '</div><div class="trail">' + seq.map(function (x) { return '<i class="' + (x === 'p' ? 'p' : '') + '"></i>'; }).join('') + '</div>'
+        + '<span class="tot">' + (n ? (n - pu) + ' to the green · ' + pu + ' putt' + (pu === 1 ? '' : 's') : 'tap when they hit') + '</span>'
+        + (inn ? '' : '<button class="greenbtn' + (green ? ' on' : '') + '" data-go="green" data-g="' + g.id + '">' + (green ? '● On the green: taps are putts' : 'On the green') + '</button>')
+        + '<button class="done" data-go="in" data-g="' + g.id + '">' + (inn ? '✓ Holed · ' + n : 'In the hole') + '</button></div>'; }).join('');
+    draw('s2', H + '<div class="pad"><p class="hint">Tap a golfer for each shot. <b>On the green</b> turns their taps into putts. ● shot ○ putt</p><div class="grid">' + tiles + '</div></div>',
+      '<button class="save"' + (all ? '' : ' disabled') + ' data-go="save">' + (all ? 'Save hole 9' : G.filter(function (g) { return st.in[g.id]; }).length + ' of 4 in the hole') + '</button>', '', st.toast);
+  }, act: function (go, g) { this.toast = null; var seq = this.s[g] || (this.s[g] = []);
+    if (go === 'tap' && !this.in[g] && seq.length < CAP) seq.push(this.g[g] ? 'p' : 't');
+    if (go === 'green') this.g[g] = !this.g[g];
+    if (go === 'und') seq.pop();
+    if (go === 'in') { if (this.in[g]) this.in[g] = false; else if (seq.length) this.in[g] = true; else this.toast = 'Count their shots first.'; }
+    if (go === 'save') { var st = this; this.toast = 'Saved: ' + G.map(function (x) { var q = st.s[x.id] || []; return x.name + ' ' + q.length + ' (' + q.filter(function (y) { return y === 'p'; }).length + ' putts)'; }).join(' · '); }
+  } };
+
+  /* ---- 1C score then putts ---- */
+  S.s3 = { reset: function () { this.v = {}; this.p = {}; this.pad = null; }, render: function () {
+    var st = this, all = G.every(function (g) { return st.v[g.id] && st.p[g.id] != null; });
+    var rows = G.map(function (g) { var v = st.v[g.id], p = st.p[g.id];
+      return '<div class="prow col"><div class="top2"><div class="who"><b>' + esc(g.name) + '</b><small>+' + g.st + ' here' + (p != null ? ' · ' + p + ' putt' + (p === 1 ? '' : 's') + (p >= 3 ? ' · three-putt marked' : '') : '') + '</small></div>'
+        + '<button class="tile' + (v ? ' set' : '') + '" data-go="pad" data-g="' + g.id + '">' + (v || '·') + '</button></div>'
+        + (v ? '<div class="putts"><span>Putts</span>' + [0, 1, 2, 3, 4].map(function (n) { return '<button class="' + (p === n ? 'on' : '') + '" data-go="putt" data-g="' + g.id + '" data-n="' + n + '">' + n + '</button>'; }).join('') + '</div>' : '') + '</div>'; }).join('');
+    var pad = st.pad ? '<div class="keypad"><div class="kh"><b>' + esc(nm(st.pad)) + '</b><span>Hole 9 · par 4 · picks up at 7</span><button class="kclose" data-go="close">Done</button></div><div class="keys">'
+      + [1, 2, 3, 4, 5, 6, 7].map(function (n) { return '<button class="' + (n === PAR ? 'par ' : '') + (n === CAP ? 'cap ' : '') + (st.v[st.pad] === n ? 'on' : '') + '" data-go="key" data-n="' + n + '">' + n + (n === PAR ? '<i>par</i>' : n === CAP ? '<i>pick up</i>' : '') + '</button>'; }).join('') + '</div></div>' : '';
+    draw('s3', head('Round 2 · Group 2 · Scores', 'Hole 9', 'Par 4 · index 5') + '<div class="pad"><p class="hint">Score as now. Then the putts, on the row under it.</p>' + rows + '</div>',
+      '<button class="save"' + (all ? '' : ' disabled') + ' data-go="save">' + (all ? 'Save hole 9' : 'Scores and putts for all four') + '</button>', pad, st.toast);
+  }, act: function (go, g, n) { this.toast = null;
+    if (go === 'pad') this.pad = g; if (go === 'close') this.pad = null;
+    if (go === 'key') { this.v[this.pad] = +n; this.pad = null; }
+    if (go === 'putt') this.p[g] = +n;
+    if (go === 'save') this.toast = 'Hole 9 saved, with the putts.';
+  } };
+
+  /* ---- shot of the day: shared nominating ---- */
+  function nomRows(st, id) {
+    return G.map(function (g) { var mine = st.noms.filter(function (x) { return x.g === g.id && x.h === HOLE; }).length;
+      return '<div class="prow"><div class="who"><b>' + esc(g.name) + '</b><small>+' + g.st + ' here</small><div style="margin-top:6px"><button class="sotd' + (mine ? ' has' : '') + '" data-go="nom" data-g="' + g.id + '">★ ' + (mine ? 'Nominated' : 'Shot of the day') + '</button></div></div><span class="tile set">' + (g.id === 'd' ? 4 : g.id === 'a' ? 5 : 6) + '</span></div>'; }).join('');
+  }
+  function nomSheet(st) {
+    if (!st.sheet) return '';
+    return '<div class="sheet"><div class="in"><span class="sub">Round 2 · hole ' + HOLE + '</span><h4>★ Shot of the day: ' + esc(nm(st.sheet)) + '</h4>'
+      + '<textarea id="' + st.id + 'txt" placeholder="What was it? The more you say, the better it reads in the recap.">' + esc(st.draft || '') + '</textarea>'
+      + '<div class="btns"><button data-go="cancel">Cancel</button><button class="gold" data-go="send">★ Nominate</button></div></div></div>';
+  }
+  var SEED = [
+    { g: 'b', h: 4, by: 'Ref 1', t: 'Chipped in from the back fringe for a two. Didn’t even look at the line.' },
+    { g: 'c', h: 7, by: 'Ref 2', t: '296 off the tee, then a hybrid to six feet on the par 5.' },
+    { g: 'd', h: 6, by: 'Ref 1', t: 'Punched out under the pine, ran it up the bank to tap-in range.' }
+  ];
+  function nomCard(x, extra) {
+    return '<div class="nom"><div class="h"><b>' + esc(nm(x.g)) + '</b><span>hole ' + x.h + '</span></div><q>' + esc(x.t) + '</q><span class="by">Nominated by ' + esc(x.by) + '</span>' + (extra || '') + '</div>';
+  }
+  function nomAct(st, go, g) {
+    st.toast = null;
+    if (go === 'nom') { st.sheet = g; st.draft = ''; }
+    if (go === 'cancel') st.sheet = null;
+    if (go === 'send') { var f = document.getElementById(st.id + 'txt'), t = f ? f.value.trim() : '';
+      if (!t) { st.toast = 'Say what the shot was.'; st.draft = ''; return; }
+      st.noms.push({ g: st.sheet, h: HOLE, by: 'You (ref)', t: t }); st.sheet = null; st.toast = '★ Nominated. Nominate as many as you like.'; }
+    if (go === 'review') st.view = 'review'; if (go === 'course') st.view = 'course';
+  }
+  function makeNom(id, review) {
+    S[id] = { id: id, reset: function () { this.noms = SEED.slice(); this.sheet = null; this.view = 'course'; this.votes = {}; this.my = null; this.short = []; this.stage = 'refs'; this.closed = false; },
+      render: function () {
+        var st = this, body;
+        if (st.view === 'course') body = head('Round 2 · Group 2 · Ref', 'Hole ' + HOLE, 'Par 4 · index 5') + '<div class="pad"><p class="hint">Tap <b>★ Shot of the day</b> on anyone who hits one. As many as you like.</p>' + nomRows(st, id)
+          + '<div class="lh">Nominated today · ' + st.noms.length + '</div>' + st.noms.slice().reverse().map(function (x) { return nomCard(x); }).join('') + '</div>';
+        else body = review(st);
+        draw(id, body, '<button class="save" data-go="' + (st.view === 'course' ? 'review' : 'course') + '">' + (st.view === 'course' ? 'After the round: review and vote ›' : '‹ Back to the scorecard') + '</button>', nomSheet(st), st.toast);
+      },
+      act: function (go, g) { var st = this; nomAct(st, go, g); if (st.extra) st.extra(go, g); } };
+  }
+  /* 2A: one vote each */
+  makeNom('n1', function (st) {
+    var total = Object.keys(st.votes).length ? 0 : 0, counts = st.noms.map(function (x, i) { return (i === 0 ? 2 : i === 1 ? 3 : 1) + (st.my === i ? 1 : 0); }), max = Math.max.apply(null, counts);
+    return head('Round 2 · after the round', 'Shot of the day', st.noms.length + ' nominations · one vote each') + '<div class="pad"><p class="hint">Everyone gets one vote. Most votes wins.</p>'
+      + st.noms.map(function (x, i) { return nomCard(x, '<div class="v"><button class="vote' + (st.my === i ? ' on' : '') + '" data-go="vote" data-g="' + i + '">' + (st.my === i ? '✓ Your vote' : 'Vote') + '</button><div class="bar"><i style="width:' + Math.round(counts[i] / max * 100) + '%"></i></div><span class="count">' + counts[i] + '</span></div>'); }).join('') + '</div>';
+  });
+  S.n1.extra = function (go, g) { if (go === 'vote') this.my = this.my === +g ? null : +g; };
+  /* 2B: refs shortlist, then the group */
+  makeNom('n2', function (st) {
+    var stage = '<div class="stage"><button class="' + (st.stage === 'refs' ? 'on' : '') + '" data-go="stage" data-g="refs">1 · Refs shortlist</button><button class="' + (st.stage === 'group' ? 'on' : '') + '" data-go="stage" data-g="group">2 · Group votes</button></div>';
+    if (st.stage === 'refs') return head('Round 2 · after the round', 'Shot of the day', 'Refs: pick three for the shortlist') + '<div class="pad">' + stage + '<p class="hint"><span class="tag ref">Refs only</span> Tap ☆ on the three best. ' + st.short.length + ' of 3 picked.</p>'
+      + st.noms.map(function (x, i) { var on = st.short.indexOf(i) >= 0; return nomCard(x, '<div class="v"><button class="vote' + (on ? ' star' : '') + '" data-go="pick" data-g="' + i + '">' + (on ? '★ On the shortlist' : '☆ Shortlist it') + '</button></div>'); }).join('') + '</div>';
+    var list = st.short.length ? st.short : [0, 1, 2], counts = list.map(function (i, k) { return [3, 2, 1][k] + (st.my === i ? 1 : 0); }), max = Math.max.apply(null, counts);
+    return head('Round 2 · after the round', 'Shot of the day', 'The shortlist · everyone votes') + '<div class="pad">' + stage + '<p class="hint">The refs’ three. One vote each.</p>'
+      + list.map(function (i, k) { var x = st.noms[i]; return nomCard(x, '<div class="v"><button class="vote' + (st.my === i ? ' on' : '') + '" data-go="vote" data-g="' + i + '">' + (st.my === i ? '✓ Your vote' : 'Vote') + '</button><div class="bar"><i style="width:' + Math.round(counts[k] / max * 100) + '%"></i></div><span class="count">' + counts[k] + '</span></div>'); }).join('') + '</div>';
+  });
+  S.n2.extra = function (go, g) {
+    if (go === 'stage') this.stage = g;
+    if (go === 'pick') { var i = +g, at = this.short.indexOf(i); if (at >= 0) this.short.splice(at, 1); else if (this.short.length < 3) this.short.push(i); else this.toast = 'Three on the shortlist already: take one off first.'; }
+    if (go === 'vote') this.my = this.my === +g ? null : +g;
+  };
+  /* 2C: weighted votes */
+  makeNom('n3', function (st) {
+    var base = [[1, 2], [2, 1], [0, 1]], counts = st.noms.map(function (x, i) { var b = base[i] || [0, 0]; return b[0] * 2 + b[1] + (st.my === i ? 2 : 0); }), max = Math.max.apply(null, counts), lead = counts.indexOf(max);
+    return head('Round 2 · after the round', 'Shot of the day', 'Refs’ votes count twice') + '<div class="pad">'
+      + (st.closed ? '<div class="crown"><small>Shot of the day · Round 2</small><b>' + esc(nm(st.noms[lead].g)) + ', hole ' + st.noms[lead].h + '</b><span>' + esc(st.noms[lead].t) + '</span></div>' : '<p class="hint">One vote each; <span class="tag ref">ref</span> votes count ×2. You’re voting as a ref.</p>')
+      + st.noms.map(function (x, i) { var b = base[i] || [0, 0]; return nomCard(x, '<div class="v">' + (st.closed ? '' : '<button class="vote' + (st.my === i ? ' on' : '') + '" data-go="vote" data-g="' + i + '">' + (st.my === i ? '✓ Your vote ×2' : 'Vote') + '</button>') + '<div class="bar"><i style="width:' + Math.round(counts[i] / max * 100) + '%"></i></div><span class="count">' + counts[i] + ' pts</span></div><span class="by">' + (b[0] + (st.my === i ? 1 : 0)) + ' ref vote' + (b[0] + (st.my === i ? 1 : 0) === 1 ? '' : 's') + ' · ' + b[1] + ' from the group</span>'); }).join('')
+      + (st.closed ? '' : '<button class="vote star" data-go="close" style="justify-self:start">Commissioner: close the vote</button>') + '</div>';
+  });
+  S.n3.extra = function (go, g) { if (go === 'vote') this.my = this.my === +g ? null : +g; if (go === 'close') this.closed = true; };
+
+  /* ---- 3: the pad ---- */
+  function padRows(st, glow) {
+    var next = glow ? G.filter(function (g) { return !st.v[g.id]; })[0] : null;
+    return G.map(function (g) { var v = st.v[g.id];
+      return '<div class="prow' + (st.pad === g.id ? ' sel' : '') + (next && next.id === g.id && !st.pad ? ' next' : '') + '"><div class="who"><b>' + esc(g.name) + '</b><small>+' + g.st + ' here' + (next && next.id === g.id && !st.pad ? ' · <b style="display:inline;font-size:12px;color:var(--gold)">next to score</b>' : '') + '</small></div>'
+        + '<button class="tile' + (v ? ' set' : '') + '" data-go="pad" data-g="' + g.id + '">' + (v || '·') + '</button></div>'; }).join('');
+  }
+  function padKeys(st) {
+    if (!st.pad) return '';
+    return '<div class="keypad"><div class="kh"><b>' + esc(nm(st.pad)) + '</b><span>Hole 9 · par 4 · picks up at 7</span><button class="kclose" data-go="close">Close</button></div><div class="keys">'
+      + [1, 2, 3, 4, 5, 6, 7].map(function (n) { return '<button class="' + (n === PAR ? 'par ' : '') + (n === CAP ? 'cap ' : '') + (st.v[st.pad] === n ? 'on' : '') + '" data-go="key" data-n="' + n + '">' + n + (n === PAR ? '<i>par</i>' : n === CAP ? '<i>pick up</i>' : '') + '</button>'; }).join('') + '</div></div>';
+  }
+  function makePad(id, glow) {
+    S[id] = { reset: function () { this.v = {}; this.pad = null; }, render: function () {
+      var st = this, n = G.filter(function (g) { return st.v[g.id]; }).length;
+      draw(id, head('Round 2 · Group 2 · Scores', 'Hole 9', 'Par 4 · index 5') + '<div class="pad"><p class="hint">Tap a golfer’s box, then the number. The pad closes; pick who’s next.</p>' + padRows(st, glow) + '</div>',
+        '<button class="save"' + (n === 4 ? '' : ' disabled') + ' data-go="save">' + (n === 4 ? 'Save hole 9' : n + ' of 4 scored') + '</button>', padKeys(st), st.toast);
+    }, act: function (go, g, n) { this.toast = null; if (go === 'pad') this.pad = g; if (go === 'close') this.pad = null;
+      if (go === 'key') { this.v[this.pad] = +n; this.pad = null; } if (go === 'save') this.toast = 'Hole 9 saved.'; } };
+  }
+  makePad('k1', false); makePad('k2', true);
+  S.k3 = { reset: function () { this.v = {}; this.open = null; }, render: function () {
+    var st = this, n = G.filter(function (g) { return st.v[g.id]; }).length;
+    var rows = G.map(function (g) { var v = st.v[g.id], open = st.open === g.id;
+      return '<div class="prow col' + (open ? ' sel' : '') + '"><div class="top2"><div class="who"><b>' + esc(g.name) + '</b><small>+' + g.st + ' here</small></div>'
+        + '<button class="tile' + (v ? ' set' : '') + '" data-go="row" data-g="' + g.id + '">' + (v || '·') + '</button></div>'
+        + (open ? '<div class="strip">' + [1, 2, 3, 4, 5, 6, 7].map(function (k) { return '<button class="' + (k === PAR ? 'par ' : '') + (k === CAP ? 'cap' : '') + '" data-go="num" data-g="' + g.id + '" data-n="' + k + '">' + k + '</button>'; }).join('') + '</div>' : '') + '</div>'; }).join('');
+    draw('k3', head('Round 2 · Group 2 · Scores', 'Hole 9', 'Par 4 · index 5') + '<div class="pad"><p class="hint">Tap a golfer’s box: the numbers open on their row. Tap one and it folds away.</p>' + rows + '</div>',
+      '<button class="save"' + (n === 4 ? '' : ' disabled') + ' data-go="save">' + (n === 4 ? 'Save hole 9' : n + ' of 4 scored') + '</button>', '', st.toast);
+  }, act: function (go, g, n) { this.toast = null; if (go === 'row') this.open = this.open === g ? null : g; if (go === 'num') { this.v[g] = +n; this.open = null; } if (go === 'save') this.toast = 'Hole 9 saved.'; } };
+
+  Object.keys(S).forEach(function (id) {
+    var s = S[id]; s.reset(); s.render();
+    document.getElementById(id).addEventListener('click', function (e) {
+      var t = e.target.closest('[data-go]'); if (!t) return;
+      e.stopPropagation(); s.act(t.getAttribute('data-go'), t.getAttribute('data-g'), t.getAttribute('data-n')); s.render();
+    });
+  });
+  document.querySelectorAll('[data-reset]').forEach(function (b) { b.addEventListener('click', function () { var s = S[b.getAttribute('data-reset')]; s.reset(); s.toast = null; s.render(); }); });
+})();
+</script>
+</body>
+</html>

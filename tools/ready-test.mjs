@@ -1,0 +1,166 @@
+/* The book must never end up permanently unable to save. A roster read that
+   fails or never answers must not leave a scorer with controls that undo
+   themselves and buttons that do nothing.
+   Run: node tools/ready-test.mjs */
+import { chromium } from 'playwright';
+import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
+
+/* THE KEYPAD. A score goes in by tapping the golfer's tile and then the
+   number on the pad that rises. These emulate n taps of the old plus or
+   minus (from an empty cell the first plus landed on par, the first minus
+   one under) so the arithmetic of every scenario below is unchanged. */
+const __pad = async (pg, i, taps, dir) => {
+  const tiles = pg.locator('.ptile[data-act="padOpen"]');
+  if (await tiles.count() <= i) return;
+  await tiles.nth(i).focus().catch(() => {}); await tiles.nth(i).dispatchEvent('click'); await pg.waitForTimeout(140);
+  const kp = pg.locator('.keypad'); if (!await kp.count()) return;
+  if (taps <= 0) return;
+  const par = +(await kp.getAttribute('data-par')), cap = +(await kp.getAttribute('data-cap'));
+  const curS = await kp.getAttribute('data-cur'); const cur = curS ? +curS : null;
+  let v = cur == null ? par + (dir > 0 ? taps - 1 : -taps) : cur + dir * taps;
+  v = Math.max(1, Math.min(cap, v));
+  const key = kp.locator('.key[data-b="' + v + '"]'); await key.focus().catch(() => {}); await key.dispatchEvent('click'); await pg.waitForTimeout(120);
+};
+const __plus = (pg, i, taps = 1) => __pad(pg, i, taps, 1);
+const __minus = (pg, i, taps = 1) => __pad(pg, i, taps, -1);
+const __open = (pg, i) => __pad(pg, i, 0, 1);
+
+
+/* ---- getting about the book ----
+   Four tabs now — Today, Scores, Boards, Resort — and the five screens that
+   are set up once live behind Manage. So a name is looked for on the bar
+   first, then behind that door, and last of all among the boards, which is
+   where the Ryder Cup went. The same three places a person would look. */
+const goTab = async (pg, t) => {
+  const direct = pg.locator('.tab:visible, .navbtn:visible', { hasText: t });
+  if (await direct.count()) { await direct.first().click(); return; }
+  const door = pg.locator('[data-act="manageOpen"]');
+  if (await door.count()) {
+    await door.first().click();
+    await pg.waitForTimeout(400);
+    const row = pg.locator('.mg-row', { hasText: t });
+    if (await row.count()) { await row.first().click(); return; }
+    await pg.locator('.mgmodal [data-act="modalCancel"]').click().catch(() => {});
+    await pg.waitForTimeout(300);
+  }
+  await pg.locator('.tab:visible, .navbtn:visible', { hasText: 'Boards' }).first().click();
+  await pg.waitForTimeout(500);
+  await pg.locator('.btab', { hasText: t }).first().click();
+};
+
+const S = '/tmp/claude-0/-home-user-Union-Invitational-/8bcdc9be-12b5-528d-a069-2403e068b315/scratchpad';
+/* The database snapshots live in the repo, not the scratchpad: the
+   scratchpad is wiped when the container restarts, and a fixture a test
+   cannot find is not a fixture. Rebuild them with tools/make-fixtures.mjs. */
+const FIX = new URL('./fixtures/', import.meta.url).pathname.replace(/\/$/, '');
+writeFileSync(S + '/ready.html', '<!doctype html><html><head><meta charset="utf-8">'
+  + '<meta name="viewport" content="width=device-width, initial-scale=1">'
+  + '<style>:root{color-scheme:light}body{margin:0}img{max-width:100%}</style></head><body>'
+  + readFileSync('dist/union-invitational.html', 'utf8').replace('const PINS_ENABLED = true', 'const PINS_ENABLED = false') + '</body></html>');
+
+const LIVE = JSON.parse(readFileSync(FIX + '/db4/config/tournament.json', 'utf8'));
+delete LIVE.rosterInDocs;
+const seed = { 'config/tournament': LIVE };
+for (const f of readdirSync(FIX + '/restore/people')) seed['people/' + f.replace('.json', '')] = JSON.parse(readFileSync(FIX + '/restore/people/' + f, 'utf8'));
+for (const f of readdirSync(FIX + '/restore/pairs')) seed['pairs/' + f.replace('.json', '')] = JSON.parse(readFileSync(FIX + '/restore/pairs/' + f, 'utf8'));
+
+const fails = [];
+const ok = (n, g, w) => { const good = g === w;
+  console.log((good ? '  PASS  ' : '  FAIL  ') + n + '  got ' + JSON.stringify(g) + (good ? '' : '  want ' + JSON.stringify(w)));
+  if (!good) fails.push(n); };
+
+/* `breakage` decides how the roster collection misbehaves:
+   'reject'  — the direct read rejects, as a transient platform error does
+   'silent'  — neither the read nor the subscription ever answers            */
+const MOCK = ({ seed, breakage }) => {
+  const docs = JSON.parse(JSON.stringify(seed));
+  const clone = o => JSON.parse(JSON.stringify(o));
+  /* The real store hands back FROZEN bodies — a mock that does not freeze
+     proves nothing. */
+  const deepFreeze = o => { if (o && typeof o === 'object' && !Object.isFrozen(o)) {
+    Object.getOwnPropertyNames(o).forEach(k => deepFreeze(o[k])); Object.freeze(o); } return o; };
+  const snap = (b, e = true, id = '') => ({ id, exists: e, data: () => (e ? deepFreeze(b) : undefined),
+    metadata: { fromCache: false, hasPendingWrites: false } });
+  const subs = { doc: {}, coll: {} };
+  const collSnap = c => ({ docs: Object.keys(docs).filter(k => k.startsWith(c + '/'))
+    .map(k => snap(clone(docs[k]), true, k.slice(c.length + 1))) });
+  const fireColl = c => (subs.coll[c] || []).forEach(f => f(collSnap(c)));
+  const roster = c => c === 'people' || c === 'pairs';
+  const docRef = path => ({ id: path.split('/').pop(), path,
+    get: () => new Promise(r => setTimeout(() => r(snap(path in docs ? clone(docs[path]) : null, path in docs)), 90)),
+    set: d => { docs[path] = clone(d); window.__writes = (window.__writes || 0) + 1;
+      setTimeout(() => { (subs.doc[path] || []).forEach(f => f(snap(clone(docs[path])))); fireColl(path.split('/')[0]); }, 90);
+      return Promise.resolve(); },
+    update: d => docRef(path).set({ ...(docs[path] || {}), ...d }),
+    delete: () => { delete docs[path]; setTimeout(() => fireColl(path.split('/')[0]), 90); return Promise.resolve(); },
+    onSnapshot(fn) { (subs.doc[path] = subs.doc[path] || []).push(fn);
+      setTimeout(() => fn(snap(path in docs ? clone(docs[path]) : null, path in docs)), 160); return () => {}; } });
+  const collRef = c => ({ path: c, doc: id => docRef(c + '/' + id),
+    get: () => (roster(c) && breakage === 'reject'
+      ? Promise.reject({ code: 'unavailable', message: 'transient' })
+      : roster(c) && breakage === 'silent' ? new Promise(() => {})
+      : Promise.resolve(collSnap(c))),
+    onSnapshot(fn) { (subs.coll[c] = subs.coll[c] || []).push(fn);
+      if (roster(c) && breakage === 'silent') return () => {};   // never answers
+      setTimeout(() => fn(collSnap(c)), 160); return () => {}; } });
+  window.__docs = docs;
+  window.claude = { use: async n => (n === 'db' ? { doc: docRef, collection: collRef } : null) };
+};
+
+/* Closest to the pin and longest drive are nominated before a card can open,
+   so every test that opens one has to make the two picks first. */
+const nominate = async pg => {
+  for (const f of ['ctpHole', 'ldHole']) {
+    const sel = pg.locator('[data-act="setRoundField"][data-a="' + f + '"]').first();
+    if (!await sel.count()) continue;
+    if (await sel.inputValue()) continue;
+    const opts = await sel.locator('option').evaluateAll(os => os.map(o => o.value).filter(Boolean));
+    if (!opts.length) continue;
+    await sel.selectOption(opts[0]);
+    await pg.waitForTimeout(450);
+  }
+};
+
+const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+for (const breakage of ['reject', 'silent']) {
+  console.log('\n=== the roster read ' + (breakage === 'reject' ? 'fails' : 'never answers') + ' ===');
+  const p = await (await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })).newPage();
+  p.on('pageerror', e => { console.log('  PAGE ERROR:', String(e)); fails.push('pageerror'); });
+  await p.addInitScript(MOCK, { seed, breakage });
+  const dismiss = async () => { for (let i = 0; i < 5; i++) { if (!await p.locator('.scrim').count()) return;
+    await p.locator('.scrim [data-act="modalCancel"]').click({ force: true }).catch(() => {}); await p.waitForTimeout(250); } };
+  const tab = async t => { await dismiss(); await goTab(p, t); await p.waitForTimeout(700); await dismiss(); };
+  await p.goto('file://' + S + '/ready.html');
+  await p.waitForTimeout(8000);                 // past the watchdog
+  await dismiss();
+  ok('the book is no longer read-only', await p.locator('.loadbar').count(), 0);
+
+  // a tee time must stay put
+  await tab('Tee times');
+  /* Named, because the practice round's block comes first on this screen. */
+  const sel = n => p.locator('.teeblock', { hasText: 'Round 1' })
+    .locator('.timepick').first().locator('select').nth(n);
+  await sel(0).selectOption('9'); await p.waitForTimeout(500);
+  await sel(1).selectOption('50'); await p.waitForTimeout(900);
+  ok('the tee time does not reset itself', [await sel(0).inputValue(), await sel(1).inputValue()].join(':'), '9:50');
+  ok('and it reached the store', await p.evaluate(() => window.__docs['config/tournament'].rounds.r1.tees[0].time), '09:50');
+
+  // a round must open, and scores must go in
+  await tab('Score Entry');
+  ok('there is a round to open', await p.locator('[data-act="openRound"]').count(), 1);
+  ok('and it will not open unnominated', await p.locator('[data-act="openRound"][disabled]').count(), 1);
+  await nominate(p); await dismiss();
+  await p.locator('[data-act="openRound"]').first().tap(); await p.waitForTimeout(1600); await dismiss();
+  ok('opening the round worked', await p.locator('[data-act="openRound"]').count(), 0);
+  await __plus(p, 0, 1); await p.waitForTimeout(400);
+  await p.locator('[data-act="saveHole"]').click(); await p.waitForTimeout(1500); await dismiss();
+  ok('saving moved on to the next hole', await p.locator('.holehead h3').innerText(), 'Hole 2');
+  ok('and hole 1 is marked as scored',
+    await p.locator('.hcell').first().getAttribute('class').then(c => c.includes('saved')), true);
+  ok('and a card reached the store',
+    await p.evaluate(() => Object.keys(window.__docs).filter(k => k.startsWith('scores/')).length), 1);
+  await p.close();
+}
+await b.close();
+console.log(fails.length ? '\nFAILED: ' + fails.join(', ') : '\nThe book always ends up able to save.');
+process.exit(fails.length ? 1 : 0);

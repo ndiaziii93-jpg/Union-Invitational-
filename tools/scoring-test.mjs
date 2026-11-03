@@ -1,0 +1,413 @@
+/* The numbers under the recap. The narrative can be wrong and it is funny;
+   these cannot. Pure engine, no browser. Run: node tools/scoring-test.mjs */
+import * as E from '../src/engine.js';
+import { defaultConfig, blankCard, blankBbb, blankNote } from '../src/store.js';
+import { COURSES } from '../src/data.js';
+
+const fails = [];
+const ok = (n, got, want) => {
+  const g = JSON.stringify(got), w = JSON.stringify(want);
+  const good = g === w;
+  console.log((good ? '  PASS  ' : '  FAIL  ') + n + '  got ' + g + (good ? '' : '  want ' + w));
+  if (!good) fails.push(n);
+};
+
+/* ---------- a tournament we control completely ---------- */
+function fresh() {
+  const config = defaultConfig();
+  config.people = [
+    { id: 'a', name: 'A', display: 'A', role: 'golfer', band: 15, location: null, group: '7-day' },
+    { id: 'b', name: 'B', display: 'B', role: 'golfer', band: 20, location: null, group: '7-day' },
+    { id: 'c', name: 'C', display: 'C', role: 'golfer', band: 25, location: null, group: '7-day' },
+    { id: 'd', name: 'D', display: 'D', role: 'golfer', band: 30, location: null, group: '7-day' },
+    { id: 'e', name: 'E', display: 'E', role: 'golfer', band: null, location: null, group: '7-day' },
+  ];
+  config.pairs = [
+    { id: 'p1', name: null, members: ['a', 'b'], order: 0 },
+    { id: 'p2', name: null, members: ['c', 'd'], order: 1 },
+  ];
+  return { config, scores: {}, bbb: {} };
+}
+const put = (T, rid, pid, raws) => {
+  const c = blankCard();
+  raws.forEach((v, i) => { c.raw[i] = v; if (v != null) c.by[i] = 'master'; });
+  T.scores[rid + '__' + pid] = c;
+};
+const par = rid => E.courseOf(fresh(), rid).holes.map(h => h.par);
+const si = rid => E.courseOf(fresh(), rid).holes.map(h => h.si);
+
+/* ---------- 1. strokes by stroke index ---------- */
+console.log('\nstrokes received, by band and stroke index');
+ok('a 15 takes one stroke on the hardest hole', E.strokesFor(15, 1), 1);
+ok('a 15 takes one on stroke index 15', E.strokesFor(15, 15), 1);
+ok('a 15 takes none on 16', E.strokesFor(15, 16), 0);
+ok('a 20 takes two on the hardest two', [E.strokesFor(20, 1), E.strokesFor(20, 2)], [2, 2]);
+ok('a 20 takes one on the third', E.strokesFor(20, 3), 1);
+ok('a 25 takes two through stroke index 7', E.strokesFor(25, 7), 2);
+ok('a 25 takes one on 8', E.strokesFor(25, 8), 1);
+ok('a 30 takes two through stroke index 12', E.strokesFor(30, 12), 2);
+ok('a 30 takes one on 13', E.strokesFor(30, 13), 1);
+ok('no band means no score, never a guess', E.strokesFor(null, 1), null);
+
+// every band gives back exactly the strokes it is named for
+for (const band of [15, 20, 25, 30]) {
+  const total = COURSES.aspendos.holes.reduce((a, h) => a + E.strokesFor(band, h.si), 0);
+  ok('a ' + band + ' band receives ' + band + ' strokes over eighteen', total, band);
+}
+
+/* ---------- 2. a net score, hole by hole ---------- */
+console.log('\nnet scores');
+{
+  const T = fresh();
+  const rid = 'r1';
+  const P = par(rid), SI = si(rid);
+  const hardest = SI.indexOf(1);          // where the 15 band gets its stroke
+  const easiest = SI.indexOf(18);         // where it does not
+  const raws = Array(18).fill(null);
+  raws[hardest] = P[hardest] + 1;         // a bogey on the hardest hole
+  raws[easiest] = P[easiest] + 1;         // and on the easiest
+  put(T, rid, 'a', raws);
+  ok('a stroke turns a bogey into a par', E.playerNet(T, rid, 'a', hardest), P[hardest]);
+  ok('with no stroke a bogey stays a bogey', E.playerNet(T, rid, 'a', easiest), P[easiest] + 1);
+
+  // the triple-bogey cap bites before the stroke is taken off
+  const raws2 = Array(18).fill(null);
+  raws2[hardest] = P[hardest] + 7;        // a disaster
+  put(T, rid, 'b', raws2);
+  ok('a blow-up is capped at three over, then the strokes come off',
+    E.playerNet(T, rid, 'b', hardest), P[hardest] + 3 - 2);
+
+  // an unbanded golfer is left out rather than guessed at
+  put(T, rid, 'e', raws);
+  ok('an unbanded golfer has no net score', E.playerNet(T, rid, 'e', hardest), null);
+  ok('and no hole played at all is null', E.playerNet(T, rid, 'a', SI.indexOf(9)), null);
+}
+
+/* ---------- 3. better ball: the pair takes the better net ---------- */
+console.log('\nbetter ball');
+{
+  const T = fresh();
+  const rid = 'r1';
+  const P = par(rid), SI = si(rid);
+  const h = SI.indexOf(1);
+  const pair = T.config.pairs[0];         // A on 15, B on 20
+  const raws = Array(18).fill(null);
+  raws[h] = P[h] + 1;                     // A: bogey, one stroke -> par
+  put(T, rid, 'a', raws);
+  const raws2 = Array(18).fill(null);
+  raws2[h] = P[h] + 1;                    // B: bogey, two strokes -> one under
+  put(T, rid, 'b', raws2);
+  ok('the pair takes the better of the two nets', E.pairHole(T, rid, pair, h), P[h] - 1);
+
+  // one partner short of a score does not sink the pair
+  const only = Array(18).fill(null);
+  only[h] = P[h];
+  const T2 = fresh();
+  put(T2, rid, 'a', only);
+  ok('one card is enough for the pair', E.pairHole(T2, rid, T2.config.pairs[0], h), P[h] - 1);
+  ok('neither card is no score', E.pairHole(T2, rid, T2.config.pairs[1], h), null);
+}
+
+/* ---------- 4. a whole round, and the cumulative standings ---------- */
+console.log('\nround totals and the week');
+{
+  const T = fresh();
+  const now = E.nowLocal();
+  const counting = E.countingRounds(T).map(r => r.id);
+  ok('three rounds count towards the championship', counting.length, 3);
+  ok('the practice day is not one of them', counting.includes('practice'), false);
+
+  // everyone plays every counting round to their band exactly: gross = par + strokes,
+  // so every net is a par. In the team game each plays off 85% of the band, so
+  // each partner drops to net bogey (1 point) on the holes the allowance takes
+  // a stroke from — but never both on the same hole, so the team is 2 points
+  // a hole, 36 a round, 108 for the week
+  for (const rid of counting) {
+    const holes = E.courseOf(T, rid).holes;
+    for (const p of T.config.people) {
+      if (p.band == null) continue;
+      put(T, rid, p.id, holes.map(hl => hl.par + E.strokesFor(p.band, hl.si)));
+    }
+  }
+  const board = E.pairsBoard(T, now);
+  ok('both pairs are level after three rounds: two points a hole', board.map(r => r.total), [108, 108]);
+  ok('and the board says it is points', [board[0].pts, board[0].totalStr, board[0].gapStr], [true, '108', '—']);
+
+  // now one pair drops a shot in each round: three under across the week
+  for (const rid of counting) {
+    const holes = E.courseOf(T, rid).holes;
+    const raws = holes.map(hl => hl.par + E.strokesFor(15, hl.si));
+    raws[0] -= 1;                          // A holes one fewer on the first
+    put(T, rid, 'a', raws);
+  }
+  const board2 = E.pairsBoard(T, now);
+  const lead = board2.find(r => r.id === 'p1');
+  ok('one shot a round is a birdie point a round: three more for the week', lead.total, 111);
+  ok('and that pair leads', board2[0].id, 'p1');
+  ok('the other pair is still on two a hole', [board2.find(r => r.id === 'p2').total, board2.find(r => r.id === 'p2').gapStr], [108, '3']);
+
+  // the practice day must not touch any of it
+  const holes = E.courseOf(T, 'practice').holes;
+  put(T, 'practice', 'a', holes.map(hl => hl.par - 2));
+  ok('a practice round changes no standing', E.pairsBoard(T, now).find(r => r.id === 'p1').total, 111);
+}
+
+/* ---------- 5. what the recap is handed ---------- */
+console.log('\nthe recap inputs');
+{
+  const T = fresh();
+  const rid = 'r1';
+  const holes = E.courseOf(T, rid).holes;
+  for (const p of T.config.people) {
+    if (p.band == null) continue;
+    put(T, rid, p.id, holes.map(hl => hl.par + E.strokesFor(p.band, hl.si)));
+  }
+  ok('a round with every card in reads as complete', E.roundComplete(T, rid), true);
+  const half = blankCard();
+  half.raw[0] = 4;
+  T.scores[rid + '__a'] = half;
+  ok('one short card and it is not', E.roundComplete(T, rid), false);
+}
+
+/* ---------- 6. the figures the recap prints ---------- */
+console.log('\nthe recap figures');
+{
+  const T = fresh();
+  const rid = 'r1';
+  const now = E.nowLocal();
+  const holes = E.courseOf(T, rid).holes;
+  // both pairs play to their bands, then the leaders take three shots out of
+  // the field across holes 4 to 6
+  for (const p of T.config.people) {
+    if (p.band == null) continue;
+    put(T, rid, p.id, holes.map(h => h.par + E.strokesFor(p.band, h.si)));
+  }
+  const lead = holes.map(h => h.par + E.strokesFor(15, h.si));
+  lead[3] -= 1; lead[4] -= 1; lead[5] -= 1;
+  put(T, rid, 'a', lead);
+
+  const rb = E.pairRoundBoard(T, rid);
+  ok('the round board has both pairs', rb.length, 2);
+  ok('and the leaders have three birdie points on top of two a hole', rb[0].today, 39);
+
+  const rib = E.ribbon(T, rid);
+  ok('the ribbon has a cell per hole', rib.length, 18);
+  ok('holes 4, 5 and 6 are three-point holes, read as under', [rib[3].pts, rib[3].d, rib[4].d, rib[5].d], [3, -1, -1, -1]);
+  ok('hole 1 is two points, level', [rib[0].pts, rib[0].d], [2, 0]);
+
+  const table = E.recapTable(T, rid, now);
+  ok('the table shows today and the week, in points', [table[0].today, table[0].total], [39, 39]);
+
+  const sg = E.sideGames(T, rid);
+  ok('nothing is claimed that was not recorded', [sg.ctp, sg.ld, sg.bbb], [null, null, null]);
+  ok('and no cap was hit', sg.caps, 0);
+
+  // a blow-up on one hole, and the cap count follows it
+  const blown = lead.slice();
+  blown[10] = holes[10].par + 6;
+  put(T, rid, 'a', blown);
+  ok('a capped hole is counted once', E.sideGames(T, rid).caps, 1);
+
+  // what the generator is handed must carry the ids it is told to use
+  const input = E.recapInput(T, rid, now);
+  ok('the brief names the pairs by id', input.includes('p1 = '), true);
+  ok('and carries the cards', input.includes('CARDS (gross then net'), true);
+  ok('and says where the cap bit', input.includes('cap hit on holes'), true);
+}
+
+/* ---------- 7. which round the recap is for, and how it stands ---------- */
+console.log('\nthe panel on Today');
+{
+  const T = fresh();
+  const holes = E.courseOf(T, 'r1').holes;
+  let st = E.roundStanding(T, 'r1');
+  ok('nothing in means not started', [st.started, st.complete, st.inCards], [false, false, 0]);
+
+  put(T, 'r1', 'a', holes.map((h, i) => (i < 3 ? h.par : null)));
+  st = E.roundStanding(T, 'r1');
+  ok('one card going in is in progress', [st.started, st.complete], [true, false]);
+  ok('and it counts the cards, not the holes', st.inCards, 1);
+
+  for (const p of T.config.people) {
+    if (p.band == null) continue;
+    put(T, 'r1', p.id, holes.map(h => h.par + E.strokesFor(p.band, h.si)));
+  }
+  st = E.roundStanding(T, 'r1');
+  ok('every card in is complete', st.complete, true);
+  ok('and the recap is for that round', E.recapRound(T, E.nowLocal()), 'r1');
+
+  console.log('\nholed out, or picked up at the cap');
+  const g = T.config.people.find(p => p.band != null && p.band >= 25) || T.config.people.find(p => p.band != null);
+  g.band = 30;
+  const h2 = holes.findIndex(h => E.teamStrokesFor(T, 30, h.si) >= 2);           // a hole a 30 gets two strokes on
+  const c = T.scores['r1__' + g.id];
+  c.raw[h2] = E.capFor(holes[h2].par, T.config.capOver);
+  ok('a true triple where he gets two strokes is a net bogey: a point', E.playerPts(T, 'r1', g.id, h2), 1);
+  c.pu = { [h2]: true };
+  ok('picked up at the cap, the same 7 scores nothing in the team game', E.playerPts(T, 'r1', g.id, h2), 0);
+  ok('and the card still holds the capped score, for the MVP and the cup', c.raw[h2], E.capFor(holes[h2].par, T.config.capOver));
+}
+
+/* ---------- the cup leaves nobody out ---------- */
+{
+  console.log('\nthe Ryder Cup draw');
+  const squads = n => {
+    const T = fresh();
+    T.config.people = [];
+    for (let i = 0; i < n[0]; i++) T.config.people.push({ id: 'u' + i, name: 'U' + i, display: 'U' + i, role: 'golfer', band: 20, location: 'UK', group: '7-day' });
+    for (let i = 0; i < n[1]; i++) T.config.people.push({ id: 'a' + i, name: 'A' + i, display: 'A' + i, role: 'golfer', band: 20, location: 'USA', group: '7-day' });
+    return E.ryderData(T, E.nowLocal());
+  };
+
+  const even = squads([5, 5]);
+  ok('every session is singles', even.sessions.map(s => s.format), ['Singles', 'Singles', 'Singles']);
+  ok('with even squads nobody sits', even.sessions.flatMap(s => s.sitting), []);
+  const played = {};
+  even.sessions.forEach(s => s.matches.forEach(m => { played[m.a] = (played[m.a] || 0) + 1; played[m.b] = (played[m.b] || 0) + 1; }));
+  ok('and everybody plays all three', Object.values(played), new Array(10).fill(3));
+  const seen = {};
+  even.sessions.forEach(s => s.matches.forEach(m => { seen[m.a + '|' + m.b] = (seen[m.a + '|' + m.b] || 0) + 1; }));
+  ok('nobody meets the same opponent twice', Object.values(seen).filter(n => n > 1).length, 0);
+
+  /* Six against five: one golfer has to sit each session. It must not be the
+     same one every time — that is exactly the exclusion the fourballs caused. */
+  const odd = squads([6, 5]);
+  ok('the odd squad sits one out each session', odd.sessions.map(s => s.sitting.length), [1, 1, 1]);
+  ok('and a different one every time', new Set(odd.sessions.map(s => s.sitting[0])).size, 3);
+  const p2 = {};
+  odd.sessions.forEach(s => s.matches.forEach(m => { p2[m.a] = (p2[m.a] || 0) + 1; p2[m.b] = (p2[m.b] || 0) + 1; }));
+  ok('everyone still plays at least twice', Math.min(...Object.values(p2)), 2);
+  ok('the shorter squad plays every session', Math.max(...Object.values(p2)), 3);
+  const s2 = {};
+  odd.sessions.forEach(s => s.matches.forEach(m => { s2[m.a + '|' + m.b] = (s2[m.a + '|' + m.b] || 0) + 1; }));
+  ok('and still no repeat matchups', Object.values(s2).filter(n => n > 1).length, 0);
+}
+
+/* ---------- the marks ----------
+   Three putts, out of bounds, water and the shot of the hole: the reason a
+   seven happened, which is the one thing a scorecard cannot hold. They feed
+   the recap and NOTHING else, and that is the property worth testing hardest
+   — a mark that moved a leaderboard would turn a bit of colour into a
+   grievance. */
+{
+  console.log('\nthe marks, and how far they reach');
+  const T = fresh();
+  T.notes = {};
+  for (const id of ['a', 'b']) {
+    const c = blankCard();
+    for (let h = 0; h < 18; h++) c.raw[h] = COURSES.aspendos.holes[h].par + 1;
+    T.scores['r1__' + id] = c;
+  }
+  const before = {
+    mvp: E.mvpBoard(T, E.nowLocal()).map(r => r.name + r.totalStr),
+    pairs: E.pairsBoard(T, E.nowLocal()).map(r => r.totalStr),
+  };
+
+  T.scores.r1__a.marks = { 2: ['putt3'], 6: ['ob', 'putt3'], 11: ['shot'] };
+
+  ok('a mark is read back off the hole it was made on',
+    E.holeMarks(T, 'r1', 'a', 6).slice().sort(), ['ob', 'putt3']);
+  ok('and nowhere else', E.holeMarks(T, 'r1', 'a', 5), []);
+  ok('a golfer with no marks has none', E.holeMarks(T, 'r1', 'b', 6), []);
+  ok('rubbish in a mark list is ignored rather than shown',
+    (() => { T.scores.r1__b.marks = { 3: ['putt3', 'nonsense', 7] };
+             return E.holeMarks(T, 'r1', 'b', 3); })(), ['putt3']);
+
+  ok('counted, with the holes they fell on',
+    E.markTally(T, 'r1', 'a').putt3, [3, 7]);
+  ok('and said the way a person would say it',
+    E.markLine(T, 'r1', 'a'), '3-putt ×2 (holes 3, 7); OB ×1 (hole 7); Shot ×1 (hole 12)');
+
+  /* The denominator is the whole point. Three marked holes out of eighteen
+     is not "he three-putted twice all day". */
+  ok('the coverage is carried with it', E.markCoverage(T, 'r1', 'a'), { played: 18, marked: 3 });
+  ok('a golfer nobody marked reads as nought marked, not nought happened',
+    E.markCoverage(T, 'r1', 'c'), { played: 0, marked: 0 });
+
+  console.log('\nwhat the history holds that the row does not');
+  {
+    const cell = (t0, t1) => ({ g: { ...(t0 ? { t0 } : {}), ...(t1 ? { t1 } : {}) } });
+    const nowDoc = { holes: Array.from({ length: 18 }, () => ({})) };
+    nowDoc.holes[3] = cell(null, { bango: 'b' });                                   // hole 4: group 2's mark survived, group 1's did not
+    nowDoc.holes[9] = cell({ bingo: 'c' }, null);                                   // hole 10: group 1's bingo is there, bango and bongo gone
+    const older = { at: '2026-10-30T09:00:00Z', holes: Array.from({ length: 18 }, () => ({})) };
+    older.holes[3] = cell({ bingo: 'a', bango: 'b', bongo: 'c' }, null);
+    older.holes[9] = cell({ bingo: 'a', bango: 'b' }, null);
+    const newer = { at: '2026-10-30T10:00:00Z', holes: Array.from({ length: 18 }, () => ({})) };
+    newer.holes[3] = cell({ bingo: 'a' }, { bango: 'b' });
+    newer.holes[9] = cell({ bingo: 'c', bongo: 'd' }, null);
+    const miss = E.bbbMissing(nowDoc, [newer, older]);                              // newest first, as the book hands them over
+    ok('every slot once marked and empty now, with the newest name it had',
+      miss.map(x => [x.h + 1, x.gid, x.slot, x.pid]), [[4, 't0', 'bingo', 'a'], [4, 't0', 'bango', 'b'], [4, 't0', 'bongo', 'c'], [10, 't0', 'bongo', 'd'], [10, 't0', 'bango', 'b']]);
+    ok('and never a slot the row still holds', miss.some(x => x.h === 9 && x.slot === 'bingo'), false);
+    ok('nothing missing reads as nothing', E.bbbMissing(older, [older]), []);
+  }
+
+console.log('\nand none of it counts');
+  ok('the MVP board is untouched',
+    E.mvpBoard(T, E.nowLocal()).map(r => r.name + r.totalStr), before.mvp);
+  ok('the team board is untouched',
+    E.pairsBoard(T, E.nowLocal()).map(r => r.totalStr), before.pairs);
+  ok('and the card itself still reads the same',
+    T.scores.r1__a.raw.slice(0, 3), [COURSES.aspendos.holes[0].par + 1,
+      COURSES.aspendos.holes[1].par + 1, COURSES.aspendos.holes[2].par + 1]);
+
+  console.log('\nwhat a golfer said about their own round');
+  const n = blankNote('r1', 'b');
+  n.marks = { 4: ['robbed'] };
+  n.text = { 4: 'Struck it out of the screws. Plugged in the face of the trap.' };
+  T.notes.r1__b = n;
+  ok('a self-kept mark is its own thing', E.selfMarks(T, 'r1', 'b', 4), ['robbed']);
+  ok('and is NOT on the ref\'s card', E.holeMarks(T, 'r1', 'b', 4), []);
+  ok('nor does the ref\'s card leak into it', E.selfMarks(T, 'r1', 'a', 6), []);
+
+  /* The two vocabularies are separate on purpose, and the filters enforce it:
+     neither side can record a mark belonging to the other, so the recap can
+     never be handed two answers to the same question. */
+  T.notes.r1__b.marks[5] = ['water', 'putt3'];       // the ref's words
+  ok('a ref\'s word in a golfer\'s note is dropped', E.selfMarks(T, 'r1', 'b', 5), []);
+  T.scores.r1__a.marks[9] = ['robbed', 'bottled'];   // and the golfer's
+  ok('and a golfer\'s word on a ref\'s card likewise', E.holeMarks(T, 'r1', 'a', 9), []);
+  delete T.notes.r1__b.marks[5];
+  delete T.scores.r1__a.marks[9];
+
+  console.log('\nthe recap is told which is which, and how far each goes');
+  const brief = E.roundBrief(T, 'r1');
+  ok('the ref\'s marks are in the brief', /MARKS, PUT IN BY THE REF/.test(brief), true);
+  ok('with the coverage beside them', /marked on 3 of the 18 holes/.test(brief), true);
+  ok('and a warning that a count is a floor', /FLOOR, never a total/.test(brief), true);
+  ok('the self-kept ones are under their own heading',
+    /WHAT THE GOLFERS SAID ABOUT THEIR OWN ROUNDS/.test(brief), true);
+  ok('with their own words, quoted', /"Struck it out of the screws/.test(brief), true);
+  ok('and the two are never run together', (() => {
+    const ref = brief.indexOf('MARKS, PUT IN BY THE REF');
+    const own = brief.indexOf('WHAT THE GOLFERS SAID');
+    return ref > 0 && own > ref;
+  })(), true);
+  ok('a round nobody marked says nothing about marks at all', (() => {
+    const clean = fresh(); clean.notes = {};
+    const c = blankCard(); for (let h = 0; h < 18; h++) c.raw[h] = 4;
+    clean.scores.r1__a = c;
+    return /MARKS, PUT IN BY|GOLFERS SAID/.test(E.roundBrief(clean, 'r1'));
+  })(), false);
+
+  console.log('\nthe four of them, twice over');
+  ok('four marks, no more', E.MARKS.length, 4);
+  /* the golfer's own are two steps now: went right, went wrong, three each */
+  ok('and six for the golfer, three each way', [E.OWN_MARKS.length,
+    E.OWN_MARKS.filter(m => m.tone === 'good').length, E.OWN_MARKS.filter(m => m.tone === 'bad').length].join('/'), '6/3/3');
+  /* The whole reason there are two sets. */
+  ok('no word appears in both lists',
+    E.OWN_MARKS.map(m => m.label).filter(l => E.MARKS.some(x => x.label === l)), []);
+  ok('nor does the end of the round repeat the hole',
+    E.OWNS.map(o => o.label).filter(l => E.OWN_MARKS.some(x => x.label === l)), []);
+  ok('every golfer\'s mark says what it means',
+    E.OWN_MARKS.every(m => !!m.hint), true);
+  ok('three things going wrong and one going right — a log of only disasters',
+    E.MARKS.filter(m => m.tone === 'good').length, 1);
+  ok('and every one of them is plain English', E.MARKS.map(m => m.label),
+    ['Three-putt', 'Out of bounds', 'In the water', 'Shot of the hole']);
+}
+
+console.log(fails.length ? '\nFAILED: ' + fails.join(', ') : '\nThe numbers under the recap hold.');
+process.exit(fails.length ? 1 : 0);

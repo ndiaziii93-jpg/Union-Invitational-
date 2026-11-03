@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1D2E21">
+<link rel="icon" href="../../app/icon-192.png">
+<title>Chat Button</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap">
+<style>
+/* three live phones, one Today screen each, three ways into the chat */
+:root{
+  color-scheme:light;
+  --paper:#E3DBCB; --page:#EEE8D5; --sunk:#DBD2BA; --ink:#1D2E21; --turf:#5C6B55; --green:#3E5C43;
+  --rule:#C4B896; --hair:#DCD1B4; --gold:#8C6B2F; --gold-up:#C9A253; --gold-hi:#E2C277; --sage:#9FB3A3; --flag:#9E3B2E; --yes:#2F7A4A;
+  --serif:'Source Serif 4','Iowan Old Style',Georgia,'Times New Roman',serif;
+  --ui:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:16px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:26px 56px}
+button,input{font:inherit;color:inherit}
+button{background:none;border:0;padding:0;cursor:pointer;text-align:inherit}
+:focus-visible{outline:2px solid var(--flag);outline-offset:2px}
+.top,.row,.dev{max-width:1260px;margin-left:auto;margin-right:auto}
+.top{display:grid;gap:10px;margin-bottom:22px}
+.top h1{margin:0;font-size:clamp(26px,4vw,34px);line-height:1.15}
+.top p{margin:0;color:var(--turf);max-width:82ch}
+.row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px;align-items:start}
+@media (max-width:1150px){.row{grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr))}}
+.opt{display:grid;gap:14px;justify-items:center;min-width:0}
+.olabel{width:100%;max-width:390px;display:flex;align-items:center;gap:12px;background:var(--ink);color:var(--page);border-radius:16px;padding:10px 14px;border-bottom:3px solid var(--gold-up);position:sticky;top:8px;z-index:50}
+.olabel b{display:inline-grid;place-items:center;width:40px;height:40px;border-radius:50%;background:var(--gold-hi);color:var(--ink);font-size:22px;font-weight:800;flex:0 0 auto}
+.olabel strong{display:block;font-size:20px;line-height:1.1}
+.olabel small{display:block;font-family:var(--ui);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--gold-hi);margin-top:2px}
+.cap{width:100%;max-width:390px}
+.cap .what{margin:0 0 8px;color:var(--turf);font-size:15px}
+.cap ul{margin:0;padding-left:18px;font-size:14.5px;display:grid;gap:3px}
+.cap .dn{margin-top:10px;font-size:13.5px;background:var(--page);border-radius:12px;padding:10px 12px;box-shadow:0 0 0 .5px rgba(29,46,33,.16)}
+.cap .dn b{display:block;font-family:var(--ui);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-bottom:3px}
+.demo{font-family:var(--ui);font-size:13.5px;font-weight:700;color:var(--ink);background:var(--page);border-radius:999px;padding:9px 15px;
+  box-shadow:inset 0 0 0 1.5px var(--gold-up);min-height:40px}
+.dev{margin-top:34px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:14px}
+.dev .card{background:var(--page);border-radius:16px;padding:16px 18px;box-shadow:0 0 0 .5px rgba(29,46,33,.16)}
+.dev h3{margin:0 0 8px;font-size:18px}
+.dev ul{margin:0;padding-left:18px;font-size:14.5px;display:grid;gap:5px}
+.dev .rec{background:var(--ink);color:var(--page);border-bottom:3px solid var(--gold-up)}
+.dev .rec h3{color:var(--gold-hi)}
+
+/* ---- the phone ---- */
+.phone{position:relative;width:100%;max-width:390px;height:780px;border-radius:38px;overflow:hidden;background:var(--paper);
+  box-shadow:0 0 0 9px #17211A,0 0 0 10px #3A463D,0 30px 60px rgba(16,22,17,.28);isolation:isolate;display:flex;flex-direction:column}
+.scr{flex:1 1 auto;overflow:auto;scrollbar-width:none;min-height:0;position:relative}
+.scr::-webkit-scrollbar{display:none}
+.hdr{display:flex;align-items:center;gap:10px;padding:46px 16px 10px;border-bottom:2px solid var(--ink);margin:0 14px}
+.hdr img{width:42px;height:42px;border-radius:10px}
+.hdr b{font-size:19px;line-height:1.1;flex:1}
+.hdr .meta{display:block;font-family:var(--ui);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--turf);font-weight:700;margin-top:3px}
+.pad{padding:12px 14px 120px;display:grid;gap:12px}
+.plate{background:var(--ink);color:var(--page);border-radius:14px;padding:12px 15px;border-bottom:3px solid var(--gold-up);display:flex;justify-content:space-between;align-items:center}
+.plate span{display:grid;gap:2px;font-size:14px;color:#D9DFD3}
+.plate b{font-size:16px;color:var(--page)}
+.plate em{font-style:normal;font-size:30px;font-weight:700;color:var(--gold-hi)}
+.card{background:var(--page);border-radius:14px;padding:12px 14px;box-shadow:0 0 0 .5px rgba(29,46,33,.16)}
+.card .k{font-family:var(--ui);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--turf);font-weight:700}
+.card .r{display:flex;justify-content:space-between;padding:7px 0;border-top:1px solid var(--hair);font-size:15px}
+.card .r:first-of-type{border-top:0}
+.card .r b{font-weight:700}
+.tabbar{flex:0 0 auto;display:grid;grid-template-columns:repeat(6,1fr);background:var(--ink);border-top:3px solid var(--gold-up);color:var(--sage);
+  padding:8px 4px 18px;font-family:var(--ui);font-size:10.5px;text-align:center;position:relative;z-index:30}
+.tabbar span{display:grid;gap:3px;justify-items:center}
+.tabbar span.on{color:var(--page);font-weight:700} .tabbar span.gold{color:var(--gold-up)}
+.tabbar i{display:block;width:20px;height:16px;border:1.6px solid currentColor;border-radius:4px}
+
+/* A: the bubble */
+.bub{position:absolute;right:14px;bottom:94px;z-index:35;width:60px;height:60px;border-radius:50%;background:var(--ink);color:var(--gold-hi);
+  display:grid;place-items:center;box-shadow:0 0 0 2px var(--gold-up),0 10px 24px rgba(16,22,17,.4)}
+.bub svg{width:28px;height:28px}
+.badge{position:absolute;top:-4px;right:-4px;min-width:22px;height:22px;border-radius:11px;background:var(--flag);color:#fff;font-family:var(--ui);
+  font-size:12px;font-weight:800;display:grid;place-items:center;padding:0 6px;box-shadow:0 0 0 2px var(--paper)}
+.peek{position:absolute;right:84px;bottom:100px;z-index:35;max-width:250px;background:var(--page);border-radius:16px 16px 4px 16px;padding:9px 12px;
+  box-shadow:0 10px 24px rgba(16,22,17,.25),0 0 0 .5px rgba(29,46,33,.2);font-size:14px;line-height:1.3;animation:peek .35s cubic-bezier(.2,.9,.3,1.2) both}
+.peek b{display:block;font-size:12.5px;color:var(--gold)}
+@keyframes peek{from{opacity:0;transform:translateX(16px) scale(.9)}to{opacity:1;transform:none}}
+.bub.pulse{animation:pulse 1.2s ease 2}
+@keyframes pulse{50%{box-shadow:0 0 0 8px rgba(226,194,119,.45),0 10px 24px rgba(16,22,17,.4)}}
+
+/* B: the line */
+.line{position:relative;z-index:31;flex:0 0 auto;background:var(--page);border-top:1px solid var(--rule);padding:7px 12px 8px;display:grid;gap:5px;text-align:left;width:100%}
+.line .last{font-size:12.5px;color:var(--turf);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.line .last b{color:var(--ink)}
+.line .box{display:flex;align-items:center;gap:8px;background:var(--paper);border-radius:999px;padding:5px 5px 5px 6px;box-shadow:inset 0 0 0 1px var(--rule)}
+.line .box .ph{flex:1;font-size:15px;color:var(--turf)}
+.line .box .go{font-family:var(--ui);font-size:13px;font-weight:700;background:var(--ink);color:var(--gold-hi);border-radius:999px;padding:7px 13px}
+.av{flex:0 0 auto;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-family:var(--ui);font-size:11px;font-weight:700;background:var(--ink);color:var(--gold-hi)}
+.av.s{background:var(--sunk);color:var(--ink)}
+.line .n{font-family:var(--ui);font-size:11px;font-weight:800;color:#fff;background:var(--flag);border-radius:9px;padding:1px 7px;margin-right:5px}
+
+/* C: the ticker */
+.hchat{position:relative;width:44px;height:44px;border-radius:50%;background:var(--ink);color:var(--gold-hi);display:grid;place-items:center;flex:0 0 auto}
+.hchat svg{width:22px;height:22px}
+.hchat .badge{top:-3px;right:-3px}
+.tick{margin:10px 14px 0;display:flex;align-items:center;gap:10px;background:var(--ink);color:var(--page);border-radius:12px;padding:9px 12px;
+  border-left:4px solid var(--gold-hi);text-align:left;width:calc(100% - 28px);min-height:52px;overflow:hidden}
+.tick .live{font-family:var(--ui);font-size:10px;font-weight:800;letter-spacing:.1em;color:var(--gold-hi);flex:0 0 auto}
+.tick .live::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:#E25A44;margin-right:5px;vertical-align:1px;animation:blink 1.4s infinite}
+@keyframes blink{50%{opacity:.25}}
+.tick .tx{flex:1;min-width:0;font-size:14px;line-height:1.3;animation:roll .45s ease both}
+.tick .tx b{color:var(--gold-hi)}
+@keyframes roll{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.tick .cta{font-family:var(--ui);font-size:12.5px;font-weight:800;color:var(--ink);background:var(--gold-hi);border-radius:999px;padding:6px 11px;flex:0 0 auto}
+
+/* the chat itself, the same whichever way in */
+.scrim{position:absolute;inset:0;z-index:60;background:rgba(16,22,17,.45);display:flex;align-items:flex-end;animation:fade .2s ease both}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.sheet{width:100%;height:75%;background:var(--paper);border-radius:22px 22px 0 0;display:flex;flex-direction:column;animation:rise .3s cubic-bezier(.2,.9,.28,1) both;overflow:hidden}
+@keyframes rise{from{transform:translateY(40%)}to{transform:none}}
+.grab{width:42px;height:5px;border-radius:3px;background:var(--rule);margin:8px auto 2px;flex:0 0 auto}
+.sh{display:flex;justify-content:space-between;align-items:baseline;padding:4px 16px 8px;flex:0 0 auto}
+.sh b{font-size:20px}
+.sh span{font-family:var(--ui);font-size:12px;color:var(--turf)}
+.rooms{display:flex;gap:6px;padding:0 14px 8px;overflow:hidden;flex:0 0 auto}
+.rooms span{font-family:var(--ui);font-size:12.5px;font-weight:700;border-radius:999px;padding:5px 11px;background:var(--page);box-shadow:inset 0 0 0 1px var(--rule);white-space:nowrap}
+.rooms span.on{background:var(--ink);color:var(--page);box-shadow:none}
+.feed{flex:1;overflow:auto;padding:4px 14px 10px;display:flex;flex-direction:column-reverse;gap:8px;scrollbar-width:none}
+.msg{display:flex;gap:8px;align-items:flex-start}
+.bubl{background:var(--page);border-radius:4px 14px 14px 14px;padding:7px 11px;box-shadow:0 0 0 .5px rgba(29,46,33,.16);font-size:14.5px;line-height:1.35}
+.bubl b{display:block;font-size:13px}
+.msg.me{flex-direction:row-reverse}
+.msg.me .bubl{background:var(--ink);color:var(--page);border-radius:14px 4px 14px 14px}
+.msg.me .bubl b{color:var(--gold-hi)}
+.ev{background:var(--page);border-radius:12px;padding:8px 11px;border-left:4px solid var(--yes);font-size:14px;display:flex;gap:9px;align-items:center}
+.ev .big{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:#DDEBDD;color:var(--yes);font-weight:800}
+.ev.bad{border-left-color:var(--flag)} .ev.bad .big{background:#F2DDD6;color:var(--flag);border-radius:9px}
+.ev small{display:block;font-family:var(--ui);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--turf);font-weight:700}
+.ev .rx{margin-left:auto;font-size:13px;white-space:nowrap}
+.compose{flex:0 0 auto;display:flex;gap:8px;align-items:center;padding:8px 12px 12px;background:var(--page);border-top:1px solid var(--rule)}
+.compose input{flex:1;min-width:0;border:0;background:var(--paper);border-radius:999px;padding:10px 14px;font-size:16px;box-shadow:inset 0 0 0 1px var(--rule);outline:none}
+.compose input:focus{box-shadow:inset 0 0 0 2px var(--ink)}
+.compose button{font-family:var(--ui);font-size:14px;font-weight:800;background:var(--ink);color:var(--gold-hi);border-radius:999px;padding:10px 15px}
+.kbd{flex:0 0 auto;height:0;background:#C9CDD1;transition:height .25s ease}
+/* a stand-in keyboard on a computer; a phone brings up its own */
+@media (hover:hover) and (pointer:fine){ .kbd.up{height:190px;background:repeating-linear-gradient(90deg,#D6D9DC 0 30px,#C9CDD1 30px 33px)} }
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>A chat button people will actually use</h1>
+  <p>Three ways to put the chat one tap away from every screen, without another tab. Each phone is live: tap the chat way in, type, post. Tap above the chat or swipe it down to close it. The <b>▶ Someone posts</b> button under each phone shows what happens when a new message or a birdie lands.</p>
+</header>
+
+<div class="row">
+  <section class="opt"><div class="olabel"><b>A</b><span><strong>The bubble</strong><small>Floats over every screen</small></span></div>
+    <div class="phone" id="pA"></div>
+    <button class="demo" data-demo="pA">▶ Someone posts</button>
+    <div class="cap"><p class="what">A round chat button in the corner of every screen, like Messenger’s. A red count of what you haven’t read, and the newest line slides out beside it for a few seconds.</p>
+      <ul><li>Always there, never in the way: it covers nothing you need.</li><li>The red count and the slide-out are what get people tapping.</li><li>One tap: the chat rises with the keyboard already up.</li></ul>
+      <div class="dn"><b>Developer’s take</b>The familiar one, and the cheapest on screen space. It hides on Score Entry, so a ref with a putter in one hand never hits it by mistake.</div></div></section>
+
+  <section class="opt"><div class="olabel"><b>B</b><span><strong>The line</strong><small>A message box above the bar</small></span></div>
+    <div class="phone" id="pB"></div>
+    <button class="demo" data-demo="pB">▶ Someone posts</button>
+    <div class="cap"><p class="what">A slim “Say something to the group…” box sits just above the bottom bar on every screen, with the latest line over it.</p>
+      <ul><li>The strongest invitation to type: it already looks like a box to write in.</li><li>You can read the conversation without opening anything.</li><li>Tap it and you’re typing.</li></ul>
+      <div class="dn"><b>Developer’s take</b>The most used, and the most room taken: about a thumb’s height off every screen. Also hidden on Score Entry.</div></div></section>
+
+  <section class="opt"><div class="olabel"><b>C</b><span><strong>The ticker</strong><small>A live strip at the top</small></span></div>
+    <div class="phone" id="pC"></div>
+    <button class="demo" data-demo="pC">▶ Someone posts</button>
+    <div class="cap"><p class="what">A live strip under the header turns over the latest birdies, splashes and messages, with a “Join in” button. A chat button with a count sits by the title.</p>
+      <ul><li>Feels like a TV broadcast: it makes the round feel live.</li><li>Shows the book’s moments, so there’s always something to react to.</li><li>Nothing at the bottom of the screen at all.</li></ul>
+      <div class="dn"><b>Developer’s take</b>The most atmosphere, and nothing in the thumb’s way. It scrolls away with the page, so it is strongest on Today and Boards.</div></div></section>
+</div>
+
+<div class="dev">
+  <div class="card"><h3>The same in all three</h3><ul>
+    <li>The chat opens as a panel from the bottom (three quarters of the screen, like the resort cards), on today’s round, with the keyboard up and the box ready.</li>
+    <li>Swipe it down or tap above it to close; you’re back exactly where you were.</li>
+    <li>The book’s moments (birdies, water, the turn) are in it, with reactions and heckles, as now. The Chat tab on Boards stays too.</li>
+    <li>The unread count is kept on each phone, so nobody else can see what you haven’t read.</li></ul></div>
+  <div class="card rec"><h3>My recommendation: A, the bubble</h3><ul>
+    <li>It’s on every screen without costing any room, so Scores, Bets and the resort guide stay as they are.</li>
+    <li>The red count and the slide-out do the persuading: people open what has a number on it.</li>
+    <li>If you want it pushed harder, B is the one; C is the most fun but the easiest to scroll past.</li></ul></div>
+</div>
+
+<script>
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const ini = n => n.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
+const ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11.5a7.5 7.5 0 0 1-11 6.6L4 19.5l1.4-4.3A7.5 7.5 0 1 1 20 11.5Z"/><path d="M8.5 11.5h.01M12 11.5h.01M15.5 11.5h.01"/></svg>';
+const TAB = '<div class="tabbar"><span class="on"><i></i>Today</span><span><i></i>Scores</span><span><i></i>Bets</span><span><i></i>Boards</span><span><i></i>Calendar</span><span class="gold"><i></i>Resort</span></div>';
+const LINES = [
+  { ev: 1, t: 'Robby B birdies the 7th', s: 'Group 2 · par 3', rx: '🔥 4' },
+  { who: 'Aimee K', t: 'Who had Norberto Jr. in the water on 3? 🙋‍♀️' },
+  { ev: 2, t: 'Ray V found the water on the 9th', s: 'Group 2 · par 4', rx: '😬 6' },
+  { who: 'Letty D', t: 'Someone buy Robby a beer' },
+];
+const NEXT = [{ who: 'Becky', t: 'Ray, you OK? 😂' }, { ev: 1, t: 'Dan A birdies the 10th', s: 'Group 2 · par 4', rx: '👏 1' }, { who: 'Cary', t: 'Pool bar at 4, who’s in?' }];
+const today = (top = '') => `<div class="scr">${top}<div class="pad">
+    <div class="plate"><span><b>Round 2 · live</b>Robby B &amp; Dan A lead · thru 11</span><em>−31</em></div>
+    <div class="card"><span class="k">Today</span><div class="r"><span>Group 3 tees off</span><b>12:31 PM</b></div><div class="r"><span>Dinner</span><b>6:00 PM</b></div><div class="r"><span>Mandatory Team Beers</span><b>7:00 PM</b></div></div>
+    <div class="card"><span class="k">MVP</span><div class="r"><span>1 · Robby B</span><b>−15</b></div><div class="r"><span>2 · Dan A</span><b>−12</b></div><div class="r"><span>3 · Ray V</span><b>−9</b></div><div class="r"><span>4 · Manuel P</span><b>−7</b></div></div>
+    <div class="card"><span class="k">Bets</span><div class="r"><span>UK wins the Ryder Cup</span><b>51%</b></div><div class="r"><span>Hole in one this week</span><b>7%</b></div></div>
+  </div></div>`;
+const hdr = extra => `<div class="hdr"><img src="../../app/icon-192.png" alt=""><b>The Union Invitational<span class="meta">Fri 30 Oct · Round 2</span></b>${extra || ''}</div>`;
+const lineHtml = l => l.ev ? `<div class="ev${l.ev === 2 ? ' bad' : ''}"><span class="big">${l.ev === 2 ? '≈' : '2'}</span><span><small>The book</small>${esc(l.t)}</span><span class="rx">${l.rx}</span></div>`
+  : `<div class="msg${l.me ? ' me' : ''}"><span class="av${l.me ? '' : ' s'}">${ini(l.who)}</span><span class="bubl"><b>${esc(l.who)}</b>${esc(l.t)}</span></div>`;
+const short = l => l.ev ? `<b>The book:</b> ${esc(l.t)}` : `<b>${esc(l.who)}:</b> ${esc(l.t)}`;
+const sheet = st => !st.open ? '' : `<div class="scrim" data-close="1"><div class="sheet" role="dialog" aria-label="Chat">
+    <div class="grab"></div><div class="sh"><b>Chat</b><span>Posting as Jennifer D</span></div>
+    <div class="rooms"><span>Practice</span><span>Round 1</span><span class="on">Round 2</span><span>Round 3</span><span>The trip</span></div>
+    <div class="feed">${st.lines.slice().reverse().map(lineHtml).join('')}</div>
+    <form class="compose"><input placeholder="Say something to the group…" aria-label="Message" enterkeyhint="send"><button>Post</button></form>
+    <div class="kbd${st.kbd ? ' up' : ''}"></div></div></div>`;
+
+function phone(id, draw, st) {
+  const el = document.getElementById(id);
+  st.lines = LINES.slice(); st.unread = 3; st.n = 0;
+  const go = () => { el.innerHTML = draw(st) + sheet(st);
+    if (st.open && st.focus) { st.focus = false; const i = el.querySelector('.compose input'); if (i) { i.focus({ preventScroll: true }); st.kbd = true; setTimeout(() => el.querySelector('.kbd') && el.querySelector('.kbd').classList.add('up'), 20); } } };
+  el.addEventListener('click', e => {
+    if (e.target.closest('[data-open]')) { st.open = true; st.focus = true; st.unread = 0; st.peek = null; go(); return; }
+    const sc = e.target.closest('[data-close]');
+    if (sc && e.target === sc) { st.open = false; st.kbd = false; go(); }
+  });
+  el.addEventListener('submit', e => { e.preventDefault(); const i = e.target.querySelector('input');
+    if (i.value.trim()) { st.lines.push({ who: 'Jennifer D', t: i.value.trim(), me: 1 }); st.focus = true; go(); } });
+  /* swipe the panel down to close it */
+  let y0 = null;
+  el.addEventListener('touchstart', e => { if (e.target.closest('.grab,.sh,.rooms')) y0 = e.touches[0].clientY; }, { passive: true });
+  el.addEventListener('touchend', e => { if (y0 != null && e.changedTouches[0].clientY - y0 > 60) { st.open = false; st.kbd = false; go(); } y0 = null; });
+  st.go = go;
+  st.post = () => { const l = NEXT[st.n++ % NEXT.length]; st.lines.push(l); if (!st.open) { st.unread++; st.peek = l; st.fresh = true; } go(); st.fresh = false;
+    clearTimeout(st.t); st.t = setTimeout(() => { st.peek = null; go(); }, 4500); };
+  go();
+  return st;
+}
+
+/* A — the bubble */
+const A = phone('pA', st => `${hdr()}${today()}
+  ${!st.open && st.peek ? `<button class="peek" data-open="1">${short(st.peek)}</button>` : ''}
+  <button class="bub${st.fresh ? ' pulse' : ''}" data-open="1" aria-label="Chat${st.unread ? ', ' + st.unread + ' new' : ''}">${ICON}${st.unread ? `<span class="badge">${st.unread}</span>` : ''}</button>
+  ${TAB}`, {});
+
+/* B — the line */
+const B = phone('pB', st => { const last = st.lines[st.lines.length - 1];
+  return `${hdr()}${today()}
+  <button class="line" data-open="1" aria-label="Open the chat and write">
+    <span class="last">${st.unread ? `<span class="n">${st.unread} new</span>` : ''}${short(last)}</span>
+    <span class="box"><span class="av">JD</span><span class="ph">Say something to the group…</span><span class="go">Chat</span></span></button>
+  ${TAB}`; }, {});
+
+/* C — the ticker */
+const C = phone('pC', st => { const l = st.lines[st.lines.length - 1 - (st.i || 0) % Math.min(3, st.lines.length)];
+  return `${hdr(`<button class="hchat" data-open="1" aria-label="Chat${st.unread ? ', ' + st.unread + ' new' : ''}">${ICON}${st.unread ? `<span class="badge">${st.unread}</span>` : ''}</button>`)}
+  ${today(`<button class="tick" data-open="1"><span class="live">LIVE</span><span class="tx" key="${st.i || 0}">${short(l)}</span><span class="cta">Join in</span></button>`)}
+  ${TAB}`; }, { i: 0 });
+setInterval(() => { if (!C.open) { C.i = (C.i || 0) + 1; C.go(); } }, 3500);
+
+document.querySelectorAll('[data-demo]').forEach(b => b.addEventListener('click', () => ({ pA: A, pB: B, pC: C })[b.dataset.demo].post()));
+</script>
+</body>
+</html>

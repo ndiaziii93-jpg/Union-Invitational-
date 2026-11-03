@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1D2E21">
+<link rel="icon" href="../../../app/icon-192.png">
+<title>Every Screen</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap">
+<style>
+:root{color-scheme:light;
+  --paper:#E3DBCB;--page:#EEE8D5;--ink:#1D2E21;--turf:#5C6B55;--rule:#C4B896;--gold-up:#C9A253;--gold-hi:#E2C277;--flag:#9E3B2E;
+  --serif:'Source Serif 4','Iowan Old Style',Georgia,'Times New Roman',serif;
+  --ui:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:16px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:26px 56px}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--flag);outline-offset:2px}
+.wrap{max-width:1260px;margin:0 auto}
+h1{margin:0;font-size:clamp(26px,4vw,34px);line-height:1.15}
+.lede{margin:8px 0 0;color:var(--turf);max-width:80ch}
+.lede a{font-weight:600}
+.jump{position:sticky;top:0;z-index:10;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;background:var(--paper);padding:10px 0;margin:14px 0 0;border-bottom:1px solid var(--rule)}
+.jump::-webkit-scrollbar{display:none}
+.jump a{flex:0 0 auto;display:flex;align-items:center;gap:7px;text-decoration:none;font-family:var(--ui);font-size:13.5px;font-weight:600;background:var(--page);border-radius:999px;padding:5px 12px 5px 5px;box-shadow:inset 0 0 0 1px var(--rule)}
+.jump b{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--ink);color:var(--gold-hi);font-size:13px}
+.part{display:flex;align-items:baseline;gap:14px;border-bottom:2px solid var(--ink);padding-bottom:8px;margin:34px 0 18px}
+.part h2{margin:0;font-size:clamp(22px,3vw,28px)}
+.part span{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--turf);font-weight:600}
+section{scroll-margin-top:64px;margin-bottom:34px}
+.olabel{display:flex;align-items:center;gap:12px;background:var(--ink);color:var(--page);border-radius:16px;padding:10px 14px;border-bottom:3px solid var(--gold-up);margin-bottom:16px}
+.olabel b{display:inline-grid;place-items:center;width:42px;height:42px;border-radius:50%;background:var(--gold-hi);color:var(--ink);font-size:22px;font-weight:800;flex:0 0 auto}
+.olabel strong{display:block;font-size:21px;line-height:1.1}
+.olabel small{display:block;font-family:var(--ui);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--gold-hi);margin-top:3px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,250px),1fr));gap:22px 18px;align-items:start}
+figure{margin:0;display:grid;gap:8px}
+figure img{display:block;width:100%;height:auto;border-radius:22px;box-shadow:0 6px 18px rgba(29,46,33,.18)}
+figcaption{font-size:14px;color:var(--turf)}
+figcaption b{display:block;color:var(--ink);font-size:15.5px}
+.no{display:inline-block;font-family:var(--ui);font-size:11.5px;font-weight:800;letter-spacing:.06em;background:var(--ink);color:var(--gold-hi);border-radius:6px;padding:2px 7px;margin-bottom:4px}
+</style>
+</head>
+<body><div class="wrap">
+<h1>Comments and bets: every screen</h1>
+<p class="lede">Each option, screen by screen, shown at full length so nothing is hidden below the fold. Tap a screen to open it full size. To try them yourself, use the <a href="../">interactive mockups</a>.</p>
+<nav class="jump" aria-label="Jump to an option"><a href="#cA"><b>1</b>The Round Chat</a><a href="#cB"><b>2</b>Hole by Hole</a><a href="#cC"><b>3</b>The Heckle Feed</a><a href="#bA"><b>A</b>The Book</a><a href="#bB"><b>B</b>The Exchange</a><a href="#bC"><b>C</b>The Union Book</a></nav>
+<div class="part"><h2>Comments</h2><span>3 options</span></div><section id="cA"><div class="olabel"><b>1</b><span><strong>The Round Chat</strong><small>Comments · 1 screen</small></span></div>
+<div class="grid"><figure><a href="img/cA-01.jpg" target="_blank" rel="noopener"><img src="img/cA-01.jpg" alt="11: The round chat" loading="lazy"></a>
+<figcaption><span class="no">11</span><b>The round chat</b>One running conversation per round, score pinned at the top; the book drops in birdies and the turn.</figcaption></figure></div></section><section id="cB"><div class="olabel"><b>2</b><span><strong>Hole by Hole</strong><small>Comments · 3 screens</small></span></div>
+<div class="grid"><figure><a href="img/cB-02.jpg" target="_blank" rel="noopener"><img src="img/cB-02.jpg" alt="21: Hole 7" loading="lazy"></a>
+<figcaption><span class="no">21</span><b>Hole 7</b>Hole picker with red comment counts; the hole’s scores, then what people said about it.</figcaption></figure><figure><a href="img/cB-03.jpg" target="_blank" rel="noopener"><img src="img/cB-03.jpg" alt="22: Hole 3" loading="lazy"></a>
+<figcaption><span class="no">22</span><b>Hole 3</b>Another hole: Norberto Jr.’s double and the splash comments.</figcaption></figure><figure><a href="img/cB-04.jpg" target="_blank" rel="noopener"><img src="img/cB-04.jpg" alt="23: A hole with no comments yet" loading="lazy"></a>
+<figcaption><span class="no">23</span><b>A hole with no comments yet</b>Scores show; the comment box invites the first one.</figcaption></figure></div></section><section id="cC"><div class="olabel"><b>3</b><span><strong>The Heckle Feed</strong><small>Comments · 1 screen</small></span></div>
+<div class="grid"><figure><a href="img/cC-05.jpg" target="_blank" rel="noopener"><img src="img/cC-05.jpg" alt="31: The heckle feed" loading="lazy"></a>
+<figcaption><span class="no">31</span><b>The heckle feed</b>The book posts what happens on the course; people react and heckle under each moment.</figcaption></figure></div></section><div class="part"><h2>Bets</h2><span>3 options · beers and shots, never money</span></div><section id="bA"><div class="olabel"><b>A</b><span><strong>The Book</strong><small>Bets · like FanDuel · 9 screens</small></span></div>
+<div class="grid"><figure><a href="img/bA-06.jpg" target="_blank" rel="noopener"><img src="img/bA-06.jpg" alt="A1: Popular" loading="lazy"></a>
+<figcaption><span class="no">A1</span><b>Popular</b>Profit boost of the day, then the main markets with LIVE badges and odds-movement arrows.</figcaption></figure><figure><a href="img/bA-07.jpg" target="_blank" rel="noopener"><img src="img/bA-07.jpg" alt="A2: Round 2" loading="lazy"></a>
+<figcaption><span class="no">A2</span><b>Round 2</b>Round 2 team winner with the dead-heat settlement rule.</figcaption></figure><figure><a href="img/bA-08.jpg" target="_blank" rel="noopener"><img src="img/bA-08.jpg" alt="A3: MVP" loading="lazy"></a>
+<figcaption><span class="no">A3</span><b>MVP</b>Tournament MVP outright and MVP top-3 finish.</figcaption></figure><figure><a href="img/bA-09.jpg" target="_blank" rel="noopener"><img src="img/bA-09.jpg" alt="A4: Matchups" loading="lazy"></a>
+<figcaption><span class="no">A4</span><b>Matchups</b>Head-to-head with a stroke handicap, and a three-ball.</figcaption></figure><figure><a href="img/bA-10.jpg" target="_blank" rel="noopener"><img src="img/bA-10.jpg" alt="A5: Holes" loading="lazy"></a>
+<figcaption><span class="no">A5</span><b>Holes</b>Hole props on 13: birdie, hole in one, anyone in the water.</figcaption></figure><figure><a href="img/bA-11.jpg" target="_blank" rel="noopener"><img src="img/bA-11.jpg" alt="A6: Pick added" loading="lazy"></a>
+<figcaption><span class="no">A6</span><b>Pick added</b>Tapping odds lights them up and a Betslip bar rises with the count and price.</figcaption></figure><figure><a href="img/bA-12.jpg" target="_blank" rel="noopener"><img src="img/bA-12.jpg" alt="A7: Betslip · Parlay, odds changed" loading="lazy"></a>
+<figcaption><span class="no">A7</span><b>Betslip · Parlay, odds changed</b>Two legs as a parlay, stake in beers, to-win shown, and the odds-changed prompt before you place.</figcaption></figure><figure><a href="img/bA-13.jpg" target="_blank" rel="noopener"><img src="img/bA-13.jpg" alt="A8: Betslip · Singles" loading="lazy"></a>
+<figcaption><span class="no">A8</span><b>Betslip · Singles</b>The same picks as two separate bets; total wager doubles, to-win adds up.</figcaption></figure><figure><a href="img/bA-14.jpg" target="_blank" rel="noopener"><img src="img/bA-14.jpg" alt="A9: My Bets" loading="lazy"></a>
+<figcaption><span class="no">A9</span><b>My Bets</b>The new parlay with each leg open and a Cash out offer; settled bets below marked Won or Lost.</figcaption></figure></div></section><section id="bB"><div class="olabel"><b>B</b><span><strong>The Exchange</strong><small>Bets · like Kalshi · 7 screens</small></span></div>
+<div class="grid"><figure><a href="img/bB-15.jpg" target="_blank" rel="noopener"><img src="img/bB-15.jpg" alt="B1: Markets" loading="lazy"></a>
+<figcaption><span class="no">B1</span><b>Markets</b>Every question with its chance, a chart, Yes/No prices in cents of a beer, and how much has been traded.</figcaption></figure><figure><a href="img/bB-16.jpg" target="_blank" rel="noopener"><img src="img/bB-16.jpg" alt="B2: Filtered: The trip" loading="lazy"></a>
+<figcaption><span class="no">B2</span><b>Filtered: The trip</b>Category chips narrow the list.</figcaption></figure><figure><a href="img/bB-17.jpg" target="_blank" rel="noopener"><img src="img/bB-17.jpg" alt="B3: Market · buy Yes at market" loading="lazy"></a>
+<figcaption><span class="no">B3</span><b>Market · buy Yes at market</b>Chart, then the ticket: Buy/Sell, Yes/No, Market/Limit, amount, contracts, average price, payout. Order book and rules below.</figcaption></figure><figure><a href="img/bB-18.jpg" target="_blank" rel="noopener"><img src="img/bB-18.jpg" alt="B4: Market · buy No" loading="lazy"></a>
+<figcaption><span class="no">B4</span><b>Market · buy No</b>No at 93¢: likely to win, but little to win.</figcaption></figure><figure><a href="img/bB-19.jpg" target="_blank" rel="noopener"><img src="img/bB-19.jpg" alt="B5: Market · limit order" loading="lazy"></a>
+<figcaption><span class="no">B5</span><b>Market · limit order</b>Yes at 5¢, below the market: it waits in the order book until someone sells at that price.</figcaption></figure><figure><a href="img/bB-20.jpg" target="_blank" rel="noopener"><img src="img/bB-20.jpg" alt="B6: Multi-outcome market" loading="lazy"></a>
+<figcaption><span class="no">B6</span><b>Multi-outcome market</b>Who wins MVP: each golfer is its own yes/no; pick one to trade.</figcaption></figure><figure><a href="img/bB-21.jpg" target="_blank" rel="noopener"><img src="img/bB-21.jpg" alt="B7: Portfolio" loading="lazy"></a>
+<figcaption><span class="no">B7</span><b>Portfolio</b>Balance, each position with profit or loss and a Sell button, and orders still waiting.</figcaption></figure></div></section><section id="bC"><div class="olabel"><b>C</b><span><strong>The Union Book</strong><small>Bets · both in one · 4 screens</small></span></div>
+<div class="grid"><figure><a href="img/bC-22.jpg" target="_blank" rel="noopener"><img src="img/bC-22.jpg" alt="C1: Board" loading="lazy"></a>
+<figcaption><span class="no">C1</span><b>Board</b>FanDuel-style odds on the golf.</figcaption></figure><figure><a href="img/bC-23.jpg" target="_blank" rel="noopener"><img src="img/bC-23.jpg" alt="C2: Markets" loading="lazy"></a>
+<figcaption><span class="no">C2</span><b>Markets</b>Kalshi-style yes/no on the trip.</figcaption></figure><figure><a href="img/bC-24.jpg" target="_blank" rel="noopener"><img src="img/bC-24.jpg" alt="C3: Challenges" loading="lazy"></a>
+<figcaption><span class="no">C3</span><b>Challenges</b>Pick two people, a stretch of holes and a forfeit; send it to a friend.</figcaption></figure><figure><a href="img/bC-25.jpg" target="_blank" rel="noopener"><img src="img/bC-25.jpg" alt="C4: My Bets" loading="lazy"></a>
+<figcaption><span class="no">C4</span><b>My Bets</b>Book bets with cash out, market positions with sell, and The Tab of who owes whom.</figcaption></figure></div></section>
+</div></body></html>

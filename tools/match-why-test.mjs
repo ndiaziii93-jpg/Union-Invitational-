@@ -1,0 +1,319 @@
+/* Why a match stands where it does.
+ *
+ * The pill on a cup row says "3&2", which answers a question nobody asked.
+ * What gets asked at dinner is HOW — and the how is arithmetic nobody does
+ * in their head: gross, capped at triple bogey, less the strokes your band
+ * gives on that hole's index, lower net takes the hole.
+ *
+ * So the pill opens the working. What matters here is that the working
+ * AGREES with the cup: the holes won in the window must add up to the
+ * result on the row, because two ways of counting the same match is exactly
+ * the sort of thing that starts an argument at Mandatory Team Beers.
+ *
+ * Run: node tools/match-why-test.mjs
+ */
+import { chromium } from 'playwright';
+import { readFileSync, writeFileSync } from 'node:fs';
+
+/* THE KEYPAD. A score goes in by tapping the golfer's tile and then the
+   number on the pad that rises. These emulate n taps of the old plus or
+   minus (from an empty cell the first plus landed on par, the first minus
+   one under) so the arithmetic of every scenario below is unchanged. */
+const __pad = async (pg, i, taps, dir) => {
+  const tiles = pg.locator('.ptile[data-act="padOpen"]');
+  if (await tiles.count() <= i) return;
+  await tiles.nth(i).focus().catch(() => {}); await tiles.nth(i).dispatchEvent('click'); await pg.waitForTimeout(140);
+  const kp = pg.locator('.keypad'); if (!await kp.count()) return;
+  if (taps <= 0) return;
+  const par = +(await kp.getAttribute('data-par')), cap = +(await kp.getAttribute('data-cap'));
+  const curS = await kp.getAttribute('data-cur'); const cur = curS ? +curS : null;
+  let v = cur == null ? par + (dir > 0 ? taps - 1 : -taps) : cur + dir * taps;
+  v = Math.max(1, Math.min(cap, v));
+  const key = kp.locator('.key[data-b="' + v + '"]'); await key.focus().catch(() => {}); await key.dispatchEvent('click'); await pg.waitForTimeout(120);
+};
+const __plus = (pg, i, taps = 1) => __pad(pg, i, taps, 1);
+const __minus = (pg, i, taps = 1) => __pad(pg, i, taps, -1);
+const __open = (pg, i) => __pad(pg, i, 0, 1);
+
+
+/* Whatever window is up is answered first — a half-entered hole's "not
+   saved" by taking the discard, anything else by its Cancel — because a
+   tap forced through a scrim lands on the scrim and only closes it. */
+const clearWin = async pg => { for (let i = 0; i < 5; i++) { if (!await pg.locator('.scrim').count()) return;
+  const alt = pg.locator('.scrim [data-act="confirmAlt"]'), c = pg.locator('.scrim [data-act="modalCancel"]');
+  if (await alt.count()) await alt.first().click({ force: true });
+  else if (await c.count()) await c.first().click({ force: true });
+  else await pg.locator('.scrim').first().click({ position: { x: 4, y: 4 }, force: true });
+  await pg.waitForTimeout(300); } };
+
+
+/* The group is picked off a chip where there is room for one, and off the
+   line and the sheet behind it on a phone, where the chips are not drawn.
+   The sheet stays up until it is closed, as it does under a thumb. */
+const pickGroupOn = async (pg, i) => {
+  const chip = pg.locator('.gchip').nth(i);
+  if (await chip.isVisible().catch(() => false)) { await chip.click({ force: true }); return; }
+  await clearWin(pg);
+  await pg.locator('.setline').first().click(); await pg.waitForTimeout(400);
+  await pg.locator('.scrim .shlist').nth(1).locator('.sh-row').nth(i).click({ force: true });
+  await pg.waitForTimeout(300);
+};
+const pickRoundRow = async (pg, i) => {
+  const card = pg.locator('[data-act="entryRound"]').nth(i);
+  if (await card.isVisible().catch(() => false)) { await card.click(); return; }
+  await clearWin(pg);
+  await pg.locator('.setline').first().click(); await pg.waitForTimeout(400);
+  await pg.locator('.scrim .shlist').nth(0).locator('.sh-row').nth(i).click({ force: true });
+  await pg.waitForTimeout(300);
+};
+
+
+/* The round is picked off a card where there is room for one, and off the
+   line and the sheet behind it on a phone, where the cards are not drawn. */
+const pickRound = async (pg, which) => {
+  const card = pg.locator(which === 'practice' ? '.rcard.practice' : '.rcard:not(.practice)').first();
+  if (await card.isVisible().catch(() => false)) { await card.click(); return; }
+  await clearWin(pg);
+  await pg.locator('.setline').first().click(); await pg.waitForTimeout(400);
+  await pg.locator('.scrim .sh-row', { hasText: which === 'practice' ? /Practice/ : /Round 1/ }).first().click({ force: true });
+};
+
+
+/* ---- getting about the book ----
+   Four tabs now — Today, Scores, Boards, Resort — and the five screens that
+   are set up once live behind Manage. So a name is looked for on the bar
+   first, then behind that door, and last of all among the boards, which is
+   where the Ryder Cup went. The same three places a person would look. */
+const goTab = async (pg, t) => {
+  const direct = pg.locator('.tab:visible, .navbtn:visible', { hasText: t });
+  if (await direct.count()) { await direct.first().click(); return; }
+  const door = pg.locator('[data-act="manageOpen"]');
+  if (await door.count()) {
+    await door.first().click();
+    await pg.waitForTimeout(400);
+    const row = pg.locator('.mg-row', { hasText: t });
+    if (await row.count()) { await row.first().click(); return; }
+    await pg.locator('.mgmodal [data-act="modalCancel"]').click().catch(() => {});
+    await pg.waitForTimeout(300);
+  }
+  await pg.locator('.tab:visible, .navbtn:visible', { hasText: 'Boards' }).first().click();
+  await pg.waitForTimeout(500);
+  await pg.locator('.btab', { hasText: t }).first().click();
+};
+
+
+const S = '/tmp/claude-0/-home-user-Union-Invitational-/8bcdc9be-12b5-528d-a069-2403e068b315/scratchpad';
+writeFileSync(S + '/mw.html', '<!doctype html><html><head><meta charset="utf-8">'
+  + '<meta name="viewport" content="width=device-width, initial-scale=1">'
+  + '<style>:root{color-scheme:light}body{margin:0}img{max-width:100%}</style></head><body>'
+  + readFileSync('dist/union-invitational-sandbox.html', 'utf8') + '</body></html>');
+
+const fails = [];
+const ok = (n, g, w) => { const good = JSON.stringify(g) === JSON.stringify(w);
+  console.log((good ? '  PASS  ' : '  FAIL  ') + n + '  got ' + JSON.stringify(g) + (good ? '' : '  want ' + JSON.stringify(w)));
+  if (!good) fails.push(n); };
+
+const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+const p = await ctx.newPage();
+p.on('pageerror', e => { console.log('  PAGE ERROR:', String(e).split('\n')[0]); fails.push('pageerror'); });
+
+const shut = async () => { for (let i = 0; i < 6; i++) {
+  if (await p.locator('.mwmodal').count()) return;
+  const m = p.locator('.scrim [data-act="modalCancel"]');
+  if (!await m.count()) return;
+  await m.first().click({ force: true }).catch(() => {}); await p.waitForTimeout(200); } };
+const tab = async t => { await shut(); await goTab(p, t);
+  await p.waitForTimeout(650); await shut(); };
+
+await p.goto('file://' + S + '/mw.html');
+await p.waitForSelector('#app.arrived', { timeout: 20000 }).catch(() => {});
+await p.waitForTimeout(400); await shut();
+
+console.log('\nthe rules say how the cup is scored');
+await tab('Rules');
+const intro = await p.locator('.notice').first().innerText();
+ok('the screen says the games count different currencies', /different currencies/i.test(intro), true);
+ok('and names what the cup counts', /holes won/i.test(intro), true);
+await p.locator('#rule-ryder summary').click(); await p.waitForTimeout(400);
+const ryder = await p.locator('#rule-ryder .rule-body').innerText();
+for (const [what, re] of [
+  ['the cap comes off before the strokes', /cap it at triple bogey first/i],
+  ['a point a match, half for a half', /half each/i],
+  ['twelve points and six and a half to win', /twelve points.*six and a half/is],
+  ['that strokes are NOT the cup', /strokes are not the cup/i],
+  ['that the pairings do not feed it', /never from pairs/i],
+  ['and that you can tap a match to see the working', /tap the result/i],
+]) ok('it explains ' + what, re.test(ryder), true);
+
+console.log('\nsquads, a card, and a match to ask about');
+await tab('Roster');
+const rows = await p.locator('.rtable tbody tr').count();
+for (let i = 0; i < rows; i++) {
+  const bs = p.locator('.rtable tbody tr').nth(i).locator('[data-act="setBand"]');
+  const n = await bs.count(); if (!n) continue;
+  await bs.nth(i % n).click(); await p.waitForTimeout(80);
+}
+await p.waitForTimeout(400); await shut();
+await tab('Ryder');
+const sq = p.locator('[data-act="cycleSquad"]'); const nsq = await sq.count();
+for (let i = 0; i < nsq; i++) { const t = (i % 2) ? 2 : 1;
+  for (let k = 0; k < t; k++) { await sq.nth(i).click(); await p.waitForTimeout(80); } }
+await p.waitForTimeout(500); await shut();
+
+await tab('Scores');
+await pickRound(p, 'r1'); await p.waitForTimeout(600); await shut();
+for (const f of ['ctpHole', 'ldHole']) {
+  const sel = p.locator('[data-act="setRoundField"][data-a="' + f + '"]').first();
+  if (await sel.count()) { await sel.selectOption({ index: 1 }); await p.waitForTimeout(320); await shut(); }
+}
+if (await p.locator('[data-act="openRound"]').count()) {
+  await p.locator('[data-act="openRound"]').first().click(); await p.waitForTimeout(1100); await shut(); }
+
+const groups = await p.locator('.gchip').count();
+for (let g = 0; g < groups; g++) {
+  /* The last save of the previous group leaves the notice about the three
+     up, and a scrim swallows the tap on the group chip. */
+  await shut();
+  await pickGroupOn(p, g); await p.waitForTimeout(450); await shut();
+  for (let h = 0; h < 6; h++) {
+    await shut();
+    await p.locator('.hcell').nth(h).click(); await p.waitForTimeout(300); await shut();
+    const c = await p.locator('.ptile[data-act="padOpen"]').count();
+    for (let i = 0; i < c; i++) await __plus(p, i, ((i + h) % 4) + 1);
+    await p.locator('[data-act="saveHole"]').click(); await p.waitForTimeout(550);
+  }
+}
+await shut();
+
+console.log('\na fixture reads across, and the row is the way in');
+await tab('Ryder');
+/* IT IS SPELLED VS. A bare "v" is a law report, not a fixture. */
+ok('the cup bar says vs', (await p.locator('.cupbar .vs').first().innerText()).trim(), 'vs');
+ok('and the heading does too', /UK vs USA/.test(await p.locator('h2.head').innerText()), true);
+ok('with no bare v left on it', / v /.test(await p.locator('h2.head').innerText()), false);
+
+const rows2 = p.locator('.match.why');
+ok('every match with a hole in it can be asked about', await rows2.count() > 0, true);
+/* THE ROW is the button, not the pill inside it. A pill big enough for a
+   thumb is a pill too big for the row. */
+ok('the row is the button', await rows2.first().evaluate(el => el.tagName), 'BUTTON');
+ok('and it names both golfers', /against/i.test(
+  await rows2.first().getAttribute('aria-label') || ''), true);
+ok('with a thumb-sized height',
+  await rows2.first().evaluate(el => el.getBoundingClientRect().height >= 44), true);
+
+/* BOTH NAMES ON ONE LINE. They were stacked on a phone — one golfer above
+   the other with the result between — which is three loose lines and a
+   hand's width of dead paper where a fixture should be. */
+const online = await p.locator('.match').first().evaluate(el => {
+  const ns = el.querySelectorAll('.mn');
+  if (ns.length !== 2) return false;
+  const [a, b] = [...ns].map(n => n.getBoundingClientRect());
+  return Math.abs((a.top + a.height / 2) - (b.top + b.height / 2)) < 4;
+});
+ok('both golfers sit on the same line', online, true);
+/* And a flag against each of them: the squads are the premise of the cup,
+   so they cannot be the thing that is hidden. Showing one only against the
+   winner left the loser of every match with an empty gutter. */
+ok('each golfer carries their own flag',
+  await p.locator('.match').first().locator('.mp svg').count(), 2);
+
+const rowText = (await p.locator('.match').first().innerText()).replace(/\n/g, ' ');
+console.log('          (the row reads: ' + rowText.trim() + ')');
+await rows2.first().click(); await p.waitForTimeout(700);
+ok('it opens the working', await p.locator('.mwmodal').count(), 1);
+
+console.log('\nand the working agrees with the row');
+const verdict = (await p.locator('.mw-v').innerText()).trim();
+console.log('          (the verdict reads: ' + verdict + ')');
+const tally = await p.locator('.mw-tally b').allInnerTexts();
+const [wonA, halved, wonB] = tally.map(Number);
+const holes = await p.locator('.mw-row').count();
+ok('every hole played is shown', wonA + halved + wonB, holes);
+/* The lead in the window must be the lead on the row — two ways of counting
+   one match is how arguments start. */
+const lead = Math.abs(wonA - wonB);
+ok('the holes won account for the lead', new RegExp(lead === 0 ? 'all square|halved' : String(lead)).test(verdict), true);
+
+ok('the window heading says vs as well',
+  / vs /.test(await p.locator('.mb-t').innerText()), true);
+ok('each hole shows what came off the gross',
+  /less \d|no shot/i.test(await p.locator('.mw-row').first().innerText()), true);
+ok('the hole that was taken is marked', await p.locator('.mw-s.win').count() > 0, true);
+ok('and it says what the match is worth',
+  /point|banked/i.test(await p.locator('.mw-w').innerText()), true);
+/* A match still on the course has paid nobody. */
+ok('a match still out has banked nothing',
+  /Nothing banked yet/i.test(await p.locator('.mw-w').innerText()), true);
+ok('the working says where the numbers came from',
+  /stroke index/i.test(await p.locator('.mw-note').innerText()), true);
+ok('and it fits the phone', await p.evaluate(() => {
+  const m = document.querySelector('.mwmodal').getBoundingClientRect();
+  return m.left >= -0.5 && m.right <= window.innerWidth + 0.5 && m.height <= window.innerHeight;
+}), true);
+ok('no sideways scroll', await p.evaluate(
+  () => document.documentElement.scrollWidth > window.innerWidth + 1), false);
+
+/* SCROLLING IT MUST NOT BE CHOPPY, which on a phone is a question about how
+   many things can move at once. The window used to carry a scrolling panel
+   inside it while the page behind stayed scrollable too — so a drag could
+   belong to the panel, to the window, or to the page, and the handover
+   between them is the stutter. One surface. */
+const surfaces = await p.evaluate(() => ({
+  locked: document.documentElement.classList.contains('noscroll'),
+  nested: [...document.querySelectorAll('.scrim *')].filter(el => {
+    const cs = getComputedStyle(el);
+    return /auto|scroll/.test(cs.overflowY) && el.scrollHeight > el.clientHeight + 1;
+  }).length,
+  watermark: getComputedStyle(document.querySelector('.watermark')).display,
+}));
+ok('the page behind is held still', surfaces.locked, true);
+ok('and nothing inside the window scrolls on its own', surfaces.nested, 0);
+/* A large fixed layer nobody can see should not be repainting under a
+   window that is moving. */
+ok('the crest behind it stops painting', surfaces.watermark, 'none');
+
+/* AND IT MUST STAY WHERE YOU SCROLLED IT. The window is read by scrolling
+   down through the holes, and the book redraws whenever it hears anything —
+   every redraw replacing the whole tree. The scrim is the surface that
+   moves, and nothing was putting it back, so a reader was thrown to the
+   headline mid-sentence: it scrolls, then jumps back up. */
+console.log('\nand it stays where it was scrolled to');
+/* A match of ten holes fits an 844px phone, and a window with nothing to
+   scroll cannot show this either way. A short screen is what a long match
+   looks like: eighteen holes of working on any phone there is. */
+await p.setViewportSize({ width: 390, height: 420 });
+await p.waitForTimeout(500);
+await p.evaluate(() => { window.__beat = setInterval(() => window.__forceRender && window.__forceRender(), 200); });
+const scrolled = await p.evaluate(() => {
+  const s = document.querySelector('.scrim');
+  s.scrollTop = Math.min(220, s.scrollHeight - s.clientHeight);
+  return s.scrollTop;
+});
+ok('there is room to scroll it', scrolled > 0, true);
+await p.waitForTimeout(1200);          // six redraws land while it is held there
+ok('six redraws later it has not jumped',
+  await p.evaluate(() => Math.round(document.querySelector('.scrim').scrollTop)), Math.round(scrolled));
+ok('and the window is still the one that was open', await p.locator('.mwmodal').count(), 1);
+await p.evaluate(() => clearInterval(window.__beat));
+await p.setViewportSize({ width: 390, height: 844 });
+await p.waitForTimeout(400);
+
+/* Nobody's place is handed to the next window: a different one opens at its
+   own beginning. */
+await p.locator('.mwmodal [data-act="modalCancel"]').click(); await p.waitForTimeout(400);
+ok('it closes', await p.locator('.mwmodal').count(), 0);
+await p.locator('.match.why').first().click(); await p.waitForTimeout(600);
+ok('the next window opens at the top',
+  await p.evaluate(() => document.querySelector('.scrim').scrollTop), 0);
+
+await p.locator('.mwmodal [data-act="modalCancel"]').click(); await p.waitForTimeout(400);
+ok('it closes', await p.locator('.mwmodal').count(), 0);
+ok('and leaves the cup behind it', await p.locator('.match').count() > 0, true);
+ok('the page can move again',
+  await p.evaluate(() => document.documentElement.classList.contains('noscroll')), false);
+
+await b.close();
+console.log(fails.length ? '\n' + fails.length + ' FAILED: ' + fails.join(', ') : '\nall good');
+process.exit(fails.length ? 1 : 0);

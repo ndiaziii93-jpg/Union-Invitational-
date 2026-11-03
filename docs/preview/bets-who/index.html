@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1D2E21">
+<link rel="icon" href="../../app/icon-192.png">
+<title>Betting on People</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap">
+<style>
+/* three live phones: the list, one who bet, and making your own */
+:root{
+  color-scheme:light;
+  --paper:#E3DBCB; --page:#EEE8D5; --sunk:#DBD2BA; --ink:#1D2E21; --turf:#5C6B55; --green:#3E5C43;
+  --rule:#C4B896; --hair:#DCD1B4; --gold:#8C6B2F; --gold-up:#C9A253; --gold-hi:#E2C277; --sage:#9FB3A3; --flag:#9E3B2E; --yes:#2F7A4A;
+  --serif:'Source Serif 4','Iowan Old Style',Georgia,'Times New Roman',serif;
+  --ui:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:16px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:26px 56px}
+button,input{font:inherit;color:inherit}
+button{background:none;border:0;padding:0;cursor:pointer;text-align:inherit}
+:focus-visible{outline:2px solid var(--flag);outline-offset:2px}
+.top,.row,.dev{max-width:1260px;margin-left:auto;margin-right:auto}
+.top{display:grid;gap:10px;margin-bottom:22px}
+.top h1{margin:0;font-size:clamp(26px,4vw,34px);line-height:1.15}
+.top p{margin:0;color:var(--turf);max-width:82ch}
+.row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px;align-items:start}
+@media (max-width:1150px){.row{grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr))}}
+.opt{display:grid;gap:14px;justify-items:center;min-width:0}
+.olabel{width:100%;max-width:390px;display:flex;align-items:center;gap:12px;background:var(--ink);color:var(--page);border-radius:16px;padding:10px 14px;border-bottom:3px solid var(--gold-up);position:sticky;top:8px;z-index:50}
+.olabel b{display:inline-grid;place-items:center;width:40px;height:40px;border-radius:50%;background:var(--gold-hi);color:var(--ink);font-size:22px;font-weight:800;flex:0 0 auto}
+.olabel strong{display:block;font-size:20px;line-height:1.1}
+.olabel small{display:block;font-family:var(--ui);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--gold-hi);margin-top:2px}
+.cap{width:100%;max-width:390px}
+.cap .what{margin:0 0 8px;color:var(--turf);font-size:15px}
+.cap ul{margin:0;padding-left:18px;font-size:14.5px;display:grid;gap:3px}
+.cap .dn{margin-top:10px;font-size:13.5px;background:var(--page);border-radius:12px;padding:10px 12px;box-shadow:0 0 0 .5px rgba(29,46,33,.16)}
+.cap .dn b{display:block;font-family:var(--ui);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-bottom:3px}
+.demo{font-family:var(--ui);font-size:13.5px;font-weight:700;color:var(--ink);background:var(--page);border-radius:999px;padding:9px 15px;
+  box-shadow:inset 0 0 0 1.5px var(--gold-up);min-height:40px}
+.dev{margin-top:34px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:14px}
+.dev .card{background:var(--page);border-radius:16px;padding:16px 18px;box-shadow:0 0 0 .5px rgba(29,46,33,.16)}
+.dev h3{margin:0 0 8px;font-size:18px}
+.dev ul{margin:0;padding-left:18px;font-size:14.5px;display:grid;gap:5px}
+.dev .rec{background:var(--ink);color:var(--page);border-bottom:3px solid var(--gold-up)}
+.dev .rec h3{color:var(--gold-hi)}
+
+/* ---- the phone ---- */
+.phone{position:relative;width:100%;max-width:390px;height:780px;border-radius:38px;overflow:hidden;background:var(--paper);
+  box-shadow:0 0 0 9px #17211A,0 0 0 10px #3A463D,0 30px 60px rgba(16,22,17,.28);isolation:isolate;display:flex;flex-direction:column}
+.scr{flex:1 1 auto;overflow:auto;scrollbar-width:none;min-height:0;position:relative}
+.scr::-webkit-scrollbar{display:none}
+.hdr{display:flex;align-items:center;gap:10px;padding:46px 16px 10px;border-bottom:2px solid var(--ink);margin:0 14px}
+.hdr img{width:42px;height:42px;border-radius:10px}
+.hdr b{font-size:19px;line-height:1.1;flex:1}
+.hdr .meta{display:block;font-family:var(--ui);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--turf);font-weight:700;margin-top:3px}
+.pad{padding:12px 14px 120px;display:grid;gap:12px}
+.plate{background:var(--ink);color:var(--page);border-radius:14px;padding:12px 15px;border-bottom:3px solid var(--gold-up);display:flex;justify-content:space-between;align-items:center}
+.plate span{display:grid;gap:2px;font-size:14px;color:#D9DFD3}
+.plate b{font-size:16px;color:var(--page)}
+.plate em{font-style:normal;font-size:30px;font-weight:700;color:var(--gold-hi)}
+.card{background:var(--page);border-radius:14px;padding:12px 14px;box-shadow:0 0 0 .5px rgba(29,46,33,.16)}
+.card .k{font-family:var(--ui);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--turf);font-weight:700}
+.card .r{display:flex;justify-content:space-between;padding:7px 0;border-top:1px solid var(--hair);font-size:15px}
+.card .r:first-of-type{border-top:0}
+.card .r b{font-weight:700}
+.tabbar{flex:0 0 auto;display:grid;grid-template-columns:repeat(6,1fr);background:var(--ink);border-top:3px solid var(--gold-up);color:var(--sage);
+  padding:8px 4px 18px;font-family:var(--ui);font-size:10.5px;text-align:center;position:relative;z-index:30}
+.tabbar span{display:grid;gap:3px;justify-items:center}
+.tabbar span.on{color:var(--page);font-weight:700} .tabbar span.gold{color:var(--gold-up)}
+.tabbar i{display:block;width:20px;height:16px;border:1.6px solid currentColor;border-radius:4px}
+
+
+/* the app's own Bets styles */
+/* ---------------- the exchange ----------------
+   Kalshi's screens in the book's own colours: a chance in big type, Yes in
+   green and No in brick, the price in cents of a beer. */
+.xm-top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:14px}
+.xm-bal{font:inherit;font-size:14px;font-weight:700;background:var(--ink);color:#E2C277;border:0;border-radius:999px;padding:8px 14px;min-height:40px;cursor:pointer;white-space:nowrap}
+.xm-how{margin:8px 0 0;font-size:14px;color:var(--turf);line-height:1.45}
+.xm-how b{color:var(--ink)}
+.xm-cats{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin-top:12px}
+.xm-cats::-webkit-scrollbar{display:none}
+.xm-cats button{flex:0 0 auto;font:inherit;font-size:14px;font-weight:600;color:var(--turf);background:none;border:0;border-radius:999px;padding:7px 13px;min-height:38px;cursor:pointer}
+.xm-cats button.on{background:var(--ink);color:var(--page)}
+.xm-new{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin:12px 0 2px;font:inherit;font-size:15.5px;font-weight:700;
+  color:var(--ink);background:#F3E6CF;border:1.5px dashed var(--gold-up);border-radius:14px;padding:12px;min-height:50px;cursor:pointer}
+.xm-new span{color:var(--gold);font-size:18px}
+.xm-c{display:grid;gap:9px;background:var(--page);border-radius:14px;padding:12px 13px;margin-top:10px;box-shadow:0 0 0 .5px var(--shadow)}
+.xm-ct{display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left;background:none;border:0;padding:0;font:inherit;color:var(--ink);cursor:pointer}
+.xm-ct b{font-size:16.5px;line-height:1.25;flex:1}
+.xm-ch{text-align:right;flex:0 0 auto;display:grid}
+.xm-ch strong{font-size:22px;line-height:1}
+.xm-ch small{font-size:11px;color:var(--turf)}
+.xm-sp{display:block;width:100%}
+.xm-sp polyline{fill:none;stroke-width:2.4;vector-effect:non-scaling-stroke}
+.xm-sp.up polyline{stroke:#2F7A4A} .xm-sp.up polygon{fill:#2F7A4A;opacity:.08}
+.xm-sp.dn polyline{stroke:var(--flag)} .xm-sp.dn polygon{fill:var(--flag);opacity:.08}
+.xm-yn{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.xm-yn button,.xm-mo button{font:inherit;font-weight:700;font-size:15px;border:0;border-radius:10px;padding:9px;min-height:42px;cursor:pointer}
+.xm-yn .y,.xm-mo button{background:#DDEBDD;color:#2F7A4A}
+.xm-yn .n{background:#F2DDD6;color:var(--flag)}
+.xm-v{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:var(--turf)}
+.xm-d{font-size:12px;font-weight:700}
+.xm-d.up,.up{color:#2F7A4A} .xm-d.dn,.dn{color:var(--flag)}
+.xm-mo{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:center;padding:5px 0;border-top:1px solid var(--hair);
+  width:100%;background:none;border-left:0;border-right:0;border-bottom:0;font:inherit;color:var(--ink);text-align:left}
+.xm-mo span{font-weight:600;font-size:15px}
+.xm-mo em{font-style:normal;font-weight:700;font-size:15px;min-width:42px;text-align:right}
+.xm-mo button{padding:6px 10px;min-height:36px;font-size:13.5px}
+.xm-more{justify-self:start;background:none;border:0;font:inherit;font-size:13.5px;font-weight:600;color:var(--green);cursor:pointer;padding:4px 0}
+.xm-res{justify-self:start;font-size:12px;font-weight:700;letter-spacing:.04em;border-radius:999px;padding:3px 10px;background:var(--sunk);color:var(--ink)}
+.xm-res.yes{background:#DDEBDD;color:#2F7A4A} .xm-res.no{background:#F2DDD6;color:var(--flag)}
+.xm-sec{margin-top:22px}
+.xm-st{display:grid;grid-template-columns:28px 1fr auto;gap:8px;align-items:center;padding:9px 2px;border-bottom:1px solid var(--hair);font-size:15px}
+.xm-st span{color:var(--turf)} .xm-st em{font-style:normal;font-weight:700}
+.xm-back{display:block;background:none;border:0;font:inherit;font-size:15.5px;font-weight:700;color:var(--green);padding:14px 0 6px;cursor:pointer;min-height:44px}
+.xm-page{display:grid;gap:12px;padding-bottom:30px}
+.xm-eye{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--turf);font-weight:700}
+.xm-h{margin:0;font-size:23px;line-height:1.2}
+.xm-h3{margin:0;font-size:17px}
+.xm-big{display:flex;align-items:baseline;gap:10px}
+.xm-big strong{font-size:40px;line-height:1}
+.xm-done{display:flex;align-items:center;gap:10px;font-size:13.5px;color:var(--turf)}
+.xm-done .xm-res{font-size:14px;padding:6px 14px}
+.xm-mine{background:#F3E6CF;border-radius:10px;padding:9px 12px;font-size:14px;color:var(--ink)}
+.xm-tk{display:grid;gap:10px;background:var(--page);border-radius:14px;padding:12px;box-shadow:0 0 0 .5px var(--shadow)}
+.xm-sibs{gap:0;padding:4px 12px}
+.xm-sibs .xm-mo{cursor:pointer;padding:9px 0}
+.xm-sibs .xm-mo:first-child{border-top:0}
+.xm-sibs .xm-mo i{font-style:normal;font-size:12.5px;font-weight:700;border-radius:8px;padding:5px 9px;background:var(--paper);color:var(--ink)}
+.xm-sibs .xm-mo.on i{background:var(--ink);color:var(--page)}
+.xm-seg{display:grid;grid-template-columns:1fr 1fr;background:var(--paper);border-radius:10px;padding:3px}
+.xm-seg button{font:inherit;font-weight:700;font-size:15px;color:var(--turf);background:none;border:0;border-radius:8px;padding:8px;min-height:42px;cursor:pointer}
+.xm-seg button.on{background:var(--page);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.xm-seg button.y.on{background:#2F7A4A;color:#fff} .xm-seg button.n.on{background:var(--flag);color:#fff}
+.xm-stp{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:15px}
+.xm-stp .ctl{display:flex;align-items:center;gap:8px}
+.xm-stp .ctl button{width:42px;height:42px;border-radius:10px;border:0;background:var(--paper);box-shadow:inset 0 0 0 1px var(--rule);font:inherit;font-size:20px;font-weight:700;cursor:pointer;color:var(--ink)}
+.xm-stp .ctl b{min-width:56px;text-align:center;font-size:19px}
+.xm-q{display:flex;gap:6px;flex-wrap:wrap}
+.xm-q button{flex:1 1 auto;font:inherit;font-size:14px;font-weight:600;border:0;border-radius:9px;padding:9px 8px;min-height:42px;background:var(--paper);
+  box-shadow:inset 0 0 0 1px var(--rule);color:var(--ink);cursor:pointer}
+.xm-q button.on{background:var(--ink);color:var(--page);box-shadow:none}
+.xm-kv{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:14.5px;color:var(--turf)}
+.xm-kv b{color:var(--ink);text-align:right}
+.xm-kv b.up{color:#2F7A4A} .xm-kv b.dn{color:var(--flag)}
+.xm-go{width:100%}
+.xm-note{margin:0;font-size:13px;color:var(--turf);line-height:1.4}
+.xm-err{margin:0;font-size:14px;color:var(--flag);font-weight:600}
+.xm-ob{display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13.5px}
+.xm-ob .col{display:grid;gap:3px;align-content:start}
+.xm-ob .hd{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--turf)}
+.xm-ob .lvl{position:relative;display:flex;justify-content:space-between;padding:4px 7px;border-radius:6px;overflow:hidden}
+.xm-ob .lvl i{position:absolute;inset:0 auto 0 0;opacity:.18}
+.xm-ob .y .lvl i{background:#2F7A4A} .xm-ob .n .lvl i{background:var(--flag)}
+.xm-ob .lvl span{position:relative}
+.xm-none{font-size:13px;color:var(--turf);font-style:italic}
+.xm-trades{gap:6px}
+.xm-trades .xm-kv{font-size:13.5px}
+.xm-rules{font-size:14px;color:var(--turf);background:var(--page);border-radius:12px;padding:11px 13px;line-height:1.45}
+.xm-settle{display:grid;gap:8px;border-top:2px solid var(--ink);padding-top:10px}
+.xm-link{justify-self:start;background:none;border:0;font:inherit;font-size:14px;font-weight:600;color:var(--green);cursor:pointer;padding:6px 0;text-decoration:underline;text-underline-offset:3px}
+.xm-link.danger{color:var(--flag)}
+.xm-pos{gap:0;padding:0 12px}
+.xm-p{display:grid;grid-template-columns:1fr auto;gap:3px 10px;padding:11px 0;border-top:1px solid var(--hair)}
+.xm-p:first-child{border-top:0}
+.xm-p b{font-size:15px;line-height:1.3}
+.xm-pl{font-weight:700;text-align:right}
+.xm-p button{grid-column:2;grid-row:2;justify-self:end;font:inherit;font-size:13.5px;font-weight:700;background:var(--ink);color:var(--page);border:0;border-radius:999px;padding:6px 14px;min-height:36px;cursor:pointer}
+.xm-x{background:none;border:0;font:inherit;font-weight:700;color:var(--flag);cursor:pointer;padding:6px}
+.xm-f{display:grid;gap:6px;font-size:14px;font-weight:600}
+.xm-f small{font-weight:400;color:var(--turf)}
+.xm-f input{font:inherit;font-size:16px;font-weight:400;color:var(--ink);background:var(--page);border:0;box-shadow:inset 0 0 0 1px var(--rule);border-radius:10px;padding:11px 12px;min-height:46px}
+.xm-f input:focus{outline:2px solid var(--ink);outline-offset:0}
+
+
+:root{--sunk:#DBD2BA;--sage-up:#9FB3A3;--shadow:rgba(29,46,33,.16);--hair:#DCD1B4;--mono:var(--serif)}
+.phone{font-family:var(--serif)}
+.pad{padding:44px 14px 40px;display:grid;gap:0}
+h2.head{font-size:30px;font-weight:700;line-height:1.05}
+.btn{min-height:44px;padding:10px 17px;border:1px solid var(--ink);background:var(--ink);color:var(--paper);font-size:15px;font-weight:600;border-radius:2px;text-align:center}
+.btn.ghost{background:none;color:var(--ink);border-color:var(--rule)}
+.pg-h{display:flex;align-items:baseline;justify-content:space-between;gap:10px;border-bottom:2px solid var(--ink);padding-bottom:5px}
+.nos{scrollbar-width:none}.nos::-webkit-scrollbar{display:none}
+.num{font-variant-numeric:tabular-nums}
+.xm-page,.xm-c,.xm-how,.xm-new,.xm-sec{max-width:none}
+.xm-yn button small{font-size:13.5px;font-weight:600;opacity:.85;margin-left:3px}
+.xm-seg button,.xm-q button,.xm-yn button,.xm-stp .ctl button,.xm-new{text-align:center}
+.xm-stp .ctl button{padding:0}
+.xm-tk,.xm-rules{margin-top:10px}
+.xm-eye{display:block;margin-top:14px}
+.xm-h{margin-top:4px}.xm-h3{margin-top:12px}
+/* new: the filter by person */
+.who-f{display:flex;gap:6px;align-items:center;overflow-x:auto;margin-top:12px;padding-bottom:2px}
+.who-f .lbl{font-family:var(--ui);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--turf);font-weight:700;flex:0 0 auto;margin-right:2px}
+.who-f button{flex:0 0 auto;font:inherit;font-size:13.5px;font-weight:600;border-radius:999px;padding:6px 12px;background:var(--page);box-shadow:inset 0 0 0 1px var(--rule);color:var(--ink);min-height:36px}
+.who-f button.on{background:var(--gold-hi);box-shadow:none}
+/* new: tags on a card */
+.tags{display:flex;gap:6px;flex-wrap:wrap}
+.tagc{font-family:var(--ui);font-size:12px;font-weight:700;border-radius:999px;padding:3px 10px 3px 8px;background:#F3E6CF;color:var(--gold)}
+.tagc::before{content:"@";opacity:.6;margin-right:1px}
+/* new: who rows */
+.xm-mo.any span{font-style:italic}
+.xm-mo.hit{background:#F3E6CF;margin:0 -8px;padding-left:8px;padding-right:8px;border-radius:8px}
+.mv{font-style:normal;font-size:10px;color:#2F7A4A;vertical-align:2px}
+.mk{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:6px;background:#F2DDD6;color:var(--flag);font-size:13px;margin-right:6px;vertical-align:2px}
+.none{color:var(--turf);font-style:italic;margin:16px 0}
+/* new: the names along the top of a who bet */
+.pickrow{display:flex;gap:6px;overflow-x:auto;margin-top:10px;padding-bottom:2px}
+.pickrow button{flex:0 0 auto;display:grid;gap:1px;text-align:center;font:inherit;border-radius:12px;padding:7px 12px;background:var(--page);box-shadow:inset 0 0 0 1px var(--rule);min-width:76px;color:var(--ink)}
+.pickrow button b{font-size:14px}.pickrow button small{font-family:var(--ui);font-size:12px;color:var(--turf);font-weight:700}
+.pickrow button.on{background:var(--ink);color:var(--page);box-shadow:none}.pickrow button.on small{color:var(--gold-hi)}
+.okmsg{margin:0;font-size:13.5px;color:#2F7A4A;font-weight:600}
+/* new: people to tag or to answer */
+.ppl{display:flex;flex-wrap:wrap;gap:6px}
+.ppl button{font:inherit;font-size:13.5px;border-radius:999px;padding:6px 11px;background:var(--page);box-shadow:inset 0 0 0 1px var(--rule);color:var(--ink);min-height:34px}
+.ppl button.on{background:var(--ink);color:var(--page);box-shadow:none}
+.ppl button.on::before{content:"✓ ";color:var(--gold-hi)}
+.xm-f{margin-top:12px}
+/* the notification, as the tagged person sees it */
+.notif{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:start;background:rgba(245,245,245,.92);border-radius:18px;padding:11px 12px;
+  font-family:var(--ui);box-shadow:0 8px 24px rgba(0,0,0,.18);margin-top:6px}
+.notif img{width:38px;height:38px;border-radius:9px}
+.notif b{display:block;font-size:13px;color:#111}
+.notif span span{font-size:14px;color:#222;line-height:1.3}
+.notif em{font-style:normal;font-size:12px;color:#777}
+
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>Betting on people</h1>
+  <p>How “who” bets and tagging would look in the Bets tab, before it is built. Three phones, all live: tap a name, a person, a stake. Everything is in beers, a quarter at a time, as now.</p>
+</header>
+<div class="row">
+  <section class="opt"><div class="olabel"><b>1</b><span><strong>The Bets list</strong><small>Who cards and a filter by person</small></span></div>
+    <div class="phone" id="p1"></div>
+    <div class="cap"><ul>
+      <li>Each “anyone” question becomes one card: <b>Anyone</b> first, then each golfer with his own chance. It opens out to all eleven.</li>
+      <li>New ones from the refs’ marks: <b>who finds the water</b>, <b>who three-putts</b>. They settle themselves.</li>
+      <li>The row of names at the top filters the list: tap <b>Ray V</b> to see every bet about Ray.</li>
+      <li>Your own bets show the people tagged on them.</li></ul></div></section>
+  <section class="opt"><div class="olabel"><b>2</b><span><strong>One who bet, opened</strong><small>Pick a golfer, put a stake on him</small></span></div>
+    <div class="phone" id="p2"></div>
+    <div class="cap"><ul>
+      <li>The names along the top: tap one to bet on him. Each is its own yes/no, like MVP now.</li>
+      <li>Long shots pay: a ¼ 🍺 on Robby B at 1% pays about 25 🍺 if he holes one.</li>
+      <li>It settles the moment a ref saves a 1 on his card. Everyone else in that card settles No when Round 3 is locked.</li></ul></div></section>
+  <section class="opt"><div class="olabel"><b>3</b><span><strong>Make your own, with people</strong><small>Tag who it’s about, or ask who</small></span></div>
+    <div class="phone" id="p3"></div>
+    <div class="cap"><ul>
+      <li><b>Yes or no</b>: tap the people it’s about. They’re tagged on the card and get a buzz.</li>
+      <li><b>Who will it be?</b>: pick the people as the answers, like “Who’s last to breakfast?”. Each gets an even chance to start.</li>
+      <li>Tap <b>Open the bet</b> to see the card it makes and the notification the tagged person gets.</li></ul></div></section>
+</div>
+<div class="dev">
+  <div class="card"><h3>What settles itself</h3><ul>
+    <li><b>Hole in one</b> and <b>eagle</b>, this week: from the scores, for anyone and for each golfer.</li>
+    <li><b>Each round</b>: who birdies a par 3, who finishes under par net (scores); who finds the water, who three-putts (the refs’ marks).</li>
+    <li><b>Most shots of the hole</b> across the week: from the refs’ marks, once Round 3 is locked.</li>
+    <li>Your own bets, and who-bets you make, are settled by you or the commissioner, as now; a guest’s by the commissioner.</li></ul></div>
+  <div class="card rec"><h3>Kept out on purpose</h3><ul>
+    <li>Bets on one golfer’s score on one hole: 11 golfers × 18 holes × 3 rounds is a list nobody can read.</li>
+    <li>Marks a ref forgot to make can’t pay out: a water bet is only as good as the marking, so the rules on each one say so.</li></ul></div>
+</div>
+<script>
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+function beer(n) { const q = Math.round(Math.abs(n) * 4), w = Math.floor(q / 4), f = ['', '¼', '½', '¾'][q % 4]; return (w || !f ? String(w) : '') + f; }
+const TAB = on => `<div class="tabbar">${['Today', 'Scores', 'Bets', 'Boards', 'Calendar', 'Resort'].map(t => `<span class="${t === on ? 'on' : t === 'Resort' ? 'gold' : ''}"><i></i>${t}</span>`).join('')}</div>`;
+const GOLF = ['Robby B', 'Ray V', 'Dan A', 'Matt D', 'Manuel P', 'Gabriel P', 'Norberto III', 'Norberto Jr.', 'Duncan W', 'DP', 'Devin O'];
+const PEOPLE = GOLF.concat(['Justin P', 'Jennifer D', 'Aimee K', 'Becky', 'Letty D', 'Cary']);
+const CARDS = [
+  { kind: 'yn', q: 'Will Ray V wear the pink trousers on Sunday?', p: 31, tags: ['Ray V'], by: 'Becky', vol: '6¾' },
+  { kind: 'who', q: 'Who makes a hole in one this week?', vol: '14¾', rows: [['Anyone', 6], ['Robby B', 1], ['Ray V', 1], ['Dan A', 1], ['Matt D', 1], ['Duncan W', 1], ['DP', 1]], how: 'Settles from the scores' },
+  { kind: 'who', q: 'Round 2: who finds the water?', vol: '22½', rows: [['Anyone', 72], ['Ray V', 24, 'up'], ['Norberto Jr.', 18], ['Gabriel P', 12], ['Matt D', 9], ['Devin O', 8]], how: 'Settles from the refs’ marks', tag: '≈' },
+  { kind: 'who', q: 'Who’s last to breakfast on Friday?', vol: '9', rows: [['Ray V', 38, 'up'], ['Duncan W', 27], ['DP', 20], ['Devin O', 15]], by: 'Aimee K', how: 'Settled by Aimee K or the commissioner' },
+  { kind: 'who', q: 'Round 2: who birdies a par 3?', vol: '11¼', rows: [['Anyone', 55], ['Robby B', 14], ['Dan A', 11], ['Matt D', 8], ['Ray V', 6]], how: 'Settles from the scores' },
+  { kind: 'yn', q: 'Will the closing dinner run past midnight?', p: 64, tags: [], vol: '17' },
+];
+function phone(id, draw, st, on) {
+  const el = document.getElementById(id);
+  const go = () => { const sc = el.querySelector('.scr'), top = sc ? sc.scrollTop : 0; el.innerHTML = draw(st); const n = el.querySelector('.scr'); if (n) n.scrollTop = st.top0 ? 0 : top; st.top0 = false; };
+  el.addEventListener('click', e => { if (on(e, st, go) !== false) go(); });
+  el.addEventListener('input', e => { if (e.target.id) st[e.target.id] = e.target.value; });
+  go(); return st;
+}
+
+/* 1 — the list */
+phone('p1', st => {
+  const about = c => st.who === 'all' || (c.tags || []).includes(st.who) || (c.rows || []).some(r => r[0] === st.who) || c.by === st.who;
+  const list = CARDS.filter(about);
+  return `<div class="scr"><div class="pad">
+    <div class="xm-top"><h2 class="head" style="margin:0">Bets</h2><button class="xm-bal">🍺 20 · My bets</button></div>
+    <div class="who-f nos"><span class="lbl">About</span>${['all'].concat(GOLF.slice(0, 6), ['Becky']).map(n => `<button class="${st.who === n ? 'on' : ''}" data-who="${esc(n)}">${n === 'all' ? 'Everyone' : esc(n)}</button>`).join('')}</div>
+    <div class="xm-cats nos">${['All', 'Golf', 'The trip', 'Made by us', 'Settled'].map((c, i) => `<button class="${i ? '' : 'on'}">${c}</button>`).join('')}</div>
+    <button class="xm-new"><span aria-hidden="true">＋</span> Make your own bet</button>
+    ${list.map(c => c.kind === 'yn' ? `<article class="xm-c">
+        <div class="xm-ct"><b>${esc(c.q)}</b><span class="xm-ch"><strong>${c.p}%</strong><small>chance</small></span></div>
+        ${c.tags.length ? `<div class="tags">${c.tags.map(t => `<span class="tagc">${esc(t)}</span>`).join('')}</div>` : ''}
+        <div class="xm-yn"><button class="y">Yes <small>${c.p}%</small></button><button class="n">No <small>${100 - c.p}%</small></button></div>
+        <div class="xm-v"><span>${c.vol} 🍺 bet${c.by ? ' · by ' + esc(c.by) : ''}</span></div></article>`
+      : `<article class="xm-c">
+        <div class="xm-ct"><b>${c.tag ? `<span class="mk">${c.tag}</span>` : ''}${esc(c.q)}</b></div>
+        ${c.rows.slice(0, st.open === c.q ? 99 : 4).map(([n, p, mv]) => `<div class="xm-mo${n === st.who ? ' hit' : ''}${n === 'Anyone' ? ' any' : ''}"><span>${esc(n)}</span><em>${p}%${mv ? ' <i class="mv">▲</i>' : ''}</em><button>Yes</button></div>`).join('')}
+        ${c.rows.length > 4 ? `<button class="xm-more" data-open="${esc(c.q)}">${st.open === c.q ? 'Show fewer' : 'All ' + (c.q.includes('hole in one') ? 12 : c.rows.length)}</button>` : ''}
+        <div class="xm-v"><span>${c.vol} 🍺 bet${c.by ? ' · by ' + esc(c.by) : ''}</span><span>${esc(c.how)}</span></div></article>`).join('')
+      || `<p class="none">No bets about ${esc(st.who)} yet. <b>Make one</b>.</p>`}
+  </div></div>${TAB('Bets')}`;
+}, { who: 'all', open: null }, (e, st) => {
+  const w = e.target.closest('[data-who]'); if (w) { st.who = w.dataset.who; st.top0 = true; return; }
+  const o = e.target.closest('[data-open]'); if (o) { st.open = st.open === o.dataset.open ? null : o.dataset.open; return; }
+  return false;
+});
+
+/* 2 — one who bet */
+const HIO = [['Anyone', 6], ['Robby B', 1], ['Ray V', 1], ['Dan A', 1], ['Matt D', 1], ['Manuel P', 1], ['Gabriel P', 1], ['Duncan W', 1]];
+phone('p2', st => {
+  const [nm, pc] = HIO[st.i], who = nm === 'Anyone' ? 'anyone' : nm;
+  const pays = Math.floor(st.stake * 100 / pc * 4) / 4;
+  return `<div class="scr"><div class="pad">
+    <button class="xm-back">‹ Bets</button>
+    <span class="xm-eye">Golf · 14¾ 🍺 bet</span>
+    <h2 class="xm-h">Who makes a hole in one this week?</h2>
+    <div class="pickrow nos">${HIO.map(([n, p], i) => `<button class="${i === st.i ? 'on' : ''}" data-i="${i}"><b>${esc(n)}</b><small>${p}%</small></button>`).join('')}</div>
+    <h3 class="xm-h3">Will ${esc(who)} make a hole in one this week?</h3>
+    <div class="xm-big"><strong class="num">${pc}%</strong><span class="xm-d">chance of Yes</span></div>
+    <p class="xm-note">A ¼ 🍺 on Yes pays ${beer(Math.floor(25 / pc * 4) / 4)} 🍺.</p>
+    <div class="xm-tk">
+      <div class="xm-seg"><button class="on">Bet</button><button>Cash out</button></div>
+      <div class="xm-seg"><button class="y on">Yes · ${pc}%</button><button class="n">No · ${100 - pc}%</button></div>
+      <div class="xm-stp"><span>Your bet</span><span class="ctl"><button data-s="-1">−</button><b class="num">${beer(st.stake)} 🍺</b><button data-s="1">+</button></span></div>
+      <div class="xm-q">${[0.25, 0.5, 1, 2].map(b => `<button class="${st.stake === b ? 'on' : ''}" data-set="${b}">${beer(b)} 🍺</button>`).join('')}</div>
+      <div class="xm-kv"><span>Pays if ${esc(nm === 'Anyone' ? 'anyone does' : nm + ' does')}</span><b class="up">${beer(pays)} 🍺</b></div>
+      <button class="btn xm-go" data-go="1">Bet ${beer(st.stake)} 🍺 on ${esc(who === 'anyone' ? 'Anyone' : nm)}</button>
+      ${st.done ? `<p class="okmsg">${beer(st.stake)} 🍺 on ${esc(nm)}. It pays ${beer(pays)} 🍺 if it comes in.</p>` : ''}
+    </div>
+    <span class="xm-eye">Rules</span>
+    <div class="xm-rules">${nm === 'Anyone' ? 'Settles Yes the moment a ref saves a 1 on anyone’s card, practice day included. No once Round 3 is locked.'
+      : `Settles Yes the moment a ref saves a 1 on ${esc(nm)}’s card, practice day included. No once Round 3 is locked.`} A bet that comes true pays out in beers, to the quarter.</div>
+  </div></div>${TAB('Bets')}`;
+}, { i: 1, stake: 0.25, done: false }, (e, st) => {
+  const d = e.target.closest('[data-i],[data-s],[data-set],[data-go]'); if (!d) return false;
+  st.done = false;
+  if (d.dataset.i) st.i = +d.dataset.i;
+  else if (d.dataset.s) st.stake = Math.max(0.25, st.stake + 0.25 * +d.dataset.s);
+  else if (d.dataset.set) st.stake = +d.dataset.set;
+  else st.done = true;
+});
+
+/* 3 — make your own */
+phone('p3', st => {
+  const who = st.kind === 'who';
+  if (st.made) {
+    const q = st.q || (who ? 'Who’s last to breakfast on Friday?' : 'Will Ray V wear the pink trousers on Sunday?');
+    const ppl = st.sel.length ? st.sel : (who ? ['Ray V', 'Duncan W', 'DP', 'Devin O'] : ['Ray V']);
+    const even = Math.round(100 / ppl.length);
+    return `<div class="scr"><div class="pad">
+      <div class="notif"><img src="../../app/icon-192.png" alt=""><span><b>Union Invitational</b><span>Becky ${who ? 'put you in a bet' : 'put a bet on you'}: ${esc(q)}</span></span><em>now</em></div>
+      <p class="xm-note" style="text-align:center">What ${esc(ppl[0])} sees on their lock screen</p>
+      <span class="xm-eye" style="margin-top:6px">The card it makes</span>
+      ${who ? `<article class="xm-c"><div class="xm-ct"><b>${esc(q)}</b></div>
+          ${ppl.map(n => `<div class="xm-mo"><span>${esc(n)}</span><em>${even}%</em><button>Yes</button></div>`).join('')}
+          <div class="xm-v"><span>0 🍺 bet · by Becky</span><span>Settled by Becky or the commissioner</span></div></article>`
+        : `<article class="xm-c"><div class="xm-ct"><b>${esc(q)}</b><span class="xm-ch"><strong>${st.p0}%</strong><small>chance</small></span></div>
+          <div class="tags">${ppl.map(t => `<span class="tagc">${esc(t)}</span>`).join('')}</div>
+          <div class="xm-yn"><button class="y">Yes <small>${st.p0}%</small></button><button class="n">No <small>${100 - st.p0}%</small></button></div>
+          <div class="xm-v"><span>0 🍺 bet · by Becky</span></div></article>`}
+      <button class="btn ghost xm-go" data-again="1" style="margin-top:14px">Make another</button>
+    </div></div>${TAB('Bets')}`;
+  }
+  return `<div class="scr"><div class="pad">
+    <button class="xm-back">‹ Bets</button>
+    <h2 class="xm-h">Make your own bet</h2>
+    <div class="xm-f"><span>What kind</span><div class="xm-seg"><button class="${who ? '' : 'on'}" data-k="yn">Yes or no</button><button class="${who ? 'on' : ''}" data-k="who">Who will it be?</button></div></div>
+    <label class="xm-f"><span>The question</span>
+      <input id="q" type="text" maxlength="120" autocomplete="off" placeholder="${who ? 'Who’s last to breakfast on Friday?' : 'Will Ray V wear the pink trousers on Sunday?'}" value="${esc(st.q || '')}"></label>
+    <div class="xm-f"><span>${who ? 'The answers: pick the people' : 'Who’s it about? <small>(tag them; optional)</small>'}</span>
+      <div class="ppl">${PEOPLE.map(n => `<button class="${st.sel.includes(n) ? 'on' : ''}" data-p="${esc(n)}">${esc(n)}</button>`).join('')}</div>
+      ${who ? `<small class="xm-note">${st.sel.length ? `${st.sel.length} people, ${Math.round(100 / Math.max(1, st.sel.length))}% each to start. The group’s bets move them.` : 'Pick two or more.'}</small>`
+        : `<small class="xm-note">${st.sel.length ? 'They’ll get a buzz, and it shows when anyone filters by them.' : 'Tagged people get a buzz, and it shows when anyone filters by them.'}</small>`}</div>
+    ${who ? '' : `<div class="xm-f"><span>How likely, to start</span><div class="xm-q">${[10, 25, 50, 75, 90].map(v => `<button class="${st.p0 === v ? 'on' : ''}" data-p0="${v}">${v}%</button>`).join('')}</div></div>`}
+    <button class="btn xm-go" data-make="1">Open the bet</button>
+    <p class="xm-note">Made by Becky. You or the commissioner settle it.</p>
+  </div></div>${TAB('Bets')}`;
+}, { kind: 'yn', sel: ['Ray V'], p0: 25, made: false, q: '' }, (e, st) => {
+  const d = e.target.closest('[data-k],[data-p],[data-p0],[data-make],[data-again]'); if (!d) return false;
+  const inp = document.querySelector('#p3 #q'); if (inp) st.q = inp.value;
+  if (d.dataset.k) { st.kind = d.dataset.k; st.sel = d.dataset.k === 'who' ? ['Ray V', 'Duncan W', 'DP', 'Devin O'] : ['Ray V']; }
+  else if (d.dataset.p) { const n = d.dataset.p; st.sel = st.sel.includes(n) ? st.sel.filter(x => x !== n) : st.sel.concat(n); }
+  else if (d.dataset.p0) st.p0 = +d.dataset.p0;
+  else if (d.dataset.make) { st.made = true; st.top0 = true; }
+  else if (d.dataset.again) { st.made = false; st.q = ''; }
+});
+</script>
+
+</body>
+</html>

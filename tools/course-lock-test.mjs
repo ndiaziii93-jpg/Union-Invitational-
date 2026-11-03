@@ -1,0 +1,157 @@
+/* The course card must be locked while it is verified, and only a PIN may move
+   that lock once PINs are armed. Checks both states of PINS_ENABLED.
+   Run: node tools/course-lock-test.mjs */
+import { chromium } from 'playwright';
+import { readFileSync, writeFileSync } from 'node:fs';
+
+/* ---- getting about the book ----
+   Four tabs now — Today, Scores, Boards, Resort — and the five screens that
+   are set up once live behind Manage. So a name is looked for on the bar
+   first, then behind that door, and last of all among the boards, which is
+   where the Ryder Cup went. The same three places a person would look. */
+const goTab = async (pg, t) => {
+  const direct = pg.locator('.tab:visible, .navbtn:visible', { hasText: t });
+  if (await direct.count()) { await direct.first().click(); return; }
+  const door = pg.locator('[data-act="manageOpen"]');
+  if (await door.count()) {
+    await door.first().click();
+    await pg.waitForTimeout(400);
+    const row = pg.locator('.mg-row', { hasText: t });
+    if (await row.count()) { await row.first().click(); return; }
+    await pg.locator('.mgmodal [data-act="modalCancel"]').click().catch(() => {});
+    await pg.waitForTimeout(300);
+  }
+  await pg.locator('.tab:visible, .navbtn:visible', { hasText: 'Boards' }).first().click();
+  await pg.waitForTimeout(500);
+  await pg.locator('.btab', { hasText: t }).first().click();
+};
+
+
+const S = '/tmp/claude-0/-home-user-Union-Invitational-/8bcdc9be-12b5-528d-a069-2403e068b315/scratchpad';
+const SRC = readFileSync('/home/user/Union-Invitational-/dist/union-invitational.html', 'utf8');
+const HEAD = '<!doctype html><html><head><meta charset="utf-8">'
+  + '<meta name="viewport" content="width=device-width, initial-scale=1">'
+  + '<style>:root{color-scheme:light}body{margin:0;font:14px system-ui}img{max-width:100%}</style></head><body>';
+
+function preview(name, pinsArmed) {
+  /* the live book is armed; the open copy is made from it, not the other
+     way round */
+  if (!SRC.includes('const PINS_ENABLED = ')) throw new Error('PINS_ENABLED moved?');
+  const html = pinsArmed ? SRC.replace('const PINS_ENABLED = false', 'const PINS_ENABLED = true')
+                         : SRC.replace('const PINS_ENABLED = true', 'const PINS_ENABLED = false');
+  const f = S + '/' + name + '.html';
+  writeFileSync(f, HEAD + html + '</body></html>');
+  return 'file://' + f;
+}
+
+const fails = [];
+const ok = (n, got, want) => {
+  const good = got === want;
+  console.log((good ? '  PASS  ' : '  FAIL  ') + n + '  got ' + JSON.stringify(got) + (good ? '' : '  want ' + JSON.stringify(want)));
+  if (!good) fails.push(n);
+};
+
+const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+
+// ---------- PINs off: the lock still holds, it just opens without a prompt ----------
+{
+  console.log('\nPINs off (how the book runs today)');
+  const p = await (await b.newContext({ viewport: { width: 1400, height: 1100 } })).newPage();
+  await p.goto(preview('lock-off', false)); await p.waitForTimeout(1400);
+  await p.locator('[data-act="modalCancel"]').click().catch(() => {});
+  await goTab(p, 'Course Setup'); await p.waitForTimeout(400);
+
+  ok('verified card shows no par selects', await p.locator('.cardsel').count(), 0);
+  ok('verified card shows no yardage fields', await p.locator('.cardin').count(), 0);
+  ok('footer says it is locked', (await p.locator('.cfoot-note').innerText()).startsWith('Par, stroke index and yardages are locked'), true);
+
+  await p.locator('[data-act="verifyCourse"]').click(); await p.waitForTimeout(500);
+  ok('reopening needs no prompt while PINs are off', await p.locator('#pinField').count(), 0);
+  ok('reopened card offers par selects', await p.locator('.cardsel').count(), 18);
+
+  const par1 = p.locator('.cardsel').first();
+  await par1.selectOption('5'); await p.waitForTimeout(500);
+  ok('par edit lands while open', await p.locator('.cardsel').first().inputValue(), '5');
+
+  ok('the button offers to close it', await p.locator('[data-act="verifyCourse"]').innerText(), 'Done — lock card');
+  await p.locator('[data-act="verifyCourse"]').click(); await p.waitForTimeout(500);
+  ok('verifying locks it again', await p.locator('.cardsel').count(), 0);
+  ok('the edit survived the lock', (await p.locator('.scard tbody tr').first().locator('.cardval').first().innerText()), '5');
+
+  // leaving the screen closes a card left open
+  await p.locator('[data-act="verifyCourse"]').click(); await p.waitForTimeout(500);
+  ok('reopened again', await p.locator('.cardsel').count(), 18);
+  await goTab(p, 'Today'); await p.waitForTimeout(600);
+  await goTab(p, 'Course Setup'); await p.waitForTimeout(500);
+  ok('leaving the screen re-locked it', await p.locator('.cardsel').count(), 0);
+
+  // switching card closes the one left open
+  await p.locator('[data-act="verifyCourse"]').click(); await p.waitForTimeout(500);
+  await p.locator('.btabs.rt .btab', { hasText: 'Olympos' }).click(); await p.waitForTimeout(500);
+  await p.locator('.btabs.rt .btab', { hasText: 'Aspendos' }).click(); await p.waitForTimeout(500);
+  ok('switching card re-locked it', await p.locator('.cardsel').count(), 0);
+  await p.close();
+}
+
+// ---------- PINs armed: only a PIN may move the lock ----------
+{
+  console.log('\nPINs armed (how it will run in Belek)');
+  const p = await (await b.newContext({ viewport: { width: 1400, height: 1100 } })).newPage();
+  /* a phone that tapped Sign in while the PINs were off was handed "master"
+     for nothing; armed, that word proves nothing and the phone reads */
+  await p.addInitScript(() => { try { localStorage.setItem('union-invitational:role', 'master'); } catch (e) {} });
+  await p.goto(preview('lock-on', true)); await p.waitForTimeout(1400);
+  await p.locator('[data-act="modalCancel"]').click().catch(() => {});
+
+  await goTab(p, 'Course Setup'); await p.waitForTimeout(400);
+  ok('a signed-out viewer gets no verify control', await p.locator('[data-act="verifyCourse"]').count(), 0);
+
+  /* Signing in is behind the dial now, with everything else that is settled
+     rather than played: the masthead carries one mark, not a row of chips. */
+  await p.locator('.masthead .dial').click(); await p.waitForTimeout(400);
+  ok('and the window says the book is locked',
+    (await p.locator('.mg-role .mg-rt').innerText()).trim(), 'Viewer');
+  await p.locator('.mg-role [data-act="signIn"]').click(); await p.waitForTimeout(300);
+  /* the shared book redraws while a PIN is half typed: the digits stay */
+  await p.locator('#pinField').click(); await p.locator('#pinField').type('20', { delay: 60 });
+  await p.evaluate(() => window.__forceRender()); await p.waitForTimeout(250);
+  ok('a redraw mid-PIN keeps the digits', await p.locator('#pinField').inputValue(), '20');
+  ok('and the finger stays in the box', await p.evaluate(() => document.activeElement && document.activeElement.id), 'pinField');
+  await p.locator('#pinField').type('00', { delay: 60 });
+  ok('so the PIN completes', await p.locator('#pinField').inputValue(), '2000');
+  await p.locator('[data-act="modalOk"]').click(); await p.waitForTimeout(400);
+  await goTab(p, 'Course Setup'); await p.waitForTimeout(400);
+  ok('a signed-in scorer sees the verify control', await p.locator('[data-act="verifyCourse"]').count(), 1);
+  ok('the card is still locked', await p.locator('.cardsel').count(), 0);
+
+  await p.locator('[data-act="verifyCourse"]').click(); await p.waitForTimeout(350);
+  ok('reopening asks for a PIN', await p.locator('#pinField').count(), 1);
+
+  await p.locator('#pinField').fill('9999');                      // not a PIN on the list
+  await p.locator('[data-act="modalOk"]').click(); await p.waitForTimeout(350);
+  ok('a wrong PIN is refused', (await p.locator('.modal .err').innerText()).length > 0, true);
+  ok('and the card stays locked', await p.locator('.cardsel').count(), 0);
+
+  await p.locator('#pinField').fill('2000');
+  await p.locator('[data-act="modalOk"]').click(); await p.waitForTimeout(500);
+  ok('a real PIN reopens it', await p.locator('.cardsel').count(), 18);
+
+  // closing a card THIS device opened costs no second PIN
+  await p.locator('[data-act="verifyCourse"]').click(); await p.waitForTimeout(400);
+  ok('closing it again asks for nothing', await p.locator('#pinField').count(), 0);
+  ok('and the card is locked', await p.locator('.cardsel').count(), 0);
+
+  // and leaving the screen closes it on its own, still with one PIN spent
+  await p.locator('[data-act="verifyCourse"]').click(); await p.waitForTimeout(350);
+  await p.locator('#pinField').fill('2000');
+  await p.locator('[data-act="modalOk"]').click(); await p.waitForTimeout(500);
+  ok('one PIN reopened it', await p.locator('.cardsel').count(), 18);
+  await goTab(p, 'Today'); await p.waitForTimeout(600);
+  await goTab(p, 'Course Setup'); await p.waitForTimeout(500);
+  ok('walking away re-locked it, no second PIN', await p.locator('.cardsel').count(), 0);
+  await p.close();
+}
+
+await b.close();
+console.log(fails.length ? '\nFAILED: ' + fails.join(', ') : '\nThe course card locks and unlocks only as intended.');
+process.exit(fails.length ? 1 : 0);
