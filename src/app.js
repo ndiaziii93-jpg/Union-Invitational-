@@ -7885,6 +7885,7 @@ function goTo(id) {
   UI.screen = id;
 }
 
+let tabShown = '';   // the sub-tab last brought into view, so a redraw does not bring it again
 const SCROLLERS = '.btabs, .tabs, .scroller, .daystrip, .planwrap, .askbox';
 /** What each one is, so it can be found again after the rebuild. An index is
  *  not enough: a window opening adds a scroller near the front of the list
@@ -8292,8 +8293,15 @@ function paint() {
   /* And whatever was just chosen has to be visible, even if it was off the
      end before the tap — a sub-tab you cannot see is a sub-tab you cannot
      tap again. */
+  /* ONLY WHEN THE CHOICE CHANGES. The book redraws whenever the shared book
+     lands anything, and bringing the chosen tab into view on every redraw
+     dragged a strip somebody had scrolled along (to reach Photos, say, with
+     All still chosen) back to its start, over and over. The strip keeps
+     whatever position it was scrolled to; the chosen tab is brought into
+     view at the moment it is chosen, and left alone after. */
   const chosen = document.querySelector('.btab.on');
-  if (chosen && chosen.parentElement) {
+  const chosenKey = chosen ? UI.screen + '|' + (chosen.dataset.act || '') + '|' + (chosen.dataset.a || '') : '';
+  if (chosen && chosen.parentElement && chosenKey !== tabShown) {
     const strip = chosen.parentElement;
     const left = chosen.offsetLeft, right = left + chosen.offsetWidth;
     if (left < strip.scrollLeft) strip.scrollLeft = Math.max(0, left - 16);
@@ -8301,6 +8309,7 @@ function paint() {
       strip.scrollLeft = right - strip.clientWidth + 16;
     }
   }
+  tabShown = chosenKey;
 
   /* THE KEYBOARD STAYS DOWN UNTIL SOMEBODY ASKS FOR IT. Opening the window
      used to put the caret in the field, and on a phone a caret means the
