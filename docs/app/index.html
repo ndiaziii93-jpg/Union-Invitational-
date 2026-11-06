@@ -5397,6 +5397,10 @@ body.rpop-open{overflow:hidden}
 .pk-flat .mbanner{margin:0 0 10px}
 .pk-flat .cs-body, .pk-flat .ps-body{padding:0}
 .pk-flat .report .rp-card{margin:0}
+.pk-kind{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px}
+.pk-kind button{padding:10px 12px;border:1px solid var(--rule);border-radius:12px;background:var(--paper);font:inherit;text-align:left;color:var(--ink);cursor:pointer}
+.pk-kind button.on{background:var(--pine);color:var(--onpine);border-color:var(--pine)}
+.pk-kind b{display:block;font-size:15px}.pk-kind small{display:block;font-size:12px;line-height:1.35;margin-top:2px;opacity:.85}
 
 </style>
 <div id="app"></div>
@@ -5524,7 +5528,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261106-1533';
+const BUILD = '20261106-1618';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -10151,9 +10155,11 @@ This folder is for whoever prepares the posts for Instagram, TikTok and X. Read 
 - \`manifest.json\` — every file, who is in it, when it was taken, what it shows; the standings, the highlights worth a post, the roster. Numbers in \`value\` are exact; \`value_label\` is display-ready.
 - \`recap.md\` — the words the book published: each round's recap, the tournament recap, the honours, the golfers' own quotes, the State of the Union and a coach's letter a golfer. Captions come from here.
 - \`posting-plan.md\` — six beats from the wrap to the Vegas tease, each naming the files it uses.
-- \`screenshots/\` — ${counts.screens} screens drawn from the app at 1080 px wide: leaderboards, the final tables, the honours, every scorecard, every report card. They are the tournament's own look; post them as they are or build cards that match.
-- \`sized/feed-4x5/\` and \`sized/story-9x16/\` — the screens that fit, placed on the paper at 1080×1350 and 1080×1920.
-- \`media/\` — ${counts.photos} photographs and ${counts.clips} clips, full size, unedited, as the party uploaded them. Named \`<round>_<hole>_<who>_<time>.<ext>\`: R1/R2/R3 the counting rounds, PR the practice day, TRIP everything off the course. The who is the person who uploaded it, not necessarily who is in it.
+- \`screenshots/\` — ${counts.screens} screens drawn from the app at 1080 px wide${M.export.kind === 'brief' ? ', as JPEGs to keep the brief small' : ''}: leaderboards, the final tables, the honours, every scorecard, every report card. They are the tournament's own look; post them as they are or build cards that match.
+${M.export.kind === 'brief' ? '' : '- `sized/feed-4x5/` and `sized/story-9x16/` — the screens that fit, placed on the paper at 1080×1350 and 1080×1920.'}
+${M.export.kind === 'brief'
+    ? `- **No \`media/\` folder: this is the brief.** The ${counts.photos} photographs and ${counts.clips} clips are listed in \`manifest.json\` under \`media\`, each with its \`url\` (the file itself, full size, on the book's photo store) and \`thumb_url\`. Fetch one by its address when a post needs it. The full pack, with the files inside, is the same manifest with a \`media/\` folder, and lives in the shared Drive folder.`
+    : `- \`media/\` — ${counts.photos} photographs and ${counts.clips} clips, full size, unedited, as the party uploaded them. Named \`<round>_<hole>_<who>_<time>.<ext>\`: R1/R2/R3 the counting rounds, PR the practice day, TRIP everything off the course. The who is the person who uploaded it, not necessarily who is in it. Each row in the manifest also carries the file's \`url\` on the book's photo store.`}
 
 ## The voice
 
@@ -10175,7 +10181,8 @@ The public pages: ${D.SITE_URL}recap/?r=week (the tournament recap), ${D.SITE_UR
 `;
 }
 function planMd(M, picks) {
-  const f = list => (list.length ? list.map(x => '  - `' + x + '`').join('\n') : '  - (nothing in this pack)');
+  const urlOf = {}; for (const m of M.media) if (!m.file) urlOf[m.url] = true;
+  const f = list => (list.length ? list.map(x => '  - ' + (urlOf[x] ? x : '`' + x + '`')).join('\n') : '  - (nothing in this pack)');
   const names = M.players.filter(p => p.role === 'golfer');
   const champ = (M.competitions.find(c => c.id === 'pairs') || { standings: [] }).standings[0];
   const mvp = (M.competitions.find(c => c.id === 'mvp') || { standings: [] }).standings[0];
@@ -10269,7 +10276,7 @@ function dropStage() { const s = document.getElementById('packstage'); if (s) s.
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const isSafari = () => /^((?!chrome|android|crios|fxios).)*safari/i.test(navigator.userAgent);
 /** html → { blob (PNG), width, height } at 1080 wide. `title` is the masthead line; `width` the layout's, a phone's unless told. */
-async function snapshot(html, title, crest, width) {
+async function snapshot(html, title, crest, width, jpeg) {
   const css = await pageCss();
   const W = width || STAGE_W, SCALE = OUT_W / W;
   const st = stage(W);
@@ -10300,7 +10307,7 @@ async function snapshot(html, title, crest, width) {
   const draw = () => { g.fillStyle = '#E3DBCB'; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height); };
   draw();
   if (isSafari()) { await sleep(60); draw(); }    // Safari paints a foreignObject's type a beat late: draw it again
-  const blob = await new Promise((res, rej) => c.toBlob(b => (b ? res(b) : rej(new Error('no picture'))), 'image/png'));
+  const blob = await new Promise((res, rej) => (jpeg ? c.toBlob(b => (b ? res(b) : rej(new Error('no picture'))), 'image/jpeg', 0.84) : c.toBlob(b => (b ? res(b) : rej(new Error('no picture'))), 'image/png')));
   st.innerHTML = '';
   return { blob, width: c.width, height: c.height, canvas: c };
 }
@@ -10360,16 +10367,19 @@ async function build(T, env, opts, progress, signal) {
     stop();
     say(5 + 55 * done / Math.max(1, all.length), (ph.kind === 'video' ? 'Clip' : 'Photo') + ' ' + (done + 1) + ' of ' + all.length);
     try {
-      const r = await fetch(ph.url, { signal }); if (!r.ok) throw new Error('http ' + r.status);
-      const blob = await r.blob();
       const pid = env.byPid ? env.byPid(ph) : (byName[ph.byName] || null);
       const name = unique('media/' + mediaName(ph, pid ? firstName((E.person(T, pid) || {}).display) : firstName(ph.byName), ph.at), used);
-      const info = await probe(blob, ph.kind);
-      entries.push({ name, data: blob, at: localDate(ph.at || at) });
-      media.push({ file: name, type: ph.kind === 'video' ? 'video' : 'photo', taken_at: iso(ph.at), day: env.photoDay ? env.photoDay(ph) : null, uploaded_by: pid, uploaded_by_name: ph.byName || null,
+      let blob = null, info = {};
+      if (!opts.brief) {
+        const r = await fetch(ph.url, { signal }); if (!r.ok) throw new Error('http ' + r.status);
+        blob = await r.blob();
+        info = await probe(blob, ph.kind);
+        entries.push({ name, data: blob, at: localDate(ph.at || at) });
+      }
+      media.push({ file: opts.brief ? null : name, url: ph.url, thumb_url: ph.thumb || null, type: ph.kind === 'video' ? 'video' : 'photo', taken_at: iso(ph.at), day: env.photoDay ? env.photoDay(ph) : null, uploaded_by: pid, uploaded_by_name: ph.byName || null,
         round: ph.rid === 'trip' ? null : ph.rid, hole: ph.hole == null ? null : ph.hole + 1, people_ids: [],
         caption_hint: ph.caption || [roundName(ph.rid || 'trip'), ph.hole != null ? 'hole ' + (ph.hole + 1) : null, ph.byName ? 'by ' + ph.byName : null].filter(Boolean).join(' · '),
-        orientation: info.orientation || null, duration_s: info.duration_s == null ? null : info.duration_s, bytes: blob.size, mime: blob.type || ph.mime || null,
+        orientation: info.orientation || null, duration_s: info.duration_s == null ? null : info.duration_s, bytes: blob ? blob.size : (ph.bytes || null), mime: (blob && blob.type) || ph.mime || null,
         hearts: env.hearts(ph), starred: env.hearts(ph) > 0, id: ph.id });
     } catch (e) { if (signal && signal.aborted) throw e; failed++; }
     done++;
@@ -10386,11 +10396,12 @@ async function build(T, env, opts, progress, signal) {
       const s = list[i];
       say(60 + 32 * i / Math.max(1, list.length), 'Screen ' + (i + 1) + ' of ' + list.length + ' · ' + s.title);
       try {
-        const shot = await snapshot(s.html, s.title, env.crest, s.width);
+        const shot = await snapshot(s.html, s.title, env.crest, s.width, !!opts.brief);
         const base = roundToken(s.round || 'week') + '_' + s.key + '_' + tm;
-        const name = unique('screenshots/' + base + '.png', used);
+        const name = unique('screenshots/' + base + (opts.brief ? '.jpg' : '.png'), used);
         entries.push({ name, data: shot.blob, at: when });
         const row = { file: name, screen: s.screen, competition_id: s.competition_id || null, player_ids: s.player_ids || [], round: s.round || null, title: s.title, captured_at: iso(at), theme: 'light', width: shot.width, height: shot.height, sized: {} };
+        if (opts.brief) { screens.push(row); continue; }
         const feed = await sized(shot, 1080, 1350); if (feed) { const n = unique('sized/feed-4x5/' + base + '.png', used); entries.push({ name: n, data: feed, at: when }); row.sized.feed_4x5 = n; }
         const story = await sized(shot, 1080, 1920); if (story) { const n = unique('sized/story-9x16/' + base + '.png', used); entries.push({ name: n, data: story, at: when }); row.sized.story_9x16 = n; }
         screens.push(row);
@@ -10402,7 +10413,7 @@ async function build(T, env, opts, progress, signal) {
   /* the manifest, the words, the plan */
   say(94, 'The manifest');
   const M = {
-    export: { id: 'exp_' + stamp + '_' + tm2(at), generated_at: iso(at), scope: scopeKey, round: scope === 'week' ? null : scope, app_version: env.build || D.BUILD, includes: { photos: !!opts.photos, clips: !!opts.clips, screens: !!opts.screens, hearted_only: !!opts.hearted }, failed_files: failed },
+    export: { id: 'exp_' + stamp + '_' + tm2(at), generated_at: iso(at), scope: scopeKey, round: scope === 'week' ? null : scope, app_version: env.build || D.BUILD, kind: opts.brief ? 'brief' : 'full', includes: { photos: !!opts.photos, clips: !!opts.clips, screens: !!opts.screens, hearted_only: !!opts.hearted, media_bytes: !opts.brief }, failed_files: failed },
     edition: { ...EDITION, courses: Object.keys(D.COURSES).map(k => courseJson(T, k)), rounds: D.ROUNDS.map(r => roundJson(T, r.id)) },
     round: scope === 'week' ? null : roundJson(T, scope),
     players: playersJson(T),
@@ -10421,14 +10432,14 @@ async function build(T, env, opts, progress, signal) {
   say(96, 'Zipping');
   const blob = await zipBlob(entries, (i, n) => { stop(); if (i % 20 === 0) say(96 + 4 * i / n, 'Zipping ' + i + ' of ' + n); });
   say(100, 'Done');
-  return { blob, name: 'union-invitational-' + stamp + '.zip', manifest: M, failed };
+  return { blob, name: 'union-invitational-' + stamp + (opts.brief ? '-brief' : '') + '.zip', manifest: M, failed };
 }
 const tm2 = at => hhmm(at);
 /** Which files each beat of the plan uses. */
 function pickFor(M) {
   const sc = M.screenshots, md = M.media;
   const by = f => sc.filter(f).map(s => s.file);
-  const photos = md.filter(m => m.type === 'photo'), clips = md.filter(m => m.type === 'video');
+  const photos = md.filter(m => m.type === 'photo').map(m => ({ ...m, file: m.file || m.url })), clips = md.filter(m => m.type === 'video').map(m => ({ ...m, file: m.file || m.url }));
   const rounds = {};
   for (const r of ['practice', 'r1', 'r2', 'r3']) {
     const ps = photos.filter(m => m.round === r).sort((a, b) => b.hearts - a.hearts || (a.taken_at || '').localeCompare(b.taken_at || '')).slice(0, 4).map(m => m.file);
@@ -20274,14 +20285,14 @@ let fbPendingBusy = false;
    export the social media plan asks the app for; the master PIN alone
    sees it, and it leaves the device only as a file the commissioner saves. */
 let packCtl = null;
-const packState = () => UI.pack || (UI.pack = { scope: 'week', photos: true, clips: true, screens: true, hearted: false, busy: false, pct: 0, note: '', out: null, err: '' });
+const packState = () => UI.pack || (UI.pack = { scope: 'week', brief: false, photos: true, clips: true, screens: true, hearted: false, busy: false, pct: 0, note: '', out: null, err: '' });
 /** What the pack would hold at the current choices, counted off the book. */
 function packCount(st) {
   const ps = Object.values(T.photos || {}).filter(p => p && safeUrl(p.url) && (st.scope === 'week' || p.rid === st.scope) && (!st.hearted || hearts(p) > 0));
   const photos = ps.filter(p => !isVideo(p)), clips = ps.filter(isVideo);
   const sum = l => l.reduce((a, p) => a + (p.bytes || (isVideo(p) ? 12e6 : 1.4e6)), 0);
   const screens = st.screens ? packScreens(st.scope === 'week' ? ['week', ...D.ROUNDS.map(r => r.id), 'trip'] : [st.scope], true).length : 0;
-  return { photos: st.photos ? photos.length : 0, clips: st.clips ? clips.length : 0, screens, bytes: (st.photos ? sum(photos) : 0) + (st.clips ? sum(clips) : 0) + screens * 450e3 };
+  return { photos: st.photos ? photos.length : 0, clips: st.clips ? clips.length : 0, screens, bytes: st.brief ? screens * 160e3 + 200e3 : (st.photos ? sum(photos) : 0) + (st.clips ? sum(clips) : 0) + screens * 450e3 };
 }
 function packCardHtml() {
   const st = packState(), c = packCount({ ...st, scope: 'week', photos: true, clips: true, screens: true, hearted: false });
@@ -20297,13 +20308,16 @@ function packModalHtml() {
   return `<div class="scrim" data-act="modalScrim"><div class="modal mgmodal pkmodal" role="dialog" aria-modal="true" aria-label="Social media pack">
     ${modalBanner('Social media pack', 'Photos, clips and screens, with the brief for the posts')}
     <div class="pk-scopes nos">${scopes.map(([id, l]) => `<button class="chip${st.scope === id ? ' on' : ''}" data-act="packScope" data-a="${id}">${esc(l)}</button>`).join('')}</div>
+    <div class="pk-kind"><button class="${st.brief ? '' : 'on'}" data-act="packKind" data-a="full"><b>The full pack</b><small>Every file inside. For the shared Drive folder.</small></button><button class="${st.brief ? 'on' : ''}" data-act="packKind" data-a="brief"><b>The brief</b><small>Words, screens, photos by link. Small enough to drop into a chat.</small></button></div>
     <div class="pk-opts">
       ${opt('photos', 'Photos', c.photos)}
       ${opt('clips', 'Clips', c.clips)}
       ${opt('screens', 'Screens: tables, cards, reports', c.screens)}
       ${opt('hearted', 'Only photos with hearts', '')}
     </div>
-    <p class="pk-note">One zip, about <b>${PK.fmtBytes(c.bytes)}</b>: a manifest, the recaps and the coach's notes as words, a posting plan, the screens at 1080 wide, and every photo and clip full size. Best built on a laptop or an iPad; a phone has to hold all of it at once.</p>
+    <p class="pk-note">${st.brief
+      ? `One zip, about <b>${PK.fmtBytes(c.bytes)}</b>: the manifest with every photo and clip listed by its web address, the recaps and the coach's notes as words, a posting plan and the screens as JPEGs. No photo files inside, so it goes straight into a Claude chat; Claude fetches a picture by its link when a post needs it.`
+      : `One zip, about <b>${PK.fmtBytes(c.bytes)}</b>: a manifest, the recaps and the coach's notes as words, a posting plan, the screens at 1080 wide, and every photo and clip full size. Too big for a chat: unzip it into the shared Drive folder and Claude reads it there. Best built on a laptop or an iPad; a phone has to hold all of it at once.`}</p>
     ${st.busy ? `<div class="pk-prog"><i style="width:${st.pct}%"></i></div><p class="pk-st">${esc(st.note || 'Starting…')} · ${st.pct}%</p>` : ''}
     ${st.err ? `<p class="xm-err">${esc(st.err)}</p>` : ''}
     ${st.out ? `<div class="pk-done"><b>${esc(st.out.name)}</b><span>${PK.fmtBytes(st.out.blob.size)}${st.out.failed ? ' · ' + st.out.failed + ' file' + (st.out.failed === 1 ? '' : 's') + ' could not be fetched' : ''}</span></div>` : ''}
@@ -20386,7 +20400,7 @@ async function packBuild() {
   st.busy = true; st.pct = 0; st.note = 'Starting'; st.out = null; st.err = ''; render();
   packCtl = new AbortController();
   try {
-    const out = await PK.build(T, packEnv(), { scope: st.scope, photos: st.photos, clips: st.clips, screens: st.screens, hearted: st.hearted },
+    const out = await PK.build(T, packEnv(), { scope: st.scope, brief: st.brief, photos: st.photos, clips: st.clips, screens: st.screens, hearted: st.hearted },
       (pct, note) => { st.pct = pct; st.note = note; render(); }, packCtl.signal);
     st.out = out;
     if (store && store.note) store.note('pack built', out.name + ' ' + out.blob.size);
@@ -22467,6 +22481,7 @@ function onClick(e) {
     case 'fbView': UI.modal = { kind: 'fbview' }; render(); if (!(UI.fbView && UI.fbView.rows)) fbLoad(); return;
     case 'packOpen': if (!canAdmin()) return; packState(); UI.modal = { kind: 'pack' }; render(); return;
     case 'packScope': { const st = packState(); if (st.busy) return; st.scope = a; st.out = null; st.err = ''; render(); return; }
+    case 'packKind': { const st = packState(); if (st.busy) return; st.brief = a === 'brief'; st.out = null; st.err = ''; render(); return; }
     case 'packOpt': { const st = packState(); if (st.busy) return; st[a] = !st[a]; st.out = null; st.err = ''; render(); return; }
     case 'packBuild': packBuild(); return;
     case 'packStop': if (packCtl) packCtl.abort(); return;
@@ -24627,7 +24642,7 @@ __m_app.boot();
 /* Register the worker that makes the book work with no signal. It is the
    whole point of installing it: Belek is five hours of walking and everyone
    is roaming. A failure here must never stop the page loading. */
-var BOOK_BUILD = '20261106-1533';
+var BOOK_BUILD = '20261106-1618';
 var swReg = null;
 /* the book is never shown inside somebody else's page, where a tap could be
    aimed at a button they have put under the finger */

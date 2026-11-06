@@ -7608,14 +7608,14 @@ let fbPendingBusy = false;
    export the social media plan asks the app for; the master PIN alone
    sees it, and it leaves the device only as a file the commissioner saves. */
 let packCtl = null;
-const packState = () => UI.pack || (UI.pack = { scope: 'week', photos: true, clips: true, screens: true, hearted: false, busy: false, pct: 0, note: '', out: null, err: '' });
+const packState = () => UI.pack || (UI.pack = { scope: 'week', brief: false, photos: true, clips: true, screens: true, hearted: false, busy: false, pct: 0, note: '', out: null, err: '' });
 /** What the pack would hold at the current choices, counted off the book. */
 function packCount(st) {
   const ps = Object.values(T.photos || {}).filter(p => p && safeUrl(p.url) && (st.scope === 'week' || p.rid === st.scope) && (!st.hearted || hearts(p) > 0));
   const photos = ps.filter(p => !isVideo(p)), clips = ps.filter(isVideo);
   const sum = l => l.reduce((a, p) => a + (p.bytes || (isVideo(p) ? 12e6 : 1.4e6)), 0);
   const screens = st.screens ? packScreens(st.scope === 'week' ? ['week', ...D.ROUNDS.map(r => r.id), 'trip'] : [st.scope], true).length : 0;
-  return { photos: st.photos ? photos.length : 0, clips: st.clips ? clips.length : 0, screens, bytes: (st.photos ? sum(photos) : 0) + (st.clips ? sum(clips) : 0) + screens * 450e3 };
+  return { photos: st.photos ? photos.length : 0, clips: st.clips ? clips.length : 0, screens, bytes: st.brief ? screens * 160e3 + 200e3 : (st.photos ? sum(photos) : 0) + (st.clips ? sum(clips) : 0) + screens * 450e3 };
 }
 function packCardHtml() {
   const st = packState(), c = packCount({ ...st, scope: 'week', photos: true, clips: true, screens: true, hearted: false });
@@ -7631,13 +7631,16 @@ function packModalHtml() {
   return `<div class="scrim" data-act="modalScrim"><div class="modal mgmodal pkmodal" role="dialog" aria-modal="true" aria-label="Social media pack">
     ${modalBanner('Social media pack', 'Photos, clips and screens, with the brief for the posts')}
     <div class="pk-scopes nos">${scopes.map(([id, l]) => `<button class="chip${st.scope === id ? ' on' : ''}" data-act="packScope" data-a="${id}">${esc(l)}</button>`).join('')}</div>
+    <div class="pk-kind"><button class="${st.brief ? '' : 'on'}" data-act="packKind" data-a="full"><b>The full pack</b><small>Every file inside. For the shared Drive folder.</small></button><button class="${st.brief ? 'on' : ''}" data-act="packKind" data-a="brief"><b>The brief</b><small>Words, screens, photos by link. Small enough to drop into a chat.</small></button></div>
     <div class="pk-opts">
       ${opt('photos', 'Photos', c.photos)}
       ${opt('clips', 'Clips', c.clips)}
       ${opt('screens', 'Screens: tables, cards, reports', c.screens)}
       ${opt('hearted', 'Only photos with hearts', '')}
     </div>
-    <p class="pk-note">One zip, about <b>${PK.fmtBytes(c.bytes)}</b>: a manifest, the recaps and the coach's notes as words, a posting plan, the screens at 1080 wide, and every photo and clip full size. Best built on a laptop or an iPad; a phone has to hold all of it at once.</p>
+    <p class="pk-note">${st.brief
+      ? `One zip, about <b>${PK.fmtBytes(c.bytes)}</b>: the manifest with every photo and clip listed by its web address, the recaps and the coach's notes as words, a posting plan and the screens as JPEGs. No photo files inside, so it goes straight into a Claude chat; Claude fetches a picture by its link when a post needs it.`
+      : `One zip, about <b>${PK.fmtBytes(c.bytes)}</b>: a manifest, the recaps and the coach's notes as words, a posting plan, the screens at 1080 wide, and every photo and clip full size. Too big for a chat: unzip it into the shared Drive folder and Claude reads it there. Best built on a laptop or an iPad; a phone has to hold all of it at once.`}</p>
     ${st.busy ? `<div class="pk-prog"><i style="width:${st.pct}%"></i></div><p class="pk-st">${esc(st.note || 'Starting…')} · ${st.pct}%</p>` : ''}
     ${st.err ? `<p class="xm-err">${esc(st.err)}</p>` : ''}
     ${st.out ? `<div class="pk-done"><b>${esc(st.out.name)}</b><span>${PK.fmtBytes(st.out.blob.size)}${st.out.failed ? ' · ' + st.out.failed + ' file' + (st.out.failed === 1 ? '' : 's') + ' could not be fetched' : ''}</span></div>` : ''}
@@ -7720,7 +7723,7 @@ async function packBuild() {
   st.busy = true; st.pct = 0; st.note = 'Starting'; st.out = null; st.err = ''; render();
   packCtl = new AbortController();
   try {
-    const out = await PK.build(T, packEnv(), { scope: st.scope, photos: st.photos, clips: st.clips, screens: st.screens, hearted: st.hearted },
+    const out = await PK.build(T, packEnv(), { scope: st.scope, brief: st.brief, photos: st.photos, clips: st.clips, screens: st.screens, hearted: st.hearted },
       (pct, note) => { st.pct = pct; st.note = note; render(); }, packCtl.signal);
     st.out = out;
     if (store && store.note) store.note('pack built', out.name + ' ' + out.blob.size);
@@ -9801,6 +9804,7 @@ function onClick(e) {
     case 'fbView': UI.modal = { kind: 'fbview' }; render(); if (!(UI.fbView && UI.fbView.rows)) fbLoad(); return;
     case 'packOpen': if (!canAdmin()) return; packState(); UI.modal = { kind: 'pack' }; render(); return;
     case 'packScope': { const st = packState(); if (st.busy) return; st.scope = a; st.out = null; st.err = ''; render(); return; }
+    case 'packKind': { const st = packState(); if (st.busy) return; st.brief = a === 'brief'; st.out = null; st.err = ''; render(); return; }
     case 'packOpt': { const st = packState(); if (st.busy) return; st[a] = !st[a]; st.out = null; st.err = ''; render(); return; }
     case 'packBuild': packBuild(); return;
     case 'packStop': if (packCtl) packCtl.abort(); return;

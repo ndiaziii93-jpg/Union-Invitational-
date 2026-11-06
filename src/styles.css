@@ -5321,3 +5321,7 @@ body.rpop-open{overflow:hidden}
 .pk-flat .mbanner{margin:0 0 10px}
 .pk-flat .cs-body, .pk-flat .ps-body{padding:0}
 .pk-flat .report .rp-card{margin:0}
+.pk-kind{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px}
+.pk-kind button{padding:10px 12px;border:1px solid var(--rule);border-radius:12px;background:var(--paper);font:inherit;text-align:left;color:var(--ink);cursor:pointer}
+.pk-kind button.on{background:var(--pine);color:var(--onpine);border-color:var(--pine)}
+.pk-kind b{display:block;font-size:15px}.pk-kind small{display:block;font-size:12px;line-height:1.35;margin-top:2px;opacity:.85}

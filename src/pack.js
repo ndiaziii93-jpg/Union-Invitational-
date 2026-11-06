@@ -243,9 +243,11 @@ This folder is for whoever prepares the posts for Instagram, TikTok and X. Read 
 - \`manifest.json\` — every file, who is in it, when it was taken, what it shows; the standings, the highlights worth a post, the roster. Numbers in \`value\` are exact; \`value_label\` is display-ready.
 - \`recap.md\` — the words the book published: each round's recap, the tournament recap, the honours, the golfers' own quotes, the State of the Union and a coach's letter a golfer. Captions come from here.
 - \`posting-plan.md\` — six beats from the wrap to the Vegas tease, each naming the files it uses.
-- \`screenshots/\` — ${counts.screens} screens drawn from the app at 1080 px wide: leaderboards, the final tables, the honours, every scorecard, every report card. They are the tournament's own look; post them as they are or build cards that match.
-- \`sized/feed-4x5/\` and \`sized/story-9x16/\` — the screens that fit, placed on the paper at 1080×1350 and 1080×1920.
-- \`media/\` — ${counts.photos} photographs and ${counts.clips} clips, full size, unedited, as the party uploaded them. Named \`<round>_<hole>_<who>_<time>.<ext>\`: R1/R2/R3 the counting rounds, PR the practice day, TRIP everything off the course. The who is the person who uploaded it, not necessarily who is in it.
+- \`screenshots/\` — ${counts.screens} screens drawn from the app at 1080 px wide${M.export.kind === 'brief' ? ', as JPEGs to keep the brief small' : ''}: leaderboards, the final tables, the honours, every scorecard, every report card. They are the tournament's own look; post them as they are or build cards that match.
+${M.export.kind === 'brief' ? '' : '- `sized/feed-4x5/` and `sized/story-9x16/` — the screens that fit, placed on the paper at 1080×1350 and 1080×1920.'}
+${M.export.kind === 'brief'
+    ? `- **No \`media/\` folder: this is the brief.** The ${counts.photos} photographs and ${counts.clips} clips are listed in \`manifest.json\` under \`media\`, each with its \`url\` (the file itself, full size, on the book's photo store) and \`thumb_url\`. Fetch one by its address when a post needs it. The full pack, with the files inside, is the same manifest with a \`media/\` folder, and lives in the shared Drive folder.`
+    : `- \`media/\` — ${counts.photos} photographs and ${counts.clips} clips, full size, unedited, as the party uploaded them. Named \`<round>_<hole>_<who>_<time>.<ext>\`: R1/R2/R3 the counting rounds, PR the practice day, TRIP everything off the course. The who is the person who uploaded it, not necessarily who is in it. Each row in the manifest also carries the file's \`url\` on the book's photo store.`}
 
 ## The voice
 
@@ -267,7 +269,8 @@ The public pages: ${D.SITE_URL}recap/?r=week (the tournament recap), ${D.SITE_UR
 `;
 }
 export function planMd(M, picks) {
-  const f = list => (list.length ? list.map(x => '  - `' + x + '`').join('\n') : '  - (nothing in this pack)');
+  const urlOf = {}; for (const m of M.media) if (!m.file) urlOf[m.url] = true;
+  const f = list => (list.length ? list.map(x => '  - ' + (urlOf[x] ? x : '`' + x + '`')).join('\n') : '  - (nothing in this pack)');
   const names = M.players.filter(p => p.role === 'golfer');
   const champ = (M.competitions.find(c => c.id === 'pairs') || { standings: [] }).standings[0];
   const mvp = (M.competitions.find(c => c.id === 'mvp') || { standings: [] }).standings[0];
@@ -361,7 +364,7 @@ export function dropStage() { const s = document.getElementById('packstage'); if
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const isSafari = () => /^((?!chrome|android|crios|fxios).)*safari/i.test(navigator.userAgent);
 /** html → { blob (PNG), width, height } at 1080 wide. `title` is the masthead line; `width` the layout's, a phone's unless told. */
-export async function snapshot(html, title, crest, width) {
+export async function snapshot(html, title, crest, width, jpeg) {
   const css = await pageCss();
   const W = width || STAGE_W, SCALE = OUT_W / W;
   const st = stage(W);
@@ -392,7 +395,7 @@ export async function snapshot(html, title, crest, width) {
   const draw = () => { g.fillStyle = '#E3DBCB'; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height); };
   draw();
   if (isSafari()) { await sleep(60); draw(); }    // Safari paints a foreignObject's type a beat late: draw it again
-  const blob = await new Promise((res, rej) => c.toBlob(b => (b ? res(b) : rej(new Error('no picture'))), 'image/png'));
+  const blob = await new Promise((res, rej) => (jpeg ? c.toBlob(b => (b ? res(b) : rej(new Error('no picture'))), 'image/jpeg', 0.84) : c.toBlob(b => (b ? res(b) : rej(new Error('no picture'))), 'image/png')));
   st.innerHTML = '';
   return { blob, width: c.width, height: c.height, canvas: c };
 }
@@ -452,16 +455,19 @@ export async function build(T, env, opts, progress, signal) {
     stop();
     say(5 + 55 * done / Math.max(1, all.length), (ph.kind === 'video' ? 'Clip' : 'Photo') + ' ' + (done + 1) + ' of ' + all.length);
     try {
-      const r = await fetch(ph.url, { signal }); if (!r.ok) throw new Error('http ' + r.status);
-      const blob = await r.blob();
       const pid = env.byPid ? env.byPid(ph) : (byName[ph.byName] || null);
       const name = unique('media/' + mediaName(ph, pid ? firstName((E.person(T, pid) || {}).display) : firstName(ph.byName), ph.at), used);
-      const info = await probe(blob, ph.kind);
-      entries.push({ name, data: blob, at: localDate(ph.at || at) });
-      media.push({ file: name, type: ph.kind === 'video' ? 'video' : 'photo', taken_at: iso(ph.at), day: env.photoDay ? env.photoDay(ph) : null, uploaded_by: pid, uploaded_by_name: ph.byName || null,
+      let blob = null, info = {};
+      if (!opts.brief) {
+        const r = await fetch(ph.url, { signal }); if (!r.ok) throw new Error('http ' + r.status);
+        blob = await r.blob();
+        info = await probe(blob, ph.kind);
+        entries.push({ name, data: blob, at: localDate(ph.at || at) });
+      }
+      media.push({ file: opts.brief ? null : name, url: ph.url, thumb_url: ph.thumb || null, type: ph.kind === 'video' ? 'video' : 'photo', taken_at: iso(ph.at), day: env.photoDay ? env.photoDay(ph) : null, uploaded_by: pid, uploaded_by_name: ph.byName || null,
         round: ph.rid === 'trip' ? null : ph.rid, hole: ph.hole == null ? null : ph.hole + 1, people_ids: [],
         caption_hint: ph.caption || [roundName(ph.rid || 'trip'), ph.hole != null ? 'hole ' + (ph.hole + 1) : null, ph.byName ? 'by ' + ph.byName : null].filter(Boolean).join(' · '),
-        orientation: info.orientation || null, duration_s: info.duration_s == null ? null : info.duration_s, bytes: blob.size, mime: blob.type || ph.mime || null,
+        orientation: info.orientation || null, duration_s: info.duration_s == null ? null : info.duration_s, bytes: blob ? blob.size : (ph.bytes || null), mime: (blob && blob.type) || ph.mime || null,
         hearts: env.hearts(ph), starred: env.hearts(ph) > 0, id: ph.id });
     } catch (e) { if (signal && signal.aborted) throw e; failed++; }
     done++;
@@ -478,11 +484,12 @@ export async function build(T, env, opts, progress, signal) {
       const s = list[i];
       say(60 + 32 * i / Math.max(1, list.length), 'Screen ' + (i + 1) + ' of ' + list.length + ' · ' + s.title);
       try {
-        const shot = await snapshot(s.html, s.title, env.crest, s.width);
+        const shot = await snapshot(s.html, s.title, env.crest, s.width, !!opts.brief);
         const base = roundToken(s.round || 'week') + '_' + s.key + '_' + tm;
-        const name = unique('screenshots/' + base + '.png', used);
+        const name = unique('screenshots/' + base + (opts.brief ? '.jpg' : '.png'), used);
         entries.push({ name, data: shot.blob, at: when });
         const row = { file: name, screen: s.screen, competition_id: s.competition_id || null, player_ids: s.player_ids || [], round: s.round || null, title: s.title, captured_at: iso(at), theme: 'light', width: shot.width, height: shot.height, sized: {} };
+        if (opts.brief) { screens.push(row); continue; }
         const feed = await sized(shot, 1080, 1350); if (feed) { const n = unique('sized/feed-4x5/' + base + '.png', used); entries.push({ name: n, data: feed, at: when }); row.sized.feed_4x5 = n; }
         const story = await sized(shot, 1080, 1920); if (story) { const n = unique('sized/story-9x16/' + base + '.png', used); entries.push({ name: n, data: story, at: when }); row.sized.story_9x16 = n; }
         screens.push(row);
@@ -494,7 +501,7 @@ export async function build(T, env, opts, progress, signal) {
   /* the manifest, the words, the plan */
   say(94, 'The manifest');
   const M = {
-    export: { id: 'exp_' + stamp + '_' + tm2(at), generated_at: iso(at), scope: scopeKey, round: scope === 'week' ? null : scope, app_version: env.build || D.BUILD, includes: { photos: !!opts.photos, clips: !!opts.clips, screens: !!opts.screens, hearted_only: !!opts.hearted }, failed_files: failed },
+    export: { id: 'exp_' + stamp + '_' + tm2(at), generated_at: iso(at), scope: scopeKey, round: scope === 'week' ? null : scope, app_version: env.build || D.BUILD, kind: opts.brief ? 'brief' : 'full', includes: { photos: !!opts.photos, clips: !!opts.clips, screens: !!opts.screens, hearted_only: !!opts.hearted, media_bytes: !opts.brief }, failed_files: failed },
     edition: { ...EDITION, courses: Object.keys(D.COURSES).map(k => courseJson(T, k)), rounds: D.ROUNDS.map(r => roundJson(T, r.id)) },
     round: scope === 'week' ? null : roundJson(T, scope),
     players: playersJson(T),
@@ -513,14 +520,14 @@ export async function build(T, env, opts, progress, signal) {
   say(96, 'Zipping');
   const blob = await zipBlob(entries, (i, n) => { stop(); if (i % 20 === 0) say(96 + 4 * i / n, 'Zipping ' + i + ' of ' + n); });
   say(100, 'Done');
-  return { blob, name: 'union-invitational-' + stamp + '.zip', manifest: M, failed };
+  return { blob, name: 'union-invitational-' + stamp + (opts.brief ? '-brief' : '') + '.zip', manifest: M, failed };
 }
 const tm2 = at => hhmm(at);
 /** Which files each beat of the plan uses. */
 function pickFor(M) {
   const sc = M.screenshots, md = M.media;
   const by = f => sc.filter(f).map(s => s.file);
-  const photos = md.filter(m => m.type === 'photo'), clips = md.filter(m => m.type === 'video');
+  const photos = md.filter(m => m.type === 'photo').map(m => ({ ...m, file: m.file || m.url })), clips = md.filter(m => m.type === 'video').map(m => ({ ...m, file: m.file || m.url }));
   const rounds = {};
   for (const r of ['practice', 'r1', 'r2', 'r3']) {
     const ps = photos.filter(m => m.round === r).sort((a, b) => b.hearts - a.hearts || (a.taken_at || '').localeCompare(b.taken_at || '')).slice(0, 4).map(m => m.file);

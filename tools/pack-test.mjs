@@ -86,8 +86,26 @@ ok('it builds, names the file for the edition, and says the one missing photo co
 const [dl] = await Promise.all([p.waitForEvent('download'), p.locator('[data-act="packSave"]').click()]);
 const zipPath = S + '/pack-out.zip'; await dl.saveAs(zipPath);
 ok('Save hands the browser the zip', [dl.suggestedFilename() === st.name, statSync(zipPath).size === st.size], [true, true]);
+console.log('\nthe brief');
+await p.locator('.pk-kind button[data-a="brief"]').click(); await p.waitForTimeout(200);
+ok('the brief is offered, and reckons small', [await p.locator('.pk-kind button.on').innerText(), /about \S+ (KB|MB)/.test(await p.locator('.pk-note').innerText())], ['The brief\nWords, screens, photos by link. Small enough to drop into a chat.', true]);
+await p.locator('[data-act="packBuild"]').click();
+await p.waitForFunction(() => window.__UI.pack && !window.__UI.pack.busy, null, { timeout: 240000 });
+const br = await p.evaluate(() => ({ err: window.__UI.pack.err, name: window.__UI.pack.out && window.__UI.pack.out.name, size: window.__UI.pack.out && window.__UI.pack.out.blob.size }));
+const [dl2] = await Promise.all([p.waitForEvent('download'), p.locator('[data-act="packSave"]').click()]);
+const briefPath = S + '/pack-brief.zip'; await dl2.saveAs(briefPath);
+ok('it builds, named as the brief, and smaller than the full pack even with these tiny fixture photos', [br.err, /-brief\.zip$/.test(br.name || ''), br.size < st.size], ['', true, true]);
 ok('no errors in the book', errs, []);
 await b.close(); server.close();
+const pyb = execFileSync('python3', ['-I', '-c', `
+import zipfile, json, sys
+z = zipfile.ZipFile(sys.argv[1]); names = z.namelist(); M = json.loads(z.read('manifest.json'))
+print(json.dumps({ 'bad': z.testzip(), 'media_files': [n for n in names if n.startswith('media/')], 'sized': [n for n in names if n.startswith('sized/')],
+  'shots': [n for n in names if n.startswith('screenshots/')][:2], 'nshots': len([n for n in names if n.startswith('screenshots/')]),
+  'rows': [[m['file'], m['url'].split('/')[-1], m['type'], m['bytes']] for m in M['media']], 'kind': M['export']['kind'],
+  'readme': 'No \`media/\` folder' in z.read('README.md').decode(), 'plan': 'fix/a.jpg' in z.read('posting-plan.md').decode() }))
+`, briefPath], { encoding: 'utf8' });
+const B = JSON.parse(pyb);
 
 console.log('\ninside the zip');
 const py = execFileSync('python3', ['-I', '-c', `
@@ -128,5 +146,7 @@ ok('the manifest: the edition, every golfer and official, consent and handles le
 ok('the competitions, with display-ready labels', [Z.comps.slice(0, 4), /pts$/.test(Z.pairs_top), /net$/.test(Z.mvp_top)], [['pairs', 'mvp', 'ryder_cup', 'bbb'], true, true]);
 ok('the highlights read off the cards: the ace among them', [Z.hl.includes('hole_in_one'), Z.hl.includes('ctp_set'), Z.hl.includes('long_drive_set'), Z.hl.includes('ryder_point'), Z.ace.length], [true, true, true, true, 1]);
 ok('the README carries the rules, the recap the words, the plan the six beats and the files', [Z.readme, Z.recap, Z.plan], [[true, true, true], [true, true, true], [true, true]]);
+ok('the brief: no media files, no sized copies, the screens as JPEGs', [B.bad, B.media_files, B.sized, B.nshots, /\.jpg$/.test(B.shots[0])], [null, [], [], Z.nshots, true]);
+ok('every photo and clip listed by its address, with the size the book knows', [B.kind, B.rows, B.readme, B.plan], ['brief', [['', 'c.jpg', 'photo', 10496], ['', 'missing.jpg', 'photo', 100], ['', 'a.jpg', 'photo', 11469], ['', 'b.jpg', 'photo', 10323], ['', 'clip.mp4', 'video', 3985]].map(r => [null, r[1], r[2], r[3]]), true, true]);
 console.log(fails.length ? '\n' + fails.length + ' FAILED: ' + fails.join(', ') : '\nall good');
 process.exit(fails.length ? 1 : 0);
