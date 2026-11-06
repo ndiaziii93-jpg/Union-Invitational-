@@ -2,644 +2,149 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#1D2E21">
-<link rel="icon" href="../../app/icon-192.png">
-<title>Comments and Bets</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Social pack — three ways · The Union Invitational</title>
 <style>
-/* layout: two rows of three live phones — comments, then bets — each with its notes underneath */
-:root{
-  color-scheme:light;
-  --paper:#E3DBCB; --page:#EEE8D5; --sunk:#DBD2BA; --ink:#1D2E21; --ink2:#26392B; --turf:#5C6B55; --green:#3E5C43;
-  --rule:#C4B896; --hair:#DCD1B4; --gold:#8C6B2F; --gold-up:#C9A253; --gold-hi:#E2C277; --sage:#9FB3A3; --flag:#9E3B2E;
-  --yes:#2F7A4A; --no:#A8452F; --uk:#1D3E8F; --usa:#9E3B2E;
-  --serif:'Source Serif 4','Iowan Old Style',Georgia,'Times New Roman',serif;
-  --ui:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
-  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
-}
-*,*::before,*::after{box-sizing:border-box}
-body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:16px;line-height:1.45;
-  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:26px 56px}
-button,input{font:inherit;color:inherit}
-button{background:none;border:0;padding:0;cursor:pointer;text-align:inherit}
-:focus-visible{outline:2px solid var(--flag);outline-offset:2px}
-.top,.part,.row,.dev{max-width:1260px;margin-left:auto;margin-right:auto}
-.top{display:grid;gap:10px;margin-bottom:22px}
-.top h1{margin:0;font-size:clamp(26px,4vw,34px);line-height:1.15;text-wrap:balance}
-.top p{margin:0;color:var(--turf);max-width:82ch}
-.part{display:flex;align-items:baseline;gap:14px;border-bottom:2px solid var(--ink);padding-bottom:8px;margin-top:34px;margin-bottom:18px}
-.part h2{margin:0;font-size:clamp(22px,3vw,28px)}
-.part span{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--turf);font-weight:600}
-.row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px;align-items:start}
-@media (max-width:1150px){.row{grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr))}}
-.opt{display:grid;gap:14px;justify-items:center;min-width:0}
-.cap{width:100%;max-width:390px}
-.olabel{width:100%;max-width:390px;display:flex;align-items:center;gap:12px;background:var(--ink);color:var(--page);border-radius:16px;padding:10px 14px;border-bottom:3px solid var(--gold-up);position:sticky;top:8px;z-index:5}
-.olabel b{display:inline-grid;place-items:center;width:40px;height:40px;border-radius:50%;background:var(--gold-hi);color:var(--ink);font-size:22px;font-weight:800;flex:0 0 auto}
-.olabel strong{display:block;font-family:var(--serif);font-size:20px;line-height:1.1}
-.olabel small{display:block;font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--gold-hi);margin-top:2px}
-.tag{display:flex;align-items:baseline;gap:10px}
-.tag b{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--ink);color:var(--gold-up);font-size:15px;flex:0 0 auto}
-.cap h3{margin:0;font-size:21px}
-.cap .what{margin:6px 0 8px;color:var(--turf);font-size:15px}
-.cap ul{margin:0;padding-left:18px;font-size:14.5px;display:grid;gap:3px}
-.cap .dn{margin-top:10px;font-size:13.5px;background:var(--page);border-radius:12px;padding:10px 12px;box-shadow:0 0 0 .5px rgba(29,46,33,.16)}
-.cap .dn b{display:block;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-bottom:3px}
-.dev{margin-top:34px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:14px}
-.dev .card{background:var(--page);border-radius:16px;padding:16px 18px;box-shadow:0 0 0 .5px rgba(29,46,33,.16)}
-.dev h3{margin:0 0 8px;font-size:18px}
-.dev ul{margin:0;padding-left:18px;font-size:14.5px;display:grid;gap:5px}
-.dev .rec{background:var(--ink);color:var(--page);border-bottom:3px solid var(--gold-up)}
-.dev .rec h3{color:var(--gold-hi)}
-
-/* ---- the phone ---- */
-.phone{position:relative;width:100%;max-width:390px;height:780px;border-radius:38px;overflow:hidden;background:var(--paper);
-  box-shadow:0 0 0 9px #17211A,0 0 0 10px #3A463D,0 30px 60px rgba(16,22,17,.28);isolation:isolate;display:flex;flex-direction:column}
-.phone.dark{background:#111814;color:#EEF2EC}
-.scr{flex:1 1 auto;overflow:auto;overscroll-behavior:contain;scrollbar-width:none;min-height:0;position:relative}
-.scr::-webkit-scrollbar{display:none}
-.tabbar{flex:0 0 auto;display:grid;grid-template-columns:repeat(5,1fr);background:var(--ink);border-top:3px solid var(--gold-up);color:var(--sage);padding:8px 6px 18px;font-size:11px;text-align:center;position:relative;z-index:30}
-.tabbar span{display:grid;gap:2px;justify-items:center}
-.tabbar span.on{color:var(--page)} .tabbar span.gold{color:var(--gold-up)}
-.tabbar i{display:block;width:20px;height:16px;border:1.6px solid currentColor;border-radius:4px}
-.games{display:flex;gap:15px;background:var(--ink);color:var(--sage);font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;padding:44px 14px 11px;border-bottom:2px solid var(--gold-up);white-space:nowrap;overflow:hidden}
-.games .on{color:var(--page);position:relative}
-.games .on::after{content:"";position:absolute;left:0;right:0;bottom:-11px;height:3px;background:var(--gold-hi);border-radius:2px 2px 0 0}
-.pad{padding:12px 14px 20px;display:grid;gap:12px}
-.h{margin:0;font-size:24px;line-height:1.1}
-.sub{font-size:13px;color:var(--turf)}
-.eyebrow{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--turf);font-weight:700}
-.av{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--ink);color:var(--gold-hi);font-size:12px;font-weight:700;flex:0 0 auto}
-.av.g{background:var(--green);color:#fff} .av.s{background:var(--gold-up);color:var(--ink)}
-.composer{position:sticky;bottom:0;display:flex;gap:8px;align-items:center;background:var(--page);border-top:1px solid var(--rule);padding:9px 12px;z-index:5}
-.composer input{flex:1;min-width:0;border:0;background:var(--paper);border-radius:999px;padding:10px 14px;font-size:15px;outline:0;box-shadow:inset 0 0 0 1px var(--rule)}
-.composer button{background:var(--ink);color:var(--page);border-radius:999px;padding:9px 14px;font-weight:600;font-size:14px}
-.who{font-size:11.5px;color:var(--turf);padding:0 14px 6px}
-
-/* comments A: the thread */
-.score{display:flex;align-items:center;justify-content:space-between;background:var(--ink);color:var(--page);border-radius:14px;padding:10px 14px;border-bottom:2px solid var(--gold-up)}
-.score b{font-size:15px} .score span{font-size:12px;color:var(--sage)} .score em{font-style:normal;font-size:22px;font-weight:700;color:var(--gold-hi)}
-.msg{display:grid;grid-template-columns:auto 1fr;gap:9px;align-items:start}
-.bub{background:var(--page);border-radius:4px 14px 14px 14px;padding:8px 11px;box-shadow:0 0 0 .5px rgba(29,46,33,.14)}
-.bub .n{font-size:12.5px;font-weight:700}
-.bub .n small{font-weight:400;color:var(--turf);margin-left:6px}
-.bub p{margin:2px 0 0;font-size:14.5px}
-.reacts{display:flex;gap:5px;margin-top:5px;flex-wrap:wrap}
-.reacts button{font-family:var(--ui);font-size:12px;border-radius:999px;padding:2px 8px;background:var(--paper);box-shadow:inset 0 0 0 1px var(--rule)}
-.reacts button.on{background:var(--gold-hi);box-shadow:none}
-.sys{justify-self:center;font-size:12px;color:var(--turf);background:var(--sunk);border-radius:999px;padding:4px 11px}
-.sys b{color:var(--ink)}
-
-/* comments B: hole by hole */
-.holes{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
-.holes::-webkit-scrollbar{display:none}
-.holes button{flex:0 0 auto;width:38px;height:44px;border-radius:9px;background:var(--page);box-shadow:inset 0 0 0 1px var(--rule);display:grid;place-items:center;font-size:14px;font-weight:600;position:relative}
-.holes button.on{background:var(--ink);color:var(--gold-hi);box-shadow:none}
-.holes button i{position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;border-radius:8px;background:var(--flag);color:#fff;font-size:10px;font-style:normal;display:grid;place-items:center;padding:0 4px}
-.hcard{background:var(--page);border-radius:14px;box-shadow:0 0 0 .5px rgba(29,46,33,.16);overflow:hidden}
-.hcard .hh{display:flex;justify-content:space-between;align-items:baseline;background:var(--ink);color:var(--page);padding:10px 14px}
-.hcard .hh b{font-size:17px} .hcard .hh span{font-size:12px;color:var(--sage)}
-.srow{display:flex;justify-content:space-between;padding:8px 14px;border-top:1px solid var(--hair);font-size:14.5px}
-.srow b{font-variant-numeric:tabular-nums}
-.srow .b{color:var(--yes);font-weight:700}.srow .d{color:var(--no);font-weight:700}
-.ccount{font-size:12px;color:var(--gold);font-weight:700;letter-spacing:.06em;text-transform:uppercase}
-.line{display:flex;gap:9px;align-items:flex-start;padding:9px 14px;border-top:1px solid var(--hair);font-size:14px}
-.line b{font-size:12.5px;display:block}
-
-/* comments C: the feed */
-.feed{display:grid;gap:10px}
-.ev{background:var(--page);border-radius:14px;box-shadow:0 0 0 .5px rgba(29,46,33,.16);overflow:hidden}
-.ev .top2{display:flex;gap:10px;align-items:center;padding:10px 12px}
-.ev .big{display:grid;place-items:center;width:46px;height:46px;border-radius:12px;font-weight:700;font-size:20px;flex:0 0 auto}
-.ev .big.bird{background:#DDEBDD;color:var(--yes)} .ev .big.dbl{background:#F2DDD6;color:var(--no)} .ev .big.ctp{background:#F3E6CF;color:var(--gold)}
-.ev .t b{display:block;font-size:15px} .ev .t span{font-size:12.5px;color:var(--turf)}
-.ev .rx{display:flex;gap:6px;padding:0 12px 10px;flex-wrap:wrap}
-.ev .rx button{font-family:var(--ui);font-size:13px;border-radius:999px;padding:4px 10px;background:var(--paper);box-shadow:inset 0 0 0 1px var(--rule)}
-.ev .rx button.on{background:var(--gold-hi);box-shadow:none}
-.ev .heck{border-top:1px solid var(--hair);padding:8px 12px;font-size:13.5px;display:grid;gap:4px}
-.ev .heck b{font-size:12.5px}
-
-/* bets C: the challenge */
-.chal{background:var(--ink);color:var(--page);border-radius:16px;padding:14px;display:grid;gap:10px;border-bottom:3px solid var(--gold-up)}
-.chal .vs{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;text-align:center;gap:8px}
-.chal .vs b{display:block;font-size:16px} .chal .vs small{font-size:11.5px;color:var(--sage)}
-.chal .vs .x{font-size:12px;letter-spacing:.14em;color:var(--gold-hi);font-weight:700}
-.chal .terms{font-size:13.5px;color:#D9DFD3;text-align:center}
-.chal .terms b{color:var(--gold-hi)}
-.btnrow{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.btn{border-radius:999px;padding:10px;text-align:center;font-weight:700;font-size:14.5px;background:var(--gold-hi);color:var(--ink)}
-.btn.ghost{background:transparent;color:var(--page);box-shadow:inset 0 0 0 1.5px rgba(238,232,213,.4)}
-.btn.dark{background:var(--ink);color:var(--page)}
-.pick{display:grid;gap:6px}
-.pick .seg{display:flex;gap:6px;flex-wrap:wrap}
-.pick .seg button{border-radius:999px;padding:7px 12px;font-size:13.5px;background:var(--page);box-shadow:inset 0 0 0 1px var(--rule)}
-.pick .seg button.on{background:var(--ink);color:var(--page);box-shadow:none}
-.tab{background:var(--page);border-radius:14px;box-shadow:0 0 0 .5px rgba(29,46,33,.16);overflow:hidden}
-.tab .tr{display:grid;grid-template-columns:1fr auto;gap:8px;padding:10px 14px;border-top:1px solid var(--hair);font-size:14.5px}
-.tab .tr:first-child{border-top:0}
-.tab .tr small{display:block;font-size:12px;color:var(--turf)}
-.tab .tr .owe{font-weight:700;color:var(--no)} .tab .tr .won{font-weight:700;color:var(--yes)} .tab .tr .open{color:var(--gold);font-weight:700}
-.toast{position:absolute;left:14px;right:14px;bottom:92px;z-index:30;background:var(--ink);color:var(--page);border-radius:12px;padding:11px 14px;font-size:14px;border-left:3px solid var(--gold-hi);animation:rise .2s ease both}
-@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-@media (prefers-reduced-motion:reduce){*{animation:none!important}}
-/* ===== bets, redone: the book (FanDuel's functions), the exchange (Kalshi's), and both ===== */
-.bk{font-family:var(--ui)}
-.bkh{background:var(--ink);color:var(--page);padding:44px 14px 10px;display:flex;justify-content:space-between;align-items:center}
-.bkh b{font-family:var(--serif);font-size:20px}
-.bkh b span{color:var(--gold-hi);font-style:italic;font-weight:400}
-.bkbal{font-size:13px;font-weight:700;background:rgba(238,232,213,.12);color:var(--gold-hi);border-radius:999px;padding:5px 11px}
-.bknav{display:flex;gap:6px;padding:10px 12px;overflow-x:auto;scrollbar-width:none;background:var(--ink);border-bottom:2px solid var(--gold-up)}
-.bknav::-webkit-scrollbar{display:none}
-.bknav button{flex:0 0 auto;font-size:13px;font-weight:700;border-radius:999px;padding:6px 12px;background:rgba(238,232,213,.1);color:var(--sage)}
-.bknav button.on{background:var(--page);color:var(--ink)}
-.bknav button .c{display:inline-grid;place-items:center;min-width:17px;height:17px;border-radius:9px;background:var(--gold-hi);color:var(--ink);font-size:10.5px;margin-left:5px;padding:0 4px}
-.boost{margin:12px 12px 4px;border-radius:14px;background:linear-gradient(120deg,var(--ink) 0,#2E4A35 100%);color:var(--page);padding:12px 14px;display:grid;grid-template-columns:1fr auto;gap:4px 10px;align-items:center;border:1.5px solid var(--gold-up)}
-.boost .k{font-size:10.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--gold-hi)}
-.boost b{font-size:14.5px;grid-column:1}
-.boost s{color:var(--sage);font-size:12px;margin-right:6px}
-.boost .ob{grid-row:1/span 3;grid-column:2}
-.mg{margin:10px 12px 0;background:var(--page);border-radius:14px;box-shadow:0 0 0 .5px rgba(29,46,33,.16);overflow:hidden}
-.mg .mgh{display:flex;justify-content:space-between;align-items:center;padding:11px 13px;border-bottom:1px solid var(--hair)}
-.mg .mgh b{font-size:14.5px;color:var(--ink)}
-.mg .mgh span{font-size:11.5px;color:var(--turf)}
-.lv,.mg .mgh .lv{font-size:10px;font-weight:800;color:#fff;background:var(--no);border-radius:4px;padding:2px 5px;margin-right:6px;vertical-align:1px}
-.mr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;padding:8px 13px;border-top:1px solid var(--hair)}
-.mr:first-of-type{border-top:0}
-.mr .nm{font-size:14px;color:var(--ink);font-weight:600}
-.mr .nm small{display:block;font-size:11.5px;color:var(--turf);font-weight:400}
-.two{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:8px 13px;border-top:1px solid var(--hair)}
-.two .lbl{grid-column:1/-1;font-size:11.5px;color:var(--turf)}
-.three{grid-template-columns:1fr 1fr 1fr}
-.ob{min-width:72px;border-radius:9px;padding:7px 6px;background:var(--paper);box-shadow:inset 0 0 0 1px var(--rule);text-align:center;color:var(--green);font-weight:800;font-size:14px;line-height:1.15;position:relative}
-.ob small{display:block;font-weight:600;font-size:11px;color:var(--ink)}
-.ob.on{background:var(--ink);color:var(--gold-hi);box-shadow:none}
-.ob.on small{color:var(--page)}
-.ob .mv{position:absolute;right:4px;top:3px;font-size:8px}
-.ob .mv.up{color:var(--yes)} .ob .mv.dn{color:var(--no)}
-.rules{font-size:11.5px;color:var(--turf);padding:8px 13px;border-top:1px solid var(--hair)}
-/* the bet slip */
-.slipbar,.slipwrap{font-family:var(--ui)}
-.slipbar{position:absolute;left:10px;right:10px;bottom:86px;z-index:20;display:flex;justify-content:space-between;align-items:center;background:var(--gold-hi);color:var(--ink);border-radius:12px;padding:11px 14px;font-weight:800;font-size:14.5px;box-shadow:0 8px 22px rgba(16,22,17,.35)}
-.slipbar .ct{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--ink);color:var(--gold-hi);font-size:12px;margin-right:8px}
-.slipwrap{position:absolute;inset:0;z-index:25;background:rgba(16,22,17,.45);display:flex;align-items:flex-end;animation:fade .2s ease both}
-.slip2{width:100%;max-height:86%;overflow:auto;background:var(--page);border-radius:20px 20px 0 0;animation:rise .28s cubic-bezier(.2,.9,.28,1) both;padding-bottom:88px}
-.slip2 .sh{display:flex;justify-content:space-between;align-items:center;background:var(--ink);color:var(--page);padding:12px 16px;border-bottom:2px solid var(--gold-up)}
-.slip2 .sh b{font-family:var(--serif);font-size:18px}
-.slip2 .sh button{color:var(--gold-hi);font-weight:700;font-size:13.5px}
-.stabs{display:grid;grid-template-columns:1fr 1fr;margin:12px 14px 4px;background:var(--paper);border-radius:10px;padding:3px}
-.stabs button{border-radius:8px;padding:7px;text-align:center;font-weight:700;font-size:13.5px;color:var(--turf)}
-.stabs button.on{background:var(--page);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
-.leg{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--hair);font-size:13.5px}
-.leg .x{color:var(--turf);font-size:16px}
-.leg b{display:block;font-size:14px}
-.leg small{color:var(--turf)}
-.leg .o{font-weight:800;color:var(--green)}
-.wager{display:grid;gap:8px;padding:12px 16px}
-.chipsr{display:flex;gap:6px}
-.chipsr button{flex:1;border-radius:9px;padding:9px 4px;background:var(--paper);box-shadow:inset 0 0 0 1px var(--rule);font-weight:700;font-size:13.5px;text-align:center}
-.chipsr button.on{background:var(--ink);color:var(--page);box-shadow:none}
-.sum{display:flex;justify-content:space-between;font-size:13.5px}
-.sum b{font-size:15px}
-.cta{display:block;width:100%;border-radius:12px;padding:13px;text-align:center;font-weight:800;font-size:15px;background:var(--ink);color:var(--page);border-bottom:2px solid var(--gold-up)}
-.cta.gold{background:var(--gold-hi);color:var(--ink);border:0}
-.note{font-size:12px;color:var(--turf)}
-.oddschg{background:#F3E6CF;color:var(--gold);border-radius:9px;padding:8px 10px;font-size:12.5px;font-weight:600}
-/* my bets */
-.mb{margin:10px 12px 0;background:var(--page);border-radius:14px;box-shadow:0 0 0 .5px rgba(29,46,33,.16);overflow:hidden}
-.mb .mbh{display:flex;justify-content:space-between;padding:10px 13px;border-bottom:1px solid var(--hair);font-size:13px}
-.mb .mbh b{font-size:14.5px}
-.mb .mbh .w{color:var(--yes);font-weight:800}
-.mb .mbh .l{color:var(--no);font-weight:800}
-.mb .lg{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;padding:8px 13px;font-size:13px;border-bottom:1px solid var(--hair)}
-.mb .dot{width:16px;height:16px;border-radius:50%;display:grid;place-items:center;font-size:10px;color:#fff;background:var(--rule)}
-.mb .dot.w{background:var(--yes)} .mb .dot.l{background:var(--no)} .mb .dot.live{background:var(--gold-up)}
-.mb .ft{display:flex;justify-content:space-between;align-items:center;padding:10px 13px;font-size:13px}
-.mb .co{border-radius:999px;padding:8px 14px;background:var(--ink);color:var(--gold-hi);font-weight:800;font-size:13px}
-/* the exchange */
-.xh{background:var(--page);padding:44px 14px 8px;border-bottom:1px solid var(--rule)}
-.xh .r{display:flex;justify-content:space-between;align-items:center}
-.xh b{font-family:var(--serif);font-size:21px}
-.xh .pf{font-size:12.5px;font-weight:700;color:var(--ink);background:var(--paper);border-radius:999px;padding:5px 11px;box-shadow:inset 0 0 0 1px var(--rule)}
-.xcats{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-top:9px}
-.xcats::-webkit-scrollbar{display:none}
-.xcats button{flex:0 0 auto;font-size:13px;font-weight:700;padding:6px 11px;border-radius:999px;color:var(--turf)}
-.xcats button.on{background:var(--ink);color:var(--page)}
-.xc{margin:10px 12px 0;background:var(--page);border-radius:14px;box-shadow:0 0 0 .5px rgba(29,46,33,.16);padding:12px 13px;display:grid;gap:9px;text-align:left;width:calc(100% - 24px)}
-.xc .t{display:flex;gap:10px;align-items:flex-start}
-.xc .t b{font-family:var(--serif);font-size:15.5px;line-height:1.25;color:var(--ink)}
-.xc .t .ch{margin-left:auto;text-align:right;flex:0 0 auto}
-.xc .t .ch strong{display:block;font-size:20px;font-weight:800;color:var(--ink)}
-.xc .t .ch small{font-size:11px;color:var(--turf)}
-.dlt{font-size:11.5px;font-weight:700}
-.dlt.up{color:var(--yes)} .dlt.dn{color:var(--no)}
-.ynb{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.ynb button{border-radius:10px;padding:9px;text-align:center;font-weight:800;font-size:14px}
-.ynb .y{background:#DDEBDD;color:var(--yes)} .ynb .n{background:#F2DDD6;color:var(--no)}
-.ynb .y.on{background:var(--yes);color:#fff} .ynb .n.on{background:var(--no);color:#fff}
-.xc .v{font-size:11.5px;color:var(--turf);display:flex;justify-content:space-between}
-.mo{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:6px;align-items:center;padding:6px 0;border-top:1px solid var(--hair)}
-.mo span{font-size:14px;font-weight:600;color:var(--ink)}
-.mo em{font-style:normal;font-weight:800;font-size:14px;width:44px;text-align:right}
-.mo button{border-radius:8px;padding:6px 8px;font-weight:800;font-size:12.5px;min-width:58px;text-align:center}
-.back{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:700;color:var(--green);padding:44px 14px 8px;background:var(--page);width:100%;text-align:left;border-bottom:1px solid var(--rule)}
-.xm{padding:12px 14px 120px;display:grid;gap:12px}
-.xm h2{margin:0;font-family:var(--serif);font-size:20px;line-height:1.2}
-.big{display:flex;align-items:baseline;gap:10px}
-.big strong{font-size:34px;font-weight:800;color:var(--ink)}
-.rng{display:flex;gap:4px}
-.rng button{font-size:12px;font-weight:700;border-radius:7px;padding:4px 9px;color:var(--turf)}
-.rng button.on{background:var(--ink);color:var(--page)}
-.tk{background:var(--page);border-radius:14px;box-shadow:0 0 0 .5px rgba(29,46,33,.16);padding:12px;display:grid;gap:10px}
-.seg2{display:grid;grid-template-columns:1fr 1fr;background:var(--paper);border-radius:10px;padding:3px}
-.seg2 button{border-radius:8px;padding:7px;text-align:center;font-weight:700;font-size:13.5px;color:var(--turf)}
-.seg2 button.on{background:var(--page);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
-.seg2 button.y.on{background:var(--yes);color:#fff} .seg2 button.n.on{background:var(--no);color:#fff}
-.stp{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13.5px}
-.stp .ctl{display:flex;align-items:center;gap:8px}
-.stp .ctl button{width:32px;height:32px;border-radius:9px;background:var(--paper);box-shadow:inset 0 0 0 1px var(--rule);font-weight:800;font-size:16px;text-align:center}
-.stp .ctl b{min-width:56px;text-align:center;font-size:16px}
-.kv{display:flex;justify-content:space-between;font-size:13.5px;color:var(--turf)}
-.kv b{color:var(--ink)}
-.ob2{display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12.5px}
-.ob2 .col{display:grid;gap:3px}
-.ob2 .hd{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--turf)}
-.ob2 .lvl{position:relative;display:flex;justify-content:space-between;padding:3px 6px;border-radius:5px;overflow:hidden}
-.ob2 .lvl i{position:absolute;inset:0 auto 0 0;opacity:.18}
-.ob2 .y .lvl i{background:var(--yes)} .ob2 .n .lvl i{background:var(--no)}
-.ob2 .lvl span{position:relative}
-.rulebox{font-size:12.5px;color:var(--turf);background:var(--paper);border-radius:12px;padding:10px 12px}
-.rulebox b{color:var(--ink)}
-.pos{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:10px 13px;border-top:1px solid var(--hair);font-size:13px}
-.pos:first-child{border-top:0}
-.pos b{font-size:14px}
-.pos .pl{font-weight:800;text-align:right}
-.pos .pl.up{color:var(--yes)} .pos .pl.dn{color:var(--no)}
-.pos button{grid-column:2;justify-self:end;border-radius:999px;padding:6px 12px;background:var(--ink);color:var(--page);font-weight:700;font-size:12.5px}
-.hy{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin:10px 12px 0;background:var(--page);border-radius:12px;padding:3px;box-shadow:inset 0 0 0 1px var(--rule)}
-.hy button{border-radius:9px;padding:8px 2px;text-align:center;font-weight:700;font-size:12.5px;color:var(--turf)}
-.hy button.on{background:var(--ink);color:var(--page)}
-@keyframes fade{from{opacity:0}to{opacity:1}}
+@font-face{font-family:'Source Serif';src:url(../../app/fonts/source-serif-latin-normal.woff2) format('woff2');font-weight:400 800;font-display:swap}
+@font-face{font-family:'Source Serif';src:url(../../app/fonts/source-serif-latin-italic.woff2) format('woff2');font-style:italic;font-weight:400 800;font-display:swap}
+:root{--paper:#E3DBCB;--page:#EEE8D5;--sunk:#DBD2BA;--ink:#1D2E21;--turf:#5C6B55;--green:#3E5C43;--rule:#C4B896;--hair:#DCD1B4;--flag:#9E3B2E;--gold:#8C6B2F;--gold-up:#C9A253;--pine:#1E3A2B;--onpine:#EFE7D2;--serif:'Source Serif',Georgia,serif}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.45 var(--serif)}
+.top{position:sticky;top:0;z-index:5;background:var(--pine);color:var(--onpine);padding:12px 16px;border-bottom:3px solid var(--gold-up)}
+.top b{display:block;font-size:18px}.top small{display:block;font-size:12px;letter-spacing:.14em;text-transform:uppercase;opacity:.8}
+.tabs{display:flex;gap:6px;margin-top:10px}
+.tabs button{flex:1;padding:9px 6px;border-radius:10px;border:1px solid rgba(255,255,255,.25);background:transparent;color:var(--onpine);font:inherit;font-weight:700;font-size:13px;cursor:pointer}
+.tabs button.on{background:var(--gold-up);color:var(--pine);border-color:var(--gold-up)}
+.wrap{max-width:600px;margin:0 auto;padding:16px}
+.about{font-size:14px;color:var(--turf);margin:0 0 12px;padding:10px 12px;border-left:3px solid var(--gold-up);background:var(--page)}
+.about b{color:var(--ink)}
+h3{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin:18px 0 8px}
+.modal{background:var(--page);border:1px solid var(--rule);border-radius:22px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.14)}
+.band{background:var(--pine);color:var(--onpine);padding:14px 18px 12px;border-bottom:3px solid var(--gold-up)}
+.band small{display:block;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold-up);font-weight:800}
+.band h1{margin:3px 0 0;font-size:22px}
+.body{padding:12px 14px 14px}
+.row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:11px 12px;border:1px solid var(--rule);border-radius:14px;background:#F7F2E6;margin:0 0 8px}
+.row b{display:block;font-size:16px}.row small{display:block;font-size:12.5px;color:var(--turf)}
+.row .go{font-size:22px;color:var(--turf)}
+.row.dim{opacity:.55}
+.row.social{border-color:var(--gold-up);background:linear-gradient(135deg,#F7DE9A 0%,#EBD08A 100%)}
+.row.social .ct{background:var(--pine);color:var(--gold-up);border-radius:999px;padding:3px 9px;font-size:12px;font-weight:800}
+.card{padding:14px;border-radius:16px;background:var(--pine);color:var(--onpine);margin:0 0 10px}
+.card small{display:block;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold-up);font-weight:800}
+.card b{display:block;font-size:20px;margin:4px 0}
+.card p{margin:0 0 10px;font-size:14px;opacity:.9}
+.btn{display:inline-block;padding:11px 16px;border-radius:12px;border:0;background:var(--gold-up);color:var(--pine);font:inherit;font-weight:800;font-size:15px}
+.btn.ghost{background:transparent;color:var(--onpine);border:1px solid rgba(255,255,255,.35)}
+.prog{height:8px;background:rgba(255,255,255,.2);border-radius:4px;overflow:hidden;margin:8px 0 4px}.prog i{display:block;height:100%;width:62%;background:var(--gold-up)}
+.card .st{font-size:12.5px;opacity:.85}
+.opts{display:grid;gap:6px;margin:8px 0}
+.opt{display:flex;gap:10px;align-items:center;padding:9px 12px;border:1px solid var(--rule);border-radius:12px;background:#F7F2E6;font-size:14.5px}
+.opt i{width:22px;height:22px;border-radius:6px;border:2px solid var(--pine);display:inline-grid;place-items:center;font-style:normal;font-weight:800;color:#fff;background:var(--pine);font-size:13px}
+.opt i.off{background:transparent;color:transparent}
+.opt small{color:var(--turf);font-size:12.5px;margin-left:auto}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+.chip{padding:6px 11px;border-radius:999px;border:1px solid var(--rule);background:#F7F2E6;font-size:13.5px}.chip.on{background:var(--pine);color:var(--onpine);border-color:var(--pine)}
+pre{background:#1D2E21;color:#EFE7D2;padding:12px 14px;border-radius:14px;font:12.5px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;overflow-x:auto;margin:0}
+pre b{color:var(--gold-up);font-weight:800}pre i{color:#9FB3A3;font-style:normal}
+.note{font-size:13px;color:var(--turf);text-align:center;margin:14px 0 0}
+.hide{display:none}
 </style>
 </head>
 <body>
-<header class="top">
-  <h1>Comments and bets for the gallery</h1>
-  <p>Two ideas to give the people who aren’t playing a way in. Three designs for each, as live phones: type a comment, tap a reaction, put a bet on. Nothing is in the app yet. The developer notes at the bottom cover how either would be built and what it needs from you.</p>
-  <p><a href="screens/" style="font-weight:600;color:var(--ink)">See every screen of every option, side by side →</a></p>
-</header>
-
-<div class="part"><h2>Comments</h2><span>Three ways in</span></div>
-<div class="row">
-  <section class="opt"><div class="olabel"><b>1</b><span><strong>The Round Chat</strong><small>Comments</small></span></div><div class="phone" id="cA"></div>
-    <div class="cap"><div class="tag"><b>1</b><h3>The Round Chat</h3></div>
-      <p class="what">One running conversation per round, like a group chat with the score pinned above it.</p>
-      <ul><li>Anyone can post: pick your name once, as in My round.</li><li>Reactions on every message.</li><li>The book drops in a line when something happens: a birdie, the turn, a group finishing.</li></ul>
-      <div class="dn"><b>Developer’s take</b>The easiest to understand and to build. Can get busy, but the score at the top keeps it on the golf.</div></div></section>
-  <section class="opt"><div class="olabel"><b>2</b><span><strong>Hole by Hole</strong><small>Comments</small></span></div><div class="phone" id="cB"></div>
-    <div class="cap"><div class="tag"><b>2</b><h3>Hole by Hole</h3></div>
-      <p class="what">Comments pinned to a hole, beside that hole’s scores.</p>
-      <ul><li>Red counts on the hole numbers show where the talk is.</li><li>Each hole shows who made what, then the comments on it.</li><li>The golfers see the count on Score Entry, and can read it after.</li></ul>
-      <div class="dn"><b>Developer’s take</b>The most golf-shaped, and makes a great record of the round. A little more to learn for a non-golfer.</div></div></section>
-  <section class="opt"><div class="olabel"><b>3</b><span><strong>The Heckle Feed</strong><small>Comments</small></span></div><div class="phone" id="cC"></div>
-    <div class="cap"><div class="tag"><b>3</b><h3>The Heckle Feed</h3></div>
-      <p class="what">A live feed the book writes itself from the scores, which people react to and heckle.</p>
-      <ul><li>Every birdie, double, pin and drive becomes a card.</li><li>One tap to react: 🔥 👏 😬 🍺.</li><li>A short heckle under any card.</li></ul>
-      <div class="dn"><b>Developer’s take</b>The most fun for people who don’t follow the golf closely: the book tells them what to react to. Fed by the scores already being saved, so no extra work for the refs.</div></div></section>
+<div class="top"><small>Preview · for the commissioner</small><b>The social pack, three ways</b>
+  <div class="tabs"><button class="on" data-v="a">A · By day</button><button data-v="b">B · By platform</button><button data-v="c">C · By story</button></div>
 </div>
+<div class="wrap">
 
-<div class="part"><h2>Bets</h2><span>Built the way FanDuel and Kalshi work · beers and shots, never money</span></div>
-<div class="row">
-  <section class="opt"><div class="olabel"><b>A</b><span><strong>The Book</strong><small>Bets · like FanDuel</small></span></div><div class="phone" id="bA"></div>
-    <div class="cap"><div class="tag"><b>A</b><h3>The Book</h3></div>
-      <p class="what">Works like FanDuel: a board of golf markets with American odds, a bet slip, parlays, cash out.</p>
-      <ul><li>Golf’s real markets: round winner, MVP outright and top 3, matchups with a stroke handicap, three-balls, hole props, hole in one.</li>
-        <li>Tap odds to add them to the <b>Betslip</b>. <b>Singles</b> or <b>Parlay</b>, a stake in 🍺, “to win” shown before you place it.</li>
-        <li>A <b>profit boost</b> each day, live odds that move with the scores, and <b>My Bets</b> with each leg ticking off and a <b>Cash out</b> offer.</li></ul>
-      <div class="dn"><b>Developer’s take</b>The book is the house: it sets the odds from the live standings and pays out, so every bet is accepted at once. Closest to FanDuel, and the one golfers will know.</div></div></section>
-  <section class="opt"><div class="olabel"><b>B</b><span><strong>The Exchange</strong><small>Bets · like Kalshi</small></span></div><div class="phone" id="bB"></div>
-    <div class="cap"><div class="tag"><b>B</b><h3>The Exchange</h3></div>
-      <p class="what">Works like Kalshi: yes/no questions, each priced 1–99¢, paying a full 🍺 a contract if you’re right.</p>
-      <ul><li>The price is the chance: Yes at 62¢ means the group thinks 62%. Yes and No always add up to a dollar of beer.</li>
-        <li>Tap a market for its chart, <b>order book</b>, and an order ticket: Buy or Sell, Yes or No, <b>Market</b> or <b>Limit</b>.</li>
-        <li>Sell any time before it settles to lock in a gain. Every market states its <b>rules</b>: what counts, and when it closes.</li></ul>
-      <div class="dn"><b>Developer’s take</b>People trade with each other, so prices are the group’s real view. With 23 people the book quietly offers both sides too, so an order never sits unfilled.</div></div></section>
-  <section class="opt"><div class="olabel"><b>C</b><span><strong>The Union Book</strong><small>Bets · both in one</small></span></div><div class="phone" id="bC"></div>
-    <div class="cap"><div class="tag"><b>C</b><h3>The Union Book</h3></div>
-      <p class="what">Both in one tab: the book for the golf, the exchange for everything else, and challenges between friends.</p>
-      <ul><li><b>Board</b>: FanDuel-style odds on the rounds.</li>
-        <li><b>Markets</b>: Kalshi-style yes/no on the week (“Will anyone hit the water on 17?”).</li>
-        <li><b>Challenges</b> and <b>My Bets</b>, with The Tab of who owes whom at the bar.</li></ul>
-      <div class="dn"><b>Developer’s take</b>The most complete, and the most to explain. Odds suit the golfers; percentages suit everyone else. One balance of 🍺 across all three.</div></div></section>
+<section id="v-a">
+<p class="about"><b>A · The archive, by day.</b> One row in Manage, one tap, one file. Everything organised the way the week happened: a folder a day, every photo and clip named for its day, round, hole and who took it, plus the screens and a brief for Claude. <b>Simplest; the biggest file.</b></p>
+<h3>In Manage</h3>
+<div class="modal"><div class="band"><small>Set once, then read all week</small><h1>Manage</h1></div><div class="body">
+  <div class="row dim"><span><b>Setup</b><small>PINs, locks and what is still outstanding</small></span><span class="go">›</span></div>
+  <div class="row dim"><span><b>Feedback</b><small>The form is open · every answer, as it comes in</small></span><span class="go">›</span></div>
+  <div class="row social"><span><b>Social media pack</b><small>312 photos · 24 clips · 41 screens · about 480 MB</small></span><span class="ct">Build</span></div>
+  <div class="row dim"><span><b>Roster &amp; Pairings</b><small>Bands, squads and who plays with whom</small></span><span class="go">›</span></div>
+</div></div>
+<h3>The file it makes</h3>
+<pre><b>union-invitational-2026-social.zip</b>
+├─ <b>README.md</b>            <i>the brief for Claude: what is here, how it is named, the story, the rules</i>
+├─ <b>manifest.json</b>        <i>every file: day, round, hole, who took it, who is in it, hearts, size, orientation</i>
+├─ 00-brief/
+│  ├─ story.md             <i>the four recaps, The State of the Union, the honours, the winners, the golfers' own quotes</i>
+│  ├─ people.md            <i>the roster, pairs, squads, handicaps; handles and nicknames if you give them</i>
+│  └─ numbers.md           <i>every number worth a caption: best round, most improved, OB count, the cup score</i>
+├─ 01-practice/  2026-10-27_practice_h03_RayV_01.jpg …
+├─ 02-round1/    2026-10-30_r1_h12_Drea_04.jpg …
+├─ 03-round2/
+├─ 04-round3/
+├─ 05-the-trip/  2026-10-29_trip_DevinO_02.jpg …
+├─ 06-clips/     2026-11-01_r3_h18_DP_01.mp4  + .jpg poster for each
+└─ 07-screens/   final-tables.png · state-of-the-union.png · honours.png · ryder-cup.png
+                 card_DP_r3.png · report_DP.png …  <i>(one a golfer a round, one report card a golfer)</i></pre>
+</section>
+
+<section id="v-b" class="hide">
+<p class="about"><b>B · The press kit, by platform.</b> A gold card at the top of Manage with a progress bar. The pack is organised for the three feeds: every screen rendered at the size each one wants, the best photos picked by hearts, and clips with posters. <b>Most ready-to-post; takes a minute to build.</b></p>
+<h3>In Manage</h3>
+<div class="modal"><div class="band"><small>Set once, then read all week</small><h1>Manage</h1></div><div class="body">
+  <div class="card"><small>★ After the week</small><b>Build the social pack</b><p>Photos, clips and screens, sized for TikTok, Instagram and X, with the brief for Claude.</p>
+    <div class="prog"><i></i></div><span class="st">Rendering the screens · 26 of 41 · the photos next</span><br><br>
+    <span class="btn">Building…</span> <span class="btn ghost">Stop</span></div>
+  <div class="row dim"><span><b>Setup</b><small>PINs, locks and what is still outstanding</small></span><span class="go">›</span></div>
+  <div class="row dim"><span><b>Feedback</b><small>The form is open</small></span><span class="go">›</span></div>
+</div></div>
+<h3>The file it makes</h3>
+<pre><b>union-invitational-2026-social.zip</b>
+├─ <b>README.md</b>  ·  <b>manifest.json</b>  ·  00-brief/  <i>(as in A)</i>
+├─ 10-hero/          <i>the 12 most-hearted photos, full size, for covers and first posts</i>
+├─ 20-instagram/
+│  ├─ feed-4x5/      <i>screens at 1080×1350: tables, honours, a card a golfer, a report a golfer</i>
+│  ├─ stories-9x16/  <i>the same at 1080×1920, with room for text at top and bottom</i>
+│  └─ photos/        <i>every photo, by day, named as in A</i>
+├─ 30-tiktok/
+│  ├─ clips/         <i>every clip + poster, 9:16 where it was shot that way, else padded on the crest paper</i>
+│  └─ stills-9x16/   <i>the best photos letterboxed to 9:16 for slideshows</i>
+├─ 40-x/
+│  └─ cards-16x9/    <i>the tables and honours at 1600×900, the four recaps as long images</i>
+└─ 50-captions/
+   └─ material.csv   <i>a line an asset: what it shows, who is in it, the fact or quote that goes with it</i></pre>
+</section>
+
+<section id="v-c" class="hide">
+<p class="about"><b>C · The campaign, by story.</b> A section of its own in Manage, with choices before it builds: what to include and which feeds. The pack is ordered as a posting plan: six beats from the teaser to the Vegas tease, each folder holding exactly what that run of posts needs. <b>The one Claude can post from top to bottom.</b></p>
+<h3>In Manage</h3>
+<div class="modal"><div class="band"><small>Set once, then read all week</small><h1>Manage</h1></div><div class="body">
+  <h3 style="margin-top:4px">Social media pack</h3>
+  <div class="opts">
+    <div class="opt"><i>✓</i>Photos <small>312 · 410 MB</small></div>
+    <div class="opt"><i>✓</i>Clips <small>24 · 190 MB</small></div>
+    <div class="opt"><i>✓</i>Screens: tables, cards, reports <small>41 · 12 MB</small></div>
+    <div class="opt"><i class="off">✓</i>Only photos with hearts <small>58</small></div>
+  </div>
+  <div class="chips"><span class="chip on">TikTok</span><span class="chip on">Instagram</span><span class="chip on">X</span></div>
+  <span class="btn" style="background:var(--pine);color:var(--onpine)">Build the pack · about 610 MB</span>
+  <p style="font-size:12.5px;color:var(--turf);margin:8px 0 0">Best from a laptop: the file is large, and a phone has to hold it all at once.</p>
+</div></div>
+<h3>The file it makes</h3>
+<pre><b>union-invitational-2026-social.zip</b>
+├─ <b>README.md</b>  ·  <b>manifest.json</b>  ·  00-brief/  <i>(as in A, plus posting-plan.md: the six beats, a suggested cadence, hashtags)</i>
+├─ 01-teaser/        <i>the crest, the courses, the arrival: 6 photos, 1 clip, the trip-at-a-glance screen</i>
+├─ 02-the-golf/      <i>by round: the day's best 8 photos, the recap headline as a card, the leaders' ribbon, the shot of the day clip</i>
+├─ 03-the-people/    <i>a folder a golfer: his best 3 photos, his report card (4:5 and 9:16), his three scorecards, his coach's one-liner</i>
+├─ 04-the-winners/   <i>the final tables, honours, the cup, the podium photos, the State of the Union as a 5-slide carousel</i>
+├─ 05-the-trip/      <i>dinners, the pool, team beers: everything not on a course, by day</i>
+└─ 06-vegas-2027/    <i>the tease: 3 best clips, the "defending champions" card, the date card</i></pre>
+</section>
+
+<p class="note">Nothing on this preview is live. Sizes are illustrative. The pack is built on the phone or laptop that taps the button, from the book's own photo store, and downloads as one zip.</p>
 </div>
-
-<div class="dev">
-  <div class="card"><h3>Who can post and bet</h3><ul>
-    <li>No PIN. People tap their name once, from the trip roster (golfers, officials, spectators), and the phone remembers them, just as My round does now.</li>
-    <li>The commissioner can hide any comment, and void any bet.</li>
-    <li>Golfers can bet on themselves, never against themselves.</li></ul></div>
-  <div class="card"><h3>How it’s built</h3><ul>
-    <li>Each comment and each bet is its own small record, so two people posting at once never overwrite each other, the same way hearts work on photos.</li>
-    <li>Bets settle themselves from the scores the refs already save. Nobody has to mark a bet won.</li>
-    <li>Works with no signal: posts wait on the phone and go up when it’s back, like photos.</li>
-    <li>One setup step for you: the database only accepts record types it already knows. Adding “comments” and “bets” is a one-line change I’d write for you to paste into Supabase’s SQL editor. No keys or passwords involved.</li></ul></div>
-  <div class="card"><h3>How FanDuel and Kalshi work, and what was kept</h3><ul>
-    <li><b>FanDuel</b> is a sportsbook: the house sets American odds (−250 favourite, +300 outsider), bets go on a <b>Betslip</b> as singles or a <b>parlay</b> (every leg must win), and open bets can be <b>cashed out</b> early for a smaller sum. Golf markets include outright winner, top-finish places with dead-heat rules, matchups with a stroke handicap, three-balls, first-round leader and hole props.</li>
-    <li><b>Kalshi</b> is an exchange: every market is a yes/no contract priced 1–99¢ that pays $1 if right; Yes and No add up to a dollar; people trade with each other on an <b>order book</b> with market or limit orders, and can sell before it settles. Each market publishes its settlement rules.</li>
-    <li>All of that is here, with 🍺 instead of dollars and the book’s own scores as the settlement source.</li></ul></div>
-  <div class="card"><h3>Beers, not money</h3><ul>
-    <li>Everyone starts each day with 10 🍺 to bet. Shots are worth 2 🍺. On the exchange a contract costs 1–99¢ of a beer and pays a whole 🍺 if right.</li>
-    <li>Winnings show on The Tab: who owes whom, settled at the bar.</li>
-    <li>A leaderboard of the best tipster of the week, for the closing ceremony.</li>
-    <li>Betting on a round closes when its first group tees off; hole bets close as that hole starts.</li></ul></div>
-  <div class="card rec"><h3>My recommendation</h3><ul>
-    <li><b>Comments: the Heckle Feed (3)</b>, with a chat box under it. The book does the work of telling non-golfers what just happened, and they react.</li>
-    <li><b>Bets: the Union Book (C)</b>. FanDuel’s board for the golf, where the golfers already think in odds; Kalshi’s yes/no markets for everyone else, where a percentage needs no explaining; and challenges for the bar. One 🍺 balance, one My Bets.</li>
-    <li>Both would live under Boards, as “Chat” and “Bets”, next to Photos.</li></ul></div>
-</div>
-
 <script>
-const tabbar = '<div class="tabbar"><span><i></i>Today</span><span><i></i>Scores</span><span class="on"><i></i>Boards</span><span><i></i>Calendar</span><span class="gold"><i></i>Resort</span></div>';
-const games = on => `<div class="games">${['All', 'Team', 'MVP', 'Photos', 'Chat', 'Bets'].map(t => `<span class="${t === on ? 'on' : ''}">${t}</span>`).join('')}</div>`;
-const ini = n => n.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
-const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-function phone(id, draw, st, onClick) {
-  const el = document.getElementById(id);
-  const go = () => { const sc = el.querySelector('.scr'), top = sc ? sc.scrollTop : 0;
-    el.innerHTML = draw(st) + (st.toast ? `<div class="toast">${st.toast}</div>` : '') + tabbar;
-    const ns = el.querySelector('.scr'); if (ns) ns.scrollTop = st.bottom ? ns.scrollHeight : top; st.bottom = false; };
-  el.addEventListener('click', e => { if (onClick(e, st)) go(); });
-  el.addEventListener('submit', e => { e.preventDefault(); const i = e.target.querySelector('input'); if (i.value.trim()) { st.post(i.value.trim()); st.bottom = true; go(); } });
-  st.flash = t => { st.toast = t; go(); setTimeout(() => { st.toast = null; go(); }, 2400); };
-  go();
-}
-const composer = (who, ph) => `<form class="composer"><span class="av s">${ini(who)}</span><input placeholder="${ph}" aria-label="${ph}"><button>Post</button></form>`;
-const reacts = (r, id) => `<div class="reacts">${Object.entries(r).map(([e, n]) => `<button data-r="${id}|${e}" class="${n.me ? 'on' : ''}">${e} ${n.c + (n.me ? 1 : 0)}</button>`).join('')}</div>`;
-const toggleR = (st, key) => { const [id, e] = key.split('|'); const m = st.msgs.find(x => x.id == id); if (m) m.r[e].me = !m.r[e].me; };
-
-/* ---- comments 1: the round chat ---- */
-phone('cA', st => `<div class="scr">${games('Chat')}<div class="pad">
-    <div class="score"><div><b>Round 2 · live</b><br><span>Robby B &amp; Dan A lead · thru 11</span></div><em>−31</em></div>
-    ${st.msgs.map(m => m.sys ? `<div class="sys">${m.t}</div>` : `<div class="msg"><span class="av ${m.k}">${ini(m.who)}</span><div class="bub"><span class="n">${esc(m.who)}<small>${m.at}</small></span><p>${esc(m.t)}</p>${reacts(m.r, m.id)}</div></div>`).join('')}
-  </div>${composer('Jennifer D', 'Say something to the group…')}</div>`,
-  { msgs: [
-    { id: 1, who: 'Aimee K', k: 's', at: '12:41', t: 'Who had Norberto Jr. in the water on 3? 🙋‍♀️', r: { '😂': { c: 4 }, '🍺': { c: 1 } } },
-    { id: 2, sys: true, t: '<b>Robby B</b> birdied the 7th · Group 2' },
-    { id: 3, who: 'Letty D', k: 's', at: '12:58', t: 'Robby is unstoppable today. Someone buy that man a beer', r: { '🔥': { c: 3 }, '🍺': { c: 5 } } },
-    { id: 4, who: 'Manuel V', k: '', at: '13:02', t: 'Ref here: Group 1 is just making the turn. Pace is good.', r: { '👍': { c: 2 } } },
-    { id: 5, sys: true, t: '<b>Group 1</b> made the turn · −22' },
-  ], post(t) { this.msgs.push({ id: Date.now(), who: 'Jennifer D', k: 's', at: 'now', t, r: { '👍': { c: 0 } } }); } },
-  (e, st) => { const b = e.target.closest('[data-r]'); if (b) { toggleR(st, b.dataset.r); return true; } });
-
-/* ---- comments 2: hole by hole ---- */
-const HC = { 3: 2, 7: 4, 9: 1, 11: 3 };
-const HOLE = {
-  7: { par: 3, si: 14, sc: [['Robby B', 2, 'b'], ['Dan A', 3, ''], ['Gabriel P', 4, ''], ['Ray V', 5, 'd']],
-       c: [['Aimee K', 'That tee shot from Robby 😮'], ['Becky', 'Ray, you OK?'], ['Cary', 'Closest to the pin is still Ray from Thursday ha'], ['Luigi Acuna', 'Birdie on a par 3, take a bow']] },
-  3: { par: 3, si: 18, sc: [['Norberto III', 3, ''], ['Norberto Jr.', 6, 'd'], ['Matt D', 3, ''], ['Manuel P', 4, '']],
-       c: [['Aimee K', 'Splash 💦'], ['Jennifer D', 'He says the wind took it']] },
-};
-phone('cB', st => { const h = HOLE[st.h] || { par: 4, si: 9, sc: [['Robby B', 4, ''], ['Dan A', 5, ''], ['Gabriel P', 4, ''], ['Ray V', 4, '']], c: [] };
-  return `<div class="scr">${games('Chat')}<div class="pad">
-    <div><h2 class="h">Round 2, hole by hole</h2><span class="sub">Tap a hole for its scores and what people said</span></div>
-    <div class="holes">${Array.from({ length: 12 }, (_, i) => `<button class="${st.h === i + 1 ? 'on' : ''}" data-h="${i + 1}">${i + 1}${HC[i + 1] ? `<i>${HC[i + 1] + (st.extra[i + 1] || 0)}</i>` : ''}</button>`).join('')}</div>
-    <div class="hcard"><div class="hh"><b>Hole ${st.h}</b><span>Par ${h.par} · index ${h.si} · Group ${st.h === 3 ? 1 : 2}</span></div>
-      ${h.sc.map(([n, s, k]) => `<div class="srow"><span>${n}</span><b class="${k}">${s}${k === 'b' ? ' · birdie' : k === 'd' ? ' · double' : ''}</b></div>`).join('')}
-      <div class="line"><span class="ccount">${h.c.length + (st.mine[st.h] || []).length} comments</span></div>
-      ${h.c.concat((st.mine[st.h] || []).map(t => ['Jennifer D', t])).map(([n, t]) => `<div class="line"><span class="av s" style="width:26px;height:26px;font-size:10px">${ini(n)}</span><span><b>${esc(n)}</b>${esc(t)}</span></div>`).join('')}
-    </div></div>${composer('Jennifer D', 'Comment on hole ' + st.h + '…')}</div>`; },
-  { h: 7, extra: {}, mine: {}, post(t) { (this.mine[this.h] = this.mine[this.h] || []).push(t); this.extra[this.h] = (this.extra[this.h] || 0) + 1; } },
-  (e, st) => { const b = e.target.closest('[data-h]'); if (b) { st.h = +b.dataset.h; return true; } });
-
-/* ---- comments 3: the heckle feed ---- */
-const RX = ['🔥', '👏', '😬', '🍺'];
-phone('cC', st => `<div class="scr">${games('Chat')}<div class="pad">
-    <div><h2 class="h">Live from the course</h2><span class="sub">The book posts what happens. You react.</span></div>
-    <div class="feed">${st.ev.map((v, i) => `<div class="ev"><div class="top2"><span class="big ${v.k}">${v.s}</span><span class="t"><b>${v.t}</b><span>${v.d}</span></span></div>
-      <div class="rx">${RX.map(r => `<button data-x="${i}|${r}" class="${v.me === r ? 'on' : ''}">${r} ${(v.r[r] || 0) + (v.me === r ? 1 : 0)}</button>`).join('')}</div>
-      ${v.h.length ? `<div class="heck">${v.h.map(([n, t]) => `<span><b>${esc(n)}</b> ${esc(t)}</span>`).join('')}</div>` : ''}</div>`).join('')}</div>
-  </div>${composer('Jennifer D', 'Heckle the latest…')}</div>`,
-  { ev: [
-    { k: 'bird', s: '2', t: 'Robby B birdies the 7th', d: 'Group 2 · par 3 · 2 minutes ago', r: { '🔥': 6, '👏': 3 }, h: [['Letty D', 'Somebody check his handicap']] },
-    { k: 'dbl', s: '6', t: 'Ray V doubles the 7th', d: 'Group 2 · par 3 · 2 minutes ago', r: { '😬': 5, '🍺': 2 }, h: [['Becky', 'Drinks on Ray tonight']] },
-    { k: 'ctp', s: '⛳', t: 'New closest to the pin: Norberto III', d: 'Hole 3 · Group 1 · 20 minutes ago', r: { '👏': 4 }, h: [] },
-    { k: 'dbl', s: '6', t: 'Norberto Jr. finds the water on the 3rd', d: 'Group 1 · par 3 · 25 minutes ago', r: { '😬': 7, '🍺': 4 }, h: [['Aimee K', 'Splash 💦']] },
-  ], post(t) { this.ev[0].h.push(['Jennifer D', t]); } },
-  (e, st) => { const b = e.target.closest('[data-x]'); if (b) { const [i, r] = b.dataset.x.split('|'); const v = st.ev[+i]; v.me = v.me === r ? null : r; return true; } });
-
-/* ===================== bets, as the real things work ===================== */
-const am = d => d >= 2 ? '+' + Math.round((d - 1) * 100) : '-' + Math.round(100 / (d - 1));
-const dc = o => o.startsWith('-') ? 1 + 100 / +o.slice(1) : 1 + +o / 100;
-const r1 = n => Math.round(n * 10) / 10;
-
-/* ---- A: the book (FanDuel's functions) ---- */
-const BOOK = [
-  { id: 'rw', tab: 'Round 2', t: 'Round 2 winner', s: 'Better ball · team · net', live: true, kind: 'list', sel: [
-    ['Robby B & Dan A', 'leading −31 · thru 11', '-250', 'up'], ['Norberto III & Norberto Jr.', '−22 · thru 11', '+330', 'dn'], ['Matt D & Manuel P', '−21 · thru 11', '+450', ''], ['Gabriel P & Ray V', '−19 · thru 8', '+900', 'dn']],
-    rules: 'Settles on the book’s Team board when Round 2 is locked. Ties: dead heat, stake split.' },
-  { id: 'mvp', tab: 'MVP', t: 'Tournament MVP · outright', s: 'Net to par · after Round 3', kind: 'list', sel: [
-    ['Robby B', '−15 · band 25', '+120', 'up'], ['Dan A', '−12', '+260', ''], ['Ray V', '−9', '+700', 'dn'], ['Manuel P', '−7', '+1200', '']] },
-  { id: 'top3', tab: 'MVP', t: 'MVP · top 3 finish', s: 'Dead heat rules apply', kind: 'list', sel: [
-    ['Ray V', 'currently 3rd', '-140', ''], ['Manuel P', 'currently 4th', '+150', 'up'], ['Devin O', 'currently 5th', '+220', '']] },
-  { id: 'mu', tab: 'Matchups', t: 'Round 2 matchups', s: 'Net strokes · back nine', kind: 'pairs', pairs: [
-    ['Matt D', '-1.5', '-110', 'Ray V', '+1.5', '-110'], ['Robby B', '-2.5', '+105', 'Dan A', '+2.5', '-125']] },
-  { id: 'tb', tab: 'Matchups', t: 'Three-balls · Group 3', s: 'Lowest net, holes 12–18', kind: 'three', sel: [['Duncan W', '+150'], ['DP', '+170'], ['Devin O', '+190']] },
-  { id: 'hp', tab: 'Holes', t: 'Hole 13 · par 3', s: 'Closest-to-the-pin hole', live: true, kind: 'yn', rows: [
-    ['Any birdie or better', '+180', '-240'], ['Hole in one', '+5000', '-10000'], ['Anyone in the water', '+120', '-150']] },
-];
-const BOOST = { id: 'boost', t: 'Robby B · best net score in Round 2', was: '+150', now: '+188' };
-phone('bA', st => {
-  const picks = Object.values(st.slip), n = picks.length;
-  const sel = id => st.slip[id] ? ' on' : '';
-  const ob = (id, o, label, mv) => `<button class="ob${sel(id)}" data-pick="${id}|${o}|${esc(label)}">${label && label.length < 12 && !/^[A-Z][a-z]+ [A-Z]/.test(label) ? `<small>${label}</small>` : ''}${o}${mv ? `<i class="mv ${mv}">${mv === 'up' ? '▲' : '▼'}</i>` : ''}</button>`;
-  let body = '';
-  if (st.tab === 'My Bets') {
-    body = (st.placed.length ? st.placed.map((b, i) => `<div class="mb"><div class="mbh"><span><b>${b.legs.length > 1 ? b.legs.length + '-leg parlay' : 'Single'}</b> · ${b.odds}</span><span>${b.stake} 🍺 to win ${b.win} 🍺</span></div>
-        ${b.legs.map(l => `<div class="lg"><span class="dot live">•</span><span>${esc(l.label)}<br><small class="note">Open · Round 2 thru 11</small></span><b>${l.o}</b></div>`).join('')}
-        <div class="ft"><span class="note">Placed today</span><button class="co" data-co="${i}">Cash out ${r1(b.stake + b.win * .3)} 🍺</button></div></div>`).join('') : '')
-      + `<div class="mb"><div class="mbh"><span><b>Single</b> · +700 · Thursday</span><span class="l">Lost</span></div><div class="lg"><span class="dot l">✕</span><span>Ray V · closest to the pin, hole 7</span><b>+700</b></div></div>
-         <div class="mb"><div class="mbh"><span><b>Single</b> · −110 · Thursday</span><span class="w">Won +1.8 🍺</span></div><div class="lg"><span class="dot w">✓</span><span>United Kingdom · Ryder Cup session</span><b>-110</b></div></div>`;
-  } else {
-    const show = BOOK.filter(m => st.tab === 'Popular' ? ['rw', 'mvp', 'mu', 'hp'].includes(m.id) : m.tab === st.tab);
-    body = (st.tab === 'Popular' ? `<div class="boost"><span class="k">⚡ Profit boost · 25% · today only</span><b>${BOOST.t}</b><span class="note" style="color:var(--sage)"><s>${BOOST.was}</s>boosted</span>${ob('boost', BOOST.now, 'Robby B · best net, Round 2 (boosted)', '')}</div>` : '')
-      + show.map(m => `<div class="mg"><div class="mgh"><b>${m.live ? '<span class="lv">LIVE</span>' : ''}${m.t}</b><span>${m.s}</span></div>
-        ${m.kind === 'list' ? m.sel.map(([nm, d, o, mv], i) => `<div class="mr"><span class="nm">${nm}<small>${d}</small></span>${ob(m.id + i, o, nm + ' · ' + m.t, mv)}</div>`).join('') : ''}
-        ${m.kind === 'pairs' ? m.pairs.map(([a, ah, ao, b, bh, bo], i) => `<div class="two"><span class="lbl">${a} v ${b}</span>
-            <button class="ob${sel(m.id + i + 'a')}" data-pick="${m.id + i}a|${ao}|${a} ${ah} v ${b}"><small>${a} ${ah}</small>${ao}</button>
-            <button class="ob${sel(m.id + i + 'b')}" data-pick="${m.id + i}b|${bo}|${b} ${bh} v ${a}"><small>${b} ${bh}</small>${bo}</button></div>`).join('') : ''}
-        ${m.kind === 'three' ? `<div class="two three">${m.sel.map(([nm, o], i) => `<button class="ob${sel(m.id + i)}" data-pick="${m.id + i}|${o}|${nm} · three-ball"><small>${nm}</small>${o}</button>`).join('')}</div>` : ''}
-        ${m.kind === 'yn' ? m.rows.map(([q, y, n2], i) => `<div class="two"><span class="lbl">${q}</span>
-            <button class="ob${sel(m.id + i + 'y')}" data-pick="${m.id + i}y|${y}|${q}: Yes"><small>Yes</small>${y}</button>
-            <button class="ob${sel(m.id + i + 'n')}" data-pick="${m.id + i}n|${n2}|${q}: No"><small>No</small>${n2}</button></div>`).join('') : ''}
-        ${m.rules ? `<div class="rules">${m.rules}</div>` : ''}</div>`).join('') + '<div style="height:90px"></div>';
-  }
-  const parlay = picks.reduce((a, p) => a * dc(p.o), 1);
-  const slip = !st.open ? '' : `<div class="slipwrap" data-close="1"><div class="slip2">
-      <div class="sh"><b>Betslip · ${n}</b><button data-clear="1">Remove all</button></div>
-      ${n > 1 ? `<div class="stabs"><button class="${st.mode === 'single' ? 'on' : ''}" data-mode="single">Singles</button><button class="${st.mode === 'parlay' ? 'on' : ''}" data-mode="parlay">Parlay ${am(parlay)}</button></div>` : ''}
-      ${picks.map(p => `<div class="leg"><button class="x" data-rm="${p.id}" aria-label="Remove">✕</button><span><b>${esc(p.label)}</b><small>${p.id === 'boost' ? '⚡ Profit boost 25%' : 'Round 2 · Fri 30 Oct'}</small></span><span class="o">${p.o}</span></div>`).join('')}
-      <div class="wager">${st.chg ? `<div class="oddschg">Odds changed on Robby B & Dan A: −250 → −275. <button data-acc="1" style="text-decoration:underline">Accept</button></div>` : ''}
-        <div class="chipsr">${[1, 2, 3, 5].map(v => `<button class="${st.stake === v ? 'on' : ''}" data-stake="${v}">${v} 🍺</button>`).join('')}</div>
-        ${(() => { const single = n === 1 || st.mode === 'single'; const tot = single ? st.stake * n : st.stake;
-          const win = single ? picks.reduce((a, p) => a + st.stake * (dc(p.o) - 1), 0) : st.stake * (parlay - 1);
-          return `<div class="sum"><span>Total wager</span><b>${tot} 🍺</b></div><div class="sum"><span>To win</span><b style="color:var(--yes)">${r1(win)} 🍺</b></div>
-            <button class="cta gold" data-place="1">Place ${single && n > 1 ? n + ' bets' : 'bet'} · ${tot} 🍺</button>`; })()}
-        <span class="note">Bets on Round 2 close as its last group tees off on each hole they cover. Settled by the book from the saved scores.</span></div></div></div>`;
-  return `<div class="scr bk"><div class="bkh"><b>Union <span>Book</span></b><span class="bkbal">🍺 ${r1(st.bal)}</span></div>
-    <div class="bknav">${['Popular', 'Round 2', 'MVP', 'Matchups', 'Holes', 'My Bets'].map(t => `<button class="${st.tab === t ? 'on' : ''}" data-tab="${t}">${t}${t === 'My Bets' && st.placed.length ? `<span class="c">${st.placed.length}</span>` : ''}</button>`).join('')}</div>
-    ${body}</div>
-    ${n && !st.open ? `<button class="slipbar" data-openslip="1"><span><span class="ct">${n}</span>Betslip</span><span>${n > 1 ? 'Parlay ' + am(parlay) : picks[0].o} ▲</span></button>` : ''}${slip}`;
-}, { tab: 'Popular', slip: {}, open: false, mode: 'parlay', stake: 2, bal: 10, placed: [] },
-(e, st) => {
-  const t = e.target.closest('[data-pick],[data-tab],[data-openslip],[data-close],[data-mode],[data-stake],[data-rm],[data-clear],[data-place],[data-co],[data-acc]');
-  if (!t) return;
-  const d = t.dataset;
-  if (d.close && e.target !== t) return;
-  if (d.pick) { const [id, o, label] = d.pick.split('|'); if (st.slip[id]) delete st.slip[id]; else st.slip[id] = { id, o, label }; if (Object.keys(st.slip).length === 2 && id.startsWith('rw')) st.chg = true; }
-  else if (d.tab) st.tab = d.tab;
-  else if (d.openslip) st.open = true;
-  else if (d.close) st.open = false;
-  else if (d.mode) st.mode = d.mode;
-  else if (d.stake) st.stake = +d.stake;
-  else if (d.rm) { delete st.slip[d.rm]; if (!Object.keys(st.slip).length) st.open = false; }
-  else if (d.clear) { st.slip = {}; st.open = false; }
-  else if (d.acc) st.chg = false;
-  else if (d.place) { const picks = Object.values(st.slip), par = picks.length > 1 && st.mode === 'parlay';
-    const bets = par ? [{ legs: picks, odds: am(picks.reduce((a, p) => a * dc(p.o), 1)), stake: st.stake }] : picks.map(p => ({ legs: [p], odds: p.o, stake: st.stake }));
-    bets.forEach(b => { b.win = r1(b.stake * (dc(b.odds) - 1)); st.bal -= b.stake; });
-    st.placed = bets.concat(st.placed); st.slip = {}; st.open = false; st.chg = false; st.tab = 'My Bets';
-    st.flash('Bet placed. It settles itself from the scores.'); return false; }
-  else if (d.co) { const b = st.placed[+d.co]; st.bal += r1(b.stake + b.win * .3); st.placed.splice(+d.co, 1); st.flash('Cashed out. 🍺 back in your balance.'); return false; }
-  return true;
-});
-
-/* ---- B: the exchange (Kalshi's functions) ---- */
-const XM = [
-  { id: 'mvp', cat: 'MVP', q: 'Who wins tournament MVP?', multi: [['Robby B', 62], ['Dan A', 21], ['Ray V', 9], ['Field', 8]], vol: 141, d: 4,
-    rule: 'Resolves to the golfer top of the book’s MVP board once Round 3 is locked. Closes Sun 1 Nov, 12:15 pm (first tee of Round 3).' },
-  { id: 'hio', cat: 'Golf', q: 'Will anyone make a hole in one this week?', p: 7, vol: 38, d: 0, pts: [9, 9, 8, 8, 8, 7, 7, 7],
-    rule: 'Resolves Yes if any saved score of 1 appears on any round’s card. Closes Sun 1 Nov, end of Round 3.' },
-  { id: 'cup', cat: 'Golf', q: 'Will the United Kingdom win the Ryder Cup?', p: 51, vol: 163, d: 3, pts: [44, 47, 55, 49, 52, 48, 48, 51],
-    rule: 'Resolves Yes if the UK finishes the week ahead on the book’s Ryder Cup board. A tie resolves No.' },
-  { id: 'ray', cat: 'Round 2', q: 'Will Ray V shoot net under par in Round 2?', p: 35, vol: 22, d: -12, pts: [55, 52, 48, 46, 40, 38, 47, 35],
-    rule: 'Resolves Yes if Ray V’s Round 2 net total on the book is below par once his card is finished.' },
-  { id: 'rain', cat: 'The trip', q: 'Will the closing dinner run past midnight?', p: 70, vol: 17, d: 5, pts: [50, 55, 60, 62, 66, 65, 68, 70],
-    rule: 'Resolves Yes if the commissioner confirms the last of the group left after 12:00 am on Mon 2 Nov.' },
-];
-const curve = (pts, up, h = 44) => { const w = 300, mx = Math.max(...pts) + 4, mn = Math.max(0, Math.min(...pts) - 4);
-  const xy = pts.map((v, i) => [i * w / (pts.length - 1), h - 3 - (v - mn) / (mx - mn || 1) * (h - 6)]);
-  const c = up ? '#2F7A4A' : '#A8452F';
-  return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" style="width:100%;height:${h}px" aria-hidden="true"><polygon fill="${c}" opacity=".08" points="0,${h} ${xy.map(p => p.join(',')).join(' ')} ${w},${h}"/><polyline fill="none" stroke="${c}" stroke-width="2.4" points="${xy.map(p => p.join(',')).join(' ')}"/><circle cx="${xy[xy.length - 1][0]}" cy="${xy[xy.length - 1][1]}" r="4" fill="${c}"/></svg>`; };
-const book = p => { const lv = [[p, 14], [p - 1, 22], [p - 2, 9], [p - 3, 30]], nv = [[100 - p + 1, 11], [100 - p, 18], [100 - p - 1, 25], [100 - p - 2, 8]];
-  const mx = 30; const col = (cls, h, rows) => `<div class="col ${cls}"><span class="hd">${h}</span>${rows.map(([pr, q]) => `<span class="lvl"><i style="width:${q / mx * 100}%"></i><span>${pr}¢</span><span>${q}</span></span>`).join('')}</div>`;
-  return `<div class="ob2">${col('y', 'Yes bids · qty', lv)}${col('n', 'No bids · qty', nv)}</div>`; };
-phone('bB', st => {
-  if (st.view === 'pf') {
-    return `<div class="scr bk"><button class="back" data-view="list">‹ Markets</button><div class="xm"><h2>Portfolio</h2>
-      <div class="kv"><span>Balance</span><b>🍺 ${r1(st.bal)}</b></div><div class="kv"><span>Positions value</span><b>🍺 ${r1(st.pos.reduce((a, p) => a + p.n * p.now / 100, 0))}</b></div>
-      <div class="tk" style="padding:0">${st.pos.length ? st.pos.map((p, i) => { const pl = p.n * (p.now - p.avg) / 100;
-        return `<div class="pos"><b>${esc(p.q)}</b><span class="pl ${pl >= 0 ? 'up' : 'dn'}">${pl >= 0 ? '+' : ''}${r1(pl)} 🍺</span>
-          <span class="note">${p.n} ${p.side} · avg ${p.avg}¢ · now ${p.now}¢</span><button data-sell="${i}">Sell</button></div>`; }).join('') : '<p class="note" style="padding:12px">No positions yet.</p>'}</div>
-      <span class="eyebrow">Resting orders</span>
-      <div class="tk"><div class="kv"><span>Buy 5 Yes · Ryder Cup · limit 45¢</span><button data-cancel="1" style="color:var(--no);font-weight:700">Cancel</button></div></div></div></div>`;
-  }
-  if (st.view) {
-    const m = XM.find(x => x.id === st.view), multi = !!m.multi;
-    const opt = multi ? m.multi[st.opt || 0] : null, p = multi ? opt[1] : m.p;
-    const price = st.side === 'yes' ? p : 100 - p, lim = st.lim || price;
-    const pay = st.side === 'yes' ? p : 100 - p, use = st.type === 'limit' ? lim : pay;
-    const n = Math.max(1, Math.floor(st.amt * 100 / use));
-    return `<div class="scr bk"><button class="back" data-view="list">‹ Markets</button><div class="xm">
-      <span class="eyebrow">${m.cat} · ${m.vol} 🍺 traded</span><h2>${m.q}</h2>
-      ${multi ? `<div class="tk" style="padding:4px 12px">${m.multi.map(([nm, c], i) => `<div class="mo"><span>${nm}</span><em>${c}%</em><button class="${(st.opt || 0) === i ? '' : ''}" data-opt="${i}" style="background:${(st.opt || 0) === i ? 'var(--ink)' : 'var(--paper)'};color:${(st.opt || 0) === i ? 'var(--page)' : 'var(--ink)'}">${(st.opt || 0) === i ? 'Trading' : 'Trade'}</button></div>`).join('')}</div>` : ''}
-      <div class="big"><strong>${p}%</strong><span class="dlt ${m.d >= 0 ? 'up' : 'dn'}">${m.d >= 0 ? '▲' : '▼'} ${Math.abs(m.d)} today</span></div>
-      ${curve(multi ? [30, 34, 33, 41, 45, 52, 58, opt[1]] : m.pts, m.d >= 0, 70)}
-      <div class="rng">${['1H', '6H', '1D', 'All'].map(r => `<button class="${st.rng === r ? 'on' : ''}" data-rng="${r}">${r}</button>`).join('')}</div>
-      <div class="tk">
-        <div class="seg2"><button class="${st.act === 'buy' ? 'on' : ''}" data-act="buy">Buy</button><button class="${st.act === 'sell' ? 'on' : ''}" data-act="sell">Sell</button></div>
-        <div class="seg2"><button class="y${st.side === 'yes' ? ' on' : ''}" data-side="yes">Yes ${p}¢</button><button class="n${st.side === 'no' ? ' on' : ''}" data-side="no">No ${100 - p}¢</button></div>
-        <div class="seg2"><button class="${st.type === 'market' ? 'on' : ''}" data-type="market">Market</button><button class="${st.type === 'limit' ? 'on' : ''}" data-type="limit">Limit</button></div>
-        ${st.type === 'limit' ? `<div class="stp"><span>Limit price</span><span class="ctl"><button data-lim="-1">−</button><b>${lim}¢</b><button data-lim="1">+</button></span></div>` : ''}
-        <div class="stp"><span>Amount</span><span class="ctl"><button data-amt="-1">−</button><b>${st.amt} 🍺</b><button data-amt="1">+</button></span></div>
-        <div class="kv"><span>Contracts</span><b>${n}</b></div>
-        <div class="kv"><span>Avg price</span><b>${use}¢</b></div>
-        <div class="kv"><span>Payout if ${st.side === 'yes' ? (multi ? opt[0] : 'Yes') : 'No'}</span><b style="color:var(--yes)">🍺 ${r1(n)}</b></div>
-        <button class="cta" data-submit="1">${st.act === 'buy' ? 'Buy' : 'Sell'} ${st.side === 'yes' ? 'Yes' : 'No'}${st.type === 'limit' ? ' at ' + lim + '¢' : ''}</button>
-        ${st.type === 'limit' && lim < price ? '<span class="note">Below the market: it rests in the order book until someone sells at your price.</span>' : '<span class="note">Fills now at the best price in the order book.</span>'}
-      </div>
-      <span class="eyebrow">Order book</span>${book(price)}
-      <span class="eyebrow">Rules</span><div class="rulebox"><b>Settles automatically from the book.</b> ${m.rule} Each contract pays 1 🍺 if right, nothing if wrong.</div>
-    </div></div>`;
-  }
-  const cats = ['All', 'Golf', 'MVP', 'Round 2', 'The trip'];
-  const list = XM.filter(m => st.cat === 'All' || m.cat === st.cat);
-  return `<div class="scr bk"><div class="xh"><div class="r"><b>Markets</b><button class="pf" data-view="pf">🍺 ${r1(st.bal)} · Portfolio</button></div>
-      <div class="xcats">${cats.map(c => `<button class="${st.cat === c ? 'on' : ''}" data-cat="${c}">${c}</button>`).join('')}</div></div>
-    ${list.map(m => m.multi ? `<div class="xc"><button class="t" data-view="${m.id}" style="text-align:left"><b>${m.q}</b></button>
-        ${m.multi.slice(0, 3).map(([nm, c]) => `<div class="mo"><span>${nm}</span><em>${c}%</em><button data-view="${m.id}" style="background:#DDEBDD;color:var(--yes)">Yes ${c}¢</button></div>`).join('')}
-        <div class="v"><span>${m.vol} 🍺 traded</span><span class="dlt up">▲ ${m.d} today</span></div></div>`
-      : `<div class="xc"><button class="t" data-view="${m.id}" style="text-align:left;width:100%"><b>${m.q}</b><span class="ch"><strong>${m.p}%</strong><small>chance</small></span></button>
-        ${curve(m.pts, m.d >= 0, 36)}
-        <div class="ynb"><button class="y" data-view="${m.id}" data-side="yes">Yes ${m.p}¢</button><button class="n" data-view="${m.id}" data-side="no">No ${100 - m.p}¢</button></div>
-        <div class="v"><span>${m.vol} 🍺 traded</span><span class="dlt ${m.d >= 0 ? 'up' : 'dn'}">${m.d >= 0 ? '▲' : '▼'} ${Math.abs(m.d)} today</span></div></div>`).join('')}
-    <div style="height:20px"></div></div>`;
-}, { view: null, cat: 'All', side: 'yes', act: 'buy', type: 'market', amt: 2, rng: '1D', bal: 10, pos: [{ q: 'Will the UK win the Ryder Cup?', n: 4, side: 'Yes', avg: 44, now: 51 }] },
-(e, st) => {
-  const t = e.target.closest('[data-view],[data-cat],[data-side],[data-act],[data-type],[data-lim],[data-amt],[data-submit],[data-rng],[data-opt],[data-sell],[data-cancel]');
-  if (!t) return;
-  const d = t.dataset;
-  if (d.view !== undefined) { st.view = d.view === 'list' ? null : d.view; st.opt = 0; st.lim = null; if (d.side) st.side = d.side; st.keep = false; return true; }
-  if (d.cat) st.cat = d.cat; else if (d.side) { st.side = d.side; st.lim = null; } else if (d.act) st.act = d.act; else if (d.type) st.type = d.type;
-  else if (d.rng) st.rng = d.rng; else if (d.opt) st.opt = +d.opt;
-  else if (d.lim) { const m = XM.find(x => x.id === st.view), p = m.multi ? m.multi[st.opt || 0][1] : m.p, base = st.side === 'yes' ? p : 100 - p; st.lim = Math.min(99, Math.max(1, (st.lim || base) + +d.lim)); }
-  else if (d.amt) st.amt = Math.max(1, Math.min(st.bal, st.amt + +d.amt));
-  else if (d.submit) { const m = XM.find(x => x.id === st.view), p = m.multi ? m.multi[st.opt || 0][1] : m.p, pr = st.side === 'yes' ? p : 100 - p;
-    const resting = st.type === 'limit' && (st.lim || pr) < pr;
-    if (!resting) { const use = st.type === 'limit' ? st.lim || pr : pr, n = Math.floor(st.amt * 100 / use); st.bal = r1(st.bal - n * use / 100);
-      st.pos.unshift({ q: m.multi ? m.q.replace('Who wins', m.multi[st.opt || 0][0] + ' wins') : m.q, n, side: st.side === 'yes' ? 'Yes' : 'No', avg: use, now: use }); }
-    st.flash(resting ? 'Limit order placed. It fills if someone meets your price.' : 'Order filled. See it in your Portfolio.'); return false; }
-  else if (d.sell) { const p = st.pos[+d.sell]; st.bal = r1(st.bal + p.n * p.now / 100); st.pos.splice(+d.sell, 1); st.flash('Sold at ' + p.now + '¢. Gain locked in.'); return false; }
-  else if (d.cancel) { st.flash('Order cancelled.'); return false; }
-  return true;
-});
-
-/* ---- C: the Union Book, both in one ---- */
-const PEOPLE = ['Matt D', 'Ray V', 'Robby B', 'Dan A', 'Duncan W'];
-phone('bC', st => {
-  const tabs = ['Board', 'Markets', 'Challenges', 'My Bets'];
-  let body = '';
-  if (st.t === 'Board') body = BOOK.filter(m => ['rw', 'mu', 'hp'].includes(m.id)).map(m => `<div class="mg"><div class="mgh"><b>${m.live ? '<span class="lv">LIVE</span>' : ''}${m.t}</b><span>${m.s}</span></div>
-      ${m.kind === 'list' ? m.sel.slice(0, 3).map(([nm, d, o]) => `<div class="mr"><span class="nm">${nm}<small>${d}</small></span><button class="ob${st.p === nm ? ' on' : ''}" data-p1="${nm}">${o}</button></div>`).join('') : ''}
-      ${m.kind === 'pairs' ? m.pairs.slice(0, 1).map(([a, ah, ao, b, bh, bo]) => `<div class="two"><span class="lbl">${a} v ${b}</span><button class="ob${st.p === a ? ' on' : ''}" data-p1="${a}"><small>${a} ${ah}</small>${ao}</button><button class="ob${st.p === b ? ' on' : ''}" data-p1="${b}"><small>${b} ${bh}</small>${bo}</button></div>`).join('') : ''}
-      ${m.kind === 'yn' ? m.rows.slice(0, 1).map(([q, y, n2]) => `<div class="two"><span class="lbl">${q}</span><button class="ob${st.p === 'y' ? ' on' : ''}" data-p1="y"><small>Yes</small>${y}</button><button class="ob${st.p === 'n' ? ' on' : ''}" data-p1="n"><small>No</small>${n2}</button></div>`).join('') : ''}</div>`).join('');
-  else if (st.t === 'Markets') body = [{ q: 'Will anyone hit the water on 17 today?', p: 64, d: 6, pts: [40, 45, 52, 50, 58, 61, 60, 64] }, { q: 'Will the closing dinner run past midnight?', p: 70, d: 5, pts: [50, 55, 60, 62, 66, 65, 68, 70] }, { q: 'Will Robby B buy a round tonight?', p: 83, d: 9, pts: [50, 60, 65, 70, 72, 78, 80, 83] }]
-    .map((m, i) => `<div class="xc"><div class="t"><b>${m.q}</b><span class="ch"><strong>${m.p}%</strong><small>chance</small></span></div>${curve(m.pts, true, 32)}
-      <div class="ynb"><button class="y${st.m[i] === 'y' ? ' on' : ''}" data-m="${i}|y">Yes ${m.p}¢</button><button class="n${st.m[i] === 'n' ? ' on' : ''}" data-m="${i}|n">No ${100 - m.p}¢</button></div></div>`).join('');
-  else if (st.t === 'Challenges') body = `<div class="pad"><div class="chal"><span class="eyebrow" style="color:var(--sage);text-align:center">New challenge</span>
-      <div class="vs"><span><b>${st.a}</b><small>to win</small></span><span class="x">VS</span><span><b>${st.b}</b><small>net, ${st.span}</small></span></div>
-      <p class="terms" style="margin:0">Loser’s backer buys <b>${st.stake}</b></p>
-      <div class="btnrow"><button class="btn" data-send="1">Send to Gabriel P</button><button class="btn ghost" data-swap="1">Swap sides</button></div></div>
-      <div class="pick"><span class="eyebrow">Who</span><div class="seg">${PEOPLE.map(p => `<button data-pp="${p}" class="${p === st.a || p === st.b ? 'on' : ''}">${p}</button>`).join('')}</div></div>
-      <div class="pick"><span class="eyebrow">Over</span><div class="seg">${['the front nine', 'the back nine', 'the whole round'].map(p => `<button data-sp="${p}" class="${p === st.span ? 'on' : ''}">${p}</button>`).join('')}</div></div>
-      <div class="pick"><span class="eyebrow">Forfeit</span><div class="seg">${['a beer', 'a shot', 'a round of shots'].map(p => `<button data-f="${p}" class="${p === st.stake ? 'on' : ''}">${p}</button>`).join('')}</div></div></div>`;
-  else body = `<div class="pad"><span class="eyebrow">Open</span>
-      <div class="mb" style="margin:0"><div class="mbh"><span><b>Single</b> · −250</span><span>2 🍺 to win 0.8 🍺</span></div><div class="lg"><span class="dot live">•</span><span>Robby B &amp; Dan A · Round 2 winner<br><small class="note">Live · thru 11</small></span><b>-250</b></div><div class="ft"><span class="note">Book</span><button class="co">Cash out 2.4 🍺</button></div></div>
-      <div class="mb" style="margin:0"><div class="mbh"><span><b>4 Yes</b> · avg 44¢</span><span class="w">now 51¢</span></div><div class="lg"><span class="dot live">•</span><span>UK wins the Ryder Cup<br><small class="note">Market · pays 4 🍺 if Yes</small></span><b>+0.3</b></div><div class="ft"><span class="note">Market</span><button class="co">Sell 2.0 🍺</button></div></div>
-      <span class="eyebrow">The Tab</span>
-      <div class="tab"><div class="tr"><span>Aimee K owes Letty D<small>Challenge · Robby B beat Dan A, Thursday</small></span><span class="owe">1 🥃</span></div>
-        <div class="tr"><span>You won from Becky<small>Challenge · Ryder Cup, Thursday</small></span><span class="won">2 🍺</span></div></div></div>`;
-  return `<div class="scr bk"><div class="bkh"><b>Union <span>Book</span></b><span class="bkbal">🍺 ${r1(st.bal)}</span></div>
-    <div class="hy">${tabs.map(t => `<button class="${st.t === t ? 'on' : ''}" data-t="${t}">${t}</button>`).join('')}</div>${body}<div style="height:20px"></div></div>`;
-}, { t: 'Board', p: null, m: {}, bal: 10, a: 'Matt D', b: 'Ray V', span: 'the back nine', stake: 'a round of shots' },
-(e, st) => { const x = e.target.closest('[data-t],[data-p1],[data-m],[data-pp],[data-sp],[data-f],[data-swap],[data-send]'); if (!x) return; const d = x.dataset;
-  if (d.t) st.t = d.t; else if (d.p1) st.p = st.p === d.p1 ? null : d.p1;
-  else if (d.m) { const [i, s] = d.m.split('|'); st.m[i] = st.m[i] === s ? null : s; }
-  else if (d.pp) { if (d.pp !== st.a && d.pp !== st.b) { st.b = st.a; st.a = d.pp; } }
-  else if (d.sp) st.span = d.sp; else if (d.f) st.stake = d.f;
-  else if (d.swap) [st.a, st.b] = [st.b, st.a];
-  else if (d.send) { st.flash('Sent. Gabriel P can accept or decline.'); return false; }
-  return true; });
+document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === b));
+  ['a', 'b', 'c'].forEach(v => document.getElementById('v-' + v).classList.toggle('hide', v !== b.dataset.v));
+  window.scrollTo(0, 0);
+}));
 </script>
-
 </body>
 </html>
