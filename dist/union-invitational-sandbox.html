@@ -5284,6 +5284,48 @@ body.rpop-open{overflow:hidden}
 /* the totals row keeps its own columns, in a pair's sheet too */
 .sc-r.sc-tot,.cardsheet.two .sc-r.sc-tot{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}
 
+/* ---- the social pack (Manage → Social media pack) ----
+   A gold card above the list: the one thing in Manage that is for after
+   the week rather than during it. The window under it is choices, a bar
+   while it builds, and one button to save the file. */
+.mg-social{display:flex;align-items:center;gap:12px;width:100%;text-align:left;margin-top:14px;
+  padding:14px 15px;border:1px solid var(--gold-up);border-radius:14px;cursor:pointer;color:var(--ink);font-family:inherit;
+  background:linear-gradient(135deg,#F3DC9E 0%,#E6C97E 100%)}
+.mg-social:active{filter:brightness(.97)}
+.mg-social .ms-k{display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:800;color:var(--gold)}
+.mg-social .mg-t{margin-top:2px}
+.mg-social .mg-n{color:#5B4A24}
+.ms-go{flex:0 0 auto;background:var(--pine);color:var(--gold-up);border-radius:999px;padding:5px 11px;font-size:13px;font-weight:800}
+.pkmodal{max-width:480px}
+.pk-scopes{display:flex;gap:6px;overflow-x:auto;margin-top:14px;padding-bottom:2px}
+.pk-scopes .chip{flex:0 0 auto}
+.pk-opts{display:grid;gap:6px;margin-top:10px}
+.pk-opt{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--rule);border-radius:12px;background:var(--paper);
+  font:inherit;font-size:15px;color:var(--ink);text-align:left;cursor:pointer}
+.pk-opt i{flex:0 0 auto;width:22px;height:22px;border-radius:6px;border:2px solid var(--pine);display:grid;place-items:center;font-style:normal;font-weight:800;font-size:13px;color:transparent;background:transparent}
+.pk-opt.on i{background:var(--pine);color:#fff}
+.pk-opt small{margin-left:auto;color:var(--turf);font-size:13px;font-variant-numeric:tabular-nums}
+.pk-note{font-size:13.5px;color:var(--turf);margin:10px 0 0;line-height:1.45}
+.pk-prog{height:8px;background:var(--sunk);border-radius:4px;overflow:hidden;margin-top:12px}
+.pk-prog i{display:block;height:100%;background:var(--gold-up);transition:width .25s}
+.pk-st{font-size:13px;color:var(--turf);margin:6px 0 0;font-variant-numeric:tabular-nums}
+.pk-done{margin-top:12px;padding:10px 12px;border-radius:12px;background:var(--pine);color:var(--onpine);display:grid;gap:2px}
+.pk-done b{font-size:14px;word-break:break-all}.pk-done span{font-size:13px;opacity:.85}
+.pkmodal .acts{margin-top:12px}
+/* the stage the screens are drawn on: a phone's width of the paper, the masthead, the screen, the address */
+#packstage{font-family:inherit}
+.pk-shot{background:var(--paper);padding:14px 16px 12px}
+.pk-mast{display:flex;align-items:center;gap:10px;padding:0 0 10px;border-bottom:2px solid var(--ink);margin-bottom:12px}
+.pk-mast img{width:34px;height:34px;object-fit:contain}
+.pk-mast b{display:block;font-size:15px;line-height:1.1}
+.pk-mast small{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);font-weight:700;margin-top:2px}
+.pk-foot{margin-top:14px;padding-top:8px;border-top:1px solid var(--rule);font-size:11px;letter-spacing:.08em;color:var(--turf);text-align:center}
+.pk-in .head{margin-top:0}
+.pk-flat .modal, .pk-flat.cardsheet{position:static;height:auto;max-height:none;box-shadow:none;border-radius:0;max-width:none;overflow:visible;margin:0}
+.pk-flat .mbanner{margin:0 0 10px}
+.pk-flat .cs-body, .pk-flat .ps-body{padding:0}
+.pk-flat .report .rp-card{margin:0}
+
 </style>
 <div id="app"></div>
 <!-- The crest, and the opening it pays for, ahead of everything else. A few
@@ -5381,7 +5423,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261103-0956';
+const BUILD = '20261106-1533';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -9760,6 +9802,554 @@ function playerCard(T, pr, i, F, words, now) {
 return {roundShort, roundName, roundStats, playerReport, GRADE_ROWS, gradeOf, fieldReport, playerBrief, reportInput, distChart, scoreCls, renderReport, renderPlayer};
 })();
 
+const __m_pack = (function(){
+const D = __m_data;
+const E = __m_engine;
+const RP = __m_report;
+/* The Union Invitational — the social pack.
+ *
+ * One tap in Manage and the commissioner's phone or laptop packs the week
+ * for whoever runs the accounts: every photograph and clip in the book,
+ * the screens that matter drawn as pictures, the recaps and the coach's
+ * notes as words, and a manifest that says what everything is. It is the
+ * export the social media plan specifies (manifest.json, screenshots/,
+ * media/, recap.md) with a README and a posting plan beside it.
+ *
+ * Nothing here talks to the server on its own: the photographs come from
+ * the book's own photo store by their public addresses, the screens are
+ * the app's own renderers drawn into a picture on this device, and the zip
+ * is put together here and handed to the browser to save. No library: a
+ * zip that stores its files unchanged is a few hundred bytes of headers,
+ * and photographs and clips do not compress anyway.
+ */
+
+
+
+/* ---------------- the edition ---------------- */
+const EDITION = {
+  number: 2, name: 'Second Edition', year: 2026, country: 'Türkiye', city: 'Belek, Antalya',
+  venue: D.EVENT.venue, dates: D.EVENT.startISO + ' to ' + D.EVENT.endISO,
+  previous: [{ number: 1, name: 'First Edition', year: 2025, country: 'United Kingdom' }],
+  next: { number: 3, name: 'Third Edition', year: 2027, country: 'USA', city: 'Las Vegas', line: 'A Desert Showdown' },
+};
+const HASHTAGS = ['#UnionInvitational', '#HighRollersClub'];
+
+/* ---------------- a zip that stores ---------------- */
+const CRC_TABLE = (() => {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; }
+  return t;
+})();
+function crc32(bytes, crc = 0) {
+  let c = (crc ^ 0xFFFFFFFF) >>> 0;
+  for (let i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+const CHUNK = 8 * 1024 * 1024;
+/** The CRC of a blob, read a slice at a time so a clip is never held twice. */
+async function crcOfBlob(blob) {
+  let crc = 0;
+  for (let off = 0; off < blob.size; off += CHUNK) crc = crc32(new Uint8Array(await blob.slice(off, off + CHUNK).arrayBuffer()), crc);
+  return crc;
+}
+const dosTime = d => ((d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1)) & 0xFFFF;
+const dosDate = d => (((Math.max(1980, d.getFullYear()) - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate()) & 0xFFFF;
+const enc = new TextEncoder();
+function header(sig, fields) {
+  const n = fields.reduce((a, [w]) => a + w, 4), b = new Uint8Array(n), v = new DataView(b.buffer);
+  v.setUint32(0, sig, true);
+  let o = 4;
+  for (const [w, val] of fields) { if (w === 2) v.setUint16(o, val, true); else v.setUint32(o, val >>> 0, true); o += w; }
+  return b;
+}
+/** entries: [{ name, data (Blob | Uint8Array | string), at (Date) }] → a zip Blob, stored. */
+async function zipBlob(entries, onFile) {
+  const parts = [], central = [];
+  let off = 0, i = 0;
+  for (const e of entries) {
+    const name = enc.encode(e.name);
+    const blob = e.data instanceof Blob ? e.data : new Blob([typeof e.data === 'string' ? enc.encode(e.data) : e.data]);
+    const crc = await crcOfBlob(blob), at = e.at || new Date(), size = blob.size;
+    const local = header(0x04034b50, [[2, 20], [2, 0x0800], [2, 0], [2, dosTime(at)], [2, dosDate(at)], [4, crc], [4, size], [4, size], [2, name.length], [2, 0]]);
+    parts.push(local, name, blob);
+    central.push(header(0x02014b50, [[2, 20], [2, 20], [2, 0x0800], [2, 0], [2, dosTime(at)], [2, dosDate(at)], [4, crc], [4, size], [4, size], [2, name.length], [2, 0], [2, 0], [2, 0], [2, 0], [4, 0], [4, off]]), name);
+    off += local.length + name.length + size;
+    if (onFile) onFile(++i, entries.length, e.name);
+  }
+  const cdSize = central.reduce((a, b) => a + b.length, 0);
+  parts.push(...central, header(0x06054b50, [[2, 0], [2, 0], [2, entries.length], [2, entries.length], [4, cdSize], [4, off], [2, 0]]));
+  if (off + cdSize > 0xFFFFFFFF || entries.length > 0xFFFF) throw new Error('too big for one zip: split the pack');
+  return new Blob(parts, { type: 'application/zip' });
+}
+
+/* ---------------- names ---------------- */
+const slug = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase() || 'x';
+const firstName = s => String(s || '').trim().split(/\s+/)[0] || '';
+/** R1 / R2 / R3 / PR for the practice day / TRIP for everything off the course / WEEK for the edition. */
+const roundToken = rid => rid === 'week' ? 'WEEK' : rid === 'trip' || !rid ? 'TRIP' : rid === 'practice' ? 'PR' : String(rid).toUpperCase();
+const roundNumber = rid => { const m = /^r(\d+)$/.exec(String(rid || '')); return m ? +m[1] : null; };
+const localDate = ms => new Date((ms || 0) + D.TZ_OFFSET_MIN * 60000);
+/** 2026-11-01T16:42:00+03:00 */
+function iso(ms) {
+  if (!ms) return null;
+  const d = localDate(ms), p = n => String(n).padStart(2, '0');
+  const z = D.TZ_OFFSET_MIN, sg = z < 0 ? '-' : '+';
+  return d.getUTCFullYear() + '-' + p(d.getUTCMonth() + 1) + '-' + p(d.getUTCDate()) + 'T' + p(d.getUTCHours()) + ':' + p(d.getUTCMinutes()) + ':' + p(d.getUTCSeconds()) + sg + p(Math.floor(Math.abs(z) / 60)) + ':' + p(Math.abs(z) % 60);
+}
+const hhmm = ms => { const d = localDate(ms); return String(d.getUTCHours()).padStart(2, '0') + String(d.getUTCMinutes()).padStart(2, '0'); };
+const extOf = ph => {
+  const m = String(ph.mime || '').toLowerCase();
+  if (ph.kind === 'video') return m.includes('quicktime') ? 'mov' : m.includes('webm') ? 'webm' : 'mp4';
+  if (m.includes('png')) return 'png'; if (m.includes('webp')) return 'webp'; if (m.includes('heic')) return 'heic';
+  const u = String(ph.url || '').split('?')[0], e = (u.match(/\.([a-z0-9]{3,4})$/i) || [])[1];
+  return e ? e.toLowerCase() : 'jpg';
+};
+/** R2_H07_matt_1642.jpg: the spec's order, so a folder reads in order without opening anything. */
+function mediaName(ph, byFirst, taken) {
+  return [roundToken(ph.rid), ph.hole != null ? 'H' + String(ph.hole + 1).padStart(2, '0') : null, slug(byFirst || 'someone'), hhmm(taken || ph.at)].filter(Boolean).join('_') + '.' + extOf(ph);
+}
+/** Names that were taken already get a letter: _b, _c. */
+function unique(name, used) {
+  if (!used.has(name)) { used.add(name); return name; }
+  const dot = name.lastIndexOf('.'), stem = name.slice(0, dot), ext = name.slice(dot);
+  for (let i = 1; ; i++) { const n = stem + '_' + String.fromCharCode(97 + (i % 26)) + (i >= 26 ? Math.floor(i / 26) : '') + ext; if (!used.has(n)) { used.add(n); return n; } }
+}
+
+/* ---------------- the manifest ---------------- */
+const half = n => (Number.isInteger(n) ? String(n) : Math.floor(n) + '½');
+const ord = n => n + (n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th');
+const roundName = rid => rid === 'week' ? 'The week' : rid === 'trip' ? 'The trip' : (E.roundDef(rid) || {}).short === 'Practice' ? 'Practice' : 'Round ' + roundNumber(rid);
+function courseJson(T, key) {
+  const c = E.courseByKey(T, key);
+  return { key, name: c.name, par: c.holes.reduce((a, h) => a + h.par, 0), hole_pars: c.holes.map(h => h.par), stroke_index: c.holes.map(h => h.si), metres_yellow: c.holes.map(h => h.mY) };
+}
+function playersJson(T) {
+  return (T.config.people || []).filter(p => p.role === 'golfer' || p.role === 'official').map(p => ({
+    id: p.id, display_name: p.display, first_name: firstName(p.display), team: p.location || null, handicap_band: p.band == null ? null : p.band, role: p.role,
+    pair_id: ((T.config.pairs || []).find(x => (x.members || []).includes(p.id)) || {}).id || null,
+    handles: { instagram: null, x: null, tiktok: null, youtube: null },
+    /* the book does not keep consent yet: null is "not asked", never "yes" */
+    consent: { face: null, name: null, tag: null },
+  }));
+}
+function roundJson(T, rid) {
+  const r = E.roundDef(rid); if (!r) return null;
+  const cfg = E.roundCfg(T, rid) || {}, st = E.roundStanding(T, rid);
+  return { id: rid, number: roundNumber(rid), name: r.full, date: E.dayOf(r.dayIdx).iso, course: E.courseOf(T, rid).name, format: r.format, counts: !!r.counts,
+    scoring: { gross_cap: 'par + ' + T.config.capOver + (T.config.capOver === 3 ? ' (triple bogey)' : ''), breakfast_ball: 'one, on the first tee', mulligans: r.noMulligans ? 'none' : 'one per nine', team_allowance_pct: E.teamAllowance(T) },
+    status: st.complete ? 'final' : st.started ? 'in_progress' : 'not_started', first_tee: ((cfg.tees || [])[0] || {}).time || r.firstTee || null,
+    closest_to_pin: cfg.ctpHole ? { hole: cfg.ctpHole, winner: cfg.ctpWinner || null } : null,
+    longest_drive: cfg.ldHole ? { hole: cfg.ldHole, winner: cfg.ldWinner || null, distance: cfg.ldDist || null } : null };
+}
+function competitionsJson(T, now, rids) {
+  const out = [], pairs = E.pairsBoard(T, now), mvp = E.mvpBoard(T, now), bbb = E.bbbBoard(T), cup = E.ryderData(T, now);
+  const pairOf = id => (T.config.pairs || []).find(p => p.id === id) || { members: [] };
+  out.push({ id: 'pairs', name: 'Team Competition', type: 'pairs_net', scoring: 'four-ball Stableford, better ball, the counting rounds added', leader_changed: null,
+    standings: pairs.map(x => ({ rank: x.pos, pair_id: x.id, name: x.name, player_ids: pairOf(x.id).members, value: x.total, value_label: x.total + ' pts', raw_label: x.gTotalStr, thru: x.thru, movement: null,
+      rounds: Object.fromEntries(E.countingRounds(T).map(r => { const row = E.pairRoundBoard(T, r.id).find(y => y.id === x.id); return [r.id, row ? row.today : null]; })) })) });
+  out.push({ id: 'mvp', name: 'Tournament MVP', type: 'individual_net', scoring: 'net to par, every stroke counted, the counting rounds added', leader_changed: null,
+    standings: mvp.map(x => ({ rank: x.pos, player_ids: [x.id], name: x.name, handicap_band: x.band, value: x.total, value_label: x.totalStr + ' net', raw_label: x.gTotalStr + ' raw', thru: x.thru, movement: null,
+      rounds: Object.fromEntries(E.countingRounds(T).map(r => { const row = E.recapField(T, r.id).find(y => y.id === x.id); return [r.id, row ? { gross: row.strokes, raw_to_par: row.raw, net_to_par: row.net } : null]; })) })) });
+  out.push({ id: 'ryder_cup', name: 'Ryder Cup', type: 'ryder_cup', scoring: 'singles match play on the same cards, net; a point a match, half for a halve', leader_changed: null,
+    standings: [{ rank: cup.ukTotal >= cup.usaTotal ? 1 : 2, team: 'UK', name: 'United Kingdom', value: cup.ukTotal, value_label: half(cup.ukTotal) },
+                { rank: cup.usaTotal > cup.ukTotal ? 1 : 2, team: 'USA', name: 'United States', value: cup.usaTotal, value_label: half(cup.usaTotal) }].sort((a, b) => a.rank - b.rank),
+    sessions: cup.sessions.filter(s => rids.includes(s.id)).map(s => ({ round: s.id, label: s.label, uk: s.uk, usa: s.usa, sitting_out: s.sitting,
+      matches: s.matches.map(m => ({ uk: m.aId, usa: m.bId, result: m.done ? (m.up > 0 ? 'UK' : m.up < 0 ? 'USA' : 'halved') : null, status: m.status, up: m.up, thru: m.thru })) })) });
+  if (bbb.length) out.push({ id: 'bbb', name: 'Bingo Bango Bongo', type: 'points', scoring: 'three points a hole: first on, closest once all are on, first in', leader_changed: null,
+    standings: bbb.map(x => ({ rank: x.pos, player_ids: [x.id], name: x.name, value: x.pts, value_label: x.pts + ' pts', thru: null, movement: null,
+      rounds: Object.fromEntries(E.countingRounds(T).map(r => { const row = E.bbbRoundBoard(T, r.id).find(y => y.id === x.id); return [r.id, row ? row.pts : 0]; })) })) });
+  for (const r of E.countingRounds(T).filter(r => rids.includes(r.id))) {
+    const c = E.roundCfg(T, r.id) || {};
+    if (c.ctpWinner) out.push({ id: 'ctp_' + r.id, name: 'Closest to the pin · ' + roundName(r.id), type: 'ctp', round: r.id, hole: c.ctpHole || null, standings: [{ rank: 1, player_ids: [c.ctpWinner], name: (E.person(T, c.ctpWinner) || {}).display, value: null, value_label: 'hole ' + c.ctpHole }] });
+    if (c.ldWinner) out.push({ id: 'long_drive_' + r.id, name: 'Longest drive · ' + roundName(r.id), type: 'long_drive', round: r.id, hole: c.ldHole || null, standings: [{ rank: 1, player_ids: [c.ldWinner], name: (E.person(T, c.ldWinner) || {}).display, value: c.ldDist || null, value_label: c.ldDist || ('hole ' + c.ldHole) }] });
+  }
+  return out;
+}
+/** What is worth a post, read off the cards: nothing typed, nothing invented. */
+function highlightsJson(T, now, rids, env) {
+  const out = [];
+  const nm = id => (E.person(T, id) || {}).display || id;
+  for (const r of E.countingRounds(T).filter(r => rids.includes(r.id))) {
+    const holes = E.courseOf(T, r.id).holes, iso0 = E.dayOf(r.dayIdx).iso;
+    for (const g of E.golfers(T)) {
+      const s = RP.roundStats(T, r.id, g.id); if (!s) continue;
+      let run = [];
+      const flush = () => { if (run.length >= 2) out.push({ type: 'birdie_run', round: r.id, player_ids: [g.id], hole: run[0] + 1, value: run.length, value_label: run.length + ' in a row', note: nm(g.id) + ' went ' + run.length + ' under in a row from the ' + ord(run[0] + 1) + ' (' + run.map(h => h + 1).join(', ') + ')' }); run = []; };
+      for (const h of s.holes) {
+        if (!h) { flush(); continue; }
+        if (h.raw === 1) out.push({ type: 'hole_in_one', round: r.id, player_ids: [g.id], hole: h.h + 1, value: 1, value_label: 'ace', note: nm(g.id) + ' holed the tee shot on the ' + ord(h.h + 1) + ', par ' + h.par });
+        else if (h.over <= -2) out.push({ type: 'eagle', round: r.id, player_ids: [g.id], hole: h.h + 1, value: h.over, value_label: h.over <= -3 ? 'albatross' : 'eagle', note: nm(g.id) + ' made ' + h.raw + ' on the par-' + h.par + ' ' + ord(h.h + 1) });
+        if (h.over <= -1) run.push(h.h); else flush();
+        if (h.over >= 4 && !h.pu) out.push({ type: 'collapse', round: r.id, player_ids: [g.id], hole: h.h + 1, value: h.over, value_label: '+' + h.over, note: nm(g.id) + ' took ' + h.raw + ' on the par-' + h.par + ' ' + ord(h.h + 1) + (h.marks.includes('ob') ? ', out of bounds' : h.marks.includes('water') ? ', in the water' : '') });
+      }
+      flush();
+      if (s.full && s.ptsB - s.ptsF >= 5) out.push({ type: 'comeback', round: r.id, player_ids: [g.id], hole: 10, value: s.ptsB - s.ptsF, value_label: '+' + (s.ptsB - s.ptsF) + ' pts on the back', note: nm(g.id) + ' turned in ' + s.ptsF + ' points and came home in ' + s.ptsB });
+      if (s.full && s.gross <= 79) out.push({ type: 'round', round: r.id, player_ids: [g.id], hole: null, value: s.gross, value_label: s.gross + ' gross', note: nm(g.id) + ' shot ' + s.gross + ' at ' + s.course.replace('Cullinan ', '') });
+    }
+    const c = E.roundCfg(T, r.id) || {};
+    if (c.ctpWinner) out.push({ type: 'ctp_set', round: r.id, player_ids: [c.ctpWinner], hole: c.ctpHole || null, value: null, value_label: 'closest to the pin', note: nm(c.ctpWinner) + ' closest to the pin on ' + (c.ctpHole || '?') + ' (' + iso0 + ')' });
+    if (c.ldWinner) out.push({ type: 'long_drive_set', round: r.id, player_ids: [c.ldWinner], hole: c.ldHole || null, value: c.ldDist || null, value_label: c.ldDist || 'longest drive', note: nm(c.ldWinner) + ' longest drive on ' + (c.ldHole || '?') + (c.ldDist ? ', ' + c.ldDist : '') });
+    const sotd = env && env.sotd ? env.sotd(r.id) : null;
+    if (sotd) out.push({ type: 'shot_of_the_day', round: r.id, player_ids: [sotd.pid], hole: sotd.hole + 1, value: null, value_label: 'shot of the day', note: nm(sotd.pid) + ', hole ' + (sotd.hole + 1) + ': "' + sotd.t + '"' + (sotd.byName ? ' (nominated by ' + sotd.byName + ')' : '') });
+    const sess = E.ryderData(T, now).sessions.find(s => s.id === r.id);
+    if (sess) for (const m of sess.matches) if (m.done && m.up) out.push({ type: 'ryder_point', round: r.id, player_ids: [m.up > 0 ? m.aId : m.bId], hole: null, value: Math.abs(m.up), value_label: m.status, note: (m.up > 0 ? m.a + ' (UK) beat ' + m.b + ' (USA)' : m.b + ' (USA) beat ' + m.a + ' (UK)') + ' ' + m.status });
+  }
+  return out;
+}
+function teeSheetJson(T, rid) {
+  if (!rid || rid === 'week') return [];
+  return E.groups(T, rid).filter(g => (g.members || []).length).map((g, i) => ({ time: g.time ? E.dayOf(E.roundDef(rid).dayIdx).iso + 'T' + g.time + ':00+03:00' : null, group: i + 1, label: g.label, player_ids: g.members, pair_ids: g.pairIds || [], official_id: null }));
+}
+
+/* ---------------- words ---------------- */
+function recapMd(T, env, rids) {
+  const L = ['# The Union Invitational · Belek 2026 · the words', '', 'Everything the book wrote about the week, as it was published to the group. Quote it, cut it, never contradict it: every number in it is on a card.', ''];
+  const who = id => (E.person(T, id) || {}).display || (() => { const pr = (T.config.pairs || []).find(x => x.id === id); return pr ? E.pairName(T, pr) : id; })();
+  const recap = (rid, title) => {
+    const rec = T.recaps[rid], b = rec && rec.body; if (!b || typeof b !== 'object') return;
+    L.push('## ' + title, '');
+    if (b.headline) L.push('**' + b.headline + '**', '');
+    (b.narrative || []).filter(x => x && String(x).trim()).forEach(p => L.push(p, ''));
+    if (b.swing && b.swing.value) L.push('*The number: ' + b.swing.value + (b.swing.caption ? ' — ' + b.swing.caption : '') + '*', '');
+    const hs = (b.honours || []).filter(h => h.winner);
+    if (hs.length) { L.push('Honours:', ''); hs.forEach(h => L.push('- ' + (env.honourLabel(h.slot) || h.slot) + ' — ' + who(h.winner) + (h.citation ? ': ' + h.citation : ''))); L.push(''); }
+    const pn = Object.entries(b.pairNotes || {}).filter(([, v]) => v);
+    if (pn.length) { L.push('The pairs:', ''); pn.forEach(([id, v]) => L.push('- ' + who(id) + ': ' + v)); L.push(''); }
+    const vs = (b.voices || []).filter(v => v && (v.text || v.quote));
+    if (vs.length) { L.push('What the golfers said:', ''); vs.forEach(v => L.push('- ' + (v.who ? who(v.who) + ': ' : '') + '"' + (v.text || v.quote) + '"')); L.push(''); }
+    L.push('Public page: ' + D.SITE_URL + 'recap/?r=' + rid, '');
+  };
+  if (rids.includes('week')) recap('week', 'The Tournament Recap');
+  for (const r of D.ROUNDS) if (rids.includes(r.id) || rids.includes('week')) recap(r.id, r.full + ' · ' + E.dayOf(r.dayIdx).dow + ' ' + E.dayOf(r.dayIdx).date);
+  const rep = T.recaps.report, rb = rep && rep.body && typeof rep.body === 'object' ? rep.body : null;
+  if (rb && (rids.includes('week'))) {
+    L.push('## The State of the Union · the players report', '');
+    (rb.summary || []).forEach(p => L.push(p, ''));
+    for (const g of E.golfers(T)) {
+      const w = rb.players && rb.players[g.id]; if (!w) continue;
+      L.push('### ' + g.display, '');
+      if (w.read) L.push('*' + w.read + '*', '');
+      (w.letter || []).forEach(p => L.push(p, ''));
+      if ((w.three || []).length) { L.push('Three things:', ''); w.three.forEach((t, i) => L.push((i + 1) + '. ' + t)); L.push(''); }
+    }
+    L.push('Public page: ' + D.SITE_URL + 'recap/?r=report', '');
+  }
+  return L.join('\n');
+}
+const fmtBytes = n => n >= 1e9 ? (n / 1e9).toFixed(2) + ' GB' : n >= 1e6 ? Math.round(n / 1e6) + ' MB' : Math.round(n / 1e3) + ' KB';
+function readmeMd(M, counts) {
+  const S = M.export.scope === 'edition' ? 'the whole ' + EDITION.name.toLowerCase() : M.round ? M.round.name : 'a selection';
+  return `# The Union Invitational · Belek 2026 · social pack
+
+Built ${M.export.generated_at} from the yardage book (build ${M.export.app_version}). Scope: ${S}.
+
+This folder is for whoever prepares the posts for Instagram, TikTok and X. Read this file, then \`manifest.json\`, then \`posting-plan.md\`. Everything else is material.
+
+## What is here
+
+- \`manifest.json\` — every file, who is in it, when it was taken, what it shows; the standings, the highlights worth a post, the roster. Numbers in \`value\` are exact; \`value_label\` is display-ready.
+- \`recap.md\` — the words the book published: each round's recap, the tournament recap, the honours, the golfers' own quotes, the State of the Union and a coach's letter a golfer. Captions come from here.
+- \`posting-plan.md\` — six beats from the wrap to the Vegas tease, each naming the files it uses.
+- \`screenshots/\` — ${counts.screens} screens drawn from the app at 1080 px wide: leaderboards, the final tables, the honours, every scorecard, every report card. They are the tournament's own look; post them as they are or build cards that match.
+- \`sized/feed-4x5/\` and \`sized/story-9x16/\` — the screens that fit, placed on the paper at 1080×1350 and 1080×1920.
+- \`media/\` — ${counts.photos} photographs and ${counts.clips} clips, full size, unedited, as the party uploaded them. Named \`<round>_<hole>_<who>_<time>.<ext>\`: R1/R2/R3 the counting rounds, PR the practice day, TRIP everything off the course. The who is the person who uploaded it, not necessarily who is in it.
+
+## The voice
+
+Every post speaks as the Commissioner: sanctioning-body language for twelve friends ("the Commissioner", "the Officials", "by order of"). Dry beats loud; one joke a post. Tease the golf, never the golfer: a missed putt is fair game, a person's weight, job or marriage is not. Hashtags: ${HASHTAGS.join(' and ')} only. The edition line is HIGH ROLLERS CLUB; the Vegas line is "What happens on the course stays on the leaderboard."
+
+## Before anything goes live
+
+- **Consent is not recorded in the app.** Every \`players[].consent\` field is \`null\` (not asked). Nobody appears on a public account until they have said yes in the group chat: face shown, name or first name only, tagged or not. Until then treat everyone as not consented.
+- **Handles are blank.** Fill \`players[].handles\` as they come in; tag only those who opted in.
+- Never post who has or hasn't paid, phone numbers, room or flight details, live location, or anyone under 18. Geotag a course after the round, the hotel after checkout. Spectators and partners are not in \`players\`: they opt in separately.
+- Scores to par and handicap bands are fine to show. Nothing about work, health or relationships.
+- Anyone can ask for a post to come down, and it comes down the same day.
+
+## The edition
+
+${EDITION.name}, ${EDITION.year}: ${EDITION.venue}, ${EDITION.city}, ${EDITION.country}, ${EDITION.dates}. The first edition was ${EDITION.previous[0].country}, ${EDITION.previous[0].year}. The third is ${EDITION.next.city}, ${EDITION.next.year}: ${EDITION.next.line}.
+
+The public pages: ${D.SITE_URL}recap/?r=week (the tournament recap), ${D.SITE_URL}recap/?r=report (the players report), ${D.SITE_URL}recap/?r=r1, r2, r3 (each round).
+`;
+}
+function planMd(M, picks) {
+  const f = list => (list.length ? list.map(x => '  - `' + x + '`').join('\n') : '  - (nothing in this pack)');
+  const names = M.players.filter(p => p.role === 'golfer');
+  const champ = (M.competitions.find(c => c.id === 'pairs') || { standings: [] }).standings[0];
+  const mvp = (M.competitions.find(c => c.id === 'mvp') || { standings: [] }).standings[0];
+  const cup = M.competitions.find(c => c.id === 'ryder_cup');
+  return `# Posting plan · six beats
+
+A suggested order, Commissioner's voice throughout, one joke a post. Instagram is the record (carousels and Reels), TikTok carries the clips, X carries the tables and the rulings. One vertical edit serves TikTok and Reels. Spread the wrap over two to three weeks; the Vegas tease last.
+
+## 1 · The book is closed
+The edition in one post: the crest, the final tables, the headline from the tournament recap.
+- Screens:
+${f(picks.tables)}
+- The most-hearted photographs:
+${f(picks.hero)}
+- Words: the tournament recap headline and first paragraph in \`recap.md\`.
+
+## 2 · The golf, round by round
+One carousel a round: the leaderboard as it stood, the recap's headline, the best three or four photographs, the shot of the day clip if there is one.
+${['r1', 'r2', 'r3', 'practice'].filter(r => picks.rounds[r]).map(r => `- ${roundName(r)}:\n${f(picks.rounds[r])}`).join('\n')}
+- Words: that round's recap in \`recap.md\`; the \`highlights\` block in \`manifest.json\` (eagles, birdie runs, collapses, comebacks, cup points).
+
+## 3 · The people
+One post a golfer, in MVP order: the report card, a scorecard or two, the coach's one-line read as the caption. Only golfers who have consented, by name only if they said so.
+${names.map(p => `- ${p.display_name} (${p.id}):\n${f(picks.people[p.id] || [])}`).join('\n')}
+
+## 4 · The winners
+The champions carousel: Team Competition${champ ? ' (' + champ.name + ', ' + champ.value_label + ')' : ''}, MVP${mvp ? ' (' + mvp.name + ', ' + mvp.value_label + ')' : ''}, the Ryder Cup${cup ? ' (UK ' + cup.standings.find(s => s.team === 'UK').value_label + ' – ' + cup.standings.find(s => s.team === 'USA').value_label + ' USA)' : ''}, Bingo Bango Bongo, closest to the pin and the longest drive, the honours.
+- Screens:
+${f(picks.winners)}
+- Words: "Honours" and "The pairs" under each recap in \`recap.md\`.
+
+## 5 · The trip
+Dinners, the pool, team beers, the arrivals: Stories and one feed carousel. Everything off the course, in the order it happened.
+${f(picks.trip)}
+
+## 6 · Vegas 2027
+The tease: the best clips, the defending champions, the line. "${EDITION.next.line}." Nothing about dates until the Commissioner confirms them.
+- Clips:
+${f(picks.clips)}
+`;
+}
+
+/* ---------------- screens, as pictures ----------------
+   A screen is the app's own HTML, laid out at phone width in a hidden
+   stage, then drawn into a picture through an SVG that carries the HTML
+   inside it. Everything the picture needs travels with it: the stylesheet,
+   the typeface and every image as data, so the drawing never reaches out. */
+const STAGE_W = 432;              // a phone's width; × 2.5 = 1080. A card or a report is laid out wider, as the book lays them out
+const OUT_W = 1080;
+const MAX_H = 6000;               // CSS px (15000 px drawn): Safari's canvas will not go bigger; a taller screen is drawn smaller
+let cssMemo = null;
+async function dataUri(url) {
+  const r = await fetch(url); if (!r.ok) throw new Error('fetch ' + r.status);
+  const b = await r.blob();
+  return new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = rej; fr.readAsDataURL(b); });
+}
+/** The page's stylesheet with the typeface inlined, read once a build. */
+async function pageCss() {
+  if (cssMemo) return cssMemo;
+  const rules = [];
+  for (const sheet of Array.from(document.styleSheets)) {
+    let list; try { list = Array.from(sheet.cssRules); } catch (e) { continue; }   // another origin's sheet: cannot be read
+    for (const r of list) rules.push(r);
+  }
+  let roots = '';
+  const out = [];
+  for (const r of rules) {
+    if (r.type === 5) {   // @font-face: carry the file inside
+      let text = r.cssText;
+      const urls = [...text.matchAll(/url\((['"]?)([^'")]+)\1\)/g)].map(m => m[2]);
+      for (const u of urls) { try { text = text.replace(u, await dataUri(new URL(u, (r.parentStyleSheet && r.parentStyleSheet.href) || document.baseURI).href)); } catch (e) { /* the browser's fallback face then */ } }
+      out.push(text); continue;
+    }
+    if (r.type === 1 && /^:root\b/.test(r.selectorText || '')) roots += r.style.cssText + ';';
+    out.push(r.cssText);
+  }
+  out.push('svg, .pk-root{' + roots + '}');
+  out.push('.pk-root{font-family:"Source Serif 4","Source Serif",Georgia,serif;color:var(--ink);background:var(--paper);box-sizing:border-box;overflow:hidden}');
+  cssMemo = out.join('\n');
+  return cssMemo;
+}
+function resetCss() { cssMemo = null; }
+/** The hidden stage the screens are laid out in: in the page (so the stylesheet applies and the height can be measured), never seen. */
+function stage(width) {
+  let s = document.getElementById('packstage');
+  if (!s) { s = document.createElement('div'); s.id = 'packstage'; s.setAttribute('aria-hidden', 'true'); document.body.appendChild(s); }
+  s.style.cssText = 'position:fixed;left:0;top:0;width:' + width + 'px;z-index:-1;opacity:0;pointer-events:none;overflow:hidden;contain:layout';
+  return s;
+}
+function dropStage() { const s = document.getElementById('packstage'); if (s) s.remove(); }
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const isSafari = () => /^((?!chrome|android|crios|fxios).)*safari/i.test(navigator.userAgent);
+/** html → { blob (PNG), width, height } at 1080 wide. `title` is the masthead line; `width` the layout's, a phone's unless told. */
+async function snapshot(html, title, crest, width) {
+  const css = await pageCss();
+  const W = width || STAGE_W, SCALE = OUT_W / W;
+  const st = stage(W);
+  st.innerHTML = '<div class="pk-root" style="width:' + W + 'px"><div class="pk-shot"><div class="pk-mast">' + (crest ? '<img src="' + crest + '" alt="">' : '') + '<span><b>The Union Invitational</b><small>Belek 2026 · ' + title.replace(/[<>&]/g, '') + '</small></span></div><div class="pk-in">' + html + '</div><div class="pk-foot">' + D.SITE_URL.replace(/^https?:\/\//, '').replace(/\/$/, '') + '</div></div></div>';
+  const root = st.firstElementChild;
+  /* the screens are read, not used: nothing opens, nothing lazy, every picture carried along */
+  root.querySelectorAll('details').forEach(d => d.remove());
+  root.querySelectorAll('button, a, input, textarea, select').forEach(b => { b.removeAttribute('data-act'); if (b.tagName === 'A') b.removeAttribute('href'); });
+  root.querySelectorAll('[loading]').forEach(i => i.removeAttribute('loading'));
+  for (const i of Array.from(root.querySelectorAll('img'))) {
+    const src = i.getAttribute('src') || '';
+    if (/^data:/.test(src)) continue;
+    try { i.setAttribute('src', await dataUri(new URL(src, document.baseURI).href)); } catch (e) { i.remove(); }
+  }
+  await sleep(0);
+  if (document.fonts && document.fonts.ready) { try { await document.fonts.ready; } catch (e) { /* fine */ } }
+  const h = Math.max(100, Math.ceil(root.scrollHeight));
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + h + '"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml"><style>' + css.replace(/<\/style/g, '<\\/style') + '</style>' + new XMLSerializer().serializeToString(root) + '</div></foreignObject></svg>';
+  const img = new Image();
+  const loaded = new Promise((res, rej) => { img.onload = () => res(); img.onerror = () => rej(new Error('the screen would not draw')); });
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  await loaded;
+  if (img.decode) { try { await img.decode(); } catch (e) { /* drawn anyway */ } }
+  const scale = h * SCALE > MAX_H * 2.5 ? SCALE * MAX_H * 2.5 / (h * SCALE) : SCALE;
+  const c = document.createElement('canvas');
+  c.width = Math.round(W * scale); c.height = Math.round(h * scale);
+  const g = c.getContext('2d');
+  const draw = () => { g.fillStyle = '#E3DBCB'; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height); };
+  draw();
+  if (isSafari()) { await sleep(60); draw(); }    // Safari paints a foreignObject's type a beat late: draw it again
+  const blob = await new Promise((res, rej) => c.toBlob(b => (b ? res(b) : rej(new Error('no picture'))), 'image/png'));
+  st.innerHTML = '';
+  return { blob, width: c.width, height: c.height, canvas: c };
+}
+/** The screen on the paper at a feed or story size, when it fits at a readable scale; else null. */
+async function sized(shot, W, H) {
+  const pad = 60, k = Math.min((W - 2 * pad) / shot.width, (H - 2 * pad) / shot.height, 1);
+  if (k < 0.55) return null;
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const g = c.getContext('2d'); g.fillStyle = '#E3DBCB'; g.fillRect(0, 0, W, H);
+  const w = Math.round(shot.width * k), h = Math.round(shot.height * k);
+  g.drawImage(shot.canvas, Math.round((W - w) / 2), Math.round((H - h) / 2), w, h);
+  return new Promise((res, rej) => c.toBlob(b => (b ? res(b) : rej(new Error('no picture'))), 'image/png'));
+}
+/** A photograph's orientation from its pixels; a clip's length from its header. Neither is worth failing over. */
+async function probe(blob, kind) {
+  try {
+    if (kind === 'video') {
+      const url = URL.createObjectURL(blob);
+      try {
+        const v = document.createElement('video'); v.preload = 'metadata'; v.muted = true; v.src = url;
+        const d = await Promise.race([new Promise(res => { v.onloadedmetadata = () => res({ duration: v.duration, w: v.videoWidth, h: v.videoHeight }); v.onerror = () => res(null); }), sleep(4000).then(() => null)]);
+        return d ? { duration_s: Number.isFinite(d.duration) ? Math.round(d.duration * 10) / 10 : null, orientation: d.w && d.h ? (d.w > d.h ? 'landscape' : d.w < d.h ? 'portrait' : 'square') : null } : {};
+      } finally { URL.revokeObjectURL(url); }
+    }
+    if (typeof createImageBitmap !== 'function') return {};
+    const bm = await createImageBitmap(blob);
+    const o = bm.width > bm.height ? 'landscape' : bm.width < bm.height ? 'portrait' : 'square';
+    if (bm.close) bm.close();
+    return { orientation: o };
+  } catch (e) { return {}; }
+}
+
+/* ---------------- the build ----------------
+   env: what the app lends the pack —
+     now, build, crest, sotd(rid), honourLabel(slot), hearts(ph), byPid(ph),
+     screens(rids) → [{ key, screen, competition_id, round, title, html }]
+   opts: { scope: 'week' | rid, photos, clips, screens, hearted }
+   progress(pct, note) is called as it goes; signal (AbortSignal) stops it. */
+async function build(T, env, opts, progress, signal) {
+  const say = (pct, note) => progress && progress(Math.max(0, Math.min(100, Math.round(pct))), note);
+  const stop = () => { if (signal && signal.aborted) throw new Error('stopped'); };
+  const now = env.now || E.nowLocal(), at = Date.now();
+  const scope = opts.scope || 'week';
+  const rids = scope === 'week' ? ['week', ...D.ROUNDS.map(r => r.id), 'trip'] : [scope];
+  const scopeKey = scope === 'week' ? 'edition' : 'round';
+  const stamp = iso(at).slice(0, 10) + '_' + (scope === 'week' ? 'edition' : scope);
+  const used = new Set(), entries = [], when = new Date(at);
+  const golfers = E.golfers(T);
+  const byName = {}; for (const g of golfers) byName[g.display] = g.id;
+
+  /* the photographs and clips */
+  let all = Object.values(T.photos || {}).filter(p => p && /^https?:/i.test(String(p.url || '')) && (scope === 'week' || p.rid === scope));
+  all = all.filter(p => (p.kind === 'video' ? opts.clips : opts.photos) && (!opts.hearted || env.hearts(p) > 0)).sort((a, b) => (a.at || 0) - (b.at || 0));
+  const media = [];
+  let done = 0, failed = 0;
+  for (const ph of all) {
+    stop();
+    say(5 + 55 * done / Math.max(1, all.length), (ph.kind === 'video' ? 'Clip' : 'Photo') + ' ' + (done + 1) + ' of ' + all.length);
+    try {
+      const r = await fetch(ph.url, { signal }); if (!r.ok) throw new Error('http ' + r.status);
+      const blob = await r.blob();
+      const pid = env.byPid ? env.byPid(ph) : (byName[ph.byName] || null);
+      const name = unique('media/' + mediaName(ph, pid ? firstName((E.person(T, pid) || {}).display) : firstName(ph.byName), ph.at), used);
+      const info = await probe(blob, ph.kind);
+      entries.push({ name, data: blob, at: localDate(ph.at || at) });
+      media.push({ file: name, type: ph.kind === 'video' ? 'video' : 'photo', taken_at: iso(ph.at), day: env.photoDay ? env.photoDay(ph) : null, uploaded_by: pid, uploaded_by_name: ph.byName || null,
+        round: ph.rid === 'trip' ? null : ph.rid, hole: ph.hole == null ? null : ph.hole + 1, people_ids: [],
+        caption_hint: ph.caption || [roundName(ph.rid || 'trip'), ph.hole != null ? 'hole ' + (ph.hole + 1) : null, ph.byName ? 'by ' + ph.byName : null].filter(Boolean).join(' · '),
+        orientation: info.orientation || null, duration_s: info.duration_s == null ? null : info.duration_s, bytes: blob.size, mime: blob.type || ph.mime || null,
+        hearts: env.hearts(ph), starred: env.hearts(ph) > 0, id: ph.id });
+    } catch (e) { if (signal && signal.aborted) throw e; failed++; }
+    done++;
+  }
+
+  /* the screens */
+  const screens = [];
+  if (opts.screens) {
+    resetCss();
+    const list = env.screens(rids);
+    const tm = hhmm(at);
+    for (let i = 0; i < list.length; i++) {
+      stop();
+      const s = list[i];
+      say(60 + 32 * i / Math.max(1, list.length), 'Screen ' + (i + 1) + ' of ' + list.length + ' · ' + s.title);
+      try {
+        const shot = await snapshot(s.html, s.title, env.crest, s.width);
+        const base = roundToken(s.round || 'week') + '_' + s.key + '_' + tm;
+        const name = unique('screenshots/' + base + '.png', used);
+        entries.push({ name, data: shot.blob, at: when });
+        const row = { file: name, screen: s.screen, competition_id: s.competition_id || null, player_ids: s.player_ids || [], round: s.round || null, title: s.title, captured_at: iso(at), theme: 'light', width: shot.width, height: shot.height, sized: {} };
+        const feed = await sized(shot, 1080, 1350); if (feed) { const n = unique('sized/feed-4x5/' + base + '.png', used); entries.push({ name: n, data: feed, at: when }); row.sized.feed_4x5 = n; }
+        const story = await sized(shot, 1080, 1920); if (story) { const n = unique('sized/story-9x16/' + base + '.png', used); entries.push({ name: n, data: story, at: when }); row.sized.story_9x16 = n; }
+        screens.push(row);
+      } catch (e) { if (signal && signal.aborted) throw e; failed++; }
+    }
+    dropStage();
+  }
+
+  /* the manifest, the words, the plan */
+  say(94, 'The manifest');
+  const M = {
+    export: { id: 'exp_' + stamp + '_' + tm2(at), generated_at: iso(at), scope: scopeKey, round: scope === 'week' ? null : scope, app_version: env.build || D.BUILD, includes: { photos: !!opts.photos, clips: !!opts.clips, screens: !!opts.screens, hearted_only: !!opts.hearted }, failed_files: failed },
+    edition: { ...EDITION, courses: Object.keys(D.COURSES).map(k => courseJson(T, k)), rounds: D.ROUNDS.map(r => roundJson(T, r.id)) },
+    round: scope === 'week' ? null : roundJson(T, scope),
+    players: playersJson(T),
+    pairs: (T.config.pairs || []).map(p => ({ id: p.id, name: E.pairName(T, p), player_ids: p.members || [] })),
+    competitions: competitionsJson(T, now, scope === 'week' ? D.ROUNDS.map(r => r.id) : [scope]),
+    highlights: highlightsJson(T, now, scope === 'week' ? D.ROUNDS.map(r => r.id) : [scope], env),
+    tee_sheet: teeSheetJson(T, scope),
+    screenshots: screens,
+    media,
+  };
+  const picks = pickFor(M);
+  entries.unshift({ name: 'README.md', data: readmeMd(M, { screens: screens.length, photos: media.filter(m => m.type === 'photo').length, clips: media.filter(m => m.type === 'video').length }), at: when },
+                  { name: 'manifest.json', data: JSON.stringify(M, null, 2), at: when },
+                  { name: 'recap.md', data: recapMd(T, env, rids), at: when },
+                  { name: 'posting-plan.md', data: planMd(M, picks), at: when });
+  say(96, 'Zipping');
+  const blob = await zipBlob(entries, (i, n) => { stop(); if (i % 20 === 0) say(96 + 4 * i / n, 'Zipping ' + i + ' of ' + n); });
+  say(100, 'Done');
+  return { blob, name: 'union-invitational-' + stamp + '.zip', manifest: M, failed };
+}
+const tm2 = at => hhmm(at);
+/** Which files each beat of the plan uses. */
+function pickFor(M) {
+  const sc = M.screenshots, md = M.media;
+  const by = f => sc.filter(f).map(s => s.file);
+  const photos = md.filter(m => m.type === 'photo'), clips = md.filter(m => m.type === 'video');
+  const rounds = {};
+  for (const r of ['practice', 'r1', 'r2', 'r3']) {
+    const ps = photos.filter(m => m.round === r).sort((a, b) => b.hearts - a.hearts || (a.taken_at || '').localeCompare(b.taken_at || '')).slice(0, 4).map(m => m.file);
+    const ss = by(s => s.round === r && s.screen !== 'scorecard');
+    const cs = clips.filter(m => m.round === r).map(m => m.file);
+    if (ps.length || ss.length || cs.length) rounds[r] = [...ss, ...ps, ...cs];
+  }
+  const people = {};
+  for (const p of M.players.filter(p => p.role === 'golfer')) people[p.id] = [...by(s => (s.player_ids || []).includes(p.id)), ...photos.filter(m => m.uploaded_by === p.id).slice(0, 3).map(m => m.file)];
+  return {
+    tables: by(s => s.screen === 'leaderboard' || (s.screen === 'competition' && s.round == null && (s.competition_id === 'pairs' || s.competition_id === 'mvp'))),
+    hero: photos.slice().sort((a, b) => b.hearts - a.hearts).slice(0, 6).map(m => m.file),
+    rounds, people,
+    winners: by(s => s.screen === 'honours' || (s.screen === 'competition' && s.round == null)),
+    trip: photos.filter(m => m.round == null).map(m => m.file),
+    clips: clips.slice().sort((a, b) => b.hearts - a.hearts).slice(0, 3).map(m => m.file),
+  };
+}
+
+return {EDITION, HASHTAGS, crc32, zipBlob, slug, firstName, roundToken, roundNumber, localDate, iso, hhmm, mediaName, unique, roundName, playersJson, competitionsJson, highlightsJson, recapMd, fmtBytes, readmeMd, planMd, resetCss, dropStage, snapshot, sized, build};
+})();
+
 const __m_dbsupa = (function(){
 
 /* The tournament, kept in Supabase instead of the artifact platform.
@@ -11970,12 +12560,14 @@ const R = __m_resort;
 const X = __m_social;
 const F = __m_feedback;
 const RP = __m_report;
+const PK = __m_pack;
 const W = __m_weather;
 const H3D = __m_hole3d;
 const HOLES = __m_holes3d;
 /* The Union Invitational — yardage book application.
    Vanilla render + delegated dispatch. Every screen is a pure function of
    (tournament state, ui state, clock). */
+
 
 
 
@@ -19574,6 +20166,140 @@ async function fbSendPending() {
 let fbPendingBusy = false;
 
 /** Everything that is set up once, behind one door, with the count on it. */
+/* ---------------- the social pack ----------------
+   Manage → Social media pack. The commissioner's phone or laptop gathers
+   every photograph and clip, draws the screens that matter, writes the
+   manifest and the words, and hands over one zip (src/pack.js). It is the
+   export the social media plan asks the app for; the master PIN alone
+   sees it, and it leaves the device only as a file the commissioner saves. */
+let packCtl = null;
+const packState = () => UI.pack || (UI.pack = { scope: 'week', photos: true, clips: true, screens: true, hearted: false, busy: false, pct: 0, note: '', out: null, err: '' });
+/** What the pack would hold at the current choices, counted off the book. */
+function packCount(st) {
+  const ps = Object.values(T.photos || {}).filter(p => p && safeUrl(p.url) && (st.scope === 'week' || p.rid === st.scope) && (!st.hearted || hearts(p) > 0));
+  const photos = ps.filter(p => !isVideo(p)), clips = ps.filter(isVideo);
+  const sum = l => l.reduce((a, p) => a + (p.bytes || (isVideo(p) ? 12e6 : 1.4e6)), 0);
+  const screens = st.screens ? packScreens(st.scope === 'week' ? ['week', ...D.ROUNDS.map(r => r.id), 'trip'] : [st.scope], true).length : 0;
+  return { photos: st.photos ? photos.length : 0, clips: st.clips ? clips.length : 0, screens, bytes: (st.photos ? sum(photos) : 0) + (st.clips ? sum(clips) : 0) + screens * 450e3 };
+}
+function packCardHtml() {
+  const st = packState(), c = packCount({ ...st, scope: 'week', photos: true, clips: true, screens: true, hearted: false });
+  return `<button class="mg-social" data-act="packOpen">
+    <span class="mg-w"><span class="ms-k">★ After the week</span><span class="mg-t">Social media pack</span>
+      <span class="mg-n">${c.photos} photos · ${c.clips} clips · ${c.screens} screens · about ${PK.fmtBytes(c.bytes)}, with the brief for the posts</span></span>
+    <span class="ms-go">${st.busy ? 'Building…' : st.out ? 'Ready' : 'Build'}</span></button>`;
+}
+function packModalHtml() {
+  const st = packState(), c = packCount(st);
+  const scopes = [['week', 'The whole week']].concat(D.ROUNDS.filter(r => E.roundStanding(T, r.id).started || photosFor(r.id).length).map(r => [r.id, roomName(r.id)]));
+  const opt = (k, label, n) => `<button class="pk-opt${st[k] ? ' on' : ''}" data-act="packOpt" data-a="${k}" aria-pressed="${!!st[k]}"><i>${st[k] ? '✓' : ''}</i>${label}<small>${n}</small></button>`;
+  return `<div class="scrim" data-act="modalScrim"><div class="modal mgmodal pkmodal" role="dialog" aria-modal="true" aria-label="Social media pack">
+    ${modalBanner('Social media pack', 'Photos, clips and screens, with the brief for the posts')}
+    <div class="pk-scopes nos">${scopes.map(([id, l]) => `<button class="chip${st.scope === id ? ' on' : ''}" data-act="packScope" data-a="${id}">${esc(l)}</button>`).join('')}</div>
+    <div class="pk-opts">
+      ${opt('photos', 'Photos', c.photos)}
+      ${opt('clips', 'Clips', c.clips)}
+      ${opt('screens', 'Screens: tables, cards, reports', c.screens)}
+      ${opt('hearted', 'Only photos with hearts', '')}
+    </div>
+    <p class="pk-note">One zip, about <b>${PK.fmtBytes(c.bytes)}</b>: a manifest, the recaps and the coach's notes as words, a posting plan, the screens at 1080 wide, and every photo and clip full size. Best built on a laptop or an iPad; a phone has to hold all of it at once.</p>
+    ${st.busy ? `<div class="pk-prog"><i style="width:${st.pct}%"></i></div><p class="pk-st">${esc(st.note || 'Starting…')} · ${st.pct}%</p>` : ''}
+    ${st.err ? `<p class="xm-err">${esc(st.err)}</p>` : ''}
+    ${st.out ? `<div class="pk-done"><b>${esc(st.out.name)}</b><span>${PK.fmtBytes(st.out.blob.size)}${st.out.failed ? ' · ' + st.out.failed + ' file' + (st.out.failed === 1 ? '' : 's') + ' could not be fetched' : ''}</span></div>` : ''}
+    <div class="acts">
+      <button class="btn ghost" data-act="modalCancel">${st.busy ? 'Hide' : 'Close'}</button>
+      ${st.busy ? `<button class="btn ghost" data-act="packStop">Stop</button>` : st.out ? `<button class="btn" data-act="packSave">Save the zip</button>` : `<button class="btn" data-act="packBuild"${c.photos + c.clips + c.screens ? '' : ' disabled'}>Build the pack</button>`}
+    </div>
+  </div></div>`;
+}
+/** A screen's HTML out of a sheet: the banner and the body, none of the chrome. */
+function packFlat(html, cls) {
+  const w = document.createElement('div'); w.innerHTML = html;
+  const m = w.querySelector('.modal') || w;
+  m.querySelectorAll('.ps-grab, .acts, .cs-rounds, .cs-how, .rulelink, .rp-tools, .roundband, .rp-list, .titlerow .rulelink, .pnote, .chiprow, details, [data-act="cycleSquad"]').forEach(x => x.remove());
+  m.querySelectorAll('p.lede').forEach(x => { if (/^Tap /.test(x.textContent.trim())) x.remove(); });   // an instruction, not a reading
+  return `<div class="pk-flat ${cls || ''}">${m.innerHTML}</div>`;
+}
+/** The honours and the final tables as the tournament recap shows them. */
+function packHonoursHtml() {
+  const wk = T.recaps.week, body = wk && wk.body && typeof wk.body === 'object' ? wk.body : null;
+  const honours = body ? (body.honours || []).filter(h => h.winner) : [];
+  const nm = id => (E.person(T, id) || {}).display || (() => { const pr = (T.config.pairs || []).find(x => x.id === id); return pr ? E.pairName(T, pr) : id; })();
+  const cfgs = E.countingRounds(T).map(r => [r, E.roundCfg(T, r.id) || {}]);
+  return `<h2 class="head">The honours</h2>
+    <div class="rows" style="margin-top:8px">
+      ${WEEK_HONOURS.map(h => { const won = honours.find(x => x.slot === h.slot);
+        return `<div class="row honour"><span class="who">${esc(h.label)}<small>${won && won.citation ? esc(won.citation) : 'Not awarded.'}</small></span><span class="n rt-v win">${won ? esc(nm(won.winner)) : '—'}</span></div>`; }).join('')}
+      ${cfgs.map(([r, c]) => (c.ctpWinner ? `<div class="row honour"><span class="who">Closest to the pin<small>${esc(roomName(r.id))} · hole ${c.ctpHole || '?'}</small></span><span class="n rt-v win">${esc(nm(c.ctpWinner))}</span></div>` : '')
+        + (c.ldWinner ? `<div class="row honour"><span class="who">Longest drive<small>${esc(roomName(r.id))} · hole ${c.ldHole || '?'}${c.ldDist ? ' · ' + esc(c.ldDist) : ''}</small></span><span class="n rt-v win">${esc(nm(c.ldWinner))}</span></div>` : '')).join('')}
+    </div>
+    ${D.ROUNDS.filter(r => r.counts).map(r => { const b = T.recaps[r.id] && T.recaps[r.id].body; const hs = b ? (b.honours || []).filter(h => h.winner) : []; return hs.length ? `<h3 class="sub">${esc(roomName(r.id))}</h3><div class="rows" style="margin-top:8px">${hs.map(h => `<div class="row honour"><span class="who">${esc((HONOURS.find(x => x.slot === h.slot) || {}).label || h.slot)}<small>${esc(h.citation || '')}</small></span><span class="n rt-v win">${esc(nm(h.winner))}</span></div>`).join('')}</div>` : ''; }).join('')}`;
+}
+/** One round's tables: the pairs' points and every card, net and raw. */
+function packRoundHtml(rid) {
+  const pairs = E.pairRoundBoard(T, rid), field = E.recapField(T, rid), r = E.roundDef(rid) || {};
+  return `<h2 class="head">${esc(roomName(rid))} · ${esc(E.courseOf(T, rid).name)}</h2>
+    ${pairs.length ? `<div class="rows rectable" style="margin-top:8px"><div class="rowhead"><span class="rt-pos"></span><span class="rt-who">Team Competition</span><span class="rt-t">Points</span></div>
+      ${pairs.map(x => `<div class="row${x.pos === 1 ? ' lead' : ''}"><span class="pos rt-pos">${x.pos}</span><span class="who rt-who">${esc(x.name)}</span><span class="num rt-t pts">${x.today}</span></div>`).join('')}</div>` : ''}
+    <div class="rows rectable" style="margin-top:14px"><div class="rowhead"><span class="rt-pos"></span><span class="rt-who">Every card</span><span class="rt-t">${r.counts ? 'Net' : 'Gross'}<small class="rawh">net · raw</small></span></div>
+      ${field.map(x => `<div class="row${x.pos === 1 ? ' lead' : ''}"><span class="pos rt-pos">${x.pos}</span><span class="who rt-who">${esc(x.name)}<small>${x.strokes} strokes${x.band != null ? ' · hcp ' + esc(x.band) : ''}</small></span><span class="num rt-t ${cls(x.net != null ? x.net : x.raw)}">${esc(E.fmtToPar(x.net != null ? x.net : x.raw))}${x.net != null ? `<small class="rawv">${esc(E.fmtToPar(x.raw))}</small>` : ''}</span></div>`).join('')}</div>`;
+}
+/** Every screen the pack draws for these rounds. `count` lists them without rendering. */
+function packScreens(rids, count) {
+  const out = [], week = rids.includes('week');
+  const add = (key, screen, title, html, extra) => out.push({ key, screen, title, html: count ? '' : html(), ...(extra || {}) });
+  const golfers = E.golfers(T), body = reportBody();
+  if (week) {
+    add('leaderboard', 'leaderboard', 'The boards', () => packFlat(boardsHome()));
+    add('competition-pairs', 'competition', 'Team Competition', () => packFlat(boardPairs()), { competition_id: 'pairs' });
+    add('competition-mvp', 'competition', 'Tournament MVP', () => packFlat(boardMvp()), { competition_id: 'mvp' });
+    add('competition-ryder', 'competition', 'Ryder Cup', () => packFlat(scrRyder()), { competition_id: 'ryder_cup' });
+    if (E.bbbBoard(T).length) add('competition-bbb', 'competition', 'Bingo Bango Bongo', () => packFlat(boardBbb()), { competition_id: 'bbb' });
+    add('competition-prizes', 'competition', 'Longest drive & closest to the pin', () => packFlat(boardPrizes()), { competition_id: 'prizes' });
+    add('honours', 'honours', 'The honours', () => packHonoursHtml());
+    if (RP.fieldReport(T, now).players.length) {
+      add('report-union', 'report', 'The State of the Union', () => packFlat(RP.renderReport(T, body, { now })), { width: 540 });
+      for (const g of golfers) if (RP.playerReport(T, g.id, now)) add('report-' + slugOf(g.display), 'report', g.display + ' · player report', () => packFlat(RP.renderPlayer(T, body, g.id, { now })), { player_ids: [g.id], width: 600 });
+    }
+  }
+  for (const r of D.ROUNDS) {
+    if (!rids.includes(r.id) || !E.roundStanding(T, r.id).started) continue;
+    if (!week) add('tables', 'competition', roomName(r.id) + ' · the tables', () => packRoundHtml(r.id), { round: r.id, competition_id: 'pairs' });
+    for (const g of golfers) { const c = E.card(T, r.id, g.id); if (!c || !c.raw.some(v => v != null)) continue;
+      add('scorecard-' + slugOf(g.display), 'scorecard', g.display + ' · ' + roomName(r.id), () => packFlat(modalOf({ kind: 'card', pid: g.id, pids: [g.id], rid: r.id }), 'cardsheet'), { round: r.id, player_ids: [g.id], width: 600 }); }
+    for (const pr of (T.config.pairs || [])) { const pids = (pr.members || []).filter(id => { const c = E.card(T, r.id, id); return c && c.raw.some(v => v != null); }); if (pids.length < 2) continue;
+      add('scorecard-team-' + slugOf(E.pairName(T, pr)), 'scorecard', E.pairName(T, pr) + ' · ' + roomName(r.id), () => packFlat(modalOf({ kind: 'card', pair: pr.id, pids, rid: r.id }), 'cardsheet two'), { round: r.id, player_ids: pids, pair_id: pr.id, width: 600 }); }
+  }
+  return out;
+}
+const slugOf = s => PK.slug(s);
+function packEnv() {
+  return { now, build: D.BUILD, crest: IMG.crest || '', hearts, photoDay, sotd: rid => sotdWinner(rid),
+    honourLabel: slot => ((WEEK_HONOURS.find(x => x.slot === slot) || HONOURS.find(x => x.slot === slot) || {}).label || ''),
+    byPid: ph => { const g = E.golfers(T).find(x => x.display === ph.byName) || (T.config.people || []).find(x => x.display === ph.byName); return g ? g.id : null; },
+    screens: rids => packScreens(rids, false) };
+}
+async function packBuild() {
+  const st = packState(); if (st.busy || !canAdmin()) return;
+  if (st.out && st.out.url) { URL.revokeObjectURL(st.out.url); }
+  st.busy = true; st.pct = 0; st.note = 'Starting'; st.out = null; st.err = ''; render();
+  packCtl = new AbortController();
+  try {
+    const out = await PK.build(T, packEnv(), { scope: st.scope, photos: st.photos, clips: st.clips, screens: st.screens, hearted: st.hearted },
+      (pct, note) => { st.pct = pct; st.note = note; render(); }, packCtl.signal);
+    st.out = out;
+    if (store && store.note) store.note('pack built', out.name + ' ' + out.blob.size);
+  } catch (e) {
+    st.err = packCtl.signal.aborted ? 'Stopped.' : 'The pack did not build: ' + String(e && e.message || e).slice(0, 120);
+  } finally { PK.dropStage(); st.busy = false; packCtl = null; render(); }
+}
+/** Hand the zip to the browser, on a tap: Safari saves a file only from a gesture. */
+function packSave() {
+  const st = packState(); if (!st.out) return;
+  if (!st.out.url) st.out.url = URL.createObjectURL(st.out.blob);
+  const a = document.createElement('a'); a.href = st.out.url; a.download = st.out.name; a.rel = 'noopener';
+  document.body.appendChild(a); a.click(); a.remove();
+}
 function manageModalHtml() {
   const here = UI.screen;
   return `<div class="scrim" data-act="modalScrim"><div class="modal mgmodal"
@@ -19583,6 +20309,7 @@ function manageModalHtml() {
       <span class="mg-w"><span class="mg-t">${whoAmI() ? 'Chat and bets as ' + esc(nameOf(whoAmI())) : '🏟️ Bleacher pass'}</span>
         <span class="mg-n">${whoAmI() ? (isGuest(whoAmI()) ? 'In the bleachers · change your name' : 'Change who you are') : 'Not on the trip? Chat and bet from the bleachers'}</span></span>
       <span class="mg-go" aria-hidden="true">&rsaquo;</span></button>
+    ${canAdmin() ? packCardHtml() : ''}
     <div class="mglist">
       ${manageRows().map(([id, label, note]) => {
         const n = id === 'setup' ? setupIssues().length : 0;
@@ -21314,6 +22041,7 @@ function modalOf(m) {
 function modalHtml() {
   return UI.modal.kind === 'matchwhy' ? matchWhyHtml()
        : UI.modal.kind === 'manage' ? manageModalHtml()
+       : UI.modal.kind === 'pack' ? packModalHtml()
        : UI.modal.kind === 'round' ? roundModalHtml()
        : UI.modal.kind === 'roundsheet' ? roundSheetHtml()
        : UI.modal.kind === 'daysheet' ? daySheetHtml()
@@ -21636,6 +22364,12 @@ function onClick(e) {
       return;
     }
     case 'fbView': UI.modal = { kind: 'fbview' }; render(); if (!(UI.fbView && UI.fbView.rows)) fbLoad(); return;
+    case 'packOpen': if (!canAdmin()) return; packState(); UI.modal = { kind: 'pack' }; render(); return;
+    case 'packScope': { const st = packState(); if (st.busy) return; st.scope = a; st.out = null; st.err = ''; render(); return; }
+    case 'packOpt': { const st = packState(); if (st.busy) return; st[a] = !st[a]; st.out = null; st.err = ''; render(); return; }
+    case 'packBuild': packBuild(); return;
+    case 'packStop': if (packCtl) packCtl.abort(); return;
+    case 'packSave': packSave(); return;
     case 'fbRefresh': fbLoad(); return;
     case 'fbCopy': {
       const t = F.summaryText((UI.fbView && UI.fbView.rows) || [], fbWhen);

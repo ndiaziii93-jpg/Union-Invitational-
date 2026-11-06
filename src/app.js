@@ -12,6 +12,7 @@ import * as R from './resort.js';
 import * as X from './social.js';
 import * as F from './feedback.js';
 import * as RP from './report.js';
+import * as PK from './pack.js';
 import * as W from './weather.js';
 import * as H3D from './hole3d.js';
 import * as HOLES from './holes3d.js';
@@ -7600,6 +7601,140 @@ async function fbSendPending() {
 let fbPendingBusy = false;
 
 /** Everything that is set up once, behind one door, with the count on it. */
+/* ---------------- the social pack ----------------
+   Manage → Social media pack. The commissioner's phone or laptop gathers
+   every photograph and clip, draws the screens that matter, writes the
+   manifest and the words, and hands over one zip (src/pack.js). It is the
+   export the social media plan asks the app for; the master PIN alone
+   sees it, and it leaves the device only as a file the commissioner saves. */
+let packCtl = null;
+const packState = () => UI.pack || (UI.pack = { scope: 'week', photos: true, clips: true, screens: true, hearted: false, busy: false, pct: 0, note: '', out: null, err: '' });
+/** What the pack would hold at the current choices, counted off the book. */
+function packCount(st) {
+  const ps = Object.values(T.photos || {}).filter(p => p && safeUrl(p.url) && (st.scope === 'week' || p.rid === st.scope) && (!st.hearted || hearts(p) > 0));
+  const photos = ps.filter(p => !isVideo(p)), clips = ps.filter(isVideo);
+  const sum = l => l.reduce((a, p) => a + (p.bytes || (isVideo(p) ? 12e6 : 1.4e6)), 0);
+  const screens = st.screens ? packScreens(st.scope === 'week' ? ['week', ...D.ROUNDS.map(r => r.id), 'trip'] : [st.scope], true).length : 0;
+  return { photos: st.photos ? photos.length : 0, clips: st.clips ? clips.length : 0, screens, bytes: (st.photos ? sum(photos) : 0) + (st.clips ? sum(clips) : 0) + screens * 450e3 };
+}
+function packCardHtml() {
+  const st = packState(), c = packCount({ ...st, scope: 'week', photos: true, clips: true, screens: true, hearted: false });
+  return `<button class="mg-social" data-act="packOpen">
+    <span class="mg-w"><span class="ms-k">★ After the week</span><span class="mg-t">Social media pack</span>
+      <span class="mg-n">${c.photos} photos · ${c.clips} clips · ${c.screens} screens · about ${PK.fmtBytes(c.bytes)}, with the brief for the posts</span></span>
+    <span class="ms-go">${st.busy ? 'Building…' : st.out ? 'Ready' : 'Build'}</span></button>`;
+}
+function packModalHtml() {
+  const st = packState(), c = packCount(st);
+  const scopes = [['week', 'The whole week']].concat(D.ROUNDS.filter(r => E.roundStanding(T, r.id).started || photosFor(r.id).length).map(r => [r.id, roomName(r.id)]));
+  const opt = (k, label, n) => `<button class="pk-opt${st[k] ? ' on' : ''}" data-act="packOpt" data-a="${k}" aria-pressed="${!!st[k]}"><i>${st[k] ? '✓' : ''}</i>${label}<small>${n}</small></button>`;
+  return `<div class="scrim" data-act="modalScrim"><div class="modal mgmodal pkmodal" role="dialog" aria-modal="true" aria-label="Social media pack">
+    ${modalBanner('Social media pack', 'Photos, clips and screens, with the brief for the posts')}
+    <div class="pk-scopes nos">${scopes.map(([id, l]) => `<button class="chip${st.scope === id ? ' on' : ''}" data-act="packScope" data-a="${id}">${esc(l)}</button>`).join('')}</div>
+    <div class="pk-opts">
+      ${opt('photos', 'Photos', c.photos)}
+      ${opt('clips', 'Clips', c.clips)}
+      ${opt('screens', 'Screens: tables, cards, reports', c.screens)}
+      ${opt('hearted', 'Only photos with hearts', '')}
+    </div>
+    <p class="pk-note">One zip, about <b>${PK.fmtBytes(c.bytes)}</b>: a manifest, the recaps and the coach's notes as words, a posting plan, the screens at 1080 wide, and every photo and clip full size. Best built on a laptop or an iPad; a phone has to hold all of it at once.</p>
+    ${st.busy ? `<div class="pk-prog"><i style="width:${st.pct}%"></i></div><p class="pk-st">${esc(st.note || 'Starting…')} · ${st.pct}%</p>` : ''}
+    ${st.err ? `<p class="xm-err">${esc(st.err)}</p>` : ''}
+    ${st.out ? `<div class="pk-done"><b>${esc(st.out.name)}</b><span>${PK.fmtBytes(st.out.blob.size)}${st.out.failed ? ' · ' + st.out.failed + ' file' + (st.out.failed === 1 ? '' : 's') + ' could not be fetched' : ''}</span></div>` : ''}
+    <div class="acts">
+      <button class="btn ghost" data-act="modalCancel">${st.busy ? 'Hide' : 'Close'}</button>
+      ${st.busy ? `<button class="btn ghost" data-act="packStop">Stop</button>` : st.out ? `<button class="btn" data-act="packSave">Save the zip</button>` : `<button class="btn" data-act="packBuild"${c.photos + c.clips + c.screens ? '' : ' disabled'}>Build the pack</button>`}
+    </div>
+  </div></div>`;
+}
+/** A screen's HTML out of a sheet: the banner and the body, none of the chrome. */
+function packFlat(html, cls) {
+  const w = document.createElement('div'); w.innerHTML = html;
+  const m = w.querySelector('.modal') || w;
+  m.querySelectorAll('.ps-grab, .acts, .cs-rounds, .cs-how, .rulelink, .rp-tools, .roundband, .rp-list, .titlerow .rulelink, .pnote, .chiprow, details, [data-act="cycleSquad"]').forEach(x => x.remove());
+  m.querySelectorAll('p.lede').forEach(x => { if (/^Tap /.test(x.textContent.trim())) x.remove(); });   // an instruction, not a reading
+  return `<div class="pk-flat ${cls || ''}">${m.innerHTML}</div>`;
+}
+/** The honours and the final tables as the tournament recap shows them. */
+function packHonoursHtml() {
+  const wk = T.recaps.week, body = wk && wk.body && typeof wk.body === 'object' ? wk.body : null;
+  const honours = body ? (body.honours || []).filter(h => h.winner) : [];
+  const nm = id => (E.person(T, id) || {}).display || (() => { const pr = (T.config.pairs || []).find(x => x.id === id); return pr ? E.pairName(T, pr) : id; })();
+  const cfgs = E.countingRounds(T).map(r => [r, E.roundCfg(T, r.id) || {}]);
+  return `<h2 class="head">The honours</h2>
+    <div class="rows" style="margin-top:8px">
+      ${WEEK_HONOURS.map(h => { const won = honours.find(x => x.slot === h.slot);
+        return `<div class="row honour"><span class="who">${esc(h.label)}<small>${won && won.citation ? esc(won.citation) : 'Not awarded.'}</small></span><span class="n rt-v win">${won ? esc(nm(won.winner)) : '—'}</span></div>`; }).join('')}
+      ${cfgs.map(([r, c]) => (c.ctpWinner ? `<div class="row honour"><span class="who">Closest to the pin<small>${esc(roomName(r.id))} · hole ${c.ctpHole || '?'}</small></span><span class="n rt-v win">${esc(nm(c.ctpWinner))}</span></div>` : '')
+        + (c.ldWinner ? `<div class="row honour"><span class="who">Longest drive<small>${esc(roomName(r.id))} · hole ${c.ldHole || '?'}${c.ldDist ? ' · ' + esc(c.ldDist) : ''}</small></span><span class="n rt-v win">${esc(nm(c.ldWinner))}</span></div>` : '')).join('')}
+    </div>
+    ${D.ROUNDS.filter(r => r.counts).map(r => { const b = T.recaps[r.id] && T.recaps[r.id].body; const hs = b ? (b.honours || []).filter(h => h.winner) : []; return hs.length ? `<h3 class="sub">${esc(roomName(r.id))}</h3><div class="rows" style="margin-top:8px">${hs.map(h => `<div class="row honour"><span class="who">${esc((HONOURS.find(x => x.slot === h.slot) || {}).label || h.slot)}<small>${esc(h.citation || '')}</small></span><span class="n rt-v win">${esc(nm(h.winner))}</span></div>`).join('')}</div>` : ''; }).join('')}`;
+}
+/** One round's tables: the pairs' points and every card, net and raw. */
+function packRoundHtml(rid) {
+  const pairs = E.pairRoundBoard(T, rid), field = E.recapField(T, rid), r = E.roundDef(rid) || {};
+  return `<h2 class="head">${esc(roomName(rid))} · ${esc(E.courseOf(T, rid).name)}</h2>
+    ${pairs.length ? `<div class="rows rectable" style="margin-top:8px"><div class="rowhead"><span class="rt-pos"></span><span class="rt-who">Team Competition</span><span class="rt-t">Points</span></div>
+      ${pairs.map(x => `<div class="row${x.pos === 1 ? ' lead' : ''}"><span class="pos rt-pos">${x.pos}</span><span class="who rt-who">${esc(x.name)}</span><span class="num rt-t pts">${x.today}</span></div>`).join('')}</div>` : ''}
+    <div class="rows rectable" style="margin-top:14px"><div class="rowhead"><span class="rt-pos"></span><span class="rt-who">Every card</span><span class="rt-t">${r.counts ? 'Net' : 'Gross'}<small class="rawh">net · raw</small></span></div>
+      ${field.map(x => `<div class="row${x.pos === 1 ? ' lead' : ''}"><span class="pos rt-pos">${x.pos}</span><span class="who rt-who">${esc(x.name)}<small>${x.strokes} strokes${x.band != null ? ' · hcp ' + esc(x.band) : ''}</small></span><span class="num rt-t ${cls(x.net != null ? x.net : x.raw)}">${esc(E.fmtToPar(x.net != null ? x.net : x.raw))}${x.net != null ? `<small class="rawv">${esc(E.fmtToPar(x.raw))}</small>` : ''}</span></div>`).join('')}</div>`;
+}
+/** Every screen the pack draws for these rounds. `count` lists them without rendering. */
+function packScreens(rids, count) {
+  const out = [], week = rids.includes('week');
+  const add = (key, screen, title, html, extra) => out.push({ key, screen, title, html: count ? '' : html(), ...(extra || {}) });
+  const golfers = E.golfers(T), body = reportBody();
+  if (week) {
+    add('leaderboard', 'leaderboard', 'The boards', () => packFlat(boardsHome()));
+    add('competition-pairs', 'competition', 'Team Competition', () => packFlat(boardPairs()), { competition_id: 'pairs' });
+    add('competition-mvp', 'competition', 'Tournament MVP', () => packFlat(boardMvp()), { competition_id: 'mvp' });
+    add('competition-ryder', 'competition', 'Ryder Cup', () => packFlat(scrRyder()), { competition_id: 'ryder_cup' });
+    if (E.bbbBoard(T).length) add('competition-bbb', 'competition', 'Bingo Bango Bongo', () => packFlat(boardBbb()), { competition_id: 'bbb' });
+    add('competition-prizes', 'competition', 'Longest drive & closest to the pin', () => packFlat(boardPrizes()), { competition_id: 'prizes' });
+    add('honours', 'honours', 'The honours', () => packHonoursHtml());
+    if (RP.fieldReport(T, now).players.length) {
+      add('report-union', 'report', 'The State of the Union', () => packFlat(RP.renderReport(T, body, { now })), { width: 540 });
+      for (const g of golfers) if (RP.playerReport(T, g.id, now)) add('report-' + slugOf(g.display), 'report', g.display + ' · player report', () => packFlat(RP.renderPlayer(T, body, g.id, { now })), { player_ids: [g.id], width: 600 });
+    }
+  }
+  for (const r of D.ROUNDS) {
+    if (!rids.includes(r.id) || !E.roundStanding(T, r.id).started) continue;
+    if (!week) add('tables', 'competition', roomName(r.id) + ' · the tables', () => packRoundHtml(r.id), { round: r.id, competition_id: 'pairs' });
+    for (const g of golfers) { const c = E.card(T, r.id, g.id); if (!c || !c.raw.some(v => v != null)) continue;
+      add('scorecard-' + slugOf(g.display), 'scorecard', g.display + ' · ' + roomName(r.id), () => packFlat(modalOf({ kind: 'card', pid: g.id, pids: [g.id], rid: r.id }), 'cardsheet'), { round: r.id, player_ids: [g.id], width: 600 }); }
+    for (const pr of (T.config.pairs || [])) { const pids = (pr.members || []).filter(id => { const c = E.card(T, r.id, id); return c && c.raw.some(v => v != null); }); if (pids.length < 2) continue;
+      add('scorecard-team-' + slugOf(E.pairName(T, pr)), 'scorecard', E.pairName(T, pr) + ' · ' + roomName(r.id), () => packFlat(modalOf({ kind: 'card', pair: pr.id, pids, rid: r.id }), 'cardsheet two'), { round: r.id, player_ids: pids, pair_id: pr.id, width: 600 }); }
+  }
+  return out;
+}
+const slugOf = s => PK.slug(s);
+function packEnv() {
+  return { now, build: D.BUILD, crest: IMG.crest || '', hearts, photoDay, sotd: rid => sotdWinner(rid),
+    honourLabel: slot => ((WEEK_HONOURS.find(x => x.slot === slot) || HONOURS.find(x => x.slot === slot) || {}).label || ''),
+    byPid: ph => { const g = E.golfers(T).find(x => x.display === ph.byName) || (T.config.people || []).find(x => x.display === ph.byName); return g ? g.id : null; },
+    screens: rids => packScreens(rids, false) };
+}
+async function packBuild() {
+  const st = packState(); if (st.busy || !canAdmin()) return;
+  if (st.out && st.out.url) { URL.revokeObjectURL(st.out.url); }
+  st.busy = true; st.pct = 0; st.note = 'Starting'; st.out = null; st.err = ''; render();
+  packCtl = new AbortController();
+  try {
+    const out = await PK.build(T, packEnv(), { scope: st.scope, photos: st.photos, clips: st.clips, screens: st.screens, hearted: st.hearted },
+      (pct, note) => { st.pct = pct; st.note = note; render(); }, packCtl.signal);
+    st.out = out;
+    if (store && store.note) store.note('pack built', out.name + ' ' + out.blob.size);
+  } catch (e) {
+    st.err = packCtl.signal.aborted ? 'Stopped.' : 'The pack did not build: ' + String(e && e.message || e).slice(0, 120);
+  } finally { PK.dropStage(); st.busy = false; packCtl = null; render(); }
+}
+/** Hand the zip to the browser, on a tap: Safari saves a file only from a gesture. */
+function packSave() {
+  const st = packState(); if (!st.out) return;
+  if (!st.out.url) st.out.url = URL.createObjectURL(st.out.blob);
+  const a = document.createElement('a'); a.href = st.out.url; a.download = st.out.name; a.rel = 'noopener';
+  document.body.appendChild(a); a.click(); a.remove();
+}
 function manageModalHtml() {
   const here = UI.screen;
   return `<div class="scrim" data-act="modalScrim"><div class="modal mgmodal"
@@ -7609,6 +7744,7 @@ function manageModalHtml() {
       <span class="mg-w"><span class="mg-t">${whoAmI() ? 'Chat and bets as ' + esc(nameOf(whoAmI())) : '🏟️ Bleacher pass'}</span>
         <span class="mg-n">${whoAmI() ? (isGuest(whoAmI()) ? 'In the bleachers · change your name' : 'Change who you are') : 'Not on the trip? Chat and bet from the bleachers'}</span></span>
       <span class="mg-go" aria-hidden="true">&rsaquo;</span></button>
+    ${canAdmin() ? packCardHtml() : ''}
     <div class="mglist">
       ${manageRows().map(([id, label, note]) => {
         const n = id === 'setup' ? setupIssues().length : 0;
@@ -9340,6 +9476,7 @@ function modalOf(m) {
 function modalHtml() {
   return UI.modal.kind === 'matchwhy' ? matchWhyHtml()
        : UI.modal.kind === 'manage' ? manageModalHtml()
+       : UI.modal.kind === 'pack' ? packModalHtml()
        : UI.modal.kind === 'round' ? roundModalHtml()
        : UI.modal.kind === 'roundsheet' ? roundSheetHtml()
        : UI.modal.kind === 'daysheet' ? daySheetHtml()
@@ -9662,6 +9799,12 @@ function onClick(e) {
       return;
     }
     case 'fbView': UI.modal = { kind: 'fbview' }; render(); if (!(UI.fbView && UI.fbView.rows)) fbLoad(); return;
+    case 'packOpen': if (!canAdmin()) return; packState(); UI.modal = { kind: 'pack' }; render(); return;
+    case 'packScope': { const st = packState(); if (st.busy) return; st.scope = a; st.out = null; st.err = ''; render(); return; }
+    case 'packOpt': { const st = packState(); if (st.busy) return; st[a] = !st[a]; st.out = null; st.err = ''; render(); return; }
+    case 'packBuild': packBuild(); return;
+    case 'packStop': if (packCtl) packCtl.abort(); return;
+    case 'packSave': packSave(); return;
     case 'fbRefresh': fbLoad(); return;
     case 'fbCopy': {
       const t = F.summaryText((UI.fbView && UI.fbView.rows) || [], fbWhen);
