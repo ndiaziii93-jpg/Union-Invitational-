@@ -27,7 +27,7 @@ T0.club.season.packages = [{ id: '7g', name: '7 golf', price: 2000, nights: 7, g
 T0.club['signup__g1'] = { pid: 'g1', status: 'in', pkg: '7g', shirt: 'XL' };
 T0.club['money__g1'] = { pid: 'g1', pays: [{ amt: 400, at: '2026-01-12' }, { amt: 600, at: '2026-02-01' }] };
 ok('the ledger: price from the package, paid from the payments, the meter half full', [C.ledger(T0, 'g1').price, C.ledger(T0, 'g1').paid, C.ledger(T0, 'g1').left, C.ledger(T0, 'g1').pct], [2000, 1000, 1000, 0.5]);
-ok('the headcount export carries the name, the package and the money', C.csvHeadcount(T0).split('\n')[1], 'A,golfer,in,7 golf,7,yes,XL,,2000,1000,1000');
+ok('the headcount export carries the name, the package and the money', C.csvHeadcount(T0).split('\n')[1], 'A,golfer,Tournament · men’s,in,7 golf,7,yes,XL,,2000,1000,1000');
 
 /* the book in a browser */
 mkdirSync(S + '/clubsite', { recursive: true });
@@ -104,7 +104,7 @@ ok('Archive: the Belek book, and no link to Claude anywhere', [await p.locator('
 
 console.log('\nVegas HQ');
 await act('go', { a: 'hq' }); await p.waitForTimeout(300);
-ok('the hero counts the days; the line has seven items; the field lists everyone but the refs', await p.evaluate(() => [document.querySelector('.vhero .big').textContent.replace(/\D/g, '') !== '', document.querySelectorAll('.chk').length, document.querySelectorAll('.frow').length]), [true, 7, 20]);
+ok('the hero counts the days; the line has eight items; the field lists everyone but the refs', await p.evaluate(() => [document.querySelector('.vhero .big').textContent.replace(/\D/g, '') !== '', document.querySelectorAll('.chk').length, document.querySelectorAll('.frow').length]), [true, 8, 20]);
 await act('signStatus', { a: 'in' }); await p.waitForTimeout(200);
 await act('signPkg', { a: '7g' }); await p.waitForTimeout(200);
 await p.evaluate(() => { window.__T.club.money__g1 = { pid: 'g1', pays: [{ amt: 400, at: '2026-11-01', note: 'deposit' }] }; window.__forceRender(); }); await p.waitForTimeout(200);
@@ -122,7 +122,7 @@ await act('courseApprove', { a: 'g1', b: '1' }); await p.waitForTimeout(200);
 ok('the commissioner approves the course', await p.evaluate(() => window.__T.club.course__g1.approved), true);
 await act('clubMTab', { a: 'exports' }); await p.waitForTimeout(200);
 await act('exportCsv', { a: 'headcount' }); await p.waitForTimeout(300);
-ok('the headcount export names the golfer, the package and the money', await p.evaluate(() => window.__UI.lastCsv && window.__UI.lastCsv.text.split('\n')[1]), 'Norberto Diaz III,golfer,in,7 nights · golfer,7,yes,,,2089,400,1689');
+ok('the headcount export names the golfer, the package and the money', await p.evaluate(() => window.__UI.lastCsv && window.__UI.lastCsv.text.split('\n')[1]), 'Norberto Diaz III,golfer,Tournament · men’s,in,7 nights · golfer,7,yes,,,2089,400,1689');
 await act('modalCancel'); await p.waitForTimeout(200);
 
 console.log('\nthe closed book');
@@ -133,6 +133,27 @@ await act('go', { a: 'entry' }); await p.waitForTimeout(400);
 ok('Score Entry in the closed book: the gate says closed, no save bar, no tile to tap', await p.evaluate(() => [document.querySelector('.gate .msg b').textContent, document.querySelectorAll('.savebar:not(.mine)').length, document.querySelectorAll('.ptile[data-act="padOpen"]').length]), ['This season is closed', 0, 0]);
 await act('archiveView', { a: '' }); await p.waitForTimeout(300);
 ok('back to the Clubhouse', [await tabs(), await p.evaluate(() => window.__UI.screen)], [['You', 'Season', 'Vegas HQ'], 'you']);
+
+console.log('\nadding yourself, and who is on the app');
+await act('whoOpen'); await p.waitForTimeout(300);
+ok('the name window offers to add yourself, men’s or women’s', [await p.locator('.who-join').count(), await p.locator('.who-join [data-act="joinDiv"]').count(), await p.locator('#joinName').count()], [1, 2, 1]);
+await p.fill('#joinName', 'Norberto'); await act('joinOpen'); await p.waitForTimeout(200);
+ok('a roster name cannot be added twice', await p.evaluate(() => (window.__UI.joinErr || '').includes('on the list already')), true);
+await p.fill('#joinName', 'Sam Rivera'); await act('joinDiv', { a: 'women' }); await p.waitForTimeout(150); await act('joinOpen'); await p.waitForTimeout(250);
+ok('a new name asks for a PIN', await p.evaluate(() => window.__UI.modal && window.__UI.modal.kind === 'whopin' && window.__UI.modal.mode === 'join' && window.__UI.modal.division === 'women'), true);
+await p.fill('#whoPinA', '4321'); await p.fill('#whoPinB', '4321'); await act('whoPinGo'); await p.waitForTimeout(600);
+const joined = await p.evaluate(() => { const np = window.__T.config.people.find(x => x.name === 'Sam Rivera'); return np ? [np.role, np.division, window.__UI.who === np.id, !!window.__T.chat['id_' + np.id]] : null; });
+ok('she is on the roster as a women’s golfer, this phone is her, her name has its PIN', joined, ['golfer', 'women', true, true]);
+await act('go', { a: 'hq' }); await p.waitForTimeout(300);
+ok('Vegas HQ knows which tournament she is in once she is in', await p.evaluate(() => { const b = document.createElement('button'); b.dataset.act = 'signStatus'; b.dataset.a = 'in'; document.getElementById('app').appendChild(b); b.click(); b.remove(); return new Promise(r => setTimeout(() => r([...document.querySelectorAll('[data-act="signDivision"].on')].map(x => x.dataset.a)), 300)); }), ['women']);
+await act('signDivision', { a: 'men' }); await p.waitForTimeout(200);
+ok('and she can change it', await p.evaluate(() => [window.__T.club['signup__' + window.__UI.who].division, [...document.querySelectorAll('.frow')].find(r => r.textContent.includes('Sam Rivera')).querySelector('.fn small').textContent]), ['men', 'men’s']);
+await act('manageOpen'); await p.waitForTimeout(200); await act('onAppOpen'); await p.waitForTimeout(500);
+const onapp = await p.evaluate(() => ({ rows: document.querySelectorAll('.ctbl.onapp tbody tr').length, on: document.querySelectorAll('.ctbl.onapp tr.onit').length, sam: [...document.querySelectorAll('.ctbl.onapp tbody tr')].find(r => r.textContent.includes('Sam Rivera')).textContent.replace(/\s+/g, ' ').trim() }));
+ok('Who’s on the app lists the roster with roles, and marks who has chosen their name', [onapp.rows >= 24, onapp.on >= 1, /Player · men’s/.test(onapp.sam) && /Yes/.test(onapp.sam) && /added themselves/.test(onapp.sam)], [true, true, true]);
+await act('modalCancel'); await p.waitForTimeout(200);
+await p.evaluate(() => { window.__UI.who = 'g1'; window.__forceRender(); });
+
 await p.screenshot({ path: S + '/club-you.png' });
 await act('go', { a: 'hq' }); await p.waitForTimeout(300); await p.screenshot({ path: S + '/club-hq.png', fullPage: true });
 await act('go', { a: 'season' }); await act('seasonTab', { a: 'stop' }); await p.waitForTimeout(300); await p.screenshot({ path: S + '/club-season.png' });

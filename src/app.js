@@ -2679,6 +2679,15 @@ function whoModalHtml() {
     <p>${forced ? 'Everyone says who they are, once. It goes on what you post in the chat and what you bet. ' : 'Your name goes on what you post and what you bet. '}${D.PINS_ENABLED && UI.role && UI.role !== 'viewer' ? (canAdmin() ? 'You’re signed in as the commissioner: tap your name, no PIN needed.' : 'You’re signed in as a ref: tap your name, no second PIN needed.')
       : 'On the trip? Tap your name. You’ll make a PIN the first time, so nobody else can be you.'}</p>
     ${block('⛳ Players', 'golfer')}${block('Refs', 'official')}${block('🍹 The gallery · here at the resort', 'spectator')}
+    ${clubPhase() ? `<div class="who-guest who-join">
+      <span class="who-l">⛳ Playing, but not on the list? Add yourself</span>
+      <p class="who-gn">Your name as you want it on the boards, which tournament you’re in, then a PIN. The commissioner sees every name added.</p>
+      <div class="who-c" role="radiogroup" aria-label="Which tournament">${[['men', 'Tournament · men’s'], ['women', 'Tournament · women’s']].map(([k, l]) => `<button class="${(UI.joinDiv || 'men') === k ? 'on' : ''}" data-act="joinDiv" data-a="${k}" role="radio" aria-checked="${(UI.joinDiv || 'men') === k}">${l}</button>`).join('')}</div>
+      <div class="who-gr"><input id="joinName" type="text" maxlength="40" autocomplete="off" autocapitalize="words" enterkeyhint="go"
+          placeholder="Your full name" value="${esc(UI.joinDraft || '')}" aria-label="Your name, for the roster">
+        <button class="btn sm" data-act="joinOpen">Add me</button></div>
+      ${UI.joinErr ? `<p class="xm-err">${esc(UI.joinErr)}</p>` : ''}
+    </div>` : ''}
     <div class="who-guest">
       <span class="who-l">🏟️ Not on the trip? Take a seat in the bleachers</span>
       <p class="who-gn">Following from home: chat and bet under your own name with a bleacher pass. Everyone sees you’re in the bleachers.</p>
@@ -2703,7 +2712,7 @@ function noPinFor(pid) {
 }
 /** A name from the trip, unlocked with its PIN — or its PIN made, the first time. */
 function whoPinHtml() {
-  const m = UI.modal, nm = nameOf(m.pid), set = m.mode === 'set';
+  const m = UI.modal, nm = m.mode === 'join' ? m.name : nameOf(m.pid), set = m.mode === 'set' || m.mode === 'join';
   return `<div class="scrim" data-act="modalScrim"><div class="modal whomodal" role="dialog" aria-modal="true" aria-label="${set ? 'Make a PIN' : 'Enter your PIN'}">
     ${modalBanner(set ? 'Make your PIN, ' + nm : 'Your PIN, ' + nm, 'Chat and bets')}
     <p>${set ? `Four numbers you’ll remember. You’ll need them to be ${esc(nm)} on any other phone. The commissioner can look it up if you forget. Not your bank PIN.`
@@ -2732,10 +2741,10 @@ function whoPinGo() {
   if (fa) m.a = fa.value; if (fb) m.b = fb.value;
   const a = String(m.a || '').trim(), b = String(m.b || '').trim();
   m.err = '';
-  const held = pinOf(m.pid);
+  const held = m.mode === 'join' ? '' : pinOf(m.pid);
   if (m.mode === 'set' && held) { m.mode = 'enter'; m.a = ''; m.err = 'Someone has already made a PIN for this name. Enter it, or ask the commissioner.'; redrawFrom('whoPinA'); return; }
   if (!/^\d{4}$/.test(a)) { m.err = 'Four numbers, please.'; redrawFrom('whoPinA'); return; }
-  if (m.mode === 'set' && a !== b) { m.err = 'Those two don’t match. Try again.'; m.b = ''; redrawFrom('whoPinB'); return; }
+  if ((m.mode === 'set' || m.mode === 'join') && a !== b) { m.err = 'Those two don’t match. Try again.'; m.b = ''; redrawFrom('whoPinB'); return; }
   /* the server keeps the PIN hashed and is the judge of it; the phone keeps
      it to sign the posts with */
   if (m.busy) return;
@@ -2754,7 +2763,15 @@ function whoPinGo() {
     else m.err = 'No signal to check the PIN with. Try again when there is one.';
     redrawFrom('whoPinA');
   };
-  if (m.mode === 'set') store.claimName(m.pid, a).then(done, fail);
+  if (m.mode === 'join') {
+    store.joinName(m.name, m.division, a).then(pid => { m.pid = pid; UI.joinDraft = ''; done(); }, e => {
+      m.busy = false;
+      const why = String((e && e.message) || '');
+      m.err = /PIN attempts/.test(why) ? 'Too many PIN attempts just now. Wait a minute and try again.' : e && e.code === '42501' ? why : 'No signal to add you with. Try again when there is one.';
+      redrawFrom('whoPinA');
+    });
+  }
+  else if (m.mode === 'set') store.claimName(m.pid, a).then(done, fail);
   else store.checkName(m.pid, a).then(okd => { if (okd) done(); else { m.busy = false; m.err = 'That isn’t it. The commissioner can clear it so you can choose again.'; m.a = ''; redrawFrom('whoPinA'); } }, fail);
 }
 function guestJoin() {
@@ -7979,7 +7996,8 @@ function scrHq() {
   const status = sign && sign.status;
   const pkgs = s.packages;
   const rowOf = p => { const Lp = C.ledger(T, p.id); const st = p.signup ? p.signup.status : null;
-    return `<div class="frow"><span class="fn">${esc(p.display || p.name)}${p.role === 'spectator' ? ' <small>gallery</small>' : ''}</span>
+    const dv = C.divisionOf(T, p.id);
+    return `<div class="frow"><span class="fn">${esc(p.display || p.name)} <small>${dv === 'men' ? 'men’s' : dv === 'women' ? 'women’s' : 'not golfing'}</small></span>
       <span class="fs"><span class="pill ${st || 'none'}">${st === 'in' ? 'In' : st === 'maybe' ? 'Maybe' : st === 'out' ? 'Out' : 'Not yet'}</span></span>
       <span class="fm">${Lp.price ? meterHtml(Lp, cur) : '<span class="muted">—</span>'}</span>
       <span class="fp num">${Lp.price ? esc(C.fmtMoney(Lp.paid, cur)) + ' <small>of ' + esc(C.fmtMoney(Lp.price, cur)) + '</small>' : ''}</span></div>`; };
@@ -7993,6 +8011,9 @@ function scrHq() {
   </div>
   <h3 class="sub">Are you in?</h3>
   <div class="chiprow">${[['in', 'I’m in'], ['maybe', 'Maybe'], ['out', 'Not this one']].map(([k, l]) => `<button class="chip${status === k ? ' on' : ''}" data-act="signStatus" data-a="${k}" aria-pressed="${status === k}">${l}</button>`).join('')}</div>
+  ${status && status !== 'out' ? `<h3 class="sub">Playing?</h3>
+  <p class="sublede">Which tournament you’re in, for the tee sheets and the trophies. It changes nothing about the season’s stops.</p>
+  <div class="chiprow">${C.DIVISIONS.map(([k, l]) => `<button class="chip${C.divisionOf(T, me) === k ? ' on' : ''}" data-act="signDivision" data-a="${k}" aria-pressed="${C.divisionOf(T, me) === k}">${l}</button>`).join('')}</div>` : ''}
   ${status && status !== 'out' ? `<h3 class="sub">Your package</h3>
   <p class="sublede">One price for the trip. Each package says what it covers; there are no itemised receipts, the money is collected outside the book and the commissioner marks it paid here.</p>
   <div class="pkgs">${pkgs.map(p => `<button class="pkg${sign && sign.pkg === p.id ? ' on' : ''}" data-act="signPkg" data-a="${p.id}" aria-pressed="${sign && sign.pkg === p.id}"><span class="pk-n">${esc(p.name)}</span><span class="pk-p num">${p.price ? esc(C.fmtMoney(p.price, cur)) : 'price to come'}</span><ul>${(p.inc || []).map(x => `<li>${esc(x)}</li>`).join('')}</ul></button>`).join('')}</div>
@@ -8202,6 +8223,39 @@ function clubManageHtml() {
   </div></div>`;
 }
 
+/* ---------------- MANAGE: WHO'S ON THE APP ----------------
+   Every name on the roster with its role and tournament, and whether that
+   person has chosen their name on a phone yet (and when). The bleachers
+   after. No PINs here; those stay on Roster. */
+function onAppLoad(force) {
+  if (!store || !canAdmin()) return;
+  const v = UI.onApp;
+  if (!force && v && (v.busy || (v.got && Date.now() - v.got < 120000))) return;
+  UI.onApp = { ...(v || {}), busy: true, err: '' };
+  store.whoRoster().then(rows => { UI.onApp = { rows: rows || [], got: Date.now(), busy: false, err: '' }; render(); },
+    e => { UI.onApp = { rows: (v && v.rows) || [], got: Date.now(), busy: false, err: /PIN/.test(String(e && e.message || '')) ? 'The server did not accept this phone’s master PIN.' : 'Could not read it: no signal.' }; render(); });
+}
+function onAppHtml() {
+  onAppLoad();
+  const v = UI.onApp || { rows: [], busy: true };
+  const by = {}; (v.rows || []).forEach(r => { by[r.pid] = r; });
+  const ppl = (T.config.people || []).slice().sort((a, b) => (a.order || 0) - (b.order || 0));
+  const when = iso => { if (!iso) return ''; const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }); };
+  const roleOf = p => p.role === 'official' ? 'Ref' : p.role === 'spectator' ? (C.divisionOf(T, p.id) === 'women' ? 'Gallery · playing women’s' : 'Gallery') : 'Player · ' + (C.divisionOf(T, p.id) === 'women' ? 'women’s' : 'men’s');
+  const on = ppl.filter(p => by[p.id]).length;
+  const guests = allGuests().filter(g => !g.removed);
+  return `<div class="scrim" data-act="modalScrim"><div class="modal mgmodal" role="dialog" aria-modal="true" aria-label="Who’s on the app">
+    ${modalBanner('Who’s on the app', on + ' of ' + ppl.length + ' on the roster have chosen their name' + (guests.length ? ' · ' + guests.length + ' in the bleachers' : ''))}
+    ${v.err ? `<p class="xm-err">${esc(v.err)}</p>` : ''}
+    <table class="ctbl onapp"><thead><tr><th>Name</th><th>Role</th><th>On the app</th></tr></thead><tbody>
+      ${ppl.map(p => { const r = by[p.id]; return `<tr class="${r ? 'onit' : ''}"><td><b>${esc(p.display || p.name)}</b>${p.joined ? ' <small>added themselves</small>' : ''}</td><td>${esc(roleOf(p))}</td><td>${r ? '<span class="ok">Yes</span>' + (r.at ? ' <small>' + esc(when(r.at)) + '</small>' : '') : '<span class="muted">Not yet</span>'}</td></tr>`; }).join('')}
+      ${guests.map(g => `<tr class="onit"><td><b>${esc(g.name)}</b></td><td>Bleachers</td><td><span class="ok">Yes</span> <small>${esc(when(g.at ? new Date(g.at).toISOString() : null))}</small></td></tr>`).join('')}
+    </tbody></table>
+    <p class="sublede">“Yes” means the person has tapped their name on a phone and made their PIN. Roles are changed on Roster; the tournament is the person’s own choice on Vegas HQ.</p>
+    <div class="acts"><button class="btn ghost" data-act="onAppReload">Read it again</button><button class="btn ghost" data-act="modalCancel">Close</button></div>
+  </div></div>`;
+}
+
 /** The season's card in Manage: the master's door to the Clubhouse. */
 function clubCardHtml() {
   const s = seasonNow();
@@ -8267,6 +8321,10 @@ function manageModalHtml() {
         <span class="mg-n">${whoAmI() ? (isGuest(whoAmI()) ? 'In the bleachers · change your name' : 'Change who you are') : 'Not on the trip? Chat and bet from the bleachers'}</span></span>
       <span class="mg-go" aria-hidden="true">&rsaquo;</span></button>
     ${canAdmin() ? clubCardHtml() : ''}
+    ${canAdmin() ? `<button class="mg-row" data-act="onAppOpen">
+      <span class="mg-w"><span class="mg-t">Who’s on the app</span>
+        <span class="mg-n">Every name on the roster, their role and tournament, and who has chosen their name on a phone</span></span>
+      <span class="mg-go" aria-hidden="true">&rsaquo;</span></button>` : ''}
     ${canAdmin() ? packCardHtml() : ''}
     <div class="mglist">
       ${manageRows().map(([id, label, note]) => {
@@ -10009,6 +10067,7 @@ function modalHtml() {
        : UI.modal.kind === 'manage' ? manageModalHtml()
        : UI.modal.kind === 'pack' ? packModalHtml()
        : UI.modal.kind === 'club' ? clubManageHtml()
+       : UI.modal.kind === 'onapp' ? onAppHtml()
        : UI.modal.kind === 'round' ? roundModalHtml()
        : UI.modal.kind === 'roundsheet' ? roundSheetHtml()
        : UI.modal.kind === 'daysheet' ? daySheetHtml()
@@ -10468,6 +10527,22 @@ function onClick(e) {
       render(); return;
     }
     case 'whoPinGo': whoPinGo(); return;
+    case 'joinDiv': UI.joinDiv = a; { const f = document.getElementById('joinName'); if (f) UI.joinDraft = f.value; } render(); return;
+    case 'joinOpen': {
+      const f = document.getElementById('joinName');
+      const name = String(f ? f.value : UI.joinDraft || '').trim().replace(/\s+/g, ' ');
+      UI.joinDraft = name; UI.joinErr = '';
+      if (name.length < 2) { UI.joinErr = 'Put in your full name.'; redrawFrom('joinName'); return; }
+      const norm = x => String(x || '').toLowerCase().replace(/[^a-z0-9\u00c0-\u024f ]+/g, ' ').replace(/\s+/g, ' ').trim();
+      const typed = norm(name);
+      const clash = (T.config.people || []).find(p => [p.display, p.name].some(x => { const n = norm(x); return n && (typed === n || typed === n.split(' ')[0]); }));
+      if (clash) { UI.joinErr = clash.display + ' is on the list already. If that’s you, tap the name above.'; redrawFrom('joinName'); return; }
+      UI.modal = { kind: 'whopin', mode: 'join', name, division: UI.joinDiv || 'men', pid: null, back: UI.modal && UI.modal.back, a: '', b: '', err: '' };
+      redrawFrom('whoPinA'); return;   // the name box is still focused, and a focused box holds the redraw back
+    }
+    case 'signDivision': { const me = myPid(); if (!me) return; store.writeClub('signup__' + me, { pid: me, division: a }, true); render(); return; }
+    case 'onAppOpen': if (!canAdmin()) return; UI.modal = { kind: 'onapp' }; UI.modalErr = ''; render(); return;
+    case 'onAppReload': onAppLoad(true); render(); return;
     case 'guestJoin': guestJoin(); return;
     case 'modeCycle': setMode(MODES[(MODES.indexOf(UI.mode) + 1) % MODES.length]); render(); return;
     case 'modeDay': setMode('day'); render(); return;

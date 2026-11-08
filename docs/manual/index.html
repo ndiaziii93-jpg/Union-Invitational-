@@ -5523,6 +5523,11 @@ h2.greet small{display:block;font-size:14px;color:var(--turf);font-weight:400;fo
 .cardshot{display:block;margin-top:8px;max-width:220px;border-radius:10px;overflow:hidden;border:1px solid var(--rule)}
 .cardshot img{display:block;width:100%}
 
+.who-join .who-c{margin:8px 0}
+.ctbl.onapp td small{color:var(--turf);font-size:12px}
+.ctbl.onapp .ok{color:var(--green);font-weight:700}
+.ctbl.onapp tr.onit td:first-child{box-shadow:inset 3px 0 0 var(--green)}
+
 </style>
 <style>
 /* A page, not a window. */
@@ -9363,6 +9368,20 @@ function createSupabaseDb(opts) {
     /** A PIN just arrived on this phone: anything that waited for one goes now. */
     pinChanged() { if (waiting.size) armRetry(true); },
     /** Take a name with a four-digit PIN. Throws 'taken' if it already has one. */
+    /** A person not on the roster adds themselves as a golfer, with their PIN: resolves to the new id. */
+    async clubJoin(name, division, p) {
+      const { data, error } = await bound(sb.rpc('club_join', { p_name: String(name || ''), p_division: String(division || ''), p_pin: String(p || ''), p_who: deviceId || null }));
+      if (error) throw error;
+      if (typeof data === 'string' && data.startsWith('ok:')) return data.slice(3);
+      const e = new Error(String(data || 'denied').replace(/^denied:\s*/, '')); e.code = '42501'; throw e;
+    },
+    /** For the master PIN: who has chosen their name, when, from which phone. */
+    async clubRoster(master) {
+      const { data, error } = await bound(sb.rpc('club_roster', { p_pin: String(master || ''), p_who: deviceId || null }));
+      if (error) throw error;
+      if (data && data.denied) { const e = new Error('PIN not accepted'); e.code = '42501'; throw e; }
+      return (data && data.rows) || [];
+    },
     async claimName(pid, p) {
       const { data, error } = await bound(sb.rpc('claim_name', { p_pid: pid, p_pin: String(p || ''), p_who: deviceId || null }));
       if (error) { if (error.code === '23505' || /already has/i.test(error.message || '')) { const e = new Error('taken'); e.code = 'taken'; throw e; } throw error; }
@@ -10927,6 +10946,28 @@ function createStore(onChange) {
            set who(v) { currentWho = { pid: String((v && v.pid) || ''), pin: String((v && v.pin) || '') }; if (db && db.pinChanged) db.pinChanged(); },
            /** Take a name with its PIN. On the server the PIN is hashed; with
             *  no server it is kept beside the chat as it always was. */
+           /** Add yourself to the roster as a golfer, men's or women's, with a PIN. Resolves to the new id. */
+           async joinName(name, division, p) {
+             const gone = e => e && (e.code === 'PGRST202' || /could not find the function/i.test(String(e.message || '')));
+             if (backend === 'supabase' && db && db.clubJoin) {
+               try {
+                 const pid = await db.clubJoin(name, division, p);
+                 if (!T.config.people.some(x => x.id === pid)) { T.config.people = T.config.people.concat([normPerson({ id: pid, name, display: name, role: 'golfer', division, band: null, location: null, group: '7-day', order: 1000 + T.config.people.length, joined: true })]); notify(); }
+                 return pid;
+               } catch (e) { if (!gone(e)) throw e; }
+             }
+             const pid = 'j' + Math.random().toString(36).slice(2, 8);
+             await addPerson({ id: pid, name, display: name, role: 'golfer', division, band: null, location: null, group: '7-day', joined: true, dev: deviceId, at: Date.now() });
+             await putSocial('chat', 'id_' + pid, { k: 'id', pid, pin: String(p), at: Date.now(), dev: deviceId });
+             return pid;
+           },
+           /** Who has chosen their name: [{pid, at, dev}], for the master PIN. */
+           async whoRoster() {
+             if (backend === 'supabase' && db && db.clubRoster) {
+               try { return await db.clubRoster(currentPin); } catch (e) { if (!(e && (e.code === 'PGRST202' || /could not find the function/i.test(String(e.message || ''))))) throw e; }
+             }
+             return Object.values(T.chat || {}).filter(d => d && d.k === 'id' && d.pid).map(d => ({ pid: d.pid, at: d.at ? new Date(d.at).toISOString() : null, dev: d.dev || null }));
+           },
            async claimName(pid, p) {
              const gone = e => e && (e.code === 'PGRST202' || /could not find the function/i.test(String(e.message || '')));
              if (backend === 'supabase' && db && db.claimName) {

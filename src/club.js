@@ -226,6 +226,18 @@ export function unionHcp(T, pid, today) {
 }
 export const playingOf = (T, pid, today) => { const u = unionHcp(T, pid, today); return u.hcp == null ? null : Math.round(u.hcp); };
 
+/* ---------- divisions ---------- */
+
+export const DIVISIONS = [['men', 'Tournament · men’s'], ['women', 'Tournament · women’s'], ['none', 'Not golfing']];
+/** Men's, women's, or not golfing: the sign-up's word first, the roster's second. */
+export function divisionOf(T, pid) {
+  const s = signupOf(T, pid), p = person(T, pid);
+  if (s && ['men', 'women', 'none'].includes(s.division)) return s.division;
+  if (p && (p.division === 'men' || p.division === 'women')) return p.division;
+  return p && p.role === 'golfer' ? 'men' : p ? 'none' : null;
+}
+export const divisionLabel = d => (DIVISIONS.find(x => x[0] === d) || [])[1] || '—';
+
 /* ---------- Vegas HQ ---------- */
 
 export const signupOf = (T, pid) => (T.club && T.club['signup__' + pid]) || null;
@@ -261,10 +273,11 @@ export function fmtMoney(n, cur) {
 
 /** The checklist a person's line is made of, for the Ready dial. */
 export function lineOf(T, pid) {
-  const s = signupOf(T, pid), t = travelOf(T, pid), L = ledger(T, pid);
+  const s = signupOf(T, pid), t = travelOf(T, pid), L = ledger(T, pid), p = person(T, pid);
   const room = season(T).rooms.find(r => (r.members || []).includes(pid)) || null;
   const items = [
     { k: 'in',      label: 'In for Vegas',    ok: !!s && s.status === 'in', val: !s ? 'Not answered' : s.status === 'in' ? 'Yes' : s.status === 'maybe' ? 'Maybe' : 'Out' },
+    { k: 'division', label: 'Playing',        ok: !!(s && s.division) || (p && p.division), val: divisionLabel(divisionOf(T, pid)) + (!(s && s.division) && !(p && p.division) ? ' · confirm' : '') },
     { k: 'pkg',     label: 'Package',         ok: !!(L.pkg), val: L.pkg ? L.pkg.name : 'Pick one' },
     { k: 'deposit', label: 'Deposit',         ok: L.paid > 0, val: L.paid > 0 ? 'Paid ' + fmtMoney(L.paid) : L.price ? 'Due ' + fmtDay(season(T).deadlines.deposit) : 'After the package' },
     { k: 'balance', label: 'Balance',         ok: L.settled, val: L.settled ? 'Settled' : L.price ? fmtMoney(L.left) + ' to go' : '—' },
@@ -300,10 +313,10 @@ export const csv = rows => rows.map(r => r.map(cell).join(',')).join('\n') + '\n
 
 export function csvHeadcount(T) {
   const f = field(T);
-  const rows = [['Name', 'Role', 'Status', 'Package', 'Nights', 'Golfing', 'Shirt', 'Name on shirt', 'Price', 'Paid', 'Outstanding']];
+  const rows = [['Name', 'Role', 'Playing', 'Status', 'Package', 'Nights', 'Golfing', 'Shirt', 'Name on shirt', 'Price', 'Paid', 'Outstanding']];
   for (const st of ['in', 'maybe']) for (const p of f[st]) {
     const L = ledger(T, p.id);
-    rows.push([p.name, p.role, st, L.pkg ? L.pkg.name : '', L.pkg ? L.pkg.nights : '', L.pkg ? (L.pkg.golf ? 'yes' : 'no') : '', p.signup && p.signup.shirt || '', p.signup && p.signup.nameOn || '', L.price, L.paid, L.left]);
+    rows.push([p.name, p.role, divisionLabel(divisionOf(T, p.id)), st, L.pkg ? L.pkg.name : '', L.pkg ? L.pkg.nights : '', L.pkg ? (L.pkg.golf ? 'yes' : 'no') : '', p.signup && p.signup.shirt || '', p.signup && p.signup.nameOn || '', L.price, L.paid, L.left]);
   }
   return csv(rows);
 }

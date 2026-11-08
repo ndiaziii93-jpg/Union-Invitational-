@@ -1383,6 +1383,28 @@ export function createStore(onChange) {
            set who(v) { currentWho = { pid: String((v && v.pid) || ''), pin: String((v && v.pin) || '') }; if (db && db.pinChanged) db.pinChanged(); },
            /** Take a name with its PIN. On the server the PIN is hashed; with
             *  no server it is kept beside the chat as it always was. */
+           /** Add yourself to the roster as a golfer, men's or women's, with a PIN. Resolves to the new id. */
+           async joinName(name, division, p) {
+             const gone = e => e && (e.code === 'PGRST202' || /could not find the function/i.test(String(e.message || '')));
+             if (backend === 'supabase' && db && db.clubJoin) {
+               try {
+                 const pid = await db.clubJoin(name, division, p);
+                 if (!T.config.people.some(x => x.id === pid)) { T.config.people = T.config.people.concat([normPerson({ id: pid, name, display: name, role: 'golfer', division, band: null, location: null, group: '7-day', order: 1000 + T.config.people.length, joined: true })]); notify(); }
+                 return pid;
+               } catch (e) { if (!gone(e)) throw e; }
+             }
+             const pid = 'j' + Math.random().toString(36).slice(2, 8);
+             await addPerson({ id: pid, name, display: name, role: 'golfer', division, band: null, location: null, group: '7-day', joined: true, dev: deviceId, at: Date.now() });
+             await putSocial('chat', 'id_' + pid, { k: 'id', pid, pin: String(p), at: Date.now(), dev: deviceId });
+             return pid;
+           },
+           /** Who has chosen their name: [{pid, at, dev}], for the master PIN. */
+           async whoRoster() {
+             if (backend === 'supabase' && db && db.clubRoster) {
+               try { return await db.clubRoster(currentPin); } catch (e) { if (!(e && (e.code === 'PGRST202' || /could not find the function/i.test(String(e.message || ''))))) throw e; }
+             }
+             return Object.values(T.chat || {}).filter(d => d && d.k === 'id' && d.pid).map(d => ({ pid: d.pid, at: d.at ? new Date(d.at).toISOString() : null, dev: d.dev || null }));
+           },
            async claimName(pid, p) {
              const gone = e => e && (e.code === 'PGRST202' || /could not find the function/i.test(String(e.message || '')));
              if (backend === 'supabase' && db && db.claimName) {

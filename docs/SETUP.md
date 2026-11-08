@@ -213,6 +213,14 @@ no PINs in it and nothing to fill in. It does three things:
 
 The check at the end lists `club_delete`, `club_write` and `season_guard`.
 
+Then run `docs/supabase-club-2.sql` the same way. It lets a person who is
+not on the roster add themselves as a golfer (men's or women's tournament)
+with a PIN, gives you **Manage → Who's on the app** (every name, their role,
+and who has chosen their name on a phone), and corrects the closed-book
+guard so a name can still be chosen while the 2026 book is closed. Without
+it, nobody new can pick their name. The check at the end lists `club_join`,
+`club_roster` and `season_guard`.
+
 Then, in the book, as the master: **Manage → The season → The Clubhouse**.
 That opens the three tabs for everyone, closes the 2026 book, and seeds the
 stops from the sheet (the Merry Mulligan Open, the Frostbite Open, the

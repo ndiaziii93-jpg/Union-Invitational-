@@ -623,6 +623,20 @@ export function createSupabaseDb(opts) {
     /** A PIN just arrived on this phone: anything that waited for one goes now. */
     pinChanged() { if (waiting.size) armRetry(true); },
     /** Take a name with a four-digit PIN. Throws 'taken' if it already has one. */
+    /** A person not on the roster adds themselves as a golfer, with their PIN: resolves to the new id. */
+    async clubJoin(name, division, p) {
+      const { data, error } = await bound(sb.rpc('club_join', { p_name: String(name || ''), p_division: String(division || ''), p_pin: String(p || ''), p_who: deviceId || null }));
+      if (error) throw error;
+      if (typeof data === 'string' && data.startsWith('ok:')) return data.slice(3);
+      const e = new Error(String(data || 'denied').replace(/^denied:\s*/, '')); e.code = '42501'; throw e;
+    },
+    /** For the master PIN: who has chosen their name, when, from which phone. */
+    async clubRoster(master) {
+      const { data, error } = await bound(sb.rpc('club_roster', { p_pin: String(master || ''), p_who: deviceId || null }));
+      if (error) throw error;
+      if (data && data.denied) { const e = new Error('PIN not accepted'); e.code = '42501'; throw e; }
+      return (data && data.rows) || [];
+    },
     async claimName(pid, p) {
       const { data, error } = await bound(sb.rpc('claim_name', { p_pid: pid, p_pin: String(p || ''), p_who: deviceId || null }));
       if (error) { if (error.code === '23505' || /already has/i.test(error.message || '')) { const e = new Error('taken'); e.code = 'taken'; throw e; } throw error; }
