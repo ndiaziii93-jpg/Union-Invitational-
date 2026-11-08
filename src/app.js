@@ -2463,7 +2463,7 @@ function boardChat(inSheet) {
   <div class="ch-post">
     ${reMoment ? `<div class="ch-re"><span>Heckling: <b>${esc(reMoment.title)}</b></span><button data-act="chatHeckle" data-a="" aria-label="Stop heckling">✕</button></div>` : ''}
     ${replyTo ? `<div class="ch-re ch-reply"><span>↩ Replying to <b>${esc(replyTo.name || nameOf(replyTo.pid))}</b>: “${esc(replyTo.text.length > 60 ? replyTo.text.slice(0, 58) + '…' : replyTo.text)}”</span><button data-act="chatReply" data-a="" aria-label="Stop replying">✕</button></div>` : ''}
-    ${me ? `<div class="ch-at" id="chatAt" role="listbox" aria-label="Call someone out" hidden></div>
+    ${bookFrozen() ? `<p class="empty">This season is closed. The chat is here to read.</p>` : me ? `<div class="ch-at" id="chatAt" role="listbox" aria-label="Call someone out" hidden></div>
       <div class="ch-box"><button type="button" class="ch-atb" aria-label="Call someone out by name">@</button>
         <input id="chatText" type="text" maxlength="280" autocomplete="off" enterkeyhint="send"
           placeholder="${replyTo ? 'Your reply…' : reMoment ? 'Heckle it…' : isRound ? 'Say something to the group…' : 'Anything from the trip…'}" value="${esc(UI.chatDraft || '')}" aria-label="Message">
@@ -8077,7 +8077,7 @@ function scrClubEntry() {
   </div>
   <div class="holehead"><h3 class="num">Hole ${h + 1}</h3><span class="num">Par ${hole.par}</span><span class="m num">Stroke index ${hole.si}</span>${hole.y ? `<span class="m num">${hole.y} yds</span>` : ''}<span class="r num">Picks up at ${cap}</span></div>
   ${keypad}
-  <div class="prow${UI.clubPad ? ' sel' : ''}${editable && raw == null ? ' nextup' : ''}"><div class="pmain"><div class="pwho"><div class="nm">${esc(p.display || '')}</div><div class="pb">${strokes ? '+' + strokes + ' here' : 'no strokes here'}${pts != null ? ' · ' + pts + ' pt' + (pts === 1 ? '' : 's') : ''}</div></div>
+  <div class="prow${UI.clubPad ? ' sel' : ''}${editable && raw == null ? ' nextup' : ''}"><div class="pmain"><div class="pwho"><div class="nm">${esc(p.display || '')}</div><div class="bd num">hcp ${card.hcp == null ? '—' : Math.round(card.hcp)} <span>${strokes ? '+' + strokes + ' here' : '·'}</span>${pts != null ? ' · <b>' + pts + ' pt' + (pts === 1 ? '' : 's') + '</b>' : ''}${tot.thru ? ' · ' + tot.pts + ' pts thru ' + tot.thru : ''}</div></div>
     ${editable ? `<button class="ptile${raw == null ? ' empty' : ''}" data-act="clubPad" aria-label="Your score on hole ${h + 1}"><span class="fig raw"><span class="v num">${raw == null ? '·' : raw}</span></span></button>` : `<span class="ptile still"><span class="fig raw"><span class="v num">${raw == null ? '·' : raw}</span></span></span>`}</div></div>
   ${donePanel}
   <table class="ctbl mini"><thead><tr><th></th>${Array.from({ length: 9 }, (_, i) => `<th class="r">${i + 1}</th>`).join('')}<th class="r">Out</th></tr></thead><tbody>
@@ -9456,7 +9456,7 @@ function stopGps() {
  * the band.
  */
 function manageDial(role) {
-  return dialMark(role, setupIssues().length, '');
+  return dialMark(role, clubPhase() ? 0 : setupIssues().length, '');
 }
 
 /* The same mark twice: once on the nameplate, once on the strip that stays
@@ -10174,6 +10174,12 @@ function onClick(e) {
   const { act, a, b, c } = el.dataset;
   if (el.tagName === 'SELECT' || el.tagName === 'INPUT') return;
   if (store && store.note) store.note('tap', act + ' a=' + (a || '') + ' b=' + (b || ''));
+  /* THE CLOSED BOOK. Reading is everything; a tap that would write to the
+     week's rows (a bet, a post, a reaction, a vote) is answered here rather
+     than refused by the server a moment later. */
+  if (bookFrozen() && !inClub() && /^(xBet|xCreate|xDelete|xEditGo|xFix|xSellFrom|xSettle|xSubmit|xtSave|chatSend|chatReact|sotdCrown|sotdSend|sotdVote|heart)/.test(act)) {
+    UI.toast = 'This season is closed: everything here is readable, nothing can be changed.'; render(); return;
+  }
   const rid = UI.entryRound;
 
   /* A line half typed and then abandoned — for another tab, another round,
@@ -12474,7 +12480,7 @@ export function boot() {
       UI.setupSeen = true;
       const saved = loadRole();
       if (saved && S.ROLES[saved.role] && saved.role !== 'viewer') UI.role = saved.role;
-      if (setupIssues().length) UI.modal = { kind: 'setup' };
+      if (setupIssues().length && !clubPhase()) UI.modal = { kind: 'setup' };   // the week's setup waits for the week
     }
     /* ONE REDRAW A FRAME. A sweep lands forty rows and said so forty times,
        and each time the whole page was rebuilt. The state is taken at once
