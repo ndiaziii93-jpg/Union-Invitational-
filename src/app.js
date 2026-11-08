@@ -7507,6 +7507,9 @@ const FB_DONE_KEY = 'union-invitational:feedback', FB_DRAFT_KEY = 'union-invitat
    answers stay readable behind Manage, and the week's own form comes back
    with the week. */
 const feedbackLive = () => !!(T.config.feedback && T.config.feedback.live) && !clubPhase();
+/* and it only comes up by itself during the trip and the two days after;
+   later, the card on Today and the link still work for anyone who wants to answer */
+const feedbackNags = () => feedbackLive() && now.iso <= new Date(Date.parse(D.EVENT.endISO) + 2 * 86400000).toISOString().slice(0, 10);
 const feedbackSent = () => { try { return JSON.parse(localStorage.getItem(FB_DONE_KEY) || 'null'); } catch (e) { return null; } };
 const fbRead = k => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } };
 const fbPut = (k, v) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* blocked */ } };
@@ -8763,8 +8766,8 @@ function paint() {
   if (inUse()) { renderPending = true; return; }
   renderPending = false;
   /* the feedback form comes up once an open, until it has been answered, and waits for any other window to go first */
-  if (loaded() && feedbackLive() && !feedbackSent() && !UI.fbChecked) fbCheckDone();
-  if (!UI.fbNagged && loaded() && feedbackLive() && !feedbackSent() && (UI.fbChecked === 'no' || UI.fbChecked === 'err') && !UI.modal && !UI.recapOpen && !UI.askOpen && !UI.fbOpen) { UI.fbNagged = true; setTimeout(() => { if (!UI.modal && !UI.fbOpen && !feedbackSent()) fbOpen(); }, 0); }
+  if (loaded() && feedbackNags() && !feedbackSent() && !UI.fbChecked) fbCheckDone();
+  if (!UI.fbNagged && loaded() && feedbackNags() && !feedbackSent() && (UI.fbChecked === 'no' || UI.fbChecked === 'err') && !UI.modal && !UI.recapOpen && !UI.askOpen && !UI.fbOpen) { UI.fbNagged = true; setTimeout(() => { if (!UI.modal && !UI.fbOpen && !feedbackSent()) fbOpen(); }, 0); }
   wheelDone = null;       // this rebuild destroys it; the next one starts clean
   /* A turn written by somebody else's phone arrives as an ordinary change to
      the book, and the book redraws whenever it hears one — so this is where
