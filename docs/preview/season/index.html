@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Road to Vegas — three ways · The Union Invitational</title>
+<style>
+@font-face{font-family:'Source Serif';src:url(../../app/fonts/source-serif-latin-normal.woff2) format('woff2');font-weight:400 800;font-display:swap}
+@font-face{font-family:'Source Serif';src:url(../../app/fonts/source-serif-latin-italic.woff2) format('woff2');font-style:italic;font-weight:400 800;font-display:swap}
+:root{--paper:#E3DBCB;--page:#EEE8D5;--sunk:#DBD2BA;--ink:#1D2E21;--turf:#5C6B55;--green:#3E5C43;--rule:#C4B896;--hair:#DCD1B4;--flag:#9E3B2E;--gold:#8C6B2F;--gold-up:#C9A253;--pine:#1E3A2B;--onpine:#EFE7D2;--serif:'Source Serif',Georgia,serif}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.45 var(--serif)}
+.top{position:sticky;top:0;z-index:5;background:var(--pine);color:var(--onpine);padding:12px 16px;border-bottom:3px solid var(--gold-up)}
+.top b{display:block;font-size:18px}.top small{display:block;font-size:12px;letter-spacing:.14em;text-transform:uppercase;opacity:.8}
+.tabs{display:flex;gap:6px;margin-top:10px}
+.tabs button{flex:1;padding:9px 4px;border-radius:10px;border:1px solid rgba(255,255,255,.25);background:transparent;color:var(--onpine);font:inherit;font-weight:700;font-size:12.5px;cursor:pointer}
+.tabs button.on{background:var(--gold-up);color:var(--pine);border-color:var(--gold-up)}
+.wrap{max-width:640px;margin:0 auto;padding:16px}
+.about{font-size:14.5px;color:var(--turf);margin:0 0 12px;padding:10px 12px;border-left:3px solid var(--gold-up);background:var(--page)}
+.about b{color:var(--ink)}
+h3{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin:18px 0 8px}
+.phones{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}
+.phone{background:var(--page);border:1px solid var(--rule);border-radius:22px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.14);font-size:13px}
+.bar{background:var(--pine);color:var(--onpine);padding:9px 12px;display:flex;justify-content:space-between;align-items:center}
+.bar b{font-size:13px}.bar small{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold-up)}
+.seas{display:inline-flex;border:1px solid rgba(255,255,255,.35);border-radius:999px;overflow:hidden;font-size:10px}
+.seas span{padding:3px 8px}.seas .on{background:var(--gold-up);color:var(--pine);font-weight:800}
+.body{padding:10px}
+.card{border:1px solid var(--rule);border-radius:12px;background:#F7F2E6;padding:9px 11px;margin:0 0 7px}
+.card b{display:block;font-size:14px}.card small{display:block;color:var(--turf);font-size:11.5px;line-height:1.35}
+.card.pine{background:var(--pine);color:var(--onpine);border-color:var(--pine)}.card.pine small{color:var(--onpine);opacity:.85}
+.card.gold{background:linear-gradient(135deg,#F3DC9E,#E6C97E);border-color:var(--gold-up)}
+.k{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);font-weight:800}
+.big{font-size:22px;font-weight:800;line-height:1}
+.row{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--hair);font-size:12.5px}
+.row:last-child{border-bottom:0}.row b{font-weight:700}
+.pill{border-radius:999px;padding:1px 7px;font-size:10.5px;font-weight:800}
+.in{background:#DCE3D2;color:var(--green)}.maybe{background:#F3DC9E;color:var(--gold)}.out{background:#EFDCD7;color:var(--flag)}.paid{background:var(--pine);color:var(--gold-up)}
+.nav{display:flex;border-top:1px solid var(--rule);background:var(--page)}
+.nav span{flex:1;text-align:center;font-size:9.5px;padding:7px 2px;color:var(--turf);letter-spacing:.04em}
+.nav span.on{color:var(--green);font-weight:800}
+.sc{display:grid;grid-template-columns:repeat(9,1fr);gap:2px;margin:6px 0}
+.sc i{font-style:normal;text-align:center;font-size:11px;padding:4px 0;border-radius:4px;background:#FBFAF7;border:1px solid var(--hair)}
+.sc i.h{background:var(--pine);color:var(--onpine);border-color:var(--pine)}
+.cam{display:flex;align-items:center;gap:8px;border:1px dashed var(--gold);border-radius:10px;padding:7px 10px;font-size:12px;color:var(--gold);margin-top:6px}
+table{width:100%;border-collapse:collapse;font-size:13.5px;background:var(--page);border:1px solid var(--rule)}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--hair);vertical-align:top}
+th{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--turf);background:var(--sunk)}
+.pros{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pros div{background:var(--page);border:1px solid var(--rule);border-radius:12px;padding:10px 12px;font-size:13.5px}
+.pros b{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:4px}
+.pros .g b{color:var(--green)}.pros .r b{color:var(--flag)}
+.pros ul{margin:0;padding-left:16px}
+.note{font-size:13px;color:var(--turf);text-align:center;margin:16px 0 0}
+.hide{display:none}
+@media (max-width:480px){ .pros{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+<div class="top"><small>Preview · for the commissioner</small><b>The Road to Vegas, three ways</b>
+  <div class="tabs"><button class="on" data-v="a">A · Seasons in the book</button><button data-v="b">B · The Clubhouse</button><button data-v="c">C · Two books</button></div>
+</div>
+<div class="wrap">
+
+<section id="v-a">
+<p class="about"><b>A · One book, seasons inside.</b> The app you already have learns what a season is. A switch in the masthead: Belek 2026, frozen as the archive, and Vegas 2027, live. Every tab keeps its name and its place; what each tab shows depends on the season and the time of year. Nobody learns a new app. <b>Recommended.</b></p>
+<h3>Today, in the off-season</h3>
+<div class="phones">
+<div class="phone"><div class="bar"><span><small>The Union Invitational</small><b>Today</b></span><span class="seas"><span>Belek ’26</span><span class="on">Vegas ’27</span></span></div>
+  <div class="body">
+    <div class="card pine"><span class="k" style="color:var(--gold-up)">Road to Vegas</span><span class="big">371 days</span><small>Next: deposits close 31 March · 7 of 12 in</small></div>
+    <div class="card gold"><span class="k">This month · The Merry Mulligan Open</span><b>Open until 21 Dec</b><small>Individual net Stableford, your home course. 4 cards in. Tap to enter yours.</small></div>
+    <div class="card"><b>You: Norberto III</b><small>In · deposit paid · 7-day · shirt XL · room with Jennifer D</small><small>Union handicap <b>15.8</b> (3 rounds) · tap to update your flights</small></div>
+    <div class="card"><b>Practice manual</b><small>Refreshed after your last card: putting B, par 5s C</small></div>
+  </div>
+  <div class="nav"><span class="on">Today</span><span>Entry</span><span>Boards</span><span>Vegas</span><span>Calendar</span></div></div>
+<div class="phone"><div class="bar"><span><small>Vegas ’27</small><b>Entry · a virtual round</b></span></div>
+  <div class="body">
+    <div class="card"><b>The Merry Mulligan Open</b><small>Norberto III · Blackwolf Run, white tees (approved) · 14 Dec</small></div>
+    <div class="sc"><i class="h">1</i><i class="h">2</i><i class="h">3</i><i class="h">4</i><i class="h">5</i><i class="h">6</i><i class="h">7</i><i class="h">8</i><i class="h">9</i><i>5</i><i>4</i><i>6</i><i>3</i><i>5</i><i>4</i><i>6</i><i>4</i><i>5</i></div>
+    <div class="sc"><i class="h">10</i><i class="h">11</i><i class="h">12</i><i class="h">13</i><i class="h">14</i><i class="h">15</i><i class="h">16</i><i class="h">17</i><i class="h">18</i><i>4</i><i>5</i><i>4</i><i>3</i><i>6</i><i>5</i><i>4</i><i>5</i><i>—</i></div>
+    <div class="cam">📷 Photo of the signed card · required before it counts</div>
+    <div class="card" style="margin-top:8px"><b>Gross 84 · net 68 · 36 pts</b><small>Posts a differential of 13.9 to your Union handicap</small></div>
+  </div>
+  <div class="nav"><span>Today</span><span class="on">Entry</span><span>Boards</span><span>Vegas</span><span>Calendar</span></div></div>
+</div>
+<h3>What each tab becomes</h3>
+<table><tr><th>Tab</th><th>Off-season (Dec to Nov)</th><th>Vegas week</th></tr>
+<tr><td>Today</td><td>Countdown, next deadline, this month’s game, your own line, your manual</td><td>As Belek: the day, the recap, the tournament recap</td></tr>
+<tr><td>Entry</td><td>Virtual round: course picker, 18 holes, the photo of the card</td><td>As Belek: refs score the groups</td></tr>
+<tr><td>Boards</td><td>This month’s leaderboard, the season standings, Union handicaps, report cards</td><td>As Belek, plus the women’s 18 and the partners’ 9</td></tr>
+<tr><td>Resort → Vegas</td><td>Hotel, courses, rentals, contacts as vendors confirm</td><td>The resort pages, as Belek</td></tr>
+<tr><td>Calendar</td><td>The year: phases, deadlines, game windows</td><td>The itinerary: 2 practice days, 3 scoring rounds, the side events</td></tr>
+<tr><td>Manage</td><td>Roster &amp; sign-ups, rooms, money (values for all), travel, vendors, courses to approve, exports</td><td>As Belek, plus the same</td></tr></table>
+<h3>Trade-offs</h3>
+<div class="pros"><div class="g"><b>For</b><ul><li>One app, one habit: the Vegas week is the same screens people used in Belek</li><li>Every virtual card is a real card: photos, marks, the report, the manual</li><li>Belek stays readable in place, one switch away</li></ul></div><div class="r"><b>Against</b><ul><li>The biggest build: the book has to carry two seasons and know the time of year</li><li>A tab that changes meaning by season needs care so Today never confuses</li></ul></div></div>
+</section>
+
+<section id="v-b" class="hide">
+<p class="about"><b>B · The Clubhouse in front.</b> A new front door for the year: five tiles. The tournament book stays exactly as it is, opened from the Clubhouse during Vegas week and reached from a tile as the Belek archive the rest of the time. Off-season life, sign-ups, money, games and handicaps live in the Clubhouse. <b>The lighter build.</b></p>
+<h3>The Clubhouse</h3>
+<div class="phones">
+<div class="phone"><div class="bar"><span><small>The Union Invitational</small><b>The Clubhouse</b></span></div>
+  <div class="body">
+    <div class="card pine"><span class="k" style="color:var(--gold-up)">Road to Vegas · 371 days</span><b>Sign-ups, calendar, money, travel</b><small>7 of 12 in · deposits close 31 March</small></div>
+    <div class="card gold"><b>Virtual games</b><small>The Merry Mulligan Open is open until 21 Dec · 4 cards in</small></div>
+    <div class="card"><b>Handicaps</b><small>Union handicaps from the virtual rounds · bands lock 13 Oct</small></div>
+    <div class="card"><b>Practice</b><small>Your manual, refreshed after each card</small></div>
+    <div class="card"><b>The archive · Belek 2026</b><small>The book as it was: scores, recaps, photos, the report</small></div>
+  </div></div>
+<div class="phone"><div class="bar"><span><small>Clubhouse</small><b>Road to Vegas · the field</b></span></div>
+  <div class="body">
+    <div class="row"><span><b>Norberto III</b> · 7-day · XL</span><span><span class="pill in">In</span> <span class="pill paid">Deposit</span></span></div>
+    <div class="row"><span><b>Matt D</b> · 7-day · L</span><span><span class="pill in">In</span> <span class="pill paid">Paid</span></span></div>
+    <div class="row"><span><b>Ray V</b> · 5-day · XL</span><span><span class="pill maybe">Maybe</span></span></div>
+    <div class="row"><span><b>Duncan W</b></span><span><span class="pill out">Out</span></span></div>
+    <div class="row"><span><b>Drea</b> · partner · women’s 18</span><span><span class="pill in">In</span> <span class="pill paid">Deposit</span></span></div>
+    <div class="card" style="margin-top:8px"><b>Money · the whole group sees the values</b><small>Budget · paid · outstanding a person, the deadline on top. Collected outside; shown here.</small></div>
+    <div class="card"><b>Export for the vendor</b><small>Headcount and names · rooms · flights and landing times, as a PDF or CSV</small></div>
+  </div></div>
+</div>
+<h3>What goes where</h3>
+<table><tr><th>Sheet tab</th><th>Clubhouse</th></tr>
+<tr><td>Planning overview</td><td>Road to Vegas: the year’s phases and deadlines, the vendor sheet</td></tr>
+<tr><td>Tournament breakdown</td><td>Stays in the tournament book’s Calendar, opened for Vegas week</td></tr>
+<tr><td>Financials</td><td>Money on the field page, values visible to all; shirt size and name preference on each person’s line</td></tr>
+<tr><td>Rooms</td><td>Rooms on the field page, with the vendor export</td></tr>
+<tr><td>The virtual game tabs</td><td>Virtual games tile: a game a month, cards entered with a photo, scored by the book’s engine</td></tr></table>
+<h3>Trade-offs</h3>
+<div class="pros"><div class="g"><b>For</b><ul><li>The tournament book is untouched and proven; nothing in it can break</li><li>Fast to build: new pages on top, one new table underneath</li><li>Belek is a tile, not a mode</li></ul></div><div class="r"><b>Against</b><ul><li>Two places to be: the Clubhouse for the year, the book for the week</li><li>Virtual cards use a copy of the scoring screen, so the two can drift</li><li>Handicaps have to be carried into the book by hand at Vegas</li></ul></div></div>
+</section>
+
+<section id="v-c" class="hide">
+<p class="about"><b>C · Two books, one roster.</b> A second book for Vegas 2027 at its own address, built from the same code, with its own database tables. The Belek book stays where it is, read-only. The roster, the Union handicaps and the virtual games are born in the Vegas book, and the two link to each other. <b>The cleanest separation.</b></p>
+<h3>The two front pages</h3>
+<div class="phones">
+<div class="phone"><div class="bar"><span><small>union-invitational / vegas</small><b>Today · Vegas 2027</b></span></div>
+  <div class="body">
+    <div class="card pine"><span class="k" style="color:var(--gold-up)">Road to Vegas</span><span class="big">371 days</span><small>Deposits close 31 March · 7 of 12 in</small></div>
+    <div class="card gold"><b>The Merry Mulligan Open</b><small>Open until 21 Dec · enter your card</small></div>
+    <div class="card"><b>The field</b><small>In / Maybe / Out · rooms · flights · money</small></div>
+    <div class="card"><b>Belek 2026 ›</b><small>The archive, in its own book</small></div>
+  </div>
+  <div class="nav"><span class="on">Today</span><span>Entry</span><span>Boards</span><span>Vegas</span><span>Calendar</span></div></div>
+<div class="phone"><div class="bar"><span><small>union-invitational / app</small><b>Today · Belek 2026</b></span></div>
+  <div class="body">
+    <div class="card"><b>★ The Tournament Recap</b><small>A week that went to the wire</small></div>
+    <div class="card"><b>The Players Report</b><small>Every golfer graded, a coach’s letter each</small></div>
+    <div class="card" style="opacity:.6"><b>Read-only</b><small>The 2026 book is closed. Scores, photos and recaps stay as they were.</small></div>
+    <div class="card gold"><b>Vegas 2027 ›</b><small>The new book: sign up, play the virtual games</small></div>
+  </div>
+  <div class="nav"><span class="on">Today</span><span>Entry</span><span>Boards</span><span>Resort</span><span>Calendar</span></div></div>
+</div>
+<h3>Trade-offs</h3>
+<div class="pros"><div class="g"><b>For</b><ul><li>Nothing about Belek can be disturbed; the new book is free to change shape</li><li>Simple to reason about: one book, one year</li><li>Each year after Vegas gets its own book the same way</li></ul></div><div class="r"><b>Against</b><ul><li>Two home-screen icons; people install and open the wrong one</li><li>Handicaps, manuals and the roster have to be carried between books each year</li><li>Two sets of pages to keep in step when something improves</li></ul></div></div>
+</section>
+
+<h3>Common to all three</h3>
+<table><tr><th>Decided</th><th>How it works</th></tr>
+<tr><td>Sign-up</td><td>In / Maybe / Out, tapped by each person, with 7-day or 5-day, shirt size, name on the merch, room partner, flights when known</td></tr>
+<tr><td>Money</td><td>Budget, paid and outstanding a person, visible to the whole group as values; collected outside the app</td></tr>
+<tr><td>Virtual games</td><td>A themed game a month, home course inside a window, formats mixed through the year; card entered hole by hole with a photo of the signed card before it counts</td></tr>
+<tr><td>Courses</td><td>A golfer enters their home course once (name, tees, par and stroke index a hole); you approve it in Manage</td></tr>
+<tr><td>Handicaps</td><td>The Union handicap: a rolling figure from the best 3 of the last 6 virtual rounds; Vegas bands locked a month out</td></tr>
+<tr><td>Partners</td><td>Everyone travelling is in: rooms, shirts, their status, the women’s 18 and the partners’ 9 scored like any round</td></tr>
+<tr><td>Vendors</td><td>One-tap exports: headcount and names, rooms, flights and landing times</td></tr>
+<tr><td>Vegas week</td><td>Two practice days and three scoring rounds, the six games, the women’s 18 and the partners’ 9; dates in the November window until confirmed</td></tr>
+<tr><td>The archive</td><td>Belek 2026 frozen and readable; the app’s first season</td></tr>
+<tr><td>Go-live</td><td>The December reveal: roster, calendar and the Merry Mulligan Open</td></tr></table>
+<p class="note">Nothing on this page is live. Names and numbers are illustrative.</p>
+</div>
+<script>
+document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === b));
+  ['a', 'b', 'c'].forEach(v => document.getElementById('v-' + v).classList.toggle('hide', v !== b.dataset.v));
+  window.scrollTo(0, 0);
+}));
+</script>
+</body>
+</html>
