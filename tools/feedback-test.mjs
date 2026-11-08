@@ -33,7 +33,9 @@ ok('Manage has the feedback window, with no answers yet', [await p.locator('.fbv
 await p.locator('.fbview [data-act="fbToggle"]').click(); await p.waitForTimeout(400);
 ok('the switch opens it', await p.evaluate(() => !!(window.__T.config.feedback && window.__T.config.feedback.live)), true);
 await p.locator('.fbview [data-act="modalCancel"]').click(); await p.waitForTimeout(300);
-ok('and the form comes up on its own', await p.locator('.fbmodal').count(), 1);
+ok('after the trip the form waits on the card rather than coming up on its own', await p.locator('.fbmodal').count(), 0);
+await p.evaluate(() => { const x = document.createElement('button'); x.dataset.act = 'fbOpen'; document.getElementById('app').appendChild(x); x.click(); x.remove(); }); await p.waitForTimeout(400);
+ok('and the card opens it', await p.locator('.fbmodal').count(), 1);
 ok('the whole form: name, who, every star row, the four boxes, come again', [await p.locator('.fbmodal #fb_name').count(), await p.locator('.fbmodal .fb-rate').count(), await p.locator('.fbmodal textarea').count(), await p.locator('.fbmodal .fb-chips').count()], [1, 14, 3, 2]);
 await p.locator('.fbmodal .fb-rate').nth(1).locator('.fb-star').nth(3).click(); await p.waitForTimeout(150);
 await p.locator('.fbmodal #fb_keep').fill('The bets and the recaps'); await p.waitForTimeout(150);
