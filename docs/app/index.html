@@ -5496,7 +5496,7 @@ h2.greet small{display:block;font-size:14px;color:var(--turf);font-weight:400;fo
 .vhero{margin:14px 0 0;padding:22px 18px 18px;background:var(--pine);color:var(--onpine);border-radius:16px;border-bottom:3px solid var(--gold-up);max-width:680px}
 .vhero .ck{color:var(--gold-up)}
 .vhero b{display:block;font-size:28px;line-height:1.05;margin-top:4px}
-.vhero b i{font-style:italic;font-weight:400;opacity:.85;font-size:20px}
+.vhero .vhero-tag{display:block;font-style:italic;font-weight:400;opacity:.85;font-size:20px;line-height:1.2;margin-top:4px;color:var(--onpine);text-transform:none;letter-spacing:0;border:0;padding:0;background:none}
 .vhero small{display:block;font-size:14px;opacity:.85;margin-top:6px;line-height:1.4}
 .vhero .big{font-size:44px;font-weight:700;line-height:1;margin-top:10px}
 .vhero .big small{display:inline;font-size:14px;margin-left:6px;opacity:1}
@@ -5676,7 +5676,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261108-2036';
+const BUILD = '20261108-2049';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -21858,7 +21858,7 @@ function scrHq() {
       <span class="fs"><span class="pill ${st || 'none'}">${st === 'in' ? 'In' : st === 'maybe' ? 'Maybe' : st === 'out' ? 'Out' : 'Not yet'}</span></span>
       <span class="fm">${Lp.price ? meterHtml(Lp, cur) : '<span class="muted">—</span>'}</span>
       <span class="fp num">${Lp.price ? esc(C.fmtMoney(Lp.paid, cur)) + ' <small>of ' + esc(C.fmtMoney(Lp.price, cur)) + '</small>' : ''}</span></div>`; };
-  return `<div class="vhero"><span class="ck">Vegas HQ · the third edition</span><b>${esc(s.name)}${s.tag ? ' <i>' + esc(s.tag) + '</i>' : ''}</b>
+  return `<div class="vhero"><span class="ck">Vegas HQ · the third edition</span><b>${esc(s.name)}</b>${s.tag ? '<i class="vhero-tag">' + esc(s.tag) + '</i>' : ''}
     <small>${s.window.locked ? esc(C.fmtDay(s.window.from)) + ' to ' + esc(C.fmtDay(s.window.to, { year: true })) + ', locked.' : 'Dates inside the ' + esc(C.fmtDay(s.window.from)) + ' to ' + esc(C.fmtDay(s.window.to, { year: true })) + ' window until the hotel confirms.'} Two practice days, three rounds, the women’s 18, the partners’ 9.</small>
     <div class="big">${toVegas > 0 ? toVegas + '<small>days</small>' : toVegas > -9 ? 'This week' : 'Done'}</div></div>
   ${!me ? whoLine() : `
@@ -26559,7 +26559,7 @@ __m_app.boot();
 /* Register the worker that makes the book work with no signal. It is the
    whole point of installing it: Belek is five hours of walking and everyone
    is roaming. A failure here must never stop the page loading. */
-var BOOK_BUILD = '20261108-2036';
+var BOOK_BUILD = '20261108-2049';
 var swReg = null;
 /* the book is never shown inside somebody else's page, where a tap could be
    aimed at a button they have put under the finger */

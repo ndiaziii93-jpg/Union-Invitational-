@@ -8007,7 +8007,7 @@ function scrHq() {
       <span class="fs"><span class="pill ${st || 'none'}">${st === 'in' ? 'In' : st === 'maybe' ? 'Maybe' : st === 'out' ? 'Out' : 'Not yet'}</span></span>
       <span class="fm">${Lp.price ? meterHtml(Lp, cur) : '<span class="muted">—</span>'}</span>
       <span class="fp num">${Lp.price ? esc(C.fmtMoney(Lp.paid, cur)) + ' <small>of ' + esc(C.fmtMoney(Lp.price, cur)) + '</small>' : ''}</span></div>`; };
-  return `<div class="vhero"><span class="ck">Vegas HQ · the third edition</span><b>${esc(s.name)}${s.tag ? ' <i>' + esc(s.tag) + '</i>' : ''}</b>
+  return `<div class="vhero"><span class="ck">Vegas HQ · the third edition</span><b>${esc(s.name)}</b>${s.tag ? '<i class="vhero-tag">' + esc(s.tag) + '</i>' : ''}
     <small>${s.window.locked ? esc(C.fmtDay(s.window.from)) + ' to ' + esc(C.fmtDay(s.window.to, { year: true })) + ', locked.' : 'Dates inside the ' + esc(C.fmtDay(s.window.from)) + ' to ' + esc(C.fmtDay(s.window.to, { year: true })) + ' window until the hotel confirms.'} Two practice days, three rounds, the women’s 18, the partners’ 9.</small>
     <div class="big">${toVegas > 0 ? toVegas + '<small>days</small>' : toVegas > -9 ? 'This week' : 'Done'}</div></div>
   ${!me ? whoLine() : `
