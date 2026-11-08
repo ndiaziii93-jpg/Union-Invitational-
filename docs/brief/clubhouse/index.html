@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1D2E21">
+<link rel="icon" href="../../app/icon-192.png">
+<link rel="apple-touch-icon" href="../../app/apple-touch-icon.png">
+<title>The Clubhouse · Vegas 2027</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap">
+<style>
+/* one long page: a step, its screenshot with what to tap ringed in gold, the next step */
+:root{color-scheme:light;--pine:#1D2E21;--cream:#EEE8D5;--paper:#E3DBCB;--turf:#5C6B55;--gold:#8C6B2F;--gold-up:#C9A253;--gold-hi:#E2C277;--sage:#9FB3A3;--flag:#9E3B2E;--yes:#2F7A4A;
+  --serif:'Source Serif 4','Iowan Old Style',Georgia,'Times New Roman',serif;
+  --ui:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--pine);font-family:var(--serif);font-size:17px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-bottom:60px}
+a{color:var(--gold)}
+:focus-visible{outline:2px solid var(--flag);outline-offset:2px}
+.hero{background:var(--pine);color:var(--cream);margin:0 calc(-1 * max(16px,env(safe-area-inset-left,0px)));padding:44px max(16px,env(safe-area-inset-left,0px)) 30px;border-bottom:3px solid var(--gold-up)}
+.in{max-width:680px;margin:0 auto}
+.k{font-family:var(--ui);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--sage);font-weight:600}
+h1{margin:6px 0 10px;font-size:clamp(32px,7vw,46px);line-height:1.08;text-wrap:balance}
+h1 em{font-style:italic;font-weight:400;color:var(--gold-hi)}
+.hero p{margin:0;color:#D9DFD3;max-width:60ch}
+.now{margin-top:18px;background:var(--gold-hi);color:var(--pine);border-radius:14px;padding:14px 16px;font-weight:600}
+.now b{display:block;font-size:19px}
+.jump{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.jump a{font-family:var(--ui);font-size:14px;font-weight:600;color:var(--cream);text-decoration:none;border:1px solid rgba(238,232,213,.35);border-radius:999px;padding:7px 13px}
+h2{font-size:clamp(25px,5vw,32px);line-height:1.15;margin:44px 0 6px;scroll-margin-top:16px}
+h2 .n{display:inline-grid;place-items:center;width:36px;height:36px;border-radius:50%;background:var(--pine);color:var(--gold-hi);font-size:18px;margin-right:10px;vertical-align:4px}
+.lede{margin:0 0 10px;color:var(--turf)}
+.step{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:22px;align-items:start;margin-top:18px;background:var(--cream);border-radius:18px;padding:18px;box-shadow:0 0 0 .5px rgba(29,46,33,.16)}
+@media (max-width:640px){ .step{grid-template-columns:1fr} .step figure{max-width:300px;margin:0 auto} }
+.step h3{margin:0 0 6px;font-size:20px}
+.step p{margin:0 0 8px}
+.step ul{margin:0;padding-left:20px;display:grid;gap:4px}
+figure{margin:0}
+figure img{display:block;width:100%;height:auto;border-radius:22px;box-shadow:0 0 0 6px #17211A,0 14px 30px rgba(16,22,17,.28)}
+figcaption{font-family:var(--ui);font-size:12.5px;color:var(--turf);text-align:center;margin-top:12px}
+.ring{display:inline-block;border:3px solid var(--gold-hi);border-radius:8px;padding:0 5px;font-weight:700}
+.tags{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));gap:10px;margin-top:14px}
+.tag{background:var(--cream);border-radius:14px;padding:12px 14px;box-shadow:0 0 0 .5px rgba(29,46,33,.16)}
+.tag span{display:inline-block;font-family:var(--ui);font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;border-radius:999px;padding:2px 9px;margin-bottom:6px}
+.tag p{margin:0;font-size:15px;color:var(--turf)}
+.t-player{background:var(--pine);color:var(--gold-hi)} .t-ref{background:#F2DDD6;color:var(--flag)}
+.t-gallery{background:#DDEBDD;color:var(--yes)} .t-bleach{background:#E4E1F0;color:#4B3F7A}
+.house{background:var(--pine);color:var(--cream);border-radius:18px;padding:18px 20px;margin-top:18px;border-bottom:3px solid var(--gold-up)}
+.house h3{margin:0 0 8px;color:var(--gold-hi);font-size:20px}
+.house ul{margin:0;padding-left:20px;display:grid;gap:6px;color:#D9DFD3}
+.house b{color:var(--cream)}
+.mock{font-family:var(--serif);display:flex;align-items:center;gap:10px;background:#F3E6CF;border:1.5px solid var(--gold-up);border-radius:14px;padding:10px 10px 10px 12px;font-size:14px;line-height:1.35;margin:10px 0}
+.mock .bt{margin-left:auto;background:var(--pine);color:var(--cream);font-size:13px;font-weight:600;padding:7px 12px;border-radius:2px;white-space:nowrap}
+details{background:var(--cream);border-radius:14px;padding:12px 16px;margin-top:10px;box-shadow:0 0 0 .5px rgba(29,46,33,.16)}
+summary{font-weight:700;cursor:pointer}
+details p{margin:8px 0 0;color:var(--turf)}
+.foot{margin-top:40px;text-align:center;color:var(--turf);font-size:15px}
+</style>
+</head>
+<body>
+<header class="hero"><div class="in">
+  <span class="k">The Union Invitational · the third edition</span>
+  <h1>Next stop: <em>Las Vegas.</em> And the book stays open all year.</h1>
+  <p>Türkiye is done and dusted. The Union Invitational goes to Las Vegas in November 2027, and the book you used in Belek has grown a new face for the twelve months in between: a season of monthly games on your own course, with a leaderboard, a winner crowned every time, and everything for the trip in one place.</p>
+  <div class="now"><b>Do this today: open the book and tap Vegas HQ.</b>Say whether you’re in, and pick your package. Prices and dates follow once the hotel confirms. Nothing to pay yet.</div>
+  <nav class="jump" aria-label="On this page"><a href="#vegas">Vegas 2027</a><a href="#new">What changed</a><a href="#name">Your name</a><a href="#hq">Vegas HQ</a><a href="#play">Play a stop</a><a href="#season">The season</a><a href="#belek">Belek 2026</a><a href="#faq">Questions</a></nav>
+</div></header>
+
+<main class="in">
+  <h2 id="vegas"><span class="n">1</span>Las Vegas, November 2027</h2>
+  <p class="lede">A Desert Showdown. The week sits inside <b>13 to 21 November 2027</b>; the exact dates lock when the hotel confirms.</p>
+  <div class="house">
+    <h3>What we know so far</h3>
+    <ul>
+      <li><b>The format you know</b>: two practice days and three rounds, with the team competition, MVP, the cup and Bingo Bango Bongo.</li>
+      <li><b>Two new events</b>: a women’s 18-hole division, and a 9-hole game for partners who want a go.</li>
+      <li><b>One price for the trip.</b> Each package covers the hotel, the golf, the merch and the trophies. No itemised receipts; one number, and a bucket of what it includes. 7-night and 5-night, golfing and not golfing.</li>
+      <li><b>Pricing and the hotel to come.</b> Quotes are in hand. When they land, the price appears on your package in the app and the deposit date with it.</li>
+    </ul>
+  </div>
+
+  <h2 id="new"><span class="n">2</span>What changed in the app</h2>
+  <p class="lede">Same icon on your phone, same book. Open it and it looks like this.</p>
+  <div class="step"><div>
+    <h3>Three tabs instead of six</h3>
+    <ul>
+      <li><b>You</b>: your form, your card to enter, what’s next on your Vegas line.</li>
+      <li><b>Season</b>: the stop that’s open, the standings, the handicaps, the awards, the archive.</li>
+      <li><b>Vegas HQ</b>: in or out, your package, what’s paid, your flights, the rooms.</li>
+      <li>When the Vegas week comes, the six tabs from Türkiye come back exactly as they were. Nothing to relearn.</li>
+    </ul>
+    <p>The switch under the crest reads <b>Belek ’26 · Las Vegas ’27</b>. Tap Belek to read the whole Türkiye book: every card, board, recap, photo and report card. It can’t be changed any more, by anyone.</p>
+  </div><figure><img src="img/you.jpg" alt="The You tab: the greeting, three dials for Form, Played and Ready, the open stop with Carry on my card, and what is next on the Vegas line" loading="lazy"><figcaption>The You tab, with the <span class="ring">season switch</span> under the crest</figcaption></figure></div>
+
+  <h2 id="name"><span class="n">3</span>Your name, once</h2>
+  <div class="step"><div>
+    <p>The first time you open it, the book asks who you are. Tap your name. If you did this in Türkiye for the chat and the bets, you’re already done: it’s the same name and the same PIN.</p>
+    <ul>
+      <li>Your name is what your cards, your sign-up and your flights are filed under.</li>
+      <li>Partners and family: you’re on the list too, under the gallery. Tap yours; you need it for Vegas HQ.</li>
+      <li>New phone? Tap your name and type the PIN you made. Forgotten it? The commissioner can clear it so you can choose again.</li>
+    </ul>
+  </div><figure><img src="img/who.jpg" alt="The Who are you? window listing players, refs and the gallery" loading="lazy"><figcaption>Tap your own name</figcaption></figure></div>
+
+  <h2 id="hq"><span class="n">4</span>Vegas HQ: say you’re in</h2>
+  <div class="step"><div>
+    <h3>Your line</h3>
+    <p>Seven things make up your line for Vegas, and the tab shows which are done. Today it’s the first two.</p>
+    <ul>
+      <li>Tap <b>I’m in</b>, <b>Maybe</b> or <b>Not this one</b>.</li>
+      <li>Pick your package. The price shows <i>price to come</i> until the hotel confirms, then the number appears.</li>
+      <li>Put your shirt size in, and the name you want on it.</li>
+      <li>Flights: add them when they’re booked. The commissioner uses them for the airport runs.</li>
+    </ul>
+  </div><figure><img src="img/hq.jpg" alt="Vegas HQ: the countdown, and your line with seven items, some done, some to do" loading="lazy"><figcaption>Your line: green is done, red is still to do</figcaption></figure></div>
+  <div class="step"><div>
+    <h3>Money, in the open</h3>
+    <p>Money is collected the way it always has been, outside the app. The commissioner marks what’s come in, and everyone sees a meter: how much is paid and how much is left, per person. No secrets, no chasing.</p>
+    <ul>
+      <li>Deposits by <b>31 March 2027</b>, the balance by <b>3 August 2027</b>, unless the hotel says otherwise.</li>
+      <li>Rooms appear on the same tab once the commissioner has set them.</li>
+    </ul>
+  </div><figure><img src="img/hq-packages.jpg" alt="The packages on Vegas HQ: 7 nights golfer, 7 nights not golfing, 5 nights golfer, each listing what it covers" loading="lazy"><figcaption>Pick one package; it lists what the price covers</figcaption></figure></div>
+
+  <h2 id="play"><span class="n">5</span>Play a stop: a round at home, scored in the app</h2>
+  <p class="lede">A stop a month, each with a window of a few weeks. Play eighteen holes on your own course inside the window and enter your card as you go, hole by hole, on the same keypad the refs used in Belek.</p>
+  <div class="step"><div>
+    <h3>Your home course, once</h3>
+    <p>The first time, the book asks for your course: par and stroke index for each hole off the scorecard, yards if you like. Save it and you can score straight away; the commissioner approves it behind the scenes. Playing somewhere else? Tap <b>Change course</b>.</p>
+  </div><figure><img src="img/course.jpg" alt="The home course form: course and tees, then a row per hole with par, index and yards" loading="lazy"><figcaption>Off the scorecard: par and index for the eighteen</figcaption></figure></div>
+  <div class="step"><div>
+    <h3>Hole by hole</h3>
+    <ul>
+      <li>From You or Season, tap <b>Enter my card</b>.</li>
+      <li>Tap the tile, tap your score. The pad moves to the next hole itself. Par is ringed; pick up at the red number.</li>
+      <li>Points are worked out as you go, net Stableford off your Union handicap, with your strokes shown on each hole.</li>
+      <li>Put the phone away mid-round and come back: the card is where you left it.</li>
+    </ul>
+  </div><figure><img src="img/round.jpg" alt="Scoring a virtual round: the hole band with the eighteen, the keypad with par ringed and pick up in red, the points so far at the foot" loading="lazy"><figcaption>The Belek keypad, on your course</figcaption></figure></div>
+  <div class="step" style="grid-template-columns:1fr"><div>
+    <h3>Before it counts: a photo of the signed card</h3>
+    <ul>
+      <li>After the 18th, the book asks for a photo of your signed scorecard, taken there and then. Then tap <b>Post my card</b>.</li>
+      <li>No photo, no card. Honour system, with a receipt.</li>
+      <li>Posted cards can’t be edited. If something’s wrong, tell the commissioner.</li>
+    </ul>
+  </div></div>
+
+  <h2 id="season"><span class="n">6</span>The season: leaderboards, a winner every time, a handicap that moves</h2>
+  <div class="step"><div>
+    <h3>This stop</h3>
+    <p>The leader on the plate, live, and every card under it. At midnight on the last day of the window the stop is crowned, and it pays into the Order of Merit: 100 for the win, 60, 40, 30 and down the places.</p>
+    <h3 style="margin-top:14px">The stops so far</h3>
+    <ul>
+      <li><b>The Merry Mulligan Open</b> · December</li>
+      <li><b>The Frostbite Open</b> · January</li>
+      <li><b>The Sweetheart Scramble</b> · February</li>
+      <li>More follow, a month at a time, each announced in the app.</li>
+    </ul>
+  </div><figure><img src="img/season.jpg" alt="The Season tab: the stop chips, the leader on a pine plate, live, and the board under it" loading="lazy"><figcaption>The open stop, live</figcaption></figure></div>
+  <div class="step"><div>
+    <h3>The Union handicap</h3>
+    <p>You start on your Belek band. Every card you post leaves a mark; once three are in, your handicap becomes the best three of your last six, at 96%, and it keeps moving all year. The handicaps lock a month before Vegas and become the bands for the week.</p>
+    <p>So the more you play, the truer your number. A sandbagger’s season is a short one.</p>
+  </div><figure><img src="img/handicaps.jpg" alt="The Handicaps tab: each golfer's Belek band, Union handicap, cards in, and the move since Belek" loading="lazy"><figcaption>Belek band, Union handicap, and how far it has moved</figcaption></figure></div>
+
+  <h2 id="belek"><span class="n">7</span>Belek 2026 is in the archive</h2>
+  <div class="step"><div>
+    <p>Tap <b>Belek ’26</b> under the crest and the Türkiye book comes up exactly as it ended: Today, Scores, Bets, Boards, Calendar, the Resort. Every card, every board, the three recaps, the photos, the bets, the chat, the players report and your practice manual.</p>
+    <ul>
+      <li>Everything is there to read. Nothing can be entered or changed, by anyone.</li>
+      <li>Your report card and your practice manual are also one tap from the You tab.</li>
+      <li>Tap <b>Las Vegas ’27</b> to come back.</li>
+    </ul>
+  </div><figure><img src="img/archive.jpg" alt="The Belek book under the season switch: the Today cover with the closed-book banner and the six Türkiye tabs" loading="lazy"><figcaption>The closed book: Türkiye, as it was</figcaption></figure></div>
+
+  <h2 id="faq"><span class="n">8</span>Questions</h2>
+  <details><summary>Do I have to play every stop?</summary><p>No. Play the ones you can. The Order of Merit rewards turning up, and the handicap needs three cards to start moving, but nothing is compulsory.</p></details>
+  <details><summary>What if my course doesn’t have stroke indexes?</summary><p>Every scorecard has them, usually marked S.I., HCP or Index. If yours really doesn’t, number the holes hardest to easiest yourself; the commissioner will look it over.</p></details>
+  <details><summary>Nine holes only?</summary><p>Not for a stop; eighteen in the window, in one go or two. The partners’ 9 is a Vegas event.</p></details>
+  <details><summary>I’m not a golfer. What do I do?</summary><p>Vegas HQ is for you: say you’re in, pick a not-golfing package, add your shirt and flights. The season tabs are there to follow and heckle.</p></details>
+  <details><summary>Can I still bet or chat about Belek?</summary><p>No. The Türkiye book is closed and reads as history. The Vegas week will have its own chat and bets when it opens.</p></details>
+  <details><summary>Something looks wrong with my card or my money</summary><p>Message the commissioner. Posted cards and payments are only changed by him, and the change shows for everyone.</p></details>
+
+  <p class="foot">The book: <a href="../../app/">ndiaziii93-jpg.github.io/Union-Invitational-</a> · open it from the icon on your Home Screen.</p>
+</main>
+</body>
+</html>
