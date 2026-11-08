@@ -79,6 +79,7 @@ await q.route(/supabase\.co\/(?!rest)/, route => route.abort());
 await q.goto(BASE + 'docs/manual/?p=' + pid); await q.waitForSelector('.mn-drill', { timeout: 20000 });
 const page = await q.evaluate(() => ({ title: document.title, n: document.querySelectorAll('.mn-drill').length, bar: !document.getElementById('mnbar').hidden, pdf: !!document.querySelector('#mnbar button'), wide: document.documentElement.scrollWidth - document.documentElement.clientWidth, doctype: !!document.doctype, print: [...document.styleSheets].some(s => { try { return [...s.cssRules].some(r => r.media && /print/.test(r.media.mediaText)); } catch (e) { return false; } }), claude: [...document.querySelectorAll('a[href]')].filter(a => /claude\.ai/.test(a.href)).length, read: /putting problem/.test(document.body.innerText) }));
 ok('the page: the golfer\'s manual, Save as PDF, a print layout, its own doctype, nothing sideways, nothing of Claude', [/practice manual/.test(page.title), page.n >= 12, page.bar, page.pdf, page.wide <= 1, page.doctype, page.print, page.claude, page.read], [true, true, true, true, true, true, true, 0, true]);
+ok('the drawings move by the browser\'s own SVG animation, along the drawn paths', await q.evaluate(() => { const s = document.querySelectorAll('.mn-drill svg.da'); return [s.length > 0, [...s].every(x => x.querySelector('animate, animateMotion, animateTransform')), [...s].some(x => x.querySelector('animateMotion[path]')), [...s].every(x => !x.animationsPaused())]; }), [true, true, true, true]);
 await q.screenshot({ path: S + '/manual-page.png', fullPage: false });
 await q.locator('.mn-drill').nth(0).screenshot({ path: S + '/manual-drill1.png' });
 await q.locator('.mn-drill').nth(5).screenshot({ path: S + '/manual-drill6.png' });
@@ -86,7 +87,6 @@ await q.goto(BASE + 'docs/manual/'); await q.waitForSelector('.mn-index', { time
 ok('with no golfer named, the page lists them', [await q.locator('.mn-index .rp-row').count(), await q.locator('#mnbar').isHidden()], [11, true]);
 await q.goto(BASE + 'docs/recap/?r=report'); await q.waitForSelector('.rp-row', { timeout: 20000 });
 ok('the public report\'s pop-up links to the manual page', await q.evaluate(pid => document.querySelectorAll('.rp-pop[data-pop="' + pid + '"] .rp-manual a[href$="manual/?p=' + pid + '"]').length, pid), 1);
-ok('the drawings move by the browser\'s own SVG animation, along the drawn paths', await q.evaluate(() => { const s = document.querySelectorAll('.mn-drill svg.da'); return [s.length > 0, [...s].every(x => x.querySelector('animate, animateMotion, animateTransform')), [...s].some(x => x.querySelector('animateMotion[path]')), [...s].every(x => !x.animationsPaused())]; }), [true, true, true, true]);
 const ctx3 = await b.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
 const r = await ctx3.newPage();
 await r.route(/\/rest\/v1\/docs/, route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(rows) }));

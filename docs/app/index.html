@@ -5575,7 +5575,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261108-1003';
+const BUILD = '20261108-1004';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -13327,7 +13327,7 @@ const X = __m_social;
 const F = __m_feedback;
 const RP = __m_report;
 const MN = __m_manual;
-const { still as artStill } = __m_drillart;
+const { still } = __m_drillart;
 const PK = __m_pack;
 const W = __m_weather;
 const H3D = __m_hole3d;
@@ -21795,7 +21795,7 @@ function paint() {
     }
   }
   tabShown = chosenKey;
-  if (UI.modal && UI.modal.kind === 'manual') artStill(document);   // a reader who asked for less motion gets the drawings still
+  if (UI.modal && UI.modal.kind === 'manual') still(document);   // a reader who asked for less motion gets the drawings still
 
   /* THE KEYBOARD STAYS DOWN UNTIL SOMEBODY ASKS FOR IT. Opening the window
      used to put the caret in the field, and on a phone a caret means the
@@ -25314,7 +25314,7 @@ __m_app.boot();
 /* Register the worker that makes the book work with no signal. It is the
    whole point of installing it: Belek is five hours of walking and everyone
    is roaming. A failure here must never stop the page loading. */
-var BOOK_BUILD = '20261108-1003';
+var BOOK_BUILD = '20261108-1004';
 var swReg = null;
 /* the book is never shown inside somebody else's page, where a tap could be
    aimed at a button they have put under the finger */
