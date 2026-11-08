@@ -7,6 +7,7 @@
    in recaps/report. */
 import * as D from './data.js';
 import * as E from './engine.js';
+import { manualBlock } from './manual.js';
 
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const f1 = n => (Math.round(n * 10) / 10).toFixed(1);
@@ -312,7 +313,7 @@ export function renderReport(T, body, opts) {
         ${ld.mostOb && ld.mostOb.week.marks.ob ? `<tr><th>Most out of bounds</th><td>${esc(ld.mostOb.name)} ${ld.mostOb.week.marks.ob}</td></tr>` : ''}
       </tbody></table>
     </div></div>`;
-  const player = (pr, i) => playerCard(T, pr, i, F, words, now);
+  const player = (pr, i) => playerCard(T, pr, i, F, words, now, opts.manual);
   /* THE REPORT IS NOT ONE LONG SCROLL. The summary, then a row a golfer;
      a tap opens that golfer on their own (a window in the book, a pop-up
      on the page). `opts.all` draws every page in one, for printing. */
@@ -331,9 +332,9 @@ export function renderPlayer(T, body, pid, opts) {
   const F = fieldReport(T, now), i = F.players.findIndex(p => p.id === pid);
   if (i < 0) return '<div class="report"><p class="rp-empty">No cards for this golfer yet.</p></div>';
   const words = body && typeof body === 'object' ? body : null;
-  return `<div class="report">${playerCard(T, F.players[i], i, F, words, now)}</div>`;
+  return `<div class="report">${playerCard(T, F.players[i], i, F, words, now, opts.manual)}</div>`;
 }
-function playerCard(T, pr, i, F, words, now) {
+function playerCard(T, pr, i, F, words, now, manual) {
     const w = pr.week, g = pr.grades || {}, pw = words && words.players ? words.players[pr.id] : null;
     const letter = pw && Array.isArray(pw.letter) ? pw.letter : [], three = pw && Array.isArray(pw.three) ? pw.three : [], read = pw && pw.read ? String(pw.read) : '';
     const full = pr.rounds.filter(r => r.full);
@@ -364,6 +365,7 @@ function playerCard(T, pr, i, F, words, now) {
         <h3>The coach\u2019s letter</h3>
         ${letter.length ? paras(letter, 'rp-p') : `<p class="rp-wait">${words ? 'Being written.' : 'Not written yet.'}</p>`}
         ${three.length ? `<div class="rp-three"><b>Three things</b><ol>${three.map(x => `<li>${esc(x)}</li>`).join('')}</ol></div>` : ''}
+        ${manual === false ? '' : manualBlock(pr, manual === 'app' ? 'app' : 'page')}
         <h3>Every round</h3>
         <div class="rp-key"><span><i class="rp-cell under"></i>birdie</span><span><i class="rp-cell par"></i>par</span><span><i class="rp-cell bogey"></i>bogey</span><span><i class="rp-cell double"></i>double</span><span><i class="rp-cell worse"></i>worse</span><span><i class="rp-cell par pu"></i>pick-up</span></div>
         ${pr.rounds.map(r => roundSummary(T, r, pr, now)).join('')}

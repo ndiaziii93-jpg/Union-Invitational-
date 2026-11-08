@@ -22,7 +22,7 @@ SRC = os.path.join(ROOT, 'src')
 OUT = os.path.join(ROOT, 'docs', 'recap')
 APP = os.path.join(ROOT, 'docs', 'app')
 SITE = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/'
-MODULES = ['data', 'config', 'rules', 'engine', 'report', 'dbsupa', 'store', 'recappage']
+MODULES = ['data', 'config', 'rules', 'engine', 'drills', 'drillart', 'manual', 'report', 'dbsupa', 'store', 'recappage']
 
 HEAD = """<!doctype html>
 <html lang="en">

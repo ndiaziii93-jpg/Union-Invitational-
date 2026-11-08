@@ -5330,6 +5330,75 @@ body.rpop-open{overflow:hidden}
 .pk-kind button.on{background:var(--pine);color:var(--onpine);border-color:var(--pine)}
 .pk-kind b{display:block;font-size:15px}.pk-kind small{display:block;font-size:12px;line-height:1.35;margin-top:2px;opacity:.85}
 
+/* ---- the practice manual ----
+   Under the three things on a report card, and a sheet or a page of its own:
+   the band, the grades, the week in sessions, then the drills one after
+   another, each a numbered card with its drawing. The drawings move on a
+   screen and not on paper. */
+.rp-manual{margin:10px 0 0;padding:12px 14px;border:1px solid var(--rule);border-radius:12px;background:var(--paper)}
+.rp-manual b{display:block;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
+.rp-manual p{margin:4px 0 10px;font-size:14.5px;color:var(--turf)}
+.rp-mbtns{display:flex;gap:8px;flex-wrap:wrap}.rp-mbtns .btn{text-decoration:none}
+.manual{color:var(--ink)}
+.mn-band h2{margin:2px 0 0}
+.mn-body{padding:14px 16px 20px}
+.mn-grades{display:flex;flex-wrap:wrap;gap:6px 10px;margin:0 0 12px}
+.mn-g{display:inline-flex;align-items:center;gap:6px}.mn-g small{font-size:12px;color:var(--turf)}
+.mn-read{font-size:16px;font-style:italic;color:var(--green);margin:0 0 12px;line-height:1.45}
+.mn-three{margin-bottom:14px}
+.mn-h{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin:16px 0 6px}
+.mn-p{font-size:15px;line-height:1.5;margin:0 0 12px}
+.mn-plan{display:grid;gap:6px;margin:0 0 6px}
+.mn-sess{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:9px 12px;border:1px solid var(--rule);border-radius:10px;background:var(--paper);font-size:14px}
+.mn-sess b{font-size:15px}.mn-sess small{color:var(--turf);font-variant-numeric:tabular-nums}
+.mn-sess span{grid-column:1/-1;color:var(--turf);font-size:13.5px;line-height:1.5}.mn-sess a{color:var(--green);text-decoration:none}
+.mn-list{list-style:none;margin:16px 0 0;padding:0;display:grid;gap:14px}
+.mn-drill{border:1px solid var(--rule);border-radius:16px;background:#F7F2E6;overflow:hidden}
+.mn-head{display:flex;align-items:flex-start;gap:10px;padding:12px 14px 8px}
+.mn-n{flex:0 0 auto;width:30px;height:30px;border-radius:999px;background:var(--pine);color:var(--gold-up);display:grid;place-items:center;font-weight:800;font-size:15px}
+.mn-hw{flex:1 1 auto;min-width:0}.mn-hw h3{margin:2px 0 0;font-size:19px;line-height:1.15}.mn-hw small{display:block;font-size:12.5px;color:var(--turf);margin-top:3px;line-height:1.35}
+.mn-for{flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;gap:2px}.mn-for em{font-style:normal;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--turf)}
+.mn-art{margin:0;padding:0 14px}.mn-art .da{display:block;width:100%;height:auto;border:1px solid var(--rule);border-radius:10px;background:var(--paper)}
+.mn-why{margin:10px 14px 0;font-size:15px;line-height:1.5;color:var(--green);font-style:italic}
+.mn-cols{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;padding:8px 14px 0}
+@media (max-width:480px){ .mn-cols{grid-template-columns:1fr} }
+.mn-cols h4{margin:4px 0 2px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
+.mn-cols ul,.mn-cols ol{margin:0;padding-left:18px;font-size:14.5px;line-height:1.45}.mn-cols li{margin:3px 0}
+.mn-score{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:10px 14px 0;padding:10px 0 0;border-top:1px solid var(--rule)}
+@media (max-width:480px){ .mn-score{grid-template-columns:1fr} }
+.mn-score dt{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--turf)}.mn-score dd{margin:2px 0 0;font-size:13.5px;line-height:1.4}
+.mn-video{display:flex;align-items:center;gap:10px;margin:12px 14px 14px;padding:9px 12px;border-radius:10px;background:var(--pine);color:var(--onpine);text-decoration:none}
+.mn-video b{display:block;font-size:14px}.mn-video small{display:block;font-size:12px;opacity:.8;line-height:1.3}
+.mn-play{flex:0 0 auto;width:28px;height:28px;border-radius:999px;background:var(--gold-up);color:var(--pine);display:grid;place-items:center;font-size:12px}
+.mn-foot{font-size:12.5px;color:var(--turf);margin:16px 0 0;line-height:1.5;word-break:break-word}
+.mnsheet .rp-band{border-radius:0}
+.mn-index .rp-row{text-decoration:none;color:inherit}
+/* the drawings' motion */
+.da-roll{animation:da-roll var(--dur,2.4s) ease-in-out infinite;animation-delay:var(--d,0s)}
+@keyframes da-roll{0%{transform:translate(0,0);opacity:0}8%{opacity:1}70%{transform:translate(var(--dx,100px),var(--dy,0px));opacity:1}86%{opacity:0}100%{transform:translate(var(--dx,100px),var(--dy,0px));opacity:0}}
+.da-chip,.da-fly{animation:da-chip var(--dur,2.6s) ease-in-out infinite;animation-delay:var(--d,0s)}
+@keyframes da-chip{0%{transform:translate(0,0);opacity:0}6%{opacity:1}42%{transform:translate(var(--mx,60px),var(--my,-60px))}80%{transform:translate(var(--dx,120px),var(--dy,0px));opacity:1}92%{opacity:0}100%{transform:translate(var(--dx,120px),var(--dy,0px));opacity:0}}
+.da-pulse{animation:da-pulse 2.4s ease-in-out infinite;animation-delay:var(--d,0s)}
+@keyframes da-pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.da-blink{animation:da-pulse 1.8s ease-in-out infinite}
+.da-hand{animation:da-hand 3s ease-in-out infinite}
+@keyframes da-hand{0%,10%{transform:rotate(-45deg)}40%{transform:rotate(-90deg)}70%{transform:rotate(-135deg)}100%{transform:rotate(-45deg)}}
+.da-tick{animation:da-tick 2.4s linear infinite}
+@keyframes da-tick{0%{transform:rotate(-28deg)}75%{transform:rotate(28deg)}100%{transform:rotate(-28deg)}}
+.da-arm{animation:da-arm 2.4s ease-in-out infinite}
+@keyframes da-arm{0%,100%{transform:rotate(0)}50%{transform:rotate(-110deg)}}
+.da-club{animation:da-club 1.8s ease-in-out infinite}
+@keyframes da-club{0%{transform:translateX(calc(var(--dx,36px) * -1))}50%{transform:translateX(var(--dx,36px))}100%{transform:translateX(calc(var(--dx,36px) * -1))}}
+.da-breathe{animation:da-breathe 10s ease-in-out infinite}
+@keyframes da-breathe{0%{transform:scale(.7)}40%{transform:scale(1.5)}100%{transform:scale(.7)}}
+.da-splash{stroke-dashoffset:40;animation:da-draw 1.6s ease-out infinite}
+@keyframes da-draw{0%{stroke-dashoffset:40}60%{stroke-dashoffset:0}100%{stroke-dashoffset:0}}
+.da-dash{stroke-dashoffset:0;animation:da-march 1.2s linear infinite}
+@keyframes da-march{to{stroke-dashoffset:-14}}
+.da-sweep{animation:da-pulse 1.8s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){ .da *{animation:none !important} }
+@media print{ .da *{animation:none !important} .rp-mbtns{display:none} }
+
 </style>
 <div id="app"></div>
 <!-- The crest, and the opening it pays for, ahead of everything else. A few
@@ -5456,7 +5525,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261106-1618';
+const BUILD = '20261108-0958';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -9442,9 +9511,548 @@ function summaryText(rows, when) {
 return {FORM_V, WAS, SECTIONS, BOXES, AGAIN, STAR_LABEL, blank, formHtml, readForm, empty, tidy, summaryHtml, summaryText};
 })();
 
+const __m_drills = (function(){
+const E = __m_engine;
+/* The Union Invitational — the practice manual.
+ *
+ * A library of drills a club golfer can run on a putting green, a range,
+ * a quiet nine or a living-room carpet, and the rule that picks a dozen
+ * or so for each golfer from the grades on their report card: the weakest
+ * department gets the most, everybody gets the fundamentals. Every drill
+ * carries a drawing (src/drillart.js), a way of scoring it, a target for a
+ * 15-to-30 handicap, a way to make it harder, and a coach on video.
+ *
+ * The words are the book's own. The videos are links to the coaches who
+ * teach these drills on YouTube; nothing of theirs is copied here.
+ */
+
+/* the departments the report card grades, in the order they read */
+const DEPTS = [['putting', 'Putting'], ['par3', 'Par-3 play'], ['par4', 'Par-4 play'], ['par5', 'Par-5 play'], ['composure', 'Composure'], ['consistency', 'Consistency'], ['team', 'Team contribution']];
+const AREAS = { putt: 'Putting green', short: 'Chipping green', bunker: 'Practice bunker', range: 'Range', course: 'On the course', home: 'At home' };
+
+/* ---------------- the library ----------------
+   dept: the departments a drill serves, first the one it serves most.
+   where: putt | short | bunker | range | course | home.  mins: a session.  */
+const DRILLS = [
+  /* ---- putting ---- */
+  { id: 'gate', name: 'The gate', dept: ['putting', 'team'], where: 'putt', mins: 10, kit: 'Two tees, three balls', art: 'gate',
+    why: 'A three-footer missed is a point handed back. The gate makes the putter face square at impact, every time, without thinking about it.',
+    setup: ['Find a flat three-foot putt.', 'Push two tees into the green just wider than the putter head, a putter-length from the hole, so the head passes through with a coin’s width each side.'],
+    steps: ['Set up square to the gate, not the hole.', 'Make the stroke; the head passes through the gate without touching a tee.', 'Hold the finish and watch the ball in.'],
+    score: 'Out of 10: a putt counts only if the head clears both tees and the ball goes in.', target: '8 of 10 to begin with, 10 of 10 before you leave.', harder: 'Narrow the gate a coin’s width. Then move to a putt with a foot of break and keep the gate square to the start line.',
+    video: { who: 'Phil Kenyon', title: 'Focus on short putts', url: 'https://www.youtube.com/watch?v=zj6BDbKmZp0' } },
+  { id: 'clock', name: 'Around the clock', dept: ['putting', 'composure'], where: 'putt', mins: 15, kit: 'Twelve balls', art: 'clock',
+    why: 'Short putts from every side of the hole, with the break changing each time, are the putts that decide a four-ball.',
+    setup: ['Lay twelve balls in a circle three feet from the hole, like the hours on a clock.'],
+    steps: ['Start at twelve and go round, one putt a ball.', 'Miss one and the circle starts again from twelve.', 'Clear the circle, move every ball out to four feet, and go again.'],
+    score: 'How far out the circle gets before the session ends: three, four, five feet.', target: 'Clear three feet every session. Five feet is a very good day.', harder: 'Clear two circles in a row before moving out.',
+    video: { who: 'Jon Rahm', title: 'The “around the world” putting drill', url: 'https://www.youtube.com/watch?v=csdRCdxNNOs' } },
+  { id: 'ladder', name: 'The ladder', dept: ['putting', 'consistency'], where: 'putt', mins: 15, kit: 'Four tees, five balls', art: 'ladder',
+    why: 'Three-putts come from the first putt, not the second. The ladder teaches distance, which is the whole of long putting.',
+    setup: ['Push tees in at 10, 20, 30 and 40 feet from where you stand, in a line.', 'Stand with five balls.'],
+    steps: ['Putt the first ball to finish just past the 10-foot tee.', 'Putt the next to the 20, then the 30, then the 40. The fifth is your choice.', 'Look at the tee, not the ball, for your last practice stroke, then putt.'],
+    score: 'A ball counts if it finishes within a putter-length past its tee. Out of 5.', target: '3 of 5 a round of the ladder; 5 of 5 once a session.', harder: 'Go back down the ladder, 40 to 10. Then run it on a slope.',
+    video: { who: 'John Hughes Golf', title: 'Master your putting distance control with the ladder drill', url: 'https://www.youtube.com/watch?v=p21TO0WgeRo' } },
+  { id: 'circle', name: 'The three-foot circle', dept: ['putting', 'par4', 'par5'], where: 'putt', mins: 10, kit: 'Four tees, ten balls', art: 'circle',
+    why: 'From thirty feet the job is not to hole it. It is to leave a tap-in. A ball that dies a foot past the hole does that.',
+    setup: ['Make a circle of tees three feet around the hole.', 'Drop ten balls at thirty feet, on a straight-ish putt.'],
+    steps: ['Putt each ball to finish inside the circle, past the hole rather than short.', 'Count a ball short of the hole as a miss, even inside the circle.'],
+    score: 'Balls inside the circle and past the hole, out of 10.', target: '6 of 10. A tour player makes 8.', harder: 'Forty feet. Then fifty, where the circle is still three feet.',
+    video: { who: 'Dave Pelz', title: 'The 3-foot putting circle drill', url: 'https://www.youtube.com/watch?v=IukApU3-Uys' } },
+  { id: 'threesixnine', name: 'Three, six, nine', dept: ['putting', 'composure'], where: 'putt', mins: 10, kit: 'Three balls, three tees', art: 'threesixnine',
+    why: 'The pressure putt is the last one. This drill ends on it every time, so the last one becomes ordinary.',
+    setup: ['Tee at three, six and nine feet on the same line.'],
+    steps: ['Hole three in a row from three feet.', 'Then three in a row from six.', 'Then three in a row from nine. A miss at any stage sends you back to three feet.'],
+    score: 'How many attempts it takes to finish the set.', target: 'Finish it inside fifteen minutes.', harder: 'Four in a row at each station. Then make the nine-footer break.',
+    video: { who: 'Sedona Golf Resort', title: '3, 6, 9-feet putting drill', url: 'https://www.youtube.com/watch?v=jEpMLvKLYeY' } },
+  { id: 'eyes', name: 'Eyes on the hole', dept: ['putting'], where: 'putt', mins: 10, kit: 'Ten balls', art: 'eyes',
+    why: 'Looking at the hole while you putt switches off the hands and lets the eyes set the speed. Feel, not mechanics.',
+    setup: ['Ten balls at fifteen feet.'],
+    steps: ['Take your setup, then turn your head to the hole and keep it there.', 'Putt while looking at the hole.', 'Notice how close the speed is. Then putt the next ball normally and keep that speed.'],
+    score: 'Balls that finish within two feet, out of 10, with eyes on the hole.', target: '7 of 10.', harder: 'Twenty-five feet. Then putt with eyes closed after one look.',
+    video: { who: 'Brad Faxon', title: 'Putting distance control', url: 'https://www.youtube.com/watch?v=lKWhls8aFpU' } },
+
+  /* ---- the short game ---- */
+  { id: 'updown', name: 'Nine up-and-downs', dept: ['composure', 'par4', 'par3'], where: 'short', mins: 20, kit: 'One ball, a wedge, a putter', art: 'updown',
+    why: 'Composure is a chip to four feet after a bad shot. This is nine bad shots in a row and nine chances to tidy them up.',
+    setup: ['Drop one ball in nine different spots round the chipping green: rough, fringe, a tight lie, a downhill, a long one.', 'One ball each time, never two.'],
+    steps: ['Chip, then putt out. Count every shot.', 'Two is an up-and-down. Three is a bogey. Four is what we are trying to stop.'],
+    score: 'Up-and-downs out of 9, and the total strokes.', target: '4 of 9, and never worse than 22 strokes.', harder: 'Make every lie one you dislike. Play it with the ball above or below your feet.',
+    video: { who: 'Dave Phillips, TPI', title: 'Short game practice: can you shoot 21?', url: 'https://www.youtube.com/watch?v=vjXAIwK6NTs' } },
+  { id: 'towel', name: 'The landing towel', dept: ['par3', 'par4', 'composure'], where: 'short', mins: 15, kit: 'A towel, ten balls, a wedge', art: 'towel',
+    why: 'A chip has one job: land on the spot. Everything after that is the green’s. The towel teaches you to pick the spot and hit it.',
+    setup: ['Lay a towel on the green a few paces on, on the line to the hole.', 'Ten balls from the fringe.'],
+    steps: ['Land every ball on the towel and let it run.', 'Move the towel nearer and further; use less loft when it is near, more when far.'],
+    score: 'Balls that land on the towel, out of 10.', target: '5 of 10 with one club, from three different distances.', harder: 'Fold the towel in half. Then in half again.',
+    video: { who: 'Danny Maude', title: 'Before chipping onto the green do this simple drill', url: 'https://www.youtube.com/watch?v=TNSsIhza25o' } },
+  { id: 'clockface', name: 'The clock-face wedge', dept: ['par3', 'par5', 'consistency'], where: 'short', mins: 20, kit: 'One wedge, fifteen balls', art: 'clockface',
+    why: 'Three swing lengths with one club give you three distances you can trust. That is a par-5 lay-up and a par-3 miss sorted.',
+    setup: ['Picture your lead arm as the hour hand. Three backswings: 7:30, 9:00 and 10:30.'],
+    steps: ['Five balls at each length, same tempo, finish the same every time.', 'Pace the carry of each group and write the three numbers on a card in your bag.'],
+    score: 'How tight each group is: all five inside five yards is a pass.', target: 'Three numbers you believe. For most of this field: about 30, 50 and 70 yards with a sand wedge.', harder: 'Do it with the gap wedge and the pitching wedge. That is nine numbers.',
+    video: { who: 'Dave Pelz', title: 'Pelz Corner: wedge distance control', url: 'https://www.youtube.com/watch?v=BuJklZJbLlg' } },
+  { id: 'bunker', name: 'The line in the sand', dept: ['composure', 'par3', 'par5'], where: 'bunker', mins: 15, kit: 'Ten balls, a sand wedge', art: 'bunker',
+    why: 'Out in one is all a bunker asks. The club has to enter the sand two inches behind the ball, and this shows you exactly where it did.',
+    setup: ['Draw a straight line in the sand with the shaft.', 'Set up with the line two inches behind the ball’s position; no ball to begin with.'],
+    steps: ['Swing and splash the sand from the line forwards, five times. The divot should start on the line.', 'Then place balls two inches ahead of the line and hit the line, not the ball.'],
+    score: 'Divots that start on the line, out of 10. Then balls out on the green, out of 10.', target: '8 of 10 on the line; 7 of 10 on the green.', harder: 'A buried lie, with the face square and a steeper swing. Then a long bunker shot with a gap wedge.',
+    video: { who: 'Brian Fitzgerald, The Golf Doctor', title: 'Bunkers: the line in the sand drill', url: 'https://www.youtube.com/watch?v=CTPNifgLpJY' } },
+  { id: 'pitchladder', name: 'The pitching ladder', dept: ['par5', 'par4', 'consistency'], where: 'range', mins: 20, kit: 'Three wedges, twelve balls', art: 'pitchladder',
+    why: 'The second shot on a par 5 is a lay-up to a number you like. Then the third is a number you know. This builds the numbers.',
+    setup: ['Targets at 40, 60, 80 and 100 yards. Flags or towels.'],
+    steps: ['Four balls at each target, nearest first, choosing the club and the swing length for each.', 'A ball counts if it finishes inside ten yards of the target.'],
+    score: 'Out of 16.', target: '9 of 16. Then 12.', harder: 'Mix the order so no two balls go to the same target in a row.',
+    video: { who: 'Golf Tips TV', title: 'Wedge control: the 20-40-60-80-100 yard drill', url: 'https://www.youtube.com/watch?v=uq9YjxVBnZk' } },
+  { id: 'par18', name: 'Par 18', dept: ['composure', 'par3', 'team'], where: 'short', mins: 25, kit: 'One ball, a wedge, a putter', art: 'par18',
+    why: 'Nine holes of short game, par 2 each. A game with a score beats a bucket of chips, because you keep the score.',
+    setup: ['Pick nine spots round the green, each a different shot. Each is a par 2: chip, putt.'],
+    steps: ['Play all nine, one ball, holing everything out.', 'Write the score down. Beat it next time.'],
+    score: 'Strokes for nine holes, against par 18.', target: '24 or better. Tour players play these at about 19.', harder: 'Play it with a partner, alternate shot: you chip, they putt, then swap.',
+    video: { who: 'Golf Insider', title: 'Golf chipping skills game: Par 18', url: 'https://www.youtube.com/watch?v=vhlOcJibpig' } },
+
+  /* ---- the long game ---- */
+  { id: 'sticks', name: 'The alignment station', dept: ['consistency', 'par4', 'par3'], where: 'range', mins: 10, kit: 'Two alignment sticks', art: 'sticks',
+    why: 'Most shots that start wrong were aimed wrong. Ten minutes a session with the sticks and the body learns what square looks like.',
+    setup: ['One stick on the ground along the target line, a foot outside the ball.', 'One parallel to it along your toes.'],
+    steps: ['Set up to the toe stick every ball for the first twenty balls of every session.', 'Check ball position against the toe stick: a tee’s width forward of centre for a mid iron, inside the lead heel for the driver.'],
+    score: 'None. It is a habit, not a test.', target: 'Twenty balls a session, every session.', harder: 'Take the sticks away for ten balls and lay a club down to check you kept it.',
+    video: { who: 'Rick Shiels', title: 'Help with your alignment', url: 'https://www.youtube.com/watch?v=z_PlY9OemuM' } },
+  { id: 'teegate', name: 'The tee gate', dept: ['par4', 'consistency', 'par5'], where: 'range', mins: 15, kit: 'Two tees, twenty balls, a 7-iron', art: 'teegate',
+    why: 'A strike from the middle of the face goes the distance you expect. One from the heel or toe does not, and that is most of the doubles.',
+    setup: ['Push a tee in just outside the toe of the club at address, and one just inside the heel, a coin’s width wider than the face.'],
+    steps: ['Hit through the gate without touching a tee. Start at half speed.', 'Build to a full swing only while the gate stays clean.'],
+    score: 'Clean swings out of 20.', target: '14 of 20 at full speed.', harder: 'Spray the face with foot powder and aim for a mark inside a coin of the centre.',
+    video: { who: 'Chris Ryan', title: '3 awesome drills to improve your strike', url: 'https://www.youtube.com/watch?v=kBDdKmg8UYQ' } },
+  { id: 'tempo', name: 'Three to one', dept: ['consistency', 'composure', 'par4'], where: 'range', mins: 10, kit: 'A metronome app, ten balls', art: 'tempo',
+    why: 'Under pressure a swing gets quick going back. Good swings take three counts back and one through, and a count you can hear keeps it that way on the 18th tee.',
+    setup: ['A metronome at 60 beats a minute, or count “one-two-three” back and “one” through.'],
+    steps: ['Start the backswing on a beat and strike on the fourth.', 'Ten balls with a short iron. Then ten with the driver, same count.'],
+    score: 'Balls where the strike lands on the beat, out of 10.', target: '8 of 10 with the driver.', harder: 'Take the metronome away and have a partner count.',
+    video: { who: 'Tour Tempo', title: 'The 3-to-1 rule', url: 'https://www.youtube.com/watch?v=V-8UIPxsJiQ' } },
+  { id: 'feet', name: 'Feet together', dept: ['consistency', 'composure'], where: 'range', mins: 10, kit: 'Ten balls, a 7-iron', art: 'feet',
+    why: 'Balance is the first thing to go when you try to hit it hard. With the feet together the arms have to swing and the body has to stay quiet.',
+    setup: ['Feet touching, ball in the middle, a 7-iron.'],
+    steps: ['Swing three-quarters and hold the finish for three seconds.', 'If you stumble, the swing was too hard. Ten balls, then ten with your normal stance keeping the same feeling.'],
+    score: 'Finishes held for three seconds, out of 10.', target: '9 of 10.', harder: 'Same drill with a hybrid. Then on a slight slope.',
+    video: { who: 'Golf lesson', title: 'Feet together drill: fix your tempo and balance', url: 'https://www.youtube.com/watch?v=0lhtR2Qqhlg' } },
+  { id: 'heights', name: 'Three heights', dept: ['par3', 'composure', 'par4'], where: 'range', mins: 15, kit: 'Fifteen balls, a 7-iron', art: 'heights',
+    why: 'A par 3 into the wind, a tree in the way, a tucked flag: each wants a different height. Owning three flights turns trouble into a shot.',
+    setup: ['Same club, same target.', 'Low: ball back, hands ahead, finish short. Normal. High: ball forward, full finish.'],
+    steps: ['Five of each, calling the height before you swing.', 'A ball counts if it flew the height you called and finished within twenty yards.'],
+    score: 'Out of 15.', target: '9 of 15.', harder: 'Mix them: low, high, normal, high, low. Then do it with a hybrid.',
+    video: { who: 'Golf lesson', title: 'How to hit high and low trajectory shots with control', url: 'https://www.youtube.com/watch?v=-XQI1A7MW38' } },
+  { id: 'fairway', name: 'The fairway finder', dept: ['par4', 'par5', 'composure'], where: 'range', mins: 15, kit: 'Ten balls, the driver and a 3-wood', art: 'fairway',
+    why: 'Out of bounds costs two shots before you have moved. A shot you can keep in play from the tee, at four-fifths, is worth more than ten extra yards.',
+    setup: ['Pick two targets on the range forty yards apart: that is a fairway.', 'Tee the ball a little lower than usual.'],
+    steps: ['Ten drives at four-fifths speed with a full finish. Count the ones between the targets.', 'Then five with the 3-wood. Compare.'],
+    score: 'Fairways out of 10 with the driver, out of 5 with the 3-wood.', target: '7 of 10. If the 3-wood scores better, it is the club on tight holes.', harder: 'Thirty yards wide. Then pick the side you must miss on and count only those.',
+    video: { who: 'Golf lesson', title: 'How to turn your driver into a fairway finder', url: 'https://www.youtube.com/watch?v=E4sWBHQs44Y' } },
+  { id: 'towelback', name: 'The towel behind the ball', dept: ['par5', 'par4', 'consistency'], where: 'range', mins: 15, kit: 'A towel, fifteen balls, a hybrid and a mid iron', art: 'towelback',
+    why: 'A fat hybrid on a par 5 is a stroke gone. The low point of the swing has to be past the ball; the towel tells you at once if it was not.',
+    setup: ['Fold a towel and lay it six inches behind the ball.'],
+    steps: ['Hit the ball without touching the towel. Weight into the lead side at the top of the downswing.', 'Five with a 7-iron, five with a hybrid, five with a 3-wood off the grass.'],
+    score: 'Clean strikes out of 15.', target: '11 of 15.', harder: 'Four inches. Then off a slightly downhill lie.',
+    video: { who: 'Ryan Trengrove, PGA', title: 'Towel behind the ball drill for strike point', url: 'https://www.youtube.com/watch?v=Xi8VbNN6Q8s' } },
+
+  /* ---- the course and the head ---- */
+  { id: 'routine', name: 'The twenty-second routine', dept: ['composure', 'consistency', 'team'], where: 'course', mins: 0, kit: 'A phone to film it, once', art: 'routine',
+    why: 'The same routine before every shot gives a nervous swing somewhere to live. Twenty seconds, always the same, from the decision to the strike.',
+    setup: ['Write your routine down: club decided, one look at the target from behind, one rehearsal, walk in, two looks, go.'],
+    steps: ['Film yourself on the range doing it five times. Time it. It should be within two seconds every time.', 'On the course, if anything interrupts it, step away and start it again.'],
+    score: 'Shots this round where you did the whole routine. Mark the card.', target: 'Every shot by round two. Honestly.', harder: 'Do it on the putting green too, down to a twelve-second putting routine.',
+    video: { who: 'Rick Shiels', title: 'The perfect golf pre-shot routine', url: 'https://www.youtube.com/watch?v=vaTEBm33_Yo' } },
+  { id: 'worstball', name: 'Worst ball', dept: ['consistency', 'composure', 'team'], where: 'course', mins: 120, kit: 'Two balls, a quiet nine', art: 'worstball',
+    why: 'Play two balls and always take the worse one. Nine holes of this and your bad shot gets better, because it is the only one that counts.',
+    setup: ['A quiet nine, two balls, no one behind you.'],
+    steps: ['Hit two tee shots. Play two from the worse one. Keep playing from the worse of each pair, including putts.', 'Hole out both; the worse score counts.'],
+    score: 'Nine holes of worst ball against your handicap.', target: 'Within eight shots of your usual nine.', harder: 'Best ball on the front nine, worst ball on the back, and compare the two scores.',
+    video: { who: 'On-course lesson', title: 'Pressure training with two-ball worse ball', url: 'https://www.youtube.com/watch?v=C5-g2PLD1cg' } },
+  { id: 'bogey', name: 'No worse than bogey', dept: ['composure', 'par4', 'par5', 'team'], where: 'course', mins: 120, kit: 'Nine holes', art: 'bogey',
+    why: 'In a four-ball a bogey keeps you in the hole and a double never counts. Play nine with one rule and it changes which club you pull.',
+    setup: ['Nine holes. The only aim: no hole worse than bogey.'],
+    steps: ['On every tee ask what keeps a double off the card: often it is the 3-wood or the hybrid.', 'Short-side nothing. Aim at the fat of every green. Lay up to the wedge number you know.'],
+    score: 'Holes without a double, out of 9.', target: '8 of 9. Count how many pars came along by themselves.', harder: 'No worse than bogey over eighteen, with a partner keeping you honest.',
+    video: { who: 'Course management lesson', title: 'This simple strategy eliminates double bogeys', url: 'https://www.youtube.com/watch?v=P3crhrkbp3g' } },
+  { id: 'centergreen', name: 'Middle of the green', dept: ['par3', 'par4'], where: 'range', mins: 15, kit: 'Ten balls, the clubs you hit from 130 to 170', art: 'centergreen',
+    why: 'The flag on a par 3 is a suggestion. The middle of the green is the target, and from there the worst you make is a two-putt par.',
+    setup: ['Pick a green on the range. Ignore the flag; find its middle.'],
+    steps: ['Ten shots at the middle with the club for that distance, teed low as on a par 3.', 'Count the ones on the green. Not the ones near the flag: on the green.'],
+    score: 'Greens out of 10.', target: '6 of 10 from 150. If it is below 4, take one more club.', harder: 'Five with one more club at a smooth swing. Compare the count. That answer is your par-3 club.',
+    video: { who: 'Toptracer Range', title: 'How to hit more greens on par 3s', url: 'https://www.youtube.com/watch?v=51L0BXq2Mcs' } },
+  { id: 'reset', name: 'The ten-second reset', dept: ['composure', 'team', 'consistency'], where: 'course', mins: 0, kit: 'Nothing', art: 'reset',
+    why: 'A bad shot is a shot. Two bad shots are a hole. The reset is what happens in the ten seconds between them.',
+    setup: ['Pick a trigger: the velcro on the glove, a tee in the pocket, the club going back in the bag.'],
+    steps: ['After a bad shot: one breath in for four, out for six. Say what you will do next, in words. Then the trigger, and the hole is new.', 'Allow yourself nothing else about the shot until the round is over.'],
+    score: 'Bad shots followed by a good one this round. Mark the card: a dot for each reset that worked.', target: 'Two out of three.', harder: 'Do it after good shots too, so the routine does not depend on the mood.',
+    video: { who: 'Dr Bob Rotella', title: 'Make your next shot your best shot', url: 'https://www.youtube.com/watch?v=BZCa0cqSTpE' } },
+  { id: 'punch', name: 'The escape shot', dept: ['composure', 'par4', 'par5'], where: 'range', mins: 10, kit: 'Ten balls, a 7-iron', art: 'punch',
+    why: 'Out of the trees the hero shot costs a double. The hundred-yard runner that finds the fairway costs nothing, and it has to be rehearsed before you need it.',
+    setup: ['Ball back in the stance, hands ahead, grip down an inch, a 7-iron.'],
+    steps: ['Half swing, finish low with the hands below the shoulders. The ball runs out at a hundred yards, under head height.', 'Ten balls to a target a hundred yards out, twenty yards wide.'],
+    score: 'Balls in the target, under head height, out of 10.', target: '7 of 10.', harder: 'From a bad lie: a divot, pine needles, a downslope.',
+    video: { who: 'Mark Wood Golf Academy', title: 'The low punch shot', url: 'https://www.youtube.com/watch?v=h8mKk6M76x4' } },
+  { id: 'numbers', name: 'Know your numbers', dept: ['par5', 'par3', 'consistency'], where: 'range', mins: 20, kit: 'Thirty balls, every wedge and a card', art: 'numbers',
+    why: 'A lay-up to a number you have measured beats a lay-up to a number you hope. This session writes the card you play from.',
+    setup: ['A rangefinder or the range’s markers.', 'A card in your bag with a column a club.'],
+    steps: ['Ten full shots with each wedge. Throw out the longest and the shortest, average the rest.', 'Write the carry on the card. Do the same for the 9 and the 8.'],
+    score: 'A card with a number a club.', target: 'Numbers you would lay up to. Check them again in a month.', harder: 'Add the three-quarter swing a club, so every club has two numbers.',
+    video: { who: 'Joanna Coe', title: 'How to find your stock yardages', url: 'https://www.youtube.com/watch?v=a-BJyJz67uA' } },
+
+  /* ---- the team game ---- */
+  { id: 'partner', name: 'Two-on-two putting', dept: ['team', 'putting', 'composure'], where: 'putt', mins: 20, kit: 'Four golfers, four balls', art: 'partner',
+    why: 'Four-ball is a putting game with a partner watching. Practise it as one: the pressure of the pair, and the putts that count.',
+    setup: ['Two pairs, nine holes on the putting green, better ball, from fifteen to thirty feet.'],
+    steps: ['Both partners putt. The better score counts for the pair.', 'Talk: who goes first, what the first putt shows the second. Keep the score and play for a drink.'],
+    score: 'Holes won, out of 9.', target: 'Win more than you lose. Notice which partner should putt first when it matters.', harder: 'The partner who putts second must hole out or the pair takes a bogey.',
+    video: { who: 'Las Vegas Golf', title: 'How to practise putting using games', url: 'https://www.youtube.com/watch?v=PmJhBXpTm24' } },
+  { id: 'safeball', name: 'The safe ball', dept: ['team', 'composure', 'par5'], where: 'course', mins: 120, kit: 'A partner, nine holes', art: 'safeball',
+    why: 'When your partner is in trouble you have one job: a par. Nine holes of playing the team shot, not your own, is the week’s most valuable practice.',
+    setup: ['Nine holes of better ball with your partner.'],
+    steps: ['On every shot the partner who hits second says out loud what the pair needs: “you are in play, I can go at it” or “you are gone, I play the middle”.', 'The second player makes the team shot. No heroes.'],
+    score: 'Holes where the pair scored a par or better, out of 9.', target: '6 of 9.', harder: 'Swap the order on every hole so each of you plays the safe ball.',
+    video: { who: 'Golf lesson', title: 'How to play the better-ball format: rules and tactics', url: 'https://www.youtube.com/watch?v=YxYv_26JT9s' } },
+  { id: 'pressure', name: 'Twenty-five in a row', dept: ['team', 'putting', 'composure'], where: 'putt', mins: 15, kit: 'One ball, a tee', art: 'pressure',
+    why: 'The putt your partner needs from you is three feet with the match on it. The twenty-fifth putt in a row feels exactly like that.',
+    setup: ['A straight three-footer, a tee to mark it.'],
+    steps: ['Hole twenty-five in a row. Miss, and the count goes back to nought.', 'Same routine on every one, including the first.'],
+    score: 'The longest run of the session.', target: 'Twenty-five, once a week.', harder: 'Fifty. Then twenty-five from four feet.',
+    video: { who: 'Dave Pelz', title: 'Drain 3-foot putts', url: 'https://www.youtube.com/watch?v=Nk8ma48F-UE' } },
+
+  /* ---- the fundamentals ---- */
+  { id: 'warmup', name: 'The twenty-minute warm-up', dept: ['fund', 'consistency', 'composure'], where: 'course', mins: 20, kit: 'Twenty minutes before the tee time', art: 'warmup',
+    why: 'The first three holes of a cold golfer cost the week more than any swing fault. The order matters: green first, driver last.',
+    setup: ['Arrive twenty-five minutes before the tee time, not five.'],
+    steps: ['Five minutes of putting: long putts for speed, then six three-footers.', 'Five minutes of chips, to a towel.', 'Eight minutes on the range: wedge, 7-iron, hybrid, three drivers.', 'Finish by hitting the first tee shot of the day, with the club you will use, with the full routine.'],
+    score: 'Did you do all four parts, in that order.', target: 'Every round of the week.', harder: 'Cut it to twelve minutes and keep all four parts.',
+    video: { who: 'Rick Shiels', title: 'How to warm up before playing golf', url: 'https://www.youtube.com/watch?v=1t6HKapfmcc' } },
+  { id: 'mirror', name: 'The mirror', dept: ['fund', 'consistency'], where: 'home', mins: 5, kit: 'A mirror, a club', art: 'mirror',
+    why: 'Grip and posture drift all season and nobody tells you. Five minutes in front of a mirror puts them back where the summer left them.',
+    setup: ['Stand in front of a mirror, down the line and face on, with a 7-iron.'],
+    steps: ['Grip: two knuckles of the lead hand showing, the V of the trail hand pointing at the trail shoulder.', 'Posture: bend from the hips, knees soft, arms hanging straight down, weight on the balls of the feet.', 'Make a slow backswing to the top and check the club points at the target.'],
+    score: 'None. Five minutes, three times a week.', target: 'A setup you can find with your eyes shut.', harder: 'Film it from both angles and compare with a month ago.',
+    video: { who: 'Titleist', title: 'Indoor golf training: posture, with a mirror', url: 'https://www.youtube.com/watch?v=8Adhz5nrJH0' } },
+];
+const drillById = id => DRILLS.find(d => d.id === id) || null;
+
+/* ---------------- the pick ----------------
+   The weakest department gets the most drills, every department graded C or
+   worse gets at least one, and the two fundamentals go to everyone. Twelve
+   to fifteen in all, in an order that reads: putting green first, then the
+   short game, the range, then the course and the head. */
+const GRADE_RANK = { D: 0, C: 1, B: 2, A: 3 };
+const WHERE_ORDER = ['home', 'putt', 'short', 'bunker', 'range', 'course'];
+const SHARE = [4, 3, 2, 1, 1, 1, 1];     // drills for the worst department, the next, and so on: thirteen, plus the two fundamentals
+function manualFor(pr) {
+  const g = (pr && pr.grades) || {};
+  const depts = DEPTS.map(([k]) => k).filter(k => g[k]).sort((a, b) => (GRADE_RANK[g[a]] - GRADE_RANK[g[b]]) || DEPTS.findIndex(d => d[0] === a) - DEPTS.findIndex(d => d[0] === b));
+  const picked = new Set(['warmup', 'mirror']);
+  const want = {};
+  depts.forEach((k, i) => { want[k] = SHARE[i] || 1; });
+  /* each department in turn takes the drills that serve it most, then the ones that serve it at all */
+  for (const k of depts) {
+    let n = 0;
+    for (const pass of [0, 1]) for (const d of DRILLS) {
+      if (n >= want[k] || picked.has(d.id)) continue;
+      if (pass === 0 ? d.dept[0] === k : d.dept.includes(k)) { picked.add(d.id); n++; }
+    }
+  }
+  /* fill to twelve from the departments in order of need; never past fifteen */
+  for (const k of depts) for (const d of DRILLS) if (picked.size < 12 && !picked.has(d.id) && d.dept.includes(k)) picked.add(d.id);
+  for (const d of DRILLS) if (picked.size < 12 && !picked.has(d.id)) picked.add(d.id);
+  const list = DRILLS.filter(d => picked.has(d.id)).slice(0, 15);
+  /* the green first, then the short game, the range, the course; the two fundamentals close */
+  const order = d => (d.dept[0] === 'fund' ? 99 : WHERE_ORDER.indexOf(d.where));
+  list.sort((a, b) => order(a) - order(b) || DRILLS.indexOf(a) - DRILLS.indexOf(b));
+  /* why this one: the department it was picked for, and the grade */
+  return list.map(d => { const k = d.dept[0] === 'fund' ? 'fund' : (d.dept.find(x => depts.includes(x)) || d.dept[0]); return { ...d, forDept: k === 'fund' ? null : k, forGrade: k === 'fund' ? null : g[k] || null }; });
+}
+/** The manual as a week: four sessions, each a place and the drills for it. */
+function weekPlan(list) {
+  const by = w => list.filter(d => d.where === w);
+  const sessions = [
+    { name: 'Session 1 · the putting green', mins: 0, drills: by('putt') },
+    { name: 'Session 2 · the short game', mins: 0, drills: by('short').concat(by('bunker')) },
+    { name: 'Session 3 · the range', mins: 0, drills: by('range') },
+    { name: 'Session 4 · a quiet nine', mins: 0, drills: by('course').filter(d => d.mins >= 60) },
+    { name: 'Every day', mins: 0, drills: by('home').concat(by('course').filter(d => d.mins < 60)) },
+  ].filter(s => s.drills.length);
+  for (const s of sessions) s.mins = s.drills.reduce((a, d) => a + d.mins, 0);
+  return sessions;
+}
+const deptLabel = k => (DEPTS.find(d => d[0] === k) || [])[1] || (k === 'fund' ? 'Fundamentals' : k);
+
+return {DEPTS, AREAS, DRILLS, drillById, manualFor, weekPlan, deptLabel};
+})();
+
+const __m_drillart = (function(){
+
+/* The Union Invitational — the drawings in the practice manual.
+ *
+ * One drawing a drill, in the yardage book's own line: pine ink on the
+ * cream paper, a green, a hole, a ball, a tee, nothing shaded. The motion
+ * is a few CSS classes (styles.css, .da-*) so a ball rolls through its
+ * gate on a screen and sits still on paper; a reader who asked for less
+ * motion gets the still drawing. Every drawing is an inline SVG, so it
+ * prints at any size and weighs nothing. */
+
+const INK = 'var(--ink)', TURF = 'var(--turf)', GOLD = 'var(--gold-up)', GREEN = '#DCE3D2', SAND = '#EADFC0', PAPER = 'var(--paper)';
+const svg = (label, body, vb = '0 0 320 200') => `<svg class="da" viewBox="${vb}" role="img" aria-label="${label}" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="${PAPER}"/>${body}</svg>`;
+const green = (cx, cy, rx, ry) => `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${GREEN}" stroke="${INK}" stroke-width="1.4"/>`;
+const hole = (x, y) => `<circle cx="${x}" cy="${y}" r="6" fill="${INK}"/>`;
+const flag = (x, y) => `<line x1="${x}" y1="${y}" x2="${x}" y2="${y - 34}" stroke="${INK}" stroke-width="1.6"/><path d="M${x} ${y - 34} l16 5 -16 6z" fill="var(--flag)"/>`;
+const ball = (x, y, cls = '', style = '') => `<circle class="${cls}" cx="${x}" cy="${y}" r="5" fill="#FBFAF7" stroke="${INK}" stroke-width="1.4"${style ? ` style="${style}"` : ''}/>`;
+const tee = (x, y, c = INK) => `<path d="M${x - 3} ${y - 7} h6 l-1 3 h-1.4 l-0.6 9 h-2 l-0.6 -9 h-1.4z" fill="${c}"/>`;
+const dash = (d, cls = '') => `<path class="${cls}" d="${d}" fill="none" stroke="${TURF}" stroke-width="1.4" stroke-dasharray="4 4"/>`;
+const line = (x1, y1, x2, y2, w = 1.6, c = INK) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${c}" stroke-width="${w}" stroke-linecap="round"/>`;
+const text = (x, y, t, size = 11, anchor = 'middle', c = TURF) => `<text x="${x}" y="${y}" font-size="${size}" text-anchor="${anchor}" fill="${c}" font-family="inherit">${t}</text>`;
+const putter = (x, y) => `<line x1="${x}" y1="${y - 60}" x2="${x + 6}" y2="${y - 4}" stroke="${INK}" stroke-width="2.2" stroke-linecap="round"/><rect x="${x}" y="${y - 5}" width="16" height="6" rx="1.5" fill="${INK}"/>`;
+const stick = (x, y, h = 60, c = GOLD) => `<line x1="${x}" y1="${y}" x2="${x}" y2="${y - h}" stroke="${c}" stroke-width="3" stroke-linecap="round"/>`;
+/* a golfer: the yardage book's little figure, seen from the side, with the club back or through */
+const golfer = (x, y, cls = '') => `<g class="${cls}" style="transform-box:fill-box;transform-origin:50% 90%">
+  <circle cx="${x}" cy="${y - 62}" r="7" fill="none" stroke="${INK}" stroke-width="1.6"/>
+  <path d="M${x} ${y - 55} v24 l-8 26 M${x} ${y - 31} l9 26" fill="none" stroke="${INK}" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M${x} ${y - 50} l12 22" fill="none" stroke="${INK}" stroke-width="1.8" stroke-linecap="round"/></g>`;
+const towel = (x, y, w = 36, h = 14) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="#FBFAF7" stroke="${INK}" stroke-width="1.4"/><line x1="${x + 6}" y1="${y}" x2="${x + 6}" y2="${y + h}" stroke="${INK}" stroke-width="1"/><line x1="${x + w - 6}" y1="${y}" x2="${x + w - 6}" y2="${y + h}" stroke="${INK}" stroke-width="1"/>`;
+const target = (x, y, r = 22) => `<circle cx="${x}" cy="${y}" r="${r}" fill="none" stroke="${GOLD}" stroke-width="1.6" stroke-dasharray="3 3" class="da-blink"/>`;
+const card = (x, y, w, h, rows) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4" fill="#FBFAF7" stroke="${INK}" stroke-width="1.4"/>${rows.map((r, i) => text(x + 8, y + 16 + i * 14, r, 10, 'start', INK)).join('')}`;
+
+const ART = {
+  gate: () => svg('A ball rolling through a gate of two tees into the hole', `
+    ${green(160, 120, 140, 56)}${hole(250, 118)}
+    ${tee(118, 104)}${tee(118, 134)}
+    ${putter(78, 124)}
+    ${ball(100, 119, 'da-roll', '--dx:144px;--dur:2.4s')}
+    ${dash('M100 119 H244')}${text(118, 92, 'a coin each side', 10)}`),
+  clock: () => svg('Twelve balls in a circle round the hole, like a clock', `
+    ${green(160, 100, 120, 80)}${hole(160, 100)}
+    ${Array.from({ length: 12 }, (_, i) => { const a = i / 12 * Math.PI * 2 - Math.PI / 2; return ball(160 + Math.cos(a) * 60, 100 + Math.sin(a) * 50, 'da-pulse', '--d:' + (i * 0.2) + 's'); }).join('')}
+    ${text(160, 30, '3 ft, then 4, then 5', 10)}`),
+  ladder: () => svg('Four tees in a line at ten, twenty, thirty and forty feet', `
+    ${green(160, 110, 150, 60)}
+    ${[70, 130, 190, 250].map((x, i) => tee(x, 100) + text(x, 150, (i + 1) * 10 + ' ft', 10)).join('')}
+    ${putter(28, 118)}${[0, 1, 2, 3].map(i => ball(48, 113, 'da-roll', `--dx:${20 + i * 60}px;--dur:${1.6 + i * 0.5}s;--d:${i * 0.4}s`)).join('')}`),
+  circle: () => svg('A three-foot circle of tees round the hole, a ball finishing just past it', `
+    ${green(190, 110, 120, 70)}${hole(220, 108)}
+    ${[0, 60, 120, 180, 240, 300].map(a => { const r = a * Math.PI / 180; return tee(220 + Math.cos(r) * 40, 108 + Math.sin(r) * 30); }).join('')}
+    ${putter(40, 120)}${ball(60, 113, 'da-roll', '--dx:172px;--dur:2.6s')}${dash('M60 113 H232')}
+    ${text(220, 170, 'past the hole, inside the circle', 10)}`),
+  threesixnine: () => svg('Three stations at three, six and nine feet from the hole', `
+    ${green(160, 110, 150, 60)}${hole(270, 108)}
+    ${[['3 ft', 210], ['6 ft', 150], ['9 ft', 90]].map(([l, x]) => tee(x, 100) + text(x, 150, l, 10)).join('')}
+    ${ball(90, 113, 'da-roll', '--dx:172px;--dur:2.2s;--d:0s')}${ball(150, 113, 'da-roll', '--dx:112px;--dur:1.8s;--d:0.8s')}${ball(210, 113, 'da-roll', '--dx:52px;--dur:1.4s;--d:1.6s')}
+    ${text(160, 36, 'three in a row at each, or back to the start', 10)}`),
+  eyes: () => svg('A golfer putting while looking at the hole', `
+    ${green(190, 125, 125, 55)}${hole(270, 122)}
+    ${golfer(70, 150)}<path d="M74 92 Q170 70 262 112" fill="none" stroke="${GOLD}" stroke-width="1.6" stroke-dasharray="3 4" class="da-dash"/>
+    ${ball(96, 150, 'da-roll', '--dx:168px;--dy:-26px;--dur:2.6s')}${text(170, 60, 'eyes on the hole, not the ball', 10)}`),
+  updown: () => svg('Nine balls round a green, each chipped and putted out', `
+    ${green(160, 100, 110, 60)}${hole(160, 100)}${flag(160, 100)}
+    ${[[40, 60], [160, 22], [285, 60], [300, 130], [230, 176], [90, 180], [22, 130], [60, 152], [265, 40]].map(([x, y], i) => ball(x, y, 'da-pulse', '--d:' + i * 0.25 + 's') + dash(`M${x} ${y} L160 100`)).join('')}`),
+  towel: () => svg('A chip landing on a towel and running to the hole', `
+    ${green(190, 120, 125, 56)}${hole(282, 118)}
+    ${towel(150, 112, 40, 12)}${golfer(48, 150)}
+    <path d="M70 146 Q110 70 170 116" fill="none" stroke="${TURF}" stroke-width="1.4" stroke-dasharray="4 4"/>
+    ${ball(70, 146, 'da-chip', '--mx:100px;--my:-70px;--dx:200px;--dy:-30px;--dur:2.8s')}${text(170, 150, 'land here', 10)}`),
+  clockface: () => svg('A swing drawn as a clock: lead arm at 7:30, 9:00 and 10:30', `
+    <circle cx="160" cy="110" r="70" fill="none" stroke="${INK}" stroke-width="1.4"/>
+    ${[['12', 160, 32], ['9', 82, 114], ['3', 238, 114], ['6', 160, 196]].map(([t, x, y]) => text(x, y, t, 11, 'middle', INK)).join('')}
+    ${[['7:30', 135], ['9:00', 180], ['10:30', 225]].map(([l, a], i) => { const r = a * Math.PI / 180; const x = 160 + Math.cos(r) * 70, y = 110 + Math.sin(r) * 70; return line(160, 110, x, y, 2, i === 1 ? INK : GOLD) + text(x - 12, y - 6, l, 10, 'end', INK); }).join('')}
+    <line class="da-hand" x1="160" y1="110" x2="160" y2="40" stroke="var(--flag)" stroke-width="2.4" stroke-linecap="round" style="transform-box:view-box;transform-origin:160px 110px"/>
+    ${text(160, 190, 'three lengths, three distances', 10)}`),
+  bunker: () => svg('A line drawn in the sand two inches behind the ball', `
+    <path d="M20 140 Q160 90 300 140 L300 190 L20 190z" fill="${SAND}" stroke="${INK}" stroke-width="1.4"/>
+    ${line(120, 112, 120, 172, 2, 'var(--flag)')}${ball(150, 128)}
+    ${golfer(70, 150)}<path class="da-splash" d="M118 132 q18 -14 40 -2" fill="none" stroke="${TURF}" stroke-width="2" stroke-dasharray="40" style="--len:60"/>
+    ${text(120, 100, 'the line', 10)}${text(150, 112, '2 in', 10)}`),
+  pitchladder: () => svg('Four targets at forty, sixty, eighty and a hundred yards', `
+    ${[[85, 150, '40'], [140, 120, '60'], [200, 95, '80'], [265, 75, '100']].map(([x, y, l]) => target(x, y, 14) + text(x, y + 30, l + ' yd', 10)).join('')}
+    ${golfer(30, 190)}${[0, 1, 2, 3].map(i => ball(48, 186, 'da-chip', `--mx:${[20, 50, 85, 120][i]}px;--my:${[-70, -90, -110, -130][i]}px;--dx:${[37, 92, 152, 217][i]}px;--dy:${[-36, -66, -91, -111][i]}px;--dur:2.6s;--d:${i * 0.7}s`)).join('')}`),
+  par18: () => svg('Nine holes of chip and putt, par two each', `
+    ${green(160, 100, 120, 64)}${hole(160, 100)}${flag(160, 100)}
+    ${[[40, 40], [160, 20], [280, 40], [300, 110], [270, 170], [160, 185], [50, 170], [20, 110], [100, 48]].map(([x, y], i) => `<circle cx="${x}" cy="${y}" r="9" fill="#FBFAF7" stroke="${INK}" stroke-width="1.4"/>` + text(x, y + 4, String(i + 1), 10, 'middle', INK)).join('')}
+    ${card(236, 136, 70, 48, ['par 18', 'you: 24'])}`),
+  sticks: () => svg('Two alignment sticks, one on the target line and one along the toes', `
+    <line x1="30" y1="120" x2="300" y2="90" stroke="${GOLD}" stroke-width="4" stroke-linecap="round"/>
+    <line x1="30" y1="160" x2="300" y2="130" stroke="${GOLD}" stroke-width="4" stroke-linecap="round"/>
+    ${ball(150, 100)}${flag(296, 86)}
+    <path d="M120 150 l-6 12 h18 l-6 -12z M160 146 l-6 12 h18 l-6 -12z" fill="${INK}"/>
+    ${text(60, 182, 'toes', 10, 'start')}${text(60, 110, 'target line', 10, 'start')}`),
+  teegate: () => svg('Two tees either side of the clubhead, the club swung through without touching', `
+    ${tee(130, 150)}${tee(190, 150)}${ball(160, 152)}
+    ${golfer(80, 180)}<path class="da-sweep" d="M100 170 Q160 150 220 170" fill="none" stroke="${TURF}" stroke-width="1.4" stroke-dasharray="4 4"/>
+    <rect class="da-club" x="146" y="144" width="28" height="12" rx="3" fill="none" stroke="${INK}" stroke-width="1.6" style="--dx:36px"/>
+    ${text(160, 120, 'a coin wider than the face', 10)}`),
+  tempo: () => svg('A metronome: three counts back, one count through', `
+    <path d="M130 40 L190 40 L210 180 L110 180z" fill="#FBFAF7" stroke="${INK}" stroke-width="1.6"/>
+    <line class="da-tick" x1="160" y1="170" x2="160" y2="60" stroke="var(--flag)" stroke-width="2.4" stroke-linecap="round" style="transform-box:view-box;transform-origin:160px 170px"/>
+    ${text(60, 100, '1 · 2 · 3', 13, 'middle', INK)}${text(260, 100, '· 1', 13, 'middle', INK)}
+    ${text(60, 120, 'back', 10)}${text(260, 120, 'through', 10)}`),
+  feet: () => svg('A golfer swinging with the feet together', `
+    <g style="transform-box:fill-box;transform-origin:50% 90%">
+    <circle cx="160" cy="68" r="8" fill="none" stroke="${INK}" stroke-width="1.6"/>
+    <path d="M160 76 v30 l-5 50 M160 106 l5 50" fill="none" stroke="${INK}" stroke-width="1.8" stroke-linecap="round"/>
+    <path class="da-arm" d="M160 84 l-22 36" fill="none" stroke="${INK}" stroke-width="1.8" stroke-linecap="round" style="transform-box:view-box;transform-origin:160px 84px"/></g>
+    <line x1="60" y1="158" x2="260" y2="158" stroke="${TURF}" stroke-width="1.2"/>
+    ${text(160, 184, 'feet touching · three-quarter swing · hold the finish', 10)}`),
+  heights: () => svg('Three ball flights from the same club: low, normal, high', `
+    ${golfer(40, 170)}${flag(290, 166)}
+    <path d="M60 166 Q170 120 290 166" fill="none" stroke="${INK}" stroke-width="1.4"/>
+    <path d="M60 166 Q170 70 290 166" fill="none" stroke="${INK}" stroke-width="1.4"/>
+    <path d="M60 166 Q170 20 290 166" fill="none" stroke="${INK}" stroke-width="1.4"/>
+    ${text(175, 136, 'low', 10)}${text(175, 112, 'normal', 10)}${text(175, 62, 'high', 10)}
+    ${ball(60, 166, 'da-fly', '--mx:115px;--my:-100px;--dx:230px;--dy:0px;--dur:2.4s')}`),
+  fairway: () => svg('Two targets forty yards apart: a fairway on the range', `
+    <path d="M110 40 L210 40 L300 190 L20 190z" fill="${GREEN}" stroke="${INK}" stroke-width="1.4"/>
+    ${flag(118, 46)}${flag(202, 46)}${text(160, 30, '40 yards', 10)}
+    ${golfer(160, 196)}${[0, 1, 2].map(i => ball(160, 192, 'da-fly', `--mx:${[-20, 10, 30][i]}px;--my:-80px;--dx:${[-26, 14, 40][i]}px;--dy:-146px;--dur:2.2s;--d:${i * 0.8}s`)).join('')}`),
+  towelback: () => svg('A towel six inches behind the ball, the club missing it', `
+    <line x1="20" y1="160" x2="300" y2="160" stroke="${TURF}" stroke-width="1.4"/>
+    ${towel(96, 148, 40, 12)}${ball(170, 154)}
+    ${golfer(90, 150)}<path class="da-sweep" d="M110 150 Q160 140 230 150" fill="none" stroke="${TURF}" stroke-width="1.4" stroke-dasharray="4 4"/>
+    ${text(116, 182, '6 in', 10)}${line(136, 170, 170, 170, 1, TURF)}${text(230, 140, 'low point here', 10)}`),
+  routine: () => svg('A twenty-second routine: decide, look, rehearse, walk in, go', `
+    ${[['decide', 40], ['look', 100], ['rehearse', 160], ['walk in', 220], ['go', 280]].map(([l, x], i) => `<circle cx="${x}" cy="90" r="16" fill="#FBFAF7" stroke="${INK}" stroke-width="1.4" class="da-pulse" style="--d:${i * 0.5}s"/>` + text(x, 94, String(i + 1), 11, 'middle', INK) + text(x, 128, l, 10)).join('')}
+    ${line(56, 90, 84, 90, 1.4, TURF)}${line(116, 90, 144, 90, 1.4, TURF)}${line(176, 90, 204, 90, 1.4, TURF)}${line(236, 90, 264, 90, 1.4, TURF)}
+    ${text(160, 170, '20 seconds, the same every time', 11, 'middle', INK)}`),
+  worstball: () => svg('Two balls hit, the worse one played', `
+    <path d="M40 190 Q160 160 300 60" fill="none" stroke="${TURF}" stroke-width="1.4" stroke-dasharray="4 4"/>
+    ${golfer(40, 196)}${ball(140, 100)}${ball(190, 150)}
+    <circle cx="190" cy="150" r="12" fill="none" stroke="var(--flag)" stroke-width="1.6" class="da-blink"/>
+    ${text(200, 180, 'play this one', 10, 'start', 'var(--flag)')}${text(150, 86, 'not this one', 10, 'start')}`),
+  bogey: () => svg('A scorecard with no number worse than bogey', `
+    ${card(60, 40, 200, 120, [])}
+    ${['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((h, i) => text(80 + i * 22, 62, h, 10)).join('')}
+    ${['5', '4', '5', '6', '4', '5', '5', '4', '5'].map((h, i) => text(80 + i * 22, 90, h, 12, 'middle', INK)).join('')}
+    <line x1="70" y1="70" x2="250" y2="70" stroke="${INK}" stroke-width="1"/>
+    ${text(160, 128, 'no doubles · 8 of 9', 11, 'middle', INK)}${text(160, 146, 'count the pars that came by themselves', 10)}`),
+  centergreen: () => svg('The middle of the green as the target, the flag ignored', `
+    ${green(160, 100, 120, 64)}${flag(250, 80)}${hole(250, 80)}
+    ${target(160, 100, 30)}${golfer(30, 196)}
+    ${ball(48, 192, 'da-fly', '--mx:60px;--my:-120px;--dx:112px;--dy:-92px;--dur:2.4s')}
+    ${text(160, 160, 'middle, every time', 10)}`),
+  reset: () => svg('Ten seconds: a breath in, a breath out, the next shot', `
+    <circle cx="160" cy="100" r="60" fill="none" stroke="${INK}" stroke-width="1.4"/>
+    <circle class="da-breathe" cx="160" cy="100" r="30" fill="${GREEN}" stroke="${INK}" stroke-width="1.4" style="transform-box:view-box;transform-origin:160px 100px"/>
+    ${text(160, 184, 'in for four · out for six · the hole is new', 10)}`),
+  punch: () => svg('A low runner under the branches, finishing in the fairway', `
+    <path d="M100 20 q30 40 0 70 M130 10 q20 40 10 60 M70 30 q30 30 20 60" fill="none" stroke="${TURF}" stroke-width="1.6"/>
+    <line x1="20" y1="160" x2="300" y2="160" stroke="${TURF}" stroke-width="1.4"/>
+    ${golfer(40, 162)}<path d="M60 158 Q150 118 300 154" fill="none" stroke="${INK}" stroke-width="1.4" stroke-dasharray="4 4"/>
+    ${ball(60, 158, 'da-fly', '--mx:110px;--my:-32px;--dx:236px;--dy:-4px;--dur:2.2s')}
+    ${line(60, 110, 300, 110, 1, 'var(--flag)')}${text(180, 104, 'head height', 10, 'middle', 'var(--flag)')}`),
+  numbers: () => svg('A yardage card: a number a club', `
+    ${card(90, 30, 140, 140, ['SW   78', 'GW   92', 'PW  108', '9i   120', '8i   132'])}
+    ${text(160, 190, 'measured, averaged, written down', 10)}`),
+  partner: () => svg('Two pairs on the putting green, better ball', `
+    ${green(160, 100, 130, 70)}${hole(230, 96)}
+    ${ball(70, 110, 'da-roll', '--dx:150px;--dur:2.4s')}${ball(90, 70, 'da-roll', '--dx:134px;--dy:26px;--dur:2.4s;--d:1.4s')}
+    <path d="M60 150 l-6 -18 M70 150 l6 -18 M80 60 l-6 -18 M90 60 l6 -18" fill="none" stroke="${INK}" stroke-width="1.6"/>
+    ${text(160, 184, 'who putts first? the first putt shows the second', 10)}`),
+  safeball: () => svg('One partner in the trees, the other playing to the middle of the green', `
+    ${green(240, 90, 60, 36)}${hole(240, 90)}${flag(262, 74)}
+    <path d="M40 40 q20 30 0 60 M60 30 q25 30 10 70" fill="none" stroke="${TURF}" stroke-width="1.6"/>
+    ${ball(52, 70)}${text(52, 110, 'partner: gone', 10)}
+    ${golfer(120, 196)}${ball(138, 192, 'da-fly', '--mx:50px;--my:-110px;--dx:102px;--dy:-102px;--dur:2.4s')}
+    ${text(170, 150, 'you: the middle', 10)}`),
+  pressure: () => svg('A three-foot putt, twenty-five times in a row', `
+    ${green(160, 110, 140, 56)}${hole(220, 108)}${tee(130, 100)}
+    ${putter(90, 118)}${ball(130, 113, 'da-roll', '--dx:84px;--dur:1.6s')}
+    ${card(236, 150, 64, 36, ['24 / 25'])}${text(160, 50, 'miss, and it is nought again', 10)}`),
+  warmup: () => svg('The warm-up in order: putting, chipping, the range, the first tee', `
+    ${[['putt', 50], ['chip', 125], ['range', 200], ['1st tee', 275]].map(([l, x], i) => `<rect x="${x - 28}" y="70" width="56" height="48" rx="8" fill="${i === 3 ? GREEN : '#FBFAF7'}" stroke="${INK}" stroke-width="1.4" class="da-pulse" style="--d:${i * 0.5}s"/>` + text(x, 92, ['5 min', '5 min', '8 min', 'go'][i], 11, 'middle', INK) + text(x, 108, l, 10)).join('')}
+    ${line(80, 94, 95, 94, 1.4, TURF)}${line(155, 94, 170, 94, 1.4, TURF)}${line(230, 94, 245, 94, 1.4, TURF)}
+    ${text(160, 160, 'green first, driver last', 11, 'middle', INK)}`),
+  mirror: () => svg('A golfer at address in front of a mirror', `
+    <rect x="190" y="30" width="100" height="150" rx="6" fill="#F3F1EA" stroke="${INK}" stroke-width="1.6"/>
+    ${golfer(110, 180)}<g opacity=".55">${golfer(240, 180)}</g>
+    ${text(240, 196, 'the mirror', 10)}${text(110, 196, 'two knuckles · hips back · arms hang', 10)}`),
+};
+function art(key) { const f = ART[key]; return f ? f() : ''; }
+const ART_KEYS = Object.keys(ART);
+
+return {art, ART_KEYS};
+})();
+
+const __m_manual = (function(){
+const D = __m_data;
+const DR = __m_drills;
+const { art } = __m_drillart;
+/* The Union Invitational — the practice manual, drawn.
+ *
+ * One golfer's manual as HTML: the band with their grades, how to use it,
+ * the week laid out as sessions, then the drills one after another, each
+ * with its drawing, its scoring and its coach on video. The same HTML is
+ * shown in the book (a sheet over the report), in the public report
+ * page's pop-up, and on the manual's own page, where Save as PDF prints it.
+ */
+
+
+
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const manualLink = pid => D.SITE_URL + 'manual/?p=' + encodeURIComponent(pid);
+const gradeCls = g => (g ? ' rp-g' + g : ' rp-gN');
+const hrs = m => (m >= 60 ? Math.round(m / 60 * 10) / 10 + ' h' : m + ' min');
+
+/** The block under the three things on a report card: what the manual holds and the way in.
+ *  `mode` is 'app' (a button opens the sheet in the book) or 'page' (a link to the manual's page). */
+function manualBlock(pr, mode) {
+  const list = DR.manualFor(pr);
+  if (!list.length) return '';
+  const g = pr.grades || {};
+  const worst = DR.DEPTS.filter(([k]) => g[k] === 'D' || g[k] === 'C').map(([, l]) => l.toLowerCase());
+  return `<div class="rp-manual">
+    <b>Practice manual</b>
+    <p>${list.length} drills picked from this card${worst.length ? ': most of them for ' + esc(worst.slice(0, 3).join(', ')) : ''}, each with a drawing, a way to score it and a coach on video.</p>
+    <div class="rp-mbtns">${mode === 'app' ? `<button class="btn" data-act="manualOpen" data-a="${esc(pr.id)}">Open the manual</button>` : ''}
+      <a class="btn${mode === 'app' ? ' ghost' : ''}" href="${esc(manualLink(pr.id))}" target="_blank" rel="noopener">${mode === 'app' ? 'The page · save as PDF' : 'Open the manual · save as PDF'}</a></div>
+  </div>`;
+}
+
+/** The whole manual. `words` is the coach's page for this golfer (recaps/report body.players[pid]) or null. */
+function renderManual(pr, words, opts) {
+  opts = opts || {};
+  const list = DR.manualFor(pr);
+  const g = pr.grades || {};
+  const plan = DR.weekPlan(list);
+  const three = words && Array.isArray(words.three) ? words.three : [];
+  const read = words && words.read ? String(words.read) : '';
+  const total = list.reduce((a, d) => a + d.mins, 0);
+  const drill = (d, i) => `<li class="mn-drill" id="mn-${esc(d.id)}">
+    <div class="mn-head"><span class="mn-n num">${i + 1}</span>
+      <div class="mn-hw"><h3>${esc(d.name)}</h3><small>${esc(DR.AREAS[d.where] || d.where)}${d.mins ? ' · ' + esc(hrs(d.mins)) : ''} · ${esc(d.kit)}</small></div>
+      ${d.forDept ? `<span class="mn-for"><em>${esc(DR.deptLabel(d.forDept))}</em><b class="rp-gl${gradeCls(d.forGrade)}">${esc(d.forGrade || '–')}</b></span>` : '<span class="mn-for"><em>Everyone</em></span>'}</div>
+    <figure class="mn-art">${art(d.art)}</figure>
+    <p class="mn-why">${esc(d.why)}</p>
+    <div class="mn-cols">
+      <div><h4>Set up</h4><ul>${d.setup.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>
+      <div><h4>The drill</h4><ol>${d.steps.map(x => `<li>${esc(x)}</li>`).join('')}</ol></div>
+    </div>
+    <dl class="mn-score"><div><dt>Score it</dt><dd>${esc(d.score)}</dd></div><div><dt>Target</dt><dd>${esc(d.target)}</dd></div><div><dt>Harder</dt><dd>${esc(d.harder)}</dd></div></dl>
+    ${d.video && d.video.url ? `<a class="mn-video" href="${esc(d.video.url)}" target="_blank" rel="noopener"><span class="mn-play" aria-hidden="true">▶</span><span><b>Watch ${esc(d.video.who)}</b><small>${esc(d.video.title)} · YouTube</small></span></a>` : ''}
+  </li>`;
+  return `<div class="manual" data-golfer="${esc(pr.id)}">
+    <div class="rp-band mn-band"><small>Practice manual · The Union Invitational · Belek 2026</small><h2>${esc(pr.name)}</h2>
+      <p>${pr.band == null ? 'No handicap' : 'Handicap ' + esc(pr.band)} · ${list.length} drills · about ${esc(hrs(total))} a week, over ${plan.length} session${plan.length === 1 ? '' : 's'}</p></div>
+    <div class="mn-body">
+      <div class="mn-grades">${DR.DEPTS.map(([k, l]) => `<span class="mn-g"><b class="rp-gl${gradeCls(g[k])}">${esc(g[k] || '–')}</b><small>${esc(l)}</small></span>`).join('')}</div>
+      ${read ? `<p class="mn-read">${esc(read)}</p>` : ''}
+      ${three.length ? `<div class="rp-three mn-three"><b>The coach’s three things</b><ol>${three.map(x => `<li>${esc(x)}</li>`).join('')}</ol></div>` : ''}
+      <h3 class="mn-h">How to use this</h3>
+      <p class="mn-p">Every drill here was picked from your card: the department you scored worst in gets the most, every department graded C or D gets at least one, and two go to everybody. Each drill has a score, so you know whether today was better than last week, and a target that is right for a golfer playing off ${pr.band == null ? 'your handicap' : esc(pr.band)}. Do the sessions below in the order they come, and write the scores on the card.</p>
+      <div class="mn-plan">${plan.map(s => `<div class="mn-sess"><b>${esc(s.name)}</b><small>${s.mins ? esc(hrs(s.mins)) : 'as you go'}</small><span>${s.drills.map(d => `<a href="#mn-${esc(d.id)}">${esc(d.name)}</a>`).join(' · ')}</span></div>`).join('')}</div>
+      <ol class="mn-list">${list.map(drill).join('')}</ol>
+      <p class="mn-foot">The drills are the book’s own words; the videos are the coaches’ and open on YouTube. Scores are yours. Keep them.${opts.link === false ? '' : ' The manual lives at ' + esc(manualLink(pr.id)) + '.'}</p>
+    </div>
+  </div>`;
+}
+
+return {manualLink, manualBlock, renderManual};
+})();
+
 const __m_report = (function(){
 const D = __m_data;
 const E = __m_engine;
+const { manualBlock } = __m_manual;
 /* THE PLAYERS REPORT. Every card in the book, read for what it says about
    each golfer: scoring by par and by stroke index, the nines, the trouble,
    the putting where a ref counted it, the team game, the bingo, the cup.
@@ -9452,6 +10060,7 @@ const E = __m_engine;
    and on the public page; the words — an executive summary and a coach's
    letter to each golfer — are written once by the book's writer and kept
    in recaps/report. */
+
 
 
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -9758,7 +10367,7 @@ function renderReport(T, body, opts) {
         ${ld.mostOb && ld.mostOb.week.marks.ob ? `<tr><th>Most out of bounds</th><td>${esc(ld.mostOb.name)} ${ld.mostOb.week.marks.ob}</td></tr>` : ''}
       </tbody></table>
     </div></div>`;
-  const player = (pr, i) => playerCard(T, pr, i, F, words, now);
+  const player = (pr, i) => playerCard(T, pr, i, F, words, now, opts.manual);
   /* THE REPORT IS NOT ONE LONG SCROLL. The summary, then a row a golfer;
      a tap opens that golfer on their own (a window in the book, a pop-up
      on the page). `opts.all` draws every page in one, for printing. */
@@ -9777,9 +10386,9 @@ function renderPlayer(T, body, pid, opts) {
   const F = fieldReport(T, now), i = F.players.findIndex(p => p.id === pid);
   if (i < 0) return '<div class="report"><p class="rp-empty">No cards for this golfer yet.</p></div>';
   const words = body && typeof body === 'object' ? body : null;
-  return `<div class="report">${playerCard(T, F.players[i], i, F, words, now)}</div>`;
+  return `<div class="report">${playerCard(T, F.players[i], i, F, words, now, opts.manual)}</div>`;
 }
-function playerCard(T, pr, i, F, words, now) {
+function playerCard(T, pr, i, F, words, now, manual) {
     const w = pr.week, g = pr.grades || {}, pw = words && words.players ? words.players[pr.id] : null;
     const letter = pw && Array.isArray(pw.letter) ? pw.letter : [], three = pw && Array.isArray(pw.three) ? pw.three : [], read = pw && pw.read ? String(pw.read) : '';
     const full = pr.rounds.filter(r => r.full);
@@ -9810,6 +10419,7 @@ function playerCard(T, pr, i, F, words, now) {
         <h3>The coach\u2019s letter</h3>
         ${letter.length ? paras(letter, 'rp-p') : `<p class="rp-wait">${words ? 'Being written.' : 'Not written yet.'}</p>`}
         ${three.length ? `<div class="rp-three"><b>Three things</b><ol>${three.map(x => `<li>${esc(x)}</li>`).join('')}</ol></div>` : ''}
+        ${manual === false ? '' : manualBlock(pr, manual === 'app' ? 'app' : 'page')}
         <h3>Every round</h3>
         <div class="rp-key"><span><i class="rp-cell under"></i>birdie</span><span><i class="rp-cell par"></i>par</span><span><i class="rp-cell bogey"></i>bogey</span><span><i class="rp-cell double"></i>double</span><span><i class="rp-cell worse"></i>worse</span><span><i class="rp-cell par pu"></i>pick-up</span></div>
         ${pr.rounds.map(r => roundSummary(T, r, pr, now)).join('')}
@@ -12600,6 +13210,7 @@ const R = __m_resort;
 const X = __m_social;
 const F = __m_feedback;
 const RP = __m_report;
+const MN = __m_manual;
 const PK = __m_pack;
 const W = __m_weather;
 const H3D = __m_hole3d;
@@ -12607,6 +13218,7 @@ const HOLES = __m_holes3d;
 /* The Union Invitational — yardage book application.
    Vanilla render + delegated dispatch. Every screen is a pure function of
    (tournament state, ui state, clock). */
+
 
 
 
@@ -13307,14 +13919,25 @@ function boardReport() {
     </div>` : ''}
     ${st.busy ? `<p class="rp-status">Writing ${esc(st.step || '')}… ${done ? done + ' letter' + (done === 1 ? '' : 's') + ' in so far.' : ''} It takes about half a minute a batch; the page fills in as it goes.</p>` : ''}
     ${st.err ? `<p class="askerr">${esc(st.err)}</p>` : ''}
-    ${RP.renderReport(T, body, { now })}`;
+    ${RP.renderReport(T, body, { now, manual: 'app' })}`;
+}
+/** One golfer's practice manual, a sheet over the report: the drills, the drawings, the videos. */
+function manualSheetHtml() {
+  const m = UI.modal, p = E.person(T, m.pid) || {};
+  const pr = RP.fieldReport(T, now).players.find(x => x.id === m.pid);
+  const body = reportBody(), words = body && body.players ? body.players[m.pid] : null;
+  return `<div class="scrim tcscrim" data-act="modalScrim"><div class="modal psheet cardsheet rplayer mnsheet" role="dialog" aria-modal="true" aria-label="${esc(p.display || 'Player')}\u2019s practice manual">
+    <span class="ps-grab dark" aria-hidden="true"><i></i></span>
+    <div class="ps-body rp-pbody">${pr ? MN.renderManual(pr, words, {}) : '<p class="rp-empty">No cards for this golfer yet.</p>'}
+      <div class="acts"><a class="btn ghost" href="${esc(MN.manualLink(m.pid))}" target="_blank" rel="noopener">Save as PDF</a><button class="btn ghost" data-act="modalCancel">Close</button></div></div>
+  </div></div>`;
 }
 /** One golfer's report, in a window of its own, opened from the list. */
 function reportPlayerHtml() {
   const m = UI.modal, p = E.person(T, m.pid) || {};
   return `<div class="scrim tcscrim" data-act="modalScrim"><div class="modal psheet cardsheet rplayer" role="dialog" aria-modal="true" aria-label="${esc(p.display || 'Player')}\u2019s report">
     <span class="ps-grab dark" aria-hidden="true"><i></i></span>
-    <div class="ps-body rp-pbody">${RP.renderPlayer(T, reportBody(), m.pid, { now })}
+    <div class="ps-body rp-pbody">${RP.renderPlayer(T, reportBody(), m.pid, { now, manual: 'app' })}
       <div class="acts"><button class="btn ghost" data-act="modalCancel">Close</button></div></div>
   </div></div>`;
 }
@@ -20301,8 +20924,8 @@ function packScreens(rids, count) {
     add('competition-prizes', 'competition', 'Longest drive & closest to the pin', () => packFlat(boardPrizes()), { competition_id: 'prizes' });
     add('honours', 'honours', 'The honours', () => packHonoursHtml());
     if (RP.fieldReport(T, now).players.length) {
-      add('report-union', 'report', 'The State of the Union', () => packFlat(RP.renderReport(T, body, { now })), { width: 540 });
-      for (const g of golfers) if (RP.playerReport(T, g.id, now)) add('report-' + slugOf(g.display), 'report', g.display + ' · player report', () => packFlat(RP.renderPlayer(T, body, g.id, { now })), { player_ids: [g.id], width: 600 });
+      add('report-union', 'report', 'The State of the Union', () => packFlat(RP.renderReport(T, body, { now, manual: false })), { width: 540 });
+      for (const g of golfers) if (RP.playerReport(T, g.id, now)) add('report-' + slugOf(g.display), 'report', g.display + ' · player report', () => packFlat(RP.renderPlayer(T, body, g.id, { now, manual: false })), { player_ids: [g.id], width: 600 });
     }
   }
   for (const r of D.ROUNDS) {
@@ -22122,6 +22745,7 @@ function modalHtml() {
        : UI.modal.kind === 'phmany' ? photoManyHtml()
        : UI.modal.kind === 'fbthanks' ? fbThanksHtml()
        : UI.modal.kind === 'fbview' ? feedbackViewHtml()
+       : UI.modal.kind === 'manual' ? manualSheetHtml()
        : UI.modal.kind === 'hole' ? holeModalHtml()
        : UI.modal.kind === 'setup' ? setupModalHtml()
        : UI.modal.kind === 'add' ? addModalHtml()
@@ -22407,6 +23031,7 @@ function onClick(e) {
       return;
     }
     case 'fbView': UI.modal = { kind: 'fbview' }; render(); if (!(UI.fbView && UI.fbView.rows)) fbLoad(); return;
+    case 'manualOpen': UI.modal = { kind: 'manual', pid: a }; render(); return;
     case 'packOpen': if (!canAdmin()) return; packState(); UI.modal = { kind: 'pack' }; render(); return;
     case 'packScope': { const st = packState(); if (st.busy) return; st.scope = a; st.out = null; st.err = ''; render(); return; }
     case 'packKind': { const st = packState(); if (st.busy) return; st.brief = a === 'brief'; st.out = null; st.err = ''; render(); return; }

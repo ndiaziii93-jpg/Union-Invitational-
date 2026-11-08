@@ -12,6 +12,7 @@ import * as R from './resort.js';
 import * as X from './social.js';
 import * as F from './feedback.js';
 import * as RP from './report.js';
+import * as MN from './manual.js';
 import * as PK from './pack.js';
 import * as W from './weather.js';
 import * as H3D from './hole3d.js';
@@ -702,14 +703,25 @@ function boardReport() {
     </div>` : ''}
     ${st.busy ? `<p class="rp-status">Writing ${esc(st.step || '')}… ${done ? done + ' letter' + (done === 1 ? '' : 's') + ' in so far.' : ''} It takes about half a minute a batch; the page fills in as it goes.</p>` : ''}
     ${st.err ? `<p class="askerr">${esc(st.err)}</p>` : ''}
-    ${RP.renderReport(T, body, { now })}`;
+    ${RP.renderReport(T, body, { now, manual: 'app' })}`;
+}
+/** One golfer's practice manual, a sheet over the report: the drills, the drawings, the videos. */
+function manualSheetHtml() {
+  const m = UI.modal, p = E.person(T, m.pid) || {};
+  const pr = RP.fieldReport(T, now).players.find(x => x.id === m.pid);
+  const body = reportBody(), words = body && body.players ? body.players[m.pid] : null;
+  return `<div class="scrim tcscrim" data-act="modalScrim"><div class="modal psheet cardsheet rplayer mnsheet" role="dialog" aria-modal="true" aria-label="${esc(p.display || 'Player')}\u2019s practice manual">
+    <span class="ps-grab dark" aria-hidden="true"><i></i></span>
+    <div class="ps-body rp-pbody">${pr ? MN.renderManual(pr, words, {}) : '<p class="rp-empty">No cards for this golfer yet.</p>'}
+      <div class="acts"><a class="btn ghost" href="${esc(MN.manualLink(m.pid))}" target="_blank" rel="noopener">Save as PDF</a><button class="btn ghost" data-act="modalCancel">Close</button></div></div>
+  </div></div>`;
 }
 /** One golfer's report, in a window of its own, opened from the list. */
 function reportPlayerHtml() {
   const m = UI.modal, p = E.person(T, m.pid) || {};
   return `<div class="scrim tcscrim" data-act="modalScrim"><div class="modal psheet cardsheet rplayer" role="dialog" aria-modal="true" aria-label="${esc(p.display || 'Player')}\u2019s report">
     <span class="ps-grab dark" aria-hidden="true"><i></i></span>
-    <div class="ps-body rp-pbody">${RP.renderPlayer(T, reportBody(), m.pid, { now })}
+    <div class="ps-body rp-pbody">${RP.renderPlayer(T, reportBody(), m.pid, { now, manual: 'app' })}
       <div class="acts"><button class="btn ghost" data-act="modalCancel">Close</button></div></div>
   </div></div>`;
 }
@@ -7696,8 +7708,8 @@ function packScreens(rids, count) {
     add('competition-prizes', 'competition', 'Longest drive & closest to the pin', () => packFlat(boardPrizes()), { competition_id: 'prizes' });
     add('honours', 'honours', 'The honours', () => packHonoursHtml());
     if (RP.fieldReport(T, now).players.length) {
-      add('report-union', 'report', 'The State of the Union', () => packFlat(RP.renderReport(T, body, { now })), { width: 540 });
-      for (const g of golfers) if (RP.playerReport(T, g.id, now)) add('report-' + slugOf(g.display), 'report', g.display + ' · player report', () => packFlat(RP.renderPlayer(T, body, g.id, { now })), { player_ids: [g.id], width: 600 });
+      add('report-union', 'report', 'The State of the Union', () => packFlat(RP.renderReport(T, body, { now, manual: false })), { width: 540 });
+      for (const g of golfers) if (RP.playerReport(T, g.id, now)) add('report-' + slugOf(g.display), 'report', g.display + ' · player report', () => packFlat(RP.renderPlayer(T, body, g.id, { now, manual: false })), { player_ids: [g.id], width: 600 });
     }
   }
   for (const r of D.ROUNDS) {
@@ -9517,6 +9529,7 @@ function modalHtml() {
        : UI.modal.kind === 'phmany' ? photoManyHtml()
        : UI.modal.kind === 'fbthanks' ? fbThanksHtml()
        : UI.modal.kind === 'fbview' ? feedbackViewHtml()
+       : UI.modal.kind === 'manual' ? manualSheetHtml()
        : UI.modal.kind === 'hole' ? holeModalHtml()
        : UI.modal.kind === 'setup' ? setupModalHtml()
        : UI.modal.kind === 'add' ? addModalHtml()
@@ -9802,6 +9815,7 @@ function onClick(e) {
       return;
     }
     case 'fbView': UI.modal = { kind: 'fbview' }; render(); if (!(UI.fbView && UI.fbView.rows)) fbLoad(); return;
+    case 'manualOpen': UI.modal = { kind: 'manual', pid: a }; render(); return;
     case 'packOpen': if (!canAdmin()) return; packState(); UI.modal = { kind: 'pack' }; render(); return;
     case 'packScope': { const st = packState(); if (st.busy) return; st.scope = a; st.out = null; st.err = ''; render(); return; }
     case 'packKind': { const st = packState(); if (st.busy) return; st.brief = a === 'brief'; st.out = null; st.err = ''; render(); return; }
