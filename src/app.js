@@ -8023,9 +8023,11 @@ function scrHq() {
   ${status && status !== 'out' ? `<h3 class="sub">Your package</h3>
   <p class="sublede">One price for the trip. Each package says what it covers; there are no itemised receipts, the money is collected outside the book and the commissioner marks it paid here.</p>
   <div class="pkgs">${pkgs.map(p => `<button class="pkg${sign && sign.pkg === p.id ? ' on' : ''}" data-act="signPkg" data-a="${p.id}" aria-pressed="${sign && sign.pkg === p.id}"><span class="pk-n">${esc(p.name)}</span><span class="pk-p num">${p.price ? esc(C.fmtMoney(p.price, cur)) : 'price to come'}</span><ul>${(p.inc || []).map(x => `<li>${esc(x)}</li>`).join('')}</ul></button>`).join('')}</div>
-  <div class="fieldset two">
+  <h3 class="sub">Shirt and merch</h3>
+  <div class="fieldset three">
     <label>Shirt size<input class="field" data-act="signField" data-a="shirt" value="${esc(sign && sign.shirt || '')}" placeholder="XL" maxlength="6"></label>
-    <label>Name on the shirt<input class="field" data-act="signField" data-a="nameOn" value="${esc(sign && sign.nameOn || '')}" placeholder="${esc((E.person(T, me) || {}).name || '')}" maxlength="40"></label>
+    <label>Initials on the polo<input class="field" data-act="signField" data-a="initials" value="${esc(sign && sign.initials || '')}" placeholder="${esc(((E.person(T, me) || {}).name || '').split(/\s+/).map(w => w[0] || '').join('').toUpperCase().slice(0, 4))}" maxlength="5" autocapitalize="characters"></label>
+    <label>Name on the merch<input class="field" data-act="signField" data-a="nameOn" value="${esc(sign && sign.nameOn || '')}" placeholder="${esc((E.person(T, me) || {}).name || '')}" maxlength="40"></label>
   </div>
   <h3 class="sub">Your flights</h3>
   <p class="sublede">Add them when they are booked. The commissioner exports these for the airport runs.</p>

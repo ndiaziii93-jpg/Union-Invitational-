@@ -281,7 +281,7 @@ export function lineOf(T, pid) {
     { k: 'pkg',     label: 'Package',         ok: !!(L.pkg), val: L.pkg ? L.pkg.name : 'Pick one' },
     { k: 'deposit', label: 'Deposit',         ok: L.paid > 0, val: L.paid > 0 ? 'Paid ' + fmtMoney(L.paid) : L.price ? 'Due ' + fmtDay(season(T).deadlines.deposit) : 'After the package' },
     { k: 'balance', label: 'Balance',         ok: L.settled, val: L.settled ? 'Settled' : L.price ? fmtMoney(L.left) + ' to go' : '—' },
-    { k: 'shirt',   label: 'Shirt and name',  ok: !!(s && s.shirt), val: s && s.shirt ? s.shirt + (s.nameOn ? ' · ' + s.nameOn : '') : 'Add your size' },
+    { k: 'shirt',   label: 'Shirt and merch', ok: !!(s && s.shirt && s.initials && s.nameOn), val: s && s.shirt ? [s.shirt, s.initials, s.nameOn].filter(Boolean).join(' · ') + (s.initials && s.nameOn ? '' : ' · finish') : 'Size, initials, name' },
     { k: 'room',    label: 'Room',            ok: !!room, val: room ? 'With ' + (room.members || []).filter(x => x !== pid).map(x => (person(T, x) || {}).display || x).join(' and ') : 'Not set yet' },
     { k: 'flights', label: 'Flights',         ok: !!(t && t.out && t.out.flight), val: t && t.out && t.out.flight ? t.out.flight + ' · lands ' + (t.out.lands || '?') : 'Add when booked' },
   ];
@@ -313,10 +313,10 @@ export const csv = rows => rows.map(r => r.map(cell).join(',')).join('\n') + '\n
 
 export function csvHeadcount(T) {
   const f = field(T);
-  const rows = [['Name', 'Role', 'Playing', 'Status', 'Package', 'Nights', 'Golfing', 'Shirt', 'Name on shirt', 'Price', 'Paid', 'Outstanding']];
+  const rows = [['Name', 'Role', 'Playing', 'Status', 'Package', 'Nights', 'Golfing', 'Shirt', 'Initials on polo', 'Name on merch', 'Price', 'Paid', 'Outstanding']];
   for (const st of ['in', 'maybe']) for (const p of f[st]) {
     const L = ledger(T, p.id);
-    rows.push([p.name, p.role, divisionLabel(divisionOf(T, p.id)), st, L.pkg ? L.pkg.name : '', L.pkg ? L.pkg.nights : '', L.pkg ? (L.pkg.golf ? 'yes' : 'no') : '', p.signup && p.signup.shirt || '', p.signup && p.signup.nameOn || '', L.price, L.paid, L.left]);
+    rows.push([p.name, p.role, divisionLabel(divisionOf(T, p.id)), st, L.pkg ? L.pkg.name : '', L.pkg ? L.pkg.nights : '', L.pkg ? (L.pkg.golf ? 'yes' : 'no') : '', p.signup && p.signup.shirt || '', p.signup && p.signup.initials || '', p.signup && p.signup.nameOn || '', L.price, L.paid, L.left]);
   }
   return csv(rows);
 }

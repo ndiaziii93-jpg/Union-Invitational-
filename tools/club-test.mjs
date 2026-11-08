@@ -27,7 +27,7 @@ T0.club.season.packages = [{ id: '7g', name: '7 golf', price: 2000, nights: 7, g
 T0.club['signup__g1'] = { pid: 'g1', status: 'in', pkg: '7g', shirt: 'XL' };
 T0.club['money__g1'] = { pid: 'g1', pays: [{ amt: 400, at: '2026-01-12' }, { amt: 600, at: '2026-02-01' }] };
 ok('the ledger: price from the package, paid from the payments, the meter half full', [C.ledger(T0, 'g1').price, C.ledger(T0, 'g1').paid, C.ledger(T0, 'g1').left, C.ledger(T0, 'g1').pct], [2000, 1000, 1000, 0.5]);
-ok('the headcount export carries the name, the package and the money', C.csvHeadcount(T0).split('\n')[1], 'A,golfer,Tournament · men’s,in,7 golf,7,yes,XL,,2000,1000,1000');
+ok('the headcount export carries the name, the package and the money', C.csvHeadcount(T0).split('\n')[1], 'A,golfer,Tournament · men’s,in,7 golf,7,yes,XL,,,2000,1000,1000');
 
 /* the book in a browser */
 mkdirSync(S + '/clubsite', { recursive: true });
@@ -122,7 +122,7 @@ await act('courseApprove', { a: 'g1', b: '1' }); await p.waitForTimeout(200);
 ok('the commissioner approves the course', await p.evaluate(() => window.__T.club.course__g1.approved), true);
 await act('clubMTab', { a: 'exports' }); await p.waitForTimeout(200);
 await act('exportCsv', { a: 'headcount' }); await p.waitForTimeout(300);
-ok('the headcount export names the golfer, the package and the money', await p.evaluate(() => window.__UI.lastCsv && window.__UI.lastCsv.text.split('\n')[1]), 'Norberto Diaz III,golfer,Tournament · men’s,in,7 nights · golfer,7,yes,,,2089,400,1689');
+ok('the headcount export names the golfer, the package and the money', await p.evaluate(() => window.__UI.lastCsv && window.__UI.lastCsv.text.split('\n')[1]), 'Norberto Diaz III,golfer,Tournament · men’s,in,7 nights · golfer,7,yes,,,,2089,400,1689');
 await act('modalCancel'); await p.waitForTimeout(200);
 
 console.log('\nthe closed book');
