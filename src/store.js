@@ -92,7 +92,7 @@ export function defaultConfig() {
  *  created — so it can never leak back in and resurrect somebody. */
 export function emptyState() {
   const cfg = defaultConfig();
-  return { config: { ...cfg, people: [], pairs: [] }, scores: {}, bbb: {}, recaps: {}, photos: {}, notes: {}, chat: {}, market: {} };
+  return { config: { ...cfg, people: [], pairs: [] }, scores: {}, bbb: {}, recaps: {}, photos: {}, notes: {}, chat: {}, market: {}, club: {} };
 }
 
 /** Everything written to config/tournament. The roster is ALSO kept here as a
@@ -142,7 +142,7 @@ export function createStore(onChange) {
   let peopleLoaded = false, pairsLoaded = false, splitDone = false;
   let rosterInDocs = false;     // the roster lives in its own documents
   let peopleSeen = false;       // the people collection has reported at least once
-  const emptySeq = { people: 0, pairs: 0, scores: 0, bbb: 0, recaps: 0, photos: 0, notes: 0, chat: 0, market: 0 };  // guards a confirmation against a newer snapshot
+  const emptySeq = { people: 0, pairs: 0, scores: 0, bbb: 0, recaps: 0, photos: 0, notes: 0, chat: 0, market: 0, club: 0 };  // guards a confirmation against a newer snapshot
   let sawConfig = false;
   let legacy = null;            // a roster still stored as lists inside the config
   let settled = false;          // the first load has resolved; until then, no writes
@@ -241,7 +241,7 @@ export function createStore(onChange) {
         const s = JSON.parse(raw);
         if (s && s.config && s.config.v === 3) { T.config = s.config; T.scores = s.scores || {}; T.bbb = s.bbb || {};
           T.recaps = s.recaps || {}; T.photos = s.photos || {}; T.notes = s.notes || {};
-          T.chat = s.chat || {}; T.market = s.market || {};
+          T.chat = s.chat || {}; T.market = s.market || {}; T.club = s.club || {};
           localAt = parseInt(localStorage.getItem(LOCAL_KEY + ':at'), 10) || null;
           return (T.config.people || []).length > 0; }
       }
@@ -445,7 +445,8 @@ export function createStore(onChange) {
     /* The gallery's side of the week: what people said, and what they bet.
        Each message, trade and market is its own document, so two people
        posting at once are two documents and both land. */
-    for (const coll of ['chat', 'market']) {
+    /* The season between tournaments: its own rows, beside the week's. */
+    for (const coll of ['chat', 'market', 'club']) {
       unsubs.push(db.collection(coll).onSnapshot(
         s => {
           if (!s.docs.length) { confirmEmpty(coll); notify(); return; }
@@ -477,7 +478,7 @@ export function createStore(onChange) {
         if (coll === 'photos') { T.photos = mergeDocs('photos', T.photos, have.docs); notify(); return; }
         if (coll === 'bbb') { T.bbb = mergeDocs('bbb', T.bbb, have.docs); notify(); return; }
         if (coll === 'notes') { T.notes = mergeDocs('notes', T.notes, have.docs); notify(); return; }
-        if (coll === 'chat' || coll === 'market') { T[coll] = mergeDocs(coll, T[coll], have.docs); notify(); return; }
+        if (coll === 'chat' || coll === 'market' || coll === 'club') { T[coll] = mergeDocs(coll, T[coll], have.docs); notify(); return; }
         /* A read that finds documents is the answer. A read that finds none
            is only the answer once the config has said documents are where
            the roster lives — otherwise it is a collection that has not
@@ -1116,6 +1117,32 @@ export function createStore(onChange) {
     return dropDoc(coll, id);
   }
 
+  /* ---- the season's rows ----
+     A person's own row (their sign-up, flights, home course, a card) is
+     signed with their name PIN; the season, the money and the rooms take
+     the master PIN. The server (club_write) is the judge; the phone shows
+     the write at once and the server's echo settles it. */
+  async function writeClub(key, row, merge) {
+    if (tooEarly()) return false;
+    const path = 'club/' + key, r = Math.max(Date.now(), (rev[path] || 0) + 1);
+    const doc = { ...row, rev: r };
+    rev[path] = r;
+    T.club[key] = merge ? { ...(T.club[key] || {}), ...doc } : doc;
+    notify();
+    if (mode === 'local') { saveLocal(); return true; }
+    try {
+      const landed = (merge ? await db.doc(path).update(doc) : await db.doc(path).set(doc)) !== false;
+      if (landed) { saveState = 'saved'; lastSavedAt = Date.now(); }
+      notify(); return landed;
+    } catch (e) { status = 'error'; saveState = 'error'; notify(); return false; }
+  }
+  async function dropClub(key) {
+    if (tooEarly()) return false;
+    delete T.club[key];
+    notify();
+    return dropDoc('club', key);
+  }
+
   /** This phone's address for chat notifications: one document per phone,
    *  written only by that phone, read only by the notify function. */
   async function writePush(fields) {
@@ -1292,7 +1319,7 @@ export function createStore(onChange) {
   async function feedbackList() { return (backend === 'supabase' && db && db.feedbackList) ? db.feedbackList() : fbLocal().slice().reverse(); }
   async function feedbackCount() { return (backend === 'supabase' && db && db.feedbackCount) ? db.feedbackCount() : fbLocal().length; }
 
-  return { T, connect, writeConfig, writeCard, writeBbb, writeNote, writeRecap, writePhoto, heartPhoto, movePhoto, dropPhoto, markBbb, putSocial, patchSocial, dropSocial, writePush, resetScores, resetRound, resetTees, resave, note,
+  return { T, connect, writeConfig, writeCard, writeBbb, writeNote, writeRecap, writePhoto, heartPhoto, movePhoto, dropPhoto, markBbb, putSocial, patchSocial, dropSocial, writeClub, dropClub, writePush, resetScores, resetRound, resetTees, resave, note,
            feedbackSubmit, feedbackList, feedbackCount, feedbackDone,
            get deviceId() { return deviceId; },
            writePerson, writeAllPeople, addPerson, removePerson,

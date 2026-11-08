@@ -190,6 +190,38 @@ each new entry to your phone as it happens:
 4. On your phone, turn notifications on in the chat (the bell) while signed
    in with the master PIN. Alerts go only to phones that hold it.
 
+## 6. The Clubhouse — the season between tournaments, and the closed book
+
+Run `docs/supabase-club.sql` once, after the lockdown, the same way:
+**Supabase → SQL Editor → New query**, paste the whole file, **Run**. It has
+no PINs in it and nothing to fill in. It does three things:
+
+1. Adds `club_write` and `club_delete`: the gate for the season's own rows
+   (`club/…`). A golfer writes their own sign-up, flights, home course and
+   cards with their name PIN; the season, the money and the rooms take the
+   master PIN; a card is only taken while its stop is open.
+2. Adds the closed-book switch. When the season says the 2026 book is
+   closed, the server refuses every write to the week's rows — scores,
+   bingo, recaps, pairs, photos, hearts, posts, bets — from every PIN,
+   yours included. You reopen it from Manage → The season, make the
+   correction, and close it again. The roster stays open, so partners can
+   still be added for Vegas.
+3. Closes a gap in `social_write`: a phone sending no role PIN at all was
+   taken for the master, and every check after that was skipped. The same
+   function, one line corrected. Run this soon, whether or not the
+   Clubhouse opens yet.
+
+The check at the end lists `club_delete`, `club_write` and `season_guard`.
+
+Then, in the book, as the master: **Manage → The season → The Clubhouse**.
+That opens the three tabs for everyone, closes the 2026 book, and seeds the
+stops from the sheet (the Merry Mulligan Open, the Frostbite Open, the
+Sweetheart Scramble) with windows you can move. Packages, prices and what
+each covers are on the Packages tab; what people have paid goes in on the
+Money tab and everyone sees the meter.
+
+---
+
 ## What I need back from you
 
 | | Where from | Send me |

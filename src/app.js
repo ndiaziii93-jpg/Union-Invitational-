@@ -18,6 +18,7 @@ import * as PK from './pack.js';
 import * as W from './weather.js';
 import * as H3D from './hole3d.js';
 import * as HOLES from './holes3d.js';
+import * as C from './club.js';
 
 const IMG = window.UI_IMAGES || {};
 
@@ -124,6 +125,10 @@ const UI = {
   resortPin: null,      // which point on the plan is selected, by index
   resortZoom: 1,        // how far into the site plan we are — 1 is the whole thing
   resortJump: false,    // arrived at the plan from somewhere else: put it on screen
+  /* the Clubhouse: the season between tournaments */
+  archive: null,        // which closed book is being read, by year, or null for the season
+  seasonTab: 'stop', stopId: null, clubHole: 0, clubPad: false,
+  courseEdit: false, courseDraft: null, clubMTab: 'season', moneyDraft: null, cardUp: '', exportNote: '',
 };
 
 const ROLE_KEY = 'union-invitational:role';
@@ -250,7 +255,8 @@ function markFeelSeen(rid, h) {
    way in, a ref still scores and the master still reaches Setup — the
    writes wait in the outbox for a signal, and the server judges them then */
 const loaded = () => meta.settled !== false || !!meta.fromDevice;
-const canEdit = () => loaded() && (!D.PINS_ENABLED || S.ROLES[UI.role].canEdit);
+/* a closed book takes no write, whatever the PIN: see club.js */
+const canEdit = () => loaded() && !bookFrozen() && (!D.PINS_ENABLED || S.ROLES[UI.role].canEdit);
 const canAdmin = () => loaded() && (!D.PINS_ENABLED || S.ROLES[UI.role].canAdmin);
 /* what is still to settle; with the book on its server the PINs are the server's, not a setup step */
 const setupIssues = () => E.setupIssues(T, !!(store && store.backend === 'supabase'));
@@ -2636,6 +2642,7 @@ function chatFab() {
   if (loaded()) syncIconBadge(UI.modal && UI.modal.kind === 'chat' ? 0 : chatNews().length);
   if (!loaded() || UI.screen === 'entry' || UI.modal || UI.recapOpen || UI.askOpen) return '';
   if (UI.screen === 'boards' && UI.boardTab === 'chat') return '';
+  if (clubPhase() || bookFrozen()) return '';    // the chat was the week's; the closed book takes no post
   const news = chatNews(), n = news.length;
   const fresh = news.find(x => x.at <= Date.now() + 60000);
   /* Held to the phone's own clock: a time from a phone that runs fast would
@@ -5098,7 +5105,10 @@ function scrEntry() {
   const editable = barOn && !fin;
 
   let gate = '';
-  if (!canEdit()) {
+  if (bookFrozen()) {
+    gate = `<div class="gate"><div class="msg"><b>This season is closed</b>
+      <span>The card is final and read-only. Everything in the book stays readable.</span></div></div>`;
+  } else if (!canEdit()) {
     gate = `<div class="gate"><div class="msg"><b>Scoring is closed to you</b>
       <span>Enter a scorer or master PIN to record scores. Everything else in the book stays readable.</span></div>
       <button class="btn" data-act="signIn">Enter PIN</button></div>`;
@@ -7404,7 +7414,7 @@ const MANAGE = [
   ['courses',  'Course Setup',      'Pars, stroke index and yardages'],
   ['rules',    'Games & Rules',     'All six competitions, in full'],
 ];
-const navTabs = () => NAV;
+const navTabs = () => inClub() ? CLUB_NAV : NAV;
 /* Setup is the master's SCREEN, but the count on the door is everybody's
    business, so a reader who cannot change it is still shown what is
    outstanding — the review window rather than the controls. */
@@ -7423,13 +7433,13 @@ const NAVICON = {
     + '<path d="M8 3.5v3M16 3.5v3"/><path d="M7.5 13h3M13.5 13h3M7.5 16.8h3"/>',
 };
 const navIcon = id => `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-  stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${NAVICON[id] || ''}</svg>`;
+  stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${NAVICON[id] || CLUB_ICON[id] || ''}</svg>`;
 
 /** The bar along the bottom of a phone, and the one along the top of
  *  everything else. Both are rendered; the stylesheet shows one. */
 function tabBar() {
-  return `<nav class="tabbar" aria-label="Sections">
-    ${NAV.map(([id, label, short]) => `<button class="navbtn" data-act="go" data-a="${id}"
+  return `<nav class="tabbar${navTabs().length === 3 ? ' three' : ''}" aria-label="Sections">
+    ${navTabs().map(([id, label, short]) => `<button class="navbtn" data-act="go" data-a="${id}"
       aria-label="${esc(label)}"${UI.screen === id ? ' aria-current="page"' : ''}>
       ${navIcon(id)}<span class="lb" aria-hidden="true"><span class="lg">${esc(label)}</span>${esc(short)}</span>
     </button>`).join('')}
@@ -7751,6 +7761,502 @@ function packSave() {
   const a = document.createElement('a'); a.href = st.out.url; a.download = st.out.name; a.rel = 'noopener';
   document.body.appendChild(a); a.click(); a.remove();
 }
+/* ================= THE CLUBHOUSE =================
+ *
+ * The book between tournaments. The six tabs of the week give way to three
+ * — You, Season, Vegas HQ — until the next week opens, when they come back
+ * exactly as they were. The 2026 book stays readable under the season
+ * switch, and takes no write while it is closed. All of it reads the
+ * `club/` rows beside the week's; see club.js.
+ */
+const CLUB_NAV = [
+  ['you',    'You',      'You'],
+  ['season', 'Season',   'Season'],
+  ['hq',     'Vegas HQ', 'Vegas HQ'],
+];
+const CLUB_SCREENS = ['you', 'season', 'hq', 'clubentry'];
+const clubPhase = () => C.phaseOf(T) === 'club';
+const inClub = () => clubPhase() && !UI.archive;
+const bookFrozen = () => C.frozen(T);
+const todayIso = () => C.isoToday();
+/* the person this phone is, on the roster: the name it chats and bets as */
+const myPid = () => { const w = whoAmI(); return w && !isGuest(w) ? w : null; };
+const writeSeason = patch => store.writeClub('season', patch, true);
+const seasonNow = () => C.season(T);
+
+const CLUB_ICON = {
+  you:    '<circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c.8-3.6 3.9-5.5 7.5-5.5s6.7 1.9 7.5 5.5"/>',
+  season: '<path d="M7 4h10v4.5a5 5 0 0 1-10 0z"/><path d="M4 5.5h3v2a3 3 0 0 1-3-2zM17 5.5h3a3 3 0 0 1-3 2z"/><path d="M12 13.5V17M8.5 20h7"/>',
+  hq:     '<path d="M12 3.5l2.2 4.6 5 .7-3.6 3.5.9 5-4.5-2.4-4.5 2.4.9-5L4.8 8.8l5-.7z"/>',
+};
+
+/** The switch under the nameplate: the closed book, or the season. */
+function seasonSwitch() {
+  if (!clubPhase()) return '';
+  const s = seasonNow();
+  const arc = Object.entries(s.archive || {});
+  return `<div class="sswitch" role="tablist" aria-label="Season">
+    ${arc.map(([yr, a]) => `<button class="ssw${UI.archive === yr ? ' on' : ''}" data-act="archiveView" data-a="${esc(yr)}" role="tab" aria-selected="${UI.archive === yr}">${esc((a.name || yr).replace(/\s*20(\d\d)$/, ' ’$1'))}${UI.archive === yr ? ' · archive' : ''}</button>`).join('')}
+    <button class="ssw${!UI.archive ? ' on' : ''}" data-act="archiveView" data-a="" role="tab" aria-selected="${!UI.archive}">${esc(String(s.name || '').replace(/\s*20(\d\d)$/, ' ’$1'))}</button>
+  </div>`;
+}
+
+/** The closed book says so, once, at the head of every week screen. */
+function closedBar() {
+  if (!bookFrozen() || inClub()) return '';
+  return `<div class="loadbar closedbook"><b>This season is closed.</b> Every card, recap, photo, report card and manual is here to read; nothing can be entered or changed.${
+    canAdmin() ? ' <button class="rm" data-act="manageClub">Reopen from Manage</button>' : ''}</div>`;
+}
+
+/* ---- the dials ---- */
+function dialHtml(d, tone) {
+  const off = Math.round(163 * (1 - Math.max(0, Math.min(1, d.pct || 0))));
+  return `<div class="cdial"><svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="26" fill="none" stroke="var(--hair)" stroke-width="7"/>
+    <circle cx="32" cy="32" r="26" fill="none" stroke="${tone}" stroke-width="7" stroke-dasharray="163" stroke-dashoffset="${off}" stroke-linecap="round" transform="rotate(-90 32 32)"/>
+    <text x="32" y="37" text-anchor="middle" font-size="${String(d.big).length > 5 ? 11 : 14}" font-weight="700" fill="var(--ink)">${esc(d.big)}</text></svg>
+    <b>${esc(d.label)}</b><small>${esc(d.small)}</small></div>`;
+}
+
+const greeting = () => { const h = new Date().getHours(); return h < 12 ? 'Morning' : h < 18 ? 'Afternoon' : 'Evening'; };
+
+/** A line on a page: a label, a title, a sentence, maybe a button. */
+const lineHtml = (k, t, p, act, gold) => `<div class="cline${gold ? ' gold' : ''}"><span class="ck">${k}</span><b class="ct">${t}</b>${p ? `<p>${p}</p>` : ''}${act || ''}</div>`;
+
+function whoLine() {
+  return `<div class="cline gold"><span class="ck">Who are you?</span><b class="ct">The Clubhouse keeps your line, your cards and your handicap</b>
+    <p>Choose your name once; this phone remembers it, the same name the chat and the bets use.</p>
+    <p style="margin-top:10px"><button class="btn" data-act="whoOpen">Choose my name</button></p></div>`;
+}
+
+/* ---------------- YOU ---------------- */
+function scrYou() {
+  const me = myPid();
+  const today = todayIso();
+  const s = seasonNow();
+  if (!me) return `<h2 class="head">The Clubhouse</h2><p class="lede">${esc(s.name)} · ${esc(s.tag || '')}</p>${whoLine()}`;
+  const p = E.person(T, me) || {};
+  const golfer = p.role === 'golfer';
+  const d = C.dials(T, me, today);
+  const open = C.openStops(T, today)[0];
+  const next = C.nextStop(T, today);
+  const line = C.lineOf(T, me);
+  const card = open ? C.cardOf(T, open.id, me) : null;
+  const tot = card ? C.cardTotals(card) : null;
+  const board = open ? C.stopBoard(T, open.id) : [];
+  const lead = board[0];
+  const toVegas = C.daysBetween(today, s.window.from);
+  const F = fieldReportSafe();
+  const mine = F ? F.players.find(x => x.id === me) : null;
+  return `<h2 class="greet">${greeting()}, ${esc(p.display || p.name || '')}.<small>${esc(C.dowOf(today))} ${esc(C.fmtDay(today))} · the Clubhouse · ${toVegas > 0 ? toVegas + ' days to Vegas' : 'Vegas week'}</small></h2>
+  ${golfer ? `<div class="cdials">${dialHtml(d.form, 'var(--green)')}${dialHtml(d.played, 'var(--gold)')}${dialHtml(d.ready, 'var(--pine)')}</div>` : `<div class="cdials one">${dialHtml(d.ready, 'var(--pine)')}</div>`}
+  ${golfer && open ? lineHtml('Open now · ' + esc(C.fmtDay(open.from)) + ' to ' + esc(C.fmtDay(open.to)), esc(open.name),
+      (tot && tot.thru === 18 ? (card.done ? 'Your card is in: <b>' + tot.pts + ' points</b>.' : 'Eighteen holes scored. Photograph the signed card and post it.') : tot && tot.thru ? 'You are through ' + tot.thru + ' with <b>' + tot.pts + ' points</b>.' : 'No card from you yet.')
+        + (board.length ? ' ' + board.length + ' card' + (board.length === 1 ? '' : 's') + ' in; ' + (lead ? esc(lead.name) + ' leads on ' + lead.pts : '') + '.' : ' Nobody has posted yet; be first.'),
+      `<p style="margin-top:10px"><button class="btn" data-act="clubEnter" data-a="${open.id}">${tot && tot.thru ? (card.done ? 'See my card' : 'Carry on my card') : 'Enter my card'}</button></p>`, true) : ''}
+  ${golfer && !open && next ? lineHtml('Next stop', esc(next.name), 'Opens ' + esc(C.fmtDay(next.from, { long: true })) + ' and closes ' + esc(C.fmtDay(next.to, { long: true })) + '. ' + esc(next.note || '')) : ''}
+  ${line.next ? lineHtml('Next for you', esc(line.next.label), esc(line.next.val) + ' · ' + line.done + ' of ' + line.of + ' on your Vegas line.', `<p style="margin-top:10px"><button class="btn ghost" data-act="go" data-a="hq">Open Vegas HQ</button></p>`)
+    : lineHtml('Your Vegas line', 'All ' + line.of + ' done', 'Nothing outstanding. The commissioner will say when the dates lock.')}
+  ${golfer && mine ? lineHtml('Your practice manual', 'Picked from your Belek report card', 'Putting ' + esc(gradeOf(mine, 'putting')) + ' · par 3s ' + esc(gradeOf(mine, 'par3')) + ' · par 5s ' + esc(gradeOf(mine, 'par5')) + '. Twelve to fifteen drills, drawn and scored, with a coach on video.', `<p style="margin-top:10px"><button class="btn ghost" data-act="manualOpen" data-a="${me}">Open my manual</button></p>`) : ''}
+  ${golfer && mine ? lineHtml('Your Belek 2026 card', esc(belekLine(mine)), 'The first season in your archive. Readable any time; nothing in it can change.', `<p style="margin-top:10px"><button class="btn ghost" data-act="reportPlayer" data-a="${me}">Read my report card</button> <button class="btn ghost" data-act="archiveView" data-a="2026">Open the Belek book</button></p>`) : ''}`;
+}
+const gradeOf = (pr, k) => (pr && pr.grades && pr.grades[k]) || '—';
+function belekLine(pr) {
+  const g = pr && pr.week ? pr.week : null;
+  const parts = [];
+  if (g && g.gross) parts.push(g.gross + ' gross');
+  if (g && g.pts != null) parts.push(g.pts + ' pts');
+  if (pr && pr.mvp && pr.mvp.pos) parts.push('MVP ' + pr.mvp.pos + (pr.mvp.pos === 1 ? 'st' : pr.mvp.pos === 2 ? 'nd' : pr.mvp.pos === 3 ? 'rd' : 'th'));
+  return parts.length ? parts.join(' · ') : 'Three rounds in Türkiye';
+}
+function fieldReportSafe() {
+  try { return RP.fieldReport(T, now); } catch (e) { return null; }
+}
+
+/* ---------------- SEASON ---------------- */
+const SEASON_TABS = [['stop', 'This stop'], ['merit', 'Standings'], ['hcp', 'Handicaps'], ['awards', 'Awards'], ['archive', 'Archive']];
+function scrSeason() {
+  const tab = UI.seasonTab || 'stop';
+  return `<h2 class="head">The Season</h2>
+  <p class="lede">A stop a month on your home course, the Order of Merit, the Union handicap, and the archive.</p>
+  <div class="btabs nos" role="tablist">${SEASON_TABS.map(([id, l]) => `<button class="btab${tab === id ? ' on' : ''}" data-act="seasonTab" data-a="${id}" role="tab" aria-selected="${tab === id}">${esc(l)}</button>`).join('')}</div>
+  ${tab === 'stop' ? seasonStop() : tab === 'merit' ? seasonMerit() : tab === 'hcp' ? seasonHcp() : tab === 'awards' ? seasonAwards() : seasonArchive()}`;
+}
+
+function stopChips(sel) {
+  const today = todayIso();
+  return `<div class="chiprow stopchips">${C.stops(T).map(s => { const st = C.stopState(s, today);
+    return `<button class="chip${sel === s.id ? ' on' : ''} st-${st}" data-act="stopPick" data-a="${s.id}">${esc(s.name.replace(/^The /, ''))}<i>${st === 'open' ? 'open' : st === 'closed' ? 'crowned' : esc(C.fmtDay(s.from))}</i></button>`; }).join('')}</div>`;
+}
+function boardTable(rows, opt) {
+  if (!rows.length) return `<p class="empty">${opt && opt.empty || 'No cards yet.'}</p>`;
+  return `<table class="ctbl"><thead><tr><th>Pos</th><th>Golfer</th><th>Course</th><th class="r">Thru</th><th class="r">Pts</th></tr></thead><tbody>
+    ${rows.map(r => `<tr class="${r.pos === 1 ? 'top' : ''}${r.pid === myPid() ? ' me' : ''}"><td class="num">${r.tie ? 'T' : ''}${r.pos}</td><td>${esc(r.name)}${r.done ? '' : ' <small>in play</small>'}</td><td class="muted">${esc(r.course || '')}</td><td class="r num">${r.thru === 18 ? 'F' : r.thru}</td><td class="r num"><b>${r.pts}</b></td></tr>`).join('')}
+  </tbody></table>`;
+}
+function seasonStop() {
+  const today = todayIso();
+  const cur = C.stopById(T, UI.stopId) || C.currentStop(T, today);
+  if (!cur) return `<p class="empty">No stops on the season yet. The commissioner adds them under Manage.</p>`;
+  const st = C.stopState(cur, today);
+  const board = C.stopBoard(T, cur.id);
+  const lead = board[0];
+  const me = myPid();
+  const mine = me ? C.cardOf(T, cur.id, me) : null;
+  const golfer = me && (E.person(T, me) || {}).role === 'golfer';
+  const plate = lead ? `<div class="plate"><span class="pl-t">${st === 'closed' ? 'Crowned' : 'Leading'} · ${esc(cur.name)}${st === 'open' ? '<span class="pl-live">● Live</span>' : ''}</span>
+      <span class="pl-n">${esc(lead.name)}<small>· ${esc(lead.course || 'home course')}</small></span>
+      <span class="pl-f"><span class="pl-big num">${lead.pts} pts</span><span class="pl-sep"></span><span class="pl-c">${board[1] ? 'Ahead by' : 'Thru'}<b class="num">${board[1] ? lead.pts - board[1].pts : (lead.thru === 18 ? 'F' : lead.thru)}</b></span><span class="pl-sep"></span><span class="pl-c">Cards in<b class="num">${board.length} of ${E.golfers(T).length}</b></span></span></div>`
+    : `<div class="plate flat"><span class="pl-t">${st === 'upcoming' ? 'Opens ' + esc(C.fmtDay(cur.from, { long: true })) : st === 'open' ? 'Open now' : 'Closed'} · ${esc(cur.name)}</span><span class="pl-n">${st === 'open' ? 'Nobody has posted a card yet' : st === 'upcoming' ? 'Not yet open' : 'No cards were posted'}</span></div>`;
+  return `${stopChips(cur.id)}
+  ${plate}
+  ${st === 'open' && golfer ? `<p class="cact"><button class="btn" data-act="clubEnter" data-a="${cur.id}">${mine && C.cardTotals(mine).thru ? (mine.done ? 'See my card' : 'Carry on my card') : 'Enter my card'}</button> <span class="sublede">Closes ${esc(C.dowOf(cur.to))} ${esc(C.fmtDay(cur.to))}.</span></p>` : ''}
+  ${boardTable(board, { empty: st === 'upcoming' ? 'Opens ' + C.fmtDay(cur.from, { long: true }) + '. ' + (cur.note || '') : st === 'open' ? 'No cards yet. ' + (cur.note || '') : 'No cards were posted for this stop.' })}
+  <p class="legend">${esc(cur.note || '')} ${esc(C.fmtDay(cur.from))} to ${esc(C.fmtDay(cur.to))}: net Stableford off your Union handicap, a photo of the signed card before it counts.${st === 'closed' ? ' The stop is crowned and the Order of Merit has it.' : ' At midnight on the last day the stop crowns its winner.'}</p>`;
+}
+function seasonMerit() {
+  const rows = C.merit(T, todayIso());
+  const n = C.closedStops(T, todayIso()).length;
+  return `<h3 class="sub">Order of Merit · after ${n} stop${n === 1 ? '' : 's'}</h3>
+  ${rows.length ? `<table class="ctbl"><thead><tr><th>Pos</th><th>Golfer</th><th class="r">Played</th><th class="r">Wins</th><th class="r">Pts</th></tr></thead><tbody>
+    ${rows.map(r => `<tr class="${r.pos === 1 ? 'top' : ''}${r.pid === myPid() ? ' me' : ''}"><td class="num">${r.pos}</td><td>${esc(r.name)}</td><td class="r num">${r.played}</td><td class="r num">${r.wins}</td><td class="r num"><b>${r.pts}</b></td></tr>`).join('')}</tbody></table>`
+    : `<p class="empty">The first stop pays its places when it closes.</p>`}
+  <p class="legend">A stop pays ${C.MERIT.slice(0, 4).join(', ')}… down the places. The Order of Merit is the season’s own honour, crowned in Vegas.</p>`;
+}
+function seasonHcp() {
+  const today = todayIso();
+  const rows = E.golfers(T).map(g => ({ g, u: C.unionHcp(T, g.id, today) })).sort((a, b) => (a.u.hcp == null ? 99 : a.u.hcp) - (b.u.hcp == null ? 99 : b.u.hcp));
+  return `<h3 class="sub">The Union handicap</h3>
+  <table class="ctbl"><thead><tr><th>Golfer</th><th class="r">Belek</th><th class="r">Union</th><th class="r">Cards</th><th>Since Belek</th></tr></thead><tbody>
+    ${rows.map(({ g, u }) => { const seed = g.band == null ? null : +g.band; const move = u.from === 'season' && seed != null ? Math.round((u.hcp - seed) * 10) / 10 : null;
+      return `<tr class="${g.id === myPid() ? 'me' : ''}"><td>${esc(g.display)}</td><td class="r num">${seed == null ? '—' : seed}</td><td class="r num"><b>${u.hcp == null ? '—' : u.hcp}</b></td><td class="r num">${u.n}</td><td class="${move == null ? 'muted' : move < 0 ? 'good' : 'bad'}">${move == null ? (u.need ? u.need + ' more card' + (u.need === 1 ? '' : 's') : '—') : (move < 0 ? '▼ ' : '▲ ') + Math.abs(move)}</td></tr>`; }).join('')}
+  </tbody></table>
+  <p class="legend">Seeded by the Belek band. Each finished card leaves a differential; from three cards the handicap is the best three of the last six, at 96%. The week’s bands lock a month before Vegas.</p>`;
+}
+function seasonAwards() {
+  const today = todayIso();
+  const closed = C.closedStops(T, today);
+  const all = C.stops(T);
+  const best = []; const cardsBy = {};
+  for (const s of all) for (const g of E.golfers(T)) { const c = C.cardOf(T, s.id, g.id); if (!c) continue; const t = C.cardTotals(c); if (t.thru === 18 && c.done) { best.push({ pid: g.id, name: g.display, pts: t.pts, stop: s.name }); cardsBy[g.id] = (cardsBy[g.id] || 0) + 1; } }
+  best.sort((a, b) => b.pts - a.pts);
+  const merit = C.merit(T, today);
+  const moves = E.golfers(T).map(g => { const u = C.unionHcp(T, g.id, today); const seed = g.band == null ? null : +g.band; return { name: g.display, move: u.from === 'season' && seed != null ? Math.round((u.hcp - seed) * 10) / 10 : null }; }).filter(x => x.move != null).sort((a, b) => a.move - b.move);
+  const iron = Object.entries(cardsBy).sort((a, b) => b[1] - a[1])[0];
+  const aw = [
+    ['The Order of Merit', merit[0] ? merit[0].name + ' · ' + merit[0].pts + ' pts' : 'Decided stop by stop', 'Crowned in Vegas, on the first night.'],
+    ['Card of the season', best[0] ? best[0].name + ' · ' + best[0].pts + ' pts at ' + best[0].stop : 'No finished card yet', 'The most points on one card, anywhere.'],
+    ['Most improved', moves[0] && moves[0].move < 0 ? moves[0].name + ' · down ' + Math.abs(moves[0].move) : 'Three cards in first', 'The Union handicap that fell furthest since Belek.'],
+    ['Iron man', iron ? (E.person(T, iron[0]) || {}).display + ' · ' + iron[1] + ' card' + (iron[1] === 1 ? '' : 's') : 'No cards yet', 'The most cards posted across the season.'],
+    ['Stops won', merit.filter(r => r.wins).map(r => r.name + ' ' + r.wins).join(' · ') || 'None crowned yet', closed.length + ' of ' + all.length + ' stops crowned.'],
+  ];
+  return `<h3 class="sub">Awards</h3><div class="awards">${aw.map(([t, v, n]) => `<div class="award"><span class="ck">${esc(t)}</span><b>${esc(v)}</b><small>${esc(n)}</small></div>`).join('')}</div>`;
+}
+function seasonArchive() {
+  const s = seasonNow();
+  const F = fieldReportSafe();
+  return `<h3 class="sub">The archive</h3>
+  ${Object.entries(s.archive || {}).map(([yr, a]) => `<div class="cline"><span class="ck">${esc(yr)} · closed book</span><b class="ct">${esc(a.name || yr)}</b><p>${esc(a.venue || '')}${a.place ? ', ' + esc(a.place) : ''} · ${esc(C.fmtDay(a.from))} to ${esc(C.fmtDay(a.to, { year: true }))}. Every card, board, recap, photo and report card, readable as they ended.</p>
+    <p style="margin-top:10px"><button class="btn" data-act="archiveView" data-a="${esc(yr)}">Open the ${esc(a.name || yr)} book</button> <a class="btn ghost" href="${esc(D.SITE_URL)}recap/?r=report" target="_blank" rel="noopener">The players report</a></p></div>`).join('')}
+  ${F ? `<h3 class="sub">Belek report cards</h3><div class="rp-list">${F.players.map(pr => `<button class="rp-row" data-act="reportPlayer" data-a="${pr.id}"><span class="rp-rw"><b>${esc(pr.name)}</b><small>${esc(belekLine(pr))}</small></span><span class="rp-go" aria-hidden="true">›</span></button>`).join('')}</div>` : ''}`;
+}
+
+/* ---------------- VEGAS HQ ---------------- */
+function meterHtml(L, cur) {
+  return `<div class="meter" role="img" aria-label="${esc(C.fmtMoney(L.paid, cur))} of ${esc(C.fmtMoney(L.price, cur))} paid"><i style="width:${Math.round(L.pct * 100)}%"${L.settled ? ' class="full"' : ''}></i></div>`;
+}
+function scrHq() {
+  const s = seasonNow();
+  const today = todayIso();
+  const me = myPid();
+  const toVegas = C.daysBetween(today, s.window.from);
+  const f = C.field(T);
+  const cur = s.currency || '£';
+  const line = me ? C.lineOf(T, me) : null;
+  const L = me ? C.ledger(T, me) : null;
+  const sign = me ? C.signupOf(T, me) : null;
+  const t = me ? (C.travelOf(T, me) || {}) : {};
+  const out = t.out || {}, back = t.back || {};
+  const status = sign && sign.status;
+  const pkgs = s.packages;
+  const rowOf = p => { const Lp = C.ledger(T, p.id); const st = p.signup ? p.signup.status : null;
+    return `<div class="frow"><span class="fn">${esc(p.display || p.name)}${p.role === 'spectator' ? ' <small>gallery</small>' : ''}</span>
+      <span class="fs"><span class="pill ${st || 'none'}">${st === 'in' ? 'In' : st === 'maybe' ? 'Maybe' : st === 'out' ? 'Out' : 'Not yet'}</span></span>
+      <span class="fm">${Lp.price ? meterHtml(Lp, cur) : '<span class="muted">—</span>'}</span>
+      <span class="fp num">${Lp.price ? esc(C.fmtMoney(Lp.paid, cur)) + ' <small>of ' + esc(C.fmtMoney(Lp.price, cur)) + '</small>' : ''}</span></div>`; };
+  return `<div class="vhero"><span class="ck">Vegas HQ · the third edition</span><b>${esc(s.name)}${s.tag ? ' <i>' + esc(s.tag) + '</i>' : ''}</b>
+    <small>${s.window.locked ? esc(C.fmtDay(s.window.from)) + ' to ' + esc(C.fmtDay(s.window.to, { year: true })) + ', locked.' : 'Dates inside the ' + esc(C.fmtDay(s.window.from)) + ' to ' + esc(C.fmtDay(s.window.to, { year: true })) + ' window until the hotel confirms.'} Two practice days, three rounds, the women’s 18, the partners’ 9.</small>
+    <div class="big">${toVegas > 0 ? toVegas + '<small>days</small>' : toVegas > -9 ? 'This week' : 'Done'}</div></div>
+  ${!me ? whoLine() : `
+  <div class="cline"><span class="ck">Your line · ${line.done} of ${line.of}</span>
+    <div class="chks">${line.items.map(i => `<div class="chk"><span>${esc(i.label)}</span><b class="${i.ok ? 'ok' : 'todo'}">${esc(i.val)}</b></div>`).join('')}</div>
+    ${L.price ? `<div class="mymeter">${meterHtml(L, cur)}<span class="num">${esc(C.fmtMoney(L.paid, cur))} paid · ${L.settled ? 'settled' : esc(C.fmtMoney(L.left, cur)) + ' to go'}</span></div>` : ''}
+  </div>
+  <h3 class="sub">Are you in?</h3>
+  <div class="chiprow">${[['in', 'I’m in'], ['maybe', 'Maybe'], ['out', 'Not this one']].map(([k, l]) => `<button class="chip${status === k ? ' on' : ''}" data-act="signStatus" data-a="${k}" aria-pressed="${status === k}">${l}</button>`).join('')}</div>
+  ${status && status !== 'out' ? `<h3 class="sub">Your package</h3>
+  <p class="sublede">One price for the trip. Each package says what it covers; there are no itemised receipts, the money is collected outside the book and the commissioner marks it paid here.</p>
+  <div class="pkgs">${pkgs.map(p => `<button class="pkg${sign && sign.pkg === p.id ? ' on' : ''}" data-act="signPkg" data-a="${p.id}" aria-pressed="${sign && sign.pkg === p.id}"><span class="pk-n">${esc(p.name)}</span><span class="pk-p num">${p.price ? esc(C.fmtMoney(p.price, cur)) : 'price to come'}</span><ul>${(p.inc || []).map(x => `<li>${esc(x)}</li>`).join('')}</ul></button>`).join('')}</div>
+  <div class="fieldset two">
+    <label>Shirt size<input class="field" data-act="signField" data-a="shirt" value="${esc(sign && sign.shirt || '')}" placeholder="XL" maxlength="6"></label>
+    <label>Name on the shirt<input class="field" data-act="signField" data-a="nameOn" value="${esc(sign && sign.nameOn || '')}" placeholder="${esc((E.person(T, me) || {}).name || '')}" maxlength="40"></label>
+  </div>
+  <h3 class="sub">Your flights</h3>
+  <p class="sublede">Add them when they are booked. The commissioner exports these for the airport runs.</p>
+  <div class="fieldset two">
+    <label>Out · date<input class="field" type="date" data-act="travelField" data-a="out.date" value="${esc(out.date || '')}"></label>
+    <label>Out · flight<input class="field" data-act="travelField" data-a="out.flight" value="${esc(out.flight || '')}" placeholder="BA 275" maxlength="12"></label>
+    <label>Out · lands<input class="field" data-act="travelField" data-a="out.lands" value="${esc(out.lands || '')}" placeholder="15:40" maxlength="8"></label>
+    <label>Back · date<input class="field" type="date" data-act="travelField" data-a="back.date" value="${esc(back.date || '')}"></label>
+    <label>Back · flight<input class="field" data-act="travelField" data-a="back.flight" value="${esc(back.flight || '')}" placeholder="BA 274" maxlength="12"></label>
+    <label>Back · lands<input class="field" data-act="travelField" data-a="back.lands" value="${esc(back.lands || '')}" placeholder="12:10" maxlength="8"></label>
+  </div>` : ''}`}
+  <h3 class="sub">The field · ${f.in.length} in, ${f.maybe.length} maybe, ${f.out.length} out${f.unanswered.length ? ', ' + f.unanswered.length + ' to answer' : ''}</h3>
+  <div class="frows">${f.in.concat(f.maybe, f.out, f.unanswered).map(rowOf).join('') || '<p class="empty">Nobody on the roster yet.</p>'}</div>
+  <p class="legend">What the whole group sees: who is in, and how far each line is paid. Deposits by ${esc(C.fmtDay(s.deadlines.deposit, { long: true }))}; the balance by ${esc(C.fmtDay(s.deadlines.balance, { long: true }))}.</p>
+  <h3 class="sub">Rooms · ${s.rooms.length ? s.rooms.filter(r => (r.members || []).length).length + ' set' : 'to come'}</h3>
+  ${s.rooms.length ? `<div class="rooms">${s.rooms.map((r, i) => `<div class="room"><b>${esc(r.id || 'Room ' + (i + 1))}</b><span>${(r.members || []).map(x => esc((E.person(T, x) || {}).display || x)).join(' + ') || 'empty'}</span><small>${esc(r.type || '')}</small></div>`).join('')}</div>` : '<p class="sublede">The commissioner sets the rooms once the hotel confirms.</p>'}
+  <h3 class="sub">Vendors</h3>
+  <div class="vrows">${s.vendors.map(v => `<div class="vrow"><b>${esc(v.name)}</b><span>${esc(v.status || '')}</span><small>${v.due ? 'by ' + esc(C.fmtDay(v.due)) : ''}</small></div>`).join('')}</div>
+  ${canAdmin() ? `<p class="cact"><button class="btn ghost" data-act="manageClub">Manage the season</button></p>` : ''}`;
+}
+
+/* ---------------- A VIRTUAL ROUND ----------------
+   The Score Entry screen's own furniture — the band with the hole and the
+   eighteen on it, the tile, the keypad, the bar at the foot — on the home
+   course the golfer entered once. */
+function scrClubEntry() {
+  const me = myPid();
+  const today = todayIso();
+  const stop = C.stopById(T, UI.stopId) || C.openStops(T, today)[0] || C.currentStop(T, today);
+  if (!me) return `<h2 class="head">A virtual round</h2>${whoLine()}`;
+  if (!stop) return `<h2 class="head">A virtual round</h2><p class="empty">No stop on the season yet.</p>`;
+  const st = C.stopState(stop, today);
+  const p = E.person(T, me) || {};
+  const course = C.courseOf(T, me);
+  const back = `<p class="cact"><button class="btn ghost sm" data-act="go" data-a="season">‹ The season</button><span class="sublede">My round · ${esc(p.display || '')}</span></p>`;
+  if (!course || !C.courseOk(course) || UI.courseEdit) return `<h2 class="head">${esc(stop.name)}</h2>${back}${courseForm(me, course)}`;
+  let card = C.cardOf(T, stop.id, me);
+  const hcpNow = C.playingOf(T, me, today);
+  const fresh = !card;
+  if (fresh) card = C.blankClubCard(stop.id, me, hcpNow, course);
+  const holes = card.course && card.course.holes && card.course.holes.length === 18 ? card.course.holes : course.holes;
+  const h = Math.min(Math.max(UI.clubHole || 0, 0), 17);
+  const hole = holes[h];
+  const cap = C.capFor(+hole.par);
+  const raw = card.raw[h];
+  const tot = C.cardTotals(card);
+  const open = st === 'open' && !card.final;
+  const editable = open && !card.done;
+  const pts = C.holePts(card, h);
+  const strokes = E.strokesFor(Math.round(card.hcp == null ? 0 : card.hcp), +hole.si) || 0;
+  const keys = [];
+  for (let n = 1; n <= cap; n++) keys.push(`<button class="key num${n === +hole.par ? ' par' : ''}${n === cap ? ' cap' : ''}${n === raw ? ' on' : ''}" data-act="clubScore" data-a="${n}" aria-label="${n}${n === +hole.par ? ', par' : n === cap ? ', pick up' : ''}">${n}${n === +hole.par ? '<i>par</i>' : n === cap ? '<i>pick up</i>' : ''}</button>`);
+  keys.push(`<button class="key wide" data-act="clubClear">Clear</button>`);
+  const keypad = editable && UI.clubPad ? `<div class="keypad" role="dialog" aria-label="Your score on hole ${hole.n || h + 1}" data-par="${hole.par}" data-cap="${cap}" data-cur="${raw == null ? '' : raw}">
+      <div class="kh"><b>${esc(p.display || '')}</b><span>Hole ${h + 1} · par ${hole.par} · picks up at ${cap}</span><button class="xx" data-act="clubPadClose">Done</button></div>
+      <div class="keys">${keys.join('')}</div><button class="knext" data-act="clubPadClose">Close</button></div>` : '';
+  const gate = !open ? `<div class="gate"><div class="msg"><b>${st === 'upcoming' ? stop.name + ' opens ' + C.fmtDay(stop.from, { long: true }) : card.final ? 'This card is final' : stop.name + ' has closed'}</b><span>${st === 'upcoming' ? 'Come back when the window opens.' : 'The card is read-only.'}</span></div></div>` : '';
+  const photo = card.photo && card.photo.url;
+  const donePanel = tot.thru === 18 && open ? `<div class="cline gold" id="cardDone"><span class="ck">${card.done ? 'Posted' : 'Before it counts'}</span><b class="ct">${card.done ? tot.pts + ' points, on the board' : 'A photo of the signed card'}</b>
+      <p>${card.done ? 'Your card is in. The commissioner can still ask for a correction.' : 'Taken here, now. Then the card posts to the stop and to your Union handicap.'}</p>
+      ${photo ? `<a class="cardshot" href="${esc(photo)}" target="_blank" rel="noopener"><img src="${esc(card.photo.thumb || photo)}" alt="The signed card"></a>` : ''}
+      ${UI.cardUp ? `<p class="sublede">${esc(UI.cardUp)}</p>` : ''}
+      <p style="margin-top:10px">${card.done ? '' : `<label class="btn"><input type="file" accept="image/*" capture="environment" data-act="cardPhoto" hidden>${photo ? 'Retake the photo' : 'Photograph the card'}</label> `}${photo && !card.done ? `<button class="btn" data-act="clubPost">Post my card</button>` : ''}</p></div>` : '';
+  return `<h2 class="head">${esc(stop.name)}</h2>
+  <p class="lede">${esc(course.name)}${course.tee ? ' · ' + esc(course.tee) + ' tees' : ''} · playing off ${card.hcp == null ? '—' : esc(String(Math.round(card.hcp)))}${course.approved ? '' : ' · <i>course awaiting the commissioner’s approval</i>'} <button class="rm" data-act="courseEdit">Change course</button></p>
+  ${back}
+  <div class="entryhd">
+    <div class="ehd-facts"><span class="ehd-n num">${h + 1}</span><span class="ehd-l">Hole</span><span class="ehd-m">Par ${hole.par} · Index ${hole.si}<b>${raw == null ? 'Not scored yet' : 'You wrote ' + raw + (pts != null ? ' · ' + pts + ' pt' + (pts === 1 ? '' : 's') : '')}</b></span></div>
+    <div class="scroller nos"><div class="hstrip">${holes.map((x, i) => `<button class="hcell${i === h ? ' on' : ''}${card.raw[i] != null ? ' saved' : ''}" data-act="clubHole" data-a="${i}" aria-label="Hole ${i + 1}, par ${x.par}"><span class="n num">${i + 1}</span><span class="p num">par ${x.par}</span></button>`).join('')}</div></div>
+  </div>
+  ${gate}
+  <div class="savebar mine">
+    <div class="sv"><b>${tot.thru} of 18 · ${tot.pts} pts</b><span>${tot.toPar == null ? 'Par ' + hole.par + (strokes ? ' · ' + strokes + ' stroke' + (strokes === 1 ? '' : 's') + ' here' : '') : (tot.toPar === 0 ? 'Level' : tot.toPar > 0 ? '+' + tot.toPar : tot.toPar) + ' gross thru ' + tot.thru}</span></div>
+    <button class="btn ghost" data-act="clubHole" data-a="${Math.max(h - 1, 0)}"${h === 0 ? ' disabled' : ''} aria-label="Previous hole">‹</button>
+    <button class="btn" data-act="clubHole" data-a="${Math.min(h + 1, 17)}"${h === 17 ? ' disabled' : ''}>Next hole ›</button>
+  </div>
+  <div class="holehead"><h3 class="num">Hole ${h + 1}</h3><span class="num">Par ${hole.par}</span><span class="m num">Stroke index ${hole.si}</span>${hole.y ? `<span class="m num">${hole.y} yds</span>` : ''}<span class="r num">Picks up at ${cap}</span></div>
+  ${keypad}
+  <div class="prow${UI.clubPad ? ' sel' : ''}${editable && raw == null ? ' nextup' : ''}"><div class="pmain"><div class="pwho"><div class="nm">${esc(p.display || '')}</div><div class="pb">${strokes ? '+' + strokes + ' here' : 'no strokes here'}${pts != null ? ' · ' + pts + ' pt' + (pts === 1 ? '' : 's') : ''}</div></div>
+    ${editable ? `<button class="ptile${raw == null ? ' empty' : ''}" data-act="clubPad" aria-label="Your score on hole ${h + 1}"><span class="fig raw"><span class="v num">${raw == null ? '·' : raw}</span></span></button>` : `<span class="ptile still"><span class="fig raw"><span class="v num">${raw == null ? '·' : raw}</span></span></span>`}</div></div>
+  ${donePanel}
+  <table class="ctbl mini"><thead><tr><th></th>${Array.from({ length: 9 }, (_, i) => `<th class="r">${i + 1}</th>`).join('')}<th class="r">Out</th></tr></thead><tbody>
+    <tr><td>Gross</td>${card.raw.slice(0, 9).map(v => `<td class="r num">${v == null ? '·' : v}</td>`).join('')}<td class="r num">${sumOf(card.raw.slice(0, 9))}</td></tr>
+    <tr><td>Pts</td>${Array.from({ length: 9 }, (_, i) => `<td class="r num">${C.holePts(card, i) == null ? '·' : C.holePts(card, i)}</td>`).join('')}<td class="r num">${sumOf(Array.from({ length: 9 }, (_, i) => C.holePts(card, i)))}</td></tr>
+  </tbody><thead><tr><th></th>${Array.from({ length: 9 }, (_, i) => `<th class="r">${i + 10}</th>`).join('')}<th class="r">In</th></tr></thead><tbody>
+    <tr><td>Gross</td>${card.raw.slice(9).map(v => `<td class="r num">${v == null ? '·' : v}</td>`).join('')}<td class="r num">${sumOf(card.raw.slice(9))}</td></tr>
+    <tr><td>Pts</td>${Array.from({ length: 9 }, (_, i) => `<td class="r num">${C.holePts(card, i + 9) == null ? '·' : C.holePts(card, i + 9)}</td>`).join('')}<td class="r num">${sumOf(Array.from({ length: 9 }, (_, i) => C.holePts(card, i + 9)))}</td></tr>
+  </tbody></table>`;
+}
+const sumOf = l => { const v = l.filter(x => x != null); return v.length ? v.reduce((a, b) => a + b, 0) : '·'; };
+
+function courseForm(pid, held) {
+  const c = UI.courseDraft && UI.courseDraft.pid === pid ? UI.courseDraft : (held ? JSON.parse(JSON.stringify(held)) : C.blankCourse(pid));
+  UI.courseDraft = c;
+  const ok = C.courseOk(c);
+  return `<h3 class="sub">Your home course</h3>
+  <p class="sublede">Entered once, from the scorecard: par and stroke index for every hole, yards if you like. The commissioner approves it; you can score from it straight away.</p>
+  <div class="fieldset two">
+    <label>Course<input class="field" data-act="courseField" data-a="name" value="${esc(c.name || '')}" placeholder="Rancho Park" maxlength="60"></label>
+    <label>Tees<input class="field" data-act="courseField" data-a="tee" value="${esc(c.tee || '')}" placeholder="White" maxlength="20"></label>
+  </div>
+  <table class="ctbl course"><thead><tr><th>Hole</th><th>Par</th><th>Index</th><th>Yards</th></tr></thead><tbody>
+    ${c.holes.map((x, i) => `<tr><td class="num">${i + 1}</td><td><input class="field num" type="number" inputmode="numeric" min="3" max="6" data-act="courseField" data-a="${i}" data-b="par" value="${esc(x.par == null ? '' : x.par)}"></td><td><input class="field num" type="number" inputmode="numeric" min="1" max="18" data-act="courseField" data-a="${i}" data-b="si" value="${esc(x.si == null ? '' : x.si)}"></td><td><input class="field num" type="number" inputmode="numeric" min="50" max="700" data-act="courseField" data-a="${i}" data-b="y" value="${esc(x.y == null ? '' : x.y)}"></td></tr>`).join('')}
+  </tbody></table>
+  <p class="sublede">Par ${C.coursePar(c)}.${ok ? '' : ' Every hole needs a par of 3 to 6 and each stroke index 1 to 18 once.'}</p>
+  <div class="acts"><button class="btn" data-act="courseSave"${ok ? '' : ' disabled'}>Save my course</button>${held ? `<button class="btn ghost" data-act="courseCancel">Keep it as it was</button>` : ''}</div>`;
+}
+
+/* ---------------- MANAGE: THE SEASON ---------------- */
+const CLUB_MTABS = [['season', 'Season'], ['stops', 'Stops'], ['packages', 'Packages'], ['money', 'Money'], ['rooms', 'Rooms'], ['courses', 'Courses'], ['exports', 'Exports']];
+function clubManageHtml() {
+  const s = seasonNow();
+  const tab = UI.clubMTab || 'season';
+  const cur = s.currency || '£';
+  const today = todayIso();
+  const body = tab === 'season' ? `
+    <div class="mg-sec"><b>Where the book is</b>
+      <div class="chiprow"><button class="chip${s.phase === 'club' ? ' on' : ''}" data-act="clubPhase" data-a="club">The Clubhouse</button><button class="chip${s.phase !== 'club' ? ' on' : ''}" data-act="clubPhase" data-a="week">The week</button></div>
+      <p class="sublede">The Clubhouse shows You · Season · Vegas HQ. The week shows the six tabs as Belek ran them. The week's own setup (courses, rounds, tee times) is done here in Manage when the time comes.</p></div>
+    <div class="mg-sec"><b>The 2026 book</b>
+      <div class="chiprow"><button class="chip${s.frozen ? ' on' : ''}" data-act="clubFreeze" data-a="1">Closed · read only</button><button class="chip${!s.frozen ? ' on' : ''}" data-act="clubFreeze" data-a="0">Open for a correction</button></div>
+      <p class="sublede">Closed, the server refuses every write to the week's rows from every PIN, including yours. Open it, make the correction, close it again.</p></div>
+    <div class="fieldset two">
+      <label>Season name<input class="field" data-act="sField" data-a="name" value="${esc(s.name)}" maxlength="40"></label>
+      <label>Tag line<input class="field" data-act="sField" data-a="tag" value="${esc(s.tag || '')}" maxlength="60"></label>
+      <label>Place<input class="field" data-act="sField" data-a="place" value="${esc(s.place || '')}" maxlength="60"></label>
+      <label>Currency<input class="field" data-act="sField" data-a="currency" value="${esc(cur)}" maxlength="3"></label>
+      <label>Week from<input class="field" type="date" data-act="sField" data-a="window.from" value="${esc(s.window.from || '')}"></label>
+      <label>Week to<input class="field" type="date" data-act="sField" data-a="window.to" value="${esc(s.window.to || '')}"></label>
+      <label>Deposits by<input class="field" type="date" data-act="sField" data-a="deadlines.deposit" value="${esc(s.deadlines.deposit || '')}"></label>
+      <label>Balance by<input class="field" type="date" data-act="sField" data-a="deadlines.balance" value="${esc(s.deadlines.balance || '')}"></label>
+    </div>
+    <div class="chiprow" style="margin-top:10px"><button class="chip${s.window.locked ? ' on' : ''}" data-act="sToggle" data-a="window.locked">${s.window.locked ? 'Dates locked' : 'Dates not locked yet'}</button></div>
+    <h3 class="sub">Vendors</h3>
+    ${s.vendors.map((v, i) => `<div class="fieldset three"><label>${esc(v.name)}<input class="field" data-act="vendorField" data-a="${i}" data-b="status" value="${esc(v.status || '')}" maxlength="60"></label><label>By<input class="field" type="date" data-act="vendorField" data-a="${i}" data-b="due" value="${esc(v.due || '')}"></label></div>`).join('')}`
+  : tab === 'stops' ? `
+    <p class="sublede">A stop a month. The names carry over from the sheet; the windows are yours to move. A stop crowns itself at midnight on its last day.</p>
+    ${C.stops(T).map(x => { const i = s.stops.findIndex(y => y.id === x.id); const st = C.stopState(x, today);
+      return `<div class="mg-sec"><b>${esc(x.name)} <small class="muted">${st}</small></b>
+      <div class="fieldset two">
+        <label>Name<input class="field" data-act="stopField" data-a="${i}" data-b="name" value="${esc(x.name)}" maxlength="50"></label>
+        <label>Format<select class="field" data-act="stopField" data-a="${i}" data-b="format">${[['stableford', 'Net Stableford'], ['stroke', 'Net stroke play'], ['scramble', 'Scramble (own card counts)']].map(([k, l]) => `<option value="${k}"${x.format === k ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
+        <label>Opens<input class="field" type="date" data-act="stopField" data-a="${i}" data-b="from" value="${esc(x.from || '')}"></label>
+        <label>Closes<input class="field" type="date" data-act="stopField" data-a="${i}" data-b="to" value="${esc(x.to || '')}"></label>
+        <label class="wide">The line under it<input class="field" data-act="stopField" data-a="${i}" data-b="note" value="${esc(x.note || '')}" maxlength="140"></label>
+      </div>
+      <div class="acts"><button class="btn ghost danger" data-act="stopRemove" data-a="${i}">Remove this stop</button></div></div>`; }).join('')}
+    <div class="acts"><button class="btn" data-act="stopAdd">Add a stop</button></div>`
+  : tab === 'packages' ? `
+    <p class="sublede">One price each, with what it covers. The group sees these on Vegas HQ.</p>
+    ${s.packages.map((p, i) => `<div class="mg-sec"><div class="fieldset two">
+      <label>Name<input class="field" data-act="pkgField" data-a="${i}" data-b="name" value="${esc(p.name)}" maxlength="40"></label>
+      <label>Price (${esc(cur)})<input class="field num" type="number" inputmode="decimal" min="0" step="1" data-act="pkgField" data-a="${i}" data-b="price" value="${esc(p.price == null ? '' : p.price)}"></label>
+      <label>Nights<input class="field num" type="number" inputmode="numeric" min="1" max="14" data-act="pkgField" data-a="${i}" data-b="nights" value="${esc(p.nights == null ? '' : p.nights)}"></label>
+      <label>Golfing<select class="field" data-act="pkgField" data-a="${i}" data-b="golf"><option value="1"${p.golf ? ' selected' : ''}>Yes</option><option value="0"${!p.golf ? ' selected' : ''}>No</option></select></label>
+      <label class="wide">What it covers, one a line<textarea class="field" rows="3" data-act="pkgField" data-a="${i}" data-b="inc">${esc((p.inc || []).join('\n'))}</textarea></label>
+    </div><div class="acts"><button class="btn ghost danger" data-act="pkgRemove" data-a="${i}">Remove</button></div></div>`).join('')}
+    <div class="acts"><button class="btn" data-act="pkgAdd">Add a package</button></div>`
+  : tab === 'money' ? `
+    <p class="sublede">What each person has paid against their package. The group sees the meter; only you write to it. A price of your own overrides the package's.</p>
+    ${(T.config.people || []).filter(p => p.role !== 'official').map(p => { const L = C.ledger(T, p.id); const sg = C.signupOf(T, p.id); const m = C.moneyOf(T, p.id) || {}; const d = UI.moneyDraft && UI.moneyDraft.pid === p.id ? UI.moneyDraft : { pid: p.id, amt: '', date: today, note: '' };
+      return `<div class="mg-sec"><b>${esc(p.display || p.name)} <small class="muted">${sg ? (sg.status === 'in' ? 'in' : sg.status) + (L.pkg ? ' · ' + L.pkg.name : '') : 'not answered'}</small></b>
+      ${L.price ? `<div class="mymeter">${meterHtml(L, cur)}<span class="num">${esc(C.fmtMoney(L.paid, cur))} of ${esc(C.fmtMoney(L.price, cur))}${L.settled ? ' · settled' : ' · ' + esc(C.fmtMoney(L.left, cur)) + ' to go'}</span></div>` : ''}
+      ${L.pays.length ? `<div class="pays">${L.pays.map((x, j) => `<div class="pay"><span class="num">${esc(C.fmtMoney(x.amt, cur))}</span><span>${esc(C.fmtDay(x.at))}${x.note ? ' · ' + esc(x.note) : ''}</span><button class="rm" data-act="moneyRemove" data-a="${p.id}" data-b="${j}">remove</button></div>`).join('')}</div>` : ''}
+      <div class="fieldset three">
+        <label>Price (${esc(cur)}, blank = package)<input class="field num" type="number" inputmode="decimal" min="0" data-act="moneyPrice" data-a="${p.id}" value="${esc(m.price == null ? '' : m.price)}"></label>
+        <label>Payment (${esc(cur)})<input class="field num" type="number" inputmode="decimal" min="0" data-act="moneyDraft" data-a="${p.id}" data-b="amt" value="${esc(d.amt)}"></label>
+        <label>On<input class="field" type="date" data-act="moneyDraft" data-a="${p.id}" data-b="date" value="${esc(d.date)}"></label>
+        <label>Note<input class="field" data-act="moneyDraft" data-a="${p.id}" data-b="note" value="${esc(d.note)}" placeholder="deposit · Zelle" maxlength="40"></label>
+      </div>
+      <div class="acts"><button class="btn" data-act="moneyAdd" data-a="${p.id}">Add payment</button></div></div>`; }).join('')}`
+  : tab === 'rooms' ? `
+    <p class="sublede">Who shares with whom. Everyone sees the pairs on Vegas HQ.</p>
+    ${s.rooms.map((r, i) => `<div class="mg-sec"><div class="fieldset two">
+      <label>Room<input class="field" data-act="roomField" data-a="${i}" data-b="id" value="${esc(r.id || '')}" placeholder="Room ${i + 1}" maxlength="30"></label>
+      <label>Type<input class="field" data-act="roomField" data-a="${i}" data-b="type" value="${esc(r.type || '')}" placeholder="Standard" maxlength="30"></label></div>
+      <div class="chiprow">${(T.config.people || []).filter(p => p.role !== 'official').map(p => { const inn = (r.members || []).includes(p.id); const elsewhere = !inn && s.rooms.some((o, j) => j !== i && (o.members || []).includes(p.id));
+        return `<button class="chip${inn ? ' on' : ''}${elsewhere ? ' dim' : ''}" data-act="roomMember" data-a="${i}" data-b="${p.id}" aria-pressed="${inn}">${esc(p.display || p.name)}</button>`; }).join('')}</div>
+      <div class="acts"><button class="btn ghost danger" data-act="roomRemove" data-a="${i}">Remove room</button></div></div>`).join('')}
+    <div class="acts"><button class="btn" data-act="roomAdd">Add a room</button></div>`
+  : tab === 'courses' ? `
+    <p class="sublede">Every home course the golfers have entered. Approve each once you have looked at the card.</p>
+    ${E.golfers(T).map(g => { const c = C.courseOf(T, g.id); if (!c) return `<div class="mg-sec"><b>${esc(g.display)}</b><p class="sublede">No course entered yet.</p></div>`;
+      return `<div class="mg-sec"><b>${esc(g.display)} <small class="muted">${c.approved ? 'approved' : 'awaiting approval'}</small></b>
+      <p class="sublede">${esc(c.name)}${c.tee ? ' · ' + esc(c.tee) + ' tees' : ''} · par ${C.coursePar(c)} · ${C.courseOk(c) ? 'card complete' : 'card incomplete'}</p>
+      <div class="cmini num">${c.holes.map((h, i) => `<span><b>${i + 1}</b>${h.par}<i>${h.si}</i></span>`).join('')}</div>
+      <div class="acts"><button class="btn${c.approved ? ' ghost' : ''}" data-act="courseApprove" data-a="${g.id}" data-b="${c.approved ? '0' : '1'}">${c.approved ? 'Withdraw approval' : 'Approve'}</button></div></div>`; }).join('')}`
+  : `
+    <p class="sublede">For the hotel, the courses and the airport runs. Each is a CSV the phone saves; open it in Numbers or Sheets.</p>
+    <div class="acts col">
+      <button class="btn" data-act="exportCsv" data-a="headcount">Headcount, names and what is paid</button>
+      <button class="btn" data-act="exportCsv" data-a="rooms">Rooms</button>
+      <button class="btn" data-act="exportCsv" data-a="travel">Travel: dates, flights, landing times</button>
+    </div>
+    ${UI.exportNote ? `<p class="sublede">${esc(UI.exportNote)}</p>` : ''}`;
+  return `<div class="scrim" data-act="modalScrim"><div class="modal mgmodal clubmodal" role="dialog" aria-modal="true" aria-label="The season">
+    ${modalBanner('The season', s.name + (s.phase === 'club' ? ' · the Clubhouse is open' : ' · the week'))}
+    <div class="btabs nos" role="tablist">${CLUB_MTABS.map(([id, l]) => `<button class="btab${tab === id ? ' on' : ''}" data-act="clubMTab" data-a="${id}" role="tab" aria-selected="${tab === id}">${l}</button>`).join('')}</div>
+    <div class="clubm">${body}</div>
+    <div class="acts"><button class="btn ghost" data-act="modalCancel">Close</button></div>
+  </div></div>`;
+}
+
+/** The season's card in Manage: the master's door to the Clubhouse. */
+function clubCardHtml() {
+  const s = seasonNow();
+  return `<button class="mg-row mg-club" data-act="manageClub">
+    <span class="mg-w"><span class="mg-t">The season · ${esc(s.name)}</span>
+      <span class="mg-n">${s.phase === 'club' ? 'The Clubhouse is open' : 'The week is showing'} · ${s.frozen ? 'the 2026 book is closed' : 'the 2026 book is open'} · stops, packages, money, rooms, exports</span></span>
+    <span class="mg-go" aria-hidden="true">&rsaquo;</span></button>`;
+}
+
+/* ---- saving a card, and the photo of it ---- */
+function clubCardWrite(stop, patch) {
+  const me = myPid(); if (!me) return;
+  const held = C.cardOf(T, stop.id, me);
+  const course = C.courseOf(T, me);
+  const base = held || C.blankClubCard(stop.id, me, C.playingOf(T, me, todayIso()), course);
+  const doc = { ...base, ...patch, at: Date.now() };
+  delete doc.rev;
+  store.writeClub(C.cardKey(stop.id, me), doc, false);
+}
+async function cardPhotoTake(file) {
+  const me = myPid();
+  const stop = C.stopById(T, UI.stopId) || C.openStops(T, todayIso())[0];
+  if (!me || !stop || !file) return;
+  if (!store4) { UI.cardUp = 'This copy of the book cannot store a photo.'; render(); return; }
+  UI.cardUp = 'Taking the photo…'; render();
+  try {
+    const small = await shrink(file, CFG.PHOTO_MAX);
+    const thumb = await shrink(file, CFG.THUMB_MAX, 0.7).catch(() => null);
+    const up = await store4.upload(small, thumb, { kind: 'photo', mime: file.type || '' });
+    clubCardWrite(stop, { photo: { url: up.url, thumb: up.thumbUrl || null, at: Date.now() } });
+    UI.cardUp = '';
+  } catch (e) { UI.cardUp = 'The photo did not go: ' + String((e && e.message) || e).slice(0, 100); }
+  render();
+}
+function downloadText(name, text, mime) {
+  try {
+    const blob = new Blob([text], { type: mime || 'text/csv' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+    return true;
+  } catch (e) { return false; }
+}
+
+/** The dateline in the Clubhouse: the road to Vegas, and the stop that is open. */
+function clubDateline() {
+  const s = seasonNow(), today = todayIso();
+  if (UI.archive) { const a = (s.archive || {})[UI.archive] || {}; return [{ t: 'The archive', hot: false }, { t: 'closed book', hot: true }, { t: a.name || UI.archive, hot: false }]; }
+  const n = C.daysBetween(today, s.window.from);
+  const open = C.openStops(T, today)[0], next = C.nextStop(T, today);
+  const out = [{ t: 'Road to Vegas', hot: false }, { t: n > 0 ? n + ' day' + (n === 1 ? '' : 's') : 'This week', hot: true }];
+  if (open) out.push({ t: open.name.replace(/^The /, '') + ' closes ' + C.dowOf(open.to).slice(0, 3), hot: false });
+  else if (next) out.push({ t: next.name.replace(/^The /, '') + ' opens ' + C.fmtDay(next.from), hot: false });
+  return out;
+}
+
 function manageModalHtml() {
   const here = UI.screen;
   return `<div class="scrim" data-act="modalScrim"><div class="modal mgmodal"
@@ -7760,6 +8266,7 @@ function manageModalHtml() {
       <span class="mg-w"><span class="mg-t">${whoAmI() ? 'Chat and bets as ' + esc(nameOf(whoAmI())) : '🏟️ Bleacher pass'}</span>
         <span class="mg-n">${whoAmI() ? (isGuest(whoAmI()) ? 'In the bleachers · change your name' : 'Change who you are') : 'Not on the trip? Chat and bet from the bleachers'}</span></span>
       <span class="mg-go" aria-hidden="true">&rsaquo;</span></button>
+    ${canAdmin() ? clubCardHtml() : ''}
     ${canAdmin() ? packCardHtml() : ''}
     <div class="mglist">
       ${manageRows().map(([id, label, note]) => {
@@ -8229,10 +8736,14 @@ function paint() {
      the <details> open with it. Which ones were open is remembered by id. */
   const opened = [...document.querySelectorAll('details[id][open]')].map(el => el.id);
   if (UI.screen !== 'entry' || UI.entryMode === 'mine') UI.pad = null;
+  /* the Clubhouse has its own three screens; the week's six wait under the season switch */
+  if (inClub() && !CLUB_SCREENS.includes(UI.screen) && !['setup', 'roster', 'tees', 'courses', 'rules'].includes(UI.screen)) UI.screen = 'you';
+  if (!inClub() && CLUB_SCREENS.includes(UI.screen)) UI.screen = 'today';
   const body = { today: scrToday, resort: scrResort, boards: scrBoards, ryder: scrRyder, bets: scrBets,
                  calendar: scrCalendar, entry: scrEntry, roster: scrRoster, rules: scrRules,
                  tees: scrTees,
-                 courses: scrCourses, setup: scrSetup }[UI.screen]();
+                 courses: scrCourses, setup: scrSetup,
+                 you: scrYou, season: scrSeason, hq: scrHq, clubentry: scrClubEntry }[UI.screen]();
   /* AN ARRIVAL IS NOT A REDRAW. The book redraws itself every few seconds
      off the shared store, and a page that faded in on each of those would
      flicker all week. The screen rises and resolves only when it is actually
@@ -8270,18 +8781,20 @@ function paint() {
         aria-label="Ask the Union a question"><img src="${IMG.crest}" alt="The Union Invitational crest"></button>` : ''}
       <div class="mast-mid">
         <h1>${esc(D.EVENT.name)}</h1>
-        <div class="sub">${esc(D.EVENT.venue)}, ${esc(D.EVENT.place)} — 26 October to 2 November 2026</div>
+        <div class="sub">${inClub() ? esc(seasonNow().name) + ' · the Clubhouse' + (seasonNow().tag ? ' · ' + esc(seasonNow().tag) : '') : esc(D.EVENT.venue) + ', ' + esc(D.EVENT.place) + ' — 26 October to 2 November 2026'}</div>
       </div>
       <div class="mast-right">
-        <div class="lbl">Next Tee Time</div>
-        <div class="val num">${nt ? esc(nt.day.dow) + ' ' + esc(E.to12(nt.time)) + ' — ' + esc(nt.round.short === 'Practice' ? 'Practice' : 'Round ' + nt.round.short.slice(1)) : '—'}</div>
+        <div class="lbl">${inClub() ? 'Road to Vegas' : 'Next Tee Time'}</div>
+        <div class="val num">${inClub() ? (C.daysBetween(todayIso(), seasonNow().window.from) > 0 ? C.daysBetween(todayIso(), seasonNow().window.from) + ' days' : 'This week') : nt ? esc(nt.day.dow) + ' ' + esc(E.to12(nt.time)) + ' — ' + esc(nt.round.short === 'Practice' ? 'Practice' : 'Round ' + nt.round.short.slice(1)) : '—'}</div>
       </div>
       ${moonBtn('')}
       ${manageDial(role)}
     </header>
     ${lowLine()}
+    ${seasonSwitch()}
     ${datelineRail()}
     <div class="rule-heavy"></div>
+    ${closedBar()}
     ${UI.deniedNote ? `<div class="loadbar bad">${esc(UI.deniedNote)} <button class="rm" data-act="signIn">Sign in</button></div>` : ''}
     ${UI.role === 'master' && UI.screen !== 'setup' && secNew().length ? `<div class="loadbar bad secbar">⚠️ ${secNew().length} security event${secNew().length === 1 ? '' : 's'} since you last looked: ${esc(SEC_WORD[secNew()[0].kind] || secNew()[0].kind)}${secNew()[0].who ? ' · phone ' + esc(secNew()[0].who) : ''}. <button class="rm" data-act="secOpen">See the log</button></div>` : ''}
     ${meta.settled !== false ? '' : meta.fromDevice ? `<div class="loadbar off">
@@ -8297,7 +8810,7 @@ function paint() {
     </nav>
     ${/* `scoring` buys the room the fixed Save bar stands in, and only on
           the screen that has one. */ ''}
-    <main class="page${UI.screen === 'entry' ? ' scoring' : ''}"${turning ? ' data-turn="1"' : ''}>${body}</main>
+    <main class="page${UI.screen === 'entry' || UI.screen === 'clubentry' ? ' scoring' : ''}"${turning ? ' data-turn="1"' : ''}>${body}</main>
     ${/* One quiet line: the connection, who you are to the book, the build.
           It was four lines of plain text at the foot of every page. */ ''}
     <div class="statusbar">
@@ -8580,6 +9093,7 @@ function confirmModalHtml() {
  * Where you are in the week, what is being played, and when you are off.
  */
 function dateline() {
+  if (clubPhase()) return clubDateline();
   const i = D.DAYS.findIndex(d => d.iso === now.iso);
   const n = i + 1;
   const out = [];
@@ -9494,6 +10008,7 @@ function modalHtml() {
   return UI.modal.kind === 'matchwhy' ? matchWhyHtml()
        : UI.modal.kind === 'manage' ? manageModalHtml()
        : UI.modal.kind === 'pack' ? packModalHtml()
+       : UI.modal.kind === 'club' ? clubManageHtml()
        : UI.modal.kind === 'round' ? roundModalHtml()
        : UI.modal.kind === 'roundsheet' ? roundSheetHtml()
        : UI.modal.kind === 'daysheet' ? daySheetHtml()
@@ -11090,6 +11605,102 @@ function onClick(e) {
       store.addPerson({ id, name, display: name, role, location: null, group: '7-day', band: null });
       return;
     }
+    /* ---- the Clubhouse ---- */
+    case 'archiveView': {
+      UI.archive = a || null; UI.modal = null; UI.modalErr = '';
+      if (UI.archive) { if (!NAV.some(n => n[0] === UI.screen)) goTo('today'); }
+      else if (!CLUB_SCREENS.includes(UI.screen)) goTo('you');
+      render(); return;
+    }
+    case 'seasonTab': UI.seasonTab = a; render(); return;
+    case 'stopPick': UI.stopId = a; render(); return;
+    case 'clubEnter': {
+      UI.stopId = a; UI.clubPad = false; UI.courseEdit = false; UI.courseDraft = null;
+      const me = myPid(); const c = me && C.cardOf(T, a, me);
+      const first = c ? c.raw.findIndex(x => x == null) : 0;
+      UI.clubHole = c ? (first < 0 ? 17 : first) : 0;
+      goTo('clubentry'); render(); return;
+    }
+    case 'clubHole': UI.clubHole = +a; render(); return;
+    case 'clubPad': UI.clubPad = true; render(); return;
+    case 'clubPadClose': UI.clubPad = false; render(); return;
+    case 'clubScore': case 'clubClear': {
+      const me = myPid(); const stop = C.stopById(T, UI.stopId) || C.openStops(T, todayIso())[0];
+      if (!me || !stop || C.stopState(stop, todayIso()) !== 'open') return;
+      const held = C.cardOf(T, stop.id, me);
+      if (held && (held.done || held.final)) return;
+      const raw = (held ? held.raw : Array(18).fill(null)).slice();
+      const h = Math.min(Math.max(UI.clubHole || 0, 0), 17);
+      raw[h] = act === 'clubClear' ? null : +a;
+      clubCardWrite(stop, { raw });
+      if (act === 'clubScore' && h < 17) UI.clubHole = h + 1; else UI.clubPad = false;
+      render(); return;
+    }
+    case 'clubPost': {
+      const me = myPid(); const stop = C.stopById(T, UI.stopId) || C.openStops(T, todayIso())[0];
+      const c = me && stop ? C.cardOf(T, stop.id, me) : null;
+      if (!c || !c.photo || C.cardTotals(c).thru < 18 || c.done) return;
+      clubCardWrite(stop, { done: true, postedAt: Date.now() });
+      UI.clubPad = false; UI.toast = 'Your card is posted: ' + C.cardTotals(c).pts + ' points.';
+      render(); return;
+    }
+    case 'courseEdit': UI.courseEdit = true; UI.courseDraft = null; render(); return;
+    case 'courseCancel': UI.courseEdit = false; UI.courseDraft = null; render(); return;
+    case 'courseSave': {
+      const me = myPid(); const c = UI.courseDraft;
+      if (!me || !c || !C.courseOk(c)) return;
+      const held = C.courseOf(T, me);
+      if (held && held.approved && !canAdmin()) return;
+      const doc = { pid: me, name: String(c.name || '').trim().slice(0, 60), tee: String(c.tee || '').trim().slice(0, 20), holes: c.holes.map(h => ({ par: +h.par, si: +h.si, y: h.y == null || h.y === '' ? null : +h.y })), approved: false, at: Date.now() };
+      store.writeClub('course__' + me, doc, false);
+      UI.courseEdit = false; UI.courseDraft = null; render(); return;
+    }
+    case 'courseApprove': if (!canAdmin()) return; store.writeClub('course__' + a, { approved: b === '1' }, true); render(); return;
+    case 'signStatus': { const me = myPid(); if (!me) return; store.writeClub('signup__' + me, { pid: me, status: a, at: Date.now() }, true); render(); return; }
+    case 'signPkg': { const me = myPid(); if (!me) return; store.writeClub('signup__' + me, { pid: me, pkg: a }, true); render(); return; }
+    case 'manageClub': if (!canAdmin()) return; UI.modal = { kind: 'club' }; UI.modalErr = ''; render(); return;
+    case 'clubMTab': UI.clubMTab = a; render(); return;
+    case 'clubPhase': {
+      if (!canAdmin()) return;
+      const s = seasonNow(); const patch = { phase: a };
+      if (a === 'club' && !s.opened) { patch.opened = todayIso(); patch.frozen = true; patch.stops = s.stops; patch.packages = s.packages; patch.vendors = s.vendors; }
+      writeSeason(patch);
+      UI.archive = null; UI.modal = null;
+      goTo(a === 'club' ? 'you' : 'today'); render(); return;
+    }
+    case 'clubFreeze': if (!canAdmin()) return; writeSeason({ frozen: a === '1' }); render(); return;
+    case 'sToggle': { if (!canAdmin()) return; const s = seasonNow(); const [k1, k2] = a.split('.'); writeSeason({ [k1]: { ...(s[k1] || {}), [k2]: !(s[k1] || {})[k2] } }); render(); return; }
+    case 'stopAdd': { if (!canAdmin()) return; const s = seasonNow(); writeSeason({ stops: s.stops.concat([{ id: 'stop' + Date.now().toString(36), name: 'A new stop', from: todayIso(), to: todayIso(), format: 'stableford', note: '' }]) }); render(); return; }
+    case 'stopRemove': { if (!canAdmin()) return; const s = seasonNow(); const x = s.stops[+a]; if (!x) return;
+      UI.modal = { kind: 'confirm', eyebrow: 'The season', title: 'Remove ' + x.name + '?', note: 'The stop comes off the season. Cards posted to it stay in the book but count for nothing.', ok: 'Remove', cancel: 'Keep it', onOk: () => { writeSeason({ stops: seasonNow().stops.filter((y, i) => i !== +a) }); UI.modal = { kind: 'club' }; render(); } };
+      render(); return; }
+    case 'pkgAdd': { if (!canAdmin()) return; const s = seasonNow(); writeSeason({ packages: s.packages.concat([{ id: 'p' + Date.now().toString(36), name: 'A new package', price: 0, nights: 7, golf: true, inc: [] }]) }); render(); return; }
+    case 'pkgRemove': { if (!canAdmin()) return; const s = seasonNow(); writeSeason({ packages: s.packages.filter((y, i) => i !== +a) }); render(); return; }
+    case 'roomAdd': { if (!canAdmin()) return; const s = seasonNow(); writeSeason({ rooms: s.rooms.concat([{ id: 'Room ' + (s.rooms.length + 1), type: '', members: [] }]) }); render(); return; }
+    case 'roomRemove': { if (!canAdmin()) return; const s = seasonNow(); writeSeason({ rooms: s.rooms.filter((y, i) => i !== +a) }); render(); return; }
+    case 'roomMember': {
+      if (!canAdmin()) return; const s = seasonNow(); const rooms = s.rooms.map(r => ({ ...r, members: (r.members || []).slice() }));
+      const r = rooms[+a]; if (!r) return;
+      const inn = r.members.includes(b);
+      rooms.forEach(o => { o.members = o.members.filter(x => x !== b); });
+      if (!inn) r.members.push(b);
+      writeSeason({ rooms }); render(); return;
+    }
+    case 'moneyAdd': {
+      const d = UI.moneyDraft; if (!canAdmin() || !d || d.pid !== a || !(+d.amt > 0)) return;
+      const m = C.moneyOf(T, a) || { pid: a, pays: [] };
+      store.writeClub('money__' + a, { pid: a, price: m.price == null ? null : m.price, pays: (m.pays || []).concat([{ amt: Math.round(+d.amt * 100) / 100, at: d.date || todayIso(), note: String(d.note || '').slice(0, 40) }]) }, false);
+      UI.moneyDraft = null; render(); return;
+    }
+    case 'moneyRemove': { const m = C.moneyOf(T, a); if (!canAdmin() || !m) return; store.writeClub('money__' + a, { pid: a, price: m.price == null ? null : m.price, pays: (m.pays || []).filter((x, i) => i !== +b) }, false); render(); return; }
+    case 'exportCsv': {
+      if (!canAdmin()) return;
+      const text = a === 'rooms' ? C.csvRooms(T) : a === 'travel' ? C.csvTravel(T) : C.csvHeadcount(T);
+      const name = 'union-' + a + '-' + todayIso() + '.csv';
+      UI.lastCsv = { name, text };
+      UI.exportNote = downloadText(name, text) ? 'Saved ' + name + ' (' + (text.split('\n').length - 2) + ' rows).' : 'The phone would not take the file.';
+      render(); return;
+    }
     case 'confirmOk': { const f = UI.modal.onOk; UI.modal = null; if (f) f(); return; }
     case 'confirmAlt': { const f = UI.modal.onAlt; UI.modal = null; if (f) f(); return; }
     case 'removePerson':
@@ -11165,6 +11776,35 @@ function onChange(e) {
   if (act === 'mineText') { UI.mineDraft = { rid, h: +b, v: el.value }; commitMine(); render(); return; }
   if (act === 'mineSay') { UI.sayDraft = { rid, v: el.value }; commitSay(); render(); return; }
   if (act === 'resortNote') { UI.resortNote = { k: a, v: el.value }; commitResortNote(); render(); return; }
+  /* ---- the Clubhouse's own boxes ---- */
+  if (act === 'cardPhoto') { const f = el.files && el.files[0]; if (f) cardPhotoTake(f); return; }
+  if (act === 'signField') { const me = myPid(); if (me) store.writeClub('signup__' + me, { pid: me, [a]: String(el.value || '').trim().slice(0, 60) }, true); return; }
+  if (act === 'travelField') {
+    const me = myPid(); if (!me) return;
+    const t = C.travelOf(T, me) || { pid: me }; const [k1, k2] = a.split('.');
+    const next = { ...t, pid: me, [k1]: { ...(t[k1] || {}), [k2]: String(el.value || '').trim().slice(0, 40) } }; delete next.rev;
+    store.writeClub('travel__' + me, next, false); return;
+  }
+  if (act === 'courseField') {
+    const c = UI.courseDraft; if (!c) return;
+    if (a === 'name' || a === 'tee') c[a] = String(el.value || '').slice(0, 60);
+    else { const h = c.holes[+a]; if (h) h[b] = el.value === '' ? null : +el.value; }
+    render(); return;
+  }
+  if (act === 'sField') { if (!canAdmin()) return; const s = seasonNow(); const [k1, k2] = a.split('.'); const v = String(el.value || '').trim(); writeSeason(k2 ? { [k1]: { ...(s[k1] || {}), [k2]: v } } : { [k1]: v }); return; }
+  if (act === 'stopField' || act === 'pkgField' || act === 'roomField' || act === 'vendorField') {
+    if (!canAdmin()) return;
+    const key = { stopField: 'stops', pkgField: 'packages', roomField: 'rooms', vendorField: 'vendors' }[act];
+    const s = seasonNow(); const list = s[key].map(x => ({ ...x })); const row = list[+a]; if (!row) return;
+    let v = el.value;
+    if (b === 'inc') v = String(v || '').split('\n').map(x => x.trim()).filter(Boolean);
+    else if (b === 'price' || b === 'nights') v = v === '' ? 0 : +v;
+    else if (b === 'golf') v = v === '1';
+    else v = String(v || '').trim();
+    row[b] = v; writeSeason({ [key]: list }); return;
+  }
+  if (act === 'moneyPrice') { if (!canAdmin()) return; const m = C.moneyOf(T, a) || { pid: a, pays: [] }; store.writeClub('money__' + a, { pid: a, pays: m.pays || [], price: el.value === '' ? null : +el.value }, false); return; }
+  if (act === 'moneyDraft') { const d = UI.moneyDraft && UI.moneyDraft.pid === a ? UI.moneyDraft : { pid: a, amt: '', date: todayIso(), note: '' }; d[b] = el.value; UI.moneyDraft = d; return; }
 
   if (store && store.note) store.note('change', act + ' a=' + (a || '') + ' b=' + (b || '') + ' v=' + el.value);
   const editable = canEdit() && E.roundCfg(T, rid).state === 'open';

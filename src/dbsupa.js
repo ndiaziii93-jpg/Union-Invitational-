@@ -48,6 +48,8 @@ const PROTECTED = /^(config|people|pairs|scores|bbb|recaps)\//;
    its own. Nobody posts or bets as anyone else, and nobody touches what
    another phone wrote. */
 const SOCIAL = /^(chat|market|notes)\//;
+/* the season's rows: a person's own, or the master's, judged by club_write */
+const CLUB = /^club\//;
 /* A photo comes down only by the phone that put it up, or the master PIN. */
 const PHOTO = /^photos\//;
 const POLL_LIVE_MS = 180000;  // the net under a live socket: every three minutes (the socket brings everything; this only catches what it dropped)
@@ -305,12 +307,13 @@ export function createSupabaseDb(opts) {
 
   async function rawWrite(path, doc, merge, fromOutbox) {
     try {
-      let gated = PROTECTED.test(path) || SOCIAL.test(path);
+      let gated = PROTECTED.test(path) || SOCIAL.test(path) || CLUB.test(path);
       if (gated) {
         let error = null;
         try {
           await gate(bound(PROTECTED.test(path)
             ? sb.rpc('write_doc', { p_path: path, p_doc: doc, p_merge: !!merge, p_pin: pin(), p_who: deviceId || null })
+            : CLUB.test(path) ? sb.rpc('club_write', signed(path, { p_doc: doc, p_merge: !!merge }))
             : sb.rpc('social_write', signed(path, { p_doc: doc, p_merge: !!merge }))));
         } catch (e) { error = e; }
         if (error && noGate(error)) gated = false; else if (error) throw error;
@@ -433,13 +436,14 @@ export function createSupabaseDb(opts) {
 
   async function rawDelete(path, fromOutbox) {
     try {
-      const gated = PROTECTED.test(path) || SOCIAL.test(path) || PHOTO.test(path);
+      const gated = PROTECTED.test(path) || SOCIAL.test(path) || PHOTO.test(path) || CLUB.test(path);
       let error = null;
       if (gated) {
         try {
           await gate(bound(PROTECTED.test(path)
             ? sb.rpc('delete_doc', { p_path: path, p_pin: pin(), p_who: deviceId || null })
             : PHOTO.test(path) ? sb.rpc('photo_delete', { p_path: path, p_role_pin: pin(), p_who: deviceId || null })
+            : CLUB.test(path) ? sb.rpc('club_delete', signed(path))
             : sb.rpc('social_delete', signed(path))));
         } catch (e) { error = e; }
       }

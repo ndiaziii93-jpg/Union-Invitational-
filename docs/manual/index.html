@@ -5427,6 +5427,100 @@ body.rpop-open{overflow:hidden}
 @media (prefers-reduced-motion:reduce){ .da *{animation:none !important} }
 @media print{ .da *{animation:none !important} .rp-mbtns{display:none} }
 
+/* ================= THE CLUBHOUSE =================
+   The season between tournaments: three tabs, the season switch under the
+   nameplate, the closed book's banner, the dials, the meters. Everything
+   else on these screens is the week's own furniture. */
+.sswitch{display:inline-flex;border:1px solid var(--rule);border-radius:999px;overflow:hidden;margin:4px 0 8px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700}
+.ssw{padding:5px 11px;color:var(--turf);background:none;border:0;font-family:inherit;min-height:28px}
+.ssw.on{background:var(--pine);color:var(--gold-up)}
+.loadbar.closedbook{border-left-color:var(--gold-up)}
+.loadbar.closedbook b{display:block}
+@media (max-width:699px){ .tabbar.three{grid-template-columns:repeat(3,1fr)} }
+h2.greet{font-size:clamp(24px,3.6vw,34px);font-weight:700;margin:16px 0 0;line-height:1.1}
+h2.greet small{display:block;font-size:14px;color:var(--turf);font-weight:400;font-style:italic;margin-top:4px}
+.cdials{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;max-width:560px}
+.cdials.one{grid-template-columns:minmax(0,180px)}
+.cdial{text-align:center;padding:10px 4px 8px;background:var(--page);border:1px solid var(--hair);border-radius:14px}
+.cdial svg{width:72px;height:72px;margin:0 auto 4px;display:block}
+.cdial b{display:block;font-size:13px}.cdial small{display:block;font-size:11.5px;color:var(--turf);line-height:1.25;padding:0 4px}
+.cline{margin-top:12px;padding:12px 14px;border:1px solid var(--rule);border-radius:14px;background:var(--page);max-width:680px}
+.cline .ck,.vhero .ck,.award .ck{display:block;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);font-weight:700}
+.cline b.ct{display:block;font-size:17px;margin-top:2px;line-height:1.25}
+.cline p{margin:3px 0 0;font-size:14.5px;color:var(--turf);line-height:1.4}
+.cline.gold{background:#EBD59A;border-color:var(--gold-up)}
+.cline.gold .ck{color:#5B4A24}.cline.gold p{color:#4A3D20}
+.cact{margin:14px 0 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.ctbl{width:100%;border-collapse:collapse;font-size:14.5px;margin-top:10px;max-width:760px}
+.ctbl th{font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--turf);text-align:left;padding:6px 4px;border-bottom:2px solid var(--ink);font-weight:700}
+.ctbl td{padding:8px 4px;border-bottom:1px solid var(--hair);vertical-align:middle}
+.ctbl .r{text-align:right;font-variant-numeric:tabular-nums}
+.ctbl tr.top td{background:rgba(201,162,83,.16);font-weight:700}
+.ctbl tr.me td{box-shadow:inset 3px 0 0 var(--green)}
+.ctbl .muted{color:var(--turf)}.ctbl .good{color:var(--green);font-weight:700}.ctbl .bad{color:var(--flag);font-weight:700}
+.ctbl td small{color:var(--turf);font-size:12px}
+.ctbl.mini{font-size:12.5px}.ctbl.mini td,.ctbl.mini th{padding:5px 2px}
+.ctbl.course td{padding:3px 4px}.ctbl.course .field{min-height:38px;padding:4px 6px;width:100%;max-width:90px}
+.stopchips{margin-top:14px}
+.stopchips .chip{display:flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.15;padding:6px 11px}
+.stopchips .chip i{font-style:normal;font-size:11px;color:var(--turf);letter-spacing:.04em;text-transform:uppercase}
+.stopchips .chip.on i{color:var(--gold-up)}
+.stopchips .chip.st-open{border-color:var(--gold)}
+.awards{display:grid;gap:8px;margin-top:12px;max-width:680px}
+.award{padding:12px 14px;border:1px solid var(--rule);border-radius:14px;background:var(--page)}
+.award b{display:block;font-size:17px;margin-top:2px}.award small{display:block;color:var(--turf);font-size:13px;margin-top:2px}
+.vhero{margin:14px 0 0;padding:22px 18px 18px;background:var(--pine);color:var(--onpine);border-radius:16px;border-bottom:3px solid var(--gold-up);max-width:680px}
+.vhero .ck{color:var(--gold-up)}
+.vhero b{display:block;font-size:28px;line-height:1.05;margin-top:4px}
+.vhero b i{font-style:italic;font-weight:400;opacity:.85;font-size:20px}
+.vhero small{display:block;font-size:14px;opacity:.85;margin-top:6px;line-height:1.4}
+.vhero .big{font-size:44px;font-weight:700;line-height:1;margin-top:10px}
+.vhero .big small{display:inline;font-size:14px;margin-left:6px;opacity:1}
+.chks{margin-top:4px}
+.chk{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--hair);font-size:15px}
+.chk:last-child{border-bottom:0}.chk b.ok{color:var(--green)}.chk b.todo{color:var(--flag)}
+.meter{height:10px;background:var(--hair);border-radius:999px;overflow:hidden;min-width:60px}
+.meter i{display:block;height:100%;background:var(--gold);border-radius:999px;transition:width 400ms}
+.meter i.full{background:var(--green)}
+.mymeter{display:grid;gap:6px;margin-top:10px;font-size:13.5px;color:var(--turf)}
+.pkgs{display:grid;gap:8px;margin-top:10px;max-width:680px}
+.pkg{display:block;width:100%;text-align:left;padding:12px 14px;border:1px solid var(--rule);border-radius:14px;background:var(--page);font-family:inherit;color:var(--ink)}
+.pkg.on{border-color:var(--pine);box-shadow:inset 0 0 0 1px var(--pine);background:#F7F2E6}
+.pkg .pk-n{display:block;font-size:16px;font-weight:700}
+.pkg .pk-p{display:block;font-size:22px;font-weight:700;margin:2px 0 4px}
+.pkg ul{margin:0;padding-left:1.1em;font-size:13.5px;color:var(--turf)}
+.fieldset.two{grid-template-columns:1fr 1fr;max-width:680px}
+.fieldset.three{grid-template-columns:1fr 1fr 1fr;max-width:760px}
+.fieldset label{display:grid;gap:4px;font-size:13px;color:var(--turf)}
+.fieldset label.wide{grid-column:1 / -1}
+.fieldset .field{width:100%;font-size:15px;color:var(--ink)}
+@media (max-width:520px){ .fieldset.three{grid-template-columns:1fr 1fr} }
+.frows{margin-top:10px;max-width:760px}
+.frow{display:grid;grid-template-columns:1.2fr auto 1fr auto;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--hair);font-size:14.5px}
+.frow .fn small{color:var(--turf);font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+.frow .fp{font-size:13.5px;white-space:nowrap}.frow .fp small{color:var(--turf)}
+.pill{display:inline-block;border-radius:999px;padding:1px 9px;font-size:11.5px;font-weight:700;white-space:nowrap}
+.pill.in{background:#DCE3D2;color:var(--green)}.pill.maybe{background:#F3DC9E;color:#8C6B2F}.pill.out{background:#EFDCD7;color:var(--flag)}.pill.none{background:var(--hair);color:var(--turf)}
+@media (max-width:520px){ .frow{grid-template-columns:1fr auto;grid-template-areas:"n s" "m p"} .frow .fn{grid-area:n}.frow .fs{grid-area:s}.frow .fm{grid-area:m}.frow .fp{grid-area:p} }
+.rooms,.vrows{display:grid;gap:6px;margin-top:10px;max-width:680px}
+.room,.vrow{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:baseline;padding:8px 12px;border:1px solid var(--hair);border-radius:10px;background:var(--page);font-size:14.5px}
+.room small,.vrow small{color:var(--turf);font-size:12.5px}
+.clubmodal{max-width:820px}
+.clubm{margin-top:12px}
+.mg-sec{padding:12px 0 14px;border-bottom:1px solid var(--hair)}
+.mg-sec>b{display:block;font-size:16px;margin-bottom:6px}
+.mg-sec .muted{color:var(--turf);font-weight:400;font-size:12.5px;text-transform:uppercase;letter-spacing:.05em}
+.pays{display:grid;gap:4px;margin:8px 0}
+.pay{display:flex;gap:10px;align-items:baseline;font-size:14px}.pay .num{font-weight:700;min-width:70px}
+.cmini{display:grid;grid-template-columns:repeat(9,1fr);gap:3px;max-width:520px;margin:6px 0}
+.cmini span{display:flex;flex-direction:column;align-items:center;font-size:13px;padding:4px 0;background:var(--page);border:1px solid var(--hair);border-radius:6px}
+.cmini span b{font-size:10px;color:var(--turf)}.cmini span i{font-style:normal;font-size:10px;color:var(--turf)}
+.acts.col{flex-direction:column;align-items:stretch}
+.btn.ghost.danger{color:var(--flag);border-color:var(--flag)}
+.chip.dim{opacity:.55}
+.cardshot{display:block;margin-top:8px;max-width:220px;border-radius:10px;overflow:hidden;border:1px solid var(--rule)}
+.cardshot img{display:block;width:100%}
+
 </style>
 <style>
 /* A page, not a window. */
@@ -8692,6 +8786,8 @@ const PROTECTED = /^(config|people|pairs|scores|bbb|recaps)\//;
    its own. Nobody posts or bets as anyone else, and nobody touches what
    another phone wrote. */
 const SOCIAL = /^(chat|market|notes)\//;
+/* the season's rows: a person's own, or the master's, judged by club_write */
+const CLUB = /^club\//;
 /* A photo comes down only by the phone that put it up, or the master PIN. */
 const PHOTO = /^photos\//;
 const POLL_LIVE_MS = 180000;  // the net under a live socket: every three minutes (the socket brings everything; this only catches what it dropped)
@@ -8949,12 +9045,13 @@ function createSupabaseDb(opts) {
 
   async function rawWrite(path, doc, merge, fromOutbox) {
     try {
-      let gated = PROTECTED.test(path) || SOCIAL.test(path);
+      let gated = PROTECTED.test(path) || SOCIAL.test(path) || CLUB.test(path);
       if (gated) {
         let error = null;
         try {
           await gate(bound(PROTECTED.test(path)
             ? sb.rpc('write_doc', { p_path: path, p_doc: doc, p_merge: !!merge, p_pin: pin(), p_who: deviceId || null })
+            : CLUB.test(path) ? sb.rpc('club_write', signed(path, { p_doc: doc, p_merge: !!merge }))
             : sb.rpc('social_write', signed(path, { p_doc: doc, p_merge: !!merge }))));
         } catch (e) { error = e; }
         if (error && noGate(error)) gated = false; else if (error) throw error;
@@ -9077,13 +9174,14 @@ function createSupabaseDb(opts) {
 
   async function rawDelete(path, fromOutbox) {
     try {
-      const gated = PROTECTED.test(path) || SOCIAL.test(path) || PHOTO.test(path);
+      const gated = PROTECTED.test(path) || SOCIAL.test(path) || PHOTO.test(path) || CLUB.test(path);
       let error = null;
       if (gated) {
         try {
           await gate(bound(PROTECTED.test(path)
             ? sb.rpc('delete_doc', { p_path: path, p_pin: pin(), p_who: deviceId || null })
             : PHOTO.test(path) ? sb.rpc('photo_delete', { p_path: path, p_role_pin: pin(), p_who: deviceId || null })
+            : CLUB.test(path) ? sb.rpc('club_delete', signed(path))
             : sb.rpc('social_delete', signed(path))));
         } catch (e) { error = e; }
       }
@@ -9536,7 +9634,7 @@ function defaultConfig() {
  *  created — so it can never leak back in and resurrect somebody. */
 function emptyState() {
   const cfg = defaultConfig();
-  return { config: { ...cfg, people: [], pairs: [] }, scores: {}, bbb: {}, recaps: {}, photos: {}, notes: {}, chat: {}, market: {} };
+  return { config: { ...cfg, people: [], pairs: [] }, scores: {}, bbb: {}, recaps: {}, photos: {}, notes: {}, chat: {}, market: {}, club: {} };
 }
 
 /** Everything written to config/tournament. The roster is ALSO kept here as a
@@ -9586,7 +9684,7 @@ function createStore(onChange) {
   let peopleLoaded = false, pairsLoaded = false, splitDone = false;
   let rosterInDocs = false;     // the roster lives in its own documents
   let peopleSeen = false;       // the people collection has reported at least once
-  const emptySeq = { people: 0, pairs: 0, scores: 0, bbb: 0, recaps: 0, photos: 0, notes: 0, chat: 0, market: 0 };  // guards a confirmation against a newer snapshot
+  const emptySeq = { people: 0, pairs: 0, scores: 0, bbb: 0, recaps: 0, photos: 0, notes: 0, chat: 0, market: 0, club: 0 };  // guards a confirmation against a newer snapshot
   let sawConfig = false;
   let legacy = null;            // a roster still stored as lists inside the config
   let settled = false;          // the first load has resolved; until then, no writes
@@ -9685,7 +9783,7 @@ function createStore(onChange) {
         const s = JSON.parse(raw);
         if (s && s.config && s.config.v === 3) { T.config = s.config; T.scores = s.scores || {}; T.bbb = s.bbb || {};
           T.recaps = s.recaps || {}; T.photos = s.photos || {}; T.notes = s.notes || {};
-          T.chat = s.chat || {}; T.market = s.market || {};
+          T.chat = s.chat || {}; T.market = s.market || {}; T.club = s.club || {};
           localAt = parseInt(localStorage.getItem(LOCAL_KEY + ':at'), 10) || null;
           return (T.config.people || []).length > 0; }
       }
@@ -9889,7 +9987,8 @@ function createStore(onChange) {
     /* The gallery's side of the week: what people said, and what they bet.
        Each message, trade and market is its own document, so two people
        posting at once are two documents and both land. */
-    for (const coll of ['chat', 'market']) {
+    /* The season between tournaments: its own rows, beside the week's. */
+    for (const coll of ['chat', 'market', 'club']) {
       unsubs.push(db.collection(coll).onSnapshot(
         s => {
           if (!s.docs.length) { confirmEmpty(coll); notify(); return; }
@@ -9921,7 +10020,7 @@ function createStore(onChange) {
         if (coll === 'photos') { T.photos = mergeDocs('photos', T.photos, have.docs); notify(); return; }
         if (coll === 'bbb') { T.bbb = mergeDocs('bbb', T.bbb, have.docs); notify(); return; }
         if (coll === 'notes') { T.notes = mergeDocs('notes', T.notes, have.docs); notify(); return; }
-        if (coll === 'chat' || coll === 'market') { T[coll] = mergeDocs(coll, T[coll], have.docs); notify(); return; }
+        if (coll === 'chat' || coll === 'market' || coll === 'club') { T[coll] = mergeDocs(coll, T[coll], have.docs); notify(); return; }
         /* A read that finds documents is the answer. A read that finds none
            is only the answer once the config has said documents are where
            the roster lives — otherwise it is a collection that has not
@@ -10560,6 +10659,32 @@ function createStore(onChange) {
     return dropDoc(coll, id);
   }
 
+  /* ---- the season's rows ----
+     A person's own row (their sign-up, flights, home course, a card) is
+     signed with their name PIN; the season, the money and the rooms take
+     the master PIN. The server (club_write) is the judge; the phone shows
+     the write at once and the server's echo settles it. */
+  async function writeClub(key, row, merge) {
+    if (tooEarly()) return false;
+    const path = 'club/' + key, r = Math.max(Date.now(), (rev[path] || 0) + 1);
+    const doc = { ...row, rev: r };
+    rev[path] = r;
+    T.club[key] = merge ? { ...(T.club[key] || {}), ...doc } : doc;
+    notify();
+    if (mode === 'local') { saveLocal(); return true; }
+    try {
+      const landed = (merge ? await db.doc(path).update(doc) : await db.doc(path).set(doc)) !== false;
+      if (landed) { saveState = 'saved'; lastSavedAt = Date.now(); }
+      notify(); return landed;
+    } catch (e) { status = 'error'; saveState = 'error'; notify(); return false; }
+  }
+  async function dropClub(key) {
+    if (tooEarly()) return false;
+    delete T.club[key];
+    notify();
+    return dropDoc('club', key);
+  }
+
   /** This phone's address for chat notifications: one document per phone,
    *  written only by that phone, read only by the notify function. */
   async function writePush(fields) {
@@ -10736,7 +10861,7 @@ function createStore(onChange) {
   async function feedbackList() { return (backend === 'supabase' && db && db.feedbackList) ? db.feedbackList() : fbLocal().slice().reverse(); }
   async function feedbackCount() { return (backend === 'supabase' && db && db.feedbackCount) ? db.feedbackCount() : fbLocal().length; }
 
-  return { T, connect, writeConfig, writeCard, writeBbb, writeNote, writeRecap, writePhoto, heartPhoto, movePhoto, dropPhoto, markBbb, putSocial, patchSocial, dropSocial, writePush, resetScores, resetRound, resetTees, resave, note,
+  return { T, connect, writeConfig, writeCard, writeBbb, writeNote, writeRecap, writePhoto, heartPhoto, movePhoto, dropPhoto, markBbb, putSocial, patchSocial, dropSocial, writeClub, dropClub, writePush, resetScores, resetRound, resetTees, resave, note,
            feedbackSubmit, feedbackList, feedbackCount, feedbackDone,
            get deviceId() { return deviceId; },
            writePerson, writeAllPeople, addPerson, removePerson,
