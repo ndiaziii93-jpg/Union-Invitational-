@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Belek 2026 · a mock screen</title>
+<style>
+@font-face{font-family:'Source Serif 4';src:url(../fonts/source-serif-latin-normal.woff2) format('woff2');font-weight:200 900;font-display:swap}
+@font-face{font-family:'Source Serif 4';src:url(../fonts/source-serif-latin-italic.woff2) format('woff2');font-style:italic;font-weight:200 900;font-display:swap}
+</style>
+<link rel="stylesheet" href="../app.css">
+<style>
+/* a drawing of a screen in the app's own clothes, not the app */
+html,body{background:var(--paper)}
+.page{padding-bottom:96px}
+.tabbar.three{grid-template-columns:repeat(3,1fr)}
+.mk-mock-season{display:inline-flex;border:1px solid var(--rule);border-radius:999px;overflow:hidden;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;margin:2px 0 8px}
+.mk-mock-season span{padding:4px 10px;color:var(--turf)}.mk-mock-season .on{background:var(--pine);color:var(--gold-up)}
+.mk-closed{margin:10px 0 0;padding:11px 14px;border:1px solid var(--rule);border-left:3px solid var(--gold);background:var(--page);font-size:14px;line-height:1.4;border-radius:0 10px 10px 0}
+.mk-closed b{display:block}
+.mk-shot{overflow:hidden;margin:12px -14px 0;border-top:1px solid var(--rule)}
+.mk-shot img{width:100%;display:block}
+.mk-dials{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.mk-dial{text-align:center;padding:10px 4px 8px;background:#F7F2E6;border:1px solid var(--hair);border-radius:14px}
+.mk-dial svg{width:72px;height:72px;margin:0 auto 4px;display:block}
+.mk-dial b{display:block;font-size:13px}.mk-dial small{font-size:11.5px;color:var(--turf)}
+.mk-greet{font-size:24px;font-weight:700;margin:14px 0 0;line-height:1.1}
+.mk-greet small{display:block;font-size:14px;color:var(--turf);font-weight:400;font-style:italic;margin-top:4px}
+.mk-line{margin-top:12px;padding:12px 14px;border:1px solid var(--rule);border-radius:14px;background:#F7F2E6}
+.mk-line .mk-k{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);font-weight:700}
+.mk-line b.mk-t{display:block;font-size:17px;margin-top:2px}
+.mk-line p{margin:3px 0 0;font-size:14px;color:var(--turf);line-height:1.4}
+.mk-line.gold{background:#EBD59A;border-color:var(--gold-up)}
+.mk-line.gold .mk-k{color:#5B4A24}.mk-line.gold p{color:#4A3D20}
+.mk-chk{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--hair);font-size:15px}
+.mk-chk:last-child{border-bottom:0}.mk-chk b.ok{color:var(--green)}.mk-chk b.todo{color:var(--flag)}
+.mk-tbl{width:100%;border-collapse:collapse;font-size:14.5px;margin-top:8px}
+.mk-tbl th{font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--turf);text-align:left;padding:6px 2px;border-bottom:2px solid var(--ink);font-weight:700}
+.mk-tbl td{padding:8px 2px;border-bottom:1px solid var(--hair)}.mk-tbl .mk-r{text-align:right;font-variant-numeric:tabular-nums}.mk-tbl tr.top td{background:rgba(201,162,83,.16);font-weight:700}
+.mk-pill{display:inline-block;border-radius:999px;padding:1px 8px;font-size:11.5px;font-weight:700;white-space:nowrap}
+.mk-in{background:#DCE3D2;color:var(--green)}.mk-maybe{background:#F3DC9E;color:#8C6B2F}.mk-out{background:#EFDCD7;color:var(--flag)}.mk-paid{background:var(--pine);color:var(--gold-up)}
+.mk-money{display:grid;grid-template-columns:1fr auto auto auto;gap:8px 10px;font-size:14px;margin-top:8px;font-variant-numeric:tabular-nums;align-items:center}
+.mk-money b{font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--turf)}
+.mk-money .mk-r{text-align:right}
+.mk-sheet{position:fixed;left:0;right:0;bottom:70px;z-index:30;background:var(--page);border-top:3px solid var(--gold-up);box-shadow:0 -10px 30px rgba(29,46,33,.2);padding:14px 16px 16px;border-radius:18px 18px 0 0}
+.mk-sheet h3{margin:0;font-size:18px}.mk-sheet p{margin:4px 0 10px;font-size:14px;color:var(--turf)}
+.mk-sheet .mk-acts{display:flex;gap:8px}.mk-sheet .mk-acts .btn{flex:1;text-align:center;display:inline-flex;align-items:center;justify-content:center}
+.mk-vhero{margin:0 -14px;padding:22px 18px 18px;background:var(--pine);color:var(--onpine);border-bottom:3px solid var(--gold-up)}
+.mk-vhero .mk-k{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-up);font-weight:700}
+.mk-vhero b{display:block;font-size:30px;line-height:1.05;margin-top:4px}
+.mk-vhero small{display:block;font-size:14px;opacity:.85;margin-top:6px;line-height:1.4}
+.mk-vhero .mk-big{font-size:44px;font-weight:700;line-height:1;margin-top:10px}
+.mk-vhero .mk-big small{display:inline;font-size:14px;margin-left:6px;opacity:1}
+.mk-course{display:flex;gap:8px;overflow-x:auto;margin:10px -14px 0;padding:0 14px 4px}
+.mk-course span{flex:0 0 auto;border:1px solid var(--rule);background:var(--page);border-radius:999px;padding:6px 12px;font-size:13.5px;white-space:nowrap}
+.mk-course span.on{background:var(--pine);color:var(--onpine);border-color:var(--pine);font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="masthead">
+    <span class="crestbtn"><img src="../img/crest.png" alt="The Union Invitational crest" width="62"></span>
+    <div class="mast-mid">
+      <h1>The Union Invitational</h1>
+      <div class="sub">Titanic Deluxe Golf Belek, Antalya, Türkiye — 26 October to 2 November 2026</div>
+    </div>
+  </header>
+  <div class="mk-mock-season" aria-label="Season"><span class="on">Belek ’26 · archive</span><span>Vegas ’27</span></div>
+  <div class="dateline"><span>The archive</span><span class="hot">closed book</span><span>Round 3 · Sun 1 Nov</span></div>
+  <div class="rule-heavy"></div>
+  <main class="page">
+
+    <div class="mk-closed"><b>This season is closed.</b>Everything is here to read: every card, the recaps, the photos, the players report and the manuals. Nothing can be entered or changed. The master PIN can reopen it for a correction.</div>
+    <div class="mk-shot"><img src="../img/today.png" alt="The Belek book’s Today screen, as it was" style="margin-top:-28%"></div>
+
+  </main>
+</div>
+<nav class="tabbar" aria-label="Sections"><span class="navbtn" aria-current="page"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5"/><path d="M6 10v9.5h12V10"/><path d="M10 19.5v-5h4v5"/></svg><span class="lb">Today</span></span><span class="navbtn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3.5h10a1.5 1.5 0 0 1 1.5 1.5v15l-6.5-3-6.5 3V5A1.5 1.5 0 0 1 7 3.5Z"/><path d="M9 8.5h6M9 12h6"/></svg><span class="lb">Scores</span></span><span class="navbtn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 7.5h9.5v11a1.5 1.5 0 0 1-1.5 1.5H7.5A1.5 1.5 0 0 1 6 18.5v-11Z"/><path d="M15.5 10h1.8a1.7 1.7 0 0 1 1.7 1.7v2.6a1.7 1.7 0 0 1-1.7 1.7h-1.8"/><path d="M6 7.5c0-1.7 1.3-3 3-3 .6-.9 1.6-1.5 2.8-1.5 1.9 0 3.4 1.4 3.7 3.2"/><path d="M9.5 11v5.5M12.5 11v5.5"/></svg><span class="lb">Bets</span></span><span class="navbtn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 20V12M12 20V5M19 20v-6"/><path d="M3 20h18"/></svg><span class="lb">Boards</span></span><span class="navbtn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="1.6"/><path d="M3.5 9.5h17"/><path d="M8 3.5v3M16 3.5v3"/><path d="M7.5 13h3M13.5 13h3M7.5 16.8h3"/></svg><span class="lb">Calendar</span></span><span class="navbtn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20h18"/><path d="M5 20v-8l7-4.5 7 4.5v8"/><path d="M10 20v-4h4v4"/><path d="M12 7.5V4.5"/></svg><span class="lb">Resort</span></span></nav>
+</body>
+</html>

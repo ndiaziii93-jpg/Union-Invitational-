@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Clubhouse, in the book · The Union Invitational</title>
+<meta name="description" content="How the Clubhouse (You · Season · Vegas HQ) sits inside the Union Invitational app, how Belek 2026 becomes a closed book you can read but not change, and how the week in Vegas brings back the app exactly as it ran in Türkiye.">
+<link rel="icon" href="../../app/icon-192.png" type="image/png">
+<style>
+@font-face{font-family:'Source Serif';src:url(fonts/source-serif-latin-normal.woff2) format('woff2');font-weight:200 900;font-display:swap}
+@font-face{font-family:'Source Serif';src:url(fonts/source-serif-latin-italic.woff2) format('woff2');font-style:italic;font-weight:200 900;font-display:swap}
+:root{
+  --bg:#1E3A2B; --paper:#EEE8D5; --paper-2:#E3DBCB; --paper-3:#DBD2BA; --ink:#1D2E21; --muted:#4F5F52; --accent:#C9A253; --onpine:#EFE7D2; --flag:#9E3B2E; --green:#3E5C43;
+  --font:'Source Serif',Georgia,'Times New Roman',serif;
+  --step-body:clamp(1.0625rem,1rem + .25vw,1.1875rem);
+  --step-lead:clamp(1.25rem,1.1rem + .7vw,1.625rem);
+  --step-head:clamp(1.9rem,1.3rem + 2.6vw,3rem);
+  --step-display:clamp(2.5rem,1.2rem + 5vw,4.4rem);
+  --margin:clamp(16px,2.2vw,32px); --section:clamp(4rem,10vw,9rem);
+}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:var(--step-body);line-height:1.5;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4,p,figure,ul,ol,dl,dd{margin:0}
+ul[class],ol[class]{padding:0;list-style:none}
+img,svg{display:block;max-width:100%}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+h1,h2,h3{font-weight:700;text-wrap:balance;letter-spacing:-.02em;line-height:1.04}
+p{max-width:62ch;text-wrap:pretty}
+.wrap{padding-inline:var(--margin);max-width:1240px;margin-inline:auto}
+.stripe{display:flex;height:40px;overflow:hidden}
+.stripe i{flex:0 0 28px;background:var(--ink)}
+.stripe i:nth-child(even){background:var(--accent)}
+
+/* ---- hero ---- */
+.hero{background:var(--paper);padding:12px}
+.hero .card{max-width:1216px;margin:0 auto;display:grid;grid-template-columns:1.05fr 1fr;gap:40px;align-items:center;padding:clamp(28px,5vw,72px) clamp(20px,4vw,64px)}
+.hero h1{font-size:var(--step-display);max-width:16ch}
+.hero .lead{font-size:var(--step-lead);line-height:1.35;max-width:38ch;margin-top:26px}
+.hero .mark{display:flex;align-items:center;gap:14px;margin-bottom:30px}
+.hero .mark img{width:56px;height:56px}
+.hero .mark span{font-weight:700;line-height:1.1;font-size:19px}
+.hero .answers{margin-top:30px;display:grid;gap:14px;max-width:44ch}
+.hero .answers li{display:grid;grid-template-columns:28px 1fr;gap:12px;align-items:start}
+.hero .answers svg{width:26px;height:26px;margin-top:2px}
+.hero .answers b{display:block}
+.hero .answers span{color:var(--muted)}
+.hero .side{display:flex;justify-content:center}
+.tabs3{width:min(100%,420px);background:var(--bg);color:var(--onpine);padding:26px 26px 22px}
+.tabs3 .t{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:baseline;padding:12px 0}
+.tabs3 .t b{font-size:28px;letter-spacing:-.02em}
+.tabs3 .t span{font-size:15px;opacity:.85;text-align:right;max-width:20ch}
+.tabs3 p{margin-top:16px;font-size:16px;opacity:.85;max-width:none}
+@media (max-width:860px){
+  .hero .card{grid-template-columns:1fr;gap:28px;padding:22px 16px 26px}
+  .hero h1{font-size:9.4vw}
+  .hero .lead{font-size:17px;margin-top:16px}
+  .hero .mark{margin-bottom:18px}
+  .hero .mark img{width:44px;height:44px}
+  .tabs3{width:100%}
+  .tabs3 .t b{font-size:24px}
+}
+
+/* ---- sections ---- */
+.sec{background:var(--paper);padding-block:calc(var(--section)/1.6) var(--section)}
+.sec.alt{background:var(--paper-2)}
+.sec.pine{background:var(--bg);color:var(--onpine)}
+.sec h2{font-size:var(--step-head);max-width:26ch}
+.sec .intro{font-size:var(--step-lead);line-height:1.35;max-width:40ch;margin-top:18px}
+.sec.pine .intro{opacity:.9}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:clamp(24px,4vw,56px);align-items:start;margin-top:40px}
+.cols .text p+p{margin-top:14px}
+.cols .text h3{font-size:1.25rem;margin:26px 0 8px}
+.cols .text ul{padding-left:1.1em;list-style:disc;max-width:52ch}
+.cols .text li{margin:.3em 0}
+.cols .text li::marker{color:var(--accent)}
+@media (max-width:860px){ .cols{grid-template-columns:1fr;gap:22px;margin-top:26px} }
+
+/* ---- the phones ---- */
+.phones{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(12px,2vw,28px);margin-top:40px}
+.phones.one{grid-template-columns:minmax(0,420px);justify-content:start;margin-top:0}
+.phone{--z:1;display:block}
+.phone .frame{width:390px;height:844px;transform:scale(var(--z));transform-origin:top left;background:var(--paper-3);border:3px solid var(--ink);border-radius:30px;overflow:hidden}
+.phone .box{height:calc(844px * var(--z) + 6px)}
+.phone iframe{width:390px;height:844px;border:0;display:block}
+.phone figcaption{margin-top:14px;font-size:16px;color:var(--muted);max-width:34ch}
+.sec.pine .phone figcaption{color:var(--onpine);opacity:.85}
+.phone figcaption b{color:var(--ink);display:block;font-size:17px;margin-bottom:2px}
+.sec.pine .phone figcaption b{color:var(--onpine)}
+@media (max-width:860px){
+  .phones{grid-template-columns:minmax(0,420px);justify-content:center;gap:28px;margin-top:26px}
+  .phones.one{justify-content:start}
+}
+
+/* ---- ledgers ---- */
+.ledger{width:100%;border-collapse:collapse;margin-top:28px;font-size:16px}
+.ledger th{text-align:left;font-size:15px;color:var(--muted);padding:0 12px 10px 0;border-bottom:2px solid var(--ink);font-weight:700}
+.ledger td{padding:12px 12px 12px 0;border-bottom:1px solid var(--paper-3);vertical-align:top}
+.ledger td:first-child{font-weight:700;width:30%}
+.ledger td:last-child{padding-right:0}
+.sec.pine .ledger th{color:var(--accent);border-bottom-color:var(--accent)}
+.sec.pine .ledger td{border-bottom-color:rgba(239,231,210,.18)}
+.ok{color:var(--green);font-weight:700}
+.no{color:var(--flag);font-weight:700}
+.sec.pine .ok{color:#A9C4A6}.sec.pine .no{color:#E9B2A5}
+@media (max-width:640px){
+  .ledger{font-size:15px}
+  .ledger td:first-child{width:38%}
+  .ledger.stack thead{display:none}
+  .ledger.stack tr{display:block;padding:12px 0;border-bottom:1px solid var(--paper-3)}
+  .ledger.stack td{display:block;border:0;padding:2px 0;width:auto}
+  .ledger.stack td:first-child{font-size:17px}
+  .ledger.stack td[data-h]::before{content:attr(data-h) ' · ';color:var(--muted);font-size:14px}
+}
+
+/* ---- timeline ---- */
+.line{display:grid;grid-template-columns:repeat(5,1fr);gap:0;margin-top:40px;counter-reset:step}
+.line li{padding:18px 18px 22px 0;border-top:3px solid var(--accent);position:relative}
+.line li.now{border-top-color:var(--onpine)}
+.line li b{display:block;font-size:15.5px;color:var(--accent)}
+.line li strong{display:block;font-size:1.35rem;line-height:1.1;margin:8px 0 10px;letter-spacing:-.01em}
+.line li p{font-size:16px;opacity:.88;max-width:none}
+.line li.wk{background:rgba(201,162,83,.14);padding-left:16px}
+@media (max-width:860px){
+  .line{grid-template-columns:1fr;margin-top:26px}
+  .line li{border-top:0;border-left:3px solid var(--accent);padding:4px 0 22px 18px}
+  .line li.wk{padding:14px 16px 18px}
+}
+
+/* ---- footer ---- */
+.rv{opacity:0;transform:translateY(18px);transition:opacity 700ms cubic-bezier(.22,1,.36,1),transform 700ms cubic-bezier(.22,1,.36,1)}
+.rv.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){ .rv{opacity:1;transform:none;transition:none} }
+.shots{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(12px,2vw,28px);margin-top:40px}
+.shots .pic{aspect-ratio:390/760;overflow:hidden;border:3px solid var(--accent);border-radius:30px;background:var(--paper-3)}
+.shots img{width:100%;height:auto}
+.shots figcaption{margin-top:12px;font-size:16px;opacity:.85}
+@media (max-width:860px){ .shots{grid-template-columns:1fr;max-width:420px;margin-top:26px} }
+.foot{background:var(--paper-3);padding:40px 0 60px}
+.foot .row{display:flex;gap:28px;flex-wrap:wrap;align-items:baseline}
+.foot a{text-decoration:underline;text-underline-offset:.2em}
+.foot p{color:var(--muted);font-size:16px;margin-top:14px}
+.button{display:inline-flex;align-items:center;justify-content:center;min-height:3rem;padding:0 1.4rem;background:var(--accent);color:var(--ink);text-decoration:none;font-weight:700;white-space:nowrap}
+.button:hover{background:#D9B566}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="card">
+    <div>
+      <div class="mark"><img src="img/crest.png" alt=""><span>The Union Invitational<br>Las Vegas 2027</span></div>
+      <h1>The Clubhouse, inside your book.</h1>
+      <p class="lead">Rendition B, drawn in the app’s own clothes: three tabs between tournaments, Belek 2026 kept as a closed book, and the week in Vegas running exactly the way Türkiye did.</p>
+      <p style="margin-top:26px"><a class="button" href="#clubhouse">See the six screens</a></p>
+      <ul class="answers">
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><div><b>Nobody loses anything.</b><span>Report cards, manuals, cards, photos and recaps from Belek stay, readable by everyone, changeable by no one.</span></div></li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><div><b>The week is not rebuilt.</b><span>When Vegas opens, the six tabs from Türkiye come back as they were. The Clubhouse steps aside.</span></div></li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><div><b>Virtual rounds score the same way.</b><span>The Score Entry screen people learned in Belek, plus a course chip and a photo of the signed card.</span></div></li>
+      </ul>
+    </div>
+    <div class="side">
+      <div class="tabs3">
+                <div class="t"><b>You</b><span>your form, your card to enter, your line for Vegas, your manual</span></div>
+        <div class="t"><b>Season</b><span>the open stop, standings, handicaps, awards, the archive</span></div>
+        <div class="t"><b>Vegas HQ</b><span>the field, money, rooms, flights, vendors, the countdown</span></div>
+        <p>Three tabs between tournaments, under the same crest, masthead, dateline and bar as today. Only the tabs change, and only until the week.</p>
+      </div>
+    </div>
+  </div>
+  <div class="stripe" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+</header>
+
+<section class="sec" id="clubhouse">
+  <div class="wrap">
+    <h2>The Clubhouse, as it opens on a phone.</h2>
+    <p class="intro">Live mocks in the app’s stylesheet. Scroll inside each one. The season switch under the masthead is new; everything else is the chrome the group knows.</p>
+    <div class="phones">
+      <figure class="phone"><div class="box"><div class="frame" data-ui><iframe src="screens/you.html" title="The You tab" loading="lazy"></iframe></div></div><figcaption><b>You</b>Form, played, ready. The open stop with your card to enter. The one thing missing from your Vegas line. Your manual and your Belek card, a tap away.</figcaption></figure>
+      <figure class="phone"><div class="box"><div class="frame" data-ui><iframe src="screens/season.html" title="The Season tab" loading="lazy"></iframe></div></div><figcaption><b>Season</b>This stop live, then Standings, Handicaps, Awards and the Archive on the same chip row the Boards use today. The plate is the Boards’ plate.</figcaption></figure>
+      <figure class="phone"><div class="box"><div class="frame" data-ui><iframe src="screens/vegas.html" title="The Vegas HQ tab" loading="lazy"></iframe></div></div><figcaption><b>Vegas HQ</b>The countdown, your line as a checklist, the field with paid and owed in the open, rooms, vendors. Exports and approvals sit behind Manage as they do now.</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<section class="sec alt" id="round">
+  <div class="wrap">
+    <h2>A virtual round is the Score Entry you know.</h2>
+    <p class="intro">Nothing new to learn before Vegas. The hole strip, the hole drawing, the pop-up keypad and “My round” are the Belek screen, untouched.</p>
+    <div class="cols">
+      <div class="phones one"><figure class="phone"><div class="box"><div class="frame" data-ui><iframe src="screens/entry.html" title="A virtual round on the Score Entry screen" loading="lazy"></iframe></div></div><figcaption><b>Entering a stop</b>The real Score Entry screenshot under a course chip and the one new step.</figcaption></figure></div>
+      <div class="text">
+        <h3>Two additions, both small</h3>
+        <ul>
+          <li><b>A course chip</b> above the hole strip. Your home course and tees are set once and approved by the commissioner, so the strip loads that card’s pars and indexes.</li>
+          <li><b>A photo before it counts.</b> When the 18th is in, the sheet asks for a photo of the signed card, taken there and then. The card posts to the stop and to your Union handicap, and the photo sits with the round.</li>
+        </ul>
+        <h3>Everything else is the same</h3>
+        <ul>
+          <li>Hole by hole, Stableford worked out as you go, the same hole drawings and the same keypad.</li>
+          <li>“My round” only. The “Score the group” toggle stays for the week in Vegas, where a marker scores the group.</li>
+          <li>Scramble and pairs stops reuse the pairs mode the Boards already know from Belek.</li>
+          <li>Closes on the stop’s last night. The siren crowns the winner on the Season tab and the Register writes it up like a recap.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="archive">
+  <div class="wrap">
+    <h2>Belek 2026: readable by all, editable by none.</h2>
+    <p class="intro">Flip the season switch to Belek ’26 and the app shows the week exactly as it ended on Sunday 1 November, with the six Türkiye tabs. One banner says it is closed.</p>
+    <div class="cols">
+      <div class="phones one"><figure class="phone"><div class="box"><div class="frame" data-ui><iframe src="screens/archive.html" title="Belek 2026 as the archive" loading="lazy"></iframe></div></div><figcaption><b>The archive</b>The Today cover from the last day, under a closed-book banner.</figcaption></figure></div>
+      <div class="text">
+        <table class="ledger stack">
+          <thead><tr><th>In Belek ’26</th><th>Reading</th><th>Changing</th></tr></thead>
+          <tbody>
+            <tr><td>Every card, hole by hole</td><td data-h="Reading"><span class="ok">Open to all</span></td><td data-h="Changing"><span class="no">Locked</span></td></tr>
+            <tr><td>Boards, pairs, MVP, Ryder Cup, bingo bango bongo</td><td data-h="Reading"><span class="ok">Open to all</span></td><td data-h="Changing"><span class="no">Locked</span></td></tr>
+            <tr><td>The three recaps and the week’s report</td><td data-h="Reading"><span class="ok">Open to all</span></td><td data-h="Changing"><span class="no">Locked</span></td></tr>
+            <tr><td>Report cards and practice manuals</td><td data-h="Reading"><span class="ok">Open, each golfer’s own link still works</span></td><td data-h="Changing"><span class="no">Locked</span></td></tr>
+            <tr><td>Photos and hearts</td><td data-h="Reading"><span class="ok">Open to all</span></td><td data-h="Changing"><span class="no">No new photos or hearts</span></td></tr>
+            <tr><td>Bets and the feedback page</td><td data-h="Reading"><span class="ok">Open to all</span></td><td data-h="Changing"><span class="no">Locked</span></td></tr>
+            <tr><td>Score entry, pairs, honours, Manage</td><td data-h="Reading"><span class="ok">Visible as they were</span></td><td data-h="Changing"><span class="no">Buttons gone; the master PIN can reopen a round for a correction</span></td></tr>
+          </tbody>
+        </table>
+        <h3>How it is locked</h3>
+        <p>Every row in the book is stamped with its season. The server refuses any write to a 2026 row unless the master PIN has reopened that season, so a phone with an old cached page cannot change the record by accident. The app reads both seasons and only ever writes to the open one.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec pine" id="week">
+  <div class="wrap">
+    <h2>In Vegas, the book returns as it ran in Türkiye.</h2>
+    <p class="intro">The Clubhouse is the app’s off-season face. The week has its own, and it is the one the group already learned.</p>
+    <ol class="line">
+      <li><b>1 Dec 2026</b><strong>The Clubhouse opens</strong><p>The reveal, with the Merry Mulligan Open as the first stop. You · Season · Vegas HQ.</p></li>
+      <li><b>Dec to Oct</b><strong>Eleven stops</strong><p>A themed game a month on home courses. Handicaps move, the Order of Merit builds, Vegas HQ fills in.</p></li>
+      <li><b>12 Nov 2027</b><strong>Bands lock, the week loads</strong><p>Union handicaps become the week’s bands. Pairs, tee sheet and itinerary are set in Manage, as in Belek.</p></li>
+      <li class="now wk"><b>13 to 21 Nov</b><strong>The week, as Belek ran</strong><p>Today · Scores · Bets · Boards · Calendar · Vegas. Same scoring, same boards, same recaps, same photos, same honours.</p></li>
+      <li><b>22 Nov 2027</b><strong>Vegas closes into the archive</strong><p>The report cards and manuals are written. Vegas ’27 joins Belek ’26 on the switch, and the Clubhouse opens 2028.</p></li>
+    </ol>
+    <div class="shots">
+      <figure><div class="pic"><img src="img/today.png" alt="The Today cover as it ran in Belek: the round, the first tee, the clock to the next tee" width="780" height="1688"></div><figcaption>Today, as it ran in Belek</figcaption></figure>
+      <figure><div class="pic"><img src="img/boards.png" alt="The Boards as they ran in Belek: team competition, MVP, Ryder Cup" width="780" height="1688"></div><figcaption>Boards, as they ran in Belek</figcaption></figure>
+      <figure><div class="pic"><img src="img/entry.png" alt="Score Entry as it ran in Belek: the hole strip, the hole drawing, the group’s scores" width="780" height="1688"></div><figcaption>Score Entry, as it ran in Belek</figcaption></figure>
+    </div>
+    <p class="intro" style="margin-top:28px">Three real screenshots of the book from the Belek week. These are the screens that come back on 13 November 2027, with Vegas on them.</p>
+    <div class="cols">
+      <div class="phones one"><figure class="phone"><div class="box"><div class="frame" data-ui><iframe src="screens/week.html" title="The week in Vegas, on the Belek tabs" loading="lazy"></iframe></div></div><figcaption><b>The week in Vegas</b>The Today cover with the six Belek tabs. The Belek photograph and names stand in until Vegas has its own.</figcaption></figure></div>
+      <div class="text">
+        <h3>What “the same” means here</h3>
+        <ul>
+          <li>The six tabs and every screen behind them stay as built. The Clubhouse is a third mode of the same app, switched by date, not a second app.</li>
+          <li>Scoring the group, the marker’s card, the hole strip, the keypad: untouched. A year of virtual rounds on the same screen means nobody relearns it on the first tee.</li>
+          <li>The Boards, the week’s honours, the chat, the recaps and the social pack all run as they did in Belek.</li>
+          <li>Two additions the week gains from the season: the women’s 18-hole division and the partners’ 9 are two more boards, not a new format.</li>
+          <li>The tab bar gains the one word that changes, Vegas for Resort, and the dateline reads the Vegas clock.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec alt" id="kept">
+  <div class="wrap">
+    <h2>Nothing from Türkiye is lost.</h2>
+    <p class="intro">Belek is the first season in the book, not a backup. The Clubhouse reads it, and the Vegas week never touches it.</p>
+    <table class="ledger stack">
+      <thead><tr><th>From Belek 2026</th><th>Where it goes</th><th>How the Clubhouse uses it</th></tr></thead>
+      <tbody>
+        <tr><td>Your name, device and PIN</td><td data-h="Where">Stay as they are. One sign-in, both seasons.</td><td data-h="Use">The You tab greets the same person.</td></tr>
+        <tr><td>Your Belek band</td><td data-h="Where">Kept with 2026. Never rewritten.</td><td data-h="Use">The seed of your Union handicap until three stops are in.</td></tr>
+        <tr><td>Your report card</td><td data-h="Where">Kept with 2026, with the words the report wrote.</td><td data-h="Use">The grades pick your first manual; later manuals are re-cut from the season and the Belek card stays underneath.</td></tr>
+        <tr><td>Your practice manual</td><td data-h="Where">Kept and still at its own link, with Save as PDF.</td><td data-h="Use">Refreshed after each stop; the Belek edition stays readable as version one.</td></tr>
+        <tr><td>Every scorecard</td><td data-h="Where">Kept, hole by hole.</td><td data-h="Use">Season averages, the Archive tab, and the awards’ “since Belek” lines.</td></tr>
+        <tr><td>Photos, hearts, shot of the day</td><td data-h="Where">Kept in storage under 2026.</td><td data-h="Use">The Archive gallery and the social pack for 2026.</td></tr>
+        <tr><td>Recaps, honours, bets, feedback</td><td data-h="Where">Kept, readable at their current links.</td><td data-h="Use">Awards and the archive read them; nothing is re-computed.</td></tr>
+      </tbody>
+    </table>
+    <div class="cols">
+      <div class="text">
+        <h3>The two rules the build keeps</h3>
+        <ul>
+          <li><b>No migration.</b> The 2026 rows stay exactly as they are; new seasons add rows beside them under their own prefix.</li>
+          <li><b>The server guards the past.</b> A rule in the database refuses writes to a closed season. Reopening is a master-PIN action, logged in Manage.</li>
+        </ul>
+      </div>
+      <div class="text">
+        <h3>Before the build, what I need from you</h3>
+        <ul>
+          <li>A yes to this layout, or the changes you want on any of the six screens.</li>
+          <li>The first stop’s name and window, if the Merry Mulligan Open is not it.</li>
+          <li>Whether paid and owed show in full to everyone, as drawn, or only as paid or not.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="foot">
+  <div class="wrap">
+    <div class="row">
+      <a class="button" href="../season/#clubhouse">Rendition B, the Clubhouse, in full</a>
+      <a href="../season/">All three renditions</a>
+      <a href="../../app/">The book as it is today</a>
+    </div>
+    <p>A preview, not the build. The screens are drawings in the app’s stylesheet; the names and figures are made up. Nothing here has touched the shared book.</p>
+  </div>
+</footer>
+
+<script>
+(function(){
+  function fit(){
+    document.querySelectorAll('.phone').forEach(function(ph){
+      var w = ph.clientWidth; if (!w) return;
+      ph.style.setProperty('--z', Math.min(1, w / 390).toFixed(4));
+    });
+  }
+  fit(); window.addEventListener('resize', fit); window.addEventListener('load', fit);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+  // the parts of each section arrive as you reach them; everything shows after 2.5 s regardless
+  var parts = document.querySelectorAll('.sec h2, .sec .intro, .phone, .cols .text, .ledger, .line li, .shots figure');
+  parts.forEach(function(el, i){ el.classList.add('rv'); el.style.transitionDelay = (i % 3) * 90 + 'ms'; });
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function(es){ es.forEach(function(e){ if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }); }, { rootMargin: '0px 0px -8% 0px' });
+    parts.forEach(function(el){ io.observe(el); });
+  }
+  setTimeout(function(){ parts.forEach(function(el){ el.classList.add('in'); }); }, 2500);
+})();
+</script>
+</body>
+</html>
