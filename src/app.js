@@ -13,6 +13,7 @@ import * as X from './social.js';
 import * as F from './feedback.js';
 import * as RP from './report.js';
 import * as MN from './manual.js';
+import { still as artStill } from './drillart.js';
 import * as PK from './pack.js';
 import * as W from './weather.js';
 import * as H3D from './hole3d.js';
@@ -8461,6 +8462,7 @@ function paint() {
     }
   }
   tabShown = chosenKey;
+  if (UI.modal && UI.modal.kind === 'manual') artStill(document);   // a reader who asked for less motion gets the drawings still
 
   /* THE KEYBOARD STAYS DOWN UNTIL SOMEBODY ASKS FOR IT. Opening the window
      used to put the caret in the field, and on a phone a caret means the

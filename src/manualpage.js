@@ -7,6 +7,7 @@
 import * as E from './engine.js';
 import { fieldReport } from './report.js';
 import { renderManual } from './manual.js';
+import { still } from './drillart.js';
 import { assemble } from './recappage.js';
 
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -36,6 +37,7 @@ export async function boot(cfg) {
     const words = pr && body && body.players ? body.players[pr.id] : null;
     document.title = (pr ? pr.name + '’s practice manual' : 'The practice manual') + ' · The Union Invitational';
     el.innerHTML = pr ? renderManual(pr, words, { link: false }) : renderIndex(F);
+    still(el);
     const bar = document.getElementById('mnbar');
     if (bar) bar.hidden = !pr;
     window.__T = T; window.__pid = pr ? pr.id : null;    // read by the tests

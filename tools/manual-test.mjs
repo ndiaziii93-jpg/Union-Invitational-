@@ -86,6 +86,14 @@ await q.goto(BASE + 'docs/manual/'); await q.waitForSelector('.mn-index', { time
 ok('with no golfer named, the page lists them', [await q.locator('.mn-index .rp-row').count(), await q.locator('#mnbar').isHidden()], [11, true]);
 await q.goto(BASE + 'docs/recap/?r=report'); await q.waitForSelector('.rp-row', { timeout: 20000 });
 ok('the public report\'s pop-up links to the manual page', await q.evaluate(pid => document.querySelectorAll('.rp-pop[data-pop="' + pid + '"] .rp-manual a[href$="manual/?p=' + pid + '"]').length, pid), 1);
+ok('the drawings move by the browser\'s own SVG animation, along the drawn paths', await q.evaluate(() => { const s = document.querySelectorAll('.mn-drill svg.da'); return [s.length > 0, [...s].every(x => x.querySelector('animate, animateMotion, animateTransform')), [...s].some(x => x.querySelector('animateMotion[path]')), [...s].every(x => !x.animationsPaused())]; }), [true, true, true, true]);
+const ctx3 = await b.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
+const r = await ctx3.newPage();
+await r.route(/\/rest\/v1\/docs/, route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(rows) }));
+await r.route(/supabase\.co\/(?!rest)/, route => route.abort());
+await r.goto(BASE + 'docs/manual/?p=' + pid); await r.waitForSelector('.mn-drill', { timeout: 20000 });
+ok('a reader who asked for less motion gets the drawings still', await r.evaluate(() => [...document.querySelectorAll('.mn-drill svg.da')].every(x => x.animationsPaused())), true);
+await ctx3.close();
 ok('no errors on the pages', errs2, []);
 await b.close(); server.close();
 console.log(fails.length ? '\n' + fails.length + ' FAILED: ' + fails.join(', ') : '\nall good');
