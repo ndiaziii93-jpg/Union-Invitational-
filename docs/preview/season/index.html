@@ -1,180 +1,689 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="no-js">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>The Road to Vegas — three ways · The Union Invitational</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The book becomes the year · The Union Invitational</title>
+<meta name="description" content="Three renditions of the Union Invitational app as a season: the Road to Vegas 2027 planned and tracked, and a tour of monthly home-course games with live leaderboards, a winner crowned at every stop and a season standings.">
+<link rel="icon" href="../../app/icon-192.png" type="image/png">
+<script>document.documentElement.classList.replace('no-js','js')</script>
 <style>
 @font-face{font-family:'Source Serif';src:url(../../app/fonts/source-serif-latin-normal.woff2) format('woff2');font-weight:400 800;font-display:swap}
 @font-face{font-family:'Source Serif';src:url(../../app/fonts/source-serif-latin-italic.woff2) format('woff2');font-style:italic;font-weight:400 800;font-display:swap}
-:root{--paper:#E3DBCB;--page:#EEE8D5;--sunk:#DBD2BA;--ink:#1D2E21;--turf:#5C6B55;--green:#3E5C43;--rule:#C4B896;--hair:#DCD1B4;--flag:#9E3B2E;--gold:#8C6B2F;--gold-up:#C9A253;--pine:#1E3A2B;--onpine:#EFE7D2;--serif:'Source Serif',Georgia,serif}
-*{box-sizing:border-box}
-html,body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.45 var(--serif)}
-.top{position:sticky;top:0;z-index:5;background:var(--pine);color:var(--onpine);padding:12px 16px;border-bottom:3px solid var(--gold-up)}
-.top b{display:block;font-size:18px}.top small{display:block;font-size:12px;letter-spacing:.14em;text-transform:uppercase;opacity:.8}
-.tabs{display:flex;gap:6px;margin-top:10px}
-.tabs button{flex:1;padding:9px 4px;border-radius:10px;border:1px solid rgba(255,255,255,.25);background:transparent;color:var(--onpine);font:inherit;font-weight:700;font-size:12.5px;cursor:pointer}
-.tabs button.on{background:var(--gold-up);color:var(--pine);border-color:var(--gold-up)}
-.wrap{max-width:640px;margin:0 auto;padding:16px}
-.about{font-size:14.5px;color:var(--turf);margin:0 0 12px;padding:10px 12px;border-left:3px solid var(--gold-up);background:var(--page)}
-.about b{color:var(--ink)}
-h3{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin:18px 0 8px}
-.phones{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}
-.phone{background:var(--page);border:1px solid var(--rule);border-radius:22px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.14);font-size:13px}
-.bar{background:var(--pine);color:var(--onpine);padding:9px 12px;display:flex;justify-content:space-between;align-items:center}
-.bar b{font-size:13px}.bar small{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold-up)}
-.seas{display:inline-flex;border:1px solid rgba(255,255,255,.35);border-radius:999px;overflow:hidden;font-size:10px}
-.seas span{padding:3px 8px}.seas .on{background:var(--gold-up);color:var(--pine);font-weight:800}
-.body{padding:10px}
-.card{border:1px solid var(--rule);border-radius:12px;background:#F7F2E6;padding:9px 11px;margin:0 0 7px}
-.card b{display:block;font-size:14px}.card small{display:block;color:var(--turf);font-size:11.5px;line-height:1.35}
-.card.pine{background:var(--pine);color:var(--onpine);border-color:var(--pine)}.card.pine small{color:var(--onpine);opacity:.85}
-.card.gold{background:linear-gradient(135deg,#F3DC9E,#E6C97E);border-color:var(--gold-up)}
-.k{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);font-weight:800}
-.big{font-size:22px;font-weight:800;line-height:1}
-.row{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--hair);font-size:12.5px}
-.row:last-child{border-bottom:0}.row b{font-weight:700}
-.pill{border-radius:999px;padding:1px 7px;font-size:10.5px;font-weight:800}
-.in{background:#DCE3D2;color:var(--green)}.maybe{background:#F3DC9E;color:var(--gold)}.out{background:#EFDCD7;color:var(--flag)}.paid{background:var(--pine);color:var(--gold-up)}
-.nav{display:flex;border-top:1px solid var(--rule);background:var(--page)}
-.nav span{flex:1;text-align:center;font-size:9.5px;padding:7px 2px;color:var(--turf);letter-spacing:.04em}
-.nav span.on{color:var(--green);font-weight:800}
-.sc{display:grid;grid-template-columns:repeat(9,1fr);gap:2px;margin:6px 0}
-.sc i{font-style:normal;text-align:center;font-size:11px;padding:4px 0;border-radius:4px;background:#FBFAF7;border:1px solid var(--hair)}
-.sc i.h{background:var(--pine);color:var(--onpine);border-color:var(--pine)}
-.cam{display:flex;align-items:center;gap:8px;border:1px dashed var(--gold);border-radius:10px;padding:7px 10px;font-size:12px;color:var(--gold);margin-top:6px}
-table{width:100%;border-collapse:collapse;font-size:13.5px;background:var(--page);border:1px solid var(--rule)}
-th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--hair);vertical-align:top}
-th{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--turf);background:var(--sunk)}
-.pros{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.pros div{background:var(--page);border:1px solid var(--rule);border-radius:12px;padding:10px 12px;font-size:13.5px}
-.pros b{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:4px}
-.pros .g b{color:var(--green)}.pros .r b{color:var(--flag)}
-.pros ul{margin:0;padding-left:16px}
-.note{font-size:13px;color:var(--turf);text-align:center;margin:16px 0 0}
-.hide{display:none}
-@media (max-width:480px){ .pros{grid-template-columns:1fr} }
+:root{
+  --bg:#1E3A2B; --paper:#EEE8D5; --paper-2:#E3DBCB; --paper-3:#DBD2BA; --ink:#1D2E21; --muted:#4F5F52; --accent:#C9A253; --accent-ink:#1D2E21; --onpine:#EFE7D2; --flag:#9E3B2E; --green:#3E5C43;
+  --font:'Source Serif',Georgia,'Times New Roman',serif;
+  --step-small:clamp(.8125rem,.79rem + .1vw,.875rem);
+  --step-body:clamp(1.0625rem,1rem + .25vw,1.1875rem);
+  --step-lead:clamp(1.25rem,1.1rem + .7vw,1.625rem);
+  --step-head:clamp(2rem,1.3rem + 3.2vw,3.5rem);
+  --step-display:clamp(2.6rem,1.2rem + 5.2vw,4.6rem);
+  --margin:clamp(16px,2.2vw,32px); --gutter:clamp(1rem,2vw,2rem); --section:clamp(5rem,12vw,13rem); --radius:0px;
+  --ease-out:cubic-bezier(.22,1,.36,1); --ease-soft:cubic-bezier(.33,1,.68,1); --t-press:140ms; --t-hover:180ms; --t-reveal:800ms;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:var(--step-body);line-height:1.5;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4,p,figure,ul,ol,dl,dd{margin:0}
+ul[class],ol[class]{padding:0;list-style:none}
+img,svg{display:block;max-width:100%}
+img{height:auto}
+button,input{font:inherit;color:inherit}
+button{background:none;border:0;padding:0;cursor:pointer}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+h1,h2,h3{font-weight:700;text-wrap:balance;letter-spacing:-.02em;line-height:1.02}
+.display{font-size:var(--step-display);line-height:.98;letter-spacing:-.03em}
+.head{font-size:var(--step-head)}
+.lead{font-size:var(--step-lead);line-height:1.35;max-width:40ch}
+p{max-width:62ch;text-wrap:pretty}
+.nums{font-variant-numeric:tabular-nums}
+.wrap{padding-inline:var(--margin)}
+.section{padding-block:calc(var(--section)/2)}
+.button{display:inline-flex;align-items:center;justify-content:center;min-height:3rem;padding:0 1.4rem;background:var(--accent);color:var(--accent-ink);text-decoration:none;font-weight:700;white-space:nowrap;transition:transform var(--t-press) var(--ease-out),background-color var(--t-hover) ease}
+.button:active{transform:scale(.97)}
+.button:hover{background:#D9B566}
+.stripe{display:flex;height:56px;overflow:hidden}
+.stripe i{flex:0 0 28px;background:var(--ink)}
+.stripe i:nth-child(even){background:var(--accent)}
+.stripe.thin{height:8px}
+
+/* ---- hero: the card beside the room ---- */
+.hero{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:12px;min-height:100svh}
+.hero .room{position:sticky;top:12px;height:calc(100svh - 24px);overflow:hidden;background:var(--paper-3)}
+.hero .room img{width:100%;height:100%;object-fit:cover}
+.hero .card{background:var(--paper);display:flex;flex-direction:column;text-align:center}
+.hero .card .in{padding:40px 40px 28px;display:flex;flex-direction:column;align-items:center;flex:1}
+.hero .mark{display:flex;align-items:center;gap:14px;margin:8px 0 36px}
+.hero .mark img{width:64px;height:64px}
+.hero .mark span{font-size:var(--step-lead);font-weight:700;text-align:left;line-height:1.1}
+.hero h1{max-width:18ch;margin:0 auto}
+.hero .lead{margin:28px auto 0;max-width:36ch}
+.hero .button{margin-top:32px}
+.hero .links{display:flex;gap:28px;justify-content:center;flex-wrap:wrap;margin-top:auto;padding-top:40px;font-size:15px}
+.hero .links a{text-decoration:underline;text-underline-offset:.2em;text-decoration-color:transparent;transition:text-decoration-color var(--t-hover)}
+.hero .links a:hover{text-decoration-color:currentColor}
+@media (max-width:767px){
+  .hero{display:flex;flex-direction:column;padding:12px}
+  .hero .room{position:relative;top:auto;order:-1;height:34svh}
+  .hero .card{margin-top:-24px;position:relative;z-index:1}
+  .hero .stripe{height:40px}
+  .hero .card .in{padding:22px 20px 20px}
+  .hero .mark{margin:0 0 22px}
+  .hero .mark img{width:44px;height:44px}
+  .hero .mark span{font-size:17px}
+  .hero h1{font-size:8.4vw}
+  .hero .lead{font-size:16px;margin-top:18px}
+  .hero .button{margin-top:22px}
+  .hero .links{padding-top:26px}
+}
+
+/* ---- showcase: square plate, spare text ---- */
+.show{min-height:88svh;display:grid;grid-template-columns:1fr 1fr;background:var(--paper)}
+.show.alt{background:var(--paper-2)}
+.show .plate{padding:40px;display:flex;align-items:center}
+.plate .sq{width:100%;aspect-ratio:1;background:var(--paper-3);position:relative;overflow:hidden}
+.show.alt .plate .sq{background:var(--paper)}
+.plate .sq .screen{position:absolute;left:50%;top:0;transform:translateX(-50%) scale(var(--z,1));transform-origin:top center;width:360px}
+.plate .sq .screen[hidden]{display:none}
+.show .text{display:flex;flex-direction:column;justify-content:space-between;padding:40px 40px 40px 0}
+.tabs{display:flex;gap:22px;font-size:17px}
+.tabs button{color:var(--muted);font-weight:500}
+.tabs button[aria-selected=true]{color:var(--ink);font-weight:700;text-decoration:underline;text-underline-offset:.3em;text-decoration-color:var(--accent);text-decoration-thickness:3px}
+.show .mid h2{font-size:clamp(2rem,1.5rem + 1.6vw,2.6rem);margin-bottom:24px}
+.show .mid p{max-width:34ch}
+.show .mid ul{max-width:34ch;margin-top:18px;padding-left:1.1em;list-style:disc}
+.show .mid li{margin:.35em 0}
+.cells{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.cells button{height:72px;font-size:17px;font-weight:700;background:var(--ink);color:var(--onpine)}
+.cells button.off{background:var(--paper-3);color:var(--ink)}
+.show.alt .cells button.off{background:var(--paper)}
+.cells button[aria-pressed=true]{background:var(--accent);color:var(--accent-ink)}
+.show .verdict{margin-top:16px;max-width:34ch}
+@media (max-width:767px){
+  .show{display:block;min-height:0;padding:16px 16px 32px}
+  .show .plate{padding:0}
+  .show .text{padding:16px 0 0}
+  .tabs{font-size:17px;gap:16px;flex-wrap:wrap}
+  .show .mid{margin:20px 0}
+  .cells{grid-template-columns:1fr}
+  .cells button{height:60px}
+}
+
+/* ---- the phone screens (the product's own interface) ---- */
+[data-ui]{font-family:var(--font);color:var(--ink);background:var(--paper);width:360px;font-size:14px;line-height:1.35}
+[data-ui] .top{background:var(--bg);color:var(--onpine);padding:14px 16px 12px;display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid var(--accent)}
+[data-ui] .top b{font-size:18px;display:block}
+[data-ui] .top small{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);display:block;font-weight:700}
+[data-ui] .top .sw{font-size:11px;border:1px solid rgba(239,231,210,.4);border-radius:999px;padding:3px 9px}
+[data-ui] .body{padding:12px 14px}
+[data-ui] .panel{background:#F7F2E6;border:1px solid #D7CDB0;border-radius:12px;padding:10px 12px;margin-bottom:8px}
+[data-ui] .panel.pine{background:var(--bg);color:var(--onpine);border-color:var(--bg)}
+[data-ui] .panel.gold{background:#EBD08A;border-color:#C9A253}
+[data-ui] .panel h4{font-size:12px;color:var(--muted);font-weight:700;margin-bottom:4px}
+[data-ui] .panel.pine h4{color:var(--accent)}
+[data-ui] .panel b.big{font-size:26px;display:block;line-height:1}
+[data-ui] .panel p{font-size:12.5px;color:var(--muted);max-width:none;margin-top:4px}
+[data-ui] .panel.pine p{color:var(--onpine);opacity:.9}
+[data-ui] table{width:100%;border-collapse:collapse;font-size:13px}
+[data-ui] th{font-size:11px;color:var(--muted);font-weight:700;text-align:left;padding:4px 0;border-bottom:1px solid #D7CDB0}
+[data-ui] td{padding:6px 0;border-bottom:1px solid #E6DEC6;vertical-align:middle}
+[data-ui] td.r,[data-ui] th.r{text-align:right;font-variant-numeric:tabular-nums}
+[data-ui] tr.first td{font-weight:700;background:#E4ECE2}
+[data-ui] .pill{display:inline-block;border-radius:999px;padding:1px 7px;font-size:11px;font-weight:700;line-height:1.4}
+[data-ui] .in{background:#DCE3D2;color:var(--green)}[data-ui] .maybe{background:#F3DC9E;color:#8C6B2F}[data-ui] .out{background:#EFDCD7;color:var(--flag)}[data-ui] .paid{background:var(--bg);color:var(--accent)}
+[data-ui] .nav{display:flex;border-top:1px solid #D7CDB0;margin-top:4px}
+[data-ui] .nav span{flex:1;text-align:center;font-size:10px;padding:8px 2px;color:var(--muted)}
+[data-ui] .nav span.on{color:var(--green);font-weight:700}
+[data-ui] .dials{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px}
+[data-ui] .dial{text-align:center;padding:8px 4px;background:#F7F2E6;border:1px solid #D7CDB0;border-radius:12px}
+[data-ui] .dial svg{width:64px;height:64px;margin:0 auto 4px}
+[data-ui] .dial b{display:block;font-size:12px}[data-ui] .dial small{font-size:11px;color:var(--muted)}
+[data-ui] .grid12{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+[data-ui] .tile{background:#F7F2E6;border:1px solid #D7CDB0;border-radius:10px;padding:6px;font-size:11px;font-weight:700;line-height:1.2}
+[data-ui] .tile .lights{display:flex;gap:3px;margin-top:4px}
+[data-ui] .tile i{width:9px;height:9px;border-radius:999px;background:#D7CDB0;display:block}
+[data-ui] .tile i.on{background:var(--green)}[data-ui] .tile i.warn{background:var(--accent)}[data-ui] .tile i.no{background:var(--flag)}
+[data-ui] .bar{height:10px;background:#D7CDB0;border-radius:5px;overflow:hidden;margin:6px 0 2px}[data-ui] .bar i{display:block;height:100%;background:var(--green)}
+[data-ui] .check{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #E6DEC6;font-size:13px}
+[data-ui] .check b.ok{color:var(--green)}[data-ui] .check b.todo{color:var(--flag)}
+[data-ui] .crown{text-align:center;padding:16px 12px}
+[data-ui] .crown .cup{width:56px;height:56px;margin:0 auto 6px}
+[data-ui] .crown b{font-size:22px;display:block}[data-ui] .crown small{display:block;font-size:12px;color:var(--accent)}
+[data-ui] .ticker{background:var(--bg);color:var(--onpine);font-size:12px;padding:6px 12px;white-space:nowrap;overflow:hidden}
+[data-ui] .row2{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #E6DEC6;font-size:13px}
+[data-ui] .row2 small{color:var(--muted);display:block;font-size:11.5px}
+[data-ui] .btnrow{display:flex;gap:6px;margin-top:8px}
+[data-ui] .btnrow span{flex:1;text-align:center;background:var(--bg);color:var(--onpine);border-radius:10px;padding:8px 4px;font-size:12px;font-weight:700}
+[data-ui] .btnrow span.ghost{background:transparent;color:var(--ink);border:1px solid var(--ink)}
+
+/* ---- features: the menu ---- */
+.menu-wrap{display:flex;justify-content:center;padding-block:calc(var(--section)/2)}
+.menu{width:min(600px,100%);background:var(--paper);padding:56px 44px 64px;clip-path:polygon(0 0,4% 12px,8% 0,12% 12px,16% 0,20% 12px,24% 0,28% 12px,32% 0,36% 12px,40% 0,44% 12px,48% 0,52% 12px,56% 0,60% 12px,64% 0,68% 12px,72% 0,76% 12px,80% 0,84% 12px,88% 0,92% 12px,96% 0,100% 12px,100% calc(100% - 12px),96% 100%,92% calc(100% - 12px),88% 100%,84% calc(100% - 12px),80% 100%,76% calc(100% - 12px),72% 100%,68% calc(100% - 12px),64% 100%,60% calc(100% - 12px),56% 100%,52% calc(100% - 12px),48% 100%,44% calc(100% - 12px),40% 100%,36% calc(100% - 12px),32% 100%,28% calc(100% - 12px),24% 100%,20% calc(100% - 12px),16% 100%,12% calc(100% - 12px),8% 100%,4% calc(100% - 12px),0 100%)}
+.menu h2{text-align:center;font-size:clamp(2.4rem,2rem + 1.4vw,3.5rem);margin-bottom:40px}
+.menu h3{font-size:20px;margin:0 0 14px}
+.menu .group+.group{margin-top:44px}
+.menu .item{display:grid;grid-template-columns:auto 1fr auto;align-items:baseline;gap:10px;margin-bottom:18px}
+.menu .item b{font-size:18px;font-weight:600}
+.menu .item .dots{border-bottom:4px dotted var(--ink);transform:translateY(-.25em)}
+.menu .item .v{font-size:16px;white-space:nowrap}
+.menu .item p{grid-column:1/-1;font-size:15px;color:var(--muted);max-width:34ch;margin-top:-10px}
+@media (max-width:767px){ .menu{padding:40px 20px 48px} .menu .group+.group{margin-top:32px} .menu h3{font-size:18px} }
+
+/* ---- how it works: the slip ---- */
+.year{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));column-gap:var(--gutter);color:var(--onpine);align-items:start}
+.year .lhs{grid-column:1/6}
+.year .lhs h2{font-size:clamp(2.5rem,2rem + 2.4vw,4.25rem);color:var(--onpine)}
+.year .lhs p{max-width:30ch;margin-top:20px;color:var(--onpine)}
+.slip{grid-column:8/13;background:var(--paper);color:var(--ink);padding:28px 24px 44px;font-size:16px;clip-path:polygon(0 0,100% 0,100% calc(100% - 14px),95% 100%,90% calc(100% - 14px),85% 100%,80% calc(100% - 14px),75% 100%,70% calc(100% - 14px),65% 100%,60% calc(100% - 14px),55% 100%,50% calc(100% - 14px),45% 100%,40% calc(100% - 14px),35% 100%,30% calc(100% - 14px),25% 100%,20% calc(100% - 14px),15% 100%,10% calc(100% - 14px),5% 100%,0 calc(100% - 14px))}
+.slip h3{font-size:16px;font-weight:700;margin:28px 0 8px}
+.slip h3:first-child{margin-top:0}
+.slip .r{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:baseline;padding:4px 0}
+.slip .r .dots{border-bottom:4px dotted var(--ink);transform:translateY(-.25em)}
+.slip .r span:last-child{white-space:nowrap;font-variant-numeric:tabular-nums}
+.slip .r small{display:block;color:var(--muted);font-size:14px}
+.slip .total{margin:28px -24px -44px;background:var(--ink);color:var(--paper);padding:0 24px;min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:12px;font-weight:700}
+@media (max-width:767px){ .year{display:block} .slip{margin-top:28px;padding:22px 16px 40px} .slip .total{margin:24px -16px -40px;padding:8px 16px} }
+
+/* ---- stats: the ledger ---- */
+.ledger{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));column-gap:var(--gutter);background:var(--paper-2);padding:calc(var(--section)/2) var(--margin)}
+.ledger .lhs{grid-column:1/6;align-self:center}
+.ledger .lhs h2{font-size:clamp(2rem,1.6rem + 2vw,3.25rem)}
+.ledger .lhs h2 span{display:block;color:var(--muted)}
+.ledger .lhs p{margin-top:18px;max-width:34ch}
+.ledger .rhs{grid-column:7/13}
+.fig{display:grid;grid-template-columns:3.3ch 2.2ch 1fr;align-items:baseline;column-gap:6px;margin-bottom:20px;font-size:clamp(4rem,7vw,7rem)}
+.fig .w{line-height:1;text-align:right;font-variant-numeric:tabular-nums lining-nums;font-weight:700;letter-spacing:-.03em}
+.fig .d{line-height:1;text-align:left;font-variant-numeric:tabular-nums;font-weight:700;letter-spacing:-.03em}
+.fig .c{font-size:16px;line-height:1.35;max-width:26ch}
+.fig .c .inputs{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.fig .c input{width:54px;min-height:44px;padding:0 6px;background:var(--paper);border:0;border-bottom:3px solid var(--ink);font-size:18px;font-variant-numeric:tabular-nums}
+.fig .c input.par{border-bottom-color:var(--accent)}
+@media (max-width:767px){
+  .ledger{display:block} .ledger .lhs h2{font-size:28px}
+  .fig{grid-template-columns:52% 1fr;grid-template-areas:"w d" "c c";column-gap:4px;margin-bottom:28px}
+  .fig{font-size:15vw}.fig .w{grid-area:w}.fig .d{grid-area:d}.fig .c{grid-area:c;font-size:15px;max-width:none}
+}
+
+/* ---- faq: index cards ---- */
+.cards{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));column-gap:var(--gutter)}
+.cards h2{grid-column:3/11;font-size:clamp(2.2rem,4vw,3.6rem);color:var(--onpine);margin-bottom:40px}
+.stack{grid-column:3/11;position:relative}
+.cardq{position:relative;margin-top:-28px;padding:0}
+.cardq:first-child{margin-top:0}
+.cardq .tab{position:relative;z-index:2;width:200px;height:40px;display:flex;align-items:center;padding:0 16px;font-size:16px;font-weight:700;margin-left:min(calc(var(--k) * 150px),calc(100% - 200px))}
+.cardq .face{position:relative;z-index:1;padding:20px 24px 48px;min-height:96px}
+.cardq .q{font-size:20px;font-weight:600;text-align:left;width:100%;line-height:1.25}
+.cardq .a{font-size:17px;max-width:50ch;margin-top:12px;color:var(--ink)}
+.cardq .a[hidden]{display:none}
+.cardq.c1 .tab,.cardq.c1 .face{background:var(--paper)}
+.cardq.c2 .tab,.cardq.c2 .face{background:var(--paper-3)}
+.cardq.c3 .tab,.cardq.c3 .face{background:var(--accent)}
+@media (max-width:767px){
+  .cards{display:block} .cards h2{font-size:9vw;margin-bottom:28px}
+  .cardq .tab{width:120px;height:36px;font-size:14px;margin-left:min(calc(var(--k) * 40px),calc(100% - 120px))}
+  .cardq .face{padding:16px 20px 44px} .cardq .q{font-size:18px}.cardq .a{font-size:16px}
+}
+
+/* ---- cta: the action tile ---- */
+.cta{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));column-gap:12px;margin-inline:calc(var(--margin) * -1)}
+.cta>*{height:360px}
+.cta .left{grid-column:1/3;background:var(--paper-3);overflow:hidden}
+.cta .left img{width:100%;height:100%;object-fit:cover}
+.cta .mid{grid-column:3/11;background:var(--accent);color:var(--accent-ink);padding:40px;display:grid;grid-template-columns:1fr auto;align-items:center;column-gap:40px}
+.cta .mid .say{display:flex;flex-direction:column;gap:12px}
+.cta .choices{display:grid;gap:10px}
+.cta .choices a{display:grid;grid-template-columns:52px 1fr;align-items:center;gap:12px;background:var(--ink);color:var(--onpine);padding:10px 16px 10px 10px;text-decoration:none;font-weight:700;font-size:16px;min-width:220px}
+.cta .choices a b{font-size:26px;background:var(--accent);color:var(--ink);text-align:center;line-height:52px}
+.cta .mid h2{font-size:clamp(2rem,2.8vw,2.5rem)}
+.cta .mid p{font-size:17px;max-width:48ch}
+.cta .mid .button{background:var(--ink);color:var(--onpine);align-self:flex-start;margin-top:12px}
+.cta .right{grid-column:11/13;background:var(--paper)}
+@media (max-width:767px){
+  .cta{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-inline:0}
+  .cta .mid{grid-column:1/-1;height:auto;min-height:300px;padding:28px 20px;grid-template-columns:1fr;row-gap:20px}.cta .mid h2{font-size:28px}
+  .cta .left,.cta .right{grid-column:auto;height:120px}
+}
+
+/* ---- footer: the back of the book ---- */
+.foot{background:var(--paper);padding:48px var(--margin) 40px;display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center}
+.foot img{width:72px;height:72px}
+.foot b{font-size:var(--step-lead)}
+.foot p{color:var(--muted);font-size:15px}
+
+/* ---- motion ---- */
+@media (prefers-reduced-motion:no-preference){
+  .js [data-rise]{opacity:0;transform:translateY(18px);animation:rise var(--t-reveal) var(--ease-out) forwards;animation-delay:calc(var(--i,0) * 90ms + 120ms)}
+  .js [data-reveal]{opacity:0;transform:translateY(24px);transition:opacity 700ms var(--ease-out),transform 900ms var(--ease-out)}
+  .js [data-reveal].is-in{opacity:1;transform:none}
+  .js .room img{transform:scale(1.06);transition:transform 1.6s var(--ease-soft)}
+  .js .room.is-in img{transform:none}
+  .plate .sq .screen{transition:opacity 500ms var(--ease-out)}
+  .cells button,.tabs button,.cardq .q{transition:transform var(--t-press) var(--ease-out),background-color var(--t-hover),color var(--t-hover)}
+  .cells button:active{transform:scale(.98)}
+  .room .fade{position:absolute;inset:0;opacity:0;transition:opacity 1.6s ease}
+  .room .fade.on{opacity:1}
+}
+@keyframes rise{to{opacity:1;transform:none}}
 </style>
 </head>
 <body>
-<div class="top"><small>Preview · for the commissioner</small><b>The Road to Vegas, three ways</b>
-  <div class="tabs"><button class="on" data-v="a">A · Seasons in the book</button><button data-v="b">B · The Clubhouse</button><button data-v="c">C · Two books</button></div>
-</div>
-<div class="wrap">
 
-<section id="v-a">
-<p class="about"><b>A · One book, seasons inside.</b> The app you already have learns what a season is. A switch in the masthead: Belek 2026, frozen as the archive, and Vegas 2027, live. Every tab keeps its name and its place; what each tab shows depends on the season and the time of year. Nobody learns a new app. <b>Recommended.</b></p>
-<h3>Today, in the off-season</h3>
-<div class="phones">
-<div class="phone"><div class="bar"><span><small>The Union Invitational</small><b>Today</b></span><span class="seas"><span>Belek ’26</span><span class="on">Vegas ’27</span></span></div>
-  <div class="body">
-    <div class="card pine"><span class="k" style="color:var(--gold-up)">Road to Vegas</span><span class="big">371 days</span><small>Next: deposits close 31 March · 7 of 12 in</small></div>
-    <div class="card gold"><span class="k">This month · The Merry Mulligan Open</span><b>Open until 21 Dec</b><small>Individual net Stableford, your home course. 4 cards in. Tap to enter yours.</small></div>
-    <div class="card"><b>You: Norberto III</b><small>In · deposit paid · 7-day · shirt XL · room with Jennifer D</small><small>Union handicap <b>15.8</b> (3 rounds) · tap to update your flights</small></div>
-    <div class="card"><b>Practice manual</b><small>Refreshed after your last card: putting B, par 5s C</small></div>
+<header class="hero">
+  <div class="card" id="top">
+    <div class="stripe" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <div class="in">
+      <div class="mark" data-rise style="--i:0"><img src="../../app/apple-touch-icon.png" alt="The crest of the Union Invitational" width="64" height="64"><span>The Union<br>Invitational</span></div>
+      <h1 class="display">The book becomes<br>the year.</h1>
+      <p class="lead" data-rise style="--i:2">One app for the Road to Vegas 2027 and a tour of monthly games at home: live leaderboards, a winner crowned at every stop, a season standings, and then the week itself. Three ways to build it.</p>
+      <a class="button" href="#tour" data-rise style="--i:3">See the three renditions</a>
+      <nav class="links" aria-label="The renditions"><a href="#tour">The Tour</a><a href="#clubhouse">The Clubhouse</a><a href="#register">The Register</a></nav>
+    </div>
   </div>
-  <div class="nav"><span class="on">Today</span><span>Entry</span><span>Boards</span><span>Vegas</span><span>Calendar</span></div></div>
-<div class="phone"><div class="bar"><span><small>Vegas ’27</small><b>Entry · a virtual round</b></span></div>
-  <div class="body">
-    <div class="card"><b>The Merry Mulligan Open</b><small>Norberto III · Blackwolf Run, white tees (approved) · 14 Dec</small></div>
-    <div class="sc"><i class="h">1</i><i class="h">2</i><i class="h">3</i><i class="h">4</i><i class="h">5</i><i class="h">6</i><i class="h">7</i><i class="h">8</i><i class="h">9</i><i>5</i><i>4</i><i>6</i><i>3</i><i>5</i><i>4</i><i>6</i><i>4</i><i>5</i></div>
-    <div class="sc"><i class="h">10</i><i class="h">11</i><i class="h">12</i><i class="h">13</i><i class="h">14</i><i class="h">15</i><i class="h">16</i><i class="h">17</i><i class="h">18</i><i>4</i><i>5</i><i>4</i><i>3</i><i>6</i><i>5</i><i>4</i><i>5</i><i>—</i></div>
-    <div class="cam">📷 Photo of the signed card · required before it counts</div>
-    <div class="card" style="margin-top:8px"><b>Gross 84 · net 68 · 36 pts</b><small>Posts a differential of 13.9 to your Union handicap</small></div>
+  <div class="room" data-reveal>
+    <img src="../../app/img/course_olympos-f0c646dc.webp" alt="Cullinan Olympos, where the 2026 final was played" width="1200" height="800">
+    <img class="fade" src="../../app/img/course_aspendos-1d8b13b1.webp" alt="" width="1200" height="800" loading="lazy">
+    <img class="fade" src="../../app/img/rp_aerial-c16164bb.webp" alt="" width="1200" height="800" loading="lazy">
   </div>
-  <div class="nav"><span>Today</span><span class="on">Entry</span><span>Boards</span><span>Vegas</span><span>Calendar</span></div></div>
-</div>
-<h3>What each tab becomes</h3>
-<table><tr><th>Tab</th><th>Off-season (Dec to Nov)</th><th>Vegas week</th></tr>
-<tr><td>Today</td><td>Countdown, next deadline, this month’s game, your own line, your manual</td><td>As Belek: the day, the recap, the tournament recap</td></tr>
-<tr><td>Entry</td><td>Virtual round: course picker, 18 holes, the photo of the card</td><td>As Belek: refs score the groups</td></tr>
-<tr><td>Boards</td><td>This month’s leaderboard, the season standings, Union handicaps, report cards</td><td>As Belek, plus the women’s 18 and the partners’ 9</td></tr>
-<tr><td>Resort → Vegas</td><td>Hotel, courses, rentals, contacts as vendors confirm</td><td>The resort pages, as Belek</td></tr>
-<tr><td>Calendar</td><td>The year: phases, deadlines, game windows</td><td>The itinerary: 2 practice days, 3 scoring rounds, the side events</td></tr>
-<tr><td>Manage</td><td>Roster &amp; sign-ups, rooms, money (values for all), travel, vendors, courses to approve, exports</td><td>As Belek, plus the same</td></tr></table>
-<h3>Trade-offs</h3>
-<div class="pros"><div class="g"><b>For</b><ul><li>One app, one habit: the Vegas week is the same screens people used in Belek</li><li>Every virtual card is a real card: photos, marks, the report, the manual</li><li>Belek stays readable in place, one switch away</li></ul></div><div class="r"><b>Against</b><ul><li>The biggest build: the book has to carry two seasons and know the time of year</li><li>A tab that changes meaning by season needs care so Today never confuses</li></ul></div></div>
+</header>
+
+<!-- ============ A · THE TOUR ============ -->
+<section class="show" id="tour" aria-labelledby="h-tour">
+  <div class="plate" data-reveal>
+    <div class="sq" data-rend="a">
+      <div class="screen" data-ui data-face="month">
+        <div class="top"><span><small>The Union Tour · stop 2 of 11</small><b>The Frostbite Open</b></span><span class="sw">closes Sun 25 Jan</span></div>
+        <div class="body">
+          <div class="panel pine"><h4>Live · 7 cards in, 5 to come</h4><b class="big">Matt D leads · 38 pts</b><p>Net Stableford, your home course, white tees or forward. Window: 9 to 25 January.</p></div>
+          <table><tr><th>Pos</th><th>Golfer</th><th>Course</th><th class="r">Net</th><th class="r">Pts</th></tr>
+          <tr class="first"><td>1</td><td>Matt D</td><td>Chambers Bay</td><td class="r">−2</td><td class="r">38</td></tr>
+          <tr><td>2</td><td>Ray V</td><td>Oakhurst</td><td class="r">E</td><td class="r">36</td></tr>
+          <tr><td>3</td><td>Norberto III</td><td>Blackwolf Run</td><td class="r">+1</td><td class="r">35</td></tr>
+          <tr><td>4</td><td>Gabriel P</td><td>Rancho Park</td><td class="r">+3</td><td class="r">33</td></tr>
+          <tr><td>5</td><td>DP</td><td>Griffith Park</td><td class="r">+4</td><td class="r">32</td></tr>
+          <tr><td>6</td><td>Dan A</td><td>Sandpines</td><td class="r">+6</td><td class="r">30</td></tr>
+          <tr><td>7</td><td>Duncan W</td><td>Lakeside</td><td class="r">+9</td><td class="r">27</td></tr></table>
+          <div class="btnrow"><span>Enter my card</span><span class="ghost">The stop’s rules</span></div>
+        </div>
+        <div class="nav"><span>Tour</span><span class="on">Stop</span><span>Card</span><span>Vegas</span><span>Book</span></div>
+      </div>
+      <div class="screen" data-ui data-face="season" hidden>
+        <div class="top"><span><small>The Union Tour · 2027</small><b>Order of Merit</b></span><span class="sw">after 2 stops</span></div>
+        <div class="body">
+          <div class="panel gold"><h4>Crowned so far</h4><b class="big">Dec · Norberto Jr. · Jan · Matt D</b><p>A win is 100 points, second 60, third 40, the top half 25, a card played 10. The Tour Championship is Vegas.</p></div>
+          <table><tr><th>Pos</th><th>Golfer</th><th class="r">Pts</th><th class="r">Wins</th><th class="r">Played</th></tr>
+          <tr class="lead"><td>1</td><td>Matt D</td><td class="r">160</td><td class="r">1</td><td class="r">2</td></tr>
+          <tr><td>2</td><td>Norberto Jr.</td><td class="r">125</td><td class="r">1</td><td class="r">2</td></tr>
+          <tr><td>3</td><td>Ray V</td><td class="r">100</td><td class="r">0</td><td class="r">2</td></tr>
+          <tr><td>4</td><td>Norberto III</td><td class="r">65</td><td class="r">0</td><td class="r">2</td></tr>
+          <tr><td>5</td><td>Gabriel P</td><td class="r">50</td><td class="r">0</td><td class="r">2</td></tr>
+          <tr><td>6</td><td>DP</td><td class="r">35</td><td class="r">0</td><td class="r">2</td></tr>
+          <tr><td>7</td><td>Dan A</td><td class="r">20</td><td class="r">0</td><td class="r">1</td></tr></table>
+        </div>
+        <div class="nav"><span class="on">Tour</span><span>Stop</span><span>Card</span><span>Vegas</span><span>Book</span></div>
+      </div>
+      <div class="screen" data-ui data-face="vegas" hidden>
+        <div class="top"><span><small>Championship HQ</small><b>Las Vegas · November 2027</b></span><span class="sw">371 days</span></div>
+        <div class="body">
+          <div class="panel pine"><h4>Next deadline</h4><b class="big">Deposits close 31 March</b><p>9 in · 2 maybe · 1 out. Vendor quotes due back 15 January.</p></div>
+          <div class="row2"><span>Money<small>Values the whole group sees</small></span><span class="nums"><b>£6,240</b> of £19,880</span></div>
+          <div class="row2"><span>Rooms<small>Who shares, room type, nights</small></span><span><b>5</b> of 6 set</span></div>
+          <div class="row2"><span>Flights<small>Numbers and landing times</small></span><span><b>4</b> of 12 in</span></div>
+          <div class="row2"><span>Courses<small>Two practice days, three rounds</small></span><span>with the vendor</span></div>
+          <div class="btnrow"><span>Export for the vendor</span><span class="ghost">The field</span></div>
+        </div>
+        <div class="nav"><span>Tour</span><span>Stop</span><span>Card</span><span class="on">Vegas</span><span>Book</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="text">
+    <div class="tabs" role="tablist" aria-label="Screens of The Tour" data-reveal>
+      <button role="tab" aria-selected="true" data-face="month">This stop</button>
+      <button role="tab" aria-selected="false" data-face="season">The season</button>
+      <button role="tab" aria-selected="false" data-face="vegas">Vegas HQ</button>
+    </div>
+    <div class="mid" data-reveal>
+      <h2 id="h-tour">A · The Tour</h2>
+      <p>The year is a tour. Eleven stops from December to October, each a named event with its own trophy, format and window. Cards land, the board moves live, and at the window’s close the stop crowns its winner and the Register writes it up. Points go to an Order of Merit, and Vegas is the Tour Championship.</p>
+      <ul>
+        <li>Stop: live board, cards in, the rules, enter my card.</li>
+        <li>Tour: the Order of Merit, the trophy cabinet, the awards.</li>
+        <li>Card: your Union handicap, form, trophies, the manual.</li>
+        <li>Vegas HQ: countdown, the field, money, rooms, flights, vendors, exports.</li>
+      </ul>
+    </div>
+    <div>
+      <div class="cells"><button aria-pressed="true" data-v="for">Why it wins</button><button class="off" aria-pressed="false" data-v="against">Where it strains</button></div>
+      <p class="verdict" data-for>Twelve people understand a tour at once: a stop, a leader, a champion. Every card is a real card, so the report and the manual refresh with it. One set of habits all year, and Vegas is simply the last stop.</p>
+      <p class="verdict" data-against hidden>The biggest build of the three. Planning lives in one tab of a golf app, so money and flights sit behind the leaderboard. The points table needs explaining once, in December, and then it runs itself.</p>
+    </div>
+  </div>
 </section>
 
-<section id="v-b" class="hide">
-<p class="about"><b>B · The Clubhouse in front.</b> A new front door for the year: five tiles. The tournament book stays exactly as it is, opened from the Clubhouse during Vegas week and reached from a tile as the Belek archive the rest of the time. Off-season life, sign-ups, money, games and handicaps live in the Clubhouse. <b>The lighter build.</b></p>
-<h3>The Clubhouse</h3>
-<div class="phones">
-<div class="phone"><div class="bar"><span><small>The Union Invitational</small><b>The Clubhouse</b></span></div>
-  <div class="body">
-    <div class="card pine"><span class="k" style="color:var(--gold-up)">Road to Vegas · 371 days</span><b>Sign-ups, calendar, money, travel</b><small>7 of 12 in · deposits close 31 March</small></div>
-    <div class="card gold"><b>Virtual games</b><small>The Merry Mulligan Open is open until 21 Dec · 4 cards in</small></div>
-    <div class="card"><b>Handicaps</b><small>Union handicaps from the virtual rounds · bands lock 13 Oct</small></div>
-    <div class="card"><b>Practice</b><small>Your manual, refreshed after each card</small></div>
-    <div class="card"><b>The archive · Belek 2026</b><small>The book as it was: scores, recaps, photos, the report</small></div>
-  </div></div>
-<div class="phone"><div class="bar"><span><small>Clubhouse</small><b>Road to Vegas · the field</b></span></div>
-  <div class="body">
-    <div class="row"><span><b>Norberto III</b> · 7-day · XL</span><span><span class="pill in">In</span> <span class="pill paid">Deposit</span></span></div>
-    <div class="row"><span><b>Matt D</b> · 7-day · L</span><span><span class="pill in">In</span> <span class="pill paid">Paid</span></span></div>
-    <div class="row"><span><b>Ray V</b> · 5-day · XL</span><span><span class="pill maybe">Maybe</span></span></div>
-    <div class="row"><span><b>Duncan W</b></span><span><span class="pill out">Out</span></span></div>
-    <div class="row"><span><b>Drea</b> · partner · women’s 18</span><span><span class="pill in">In</span> <span class="pill paid">Deposit</span></span></div>
-    <div class="card" style="margin-top:8px"><b>Money · the whole group sees the values</b><small>Budget · paid · outstanding a person, the deadline on top. Collected outside; shown here.</small></div>
-    <div class="card"><b>Export for the vendor</b><small>Headcount and names · rooms · flights and landing times, as a PDF or CSV</small></div>
-  </div></div>
-</div>
-<h3>What goes where</h3>
-<table><tr><th>Sheet tab</th><th>Clubhouse</th></tr>
-<tr><td>Planning overview</td><td>Road to Vegas: the year’s phases and deadlines, the vendor sheet</td></tr>
-<tr><td>Tournament breakdown</td><td>Stays in the tournament book’s Calendar, opened for Vegas week</td></tr>
-<tr><td>Financials</td><td>Money on the field page, values visible to all; shirt size and name preference on each person’s line</td></tr>
-<tr><td>Rooms</td><td>Rooms on the field page, with the vendor export</td></tr>
-<tr><td>The virtual game tabs</td><td>Virtual games tile: a game a month, cards entered with a photo, scored by the book’s engine</td></tr></table>
-<h3>Trade-offs</h3>
-<div class="pros"><div class="g"><b>For</b><ul><li>The tournament book is untouched and proven; nothing in it can break</li><li>Fast to build: new pages on top, one new table underneath</li><li>Belek is a tile, not a mode</li></ul></div><div class="r"><b>Against</b><ul><li>Two places to be: the Clubhouse for the year, the book for the week</li><li>Virtual cards use a copy of the scoring screen, so the two can drift</li><li>Handicaps have to be carried into the book by hand at Vegas</li></ul></div></div>
+<!-- ============ B · THE CLUBHOUSE ============ -->
+<section class="show alt" id="clubhouse" aria-labelledby="h-club">
+  <div class="plate" data-reveal>
+    <div class="sq" data-rend="b">
+      <div class="screen" data-ui data-face="you">
+        <div class="top"><span><small>The Clubhouse</small><b>Evening, Norberto III.</b></span><span class="sw">Sun 18 Jan</span></div>
+        <div class="body">
+          <div class="dials">
+            <div class="dial"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="26" fill="none" stroke="#D7CDB0" stroke-width="8"/><circle cx="32" cy="32" r="26" fill="none" stroke="#3E5C43" stroke-width="8" stroke-dasharray="163" stroke-dashoffset="52" stroke-linecap="round" transform="rotate(-90 32 32)"/><text x="32" y="37" text-anchor="middle" font-size="15" font-weight="700" fill="#1D2E21">15.8</text></svg><b>Form</b><small>down 0.6</small></div>
+            <div class="dial"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="26" fill="none" stroke="#D7CDB0" stroke-width="8"/><circle cx="32" cy="32" r="26" fill="none" stroke="#C9A253" stroke-width="8" stroke-dasharray="163" stroke-dashoffset="98" stroke-linecap="round" transform="rotate(-90 32 32)"/><text x="32" y="37" text-anchor="middle" font-size="15" font-weight="700" fill="#1D2E21">2/5</text></svg><b>Played</b><small>this season</small></div>
+            <div class="dial"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="26" fill="none" stroke="#D7CDB0" stroke-width="8"/><circle cx="32" cy="32" r="26" fill="none" stroke="#1E3A2B" stroke-width="8" stroke-dasharray="163" stroke-dashoffset="65" stroke-linecap="round" transform="rotate(-90 32 32)"/><text x="32" y="37" text-anchor="middle" font-size="15" font-weight="700" fill="#1D2E21">60%</text></svg><b>Ready</b><small>for Vegas</small></div>
+          </div>
+          <div class="panel gold"><h4>Open now</h4><b class="big">The Frostbite Open</b><p>Closes Sunday. No card from you yet. 7 of 12 are in; Matt D leads on 38.</p></div>
+          <div class="panel"><h4>Next for you</h4><p><b>Flights</b> are the one thing missing from your Vegas line. Deposits close 31 March; yours is paid.</p></div>
+          <div class="panel"><h4>Your manual</h4><p>Refreshed after the Merry Mulligan Open: putting B, par 5s C. Two drills changed.</p></div>
+        </div>
+        <div class="nav"><span class="on">You</span><span>Play</span><span>Standings</span><span>Vegas</span><span>Locker</span></div>
+      </div>
+      <div class="screen" data-ui data-face="standings" hidden>
+        <div class="top"><span><small>Standings</small><b>Union handicaps</b></span><span class="sw">bands lock 13 Oct</span></div>
+        <div class="body">
+          <table><tr><th>Golfer</th><th class="r">Rounds</th><th class="r">Now</th><th class="r">Trend</th><th class="r">Band</th></tr>
+          <tr><td>Matt D</td><td class="r">4</td><td class="r">14.2</td><td class="r">−1.1</td><td class="r">15</td></tr>
+          <tr class="lead"><td>Norberto III</td><td class="r">4</td><td class="r">15.8</td><td class="r">−0.6</td><td class="r">15</td></tr>
+          <tr><td>Ray V</td><td class="r">3</td><td class="r">19.4</td><td class="r">+0.3</td><td class="r">20</td></tr>
+          <tr><td>Gabriel P</td><td class="r">4</td><td class="r">21.0</td><td class="r">−0.2</td><td class="r">20</td></tr>
+          <tr><td>DP</td><td class="r">2</td><td class="r">17.1</td><td class="r">—</td><td class="r">—</td></tr>
+          <tr><td>Dan A</td><td class="r">3</td><td class="r">24.6</td><td class="r">+0.8</td><td class="r">25</td></tr>
+          <tr><td>Duncan W</td><td class="r">3</td><td class="r">29.3</td><td class="r">−0.4</td><td class="r">30</td></tr>
+          <tr><td>Norberto Jr.</td><td class="r">2</td><td class="r">27.5</td><td class="r">—</td><td class="r">—</td></tr></table>
+          <div class="panel" style="margin-top:8px"><h4>How it is worked out</h4><p>The best 3 of your last 6 virtual rounds, each measured against your course’s par and slope. Fewer than 3 rounds and there is no band yet.</p></div>
+        </div>
+        <div class="nav"><span>You</span><span>Play</span><span class="on">Standings</span><span>Vegas</span><span>Locker</span></div>
+      </div>
+      <div class="screen" data-ui data-face="vegas" hidden>
+        <div class="top"><span><small>Vegas · November 2027</small><b>Your line, and the field</b></span><span class="sw">371 days</span></div>
+        <div class="body">
+          <div class="check"><span>In for Vegas</span><b class="ok">Yes · 7-day</b></div>
+          <div class="check"><span>Deposit</span><b class="ok">Paid 12 Jan</b></div>
+          <div class="check"><span>Room</span><b class="ok">With Jennifer D · Superior</b></div>
+          <div class="check"><span>Shirt and name</span><b class="ok">XL · Norberto Diaz III</b></div>
+          <div class="check"><span>Home course approved</span><b class="ok">Blackwolf Run</b></div>
+          <div class="check"><span>Flights</span><b class="todo">Add when booked</b></div>
+          <div class="panel pine" style="margin-top:10px"><h4>The field’s readiness</h4><b class="big">9 in · 2 maybe · 1 out</b><div class="bar"><i style="width:58%"></i></div><p>58% of everything the commissioner needs is in. Money: £6,240 of £19,880.</p></div>
+        </div>
+        <div class="nav"><span>You</span><span>Play</span><span>Standings</span><span class="on">Vegas</span><span>Locker</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="text">
+    <div class="tabs" role="tablist" aria-label="Screens of The Clubhouse" data-reveal>
+      <button role="tab" aria-selected="true" data-face="you">You</button>
+      <button role="tab" aria-selected="false" data-face="standings">Standings</button>
+      <button role="tab" aria-selected="false" data-face="vegas">Vegas</button>
+    </div>
+    <div class="mid" data-reveal>
+      <h2 id="h-club">B · The Clubhouse</h2>
+      <p>The app opens on you. Three dials: your form, which is your Union handicap and its trend; how many of the season’s games you have played; and how ready you are for Vegas, from six things only you can settle. Under them, the one thing to do next. The group lives one tab over, in the standings and the field.</p>
+      <ul>
+        <li>You: the dials, the open game, your next task, your manual.</li>
+        <li>Play: enter a card with its photo, your approved course, the open games.</li>
+        <li>Standings: this month, the season, the handicaps, the awards.</li>
+        <li>Vegas: your line and the field’s readiness; Locker: report, trophies, photos.</li>
+      </ul>
+    </div>
+    <div>
+      <div class="cells"><button aria-pressed="true" data-v="for">Why it wins</button><button class="off" aria-pressed="false" data-v="against">Where it strains</button></div>
+      <p class="verdict" data-for>Nobody is chased. Each person sees their own gaps and the app nudges them: deposits in seven days, no card from you, your flights are missing. Readiness rolls up for the commissioner without a spreadsheet.</p>
+      <p class="verdict" data-against hidden>Less theatre. A tour crowns a champion in public; a clubhouse keeps the score quietly. The monthly winner needs its own moment on the standings tab so the games still feel like events.</p>
+    </div>
+  </div>
 </section>
 
-<section id="v-c" class="hide">
-<p class="about"><b>C · Two books, one roster.</b> A second book for Vegas 2027 at its own address, built from the same code, with its own database tables. The Belek book stays where it is, read-only. The roster, the Union handicaps and the virtual games are born in the Vegas book, and the two link to each other. <b>The cleanest separation.</b></p>
-<h3>The two front pages</h3>
-<div class="phones">
-<div class="phone"><div class="bar"><span><small>union-invitational / vegas</small><b>Today · Vegas 2027</b></span></div>
-  <div class="body">
-    <div class="card pine"><span class="k" style="color:var(--gold-up)">Road to Vegas</span><span class="big">371 days</span><small>Deposits close 31 March · 7 of 12 in</small></div>
-    <div class="card gold"><b>The Merry Mulligan Open</b><small>Open until 21 Dec · enter your card</small></div>
-    <div class="card"><b>The field</b><small>In / Maybe / Out · rooms · flights · money</small></div>
-    <div class="card"><b>Belek 2026 ›</b><small>The archive, in its own book</small></div>
+<!-- ============ C · THE REGISTER ============ -->
+<section class="show" id="register" aria-labelledby="h-reg">
+  <div class="plate" data-reveal>
+    <div class="sq" data-rend="c">
+      <div class="screen" data-ui data-face="board">
+        <div class="top"><span><small>The Register</small><b>The Board</b></span><span class="sw">live</span></div>
+        <div class="ticker">Frostbite Open closes in 6 days · 7 cards in · deposits close 31 Mar · vendor quotes due 15 Jan</div>
+        <div class="body">
+          <div class="grid12">
+            <div class="tile">Norberto III<div class="lights"><i class="on"></i><i class="on"></i><i class="no"></i><i class="on"></i></div></div>
+            <div class="tile">Matt D<div class="lights"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></div></div>
+            <div class="tile">Ray V<div class="lights"><i class="warn"></i><i></i><i></i><i class="on"></i></div></div>
+            <div class="tile">Gabriel P<div class="lights"><i class="on"></i><i class="on"></i><i></i><i class="on"></i></div></div>
+            <div class="tile">DP<div class="lights"><i class="on"></i><i></i><i></i><i class="warn"></i></div></div>
+            <div class="tile">Dan A<div class="lights"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></div></div>
+            <div class="tile">Duncan W<div class="lights"><i class="no"></i><i></i><i></i><i class="on"></i></div></div>
+            <div class="tile">Norberto Jr.<div class="lights"><i class="on"></i><i class="warn"></i><i></i><i class="warn"></i></div></div>
+            <div class="tile">Manuel P<div class="lights"><i class="on"></i><i class="on"></i><i></i><i></i></div></div>
+            <div class="tile">Robby B<div class="lights"><i class="warn"></i><i></i><i></i><i></i></div></div>
+            <div class="tile">Devin O<div class="lights"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></div></div>
+            <div class="tile">Drea<div class="lights"><i class="on"></i><i class="on"></i><i></i><i></i></div></div>
+          </div>
+          <p style="font-size:11px;color:var(--muted);margin:6px 0 10px;max-width:none">Lights: in · paid · flights · handicap set. Gold is pending, red is a no.</p>
+          <div class="row2"><span>Money collected<small>of the £19,880 the vendor needs by 3 August</small></span><span class="nums"><b>£6,240</b></span></div>
+          <div class="row2"><span>Rooms<small>5 of 6 settled; one pair to confirm</small></span><span><b>5</b>/6</span></div>
+        </div>
+        <div class="nav"><span class="on">Board</span><span>Season</span><span>Stop</span><span>Desk</span><span>Book</span></div>
+      </div>
+      <div class="screen" data-ui data-face="siren" hidden>
+        <div class="top"><span><small>Final siren · 25 Jan, 23:59</small><b>The Frostbite Open</b></span><span class="sw">closed</span></div>
+        <div class="body">
+          <div class="panel gold crown"><svg class="cup" viewBox="0 0 56 56" aria-hidden="true"><path d="M14 8h28v12a14 14 0 0 1-28 0z" fill="#1E3A2B"/><path d="M8 10h6v8a6 6 0 0 1-6-6zM42 10h6v2a6 6 0 0 1-6 6z" fill="#1E3A2B"/><rect x="24" y="33" width="8" height="8" fill="#1E3A2B"/><rect x="16" y="41" width="24" height="5" fill="#1E3A2B"/></svg><small>The Frostbite Cup</small><b>Matt D · 38 points</b><small>Chambers Bay · net −2 · 100 Order of Merit points</small></div>
+          <table><tr><th>Pos</th><th>Golfer</th><th class="r">Pts</th><th class="r">Merit</th></tr>
+          <tr><td>2</td><td>Ray V</td><td class="r">36</td><td class="r">60</td></tr>
+          <tr><td>3</td><td>Norberto III</td><td class="r">35</td><td class="r">40</td></tr>
+          <tr><td>4</td><td>Gabriel P</td><td class="r">33</td><td class="r">25</td></tr>
+          <tr><td>5</td><td>DP</td><td class="r">32</td><td class="r">25</td></tr></table>
+          <div class="panel" style="margin-top:8px"><h4>Done at the siren</h4><p>Recap written by the Register · dispatch sent to the group at 00:02 · social post queued for 9:00 · handicaps updated for 9 golfers.</p></div>
+        </div>
+        <div class="nav"><span>Board</span><span>Season</span><span class="on">Stop</span><span>Desk</span><span>Book</span></div>
+      </div>
+      <div class="screen" data-ui data-face="desk" hidden>
+        <div class="top"><span><small>The Register</small><b>The Desk</b></span><span class="sw">master</span></div>
+        <div class="body">
+          <div class="row2"><span>Reminders<small>Deposits: 14, 7 and 1 day before · game windows: open and last call</small></span><span class="pill in">on</span></div>
+          <div class="row2"><span>Courses to approve<small>Robby B · Lakeside Blue · par 71, index entered</small></span><span class="pill maybe">2</span></div>
+          <div class="row2"><span>Rooms planner<small>Drag a name to a room; type and nights follow</small></span><span>open</span></div>
+          <div class="row2"><span>Flights manifest<small>Numbers, landing times, who shares a car</small></span><span>4 of 12</span></div>
+          <div class="row2"><span>Vendor exports<small>Headcount and names · rooms · flights</small></span><span>PDF · CSV</span></div>
+          <div class="row2"><span>The archive<small>Belek 2026, frozen and readable</small></span><span>open</span></div>
+          <div class="btnrow"><span>Send the Register’s dispatch</span></div>
+        </div>
+        <div class="nav"><span>Board</span><span>Season</span><span>Stop</span><span class="on">Desk</span><span>Book</span></div>
+      </div>
+    </div>
   </div>
-  <div class="nav"><span class="on">Today</span><span>Entry</span><span>Boards</span><span>Vegas</span><span>Calendar</span></div></div>
-<div class="phone"><div class="bar"><span><small>union-invitational / app</small><b>Today · Belek 2026</b></span></div>
-  <div class="body">
-    <div class="card"><b>★ The Tournament Recap</b><small>A week that went to the wire</small></div>
-    <div class="card"><b>The Players Report</b><small>Every golfer graded, a coach’s letter each</small></div>
-    <div class="card" style="opacity:.6"><b>Read-only</b><small>The 2026 book is closed. Scores, photos and recaps stay as they were.</small></div>
-    <div class="card gold"><b>Vegas 2027 ›</b><small>The new book: sign up, play the virtual games</small></div>
+  <div class="text">
+    <div class="tabs" role="tablist" aria-label="Screens of The Register" data-reveal>
+      <button role="tab" aria-selected="true" data-face="board">The Board</button>
+      <button role="tab" aria-selected="false" data-face="siren">Final siren</button>
+      <button role="tab" aria-selected="false" data-face="desk">The Desk</button>
+    </div>
+    <div class="mid" data-reveal>
+      <h2 id="h-reg">C · The Register</h2>
+      <p>Built from the commissioner’s chair. The Board is a live wall: twelve tiles with four lights each, the money collected, the rooms settled, a ticker of what closes next. Games end on a siren that crowns the winner, writes the recap, sends the dispatch to the group and queues the post. The Desk runs the reminders, the approvals, the rooms and the exports.</p>
+      <ul>
+        <li>Board: the field at a glance, money, rooms, the next thing that closes.</li>
+        <li>Season: fixtures, results, the table, monthly and season awards.</li>
+        <li>Stop: the live board, then the siren and the crowning.</li>
+        <li>Desk: reminders, course approvals, rooms planner, flights, exports.</li>
+      </ul>
+    </div>
+    <div>
+      <div class="cells"><button aria-pressed="true" data-v="for">Why it wins</button><button class="off" aria-pressed="false" data-v="against">Where it strains</button></div>
+      <p class="verdict" data-for>It runs the year for you. Reminders go out on a schedule, the siren does the crowning and the writing, and the vendor gets a file rather than a message. The Board replaces the spreadsheet in one screen.</p>
+      <p class="verdict" data-against hidden>It leads with the commissioner’s view, so a golfer opening it on a Tuesday sees the field before their own game. The golfer’s side needs the same care as the Board or it reads as a control room.</p>
+    </div>
   </div>
-  <div class="nav"><span class="on">Today</span><span>Entry</span><span>Boards</span><span>Resort</span><span>Calendar</span></div></div>
-</div>
-<h3>Trade-offs</h3>
-<div class="pros"><div class="g"><b>For</b><ul><li>Nothing about Belek can be disturbed; the new book is free to change shape</li><li>Simple to reason about: one book, one year</li><li>Each year after Vegas gets its own book the same way</li></ul></div><div class="r"><b>Against</b><ul><li>Two home-screen icons; people install and open the wrong one</li><li>Handicaps, manuals and the roster have to be carried between books each year</li><li>Two sets of pages to keep in step when something improves</li></ul></div></div>
 </section>
 
-<h3>Common to all three</h3>
-<table><tr><th>Decided</th><th>How it works</th></tr>
-<tr><td>Sign-up</td><td>In / Maybe / Out, tapped by each person, with 7-day or 5-day, shirt size, name on the merch, room partner, flights when known</td></tr>
-<tr><td>Money</td><td>Budget, paid and outstanding a person, visible to the whole group as values; collected outside the app</td></tr>
-<tr><td>Virtual games</td><td>A themed game a month, home course inside a window, formats mixed through the year; card entered hole by hole with a photo of the signed card before it counts</td></tr>
-<tr><td>Courses</td><td>A golfer enters their home course once (name, tees, par and stroke index a hole); you approve it in Manage</td></tr>
-<tr><td>Handicaps</td><td>The Union handicap: a rolling figure from the best 3 of the last 6 virtual rounds; Vegas bands locked a month out</td></tr>
-<tr><td>Partners</td><td>Everyone travelling is in: rooms, shirts, their status, the women’s 18 and the partners’ 9 scored like any round</td></tr>
-<tr><td>Vendors</td><td>One-tap exports: headcount and names, rooms, flights and landing times</td></tr>
-<tr><td>Vegas week</td><td>Two practice days and three scoring rounds, the six games, the women’s 18 and the partners’ 9; dates in the November window until confirmed</td></tr>
-<tr><td>The archive</td><td>Belek 2026 frozen and readable; the app’s first season</td></tr>
-<tr><td>Go-live</td><td>The December reveal: roster, calendar and the Merry Mulligan Open</td></tr></table>
-<p class="note">Nothing on this page is live. Names and numbers are illustrative.</p>
-</div>
+<!-- ============ THE MENU ============ -->
+<section class="menu-wrap wrap" aria-labelledby="h-menu">
+  <div class="menu" data-reveal>
+    <h2 id="h-menu">What the book will do</h2>
+    <div class="group">
+      <h3>The Road to Vegas</h3>
+      <div class="item"><b>Sign-up</b><span class="dots"></span><span class="v">December</span><p>In, Maybe or Out, tapped by each person as vendors come in.</p></div>
+      <div class="item"><b>Your line</b><span class="dots"></span><span class="v">a minute</span><p>Seven or five days, shirt size, the name on the merch, who you room with.</p></div>
+      <div class="item"><b>Money</b><span class="dots"></span><span class="v">values, all see</span><p>Budget, paid and outstanding a person. Collected outside, shown here.</p></div>
+      <div class="item"><b>Rooms</b><span class="dots"></span><span class="v">planner</span><p>Who shares which room, the type, the nights.</p></div>
+      <div class="item"><b>Flights</b><span class="dots"></span><span class="v">as booked</span><p>Numbers and landing times, so cars and check-in line up.</p></div>
+      <div class="item"><b>Vendors</b><span class="dots"></span><span class="v">one sheet</span><p>Hotel, courses, rentals, contacts, quotes and what was agreed.</p></div>
+      <div class="item"><b>Deadlines</b><span class="dots"></span><span class="v">to your phone</span><p>Deposits, full payment, flights: reminders on a schedule, not in the chat.</p></div>
+      <div class="item"><b>Exports</b><span class="dots"></span><span class="v">a tap</span><p>Headcount and names, rooms, flights, as a PDF or a CSV for the vendor.</p></div>
+      <div class="item"><b>The week</b><span class="dots"></span><span class="v">five rounds</span><p>Two practice days, three for the cup, the women’s 18 and the partners’ 9, scored like Belek.</p></div>
+    </div>
+    <div class="group">
+      <h3>The Tour</h3>
+      <div class="item"><b>Stops</b><span class="dots"></span><span class="v">one a month</span><p>December to October, each named, with a window, a format and a trophy.</p></div>
+      <div class="item"><b>Formats</b><span class="dots"></span><span class="v">mixed</span><p>Net Stableford, net stroke play, pairs combined remotely, a scramble in person.</p></div>
+      <div class="item"><b>Your course</b><span class="dots"></span><span class="v">once, approved</span><p>Par and stroke index a hole from the scorecard; the commissioner approves it.</p></div>
+      <div class="item"><b>The card</b><span class="dots"></span><span class="v">18 holes, a photo</span><p>The same entry screen as the course, and the signed card photographed before it counts.</p></div>
+      <div class="item"><b>Live board</b><span class="dots"></span><span class="v">as cards land</span><p>Every phone sees the same table the moment a card is in.</p></div>
+      <div class="item"><b>Crowning</b><span class="dots"></span><span class="v">at the close</span><p>The winner, the trophy, the recap by the Register, the post for the accounts.</p></div>
+      <div class="item"><b>Season standings</b><span class="dots"></span><span class="v">points a stop</span><p>A table for the year, with the awards: golfer of the month, most improved, the iron man.</p></div>
+      <div class="item"><b>Union handicap</b><span class="dots"></span><span class="v">best 3 of 6</span><p>From the virtual rounds; Vegas bands locked a month out, no arguments on the first tee.</p></div>
+      <div class="item"><b>The manual</b><span class="dots"></span><span class="v">refreshed</span><p>Each card re-grades the report and re-picks the drills.</p></div>
+      <div class="item"><b>The archive</b><span class="dots"></span><span class="v">Belek 2026</span><p>Frozen and readable: the first season behind the new one.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ THE YEAR ============ -->
+<section class="section wrap" aria-labelledby="h-year">
+  <div class="year">
+    <div class="lhs" data-reveal>
+      <h2 id="h-year">The year, on one slip</h2>
+      <p>What the group plays and what it owes, in the order it comes. The stop names are suggestions; the deadlines are the tracker’s.</p>
+    </div>
+    <div class="slip nums" data-reveal>
+      <h3>Winter</h3>
+      <div class="r"><span>The reveal, sign-ups open<small>Roster, calendar, the first stop</small></span><span class="dots"></span><span>Dec 1</span></div>
+      <div class="r"><span>The Merry Mulligan Open<small>Net Stableford</small></span><span class="dots"></span><span>Dec 6–21</span></div>
+      <div class="r"><span>The Frostbite Open<small>Net stroke play</small></span><span class="dots"></span><span>Jan 9–25</span></div>
+      <div class="r"><span>The Sweetheart Scramble<small>Pairs, cards combined</small></span><span class="dots"></span><span>Feb 6–21</span></div>
+      <h3>Spring</h3>
+      <div class="r"><span>The Spring Fling<small>Net Stableford</small></span><span class="dots"></span><span>Mar 6–21</span></div>
+      <div class="r"><span>Deposits close</span><span class="dots"></span><span>Mar 31</span></div>
+      <div class="r"><span>The Commissioner’s Cup<small>Better ball, remote</small></span><span class="dots"></span><span>Apr 10–25</span></div>
+      <div class="r"><span>The May Day Open<small>Net stroke play</small></span><span class="dots"></span><span>May 8–23</span></div>
+      <h3>Summer</h3>
+      <div class="r"><span>The Midsummer Open<small>Net Stableford</small></span><span class="dots"></span><span>Jun 5–20</span></div>
+      <div class="r"><span>The Independence Scramble<small>Pairs, in person</small></span><span class="dots"></span><span>Jul 3–18</span></div>
+      <div class="r"><span>Full payment due</span><span class="dots"></span><span>Aug 3</span></div>
+      <div class="r"><span>The Dog Days Open<small>Net stroke play</small></span><span class="dots"></span><span>Aug 7–22</span></div>
+      <h3>Autumn</h3>
+      <div class="r"><span>The Harvest Open<small>Net Stableford</small></span><span class="dots"></span><span>Sep 4–19</span></div>
+      <div class="r"><span>The Qualifier<small>Net stroke play, last stop</small></span><span class="dots"></span><span>Oct 2–17</span></div>
+      <div class="r"><span>Vegas bands locked</span><span class="dots"></span><span>Oct 13</span></div>
+      <div class="total"><span>Vegas: five rounds, the cup</span><span>Nov 13–21</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ THE LEDGER ============ -->
+<section class="ledger" aria-labelledby="h-ledger">
+  <div class="lhs" data-reveal>
+    <h2 id="h-ledger"><span>One number.</span>No arguments.</h2>
+    <p>Type three recent gross scores and the par of the course. The book works out your Union handicap the way it will for every virtual round, and the Vegas band that follows.</p>
+  </div>
+  <div class="rhs" data-reveal>
+    <div class="fig" id="hcp"><span class="w" id="hcpW">15</span><span class="d" id="hcpD">.8</span><span class="c"><span id="hcpText">your Union handicap from three rounds: the best two count, and the band is <b id="hcpBand">15</b>. Type three scores, then the par:</span>
+      <span class="inputs"><input type="number" inputmode="numeric" value="88" min="55" max="140" data-s aria-label="First gross score"><input type="number" inputmode="numeric" value="91" min="55" max="140" data-s aria-label="Second gross score"><input type="number" inputmode="numeric" value="86" min="55" max="140" data-s aria-label="Third gross score"><input type="number" inputmode="numeric" value="72" min="60" max="74" data-par aria-label="Par of the course" class="par"></span></span></div>
+    <div class="fig"><span class="w">11</span><span class="d"></span><span class="c">stops on the tour, December to October, a winner crowned at each</span></div>
+    <div class="fig"><span class="w">3</span><span class="d"></span><span class="c">of your last six rounds count towards the handicap, so one bad day never does</span></div>
+    <div class="fig"><span class="w">5</span><span class="d"></span><span class="c">rounds in Vegas: two practice days and three for the cup, plus the women’s 18 and the partners’ 9</span></div>
+    <div class="fig"><span class="w">371</span><span class="d"></span><span class="c">days until the first tee in Vegas, counted down on every phone from the reveal</span></div>
+  </div>
+</section>
+
+<!-- ============ THE DECISIONS ============ -->
+<section class="section wrap" aria-labelledby="h-faq">
+  <div class="cards">
+    <h2 id="h-faq" data-reveal>What is already decided</h2>
+    <div class="stack" data-reveal>
+      <div class="cardq c1" style="--k:0"><div class="tab">Money</div><div class="face"><button class="q" aria-expanded="true">Who sees who has paid?</button><p class="a">Everyone in the group, as values: the budget, what is paid and what is outstanding for each person, with the deadline on top. Nothing is collected in the app; Zelle and the portal stay where they are. The social accounts never get it.</p></div></div>
+      <div class="cardq c2" style="--k:1"><div class="tab">The card</div><div class="face"><button class="q" aria-expanded="false">What makes a virtual round count?</button><p class="a" hidden>Eighteen holes entered in the app inside the stop’s window, on a course the commissioner has approved, with a photograph of the signed card attached before it posts. The master PIN can correct one afterwards.</p></div></div>
+      <div class="cardq c3" style="--k:2"><div class="tab">Handicaps</div><div class="face"><button class="q" aria-expanded="false">Which handicap is the real one?</button><p class="a" hidden>The Union handicap, worked out by the app from the best three of your last six virtual rounds against your course’s par and slope. No official index is needed. The Vegas bands are locked from it on 13 October.</p></div></div>
+      <div class="cardq c1" style="--k:3"><div class="tab">Partners</div><div class="face"><button class="q" aria-expanded="false">Are partners in the app?</button><p class="a" hidden>Yes, everyone travelling: a line each for rooms, shirts, status and flights, and their own events in Vegas, the women’s 18-hole round and the partners’ 9, scored like any other round.</p></div></div>
+      <div class="cardq c2" style="--k:4"><div class="tab">Vendors</div><div class="face"><button class="q" aria-expanded="false">What does the vendor get?</button><p class="a" hidden>Three exports from the roster, one tap each: headcount and names with seven or five days, rooms with type and nights, and the flight manifest with numbers and landing times. A PDF to send or a CSV to paste.</p></div></div>
+      <div class="cardq c3" style="--k:5"><div class="tab">Belek</div><div class="face"><button class="q" aria-expanded="false">What happens to the 2026 book?</button><p class="a" hidden>It is frozen and stays readable: the scores, the recaps, the photos and the report as they were on 2 November. It is the first season in the archive, with the UK edition as a line of text before it.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ THE CLOSE ============ -->
+<section class="section wrap" aria-labelledby="h-cta">
+  <div class="cta" data-reveal>
+    <div class="left"><img src="../../app/img/rp_golf-3f9be5f4.webp" alt="The practice ground at Belek, from the 2026 book" width="600" height="800" loading="lazy"></div>
+    <div class="mid">
+      <div class="say">
+        <h2 id="h-cta">Pick one, and December has it.</h2>
+        <p>Say A, B or C in the chat. The first build is the reveal itself: sign-ups, the calendar and the Merry Mulligan Open, in the book everyone already carries.</p>
+        <a class="button" href="../../app/">Open the book as it is today</a>
+      </div>
+      <div class="choices"><a href="#tour"><b>A</b>The Tour</a><a href="#clubhouse"><b>B</b>The Clubhouse</a><a href="#register"><b>C</b>The Register</a></div>
+    </div>
+    <div class="right"></div>
+  </div>
+</section>
+
+<div class="stripe thin" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+<footer class="foot">
+  <img src="../../app/apple-touch-icon.png" alt="" width="72" height="72">
+  <b>The Union Invitational</b>
+  <p>Belek 2026 is the first season in the archive. Las Vegas 2027 is the one this page is about. Names, scores and figures on this page are illustrative.</p>
+</footer>
+
 <script>
-document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => {
-  document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === b));
-  ['a', 'b', 'c'].forEach(v => document.getElementById('v-' + v).classList.toggle('hide', v !== b.dataset.v));
-  window.scrollTo(0, 0);
-}));
+(function(){
+  /* the plates: which screen shows */
+  document.querySelectorAll('.show').forEach(function(sec){
+    var sq = sec.querySelector('.sq'), tabs = sec.querySelectorAll('.tabs [role=tab]');
+    tabs.forEach(function(t){ t.addEventListener('click', function(){
+      tabs.forEach(function(x){ x.setAttribute('aria-selected', x === t ? 'true' : 'false'); });
+      sq.querySelectorAll('.screen').forEach(function(s){ s.hidden = s.dataset.face !== t.dataset.face; });
+    }); });
+    var cells = sec.querySelectorAll('.cells button');
+    cells.forEach(function(c){ c.addEventListener('click', function(){
+      cells.forEach(function(x){ var on = x === c; x.setAttribute('aria-pressed', on ? 'true' : 'false'); x.classList.toggle('off', !on); });
+      sec.querySelector('[data-for]').hidden = c.dataset.v !== 'for';
+      sec.querySelector('[data-against]').hidden = c.dataset.v !== 'against';
+    }); });
+  });
+  /* the plates: the phone sized to its square */
+  function size(){ document.querySelectorAll('.plate .sq').forEach(function(sq){ var z = Math.max(0.8, Math.min(1.75, sq.clientWidth * 0.8 / 360)); sq.style.setProperty('--z', z.toFixed(3)); }); }
+  size(); addEventListener('resize', size);
+  /* the live thing: the Union handicap */
+  var ins = document.querySelectorAll('#hcp [data-s]'), par = document.querySelector('#hcp [data-par]');
+  function hcp(){
+    var p = +par.value || 72, ds = [];
+    ins.forEach(function(i){ var v = +i.value; if (v >= 55 && v <= 140) ds.push(v - p); });
+    if (ds.length < 2) return;
+    ds.sort(function(a,b){ return a - b; });
+    var best = ds.slice(0, Math.max(2, Math.min(3, ds.length - 1)));
+    var h = Math.max(0, Math.round(best.reduce(function(a,b){ return a + b; }, 0) / best.length * 0.96 * 10) / 10);
+    var bands = [15, 20, 25, 30], band = bands.reduce(function(a, b){ return Math.abs(b - h) < Math.abs(a - h) ? b : a; });
+    document.getElementById('hcpW').textContent = String(Math.floor(h));
+    document.getElementById('hcpD').textContent = '.' + Math.round((h - Math.floor(h)) * 10);
+    document.getElementById('hcpBand').textContent = String(band);
+  }
+  ins.forEach(function(i){ i.addEventListener('input', hcp); }); par.addEventListener('input', hcp); hcp();
+  /* the index cards */
+  document.querySelectorAll('.cardq .q').forEach(function(q){ q.addEventListener('click', function(){
+    var open = q.getAttribute('aria-expanded') === 'true';
+    document.querySelectorAll('.cardq .q').forEach(function(x){ x.setAttribute('aria-expanded', 'false'); x.nextElementSibling.hidden = true; });
+    if (!open) { q.setAttribute('aria-expanded', 'true'); q.nextElementSibling.hidden = false; }
+  }); });
+  /* reveals */
+  var targets = document.querySelectorAll('[data-reveal]');
+  if (!('IntersectionObserver' in window)) { targets.forEach(function(el){ el.classList.add('is-in'); }); }
+  else { var io = new IntersectionObserver(function(es){ es.forEach(function(e){ if (e.isIntersecting) { e.target.classList.add('is-in'); io.unobserve(e.target); } }); }, { rootMargin: '0px 0px -10% 0px' }); targets.forEach(function(el){ io.observe(el); }); }
+  setTimeout(function(){ targets.forEach(function(el){ el.classList.add('is-in'); }); }, 2500);   /* nothing stays hidden for long, whatever the scroll */
+  /* the room: light shifting, three pictures of the same world */
+  var fades = document.querySelectorAll('.room .fade'), at = -1;
+  if (fades.length && !matchMedia('(prefers-reduced-motion: reduce)').matches) setInterval(function(){
+    if (document.hidden) return;
+    fades.forEach(function(f){ f.classList.remove('on'); });
+    at = (at + 2) % (fades.length + 1) - 1; if (at >= 0) fades[at].classList.add('on');
+  }, 5600);
+})();
 </script>
 </body>
 </html>
