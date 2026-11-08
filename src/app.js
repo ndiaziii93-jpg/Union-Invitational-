@@ -7503,7 +7503,10 @@ function roundModalHtml() {
    it. Only the master PIN reads the answers, in Manage. */
 const FB_LINK = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/feedback/';
 const FB_DONE_KEY = 'union-invitational:feedback', FB_DRAFT_KEY = 'union-invitational:feedback-draft', FB_PEND_KEY = 'union-invitational:feedback-pending';
-const feedbackLive = () => !!(T.config.feedback && T.config.feedback.live);
+/* The form was the trip's. Once the Clubhouse is open it asks nobody: the
+   answers stay readable behind Manage, and the week's own form comes back
+   with the week. */
+const feedbackLive = () => !!(T.config.feedback && T.config.feedback.live) && !clubPhase();
 const feedbackSent = () => { try { return JSON.parse(localStorage.getItem(FB_DONE_KEY) || 'null'); } catch (e) { return null; } };
 const fbRead = k => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } };
 const fbPut = (k, v) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* blocked */ } };
@@ -8337,7 +8340,7 @@ function manageModalHtml() {
       }).join('')}
       ${canAdmin() ? `<button class="mg-row" data-act="fbView">
           <span class="mg-w"><span class="mg-t">Feedback</span>
-            <span class="mg-n">${feedbackLive() ? 'The form is open · every answer, as it comes in' : 'The form is closed · read the answers'}</span></span>
+            <span class="mg-n">${feedbackLive() ? 'The form is open · every answer, as it comes in' : clubPhase() && T.config.feedback && T.config.feedback.live ? 'Closed while the Clubhouse is open · read the answers' : 'The form is closed · read the answers'}</span></span>
           ${UI.fbView && UI.fbView.rows ? `<span class="mg-ct">${UI.fbView.rows.length}</span>` : ''}
           <span class="mg-go" aria-hidden="true">&rsaquo;</span></button>` : ''}
     </div>
