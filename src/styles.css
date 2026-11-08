@@ -5397,6 +5397,8 @@ h2.greet small{display:block;font-size:14px;color:var(--turf);font-weight:400;fo
 .cline.gold{background:#EBD59A;border-color:var(--gold-up)}
 .cline.gold .ck{color:#5B4A24}.cline.gold p{color:#4A3D20}
 .cact{margin:14px 0 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.cline .cact{margin-top:10px}
+.cact .btn{display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
 .ctbl{width:100%;border-collapse:collapse;font-size:14.5px;margin-top:10px;max-width:760px}
 .ctbl th{font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--turf);text-align:left;padding:6px 4px;border-bottom:2px solid var(--ink);font-weight:700}
 .ctbl td{padding:8px 4px;border-bottom:1px solid var(--hair);vertical-align:middle}

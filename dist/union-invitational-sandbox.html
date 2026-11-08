@@ -5401,6 +5401,8 @@ h2.greet small{display:block;font-size:14px;color:var(--turf);font-weight:400;fo
 .cline.gold{background:#EBD59A;border-color:var(--gold-up)}
 .cline.gold .ck{color:#5B4A24}.cline.gold p{color:#4A3D20}
 .cact{margin:14px 0 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.cline .cact{margin-top:10px}
+.cact .btn{display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
 .ctbl{width:100%;border-collapse:collapse;font-size:14.5px;margin-top:10px;max-width:760px}
 .ctbl th{font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--turf);text-align:left;padding:6px 4px;border-bottom:2px solid var(--ink);font-weight:700}
 .ctbl td{padding:8px 4px;border-bottom:1px solid var(--hair);vertical-align:middle}
@@ -5568,7 +5570,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261108-1351';
+const BUILD = '20261108-1928';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -21551,7 +21553,7 @@ function scrYou() {
   ${line.next ? lineHtml('Next for you', esc(line.next.label), esc(line.next.val) + ' · ' + line.done + ' of ' + line.of + ' on your Vegas line.', `<p style="margin-top:10px"><button class="btn ghost" data-act="go" data-a="hq">Open Vegas HQ</button></p>`)
     : lineHtml('Your Vegas line', 'All ' + line.of + ' done', 'Nothing outstanding. The commissioner will say when the dates lock.')}
   ${golfer && mine ? lineHtml('Your practice manual', 'Picked from your Belek report card', 'Putting ' + esc(gradeOf(mine, 'putting')) + ' · par 3s ' + esc(gradeOf(mine, 'par3')) + ' · par 5s ' + esc(gradeOf(mine, 'par5')) + '. Twelve to fifteen drills, drawn and scored, with a coach on video.', `<p style="margin-top:10px"><button class="btn ghost" data-act="manualOpen" data-a="${me}">Open my manual</button></p>`) : ''}
-  ${golfer && mine ? lineHtml('Your Belek 2026 card', esc(belekLine(mine)), 'The first season in your archive. Readable any time; nothing in it can change.', `<p style="margin-top:10px"><button class="btn ghost" data-act="reportPlayer" data-a="${me}">Read my report card</button> <button class="btn ghost" data-act="archiveView" data-a="2026">Open the Belek book</button></p>`) : ''}`;
+  ${golfer && mine ? lineHtml('Your Belek 2026 card', esc(belekLine(mine)), 'The first season in your archive. Readable any time; nothing in it can change.', `<p class="cact"><button class="btn ghost" data-act="reportPlayer" data-a="${me}">Read my report card</button><button class="btn ghost" data-act="archiveView" data-a="2026">Open the Belek book</button></p>`) : ''}`;
 }
 const gradeOf = (pr, k) => (pr && pr.grades && pr.grades[k]) || '—';
 function belekLine(pr) {
@@ -21650,7 +21652,7 @@ function seasonArchive() {
   const F = fieldReportSafe();
   return `<h3 class="sub">The archive</h3>
   ${Object.entries(s.archive || {}).map(([yr, a]) => `<div class="cline"><span class="ck">${esc(yr)} · closed book</span><b class="ct">${esc(a.name || yr)}</b><p>${esc(a.venue || '')}${a.place ? ', ' + esc(a.place) : ''} · ${esc(C.fmtDay(a.from))} to ${esc(C.fmtDay(a.to, { year: true }))}. Every card, board, recap, photo and report card, readable as they ended.</p>
-    <p style="margin-top:10px"><button class="btn" data-act="archiveView" data-a="${esc(yr)}">Open the ${esc(a.name || yr)} book</button> <a class="btn ghost" href="${esc(D.SITE_URL)}recap/?r=report" target="_blank" rel="noopener">The players report</a></p></div>`).join('')}
+    <p class="cact"><button class="btn" data-act="archiveView" data-a="${esc(yr)}">Open the ${esc(a.name || yr)} book</button><a class="btn ghost" href="${esc(D.SITE_URL)}recap/?r=report" target="_blank" rel="noopener">The players report</a></p></div>`).join('')}
   ${F ? `<h3 class="sub">Belek report cards</h3><div class="rp-list">${F.players.map(pr => `<button class="rp-row" data-act="reportPlayer" data-a="${pr.id}"><span class="rp-rw"><b>${esc(pr.name)}</b><small>${esc(belekLine(pr))}</small></span><span class="rp-go" aria-hidden="true">›</span></button>`).join('')}</div>` : ''}`;
 }
 

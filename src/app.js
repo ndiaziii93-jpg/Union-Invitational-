@@ -7857,7 +7857,7 @@ function scrYou() {
   ${line.next ? lineHtml('Next for you', esc(line.next.label), esc(line.next.val) + ' · ' + line.done + ' of ' + line.of + ' on your Vegas line.', `<p style="margin-top:10px"><button class="btn ghost" data-act="go" data-a="hq">Open Vegas HQ</button></p>`)
     : lineHtml('Your Vegas line', 'All ' + line.of + ' done', 'Nothing outstanding. The commissioner will say when the dates lock.')}
   ${golfer && mine ? lineHtml('Your practice manual', 'Picked from your Belek report card', 'Putting ' + esc(gradeOf(mine, 'putting')) + ' · par 3s ' + esc(gradeOf(mine, 'par3')) + ' · par 5s ' + esc(gradeOf(mine, 'par5')) + '. Twelve to fifteen drills, drawn and scored, with a coach on video.', `<p style="margin-top:10px"><button class="btn ghost" data-act="manualOpen" data-a="${me}">Open my manual</button></p>`) : ''}
-  ${golfer && mine ? lineHtml('Your Belek 2026 card', esc(belekLine(mine)), 'The first season in your archive. Readable any time; nothing in it can change.', `<p style="margin-top:10px"><button class="btn ghost" data-act="reportPlayer" data-a="${me}">Read my report card</button> <button class="btn ghost" data-act="archiveView" data-a="2026">Open the Belek book</button></p>`) : ''}`;
+  ${golfer && mine ? lineHtml('Your Belek 2026 card', esc(belekLine(mine)), 'The first season in your archive. Readable any time; nothing in it can change.', `<p class="cact"><button class="btn ghost" data-act="reportPlayer" data-a="${me}">Read my report card</button><button class="btn ghost" data-act="archiveView" data-a="2026">Open the Belek book</button></p>`) : ''}`;
 }
 const gradeOf = (pr, k) => (pr && pr.grades && pr.grades[k]) || '—';
 function belekLine(pr) {
@@ -7956,7 +7956,7 @@ function seasonArchive() {
   const F = fieldReportSafe();
   return `<h3 class="sub">The archive</h3>
   ${Object.entries(s.archive || {}).map(([yr, a]) => `<div class="cline"><span class="ck">${esc(yr)} · closed book</span><b class="ct">${esc(a.name || yr)}</b><p>${esc(a.venue || '')}${a.place ? ', ' + esc(a.place) : ''} · ${esc(C.fmtDay(a.from))} to ${esc(C.fmtDay(a.to, { year: true }))}. Every card, board, recap, photo and report card, readable as they ended.</p>
-    <p style="margin-top:10px"><button class="btn" data-act="archiveView" data-a="${esc(yr)}">Open the ${esc(a.name || yr)} book</button> <a class="btn ghost" href="${esc(D.SITE_URL)}recap/?r=report" target="_blank" rel="noopener">The players report</a></p></div>`).join('')}
+    <p class="cact"><button class="btn" data-act="archiveView" data-a="${esc(yr)}">Open the ${esc(a.name || yr)} book</button><a class="btn ghost" href="${esc(D.SITE_URL)}recap/?r=report" target="_blank" rel="noopener">The players report</a></p></div>`).join('')}
   ${F ? `<h3 class="sub">Belek report cards</h3><div class="rp-list">${F.players.map(pr => `<button class="rp-row" data-act="reportPlayer" data-a="${pr.id}"><span class="rp-rw"><b>${esc(pr.name)}</b><small>${esc(belekLine(pr))}</small></span><span class="rp-go" aria-hidden="true">›</span></button>`).join('')}</div>` : ''}`;
 }
 
