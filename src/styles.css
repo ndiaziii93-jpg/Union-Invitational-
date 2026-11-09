@@ -5473,3 +5473,24 @@ h2.greet small{display:block;font-size:14px;color:var(--turf);font-weight:400;fo
 .ctbl.onapp td small{color:var(--turf);font-size:12px}
 .ctbl.onapp .ok{color:var(--green);font-weight:700}
 .ctbl.onapp tr.onit td:first-child{box-shadow:inset 3px 0 0 var(--green)}
+
+/* ---- the Clubhouse on a tablet and a laptop ----
+   A phone reads one column; anything wider lays the cards out in two, the
+   hero across the top, and the card beside the hole on a virtual round. */
+.cgrid{display:grid;gap:12px;margin-top:12px;max-width:680px}
+.cgrid .cline{margin-top:0;max-width:none}
+@media (min-width:700px){
+  .cgrid{grid-template-columns:1fr 1fr;max-width:1100px;gap:14px}
+  .cgrid .cline.gold{grid-column:1 / -1}
+  .cdials{max-width:600px}
+  .vhero{max-width:none;display:grid;grid-template-columns:1fr auto;grid-template-areas:"k big" "t big" "tag big" "s big";column-gap:28px;align-items:start;padding:26px 28px 22px}
+  .vhero .ck{grid-area:k}.vhero b{grid-area:t;font-size:34px}.vhero .vhero-tag{grid-area:tag;margin-top:2px}.vhero small{grid-area:s;max-width:60ch}.vhero .big{grid-area:big;font-size:64px;margin-top:0;text-align:right;align-self:end}
+  .hq-grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:16px 36px;align-items:start}
+  .hq-main .cline,.hq-main .pkgs,.hq-main .fieldset{max-width:none}
+  .hq-side .frows,.hq-side .rooms,.hq-side .vrows,.hq-side .legend{max-width:none}
+  .hq-side>h3.sub:first-child{margin-top:18px}
+  .ce-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:16px 32px;align-items:start}
+  .ce-side{padding-top:14px}
+  .ce-side .ctbl{max-width:none}
+  .ctbl{max-width:980px}
+}

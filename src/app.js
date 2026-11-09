@@ -7872,6 +7872,7 @@ function scrYou() {
   const mine = F ? F.players.find(x => x.id === me) : null;
   return `<h2 class="greet">${greeting()}, ${esc(p.display || p.name || '')}.<small>${esc(C.dowOf(today))} ${esc(C.fmtDay(today))} · the Clubhouse · ${toVegas > 0 ? toVegas + ' days to Vegas' : 'Vegas week'}</small></h2>
   ${golfer ? `<div class="cdials">${dialHtml(d.form, 'var(--green)')}${dialHtml(d.played, 'var(--gold)')}${dialHtml(d.ready, 'var(--pine)')}</div>` : `<div class="cdials one">${dialHtml(d.ready, 'var(--pine)')}</div>`}
+  <div class="cgrid">
   ${golfer && open ? lineHtml('Open now · ' + esc(C.fmtDay(open.from)) + ' to ' + esc(C.fmtDay(open.to)), esc(open.name),
       (tot && tot.thru === 18 ? (card.done ? 'Your card is in: <b>' + tot.pts + ' points</b>.' : 'Eighteen holes scored. Photograph the signed card and post it.') : tot && tot.thru ? 'You are through ' + tot.thru + ' with <b>' + tot.pts + ' points</b>.' : 'No card from you yet.')
         + (board.length ? ' ' + board.length + ' card' + (board.length === 1 ? '' : 's') + ' in; ' + (lead ? esc(lead.name) + ' leads on ' + lead.pts : '') + '.' : ' Nobody has posted yet; be first.'),
@@ -7880,7 +7881,8 @@ function scrYou() {
   ${line.next ? lineHtml('Next for you', esc(line.next.label), esc(line.next.val) + ' · ' + line.done + ' of ' + line.of + ' on your Vegas line.', `<p style="margin-top:10px"><button class="btn ghost" data-act="go" data-a="hq">Open Vegas HQ</button></p>`)
     : lineHtml('Your Vegas line', 'All ' + line.of + ' done', 'Nothing outstanding. The commissioner will say when the dates lock.')}
   ${golfer && mine ? lineHtml('Your practice manual', 'Picked from your Belek report card', 'Putting ' + esc(gradeOf(mine, 'putting')) + ' · par 3s ' + esc(gradeOf(mine, 'par3')) + ' · par 5s ' + esc(gradeOf(mine, 'par5')) + '. Twelve to fifteen drills, drawn and scored, with a coach on video.', `<p style="margin-top:10px"><button class="btn ghost" data-act="manualOpen" data-a="${me}">Open my manual</button></p>`) : ''}
-  ${golfer && mine ? lineHtml('Your Belek 2026 card', esc(belekLine(mine)), 'The first season in your archive. Readable any time; nothing in it can change.', `<p class="cact"><button class="btn ghost" data-act="reportPlayer" data-a="${me}">Read my report card</button><button class="btn ghost" data-act="archiveView" data-a="2026">Open the Belek book</button></p>`) : ''}`;
+  ${golfer && mine ? lineHtml('Your Belek 2026 card', esc(belekLine(mine)), 'The first season in your archive. Readable any time; nothing in it can change.', `<p class="cact"><button class="btn ghost" data-act="reportPlayer" data-a="${me}">Read my report card</button><button class="btn ghost" data-act="archiveView" data-a="2026">Open the Belek book</button></p>`) : ''}
+  </div>`;
 }
 const gradeOf = (pr, k) => (pr && pr.grades && pr.grades[k]) || '—';
 function belekLine(pr) {
@@ -8010,6 +8012,7 @@ function scrHq() {
   return `<div class="vhero"><span class="ck">Vegas HQ · the third edition</span><b>${esc(s.name)}</b>${s.tag ? '<i class="vhero-tag">' + esc(s.tag) + '</i>' : ''}
     <small>${s.window.locked ? esc(C.fmtDay(s.window.from)) + ' to ' + esc(C.fmtDay(s.window.to, { year: true })) + ', locked.' : 'Dates inside the ' + esc(C.fmtDay(s.window.from)) + ' to ' + esc(C.fmtDay(s.window.to, { year: true })) + ' window until the hotel confirms.'} Two practice days, three rounds, the women’s 18, the partners’ 9.</small>
     <div class="big">${toVegas > 0 ? toVegas + '<small>days</small>' : toVegas > -9 ? 'This week' : 'Done'}</div></div>
+  <div class="hq-grid"><div class="hq-main">
   ${!me ? whoLine() : `
   <div class="cline"><span class="ck">Your line · ${line.done} of ${line.of}</span>
     <div class="chks">${line.items.map(i => `<div class="chk"><span>${esc(i.label)}</span><b class="${i.ok ? 'ok' : 'todo'}">${esc(i.val)}</b></div>`).join('')}</div>
@@ -8039,6 +8042,7 @@ function scrHq() {
     <label>Back · flight<input class="field" data-act="travelField" data-a="back.flight" value="${esc(back.flight || '')}" placeholder="BA 274" maxlength="12"></label>
     <label>Back · lands<input class="field" data-act="travelField" data-a="back.lands" value="${esc(back.lands || '')}" placeholder="12:10" maxlength="8"></label>
   </div>` : ''}`}
+  </div><aside class="hq-side">
   <h3 class="sub">The field · ${f.in.length} in, ${f.maybe.length} maybe, ${f.out.length} out${f.unanswered.length ? ', ' + f.unanswered.length + ' to answer' : ''}</h3>
   <div class="frows">${f.in.concat(f.maybe, f.out, f.unanswered).map(rowOf).join('') || '<p class="empty">Nobody on the roster yet.</p>'}</div>
   <p class="legend">What the whole group sees: who is in, and how far each line is paid. Deposits by ${esc(C.fmtDay(s.deadlines.deposit, { long: true }))}; the balance by ${esc(C.fmtDay(s.deadlines.balance, { long: true }))}.</p>
@@ -8046,7 +8050,8 @@ function scrHq() {
   ${s.rooms.length ? `<div class="rooms">${s.rooms.map((r, i) => `<div class="room"><b>${esc(r.id || 'Room ' + (i + 1))}</b><span>${(r.members || []).map(x => esc((E.person(T, x) || {}).display || x)).join(' + ') || 'empty'}</span><small>${esc(r.type || '')}</small></div>`).join('')}</div>` : '<p class="sublede">The commissioner sets the rooms once the hotel confirms.</p>'}
   <h3 class="sub">Vendors</h3>
   <div class="vrows">${s.vendors.map(v => `<div class="vrow"><b>${esc(v.name)}</b><span>${esc(v.status || '')}</span><small>${v.due ? 'by ' + esc(C.fmtDay(v.due)) : ''}</small></div>`).join('')}</div>
-  ${canAdmin() ? `<p class="cact"><button class="btn ghost" data-act="manageClub">Manage the season</button></p>` : ''}`;
+  ${canAdmin() ? `<p class="cact"><button class="btn ghost" data-act="manageClub">Manage the season</button></p>` : ''}
+  </aside></div>`;
 }
 
 /* ---------------- A VIRTUAL ROUND ----------------
@@ -8099,6 +8104,7 @@ function scrClubEntry() {
     <div class="scroller nos"><div class="hstrip">${holes.map((x, i) => `<button class="hcell${i === h ? ' on' : ''}${card.raw[i] != null ? ' saved' : ''}" data-act="clubHole" data-a="${i}" aria-label="Hole ${i + 1}, par ${x.par}"><span class="n num">${i + 1}</span><span class="p num">par ${x.par}</span></button>`).join('')}</div></div>
   </div>
   ${gate}
+  <div class="ce-grid"><div class="ce-main">
   <div class="savebar mine">
     <div class="sv"><b>${tot.thru} of 18 · ${tot.pts} pts</b><span>${tot.toPar == null ? 'Par ' + hole.par + (strokes ? ' · ' + strokes + ' stroke' + (strokes === 1 ? '' : 's') + ' here' : '') : (tot.toPar === 0 ? 'Level' : tot.toPar > 0 ? '+' + tot.toPar : tot.toPar) + ' gross thru ' + tot.thru}</span></div>
     <button class="btn ghost" data-act="clubHole" data-a="${Math.max(h - 1, 0)}"${h === 0 ? ' disabled' : ''} aria-label="Previous hole">‹</button>
@@ -8109,13 +8115,15 @@ function scrClubEntry() {
   <div class="prow${UI.clubPad ? ' sel' : ''}${editable && raw == null ? ' nextup' : ''}"><div class="pmain"><div class="pwho"><div class="nm">${esc(p.display || '')}</div><div class="bd num">hcp ${card.hcp == null ? '—' : Math.round(card.hcp)} <span>${strokes ? '+' + strokes + ' here' : '·'}</span>${pts != null ? ' · <b>' + pts + ' pt' + (pts === 1 ? '' : 's') + '</b>' : ''}${tot.thru ? ' · ' + tot.pts + ' pts thru ' + tot.thru : ''}</div></div>
     ${editable ? `<button class="ptile${raw == null ? ' empty' : ''}" data-act="clubPad" aria-label="Your score on hole ${h + 1}"><span class="fig raw"><span class="v num">${raw == null ? '·' : raw}</span></span></button>` : `<span class="ptile still"><span class="fig raw"><span class="v num">${raw == null ? '·' : raw}</span></span></span>`}</div></div>
   ${donePanel}
+  </div><div class="ce-side">
   <table class="ctbl mini"><thead><tr><th></th>${Array.from({ length: 9 }, (_, i) => `<th class="r">${i + 1}</th>`).join('')}<th class="r">Out</th></tr></thead><tbody>
     <tr><td>Gross</td>${card.raw.slice(0, 9).map(v => `<td class="r num">${v == null ? '·' : v}</td>`).join('')}<td class="r num">${sumOf(card.raw.slice(0, 9))}</td></tr>
     <tr><td>Pts</td>${Array.from({ length: 9 }, (_, i) => `<td class="r num">${C.holePts(card, i) == null ? '·' : C.holePts(card, i)}</td>`).join('')}<td class="r num">${sumOf(Array.from({ length: 9 }, (_, i) => C.holePts(card, i)))}</td></tr>
   </tbody><thead><tr><th></th>${Array.from({ length: 9 }, (_, i) => `<th class="r">${i + 10}</th>`).join('')}<th class="r">In</th></tr></thead><tbody>
     <tr><td>Gross</td>${card.raw.slice(9).map(v => `<td class="r num">${v == null ? '·' : v}</td>`).join('')}<td class="r num">${sumOf(card.raw.slice(9))}</td></tr>
     <tr><td>Pts</td>${Array.from({ length: 9 }, (_, i) => `<td class="r num">${C.holePts(card, i + 9) == null ? '·' : C.holePts(card, i + 9)}</td>`).join('')}<td class="r num">${sumOf(Array.from({ length: 9 }, (_, i) => C.holePts(card, i + 9)))}</td></tr>
-  </tbody></table>`;
+  </tbody></table>
+  </div></div>`;
 }
 const sumOf = l => { const v = l.filter(x => x != null); return v.length ? v.reduce((a, b) => a + b, 0) : '·'; };
 
