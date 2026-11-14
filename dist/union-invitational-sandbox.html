@@ -5757,7 +5757,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261114-1726';
+const BUILD = '20261114-1735';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -21862,7 +21862,8 @@ const seasonArt = () => artOf(seasonNow().art, 'stop_vegas') || IMG.hero;
    A number is read in the time it takes to see an arc is two-thirds full,
    and the colour goes back where it belongs: on the data. */
 const kpiHtml = d => `<div class="ckpi"><small>${esc(d.label)}</small><b class="num">${esc(d.big)}</b><span>${esc(d.small)}</span></div>`;
-const shortStop = n => esc(String(n || '').replace(/^The /, ''));
+const plainStop = n => String(n || '').replace(/^The /, '').replace(/\s+Open$/i, '');
+const shortStop = n => esc(plainStop(n));
 /* A STOP IS NEVER SAID TO BE OPEN, AND IT NEVER OPENS.
    Half the stops are called something Open, so "the Merry Mulligan Open is
    open" and "the Merry Mulligan Open opens Tuesday" wrote themselves, and a
@@ -22397,8 +22398,8 @@ function clubDateline() {
   const n = C.daysBetween(today, s.window.from);
   const open = C.openStops(T, today)[0], next = C.nextStop(T, today);
   const out = [{ t: 'Road to Vegas', hot: false }, { t: n > 0 ? n + ' day' + (n === 1 ? '' : 's') : 'This week', hot: true }];
-  if (open) out.push({ t: open.name.replace(/^The /, '') + ' closes ' + C.dowOf(open.to).slice(0, 3), hot: false });
-  else if (next) out.push({ t: next.name.replace(/^The /, '') + ' opens ' + C.fmtDay(next.from), hot: false });
+  if (open) out.push({ t: plainStop(open.name) + ' closes ' + C.dowOf(open.to).slice(0, 3), hot: false });
+  else if (next) out.push({ t: plainStop(next.name) + ' starts ' + C.fmtDay(next.from), hot: false });
   return out;
 }
 
