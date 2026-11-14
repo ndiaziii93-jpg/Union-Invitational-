@@ -3,17 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>The Clubhouse on a laptop · The Union Invitational</title>
-<meta name="description" content="The Clubhouse as it runs on a laptop today, and a rendition of how it could run: a rail, one question a screen, charts on the season, the field as a table.">
+<title>The Clubhouse on a laptop · three renditions · The Union Invitational</title>
+<meta name="description" content="Three renditions of the Union Invitational's Clubhouse on a laptop: the pine rail, the ledger, the cover. Pick one.">
 <link rel="icon" href="../../app/icon-192.png" type="image/png">
 <style>
 @font-face{font-family:'Source Serif';src:url(fonts/source-serif-latin-normal.woff2) format('woff2');font-weight:200 900;font-display:swap}
 @font-face{font-family:'Source Serif';src:url(fonts/source-serif-latin-italic.woff2) format('woff2');font-style:italic;font-weight:200 900;font-display:swap}
 :root{
   --bg:#1D2E21; --paper:#EEE8D5; --paper-2:#E3DBCB; --paper-3:#DBD2BA; --ink:#1D2E21; --muted:#5C6B55; --hair:#DCD1B4; --rule:#C8BC9C;
-  --accent:#C9A253; --gold:#8C6B2F; --green:#3E5C43; --flag:#9E3B2E; --onpine:#ECE5D4;
-  /* the chart palette, validated with the dataviz checks on this surface: green, gold, red, blue */
-  --c1:#2E7D4F; --c2:#B8862B; --c3:#A8402F; --c4:#2F6EB8;
+  --accent:#C9A253; --gold:#8C6B2F; --green:#3E5C43; --flag:#9E3B2E; --onpine:#ECE5D4; --sage:#9FB3A3;
+  --c1:#2E7D4F; --c2:#B8862B; --c3:#A8402F; --c4:#2F6EB8;   /* validated chart hues on this surface */
   --font:'Source Serif',Georgia,'Times New Roman',serif;
   --step-body:clamp(1.0625rem,1rem + .25vw,1.1875rem); --step-lead:clamp(1.25rem,1.1rem + .7vw,1.625rem);
   --step-head:clamp(1.9rem,1.3rem + 2.6vw,3rem); --step-display:clamp(2.5rem,1.2rem + 5vw,4.4rem);
@@ -35,54 +34,55 @@ p{max-width:62ch;text-wrap:pretty}
 .hero .mark{display:flex;align-items:center;gap:14px;margin-bottom:28px}
 .hero .mark img{width:56px;height:56px}
 .hero .mark span{font-weight:700;line-height:1.1;font-size:19px}
+.hero .jump{display:flex;flex-wrap:wrap;gap:10px;margin-top:28px}
+.hero .jump a{font-size:16px;font-weight:700;text-decoration:none;border:1px solid var(--ink);padding:8px 14px}
 .sec{background:var(--paper);padding-block:calc(var(--section)/1.8) var(--section)}
 .sec.alt{background:var(--paper-2)}
 .sec.pine{background:var(--bg);color:var(--onpine)}
 .sec h2{font-size:var(--step-head);max-width:26ch}
-.sec .intro{font-size:var(--step-lead);line-height:1.35;max-width:42ch;margin-top:16px}
+.sec .intro{font-size:var(--step-lead);line-height:1.35;max-width:46ch;margin-top:16px}
 .sec.pine .intro{opacity:.9}
 .shots{display:grid;grid-template-columns:1fr 1fr;gap:clamp(14px,2vw,28px);margin-top:36px}
 .shots figure img{border:2px solid var(--ink);border-radius:10px;background:var(--paper-3)}
 .shots figcaption{margin-top:10px;font-size:16px;color:var(--muted)}
-.sec.pine .shots figcaption{color:var(--onpine);opacity:.85}
 @media (max-width:860px){ .shots{grid-template-columns:1fr} }
-/* ---- the rendition frames: a 1366-wide screen scaled to the page ---- */
-.frame{--z:1;margin-top:36px}
+.frame{--z:1;margin-top:30px}
 .frame .box{height:calc(820px * var(--z) + 4px)}
 .frame .scr{width:1366px;height:820px;transform:scale(var(--z));transform-origin:top left;border:2px solid var(--ink);border-radius:10px;overflow:hidden;background:var(--paper)}
-.frame figcaption{margin-top:12px;font-size:16px;color:var(--muted);max-width:70ch}
+.frame figcaption{margin-top:12px;font-size:16px;color:var(--muted);max-width:72ch}
 .frame figcaption b{color:var(--ink)}
-.cols{display:grid;grid-template-columns:1fr 1fr;gap:clamp(24px,4vw,56px);margin-top:36px;align-items:start}
-.cols h3{font-size:1.3rem;margin-bottom:10px}
-.cols ul{padding-left:1.1em;list-style:disc}
-.cols li{margin:.4em 0}
-.cols li::marker{color:var(--accent)}
-.cols li b{display:inline}
-@media (max-width:860px){ .cols{grid-template-columns:1fr;gap:22px} }
+.sec.pine .frame .scr{border-color:#0B110D}
+.sec.pine .frame figcaption{color:var(--onpine);opacity:.85}.sec.pine .frame figcaption b{color:var(--onpine)}
+.verdict{display:grid;grid-template-columns:1fr 1fr;gap:clamp(16px,3vw,40px);margin-top:30px;max-width:1000px}
+.verdict h3{font-size:1.2rem;margin-bottom:8px}
+.verdict ul{padding-left:1.1em;list-style:disc}.verdict li{margin:.35em 0}.verdict li::marker{color:var(--accent)}
+@media (max-width:860px){ .verdict{grid-template-columns:1fr} }
+.pick{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:30px}
+.pick a{display:block;padding:18px 20px;border:1px solid var(--rule);text-decoration:none;background:var(--paper)}
+.pick a b{display:block;font-size:22px}.pick a span{display:block;color:var(--muted);font-size:15px;margin-top:4px}
+@media (max-width:860px){ .pick{grid-template-columns:1fr} }
 .foot{background:var(--paper-3);padding:40px 0 60px}
 .foot a{text-decoration:underline;text-underline-offset:.2em}
 .foot p{color:var(--muted);font-size:16px;margin-top:12px}
 .button{display:inline-flex;align-items:center;justify-content:center;min-height:3rem;padding:0 1.4rem;background:var(--accent);color:var(--ink);text-decoration:none;font-weight:700;white-space:nowrap}
 
-/* ================= THE RENDITION: an app screen on a laptop =================
-   Rail 220 · canvas 1146 with 24px gutters: 1098 inside, on a 12-column grid at a 16px gap
-   (12 × 76.83 + 11 × 16 = 1098). Colour goes on data; the chrome is paper and ink. */
+/* ================= THE SCREENS (shared) =================
+   1366 × 820. Rail 220 + canvas 1146 (24px gutters, 1098 inside, 12 columns at a 16px gap:
+   12 × 76.83 + 11 × 16 = 1098). The ledger has no rail: canvas 1366, 48px gutters, 1270 inside. */
 [data-ui]{font-family:var(--font);color:var(--ink);background:var(--paper);display:grid;grid-template-columns:220px 1fr;height:820px;font-size:14px;line-height:1.35}
-[data-ui] .rail{background:var(--paper-2);border-right:1px solid var(--hair);padding:18px 16px;display:flex;flex-direction:column;gap:4px}
+[data-ui] .rail{padding:18px 16px;display:flex;flex-direction:column;gap:4px}
 [data-ui] .rail .prod{display:flex;align-items:center;gap:10px;padding:2px 6px 16px}
 [data-ui] .rail .prod img{width:34px;height:34px}
 [data-ui] .rail .prod b{display:block;font-size:14px;line-height:1.1}
-[data-ui] .rail .prod small{display:block;font-size:12px;color:var(--muted);margin-top:2px}
-[data-ui] .rail a{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;text-decoration:none;color:var(--muted);font-size:14.5px}
-[data-ui] .rail a.on{background:var(--paper-3);color:var(--ink);font-weight:700}
+[data-ui] .rail .prod small{display:block;font-size:12px;margin-top:2px;opacity:.8}
+[data-ui] .rail a{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;text-decoration:none;font-size:14.5px}
 [data-ui] .rail a svg{width:18px;height:18px}
-[data-ui] .rail .grp{font-size:11.5px;color:var(--muted);padding:14px 10px 4px;letter-spacing:.02em}
-[data-ui] .rail .sw{margin-top:auto;border-top:1px solid var(--hair);padding-top:10px}
-[data-ui] .rail .sw a{font-size:13.5px}
-[data-ui] .rail .me{display:flex;align-items:center;gap:8px;padding:10px 10px 0;font-size:13px;color:var(--muted)}
-[data-ui] .rail .me i{width:24px;height:24px;border-radius:50%;background:#E6D9B6;color:var(--ink);display:grid;place-items:center;font-style:normal;font-size:11px;font-weight:700}
-[data-ui] .canvas{padding:20px 24px 24px;overflow:hidden;display:grid;grid-template-rows:auto 1fr;gap:16px}
-[data-ui] .trow{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;border-bottom:1px solid var(--hair);padding-bottom:12px}
+[data-ui] .rail .grp{font-size:11.5px;padding:14px 10px 4px;letter-spacing:.02em;opacity:.75}
+[data-ui] .rail .sw{margin-top:auto;padding-top:10px}
+[data-ui] .rail .me{display:flex;align-items:center;gap:8px;padding:10px 10px 0;font-size:13px}
+[data-ui] .rail .me i{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:11px;font-weight:700}
+[data-ui] .canvas{padding:20px 24px 24px;overflow:hidden;display:grid;grid-template-rows:auto 1fr;gap:16px;min-width:0}
+[data-ui] .trow{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;padding-bottom:12px}
 [data-ui] .trow h1{font-size:24px;font-weight:700;letter-spacing:-.01em}
 [data-ui] .trow .sub{font-size:14px;color:var(--muted);margin-top:3px}
 [data-ui] .trow .sub b{color:var(--ink);font-weight:600}
@@ -106,7 +106,6 @@ p{max-width:62ch;text-wrap:pretty}
 [data-ui] td{padding:6px 6px;border-bottom:1px solid var(--hair);vertical-align:middle;font-variant-numeric:tabular-nums}
 [data-ui] th.r,[data-ui] td.r{text-align:right}
 [data-ui] tr.me td{background:#F5EEDC}
-[data-ui] td .dot,[data-ui] .lg .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:7px;vertical-align:middle}
 [data-ui] .av{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;font-size:10px;font-weight:700;margin-right:8px;vertical-align:middle}
 [data-ui] .m{display:inline-block;width:110px;height:8px;background:#E4DCC6;border-radius:4px;vertical-align:middle;overflow:hidden;margin-right:8px}
 [data-ui] .m i{display:block;height:100%;background:var(--c2);border-radius:4px}
@@ -127,106 +126,158 @@ p{max-width:62ch;text-wrap:pretty}
 [data-ui] .room{border:1px solid var(--hair);border-radius:8px;padding:8px 10px;font-size:13px}
 [data-ui] .room b{display:block;font-size:12px;color:var(--muted);font-weight:600}
 [data-ui] .room.todo{border-style:dashed;color:var(--muted)}
+
+/* ---- A · THE PINE RAIL: the book's own green on the left, gold for where you are ---- */
+.r-pine .rail{background:var(--bg);color:var(--onpine);border-right:3px solid var(--accent)}
+.r-pine .rail .prod b{color:var(--onpine)}.r-pine .rail .prod small{color:var(--sage)}
+.r-pine .rail a{color:var(--sage)}
+.r-pine .rail a.on{background:rgba(236,229,212,.08);color:var(--onpine);font-weight:700;box-shadow:inset 3px 0 0 var(--accent)}
+.r-pine .rail .grp{color:var(--sage)}
+.r-pine .rail .sw{border-top:1px solid rgba(236,229,212,.14)}
+.r-pine .rail .me{color:var(--sage)}.r-pine .rail .me i{background:var(--accent);color:var(--ink)}
+.r-pine .trow{border-bottom:2px solid var(--ink)}
+.r-pine .btn{background:var(--bg);border-color:var(--bg)}
+.r-pine .card.hero{background:var(--bg);color:var(--onpine);border-color:var(--bg)}
+.r-pine .card.hero h3,.r-pine .card.hero h3 small{color:var(--onpine)}
+.r-pine .card.hero .kpi{border-top-color:rgba(236,229,212,.2)}.r-pine .card.hero .kpi small,.r-pine .card.hero .kpi span,.r-pine .card.hero .kpi b em{color:var(--sage)}
+.r-pine .card.hero .kpi b{color:var(--accent)}
+
+/* ---- B · THE LEDGER: no rail, no colour in the chrome; a top line, ink, one gold line for you ---- */
+.r-ledger{grid-template-columns:1fr;background:#F4EFE1}
+.r-ledger .top{display:flex;align-items:center;gap:26px;padding:12px 48px;border-bottom:1px solid var(--ink)}
+.r-ledger .top .prod{display:flex;align-items:center;gap:10px;margin-right:auto}
+.r-ledger .top .prod img{width:28px;height:28px}
+.r-ledger .top .prod b{font-size:14px}.r-ledger .top .prod small{color:var(--muted);font-size:12.5px;margin-left:8px}
+.r-ledger .top a{text-decoration:none;color:var(--muted);font-size:14.5px;padding:4px 0}
+.r-ledger .top a.on{color:var(--ink);font-weight:700;border-bottom:2px solid var(--ink)}
+.r-ledger .top .me{font-size:13px;color:var(--muted);border-left:1px solid var(--hair);padding-left:18px}
+.r-ledger .canvas{padding:22px 48px 24px}
+.r-ledger .trow{border-bottom:0;align-items:baseline}
+.r-ledger .trow h1{font-size:30px;font-weight:600;letter-spacing:-.015em}
+.r-ledger .btn{background:none;color:var(--ink);border:1px solid var(--ink);border-radius:0}
+.r-ledger .btn.q{border-color:var(--rule)}
+.r-ledger .card{border:0;border-top:1px solid var(--ink);border-radius:0;background:none;padding:10px 0 0}
+.r-ledger .card h3{font-size:13px;letter-spacing:.01em}
+.r-ledger .kpi{border-top:1px solid var(--ink)}
+.r-ledger .kpi b{font-size:34px;font-weight:500}
+.r-ledger .m{border-radius:0}.r-ledger .m i{border-radius:0;background:var(--ink)}.r-ledger .m i.full{background:var(--ink)}
+.r-ledger .pill{border-radius:0;background:none;padding:0;font-weight:600}
+.r-ledger .pill.in{color:var(--ink)}.r-ledger .pill.maybe{color:var(--muted)}.r-ledger .pill.out{color:var(--muted);text-decoration:line-through}
+.r-ledger .room{border-radius:0;border:0;border-top:1px solid var(--hair);padding:6px 0}
+.r-ledger tr.me td{background:none}.r-ledger tr.me td:first-child{box-shadow:inset 3px 0 0 var(--accent);padding-left:10px}
+.r-ledger .av{display:none}
+
+/* ---- C · THE COVER: the photograph across the top, the way the phone's Today opens ---- */
+.r-cover .rail{background:var(--paper-2);border-right:1px solid var(--hair)}
+.r-cover .rail .prod small,.r-cover .rail .grp,.r-cover .rail .me{color:var(--muted)}
+.r-cover .rail a{color:var(--muted)}
+.r-cover .rail a.on{background:var(--paper-3);color:var(--ink);font-weight:700}
+.r-cover .rail .sw{border-top:1px solid var(--hair)}
+.r-cover .rail .me i{background:#E6D9B6;color:var(--ink)}
+.r-cover .canvas{padding:0;grid-template-rows:auto 1fr}
+.r-cover .cover{position:relative;height:290px;background:#243B2E center/cover no-repeat;color:var(--onpine);display:flex;align-items:flex-end;padding:0 24px 92px}
+.r-cover .cover::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(29,46,33,.18),rgba(29,46,33,.78) 62%,rgba(29,46,33,.9))}
+.r-cover .cover>*{position:relative}.r-cover .cover>div:first-child{flex:1 1 auto;min-width:0;max-width:720px;padding-right:24px}.r-cover .cover .acts{flex:none}
+.r-cover .cover .k{font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700;display:block;margin-bottom:6px;text-shadow:0 1px 2px rgba(0,0,0,.5)}
+.r-cover .cover h1{font-size:34px;font-weight:700;color:var(--onpine);max-width:26ch}
+.r-cover .cover .sub{color:var(--onpine);opacity:.9;margin-top:6px;font-size:15px}
+.r-cover .cover .sub b{color:var(--accent)}
+.r-cover .cover .acts{margin-left:auto;align-self:flex-end}
+.r-cover .btn{background:var(--accent);color:var(--ink);border-color:var(--accent)}
+.r-cover .btn.q{background:rgba(236,229,212,.12);color:var(--onpine);border-color:rgba(236,229,212,.5)}
+.r-cover .grid{padding:16px 24px 24px;margin-top:0}
+.r-cover .card{box-shadow:none}
+.r-cover .card.lift{position:relative;z-index:1;margin-top:-78px;background:var(--paper);box-shadow:0 6px 18px rgba(29,46,33,.18)}
 </style>
 </head>
 <body>
 
 <header class="hero"><div class="wrap">
   <div class="mark"><img src="img/crest.png" alt=""><span>The Union Invitational<br>The Clubhouse on a laptop</span></div>
-  <h1>The laptop, as it is and as it could be.</h1>
-  <p class="lead">Today's laptop view is the phone's screens laid out two across. Below it, a rendition built to the rules for screens people work at: a rail, one question a screen, colour on the data, the field as a table.</p>
+  <h1>Three ways the Clubhouse could sit on a desk.</h1>
+  <p class="lead">Same book, same figures, same three screens. What differs is the frame: where the navigation lives, what carries the colour, and whether a photograph opens the page. Pick one and I build it; the phone and the week in Vegas stay as they are.</p>
+  <div class="jump"><a href="#a">A · The pine rail</a><a href="#b">B · The ledger</a><a href="#c">C · The cover</a><a href="#now">As it is today</a></div>
 </div></header>
 
-<section class="sec" id="now"><div class="wrap">
-  <h2>As it is today, at 1366 pixels.</h2>
-  <p class="intro">Build 20261109-1224: the phone's cards two across, the hero across the top, the scorecard beside the hole. Correct, and still a phone drawn wide.</p>
+<section class="sec" id="a"><div class="wrap">
+  <h2>A · The pine rail</h2>
+  <p class="intro">The book's green down the left with gold on where you are, the paper canvas beside it. Colour otherwise only on the data. Confident, and the closest to the phone's bar turned on its side.</p>
+  <figure class="frame"><div class="box"><div class="scr r-pine" data-ui data-screen="you" data-style="pine"></div></div><figcaption><b>You.</b> The title row answers "what do I do next" with the one button; the open stop's board beside your line; your handicap as a trend from the Belek band.</figcaption></figure>
+  <figure class="frame"><div class="box"><div class="scr r-pine" data-ui data-screen="season" data-style="pine"></div></div><figcaption><b>Season.</b> The Order of Merit as a race across the stops in four checked hues, the legend in the card's header; the open board beside it; the handicaps with a sparkline each.</figcaption></figure>
+  <figure class="frame"><div class="box"><div class="scr r-pine" data-ui data-screen="hq" data-style="pine"></div></div><figcaption><b>Vegas HQ.</b> Four figures on a pine plate, then the field as one table with the meters in it and the exports in the title row.</figcaption></figure>
+  <div class="verdict"><div><h3>Why it wins</h3><ul><li>It is unmistakably this book: the pine and gold of the phone's bar, the crest, nothing borrowed.</li><li>The rail holds everything the masthead and dateline carried, so the canvas is all content.</li><li>Dense enough for the commissioner, calm enough for a glance.</li></ul></div><div><h3>Where it strains</h3><ul><li>A dark rail next to a paper canvas is a strong edge; on a 13-inch screen it takes 16% of the width.</li><li>Two greens on one screen (the rail and the chart's series) need the chart's green kept to the data.</li></ul></div></div>
+</div></section>
+
+<section class="sec alt" id="b"><div class="wrap">
+  <h2>B · The ledger</h2>
+  <p class="intro">No rail and no colour in the chrome at all: a line of tabs across the top, rules instead of cards, ink for the figures, and one gold mark for you. The club's annual, kept by a steady hand.</p>
+  <figure class="frame"><div class="box"><div class="scr r-ledger" data-ui data-screen="you" data-style="ledger"></div></div><figcaption><b>You.</b> The widest canvas of the three. The greeting at 30px is the only large type; the board and the line are columns of a page.</figcaption></figure>
+  <figure class="frame"><div class="box"><div class="scr r-ledger" data-ui data-screen="season" data-style="ledger"></div></div><figcaption><b>Season.</b> The race chart keeps its four hues because they are data; everything round it is ink and rule.</figcaption></figure>
+  <figure class="frame"><div class="box"><div class="scr r-ledger" data-ui data-screen="hq" data-style="ledger"></div></div><figcaption><b>Vegas HQ.</b> The money as a ledger should be: big figures, square meters in ink, settled in words.</figcaption></figure>
+  <div class="verdict"><div><h3>Why it wins</h3><ul><li>Most room for the tables, which is what a laptop is for.</li><li>Nothing dates: it is type, rules and numbers.</li><li>Prints as it stands.</li></ul></div><div><h3>Where it strains</h3><ul><li>The least like the phone; someone moving between the two notices.</li><li>Quiet to a fault for the fun parts: a crowned stop should feel like something.</li></ul></div></div>
+</div></section>
+
+<section class="sec" id="c"><div class="wrap">
+  <h2>C · The cover</h2>
+  <p class="intro">The phone's Today opens on a photograph with the day set over it. This does the same on a laptop: a cover across the top of every screen carrying the question, the cards rising into it, a paper rail at the side.</p>
+  <figure class="frame"><div class="box"><div class="scr r-cover" data-ui data-screen="you" data-style="cover"></div></div><figcaption><b>You.</b> The greeting on the picture, the one button in gold, the board and your line lifting into the cover's foot.</figcaption></figure>
+  <figure class="frame"><div class="box"><div class="scr r-cover" data-ui data-screen="season" data-style="cover"></div></div><figcaption><b>Season.</b> The leader's name on the cover is the headline; the race chart and the board under it.</figcaption></figure>
+  <figure class="frame"><div class="box"><div class="scr r-cover" data-ui data-screen="hq" data-style="cover"></div></div><figcaption><b>Vegas HQ.</b> Drawn here with the Belek photograph; Vegas would take one of its own, a desert at dusk, the one picture the section carries.</figcaption></figure>
+  <div class="verdict"><div><h3>Why it wins</h3><ul><li>The most atmosphere: the trip is a place, and the place is on screen.</li><li>Continuous with the phone's cover, so it reads as the same book grown up.</li><li>The headline figure is the cover's own line, read before anything else.</li></ul></div><div><h3>Where it strains</h3><ul><li>The cover costs 290px before the first row; on a small laptop the tables start lower.</li><li>Needs a photograph per season, and a good one.</li></ul></div></div>
+</div></section>
+
+<section class="sec pine" id="choose"><div class="wrap">
+  <h2>Choose one, or mix.</h2>
+  <p class="intro">The pine rail with the ledger's tables is a fair mix; the cover's photograph on the pine rail's screens is another. Say which, and what to change.</p>
+  <div class="pick"><a href="#a"><b>A · The pine rail</b><span>Green rail, gold marks, paper canvas</span></a><a href="#b"><b>B · The ledger</b><span>Top tabs, ink and rules, one gold line</span></a><a href="#c"><b>C · The cover</b><span>A photograph across the top, paper rail</span></a></div>
+</div></section>
+
+<section class="sec alt" id="now"><div class="wrap">
+  <h2>As it is today, for reference.</h2>
+  <p class="intro">Build 20261109-1224 at 1366 pixels: the phone's cards two across.</p>
   <div class="shots">
-    <figure><img src="img/now-you.png" alt="The You tab at laptop width today: greeting, three dials, the open stop card and the next card two across" loading="lazy"><figcaption>You</figcaption></figure>
-    <figure><img src="img/now-season.png" alt="The Season tab at laptop width today: the stop chips, the leader's plate, the board" loading="lazy"><figcaption>Season</figcaption></figure>
-    <figure><img src="img/now-hq.png" alt="Vegas HQ at laptop width today: the hero with the countdown, your line beside the field" loading="lazy"><figcaption>Vegas HQ</figcaption></figure>
-    <figure><img src="img/now-entry.png" alt="A virtual round at laptop width today: the hole band, the scorecard beside the hole, the keypad in the corner" loading="lazy"><figcaption>A virtual round</figcaption></figure>
-  </div>
-</div></section>
-
-<section class="sec alt" id="rendition"><div class="wrap">
-  <h2>A rendition built for the desk.</h2>
-  <p class="intro">Three screens from one shell, drawn at 1366 by 820 with made-up figures that add up. The phone keeps its tabs; this is what the same book would show when there is room.</p>
-
-  <figure class="frame"><div class="box"><div class="scr" data-ui id="scr-you"></div></div>
-    <figcaption><b>You.</b> The question is "what do I do next", so the answer is the title row with the one button, and the open stop's live board sits beside your line. Your handicap is a line, not a dial, with the Belek band as its first point.</figcaption></figure>
-
-  <figure class="frame"><div class="box"><div class="scr" data-ui id="scr-season"></div></div>
-    <figcaption><b>Season.</b> The question is "who leads the season". The Order of Merit is a race across the stops, four lines in a palette checked for colour-blind readers, the legend in the card's header. The open stop's board and the handicaps with their trend sit beside and under it.</figcaption></figure>
-
-  <figure class="frame"><div class="box"><div class="scr" data-ui id="scr-hq"></div></div>
-    <figcaption><b>Vegas HQ.</b> The question is "who is in, and is the money in". Four figures as type, then the field as one table with the meters in it, and the exports where the commissioner's hand already is. Rooms beside, with the pair still to make dashed.</figcaption></figure>
-</div></section>
-
-<section class="sec pine" id="how"><div class="wrap">
-  <h2>What changes, and what I would build it with.</h2>
-  <p class="intro">Each enhancement names the tool in this workspace that does it. None of them touch the phone or the week in Vegas.</p>
-  <div class="cols">
-    <div>
-      <h3>In the rendition</h3>
-      <ul>
-        <li><b>A rail instead of the top tabs.</b> You, Season, Vegas HQ, then the Belek book and Manage, with your name at the foot. The nameplate and dateline go; the title row says where you are and what to do.</li>
-        <li><b>One question a screen, answered by the biggest thing.</b> The button for the most frequent job is in the title row: enter the card, export the headcount, approve a course.</li>
-        <li><b>Charts on the season.</b> The Order of Merit as a race across the stops, the handicap as a trend with Belek as the first point, a sparkline a golfer in the handicaps table. Palette validated for colour-blind readers; a table under every chart.</li>
-        <li><b>The field as a table.</b> Name, playing, status, package, the meter, what is left, flights in or not. Totals computed from the rows. Sort by what is outstanding.</li>
-        <li><b>Keyboard on a virtual round.</b> The number keys score the hole, the arrows move along the strip, Enter posts. The same keypad stays for the mouse.</li>
-        <li><b>The commissioner's desk.</b> Manage opens as a page here, not a window: packages, money, rooms and courses side by side, the exports one click.</li>
-      </ul>
-    </div>
-    <div>
-      <h3>From the other projects' kit</h3>
-      <ul>
-        <li><b>Design rules for app screens</b> (the taste skill): the shell, colour only on data, flat surfaces, numbers right-aligned in tabular figures, an inspector that measures the result at 1440, 768 and 390.</li>
-        <li><b>Data visualisation rules</b> (the dataviz skill): the form by the data's job, a validator that checks the palette, 2px lines, 8px markers, a legend for two series or more, hover and a table view.</li>
-        <li><b>Course scorecards by lookup</b> (Firecrawl): type a course name and the par and stroke index come back prefilled from the club's own card, for you to check and approve.</li>
-        <li><b>A face for Vegas</b> (Runway or the asset generator): one photograph of the desert at dusk for the HQ, under the rule that a photo carries a section once, and a monogram for the rail drawn from the crest.</li>
-        <li><b>The stop's result as a post</b> (Orshot): when a stop crowns its winner, a square and a story card rendered from a template, ready for the group chat and the social pack.</li>
-        <li><b>The 2026 sheet, read in</b> (Google Drive): the Financials Tracker's per-person charges into the archive, so the money record lives in the book and not the spreadsheet.</li>
-      </ul>
-    </div>
+    <figure><img src="img/now-you.png" alt="The You tab at laptop width today" loading="lazy"><figcaption>You</figcaption></figure>
+    <figure><img src="img/now-season.png" alt="The Season tab at laptop width today" loading="lazy"><figcaption>Season</figcaption></figure>
+    <figure><img src="img/now-hq.png" alt="Vegas HQ at laptop width today" loading="lazy"><figcaption>Vegas HQ</figcaption></figure>
+    <figure><img src="img/now-entry.png" alt="A virtual round at laptop width today" loading="lazy"><figcaption>A virtual round</figcaption></figure>
   </div>
 </div></section>
 
 <footer class="foot"><div class="wrap">
   <a class="button" href="../../app/">The book as it is today</a> &nbsp; <a href="../clubhouse/">The Clubhouse preview</a>
-  <p>A rendition, not the build. The names and figures are made up; the screens are drawn in HTML at laptop size and scaled to this page. Nothing here has touched the shared book.</p>
+  <p>Renditions, not the build. The names and figures are made up and add up; the screens are drawn in HTML at laptop size and scaled to this page. Nothing here has touched the shared book.</p>
 </div></footer>
 
 <script>
-/* ---- the data: one set of figures, every total computed from it ---- */
+/* ---- one dataset, every total computed from it ---- */
 const STOPS = ['Belek', 'Mulligan', 'Frostbite', 'Sweetheart', 'March'];
 const PEOPLE = [
-  { id: 'g1', name: 'Norberto III', ini: 'NI', hue: '#E8D9A8', hcp: [16, 16.4, 15.8, 15.2, 15.0], merit: [0, 25, 60, 100, 115], pkg: '7 nights · golfer', price: 2089, paid: 1400, status: 'in', div: 'men’s', flights: true, room: 1 },
-  { id: 'g3', name: 'Matt D', ini: 'MD', hue: '#D7E6D0', hcp: [20, 19.6, 19.1, 18.8, 18.1], merit: [0, 100, 160, 200, 300], pkg: '7 nights · golfer', price: 2089, paid: 2089, status: 'in', div: 'men’s', flights: true, room: 2 },
-  { id: 'g6', name: 'Ray V', ini: 'RV', hue: '#D6E2EE', hcp: [20, 20.6, 20.1, 19.4, 19.0], merit: [0, 60, 120, 150, 210], pkg: '7 nights · golfer', price: 2089, paid: 800, status: 'in', div: 'men’s', flights: false, room: 3 },
-  { id: 'g2', name: 'Norberto Jr.', ini: 'NJ', hue: '#EFD8CF', hcp: [30, 30, 29.3, 28.6, 27.9], merit: [0, 40, 70, 130, 170], pkg: '7 nights · golfer', price: 2089, paid: 400, status: 'in', div: 'men’s', flights: false, room: 4 },
-  { id: 'g5', name: 'Gabriel P', ini: 'GP', hue: '#E6DDC8', hcp: [15, 15, 15.3, 14.9, 14.9], merit: [0, 30, 55, 85, 110], pkg: '7 nights · golfer', price: 2089, paid: 0, status: 'maybe', div: 'men’s', flights: false, room: null },
-  { id: 'g10', name: 'DP', ini: 'DP', hue: '#E3E0D0', hcp: [16, 16, 16.2, 16.2, 15.8], merit: [0, 20, 32, 42, 62], pkg: '5 nights · golfer', price: 1689, paid: 1689, status: 'in', div: 'men’s', flights: true, room: 5 },
-  { id: 's1', name: 'Jennifer D', ini: 'JD', hue: '#E8D9A8', hcp: null, merit: null, pkg: '7 nights · women’s', price: 2089, paid: 1400, status: 'in', div: 'women’s', flights: true, room: 1 },
-  { id: 's2', name: 'Aimee K', ini: 'AK', hue: '#D7E6D0', hcp: null, merit: null, pkg: '7 nights · not golfing', price: 1839, paid: 1839, status: 'in', div: 'not golfing', flights: true, room: 2 },
-  { id: 's3', name: 'Letty D', ini: 'LD', hue: '#EFD8CF', hcp: null, merit: null, pkg: '7 nights · not golfing', price: 1839, paid: 400, status: 'in', div: 'not golfing', flights: false, room: 4 },
-  { id: 's4', name: 'Drea', ini: 'DR', hue: '#D6E2EE', hcp: null, merit: null, pkg: '7 nights · women’s', price: 2089, paid: 0, status: 'maybe', div: 'women’s', flights: false, room: 3 },
-  { id: 'g9', name: 'Duncan W', ini: 'DW', hue: '#E3E0D0', hcp: [30, 30, 30, 30, 30], merit: [0, 12, 12, 12, 12], pkg: null, price: 0, paid: 0, status: 'out', div: 'men’s', flights: false, room: null },
-  { id: 'g8', name: 'Dan A', ini: 'DA', hue: '#E6DDC8', hcp: [20, 20, 20, 20, 20], merit: [0, 0, 0, 0, 0], pkg: null, price: 0, paid: 0, status: null, div: 'men’s', flights: false, room: null },
+  { id: 'g1', name: 'Norberto III', ini: 'NI', hue: '#E8D9A8', hcp: [16, 16.4, 15.8, 15.2, 15.0], merit: [0, 25, 60, 100, 115], pkg: '7 nights · golfer', price: 2089, paid: 1400, status: 'in', div: 'men’s', flights: true },
+  { id: 'g3', name: 'Matt D', ini: 'MD', hue: '#D7E6D0', hcp: [20, 19.6, 19.1, 18.8, 18.1], merit: [0, 100, 160, 200, 300], pkg: '7 nights · golfer', price: 2089, paid: 2089, status: 'in', div: 'men’s', flights: true },
+  { id: 'g6', name: 'Ray V', ini: 'RV', hue: '#D6E2EE', hcp: [20, 20.6, 20.1, 19.4, 19.0], merit: [0, 60, 120, 150, 210], pkg: '7 nights · golfer', price: 2089, paid: 800, status: 'in', div: 'men’s', flights: false },
+  { id: 'g2', name: 'Norberto Jr.', ini: 'NJ', hue: '#EFD8CF', hcp: [30, 30, 29.3, 28.6, 27.9], merit: [0, 40, 70, 130, 170], pkg: '7 nights · golfer', price: 2089, paid: 400, status: 'in', div: 'men’s', flights: false },
+  { id: 'g5', name: 'Gabriel P', ini: 'GP', hue: '#E6DDC8', hcp: [15, 15, 15.3, 14.9, 14.9], merit: [0, 30, 55, 85, 110], pkg: '7 nights · golfer', price: 2089, paid: 0, status: 'maybe', div: 'men’s', flights: false },
+  { id: 'g10', name: 'DP', ini: 'DP', hue: '#E3E0D0', hcp: [16, 16, 16.2, 16.2, 15.8], merit: [0, 20, 32, 42, 62], pkg: '5 nights · golfer', price: 1689, paid: 1689, status: 'in', div: 'men’s', flights: true },
+  { id: 's1', name: 'Jennifer D', ini: 'JD', hue: '#E8D9A8', hcp: null, merit: null, pkg: '7 nights · women’s', price: 2089, paid: 1400, status: 'in', div: 'women’s', flights: true },
+  { id: 's2', name: 'Aimee K', ini: 'AK', hue: '#D7E6D0', hcp: null, merit: null, pkg: '7 nights · not golfing', price: 1839, paid: 1839, status: 'in', div: 'not golfing', flights: true },
+  { id: 's3', name: 'Letty D', ini: 'LD', hue: '#EFD8CF', hcp: null, merit: null, pkg: '7 nights · not golfing', price: 1839, paid: 400, status: 'in', div: 'not golfing', flights: false },
+  { id: 's4', name: 'Drea', ini: 'DR', hue: '#D6E2EE', hcp: null, merit: null, pkg: '7 nights · women’s', price: 2089, paid: 0, status: 'maybe', div: 'women’s', flights: false },
+  { id: 'g9', name: 'Duncan W', ini: 'DW', hue: '#E3E0D0', hcp: [30, 30, 30, 30, 30], merit: [0, 12, 12, 12, 12], pkg: null, price: 0, paid: 0, status: 'out', div: 'men’s', flights: false },
+  { id: 'g8', name: 'Dan A', ini: 'DA', hue: '#E6DDC8', hcp: [20, 20, 20, 20, 20], merit: [0, 0, 0, 0, 0], pkg: null, price: 0, paid: 0, status: null, div: 'men’s', flights: false },
 ];
 const MARCH = { name: 'The March Medal', from: '1 Mar', to: '28 Mar', closes: 'Sunday 28 March', board: [
   { id: 'g3', pts: 39, thru: 18, course: 'Chambers Bay' }, { id: 'g6', pts: 36, thru: 18, course: 'Oakhurst' }, { id: 'g2', pts: 34, thru: 18, course: 'Rancho Park' },
   { id: 'g1', pts: 17, thru: 9, course: 'Blackwolf Run' }, { id: 'g10', pts: 15, thru: 8, course: 'Griffith Park' } ] };
 const ROOMS = [{ n: 1, type: 'Superior', who: ['g1', 's1'] }, { n: 2, type: 'Suite', who: ['g3', 's2'] }, { n: 3, type: 'Standard', who: ['g6', 's4'] }, { n: 4, type: 'Standard', who: ['g2', 's3'] }, { n: 5, type: 'Standard', who: ['g10'] }];
 const by = Object.fromEntries(PEOPLE.map(p => [p.id, p]));
-const money = (n) => '£' + n.toLocaleString('en-GB');
+const money = n => '£' + n.toLocaleString('en-GB');
 const inField = PEOPLE.filter(p => p.status === 'in'), maybes = PEOPLE.filter(p => p.status === 'maybe'), outs = PEOPLE.filter(p => p.status === 'out'), unanswered = PEOPLE.filter(p => !p.status);
-const due = inField.reduce((a, p) => a + p.price, 0), collected = inField.reduce((a, p) => a + p.paid, 0);
+const due = inField.reduce((a, p) => a + p.price, 0), collected = inField.reduce((a, p) => a + p.paid, 0), left = due - collected;
 console.assert(inField.length + maybes.length + outs.length + unanswered.length === PEOPLE.length, 'the field adds up');
 console.assert(collected <= due, 'collected within due');
 const merit = PEOPLE.filter(p => p.merit).map(p => ({ ...p, total: p.merit[p.merit.length - 1] })).sort((a, b) => b.total - a.total);
 const C = ['var(--c1)', 'var(--c2)', 'var(--c3)', 'var(--c4)'];
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-
 const ICON = {
   you: '<circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c.8-3.6 3.9-5.5 7.5-5.5s6.7 1.9 7.5 5.5"/>',
   season: '<path d="M7 4h10v4.5a5 5 0 0 1-10 0z"/><path d="M4 5.5h3v2a3 3 0 0 1-3-2zM17 5.5h3a3 3 0 0 1-3 2z"/><path d="M12 13.5V17M8.5 20h7"/>',
@@ -235,30 +286,29 @@ const ICON = {
   manage: '<circle cx="12" cy="12" r="3"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4"/>',
 };
 const ic = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[k]}</svg>`;
+const av = p => `<span class="av" style="background:${p.hue}">${p.ini}</span>`;
+const NAV = [['you', 'You'], ['season', 'Season'], ['hq', 'Vegas HQ']];
 function rail(on) {
-  const item = (k, label) => `<a href="#" class="${on === k ? 'on' : ''}">${ic(k)}${label}</a>`;
+  const item = (k, l) => `<a href="#" class="${on === k ? 'on' : ''}">${ic(k)}${l}</a>`;
   return `<nav class="rail"><div class="prod"><img src="img/crest.png" alt=""><div><b>The Union Invitational</b><small>Las Vegas 2027 · the Clubhouse</small></div></div>
-    ${item('you', 'You')}${item('season', 'Season')}${item('hq', 'Vegas HQ')}
-    <div class="grp">The books</div>${item('book', 'Belek 2026')}
+    ${NAV.map(([k, l]) => item(k, l)).join('')}<div class="grp">The books</div>${item('book', 'Belek 2026')}
     <div class="sw">${item('manage', 'Manage')}<div class="me"><i>NI</i>Norberto III · master</div></div></nav>`;
 }
-const av = p => `<span class="av" style="background:${p.hue}">${p.ini}</span>`;
-
-/* ---- charts: thin marks, one hue per series, text in ink ---- */
-function lineChart(series, { w = 640, h = 220, labels, yMax, yMin = 0, yTicks, pad = { l: 36, r: 110, t: 12, b: 26 }, fmt = v => v } = {}) {
-  const iw = w - pad.l - pad.r, ih = h - pad.t - pad.b;
-  const n = labels.length;
-  const x = i => pad.l + (n === 1 ? 0 : i * iw / (n - 1));
-  const y = v => pad.t + ih - ((v - yMin) / (yMax - yMin)) * ih;
+function topbar(on) {
+  return `<nav class="top"><div class="prod"><img src="img/crest.png" alt=""><b>The Union Invitational</b><small>Las Vegas 2027 · the Clubhouse</small></div>
+    ${NAV.map(([k, l]) => `<a href="#" class="${on === k ? 'on' : ''}">${l}</a>`).join('')}<a href="#">Belek 2026</a><a href="#">Manage</a><span class="me">Norberto III · master</span></nav>`;
+}
+function lineChart(series, { w = 640, h = 220, labels, yMax, yMin = 0, yTicks, pad = { l: 36, r: 110, t: 12, b: 26 }, fmt = v => v, grid = '#E4DCC6', ink = '#1D2E21', mute = '#5C6B55', ring = '#EEE8D5' } = {}) {
+  const iw = w - pad.l - pad.r, ih = h - pad.t - pad.b, n = labels.length;
+  const x = i => pad.l + (n === 1 ? 0 : i * iw / (n - 1)), y = v => pad.t + ih - ((v - yMin) / (yMax - yMin)) * ih;
   let out = `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" role="img" aria-label="Line chart">`;
-  for (const t of yTicks) out += `<line x1="${pad.l}" x2="${w - pad.r}" y1="${y(t)}" y2="${y(t)}" stroke="#E4DCC6"/><text x="${pad.l - 8}" y="${y(t) + 4}" font-size="11" text-anchor="end" fill="#5C6B55">${fmt(t)}</text>`;
-  labels.forEach((l, i) => { out += `<text x="${x(i)}" y="${h - 8}" font-size="11.5" text-anchor="middle" fill="#5C6B55">${l}</text>`; });
+  for (const t of yTicks) out += `<line x1="${pad.l}" x2="${w - pad.r}" y1="${y(t)}" y2="${y(t)}" stroke="${grid}"/><text x="${pad.l - 8}" y="${y(t) + 4}" font-size="11" text-anchor="end" fill="${mute}">${fmt(t)}</text>`;
+  labels.forEach((l, i) => { out += `<text x="${x(i)}" y="${h - 8}" font-size="11.5" text-anchor="middle" fill="${mute}">${l}</text>`; });
   series.forEach(s => {
-    const pts = s.v.map((v, i) => [x(i), y(v)]);
+    const pts = s.v.map((v, i) => [x(i), y(v)]), last = pts[pts.length - 1];
     out += `<polyline fill="none" stroke="${s.c}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" points="${pts.map(p => p.join(',')).join(' ')}"/>`;
-    const last = pts[pts.length - 1];
-    out += `<circle cx="${last[0]}" cy="${last[1]}" r="4.5" fill="${s.c}" stroke="#EEE8D5" stroke-width="2"/>`;
-    out += `<text x="${last[0] + 10}" y="${last[1] + 4 + (s.dy || 0)}" font-size="12" fill="#1D2E21">${esc(s.n)} <tspan fill="#5C6B55">${fmt(s.v[s.v.length - 1])}</tspan></text>`;
+    out += `<circle cx="${last[0]}" cy="${last[1]}" r="4.5" fill="${s.c}" stroke="${ring}" stroke-width="2"/>`;
+    out += `<text x="${last[0] + 10}" y="${last[1] + 4 + (s.dy || 0)}" font-size="12" fill="${ink}">${esc(s.n)} <tspan fill="${mute}">${fmt(s.v[s.v.length - 1])}</tspan></text>`;
   });
   return out + '</svg>';
 }
@@ -269,58 +319,58 @@ function spark(v, c = 'var(--c2)', w = 90, h = 22) {
 }
 const boardTable = (rows, mine) => `<table><thead><tr><th>Pos</th><th>Golfer</th><th>Course</th><th class="r">Thru</th><th class="r">Pts</th></tr></thead><tbody>${rows.map((r, i) => { const p = by[r.id]; return `<tr class="${r.id === mine ? 'me' : ''}"><td>${i + 1}</td><td>${av(p)}${esc(p.name)}</td><td class="muted">${esc(r.course)}</td><td class="r">${r.thru === 18 ? 'F' : r.thru}</td><td class="r"><b>${r.pts}</b></td></tr>`; }).join('')}</tbody></table>`;
 
-/* ---- YOU ---- */
-(() => {
-  const me = by.g1, lead = by[MARCH.board[0].id], mine = MARCH.board.find(r => r.id === 'g1');
-  const lines = [['In for Vegas', 'Yes', true], ['Playing', 'Tournament · men’s', true], ['Package', me.pkg, true], ['Paid', money(me.paid) + ' of ' + money(me.price), false], ['Shirt and merch', 'XL · NDIII · Norberto Diaz III', true], ['Room', 'With Jennifer D · Superior', true], ['Flights', 'BA 275 · lands 15:40', true]];
-  const done = lines.filter(l => l[2]).length;
-  document.getElementById('scr-you').innerHTML = rail('you') + `<main class="canvas">
-    <div class="trow"><div><h1>Afternoon, Norberto. You are through 9 in the March Medal.</h1><div class="sub">Closes ${MARCH.closes} · <b>${esc(lead.name)} leads on ${MARCH.board[0].pts}</b>, you have ${mine.pts} through ${mine.thru} · ${done} of ${lines.length} on your Vegas line</div></div>
-      <div class="acts"><button class="btn q">Open the Belek book</button><button class="btn">Carry on my card</button></div></div>
-    <div class="grid">
-      <div class="card c8"><h3>${esc(MARCH.name)} · live <small>${MARCH.from} to ${MARCH.to} · 5 of 11 cards in</small></h3>${boardTable(MARCH.board, 'g1')}
+/* ---- the three screens: title + blocks, the same for every style ---- */
+const SCREENS = {
+  you() {
+    const me = by.g1, lead = by[MARCH.board[0].id], mine = MARCH.board.find(r => r.id === 'g1');
+    const lines = [['In for Vegas', 'Yes', true], ['Playing', 'Tournament · men’s', true], ['Package', me.pkg, true], ['Paid', money(me.paid) + ' of ' + money(me.price), false], ['Shirt and merch', 'XL · NDIII · Norberto Diaz III', true], ['Room', 'With Jennifer D · Superior', true], ['Flights', 'BA 275 · lands 15:40', true]];
+    const done = lines.filter(l => l[2]).length;
+    return {
+      k: 'You · the Clubhouse', h1: 'Afternoon, Norberto. You are through 9 in the March Medal.',
+      sub: `Closes ${MARCH.closes} · <b>${esc(lead.name)} leads on ${MARCH.board[0].pts}</b>, you have ${mine.pts} through ${mine.thru} · ${done} of ${lines.length} on your Vegas line`,
+      acts: `<button class="btn q">Open the Belek book</button><button class="btn">Carry on my card</button>`, cover: 'img/course.webp',
+      grid: s => `
+      <div class="card c8 lift"><h3>${esc(MARCH.name)} · live <small>${MARCH.from} to ${MARCH.to} · 5 of 11 cards in</small></h3>${boardTable(MARCH.board, 'g1')}
         <p class="hint">On a laptop the card takes the keyboard: <kbd>1</kbd>–<kbd>9</kbd> score the hole, <kbd>←</kbd> <kbd>→</kbd> move along the strip, <kbd>Enter</kbd> posts when the photo is in.</p></div>
-      <div class="card c4"><h3>Your Vegas line <small>${done} of ${lines.length}</small></h3>${lines.map(l => `<div class="line"><span>${l[0]}</span><b class="${l[2] ? 'ok' : 'todo'}">${esc(l[1])}</b></div>`).join('')}</div>
-      <div class="card c8"><h3>Your Union handicap <small>Belek band 16 · best three of the last six at 96%</small></h3>${lineChart([{ n: 'You', v: me.hcp, c: 'var(--c2)' }], { w: 760, h: 170, labels: STOPS, yMin: 13, yMax: 18, yTicks: [13, 14, 15, 16, 17, 18], pad: { l: 36, r: 90, t: 10, b: 24 }, fmt: v => v.toFixed(0) })}</div>
-      <div class="card c4"><h3>From Belek 2026</h3><div class="line"><span>Report card</span><b>79 · 42 pts · MVP 5th</b></div><div class="line"><span>Practice manual</span><b>15 drills · putting first</b></div><div class="line"><span>Three things</span><b class="muted">Lay up · lag putt · breathe</b></div><p class="note">Readable any time; nothing in it can change.</p></div>
-    </div></main>`;
-})();
-
-/* ---- SEASON ---- */
-(() => {
-  const top = merit.slice(0, 4);
-  const series = top.map((p, i) => ({ n: p.name, v: p.merit, c: C[i], dy: i === 1 ? -4 : i === 2 ? 4 : 0 }));
-  const hcps = PEOPLE.filter(p => p.hcp).map(p => ({ p, now: p.hcp[p.hcp.length - 1], seed: p.hcp[0], cards: p.hcp.filter((v, i) => i && v !== p.hcp[i - 1]).length })).sort((a, b) => a.now - b.now);
-  document.getElementById('scr-season').innerHTML = rail('season') + `<main class="canvas">
-    <div class="trow"><div><h1>Matt D leads the Order of Merit by ${merit[0].total - merit[1].total} after four stops.</h1><div class="sub">The March Medal is open and closes ${MARCH.closes} · <b>7 stops to go</b> · handicaps lock 13 October</div></div>
-      <div class="acts"><button class="btn q">Handicaps</button><button class="btn q">Awards</button><button class="btn">Enter my card</button></div></div>
-    <div class="grid">
-      <div class="card c8"><h3>The Order of Merit <small class="lg">${top.map((p, i) => `<span><i style="background:${C[i]}"></i>${esc(p.name)}</span>`).join('')}</small></h3>
-        ${lineChart(series, { w: 760, h: 250, labels: STOPS, yMax: 320, yTicks: [0, 100, 200, 300], pad: { l: 36, r: 130, t: 12, b: 24 } })}
+      <div class="card c4 lift"><h3>Your Vegas line <small>${done} of ${lines.length}</small></h3>${lines.map(l => `<div class="line"><span>${l[0]}</span><b class="${l[2] ? 'ok' : 'todo'}">${esc(l[1])}</b></div>`).join('')}</div>
+      <div class="card c8"><h3>Your Union handicap <small>Belek band 16 · best three of the last six at 96%</small></h3>${lineChart([{ n: 'You', v: me.hcp, c: s === 'ledger' ? 'var(--accent)' : 'var(--c2)' }], { w: s === 'ledger' ? 840 : 760, h: 150, labels: STOPS, yMin: 13, yMax: 18, yTicks: [13, 14, 15, 16, 17, 18], pad: { l: 36, r: 90, t: 10, b: 24 }, fmt: v => v.toFixed(0), ring: s === 'ledger' ? '#F4EFE1' : '#EEE8D5' })}</div>
+      <div class="card c4"><h3>From Belek 2026</h3><div class="line"><span>Report card</span><b>79 · 42 pts · MVP 5th</b></div><div class="line"><span>Practice manual</span><b>15 drills · putting first</b></div><div class="line"><span>Three things</span><b class="muted">Lay up · lag putt · breathe</b></div><p class="note">Readable any time; nothing in it can change.</p></div>`,
+    };
+  },
+  season() {
+    const top = merit.slice(0, 4);
+    const hcps = PEOPLE.filter(p => p.hcp).map(p => ({ p, now: p.hcp[p.hcp.length - 1], seed: p.hcp[0], cards: p.hcp.filter((v, i) => i && v !== p.hcp[i - 1]).length })).sort((a, b) => a.now - b.now);
+    return {
+      k: 'Season · after four stops', h1: `Matt D leads the Order of Merit by ${merit[0].total - merit[1].total} after four stops.`,
+      sub: `The March Medal is open and closes ${MARCH.closes} · <b>7 stops to go</b> · handicaps lock 13 October`,
+      acts: `<button class="btn q">Handicaps</button><button class="btn q">Awards</button><button class="btn">Enter my card</button>`, cover: 'img/hero.webp',
+      grid: s => {
+        const series = top.map((p, i) => ({ n: p.name, v: p.merit, c: s === 'ledger' ? (p.id === 'g1' ? 'var(--accent)' : ['#1D2E21', '#5C6B55', '#9A9A8A', '#1D2E21'][i]) : C[i], dy: i === 1 ? -4 : i === 2 ? 4 : 0 }));
+        return `
+      <div class="card c8 lift"><h3>The Order of Merit <small class="lg">${top.map((p, i) => `<span><i style="background:${series[i].c}"></i>${esc(p.name)}</span>`).join('')}</small></h3>
+        ${lineChart(series, { w: s === 'ledger' ? 840 : 760, h: 230, labels: STOPS, yMax: 320, yTicks: [0, 100, 200, 300], pad: { l: 36, r: 130, t: 12, b: 24 }, ring: s === 'ledger' ? '#F4EFE1' : '#EEE8D5' })}
         <p class="note">Points a stop: 100, 60, 40, 30, 25 and down the places. Belek is the start line; every golfer begins on nought.</p></div>
-      <div class="card c4"><h3>${esc(MARCH.name)} · live <small>5 of 11 in</small></h3>${boardTable(MARCH.board, 'g1')}</div>
+      <div class="card c4 lift"><h3>${esc(MARCH.name)} · live <small>5 of 11 in</small></h3>${boardTable(MARCH.board, 'g1')}</div>
       <div class="card c12"><h3>The Union handicap <small>seeded by the Belek band · moves after three cards · the line is the season so far</small></h3>
         <table><thead><tr><th>Golfer</th><th class="r">Belek</th><th class="r">Now</th><th class="r">Since Belek</th><th class="r">Cards</th><th>Season</th><th class="r">Merit</th></tr></thead><tbody>
-        ${hcps.map(({ p, now, seed, cards }) => { const d = Math.round((now - seed) * 10) / 10; return `<tr class="${p.id === 'g1' ? 'me' : ''}"><td>${av(p)}${esc(p.name)}</td><td class="r">${seed}</td><td class="r"><b>${now.toFixed(1)}</b></td><td class="r" style="color:${d < 0 ? 'var(--c1)' : d > 0 ? 'var(--c3)' : 'var(--muted)'}">${d === 0 ? '—' : (d > 0 ? '+' : '−') + Math.abs(d).toFixed(1)}</td><td class="r">${cards}</td><td>${spark(p.hcp, d < 0 ? 'var(--c1)' : d > 0 ? 'var(--c3)' : '#9A9A8A')}</td><td class="r">${p.merit[p.merit.length - 1]}</td></tr>`; }).join('')}
-        </tbody></table></div>
-    </div></main>`;
-})();
-
-/* ---- VEGAS HQ ---- */
-(() => {
-  const rows = [...inField, ...maybes, ...outs, ...unanswered];
-  const left = due - collected;
-  const flightsIn = inField.filter(p => p.flights).length;
-  document.getElementById('scr-hq').innerHTML = rail('hq') + `<main class="canvas">
-    <div class="trow"><div><h1>${inField.length} in for Las Vegas, ${money(collected)} of ${money(due)} collected.</h1><div class="sub">13 to 21 November 2027, dates not yet locked · deposits closed 31 March · <b>balance due 3 August</b> · ${maybes.length} maybe, ${outs.length} out, ${unanswered.length} yet to answer</div></div>
-      <div class="acts"><button class="btn q">Rooms</button><button class="btn q">Travel</button><button class="btn">Export the headcount</button></div></div>
-    <div class="grid">
-      <div class="c12 kpis">
+        ${hcps.slice(0, 6).map(({ p, now, seed, cards }) => { const d = Math.round((now - seed) * 10) / 10; const col = s === 'ledger' ? '#1D2E21' : d < 0 ? 'var(--c1)' : d > 0 ? 'var(--c3)' : '#9A9A8A'; return `<tr class="${p.id === 'g1' ? 'me' : ''}"><td>${av(p)}${esc(p.name)}</td><td class="r">${seed}</td><td class="r"><b>${now.toFixed(1)}</b></td><td class="r" style="color:${s === 'ledger' ? 'inherit' : col}">${d === 0 ? '—' : (d > 0 ? '+' : '−') + Math.abs(d).toFixed(1)}</td><td class="r">${cards}</td><td>${spark(p.hcp, col)}</td><td class="r">${p.merit[p.merit.length - 1]}</td></tr>`; }).join('')}
+        </tbody></table></div>`;
+      },
+    };
+  },
+  hq() {
+    const rows = [...inField, ...maybes, ...outs, ...unanswered].slice(0, 10);
+    const flightsIn = inField.filter(p => p.flights).length;
+    return {
+      k: 'Vegas HQ · the third edition', h1: `${inField.length} in for Las Vegas, ${money(collected)} of ${money(due)} collected.`,
+      sub: `13 to 21 November 2027, dates not yet locked · deposits closed 31 March · <b>balance due 3 August</b> · ${maybes.length} maybe, ${outs.length} out, ${unanswered.length} yet to answer`,
+      acts: `<button class="btn q">Rooms</button><button class="btn q">Travel</button><button class="btn">Export the headcount</button>`, cover: 'img/hero.webp',
+      grid: s => `
+      <div class="card c12 hero lift"><div class="kpis">
         <div class="kpi"><small>In</small><b>${inField.length}<em>of ${PEOPLE.length} asked</em></b><span>${maybes.length} maybe · ${outs.length} out · ${unanswered.length} to answer</span></div>
         <div class="kpi"><small>Collected</small><b>${money(collected)}<em>of ${money(due)}</em></b><span class="up">${Math.round(collected / due * 100)}% in, ${money(left)} to come</span></div>
         <div class="kpi"><small>Settled in full</small><b>${inField.filter(p => p.paid >= p.price).length}<em>of ${inField.length}</em></b><span>${inField.filter(p => p.paid === 0).length} not started</span></div>
-        <div class="kpi"><small>Flights in</small><b>${flightsIn}<em>of ${inField.length}</em></b><span class="dn">${inField.length - flightsIn} still to add</span></div>
-      </div>
+        <div class="kpi"><small>Flights in</small><b>${flightsIn}<em>of ${inField.length}</em></b><span class="dn">${inField.length - flightsIn} still to add</span></div></div></div>
       <div class="card c8"><h3>The field <small>sorted by what is outstanding</small></h3>
         <table><thead><tr><th>Name</th><th>Playing</th><th>Status</th><th>Package</th><th>Paid</th><th class="r">Left</th><th>Flights</th></tr></thead><tbody>
         ${rows.map(p => { const pct = p.price ? Math.min(1, p.paid / p.price) : 0; const l = Math.max(0, p.price - p.paid);
@@ -329,11 +379,24 @@ const boardTable = (rows, mine) => `<table><thead><tr><th>Pos</th><th>Golfer</th
       <div class="card c4"><h3>Rooms <small>${ROOMS.filter(r => r.who.length === 2).length} pairs set</small></h3><div class="rooms">
         ${ROOMS.map(r => `<div class="room"><b>Room ${r.n} · ${r.type}</b>${r.who.map(id => esc(by[id].name)).join(' + ')}</div>`).join('')}
         <div class="room todo"><b>Room 6</b>Gabriel P + Drea, if both are in</div></div>
-        <h3 style="margin-top:14px">Vendors</h3><div class="line"><span>Hotel</span><b>Quotes in · choosing</b></div><div class="line"><span>Courses</span><b>Tee times held</b></div><div class="line"><span>Club rentals</span><b class="todo">To ask</b></div><div class="line"><span>Merch and trophies</span><b class="todo">Design by June</b></div></div>
-    </div></main>`;
-})();
+        <h3 style="margin-top:14px">Vendors</h3><div class="line"><span>Hotel</span><b>Quotes in · choosing</b></div><div class="line"><span>Courses</span><b>Tee times held</b></div><div class="line"><span>Club rentals</span><b class="todo">To ask</b></div></div>`,
+    };
+  },
+};
 
-/* scale the 1366-wide screens to the page */
+/* ---- the shells ---- */
+function draw(el) {
+  const s = el.dataset.style, which = el.dataset.screen, d = SCREENS[which]();
+  const grid = `<div class="grid">${d.grid(s)}</div>`;
+  if (s === 'ledger') {
+    el.innerHTML = topbar(which) + `<main class="canvas"><div class="trow"><div><h1>${d.h1}</h1><div class="sub">${d.sub}</div></div><div class="acts">${d.acts}</div></div>${grid}</main>`;
+  } else if (s === 'cover') {
+    el.innerHTML = rail(which) + `<main class="canvas"><div class="cover" style="background-image:url(${d.cover})"><div><span class="k">${esc(d.k)}</span><h1>${d.h1}</h1><div class="sub">${d.sub}</div></div><div class="acts">${d.acts}</div></div>${grid}</main>`;
+  } else {
+    el.innerHTML = rail(which) + `<main class="canvas"><div class="trow"><div><h1>${d.h1}</h1><div class="sub">${d.sub}</div></div><div class="acts">${d.acts}</div></div>${grid}</main>`;
+  }
+}
+document.querySelectorAll('[data-ui][data-screen]').forEach(draw);
 (function () {
   function fit() { document.querySelectorAll('.frame').forEach(f => { const w = f.clientWidth; if (w) f.style.setProperty('--z', Math.min(1, w / 1366).toFixed(4)); }); }
   fit(); addEventListener('resize', fit); addEventListener('load', fit);
