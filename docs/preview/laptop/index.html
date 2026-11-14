@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>The Clubhouse on a laptop · three renditions · The Union Invitational</title>
+<title>The Clubhouse on a laptop · the pick · The Union Invitational</title>
 <meta name="description" content="Three renditions of the Union Invitational's Clubhouse on a laptop: the pine rail, the ledger, the cover. Pick one.">
 <link rel="icon" href="../../app/icon-192.png" type="image/png">
 <style>
@@ -40,7 +40,7 @@ p{max-width:62ch;text-wrap:pretty}
 .sec.alt{background:var(--paper-2)}
 .sec.pine{background:var(--bg);color:var(--onpine)}
 .sec h2{font-size:var(--step-head);max-width:26ch}
-.sec h2 .big{display:inline-grid;place-items:center;width:1.3em;height:1.3em;border-radius:50%;background:var(--ink);color:var(--accent);font-size:.9em;margin-right:.3em;vertical-align:-.18em}
+.sec h2 .big{display:inline-grid;place-items:center;min-width:1.3em;height:1.3em;padding:0 .3em;border-radius:50%;background:var(--ink);color:var(--accent);font-size:.9em;margin-right:.3em;vertical-align:-.18em}
 .sec .intro{font-size:var(--step-lead);line-height:1.35;max-width:46ch;margin-top:16px}
 .sec.pine .intro{opacity:.9}
 .shots{display:grid;grid-template-columns:1fr 1fr;gap:clamp(14px,2vw,28px);margin-top:36px}
@@ -49,7 +49,7 @@ p{max-width:62ch;text-wrap:pretty}
 @media (max-width:860px){ .shots{grid-template-columns:1fr} }
 .frame{--z:1;margin-top:30px;position:relative}
 .frame .tag{display:inline-flex;margin-bottom:12px;align-items:center;gap:10px;background:var(--ink);color:var(--onpine);padding:6px 14px 6px 8px;font-size:15px;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.25)}
-.frame .tag b{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--ink);font-size:17px;font-weight:700}
+.frame .tag b{display:inline-grid;place-items:center;min-width:28px;height:28px;padding:0 6px;border-radius:999px;background:var(--accent);color:var(--ink);font-size:17px;font-weight:700}
 .frame .tag span{opacity:.8}
 .sec.pine .frame .tag{background:var(--accent);color:var(--ink)}.sec.pine .frame .tag b{background:var(--ink);color:var(--accent)}.sec.pine .frame .tag span{opacity:.75}
 .frame .box{height:calc(820px * var(--z) + 4px)}
@@ -64,8 +64,8 @@ p{max-width:62ch;text-wrap:pretty}
 @media (max-width:860px){ .verdict{grid-template-columns:1fr} }
 .pick{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:30px}
 .pick a{display:block;padding:18px 20px;border:1px solid var(--rule);text-decoration:none;background:var(--paper)}
-.pick a b{display:block;font-size:22px}.pick a b .big{display:inline-grid;place-items:center;width:1.3em;height:1.3em;border-radius:50%;background:var(--ink);color:var(--accent);font-size:.9em;margin-right:.3em;vertical-align:-.18em}.pick a span{display:block;color:var(--muted);font-size:15px;margin-top:4px}
-@media (max-width:860px){ .pick{grid-template-columns:1fr} }
+.pick a b{display:block;font-size:22px}.pick a b .big{display:inline-grid;place-items:center;min-width:1.3em;padding:0 .3em;height:1.3em;border-radius:50%;background:var(--ink);color:var(--accent);font-size:.9em;margin-right:.3em;vertical-align:-.18em}.pick a span{display:block;color:var(--muted);font-size:15px;margin-top:4px}
+@media (max-width:860px){ .pick{grid-template-columns:1fr!important} }
 .foot{background:var(--paper-3);padding:40px 0 60px}
 .foot a{text-decoration:underline;text-underline-offset:.2em}
 .foot p{color:var(--muted);font-size:16px;margin-top:12px}
@@ -133,13 +133,13 @@ p{max-width:62ch;text-wrap:pretty}
 [data-ui] .room.todo{border-style:dashed;color:var(--muted)}
 
 /* ---- A · THE PINE RAIL: the book's own green on the left, gold for where you are ---- */
-.r-pine .rail{background:var(--bg);color:var(--onpine);border-right:3px solid var(--accent)}
-.r-pine .rail .prod b{color:var(--onpine)}.r-pine .rail .prod small{color:var(--sage)}
-.r-pine .rail a{color:var(--sage)}
-.r-pine .rail a.on{background:rgba(236,229,212,.08);color:var(--onpine);font-weight:700;box-shadow:inset 3px 0 0 var(--accent)}
-.r-pine .rail .grp{color:var(--sage)}
-.r-pine .rail .sw{border-top:1px solid rgba(236,229,212,.14)}
-.r-pine .rail .me{color:var(--sage)}.r-pine .rail .me i{background:var(--accent);color:var(--ink)}
+.r-pine .rail,.r-pinecover .rail{background:var(--bg);color:var(--onpine);border-right:3px solid var(--accent)}
+.r-pine .rail .prod b,.r-pinecover .rail .prod b{color:var(--onpine)}.r-pine .rail .prod small{color:var(--sage)}
+.r-pine .rail a,.r-pinecover .rail a{color:var(--sage)}
+.r-pine .rail a.on,.r-pinecover .rail a.on{background:rgba(236,229,212,.08);color:var(--onpine);font-weight:700;box-shadow:inset 3px 0 0 var(--accent)}
+.r-pine .rail .grp,.r-pinecover .rail .grp{color:var(--sage)}
+.r-pine .rail .sw,.r-pinecover .rail .sw{border-top:1px solid rgba(236,229,212,.14)}
+.r-pine .rail .me,.r-pinecover .rail .me{color:var(--sage)}.r-pine .rail .me i{background:var(--accent);color:var(--ink)}
 .r-pine .trow{border-bottom:2px solid var(--ink)}
 .r-pine .btn{background:var(--bg);border-color:var(--bg)}
 .r-pine .card.hero{background:var(--bg);color:var(--onpine);border-color:var(--bg)}
@@ -179,30 +179,71 @@ p{max-width:62ch;text-wrap:pretty}
 .r-cover .rail a.on{background:var(--paper-3);color:var(--ink);font-weight:700}
 .r-cover .rail .sw{border-top:1px solid var(--hair)}
 .r-cover .rail .me i{background:#E6D9B6;color:var(--ink)}
-.r-cover .canvas{padding:0;grid-template-rows:auto 1fr}
-.r-cover .cover{position:relative;height:290px;background:#243B2E center/cover no-repeat;color:var(--onpine);display:flex;align-items:flex-end;padding:0 24px 92px}
-.r-cover .cover::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(29,46,33,.18),rgba(29,46,33,.78) 62%,rgba(29,46,33,.9))}
-.r-cover .cover>*{position:relative}.r-cover .cover>div:first-child{flex:1 1 auto;min-width:0;max-width:720px;padding-right:24px}.r-cover .cover .acts{flex:none}
-.r-cover .cover .k{font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700;display:block;margin-bottom:6px;text-shadow:0 1px 2px rgba(0,0,0,.5)}
-.r-cover .cover h1{font-size:34px;font-weight:700;color:var(--onpine);max-width:26ch}
-.r-cover .cover .sub{color:var(--onpine);opacity:.9;margin-top:6px;font-size:15px}
-.r-cover .cover .sub b{color:var(--accent)}
-.r-cover .cover .acts{margin-left:auto;align-self:flex-end}
-.r-cover .btn{background:var(--accent);color:var(--ink);border-color:var(--accent)}
-.r-cover .btn.q{background:rgba(236,229,212,.12);color:var(--onpine);border-color:rgba(236,229,212,.5)}
-.r-cover .grid{padding:16px 24px 24px;margin-top:0}
-.r-cover .card{box-shadow:none}
-.r-cover .card.lift{position:relative;z-index:1;margin-top:-78px;background:var(--paper);box-shadow:0 6px 18px rgba(29,46,33,.18)}
+.r-cover .canvas,.r-pinecover .canvas{padding:0;grid-template-rows:auto 1fr}
+.r-cover .cover,.r-pinecover .cover{position:relative;height:290px;background:#243B2E center/cover no-repeat;color:var(--onpine);display:flex;align-items:flex-end;padding:0 24px 92px}
+.r-cover .cover::before,.r-pinecover .cover::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(29,46,33,.18),rgba(29,46,33,.78) 62%,rgba(29,46,33,.9))}
+.r-cover .cover>*,.r-pinecover .cover>*{position:relative}.r-cover .cover>div:first-child{flex:1 1 auto;min-width:0;max-width:720px;padding-right:24px}.r-cover .cover .acts{flex:none}
+.r-cover .cover .k,.r-pinecover .cover .k{font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700;display:block;margin-bottom:6px;text-shadow:0 1px 2px rgba(0,0,0,.5)}
+.r-cover .cover h1,.r-pinecover .cover h1{font-size:34px;font-weight:700;color:var(--onpine);max-width:26ch}
+.r-cover .cover .sub,.r-pinecover .cover .sub{color:var(--onpine);opacity:.9;margin-top:6px;font-size:15px}
+.r-cover .cover .sub b,.r-pinecover .cover .sub b{color:var(--accent)}
+.r-cover .cover .acts,.r-pinecover .cover .acts{margin-left:auto;align-self:flex-end}
+.r-cover .btn,.r-pinecover .btn{background:var(--accent);color:var(--ink);border-color:var(--accent)}
+.r-cover .btn.q,.r-pinecover .btn.q{background:rgba(236,229,212,.12);color:var(--onpine);border-color:rgba(236,229,212,.5)}
+.r-cover .grid,.r-pinecover .grid{padding:16px 24px 24px;margin-top:0}
+.r-cover .card,.r-pinecover .card{box-shadow:none}
+.r-cover .card.lift,.r-pinecover .card.lift{position:relative;z-index:1;margin-top:-78px;background:var(--paper);box-shadow:0 6px 18px rgba(29,46,33,.18)}
+/* ---- A + C · THE PINE COVER: A's rail, C's photograph ---- */
+.r-pinecover .cover .acts .btn{background:var(--accent);color:var(--ink);border-color:var(--accent)}
+.r-pinecover .cover .acts .btn.q{background:rgba(236,229,212,.12);color:var(--onpine);border-color:rgba(236,229,212,.5)}
+/* ---- A + C · live: hover, focus and motion. The same moves go into the app. ---- */
+.r-pinecover .cover>div:first-child{flex:1 1 auto;min-width:0;max-width:660px;padding-right:32px}.r-pinecover .cover .acts{flex:none}
+.r-pinecover .rail .me i{background:var(--accent);color:var(--ink)}
+.r-pinecover .rail a{cursor:pointer;transition:background .18s ease,color .18s ease,box-shadow .18s ease,transform .18s ease}
+.r-pinecover .rail a:hover{background:rgba(236,229,212,.06);color:var(--onpine)}
+.r-pinecover .rail a:active{transform:translateX(1px)}
+.r-pinecover .rail a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.r-pinecover .rail a svg{transition:transform .25s cubic-bezier(.2,.7,.2,1)}.r-pinecover .rail a:hover svg{transform:translateX(2px)}
+.r-pinecover .btn{cursor:pointer;transition:transform .15s ease,filter .15s ease,background .15s ease}
+.r-pinecover .btn:hover{transform:translateY(-1px);filter:brightness(1.06)}.r-pinecover .btn:active{transform:translateY(0)}
+.r-pinecover .btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.r-pinecover tbody tr{transition:background .15s ease}.r-pinecover tbody tr:hover td{background:rgba(29,46,33,.045)}.r-pinecover tbody tr.me:hover td{background:#EFE5CD}
+.r-pinecover .card.lift{transition:transform .22s cubic-bezier(.2,.7,.2,1),box-shadow .22s ease}.r-pinecover .card.lift:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(29,46,33,.22)}
+.r-pinecover .line{transition:background .15s ease}.r-pinecover .line:hover{background:rgba(29,46,33,.035)}
+.r-pinecover .cover{overflow:hidden}
+.r-pinecover .cover .ph{position:absolute;inset:0;background:center/cover no-repeat;z-index:0;pointer-events:none}
+.r-pinecover .cover .ph.old{animation:fadeout .55s ease both}
+.r-pinecover .cover::before{z-index:1}.r-pinecover .cover>div,.r-pinecover .cover>.acts{z-index:2}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes fadeout{to{opacity:0}}
+@keyframes markin{from{box-shadow:inset 0 0 0 var(--accent);background:transparent}}
+.r-pinecover.live .cover .k{animation:rise .4s cubic-bezier(.2,.7,.2,1) both}
+.r-pinecover.live .cover h1{animation:rise .5s cubic-bezier(.2,.7,.2,1) .05s both}
+.r-pinecover.live .cover .sub{animation:rise .5s cubic-bezier(.2,.7,.2,1) .12s both}
+.r-pinecover.live .cover .acts{animation:rise .5s cubic-bezier(.2,.7,.2,1) .18s both}
+.r-pinecover.live .grid .card{animation:rise .45s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(.16s + var(--i,0) * 70ms)}
+.r-pinecover.live .rail a.on{animation:markin .35s ease both}
+.r-pinecover .hintbar{position:absolute;right:14px;top:12px;z-index:3;font-size:12px;color:var(--onpine);background:rgba(29,46,33,.78);padding:5px 10px;border-radius:999px;opacity:.9}
+@media (prefers-reduced-motion:reduce){[data-ui] *,[data-ui] *::before{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
 
 <header class="hero"><div class="wrap">
   <div class="mark"><img src="img/crest.png" alt=""><span>The Union Invitational<br>The Clubhouse on a laptop</span></div>
-  <h1>Three ways the Clubhouse could sit on a desk.</h1>
-  <p class="lead">Same book, same figures, same three screens. What differs is the frame: where the navigation lives, what carries the colour, and whether a photograph opens the page. Pick one and I build it; the phone and the week in Vegas stay as they are.</p>
-  <div class="jump"><a href="#a">A · The pine rail</a><a href="#b">B · The ledger</a><a href="#c">C · The cover</a><a href="#now">As it is today</a></div>
+  <h1>The Clubhouse on a desk: your pick, drawn.</h1>
+  <p class="lead">You chose A and C together: the pine rail and the photograph. It is drawn first below, with the three originals kept under it for comparison. Say the word and it goes into the app; the phone and the week in Vegas stay as they are.</p>
+  <div class="jump"><a href="#ac">A+C · The pine cover</a><a href="#a">A · The pine rail</a><a href="#b">B · The ledger</a><a href="#c">C · The cover</a><a href="#now">As it is today</a></div>
 </div></header>
+
+<section class="sec" id="ac" style="background:var(--paper-3)"><div class="wrap">
+  <h2><span class="big">A+C</span>The pine cover</h2>
+  <p class="intro">Your pick: A's green rail down the left with gold on where you are, and C's photograph across the top of every screen with the headline written on it, the first row of cards rising into the picture. <b>These three frames are live:</b> click You, Season or Vegas HQ in the rail of any of them. The gold mark moves, the photograph crossfades, the headline and then the cards rise in order; the rail, the buttons and the rows answer the pointer.</p>
+  <figure class="frame"><span class="tag"><b>A+C</b>The pine cover<span>· You</span></span><div class="box"><div class="scr r-pinecover" data-ui data-screen="you" data-style="pinecover"></div></div><figcaption><b>You.</b> The greeting on the picture, the one button in gold, the board and your line lifting into the cover's foot, the rail in pine beside it.</figcaption></figure>
+  <figure class="frame"><span class="tag"><b>A+C</b>The pine cover<span>· Season</span></span><div class="box"><div class="scr r-pinecover" data-ui data-screen="season" data-style="pinecover"></div></div><figcaption><b>Season.</b> The leader's name on the cover; the race chart in its four hues, the open board and the handicaps under it.</figcaption></figure>
+  <figure class="frame"><span class="tag"><b>A+C</b>The pine cover<span>· Vegas HQ</span></span><div class="box"><div class="scr r-pinecover" data-ui data-screen="hq" data-style="pinecover"></div></div><figcaption><b>Vegas HQ.</b> The four figures lift into the photograph on paper, so they read against it; the field and the rooms below. Vegas gets its own picture when the season has one.</figcaption></figure>
+  <div class="verdict"><div><h3>How it moves</h3><ul><li>Navigation: the gold mark slides to the open tab; the cover keeps the last photograph underneath and fades it out over half a second while the new headline rises.</li><li>Arrival: the cards rise in order, 70 ms apart, so the eye is led from the cover down the page.</li><li>Pointer: rail items brighten and the icon nudges right, buttons lift a pixel, table rows and lines tint on hover, the lifted cards rise a little further. Keyboard focus shows a gold ring. All of it is off for anyone who has asked their system for reduced motion.</li></ul></div><div><h3>What it keeps from A</h3><ul><li>The pine rail with the gold edge and the gold mark on the open tab; the crest, the books, Manage and your name at its foot.</li><li>Colour on the data only, once past the cover.</li></ul></div><div><h3>What it keeps from C</h3><ul><li>The photograph as the header of every screen, with the headline and the day's one button on it.</li><li>The first row of cards rising into the picture.</li></ul></div></div>
+</div></section>
 
 <section class="sec" id="a"><div class="wrap">
   <h2><span class="big">A</span>The pine rail</h2>
@@ -232,9 +273,9 @@ p{max-width:62ch;text-wrap:pretty}
 </div></section>
 
 <section class="sec pine" id="choose"><div class="wrap">
-  <h2>Choose one, or mix.</h2>
-  <p class="intro">The pine rail with the ledger's tables is a fair mix; the cover's photograph on the pine rail's screens is another. Say which, and what to change.</p>
-  <div class="pick"><a href="#a"><b><span class="big">A</span> The pine rail</b><span>Green rail, gold marks, paper canvas</span></a><a href="#b"><b><span class="big">B</span> The ledger</b><span>Top tabs, ink and rules, one gold line</span></a><a href="#c"><b><span class="big">C</span> The cover</b><span>A photograph across the top, paper rail</span></a></div>
+  <h2>The pick is A + C.</h2>
+  <p class="intro">Anything to change on it before it is built, say so; the originals are below for reference.</p>
+  <div class="pick" style="grid-template-columns:repeat(4,1fr)"><a href="#ac" style="border-color:var(--accent);border-width:2px"><b><span class="big">A+C</span> The pine cover</b><span>The pick: pine rail, photograph across the top</span></a><a href="#a"><b><span class="big">A</span> The pine rail</b><span>Green rail, gold marks, paper canvas</span></a><a href="#b"><b><span class="big">B</span> The ledger</b><span>Top tabs, ink and rules, one gold line</span></a><a href="#c"><b><span class="big">C</span> The cover</b><span>A photograph across the top, paper rail</span></a></div>
 </div></section>
 
 <section class="sec alt" id="now"><div class="wrap">
@@ -294,7 +335,7 @@ const ic = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stro
 const av = p => `<span class="av" style="background:${p.hue}">${p.ini}</span>`;
 const NAV = [['you', 'You'], ['season', 'Season'], ['hq', 'Vegas HQ']];
 function rail(on) {
-  const item = (k, l) => `<a href="#" class="${on === k ? 'on' : ''}">${ic(k)}${l}</a>`;
+  const item = (k, l) => `<a href="#" data-nav="${k}" class="${on === k ? 'on' : ''}">${ic(k)}${l}</a>`;
   return `<nav class="rail"><div class="prod"><img src="img/crest.png" alt=""><div><b>The Union Invitational</b><small>Las Vegas 2027 · the Clubhouse</small></div></div>
     ${NAV.map(([k, l]) => item(k, l)).join('')}<div class="grp">The books</div>${item('book', 'Belek 2026')}
     <div class="sw">${item('manage', 'Manage')}<div class="me"><i>NI</i>Norberto III · master</div></div></nav>`;
@@ -395,13 +436,29 @@ function draw(el) {
   const grid = `<div class="grid">${d.grid(s)}</div>`;
   if (s === 'ledger') {
     el.innerHTML = topbar(which) + `<main class="canvas"><div class="trow"><div><h1>${d.h1}</h1><div class="sub">${d.sub}</div></div><div class="acts">${d.acts}</div></div>${grid}</main>`;
-  } else if (s === 'cover') {
+  } else if (s === 'cover' || s === 'pinecover') {
     el.innerHTML = rail(which) + `<main class="canvas"><div class="cover" style="background-image:url(${d.cover})"><div><span class="k">${esc(d.k)}</span><h1>${d.h1}</h1><div class="sub">${d.sub}</div></div><div class="acts">${d.acts}</div></div>${grid}</main>`;
   } else {
     el.innerHTML = rail(which) + `<main class="canvas"><div class="trow"><div><h1>${d.h1}</h1><div class="sub">${d.sub}</div></div><div class="acts">${d.acts}</div></div>${grid}</main>`;
   }
 }
 document.querySelectorAll('[data-ui][data-screen]').forEach(draw);
+/* A + C is live: click the rail. The cover keeps its last photograph underneath and fades it out, the new headline and cards rise in order, the gold mark moves. */
+document.querySelectorAll('[data-style="pinecover"]').forEach(el => {
+  const decorate = () => { el.querySelectorAll('.grid .card').forEach((c, i) => c.style.setProperty('--i', i)); const cov = el.querySelector('.cover'); if (cov && !cov.querySelector('.ph')) { const ph = document.createElement('span'); ph.className = 'ph'; ph.style.backgroundImage = cov.style.backgroundImage; cov.style.backgroundImage = ''; cov.prepend(ph); } };
+  decorate();
+  const hint = document.createElement('span'); hint.className = 'hintbar'; hint.textContent = 'Live: click the rail'; el.querySelector('.cover').appendChild(hint);
+  el.addEventListener('click', e => {
+    const a = e.target.closest('.rail a'); if (!a) return; e.preventDefault();
+    const k = a.dataset.nav; if (!SCREENS[k] || k === el.dataset.screen) return;
+    const oldPh = el.querySelector('.cover .ph');
+    const oldImg = oldPh ? oldPh.style.backgroundImage : '';
+    el.dataset.screen = k; el.classList.remove('live'); void el.offsetWidth; draw(el); decorate(); el.classList.add('live');
+    const cov = el.querySelector('.cover'), ph = cov.querySelector('.ph');
+    if (oldImg && oldImg !== ph.style.backgroundImage) { const o = document.createElement('span'); o.className = 'ph old'; o.style.backgroundImage = oldImg; cov.insertBefore(o, ph.nextSibling); o.addEventListener('animationend', () => o.remove()); }
+    cov.appendChild(hint);
+  });
+});
 (function () {
   function fit() { document.querySelectorAll('.frame').forEach(f => { const w = f.clientWidth; if (w) f.style.setProperty('--z', Math.min(1, w / 1366).toFixed(4)); }); }
   fit(); addEventListener('resize', fit); addEventListener('load', fit);
