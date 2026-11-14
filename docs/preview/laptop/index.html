@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Clubhouse on a laptop · The Union Invitational</title>
+<meta name="description" content="The Clubhouse as it runs on a laptop today, and a rendition of how it could run: a rail, one question a screen, charts on the season, the field as a table.">
+<link rel="icon" href="../../app/icon-192.png" type="image/png">
+<style>
+@font-face{font-family:'Source Serif';src:url(fonts/source-serif-latin-normal.woff2) format('woff2');font-weight:200 900;font-display:swap}
+@font-face{font-family:'Source Serif';src:url(fonts/source-serif-latin-italic.woff2) format('woff2');font-style:italic;font-weight:200 900;font-display:swap}
+:root{
+  --bg:#1D2E21; --paper:#EEE8D5; --paper-2:#E3DBCB; --paper-3:#DBD2BA; --ink:#1D2E21; --muted:#5C6B55; --hair:#DCD1B4; --rule:#C8BC9C;
+  --accent:#C9A253; --gold:#8C6B2F; --green:#3E5C43; --flag:#9E3B2E; --onpine:#ECE5D4;
+  /* the chart palette, validated with the dataviz checks on this surface: green, gold, red, blue */
+  --c1:#2E7D4F; --c2:#B8862B; --c3:#A8402F; --c4:#2F6EB8;
+  --font:'Source Serif',Georgia,'Times New Roman',serif;
+  --step-body:clamp(1.0625rem,1rem + .25vw,1.1875rem); --step-lead:clamp(1.25rem,1.1rem + .7vw,1.625rem);
+  --step-head:clamp(1.9rem,1.3rem + 2.6vw,3rem); --step-display:clamp(2.5rem,1.2rem + 5vw,4.4rem);
+  --margin:clamp(16px,2.2vw,32px); --section:clamp(4rem,10vw,9rem);
+}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:var(--step-body);line-height:1.5;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4,p,figure,ul,ol{margin:0}
+ul[class]{padding:0;list-style:none}
+img,svg{display:block;max-width:100%}
+a{color:inherit}
+h1,h2,h3{font-weight:700;text-wrap:balance;letter-spacing:-.02em;line-height:1.04}
+p{max-width:62ch;text-wrap:pretty}
+.wrap{padding-inline:var(--margin);max-width:1400px;margin-inline:auto}
+.hero{background:var(--paper);padding:clamp(28px,5vw,72px) 0 clamp(24px,4vw,48px)}
+.hero h1{font-size:var(--step-display);max-width:16ch}
+.hero .lead{font-size:var(--step-lead);line-height:1.35;max-width:40ch;margin-top:22px}
+.hero .mark{display:flex;align-items:center;gap:14px;margin-bottom:28px}
+.hero .mark img{width:56px;height:56px}
+.hero .mark span{font-weight:700;line-height:1.1;font-size:19px}
+.sec{background:var(--paper);padding-block:calc(var(--section)/1.8) var(--section)}
+.sec.alt{background:var(--paper-2)}
+.sec.pine{background:var(--bg);color:var(--onpine)}
+.sec h2{font-size:var(--step-head);max-width:26ch}
+.sec .intro{font-size:var(--step-lead);line-height:1.35;max-width:42ch;margin-top:16px}
+.sec.pine .intro{opacity:.9}
+.shots{display:grid;grid-template-columns:1fr 1fr;gap:clamp(14px,2vw,28px);margin-top:36px}
+.shots figure img{border:2px solid var(--ink);border-radius:10px;background:var(--paper-3)}
+.shots figcaption{margin-top:10px;font-size:16px;color:var(--muted)}
+.sec.pine .shots figcaption{color:var(--onpine);opacity:.85}
+@media (max-width:860px){ .shots{grid-template-columns:1fr} }
+/* ---- the rendition frames: a 1366-wide screen scaled to the page ---- */
+.frame{--z:1;margin-top:36px}
+.frame .box{height:calc(820px * var(--z) + 4px)}
+.frame .scr{width:1366px;height:820px;transform:scale(var(--z));transform-origin:top left;border:2px solid var(--ink);border-radius:10px;overflow:hidden;background:var(--paper)}
+.frame figcaption{margin-top:12px;font-size:16px;color:var(--muted);max-width:70ch}
+.frame figcaption b{color:var(--ink)}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:clamp(24px,4vw,56px);margin-top:36px;align-items:start}
+.cols h3{font-size:1.3rem;margin-bottom:10px}
+.cols ul{padding-left:1.1em;list-style:disc}
+.cols li{margin:.4em 0}
+.cols li::marker{color:var(--accent)}
+.cols li b{display:inline}
+@media (max-width:860px){ .cols{grid-template-columns:1fr;gap:22px} }
+.foot{background:var(--paper-3);padding:40px 0 60px}
+.foot a{text-decoration:underline;text-underline-offset:.2em}
+.foot p{color:var(--muted);font-size:16px;margin-top:12px}
+.button{display:inline-flex;align-items:center;justify-content:center;min-height:3rem;padding:0 1.4rem;background:var(--accent);color:var(--ink);text-decoration:none;font-weight:700;white-space:nowrap}
+
+/* ================= THE RENDITION: an app screen on a laptop =================
+   Rail 220 · canvas 1146 with 24px gutters: 1098 inside, on a 12-column grid at a 16px gap
+   (12 × 76.83 + 11 × 16 = 1098). Colour goes on data; the chrome is paper and ink. */
+[data-ui]{font-family:var(--font);color:var(--ink);background:var(--paper);display:grid;grid-template-columns:220px 1fr;height:820px;font-size:14px;line-height:1.35}
+[data-ui] .rail{background:var(--paper-2);border-right:1px solid var(--hair);padding:18px 16px;display:flex;flex-direction:column;gap:4px}
+[data-ui] .rail .prod{display:flex;align-items:center;gap:10px;padding:2px 6px 16px}
+[data-ui] .rail .prod img{width:34px;height:34px}
+[data-ui] .rail .prod b{display:block;font-size:14px;line-height:1.1}
+[data-ui] .rail .prod small{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+[data-ui] .rail a{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;text-decoration:none;color:var(--muted);font-size:14.5px}
+[data-ui] .rail a.on{background:var(--paper-3);color:var(--ink);font-weight:700}
+[data-ui] .rail a svg{width:18px;height:18px}
+[data-ui] .rail .grp{font-size:11.5px;color:var(--muted);padding:14px 10px 4px;letter-spacing:.02em}
+[data-ui] .rail .sw{margin-top:auto;border-top:1px solid var(--hair);padding-top:10px}
+[data-ui] .rail .sw a{font-size:13.5px}
+[data-ui] .rail .me{display:flex;align-items:center;gap:8px;padding:10px 10px 0;font-size:13px;color:var(--muted)}
+[data-ui] .rail .me i{width:24px;height:24px;border-radius:50%;background:#E6D9B6;color:var(--ink);display:grid;place-items:center;font-style:normal;font-size:11px;font-weight:700}
+[data-ui] .canvas{padding:20px 24px 24px;overflow:hidden;display:grid;grid-template-rows:auto 1fr;gap:16px}
+[data-ui] .trow{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;border-bottom:1px solid var(--hair);padding-bottom:12px}
+[data-ui] .trow h1{font-size:24px;font-weight:700;letter-spacing:-.01em}
+[data-ui] .trow .sub{font-size:14px;color:var(--muted);margin-top:3px}
+[data-ui] .trow .sub b{color:var(--ink);font-weight:600}
+[data-ui] .acts{display:flex;gap:8px;align-items:center}
+[data-ui] .btn{font:inherit;font-size:14px;font-weight:700;padding:8px 14px;border-radius:6px;background:var(--ink);color:var(--onpine);border:1px solid var(--ink);white-space:nowrap}
+[data-ui] .btn.q{background:none;color:var(--ink);border-color:var(--rule);font-weight:500}
+[data-ui] .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px;align-content:start}
+[data-ui] .card{border:1px solid var(--hair);border-radius:10px;background:var(--paper);padding:14px 16px;min-width:0}
+[data-ui] .card h3{font-size:14px;font-weight:700;display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:10px}
+[data-ui] .card h3 small{font-size:12px;color:var(--muted);font-weight:400}
+[data-ui] .c4{grid-column:span 4}[data-ui] .c5{grid-column:span 5}[data-ui] .c6{grid-column:span 6}[data-ui] .c7{grid-column:span 7}[data-ui] .c8{grid-column:span 8}[data-ui] .c12{grid-column:span 12}
+[data-ui] .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+[data-ui] .kpi{border-top:1px solid var(--hair);padding-top:8px}
+[data-ui] .kpi small{display:block;font-size:12.5px;color:var(--muted)}
+[data-ui] .kpi b{display:block;font-size:26px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.1;margin-top:2px}
+[data-ui] .kpi b em{font-style:normal;font-size:13px;color:var(--muted);font-weight:400;margin-left:4px}
+[data-ui] .kpi span{display:block;font-size:12.5px;color:var(--muted);margin-top:2px}
+[data-ui] .kpi .up{color:var(--c1)}[data-ui] .kpi .dn{color:var(--c3)}
+[data-ui] table{width:100%;border-collapse:collapse;font-size:13.5px}
+[data-ui] th{text-align:left;font-weight:600;color:var(--muted);font-size:12px;padding:4px 6px 6px;border-bottom:1px solid var(--ink)}
+[data-ui] td{padding:6px 6px;border-bottom:1px solid var(--hair);vertical-align:middle;font-variant-numeric:tabular-nums}
+[data-ui] th.r,[data-ui] td.r{text-align:right}
+[data-ui] tr.me td{background:#F5EEDC}
+[data-ui] td .dot,[data-ui] .lg .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:7px;vertical-align:middle}
+[data-ui] .av{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;font-size:10px;font-weight:700;margin-right:8px;vertical-align:middle}
+[data-ui] .m{display:inline-block;width:110px;height:8px;background:#E4DCC6;border-radius:4px;vertical-align:middle;overflow:hidden;margin-right:8px}
+[data-ui] .m i{display:block;height:100%;background:var(--c2);border-radius:4px}
+[data-ui] .m i.full{background:var(--c1)}
+[data-ui] .pill{display:inline-block;font-size:11.5px;font-weight:700;border-radius:999px;padding:1px 8px}
+[data-ui] .pill.in{background:#DCE3D2;color:var(--green)}[data-ui] .pill.maybe{background:#F3DC9E;color:var(--gold)}[data-ui] .pill.out{background:#EFDCD7;color:var(--flag)}[data-ui] .pill.none{background:var(--hair);color:var(--muted)}
+[data-ui] .lg{display:flex;gap:14px;font-size:12.5px;color:var(--muted);flex-wrap:wrap}
+[data-ui] .lg i{display:inline-block;width:14px;height:2px;vertical-align:middle;margin-right:6px}
+[data-ui] .muted{color:var(--muted)}
+[data-ui] .line{display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid var(--hair);font-size:13.5px}
+[data-ui] .line:last-child{border-bottom:0}
+[data-ui] .line b.ok{color:var(--c1);font-weight:600}[data-ui] .line b.todo{color:var(--c3);font-weight:600}
+[data-ui] .note{font-size:13px;color:var(--muted);margin-top:8px}
+[data-ui] .hint{font-size:12.5px;color:var(--muted);border-top:1px solid var(--hair);padding-top:8px;margin-top:10px}
+[data-ui] kbd{font:inherit;font-size:11.5px;border:1px solid var(--rule);border-bottom-width:2px;border-radius:4px;padding:0 5px;background:var(--paper)}
+[data-ui] svg text{font-family:var(--font)}
+[data-ui] .rooms{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+[data-ui] .room{border:1px solid var(--hair);border-radius:8px;padding:8px 10px;font-size:13px}
+[data-ui] .room b{display:block;font-size:12px;color:var(--muted);font-weight:600}
+[data-ui] .room.todo{border-style:dashed;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<header class="hero"><div class="wrap">
+  <div class="mark"><img src="img/crest.png" alt=""><span>The Union Invitational<br>The Clubhouse on a laptop</span></div>
+  <h1>The laptop, as it is and as it could be.</h1>
+  <p class="lead">Today's laptop view is the phone's screens laid out two across. Below it, a rendition built to the rules for screens people work at: a rail, one question a screen, colour on the data, the field as a table.</p>
+</div></header>
+
+<section class="sec" id="now"><div class="wrap">
+  <h2>As it is today, at 1366 pixels.</h2>
+  <p class="intro">Build 20261109-1224: the phone's cards two across, the hero across the top, the scorecard beside the hole. Correct, and still a phone drawn wide.</p>
+  <div class="shots">
+    <figure><img src="img/now-you.png" alt="The You tab at laptop width today: greeting, three dials, the open stop card and the next card two across" loading="lazy"><figcaption>You</figcaption></figure>
+    <figure><img src="img/now-season.png" alt="The Season tab at laptop width today: the stop chips, the leader's plate, the board" loading="lazy"><figcaption>Season</figcaption></figure>
+    <figure><img src="img/now-hq.png" alt="Vegas HQ at laptop width today: the hero with the countdown, your line beside the field" loading="lazy"><figcaption>Vegas HQ</figcaption></figure>
+    <figure><img src="img/now-entry.png" alt="A virtual round at laptop width today: the hole band, the scorecard beside the hole, the keypad in the corner" loading="lazy"><figcaption>A virtual round</figcaption></figure>
+  </div>
+</div></section>
+
+<section class="sec alt" id="rendition"><div class="wrap">
+  <h2>A rendition built for the desk.</h2>
+  <p class="intro">Three screens from one shell, drawn at 1366 by 820 with made-up figures that add up. The phone keeps its tabs; this is what the same book would show when there is room.</p>
+
+  <figure class="frame"><div class="box"><div class="scr" data-ui id="scr-you"></div></div>
+    <figcaption><b>You.</b> The question is "what do I do next", so the answer is the title row with the one button, and the open stop's live board sits beside your line. Your handicap is a line, not a dial, with the Belek band as its first point.</figcaption></figure>
+
+  <figure class="frame"><div class="box"><div class="scr" data-ui id="scr-season"></div></div>
+    <figcaption><b>Season.</b> The question is "who leads the season". The Order of Merit is a race across the stops, four lines in a palette checked for colour-blind readers, the legend in the card's header. The open stop's board and the handicaps with their trend sit beside and under it.</figcaption></figure>
+
+  <figure class="frame"><div class="box"><div class="scr" data-ui id="scr-hq"></div></div>
+    <figcaption><b>Vegas HQ.</b> The question is "who is in, and is the money in". Four figures as type, then the field as one table with the meters in it, and the exports where the commissioner's hand already is. Rooms beside, with the pair still to make dashed.</figcaption></figure>
+</div></section>
+
+<section class="sec pine" id="how"><div class="wrap">
+  <h2>What changes, and what I would build it with.</h2>
+  <p class="intro">Each enhancement names the tool in this workspace that does it. None of them touch the phone or the week in Vegas.</p>
+  <div class="cols">
+    <div>
+      <h3>In the rendition</h3>
+      <ul>
+        <li><b>A rail instead of the top tabs.</b> You, Season, Vegas HQ, then the Belek book and Manage, with your name at the foot. The nameplate and dateline go; the title row says where you are and what to do.</li>
+        <li><b>One question a screen, answered by the biggest thing.</b> The button for the most frequent job is in the title row: enter the card, export the headcount, approve a course.</li>
+        <li><b>Charts on the season.</b> The Order of Merit as a race across the stops, the handicap as a trend with Belek as the first point, a sparkline a golfer in the handicaps table. Palette validated for colour-blind readers; a table under every chart.</li>
+        <li><b>The field as a table.</b> Name, playing, status, package, the meter, what is left, flights in or not. Totals computed from the rows. Sort by what is outstanding.</li>
+        <li><b>Keyboard on a virtual round.</b> The number keys score the hole, the arrows move along the strip, Enter posts. The same keypad stays for the mouse.</li>
+        <li><b>The commissioner's desk.</b> Manage opens as a page here, not a window: packages, money, rooms and courses side by side, the exports one click.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>From the other projects' kit</h3>
+      <ul>
+        <li><b>Design rules for app screens</b> (the taste skill): the shell, colour only on data, flat surfaces, numbers right-aligned in tabular figures, an inspector that measures the result at 1440, 768 and 390.</li>
+        <li><b>Data visualisation rules</b> (the dataviz skill): the form by the data's job, a validator that checks the palette, 2px lines, 8px markers, a legend for two series or more, hover and a table view.</li>
+        <li><b>Course scorecards by lookup</b> (Firecrawl): type a course name and the par and stroke index come back prefilled from the club's own card, for you to check and approve.</li>
+        <li><b>A face for Vegas</b> (Runway or the asset generator): one photograph of the desert at dusk for the HQ, under the rule that a photo carries a section once, and a monogram for the rail drawn from the crest.</li>
+        <li><b>The stop's result as a post</b> (Orshot): when a stop crowns its winner, a square and a story card rendered from a template, ready for the group chat and the social pack.</li>
+        <li><b>The 2026 sheet, read in</b> (Google Drive): the Financials Tracker's per-person charges into the archive, so the money record lives in the book and not the spreadsheet.</li>
+      </ul>
+    </div>
+  </div>
+</div></section>
+
+<footer class="foot"><div class="wrap">
+  <a class="button" href="../../app/">The book as it is today</a> &nbsp; <a href="../clubhouse/">The Clubhouse preview</a>
+  <p>A rendition, not the build. The names and figures are made up; the screens are drawn in HTML at laptop size and scaled to this page. Nothing here has touched the shared book.</p>
+</div></footer>
+
+<script>
+/* ---- the data: one set of figures, every total computed from it ---- */
+const STOPS = ['Belek', 'Mulligan', 'Frostbite', 'Sweetheart', 'March'];
+const PEOPLE = [
+  { id: 'g1', name: 'Norberto III', ini: 'NI', hue: '#E8D9A8', hcp: [16, 16.4, 15.8, 15.2, 15.0], merit: [0, 25, 60, 100, 115], pkg: '7 nights · golfer', price: 2089, paid: 1400, status: 'in', div: 'men’s', flights: true, room: 1 },
+  { id: 'g3', name: 'Matt D', ini: 'MD', hue: '#D7E6D0', hcp: [20, 19.6, 19.1, 18.8, 18.1], merit: [0, 100, 160, 200, 300], pkg: '7 nights · golfer', price: 2089, paid: 2089, status: 'in', div: 'men’s', flights: true, room: 2 },
+  { id: 'g6', name: 'Ray V', ini: 'RV', hue: '#D6E2EE', hcp: [20, 20.6, 20.1, 19.4, 19.0], merit: [0, 60, 120, 150, 210], pkg: '7 nights · golfer', price: 2089, paid: 800, status: 'in', div: 'men’s', flights: false, room: 3 },
+  { id: 'g2', name: 'Norberto Jr.', ini: 'NJ', hue: '#EFD8CF', hcp: [30, 30, 29.3, 28.6, 27.9], merit: [0, 40, 70, 130, 170], pkg: '7 nights · golfer', price: 2089, paid: 400, status: 'in', div: 'men’s', flights: false, room: 4 },
+  { id: 'g5', name: 'Gabriel P', ini: 'GP', hue: '#E6DDC8', hcp: [15, 15, 15.3, 14.9, 14.9], merit: [0, 30, 55, 85, 110], pkg: '7 nights · golfer', price: 2089, paid: 0, status: 'maybe', div: 'men’s', flights: false, room: null },
+  { id: 'g10', name: 'DP', ini: 'DP', hue: '#E3E0D0', hcp: [16, 16, 16.2, 16.2, 15.8], merit: [0, 20, 32, 42, 62], pkg: '5 nights · golfer', price: 1689, paid: 1689, status: 'in', div: 'men’s', flights: true, room: 5 },
+  { id: 's1', name: 'Jennifer D', ini: 'JD', hue: '#E8D9A8', hcp: null, merit: null, pkg: '7 nights · women’s', price: 2089, paid: 1400, status: 'in', div: 'women’s', flights: true, room: 1 },
+  { id: 's2', name: 'Aimee K', ini: 'AK', hue: '#D7E6D0', hcp: null, merit: null, pkg: '7 nights · not golfing', price: 1839, paid: 1839, status: 'in', div: 'not golfing', flights: true, room: 2 },
+  { id: 's3', name: 'Letty D', ini: 'LD', hue: '#EFD8CF', hcp: null, merit: null, pkg: '7 nights · not golfing', price: 1839, paid: 400, status: 'in', div: 'not golfing', flights: false, room: 4 },
+  { id: 's4', name: 'Drea', ini: 'DR', hue: '#D6E2EE', hcp: null, merit: null, pkg: '7 nights · women’s', price: 2089, paid: 0, status: 'maybe', div: 'women’s', flights: false, room: 3 },
+  { id: 'g9', name: 'Duncan W', ini: 'DW', hue: '#E3E0D0', hcp: [30, 30, 30, 30, 30], merit: [0, 12, 12, 12, 12], pkg: null, price: 0, paid: 0, status: 'out', div: 'men’s', flights: false, room: null },
+  { id: 'g8', name: 'Dan A', ini: 'DA', hue: '#E6DDC8', hcp: [20, 20, 20, 20, 20], merit: [0, 0, 0, 0, 0], pkg: null, price: 0, paid: 0, status: null, div: 'men’s', flights: false, room: null },
+];
+const MARCH = { name: 'The March Medal', from: '1 Mar', to: '28 Mar', closes: 'Sunday 28 March', board: [
+  { id: 'g3', pts: 39, thru: 18, course: 'Chambers Bay' }, { id: 'g6', pts: 36, thru: 18, course: 'Oakhurst' }, { id: 'g2', pts: 34, thru: 18, course: 'Rancho Park' },
+  { id: 'g1', pts: 17, thru: 9, course: 'Blackwolf Run' }, { id: 'g10', pts: 15, thru: 8, course: 'Griffith Park' } ] };
+const ROOMS = [{ n: 1, type: 'Superior', who: ['g1', 's1'] }, { n: 2, type: 'Suite', who: ['g3', 's2'] }, { n: 3, type: 'Standard', who: ['g6', 's4'] }, { n: 4, type: 'Standard', who: ['g2', 's3'] }, { n: 5, type: 'Standard', who: ['g10'] }];
+const by = Object.fromEntries(PEOPLE.map(p => [p.id, p]));
+const money = (n) => '£' + n.toLocaleString('en-GB');
+const inField = PEOPLE.filter(p => p.status === 'in'), maybes = PEOPLE.filter(p => p.status === 'maybe'), outs = PEOPLE.filter(p => p.status === 'out'), unanswered = PEOPLE.filter(p => !p.status);
+const due = inField.reduce((a, p) => a + p.price, 0), collected = inField.reduce((a, p) => a + p.paid, 0);
+console.assert(inField.length + maybes.length + outs.length + unanswered.length === PEOPLE.length, 'the field adds up');
+console.assert(collected <= due, 'collected within due');
+const merit = PEOPLE.filter(p => p.merit).map(p => ({ ...p, total: p.merit[p.merit.length - 1] })).sort((a, b) => b.total - a.total);
+const C = ['var(--c1)', 'var(--c2)', 'var(--c3)', 'var(--c4)'];
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+const ICON = {
+  you: '<circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c.8-3.6 3.9-5.5 7.5-5.5s6.7 1.9 7.5 5.5"/>',
+  season: '<path d="M7 4h10v4.5a5 5 0 0 1-10 0z"/><path d="M4 5.5h3v2a3 3 0 0 1-3-2zM17 5.5h3a3 3 0 0 1-3 2z"/><path d="M12 13.5V17M8.5 20h7"/>',
+  hq: '<path d="M12 3.5l2.2 4.6 5 .7-3.6 3.5.9 5-4.5-2.4-4.5 2.4.9-5L4.8 8.8l5-.7z"/>',
+  book: '<path d="M4 5.5A2 2 0 0 1 6 4h12a2 2 0 0 1 2 2v13H6a2 2 0 0 0-2 2z"/><path d="M4 19.5A1.5 1.5 0 0 1 5.5 18H20"/>',
+  manage: '<circle cx="12" cy="12" r="3"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4"/>',
+};
+const ic = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[k]}</svg>`;
+function rail(on) {
+  const item = (k, label) => `<a href="#" class="${on === k ? 'on' : ''}">${ic(k)}${label}</a>`;
+  return `<nav class="rail"><div class="prod"><img src="img/crest.png" alt=""><div><b>The Union Invitational</b><small>Las Vegas 2027 · the Clubhouse</small></div></div>
+    ${item('you', 'You')}${item('season', 'Season')}${item('hq', 'Vegas HQ')}
+    <div class="grp">The books</div>${item('book', 'Belek 2026')}
+    <div class="sw">${item('manage', 'Manage')}<div class="me"><i>NI</i>Norberto III · master</div></div></nav>`;
+}
+const av = p => `<span class="av" style="background:${p.hue}">${p.ini}</span>`;
+
+/* ---- charts: thin marks, one hue per series, text in ink ---- */
+function lineChart(series, { w = 640, h = 220, labels, yMax, yMin = 0, yTicks, pad = { l: 36, r: 110, t: 12, b: 26 }, fmt = v => v } = {}) {
+  const iw = w - pad.l - pad.r, ih = h - pad.t - pad.b;
+  const n = labels.length;
+  const x = i => pad.l + (n === 1 ? 0 : i * iw / (n - 1));
+  const y = v => pad.t + ih - ((v - yMin) / (yMax - yMin)) * ih;
+  let out = `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" role="img" aria-label="Line chart">`;
+  for (const t of yTicks) out += `<line x1="${pad.l}" x2="${w - pad.r}" y1="${y(t)}" y2="${y(t)}" stroke="#E4DCC6"/><text x="${pad.l - 8}" y="${y(t) + 4}" font-size="11" text-anchor="end" fill="#5C6B55">${fmt(t)}</text>`;
+  labels.forEach((l, i) => { out += `<text x="${x(i)}" y="${h - 8}" font-size="11.5" text-anchor="middle" fill="#5C6B55">${l}</text>`; });
+  series.forEach(s => {
+    const pts = s.v.map((v, i) => [x(i), y(v)]);
+    out += `<polyline fill="none" stroke="${s.c}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" points="${pts.map(p => p.join(',')).join(' ')}"/>`;
+    const last = pts[pts.length - 1];
+    out += `<circle cx="${last[0]}" cy="${last[1]}" r="4.5" fill="${s.c}" stroke="#EEE8D5" stroke-width="2"/>`;
+    out += `<text x="${last[0] + 10}" y="${last[1] + 4 + (s.dy || 0)}" font-size="12" fill="#1D2E21">${esc(s.n)} <tspan fill="#5C6B55">${fmt(s.v[s.v.length - 1])}</tspan></text>`;
+  });
+  return out + '</svg>';
+}
+function spark(v, c = 'var(--c2)', w = 90, h = 22) {
+  const min = Math.min(...v), max = Math.max(...v), r = max - min || 1;
+  const pts = v.map((x, i) => [2 + i * (w - 4) / (v.length - 1), h - 3 - (x - min) / r * (h - 6)]);
+  return `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" aria-hidden="true"><polyline fill="none" stroke="${c}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" points="${pts.map(p => p.join(',')).join(' ')}"/><circle cx="${pts[pts.length - 1][0]}" cy="${pts[pts.length - 1][1]}" r="3.5" fill="${c}" stroke="#EEE8D5" stroke-width="1.5"/></svg>`;
+}
+const boardTable = (rows, mine) => `<table><thead><tr><th>Pos</th><th>Golfer</th><th>Course</th><th class="r">Thru</th><th class="r">Pts</th></tr></thead><tbody>${rows.map((r, i) => { const p = by[r.id]; return `<tr class="${r.id === mine ? 'me' : ''}"><td>${i + 1}</td><td>${av(p)}${esc(p.name)}</td><td class="muted">${esc(r.course)}</td><td class="r">${r.thru === 18 ? 'F' : r.thru}</td><td class="r"><b>${r.pts}</b></td></tr>`; }).join('')}</tbody></table>`;
+
+/* ---- YOU ---- */
+(() => {
+  const me = by.g1, lead = by[MARCH.board[0].id], mine = MARCH.board.find(r => r.id === 'g1');
+  const lines = [['In for Vegas', 'Yes', true], ['Playing', 'Tournament · men’s', true], ['Package', me.pkg, true], ['Paid', money(me.paid) + ' of ' + money(me.price), false], ['Shirt and merch', 'XL · NDIII · Norberto Diaz III', true], ['Room', 'With Jennifer D · Superior', true], ['Flights', 'BA 275 · lands 15:40', true]];
+  const done = lines.filter(l => l[2]).length;
+  document.getElementById('scr-you').innerHTML = rail('you') + `<main class="canvas">
+    <div class="trow"><div><h1>Afternoon, Norberto. You are through 9 in the March Medal.</h1><div class="sub">Closes ${MARCH.closes} · <b>${esc(lead.name)} leads on ${MARCH.board[0].pts}</b>, you have ${mine.pts} through ${mine.thru} · ${done} of ${lines.length} on your Vegas line</div></div>
+      <div class="acts"><button class="btn q">Open the Belek book</button><button class="btn">Carry on my card</button></div></div>
+    <div class="grid">
+      <div class="card c8"><h3>${esc(MARCH.name)} · live <small>${MARCH.from} to ${MARCH.to} · 5 of 11 cards in</small></h3>${boardTable(MARCH.board, 'g1')}
+        <p class="hint">On a laptop the card takes the keyboard: <kbd>1</kbd>–<kbd>9</kbd> score the hole, <kbd>←</kbd> <kbd>→</kbd> move along the strip, <kbd>Enter</kbd> posts when the photo is in.</p></div>
+      <div class="card c4"><h3>Your Vegas line <small>${done} of ${lines.length}</small></h3>${lines.map(l => `<div class="line"><span>${l[0]}</span><b class="${l[2] ? 'ok' : 'todo'}">${esc(l[1])}</b></div>`).join('')}</div>
+      <div class="card c8"><h3>Your Union handicap <small>Belek band 16 · best three of the last six at 96%</small></h3>${lineChart([{ n: 'You', v: me.hcp, c: 'var(--c2)' }], { w: 760, h: 170, labels: STOPS, yMin: 13, yMax: 18, yTicks: [13, 14, 15, 16, 17, 18], pad: { l: 36, r: 90, t: 10, b: 24 }, fmt: v => v.toFixed(0) })}</div>
+      <div class="card c4"><h3>From Belek 2026</h3><div class="line"><span>Report card</span><b>79 · 42 pts · MVP 5th</b></div><div class="line"><span>Practice manual</span><b>15 drills · putting first</b></div><div class="line"><span>Three things</span><b class="muted">Lay up · lag putt · breathe</b></div><p class="note">Readable any time; nothing in it can change.</p></div>
+    </div></main>`;
+})();
+
+/* ---- SEASON ---- */
+(() => {
+  const top = merit.slice(0, 4);
+  const series = top.map((p, i) => ({ n: p.name, v: p.merit, c: C[i], dy: i === 1 ? -4 : i === 2 ? 4 : 0 }));
+  const hcps = PEOPLE.filter(p => p.hcp).map(p => ({ p, now: p.hcp[p.hcp.length - 1], seed: p.hcp[0], cards: p.hcp.filter((v, i) => i && v !== p.hcp[i - 1]).length })).sort((a, b) => a.now - b.now);
+  document.getElementById('scr-season').innerHTML = rail('season') + `<main class="canvas">
+    <div class="trow"><div><h1>Matt D leads the Order of Merit by ${merit[0].total - merit[1].total} after four stops.</h1><div class="sub">The March Medal is open and closes ${MARCH.closes} · <b>7 stops to go</b> · handicaps lock 13 October</div></div>
+      <div class="acts"><button class="btn q">Handicaps</button><button class="btn q">Awards</button><button class="btn">Enter my card</button></div></div>
+    <div class="grid">
+      <div class="card c8"><h3>The Order of Merit <small class="lg">${top.map((p, i) => `<span><i style="background:${C[i]}"></i>${esc(p.name)}</span>`).join('')}</small></h3>
+        ${lineChart(series, { w: 760, h: 250, labels: STOPS, yMax: 320, yTicks: [0, 100, 200, 300], pad: { l: 36, r: 130, t: 12, b: 24 } })}
+        <p class="note">Points a stop: 100, 60, 40, 30, 25 and down the places. Belek is the start line; every golfer begins on nought.</p></div>
+      <div class="card c4"><h3>${esc(MARCH.name)} · live <small>5 of 11 in</small></h3>${boardTable(MARCH.board, 'g1')}</div>
+      <div class="card c12"><h3>The Union handicap <small>seeded by the Belek band · moves after three cards · the line is the season so far</small></h3>
+        <table><thead><tr><th>Golfer</th><th class="r">Belek</th><th class="r">Now</th><th class="r">Since Belek</th><th class="r">Cards</th><th>Season</th><th class="r">Merit</th></tr></thead><tbody>
+        ${hcps.map(({ p, now, seed, cards }) => { const d = Math.round((now - seed) * 10) / 10; return `<tr class="${p.id === 'g1' ? 'me' : ''}"><td>${av(p)}${esc(p.name)}</td><td class="r">${seed}</td><td class="r"><b>${now.toFixed(1)}</b></td><td class="r" style="color:${d < 0 ? 'var(--c1)' : d > 0 ? 'var(--c3)' : 'var(--muted)'}">${d === 0 ? '—' : (d > 0 ? '+' : '−') + Math.abs(d).toFixed(1)}</td><td class="r">${cards}</td><td>${spark(p.hcp, d < 0 ? 'var(--c1)' : d > 0 ? 'var(--c3)' : '#9A9A8A')}</td><td class="r">${p.merit[p.merit.length - 1]}</td></tr>`; }).join('')}
+        </tbody></table></div>
+    </div></main>`;
+})();
+
+/* ---- VEGAS HQ ---- */
+(() => {
+  const rows = [...inField, ...maybes, ...outs, ...unanswered];
+  const left = due - collected;
+  const flightsIn = inField.filter(p => p.flights).length;
+  document.getElementById('scr-hq').innerHTML = rail('hq') + `<main class="canvas">
+    <div class="trow"><div><h1>${inField.length} in for Las Vegas, ${money(collected)} of ${money(due)} collected.</h1><div class="sub">13 to 21 November 2027, dates not yet locked · deposits closed 31 March · <b>balance due 3 August</b> · ${maybes.length} maybe, ${outs.length} out, ${unanswered.length} yet to answer</div></div>
+      <div class="acts"><button class="btn q">Rooms</button><button class="btn q">Travel</button><button class="btn">Export the headcount</button></div></div>
+    <div class="grid">
+      <div class="c12 kpis">
+        <div class="kpi"><small>In</small><b>${inField.length}<em>of ${PEOPLE.length} asked</em></b><span>${maybes.length} maybe · ${outs.length} out · ${unanswered.length} to answer</span></div>
+        <div class="kpi"><small>Collected</small><b>${money(collected)}<em>of ${money(due)}</em></b><span class="up">${Math.round(collected / due * 100)}% in, ${money(left)} to come</span></div>
+        <div class="kpi"><small>Settled in full</small><b>${inField.filter(p => p.paid >= p.price).length}<em>of ${inField.length}</em></b><span>${inField.filter(p => p.paid === 0).length} not started</span></div>
+        <div class="kpi"><small>Flights in</small><b>${flightsIn}<em>of ${inField.length}</em></b><span class="dn">${inField.length - flightsIn} still to add</span></div>
+      </div>
+      <div class="card c8"><h3>The field <small>sorted by what is outstanding</small></h3>
+        <table><thead><tr><th>Name</th><th>Playing</th><th>Status</th><th>Package</th><th>Paid</th><th class="r">Left</th><th>Flights</th></tr></thead><tbody>
+        ${rows.map(p => { const pct = p.price ? Math.min(1, p.paid / p.price) : 0; const l = Math.max(0, p.price - p.paid);
+          return `<tr class="${p.id === 'g1' ? 'me' : ''}"><td>${av(p)}${esc(p.name)}</td><td class="muted">${p.div}</td><td><span class="pill ${p.status || 'none'}">${p.status ? p.status[0].toUpperCase() + p.status.slice(1) : 'Not yet'}</span></td><td>${p.pkg ? esc(p.pkg) : '<span class="muted">—</span>'}</td><td>${p.price ? `<span class="m"><i class="${pct >= 1 ? 'full' : ''}" style="width:${Math.round(pct * 100)}%"></i></span>${money(p.paid)}` : '<span class="muted">—</span>'}</td><td class="r">${p.price ? (l ? money(l) : '<span style="color:var(--c1)">Settled</span>') : '<span class="muted">—</span>'}</td><td>${p.status === 'in' ? (p.flights ? 'In' : '<span class="muted">—</span>') : ''}</td></tr>`; }).join('')}
+        </tbody><tfoot><tr><td colspan="4"><b>${inField.length} in</b></td><td><b>${money(collected)}</b></td><td class="r"><b>${money(left)}</b></td><td></td></tr></tfoot></table></div>
+      <div class="card c4"><h3>Rooms <small>${ROOMS.filter(r => r.who.length === 2).length} pairs set</small></h3><div class="rooms">
+        ${ROOMS.map(r => `<div class="room"><b>Room ${r.n} · ${r.type}</b>${r.who.map(id => esc(by[id].name)).join(' + ')}</div>`).join('')}
+        <div class="room todo"><b>Room 6</b>Gabriel P + Drea, if both are in</div></div>
+        <h3 style="margin-top:14px">Vendors</h3><div class="line"><span>Hotel</span><b>Quotes in · choosing</b></div><div class="line"><span>Courses</span><b>Tee times held</b></div><div class="line"><span>Club rentals</span><b class="todo">To ask</b></div><div class="line"><span>Merch and trophies</span><b class="todo">Design by June</b></div></div>
+    </div></main>`;
+})();
+
+/* scale the 1366-wide screens to the page */
+(function () {
+  function fit() { document.querySelectorAll('.frame').forEach(f => { const w = f.clientWidth; if (w) f.style.setProperty('--z', Math.min(1, w / 1366).toFixed(4)); }); }
+  fit(); addEventListener('resize', fit); addEventListener('load', fit);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+})();
+</script>
+</body>
+</html>
