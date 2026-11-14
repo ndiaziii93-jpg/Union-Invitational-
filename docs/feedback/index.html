@@ -4190,6 +4190,16 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
     padding:8px max(12px,env(safe-area-inset-right,0px),calc(50% - 330px)) calc(8px + env(safe-area-inset-bottom,0px))
             max(12px,env(safe-area-inset-left,0px),calc(50% - 330px));
   }
+  /* THREE TABS, NOT SIX. The bar is a six-column grid sized for the week's
+     six destinations. The Clubhouse has three, and they were being laid
+     into the first three of those six columns, so the whole row sat in the
+     left half of the band and read as a ribbon pushed off centre. Three
+     tabs get three columns, in a band the width of a phone's. */
+  html.tablet .tabbar.three{
+    grid-template-columns:repeat(3,1fr);
+    padding-left:max(12px,env(safe-area-inset-left,0px),calc(50% - 210px));
+    padding-right:max(12px,env(safe-area-inset-right,0px),calc(50% - 210px));
+  }
   html.tablet .navbtn{min-height:52px}
   html.tablet .navbtn .ic{width:26px;height:26px}
   html.tablet .navbtn .lb{font-size:12.5px}
