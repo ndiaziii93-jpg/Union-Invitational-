@@ -63,7 +63,9 @@ await p.waitForTimeout(400);
 ok('three tabs, the season switch, and You is the screen', [await tabs(), await p.locator('.sswitch .ssw').count(), await p.evaluate(() => window.__UI.screen)], [['You', 'Season', 'Vegas HQ'], 2, 'you']);
 const you = await p.evaluate(() => ({ greet: document.querySelector('.cc-h') && document.querySelector('.cc-h').textContent.includes('Norberto'), dials: document.querySelectorAll('.ckpi').length, open: !!document.querySelector('[data-act="clubEnter"][data-a="frostbite"]'), form: document.querySelector('.ckpi small') && document.querySelector('.ckpi small').textContent, wide: document.documentElement.scrollWidth - document.documentElement.clientWidth, photo: !!document.querySelector('.ccover .cc-ph') }));
 ok('You: the headline names you, three figures, the open stop with Enter my card, a cover, nothing sideways', [you.greet, you.dials, you.open, you.form, you.wide <= 1, you.photo], [true, 3, true, 'Form', true, true]);
-ok('the dateline reads the road to Vegas and the stop that closes', await p.evaluate(() => [...document.querySelectorAll('.dateline span')].map(x => x.textContent.trim()).join(' ')), 'Road to Vegas ' + Math.round((Date.parse('2027-11-13') - Date.parse(today)) / 86400000) + ' days Frostbite Open closes ' + new Date(ahead(10) + 'T12:00:00Z').toLocaleString('en-GB', { weekday: 'long', timeZone: 'UTC' }).slice(0, 3));
+/* a stop called the Frostbite Open is the Frostbite in a sentence: the
+   full name belongs on its own card, not in a line of running text */
+ok('the dateline reads the road to Vegas and the stop that closes', await p.evaluate(() => [...document.querySelectorAll('.dateline span')].map(x => x.textContent.trim()).join(' ')), 'Road to Vegas ' + Math.round((Date.parse('2027-11-13') - Date.parse(today)) / 86400000) + ' days Frostbite closes ' + new Date(ahead(10) + 'T12:00:00Z').toLocaleString('en-GB', { weekday: 'long', timeZone: 'UTC' }).slice(0, 3));
 
 console.log('\na virtual round');
 await act('clubEnter', { a: 'frostbite' }); await p.waitForTimeout(300);
