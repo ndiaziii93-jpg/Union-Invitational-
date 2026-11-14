@@ -7931,6 +7931,15 @@ const seasonArt = () => artOf(seasonNow().art, 'stop_vegas') || IMG.hero;
    and the colour goes back where it belongs: on the data. */
 const kpiHtml = d => `<div class="ckpi"><small>${esc(d.label)}</small><b class="num">${esc(d.big)}</b><span>${esc(d.small)}</span></div>`;
 const shortStop = n => esc(String(n || '').replace(/^The /, ''));
+/* A STOP IS NEVER SAID TO BE OPEN, AND IT NEVER OPENS.
+   Half the stops are called something Open, so "the Merry Mulligan Open is
+   open" and "the Merry Mulligan Open opens Tuesday" wrote themselves, and a
+   line like that makes a reader trust the rest of the page a little less.
+   Every verb these covers use is picked so it cannot collide with the name,
+   whatever the commissioner calls a stop. */
+const stopWaiting = n => `The ${n} is waiting for your card.`;
+const stopNobody = n => `The ${n} is under way and nobody has posted a card.`;
+const stopStarts = (n, d) => `The ${n} starts ${d}.`;
 
 const greeting = () => { const h = new Date().getHours(); return h < 12 ? 'Morning' : h < 18 ? 'Afternoon' : 'Evening'; };
 
@@ -7968,13 +7977,13 @@ function scrYou() {
      III." is a greeting; it is not news. The first line says where the
      card stands, and the line under it carries the facts. */
   const head = !golfer
-    ? `${greeting()}, ${first}.${line.next ? ' ' + esc(line.next.label) + ' is what is left on your Vegas line.' : ' Your Vegas line is complete.'}`
+    ? `${greeting()}, ${first}.${line.next ? ' Your Vegas line is ' + line.done + ' of ' + line.of + '; ' + esc(line.next.label) + ' is next.' : ' Your Vegas line is complete.'}`
     : open && tot && tot.thru === 18 && card.done
       ? `${greeting()}, ${first}. Your card is in: ${tot.pts} points${myRow ? ', ' + ord(myRow.pos) + ' in the ' + shortStop(open.name) : ''}.`
     : open && tot && tot.thru === 18 ? `${greeting()}, ${first}. Eighteen scored — photograph the signed card and post it.`
     : open && tot && tot.thru ? `${greeting()}, ${first}. You are through ${tot.thru} in the ${shortStop(open.name)} on ${tot.pts} points.`
-    : open ? `${greeting()}, ${first}. The ${shortStop(open.name)} is open and your card is not in.`
-    : next ? `${greeting()}, ${first}. The ${shortStop(next.name)} opens ${esc(C.fmtDay(next.from, { long: true }))}.`
+    : open ? `${greeting()}, ${first}. ${stopWaiting(shortStop(open.name))}`
+    : next ? `${greeting()}, ${first}. ${stopStarts(shortStop(next.name), esc(C.fmtDay(next.from, { long: true })))}`
     : `${greeting()}, ${first}.`;
   const facts = [];
   if (open && lead) facts.push('<b>' + esc(lead.name) + ' leads on ' + lead.pts + '</b>' + (lead.thru === 18 ? '' : ' through ' + lead.thru));
@@ -8028,9 +8037,9 @@ function seasonCover() {
   const gap = board[1] ? lead.pts - board[1].pts : 0;
   const h1 = lead
     ? `${esc(lead.name)} ${st === 'closed' ? 'won' : 'leads'} the ${nm} on ${lead.pts}${gap ? ', ' + gap + ' ahead' : ''}.`
-    : st === 'open' ? `The ${nm} is open and nobody has posted a card.`
-    : st === 'upcoming' ? `The ${nm} opens ${esc(C.fmtDay(cur.from, { long: true }))}.`
-    : `The ${nm} closed with no cards posted.`;
+    : st === 'open' ? stopNobody(nm)
+    : st === 'upcoming' ? stopStarts(nm, esc(C.fmtDay(cur.from, { long: true })))
+    : `The ${nm} ended with no cards posted.`;
   const facts = [];
   if (lead && lead.course) facts.push(esc(lead.course) + (lead.thru === 18 ? '' : ', through ' + lead.thru));
   facts.push('<b>' + board.length + ' of ' + E.golfers(T).length + ' cards in</b>');
