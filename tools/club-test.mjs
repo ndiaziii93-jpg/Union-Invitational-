@@ -61,8 +61,8 @@ await p.evaluate(([today, A40, A10, A3, H10, H20, H40]) => {
 }, [today, ago(40), ago(10), ago(3), ahead(10), ahead(20), ahead(40)]);
 await p.waitForTimeout(400);
 ok('three tabs, the season switch, and You is the screen', [await tabs(), await p.locator('.sswitch .ssw').count(), await p.evaluate(() => window.__UI.screen)], [['You', 'Season', 'Vegas HQ'], 2, 'you']);
-const you = await p.evaluate(() => ({ greet: document.querySelector('h2.greet') && document.querySelector('h2.greet').textContent.includes('Norberto III'), dials: document.querySelectorAll('.cdial').length, open: !!document.querySelector('[data-act="clubEnter"][data-a="frostbite"]'), form: document.querySelector('.cdial b') && document.querySelector('.cdial b').textContent, wide: document.documentElement.scrollWidth - document.documentElement.clientWidth }));
-ok('You: the greeting by name, three dials, the open stop with Enter my card, nothing sideways', [you.greet, you.dials, you.open, you.form, you.wide <= 1], [true, 3, true, 'Form', true]);
+const you = await p.evaluate(() => ({ greet: document.querySelector('.cc-h') && document.querySelector('.cc-h').textContent.includes('Norberto'), dials: document.querySelectorAll('.ckpi').length, open: !!document.querySelector('[data-act="clubEnter"][data-a="frostbite"]'), form: document.querySelector('.ckpi small') && document.querySelector('.ckpi small').textContent, wide: document.documentElement.scrollWidth - document.documentElement.clientWidth, photo: !!document.querySelector('.ccover .cc-ph') }));
+ok('You: the headline names you, three figures, the open stop with Enter my card, a cover, nothing sideways', [you.greet, you.dials, you.open, you.form, you.wide <= 1, you.photo], [true, 3, true, 'Form', true, true]);
 ok('the dateline reads the road to Vegas and the stop that closes', await p.evaluate(() => [...document.querySelectorAll('.dateline span')].map(x => x.textContent.trim()).join(' ')), 'Road to Vegas ' + Math.round((Date.parse('2027-11-13') - Date.parse(today)) / 86400000) + ' days Frostbite Open closes ' + new Date(ahead(10) + 'T12:00:00Z').toLocaleString('en-GB', { weekday: 'long', timeZone: 'UTC' }).slice(0, 3));
 
 console.log('\na virtual round');
@@ -89,8 +89,8 @@ ok('with the photo, the card posts off the Belek band', posted, [true, 16]);
 
 console.log('\nthe Season');
 await act('go', { a: 'season' }); await p.waitForTimeout(300);
-const season = await p.evaluate(() => ({ chips: document.querySelectorAll('.stopchips .chip').length, plate: document.querySelector('.plate .pl-n') && document.querySelector('.plate .pl-n').textContent.includes('Norberto III'), rows: document.querySelectorAll('.ctbl tbody tr').length, pts: document.querySelector('.ctbl tbody tr .r b') && document.querySelector('.ctbl tbody tr .r b').textContent, live: !!document.querySelector('.pl-live') }));
-ok('This stop: three chips, the leader on the plate live, one card on the board with its points', [season.chips, season.plate, season.rows, season.pts, season.live], [3, true, 1, '34', true]);
+const season = await p.evaluate(() => ({ chips: document.querySelectorAll('.stopchips .chip').length, plate: document.querySelector('.cc-h') && document.querySelector('.cc-h').textContent.includes('Norberto III'), rows: document.querySelectorAll('.ctbl tbody tr').length, pts: document.querySelector('.ctbl tbody tr .r b') && document.querySelector('.ctbl tbody tr .r b').textContent, live: !!(document.querySelector('.ccover .ck') || {}).textContent && document.querySelector('.ccover .ck').textContent.includes('live') }));
+ok('This stop: three chips, the leader on the cover and live, one card on the board with its points', [season.chips, season.plate, season.rows, season.pts, season.live], [3, true, 1, '34', true]);
 await act('seasonTab', { a: 'merit' }); await p.waitForTimeout(200);
 ok('Standings pay nothing until a stop closes', await p.locator('.ctbl tbody tr').count(), 0);
 await p.evaluate(() => { const s = window.__T.club.season; s.stops[1].to = new Date(Date.now() - 86400000).toISOString().slice(0, 10); window.__forceRender(); }); await p.waitForTimeout(200);

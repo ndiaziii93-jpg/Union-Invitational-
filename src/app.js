@@ -7460,6 +7460,63 @@ function tabBar() {
       aria-label="${esc(label)}"${UI.screen === id ? ' aria-current="page"' : ''}>
       ${navIcon(id)}<span class="lb" aria-hidden="true"><span class="lg">${esc(label)}</span>${esc(short)}</span>
     </button>`).join('')}
+    ${/* ONE MARK, NOT FOUR. The gold line used to be drawn on whichever tab
+          was current, which means it was a different line each time and so
+          could only ever appear. This one is a single element the paint
+          moves, and a line that moves says the screens are a row. */ ''}
+    <span class="tmark" aria-hidden="true"></span>
+  </nav>`;
+}
+
+/** Put the bar's gold mark under the screen that is on, sliding it there
+ *  from wherever it was. The page is rebuilt from scratch on every paint,
+ *  so the mark cannot carry its own position: the last one is remembered
+ *  here, set without a transition, and then animated to the new one. */
+let markWas = null;
+function placeTabMark() {
+  const bar = document.querySelector('.tabbar');
+  const mark = bar && bar.querySelector('.tmark');
+  const on = bar && bar.querySelector('.navbtn[aria-current="page"]');
+  if (!mark) return;
+  if (!on || !on.offsetWidth) { mark.style.opacity = '0'; markWas = null; return; }
+  const to = { l: Math.round(on.offsetLeft + on.offsetWidth * 0.19), w: Math.round(on.offsetWidth * 0.62) };
+  if (markWas && (markWas.l !== to.l || markWas.w !== to.w)) {
+    mark.style.transition = 'none';
+    mark.style.left = markWas.l + 'px'; mark.style.width = markWas.w + 'px';
+    void mark.offsetWidth;
+    mark.style.transition = '';
+  }
+  mark.style.opacity = '1';
+  mark.style.left = to.l + 'px'; mark.style.width = to.w + 'px';
+  markWas = to;
+}
+
+/** THE PINE RAIL, on a laptop. The group chose it: the book's own green
+ *  down the left with gold on where you are, the paper page beside it. It
+ *  is the same three destinations as the bar at the foot of a phone, with
+ *  the books under them and Manage at its foot; the stylesheet shows it
+ *  only on a wide screen that is not a tablet, and hides the strip of tabs
+ *  that used to run along the top. */
+function clubRail() {
+  if (!inClub()) return '';
+  const s = seasonNow();
+  const me = myPid();
+  const p = me ? (E.person(T, me) || {}) : null;
+  const arc = Object.entries(s.archive || {});
+  const item = (act, a, on, icon, label) =>
+    `<button class="cr-i${on ? ' on' : ''}" data-act="${act}" data-a="${esc(a)}"${on ? ' aria-current="page"' : ''}>${icon}<span>${esc(label)}</span></button>`;
+  const ini = p ? String(p.display || p.name || '').split(/\s+/).map(w => w[0] || '').join('').toUpperCase().slice(0, 2) : '';
+  return `<nav class="clubrail" aria-label="The Clubhouse">
+    <div class="cr-top">${IMG.crest ? `<img src="${IMG.crest}" alt="">` : ''}
+      <b>${esc(D.EVENT.name)}<small>${esc(s.name)} · the Clubhouse</small></b></div>
+    ${CLUB_NAV.map(([id, label]) => item('go', id, UI.screen === id, navIcon(id), label)).join('')}
+    ${arc.length ? `<div class="cr-grp">The books</div>` + arc.map(([yr, a]) =>
+      item('archiveView', yr, false, navIcon('book'), String(a.name || yr))).join('') : ''}
+    <div class="cr-foot">
+      ${canAdmin() ? item('manageClub', '', false, navIcon('manage'), 'Manage') : ''}
+      ${p ? `<span class="cr-me"><i>${esc(ini)}</i>${esc(p.display || p.name)}</span>`
+          : `<button class="cr-i" data-act="whoOpen">${navIcon('you')}<span>Choose my name</span></button>`}
+    </div>
   </nav>`;
 }
 
@@ -7811,6 +7868,8 @@ const CLUB_ICON = {
   you:    '<circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c.8-3.6 3.9-5.5 7.5-5.5s6.7 1.9 7.5 5.5"/>',
   season: '<path d="M7 4h10v4.5a5 5 0 0 1-10 0z"/><path d="M4 5.5h3v2a3 3 0 0 1-3-2zM17 5.5h3a3 3 0 0 1-3 2z"/><path d="M12 13.5V17M8.5 20h7"/>',
   hq:     '<path d="M12 3.5l2.2 4.6 5 .7-3.6 3.5.9 5-4.5-2.4-4.5 2.4.9-5L4.8 8.8l5-.7z"/>',
+  book:   '<path d="M4 5.5A2 2 0 0 1 6 3.5h12a2 2 0 0 1 2 2v13H6a2 2 0 0 0-2 2z"/><path d="M4 18.5A1.5 1.5 0 0 1 5.5 17H20"/>',
+  manage: '<circle cx="12" cy="12" r="3"/><path d="M12 3.5v2M12 18.5v2M3.5 12h2M18.5 12h2M6 6l1.4 1.4M16.6 16.6 18 18M18 6l-1.4 1.4M7.4 16.6 6 18"/>',
 };
 
 /** The switch under the nameplate: the closed book, or the season. */
@@ -7831,14 +7890,33 @@ function closedBar() {
     canAdmin() ? ' <button class="rm" data-act="manageClub">Reopen from Manage</button>' : ''}</div>`;
 }
 
-/* ---- the dials ---- */
-function dialHtml(d, tone) {
-  const off = Math.round(163 * (1 - Math.max(0, Math.min(1, d.pct || 0))));
-  return `<div class="cdial"><svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="26" fill="none" stroke="var(--hair)" stroke-width="7"/>
-    <circle cx="32" cy="32" r="26" fill="none" stroke="${tone}" stroke-width="7" stroke-dasharray="163" stroke-dashoffset="${off}" stroke-linecap="round" transform="rotate(-90 32 32)"/>
-    <text x="32" y="37" text-anchor="middle" font-size="${String(d.big).length > 5 ? 11 : 14}" font-weight="700" fill="var(--ink)">${esc(d.big)}</text></svg>
-    <b>${esc(d.label)}</b><small>${esc(d.small)}</small></div>`;
+/* ---- the cover ----
+   The band of photograph under the rule, with the day's question answered
+   on it: a kicker, the headline, the facts, and the one button worth
+   pressing. The picture is kept from one screen to the next so that a
+   change of screen crossfades rather than cuts; the cards that follow rise
+   into its foot. The week's Today has opened on a picture since the first
+   build, and the Clubhouse never did. */
+let coverWas = null;
+function clubCover(o) {
+  const prev = coverWas && coverWas !== o.photo ? coverWas : null;
+  coverWas = o.photo;
+  return `<section class="ccover${o.lift ? ' lifted' : ''}">
+    <span class="cc-ph"${o.photo ? ` style="background-image:url(${o.photo})"` : ''}></span>
+    ${prev ? `<span class="cc-ph old" style="background-image:url(${prev})"></span>` : ''}
+    <div class="cc-in">
+      <span class="ck">${o.k}</span>
+      <h2 class="cc-h">${o.h1}</h2>
+      ${o.sub ? `<p class="cc-sub">${o.sub}</p>` : ''}
+    </div>
+    ${o.acts ? `<p class="cc-acts">${o.acts}</p>` : ''}
+  </section>`;
 }
+/* ---- the three figures that were three rings ----
+   A number is read in the time it takes to see an arc is two-thirds full,
+   and the colour goes back where it belongs: on the data. */
+const kpiHtml = d => `<div class="ckpi"><small>${esc(d.label)}</small><b class="num">${esc(d.big)}</b><span>${esc(d.small)}</span></div>`;
+const shortStop = n => esc(String(n || '').replace(/^The /, ''));
 
 const greeting = () => { const h = new Date().getHours(); return h < 12 ? 'Morning' : h < 18 ? 'Afternoon' : 'Evening'; };
 
@@ -7867,19 +7945,40 @@ function scrYou() {
   const tot = card ? C.cardTotals(card) : null;
   const board = open ? C.stopBoard(T, open.id) : [];
   const lead = board[0];
+  const myRow = board.find(r => r.pid === me);
   const toVegas = C.daysBetween(today, s.window.from);
   const F = fieldReportSafe();
   const mine = F ? F.players.find(x => x.id === me) : null;
-  return `<h2 class="greet">${greeting()}, ${esc(p.display || p.name || '')}.<small>${esc(C.dowOf(today))} ${esc(C.fmtDay(today))} · the Clubhouse · ${toVegas > 0 ? toVegas + ' days to Vegas' : 'Vegas week'}</small></h2>
-  ${golfer ? `<div class="cdials">${dialHtml(d.form, 'var(--green)')}${dialHtml(d.played, 'var(--gold)')}${dialHtml(d.ready, 'var(--pine)')}</div>` : `<div class="cdials one">${dialHtml(d.ready, 'var(--pine)')}</div>`}
-  <div class="cgrid">
-  ${golfer && open ? lineHtml('Open now · ' + esc(C.fmtDay(open.from)) + ' to ' + esc(C.fmtDay(open.to)), esc(open.name),
-      (tot && tot.thru === 18 ? (card.done ? 'Your card is in: <b>' + tot.pts + ' points</b>.' : 'Eighteen holes scored. Photograph the signed card and post it.') : tot && tot.thru ? 'You are through ' + tot.thru + ' with <b>' + tot.pts + ' points</b>.' : 'No card from you yet.')
-        + (board.length ? ' ' + board.length + ' card' + (board.length === 1 ? '' : 's') + ' in; ' + (lead ? esc(lead.name) + ' leads on ' + lead.pts : '') + '.' : ' Nobody has posted yet; be first.'),
-      `<p style="margin-top:10px"><button class="btn" data-act="clubEnter" data-a="${open.id}">${tot && tot.thru ? (card.done ? 'See my card' : 'Carry on my card') : 'Enter my card'}</button></p>`, true) : ''}
+  const first = esc(String(p.display || p.name || '').split(/\s+/)[0] || '');
+  /* THE HEADLINE ANSWERS THE QUESTION THE SCREEN IS FOR. "Morning, Norberto
+     III." is a greeting; it is not news. The first line says where the
+     card stands, and the line under it carries the facts. */
+  const head = !golfer
+    ? `${greeting()}, ${first}.${line.next ? ' ' + esc(line.next.label) + ' is what is left on your Vegas line.' : ' Your Vegas line is complete.'}`
+    : open && tot && tot.thru === 18 && card.done
+      ? `${greeting()}, ${first}. Your card is in: ${tot.pts} points${myRow ? ', ' + ord(myRow.pos) + ' in the ' + shortStop(open.name) : ''}.`
+    : open && tot && tot.thru === 18 ? `${greeting()}, ${first}. Eighteen scored — photograph the signed card and post it.`
+    : open && tot && tot.thru ? `${greeting()}, ${first}. You are through ${tot.thru} in the ${shortStop(open.name)} on ${tot.pts} points.`
+    : open ? `${greeting()}, ${first}. The ${shortStop(open.name)} is open and your card is not in.`
+    : next ? `${greeting()}, ${first}. The ${shortStop(next.name)} opens ${esc(C.fmtDay(next.from, { long: true }))}.`
+    : `${greeting()}, ${first}.`;
+  const facts = [];
+  if (open && lead) facts.push('<b>' + esc(lead.name) + ' leads on ' + lead.pts + '</b>' + (lead.thru === 18 ? '' : ' through ' + lead.thru));
+  if (open) facts.push('closes ' + esc(C.dowOf(open.to)) + ' ' + esc(C.fmtDay(open.to)));
+  facts.push(line.done + ' of ' + line.of + ' on your Vegas line');
+  const acts = (golfer && open ? `<button class="btn" data-act="clubEnter" data-a="${open.id}">${tot && tot.thru ? (card.done ? 'See my card' : 'Carry on my card') : 'Enter my card'}</button>` : '')
+    + `<button class="btn ghost" data-act="go" data-a="hq">Open Vegas HQ</button>`;
+  return clubCover({ photo: IMG.course_olympos || IMG.hero, lift: true,
+    k: 'You · the Clubhouse · ' + esc(C.dowOf(today)) + ' ' + esc(C.fmtDay(today)) + (toVegas > 0 ? ' · ' + toVegas + ' days to Vegas' : ' · Vegas week'),
+    h1: head, sub: facts.join(' · '), acts })
+  + `<div class="clubgrid lift">
+  <div class="cline ckpis${golfer ? '' : ' one'}">${golfer ? kpiHtml(d.form) + kpiHtml(d.played) + kpiHtml(d.ready) : kpiHtml(d.ready)}</div>
+  ${golfer && open ? `<div class="cline"><span class="ck">Open now · ${esc(C.fmtDay(open.from))} to ${esc(C.fmtDay(open.to))}</span><b class="ct">${esc(open.name)}</b>
+      ${board.length ? boardTable(board.slice(0, 6), { mini: true }) : '<p>Nobody has posted a card yet; be first.</p>'}</div>` : ''}
   ${golfer && !open && next ? lineHtml('Next stop', esc(next.name), 'Opens ' + esc(C.fmtDay(next.from, { long: true })) + ' and closes ' + esc(C.fmtDay(next.to, { long: true })) + '. ' + esc(next.note || '')) : ''}
-  ${line.next ? lineHtml('Next for you', esc(line.next.label), esc(line.next.val) + ' · ' + line.done + ' of ' + line.of + ' on your Vegas line.', `<p style="margin-top:10px"><button class="btn ghost" data-act="go" data-a="hq">Open Vegas HQ</button></p>`)
-    : lineHtml('Your Vegas line', 'All ' + line.of + ' done', 'Nothing outstanding. The commissioner will say when the dates lock.')}
+  <div class="cline"><span class="ck">Your Vegas line · ${line.done} of ${line.of}</span>
+    <div class="chks">${line.items.map(i => `<div class="chk"><span>${esc(i.label)}</span><b class="${i.ok ? 'ok' : 'todo'}">${esc(i.val)}</b></div>`).join('')}</div>
+    <p class="cact"><button class="btn ghost" data-act="go" data-a="hq">${line.next ? 'Open Vegas HQ' : 'Open Vegas HQ'}</button></p></div>
   ${golfer && mine ? lineHtml('Your practice manual', 'Picked from your Belek report card', 'Putting ' + esc(gradeOf(mine, 'putting')) + ' · par 3s ' + esc(gradeOf(mine, 'par3')) + ' · par 5s ' + esc(gradeOf(mine, 'par5')) + '. Twelve to fifteen drills, drawn and scored, with a coach on video.', `<p style="margin-top:10px"><button class="btn ghost" data-act="manualOpen" data-a="${me}">Open my manual</button></p>`) : ''}
   ${golfer && mine ? lineHtml('Your Belek 2026 card', esc(belekLine(mine)), 'The first season in your archive. Readable any time; nothing in it can change.', `<p class="cact"><button class="btn ghost" data-act="reportPlayer" data-a="${me}">Read my report card</button><button class="btn ghost" data-act="archiveView" data-a="2026">Open the Belek book</button></p>`) : ''}
   </div>`;
@@ -7899,11 +7998,41 @@ function fieldReportSafe() {
 
 /* ---------------- SEASON ---------------- */
 const SEASON_TABS = [['stop', 'This stop'], ['merit', 'Standings'], ['hcp', 'Handicaps'], ['awards', 'Awards'], ['archive', 'Archive']];
+/** The head of the Season: whoever is leading the stop in hand, on the
+ *  photograph. It was a pine plate under a page title that said only "The
+ *  Season"; the plate's colour was chrome, and the news was inside it. */
+function seasonCover() {
+  const today = todayIso();
+  const s = seasonNow();
+  const cur = C.stopById(T, UI.stopId) || C.currentStop(T, today);
+  if (!cur) return clubCover({ photo: IMG.hero, k: 'Season · ' + esc(s.name),
+    h1: 'No stops on the season yet.', sub: 'The commissioner adds them under Manage.' });
+  const st = C.stopState(cur, today);
+  const board = C.stopBoard(T, cur.id);
+  const lead = board[0];
+  const nm = shortStop(cur.name);
+  const gap = board[1] ? lead.pts - board[1].pts : 0;
+  const h1 = lead
+    ? `${esc(lead.name)} ${st === 'closed' ? 'won' : 'leads'} the ${nm} on ${lead.pts}${gap ? ', ' + gap + ' ahead' : ''}.`
+    : st === 'open' ? `The ${nm} is open and nobody has posted a card.`
+    : st === 'upcoming' ? `The ${nm} opens ${esc(C.fmtDay(cur.from, { long: true }))}.`
+    : `The ${nm} closed with no cards posted.`;
+  const facts = [];
+  if (lead && lead.course) facts.push(esc(lead.course) + (lead.thru === 18 ? '' : ', through ' + lead.thru));
+  facts.push('<b>' + board.length + ' of ' + E.golfers(T).length + ' cards in</b>');
+  facts.push(st === 'closed' ? 'crowned' : st === 'open' ? 'closes ' + esc(C.dowOf(cur.to)) + ' ' + esc(C.fmtDay(cur.to)) : 'opens ' + esc(C.fmtDay(cur.from)));
+  const me = myPid();
+  const golfer = me && (E.person(T, me) || {}).role === 'golfer';
+  const myCard = me ? C.cardOf(T, cur.id, me) : null;
+  return clubCover({ photo: IMG.hero,
+    k: 'Season · the ' + nm + (st === 'open' ? ' · live' : st === 'closed' ? ' · crowned' : ' · next up'),
+    h1, sub: facts.join(' · '),
+    acts: st === 'open' && golfer ? `<button class="btn" data-act="clubEnter" data-a="${cur.id}">${myCard && C.cardTotals(myCard).thru ? (myCard.done ? 'See my card' : 'Carry on my card') : 'Enter my card'}</button>` : '' });
+}
 function scrSeason() {
   const tab = UI.seasonTab || 'stop';
-  return `<h2 class="head">The Season</h2>
-  <p class="lede">A stop a month on your home course, the Order of Merit, the Union handicap, and the archive.</p>
-  <div class="btabs nos" role="tablist">${SEASON_TABS.map(([id, l]) => `<button class="btab${tab === id ? ' on' : ''}" data-act="seasonTab" data-a="${id}" role="tab" aria-selected="${tab === id}">${esc(l)}</button>`).join('')}</div>
+  return seasonCover()
+  + `<div class="btabs nos" role="tablist">${SEASON_TABS.map(([id, l]) => `<button class="btab${tab === id ? ' on' : ''}" data-act="seasonTab" data-a="${id}" role="tab" aria-selected="${tab === id}">${esc(l)}</button>`).join('')}</div>
   ${tab === 'stop' ? seasonStop() : tab === 'merit' ? seasonMerit() : tab === 'hcp' ? seasonHcp() : tab === 'awards' ? seasonAwards() : seasonArchive()}`;
 }
 
@@ -7914,9 +8043,9 @@ function stopChips(sel) {
 }
 function boardTable(rows, opt) {
   if (!rows.length) return `<p class="empty">${opt && opt.empty || 'No cards yet.'}</p>`;
-  return `<table class="ctbl"><thead><tr><th>Pos</th><th>Golfer</th><th>Course</th><th class="r">Thru</th><th class="r">Pts</th></tr></thead><tbody>
-    ${rows.map(r => `<tr class="${r.pos === 1 ? 'top' : ''}${r.pid === myPid() ? ' me' : ''}"><td class="num">${r.tie ? 'T' : ''}${r.pos}</td><td>${esc(r.name)}${r.done ? '' : ' <small>in play</small>'}</td><td class="muted">${esc(r.course || '')}</td><td class="r num">${r.thru === 18 ? 'F' : r.thru}</td><td class="r num"><b>${r.pts}</b></td></tr>`).join('')}
-  </tbody></table>`;
+  return `<div class="ctblwrap nos"><table class="ctbl${opt && opt.mini ? ' mini' : ''}"><thead><tr><th>Pos</th><th>Golfer</th><th class="co">Course</th><th class="r">Thru</th><th class="r">Pts</th></tr></thead><tbody>
+    ${rows.map(r => `<tr class="${r.pos === 1 ? 'top' : ''}${r.pid === myPid() ? ' me' : ''}"><td class="num">${r.tie ? 'T' : ''}${r.pos}</td><td>${esc(r.name)}${r.done ? '' : ' <small>in play</small>'}</td><td class="muted co">${esc(r.course || '')}</td><td class="r num">${r.thru === 18 ? 'F' : r.thru}</td><td class="r num"><b>${r.pts}</b></td></tr>`).join('')}
+  </tbody></table></div>`;
 }
 function seasonStop() {
   const today = todayIso();
@@ -7924,17 +8053,7 @@ function seasonStop() {
   if (!cur) return `<p class="empty">No stops on the season yet. The commissioner adds them under Manage.</p>`;
   const st = C.stopState(cur, today);
   const board = C.stopBoard(T, cur.id);
-  const lead = board[0];
-  const me = myPid();
-  const mine = me ? C.cardOf(T, cur.id, me) : null;
-  const golfer = me && (E.person(T, me) || {}).role === 'golfer';
-  const plate = lead ? `<div class="plate"><span class="pl-t">${st === 'closed' ? 'Crowned' : 'Leading'} · ${esc(cur.name)}${st === 'open' ? '<span class="pl-live">● Live</span>' : ''}</span>
-      <span class="pl-n">${esc(lead.name)}<small>· ${esc(lead.course || 'home course')}</small></span>
-      <span class="pl-f"><span class="pl-big num">${lead.pts} pts</span><span class="pl-sep"></span><span class="pl-c">${board[1] ? 'Ahead by' : 'Thru'}<b class="num">${board[1] ? lead.pts - board[1].pts : (lead.thru === 18 ? 'F' : lead.thru)}</b></span><span class="pl-sep"></span><span class="pl-c">Cards in<b class="num">${board.length} of ${E.golfers(T).length}</b></span></span></div>`
-    : `<div class="plate flat"><span class="pl-t">${st === 'upcoming' ? 'Opens ' + esc(C.fmtDay(cur.from, { long: true })) : st === 'open' ? 'Open now' : 'Closed'} · ${esc(cur.name)}</span><span class="pl-n">${st === 'open' ? 'Nobody has posted a card yet' : st === 'upcoming' ? 'Not yet open' : 'No cards were posted'}</span></div>`;
   return `${stopChips(cur.id)}
-  ${plate}
-  ${st === 'open' && golfer ? `<p class="cact"><button class="btn" data-act="clubEnter" data-a="${cur.id}">${mine && C.cardTotals(mine).thru ? (mine.done ? 'See my card' : 'Carry on my card') : 'Enter my card'}</button> <span class="sublede">Closes ${esc(C.dowOf(cur.to))} ${esc(C.fmtDay(cur.to))}.</span></p>` : ''}
   ${boardTable(board, { empty: st === 'upcoming' ? 'Opens ' + C.fmtDay(cur.from, { long: true }) + '. ' + (cur.note || '') : st === 'open' ? 'No cards yet. ' + (cur.note || '') : 'No cards were posted for this stop.' })}
   <p class="legend">${esc(cur.note || '')} ${esc(C.fmtDay(cur.from))} to ${esc(C.fmtDay(cur.to))}: net Stableford off your Union handicap, a photo of the signed card before it counts.${st === 'closed' ? ' The stop is crowned and the Order of Merit has it.' : ' At midnight on the last day the stop crowns its winner.'}</p>`;
 }
@@ -7942,8 +8061,8 @@ function seasonMerit() {
   const rows = C.merit(T, todayIso());
   const n = C.closedStops(T, todayIso()).length;
   return `<h3 class="sub">Order of Merit · after ${n} stop${n === 1 ? '' : 's'}</h3>
-  ${rows.length ? `<table class="ctbl"><thead><tr><th>Pos</th><th>Golfer</th><th class="r">Played</th><th class="r">Wins</th><th class="r">Pts</th></tr></thead><tbody>
-    ${rows.map(r => `<tr class="${r.pos === 1 ? 'top' : ''}${r.pid === myPid() ? ' me' : ''}"><td class="num">${r.pos}</td><td>${esc(r.name)}</td><td class="r num">${r.played}</td><td class="r num">${r.wins}</td><td class="r num"><b>${r.pts}</b></td></tr>`).join('')}</tbody></table>`
+  ${rows.length ? `<div class="ctblwrap nos"><table class="ctbl"><thead><tr><th>Pos</th><th>Golfer</th><th class="r">Played</th><th class="r">Wins</th><th class="r">Pts</th></tr></thead><tbody>
+    ${rows.map(r => `<tr class="${r.pos === 1 ? 'top' : ''}${r.pid === myPid() ? ' me' : ''}"><td class="num">${r.pos}</td><td>${esc(r.name)}</td><td class="r num">${r.played}</td><td class="r num">${r.wins}</td><td class="r num"><b>${r.pts}</b></td></tr>`).join('')}</tbody></table></div>`
     : `<p class="empty">The first stop pays its places when it closes.</p>`}
   <p class="legend">A stop pays ${C.MERIT.slice(0, 4).join(', ')}… down the places. The Order of Merit is the season’s own honour, crowned in Vegas.</p>`;
 }
@@ -7951,10 +8070,10 @@ function seasonHcp() {
   const today = todayIso();
   const rows = E.golfers(T).map(g => ({ g, u: C.unionHcp(T, g.id, today) })).sort((a, b) => (a.u.hcp == null ? 99 : a.u.hcp) - (b.u.hcp == null ? 99 : b.u.hcp));
   return `<h3 class="sub">The Union handicap</h3>
-  <table class="ctbl"><thead><tr><th>Golfer</th><th class="r">Belek</th><th class="r">Union</th><th class="r">Cards</th><th>Since Belek</th></tr></thead><tbody>
+  <div class="ctblwrap nos"><table class="ctbl"><thead><tr><th>Golfer</th><th class="r">Belek</th><th class="r">Union</th><th class="r">Cards</th><th>Since Belek</th></tr></thead><tbody>
     ${rows.map(({ g, u }) => { const seed = g.band == null ? null : +g.band; const move = u.from === 'season' && seed != null ? Math.round((u.hcp - seed) * 10) / 10 : null;
       return `<tr class="${g.id === myPid() ? 'me' : ''}"><td>${esc(g.display)}</td><td class="r num">${seed == null ? '—' : seed}</td><td class="r num"><b>${u.hcp == null ? '—' : u.hcp}</b></td><td class="r num">${u.n}</td><td class="${move == null ? 'muted' : move < 0 ? 'good' : 'bad'}">${move == null ? (u.need ? u.need + ' more card' + (u.need === 1 ? '' : 's') : '—') : (move < 0 ? '▼ ' : '▲ ') + Math.abs(move)}</td></tr>`; }).join('')}
-  </tbody></table>
+  </tbody></table></div>
   <p class="legend">Seeded by the Belek band. Each finished card leaves a differential; from three cards the handicap is the best three of the last six, at 96%. The week’s bands lock a month before Vegas.</p>`;
 }
 function seasonAwards() {
@@ -8009,7 +8128,7 @@ function scrHq() {
       <span class="fs"><span class="pill ${st || 'none'}">${st === 'in' ? 'In' : st === 'maybe' ? 'Maybe' : st === 'out' ? 'Out' : 'Not yet'}</span></span>
       <span class="fm">${Lp.price ? meterHtml(Lp, cur) : '<span class="muted">—</span>'}</span>
       <span class="fp num">${Lp.price ? esc(C.fmtMoney(Lp.paid, cur)) + ' <small>of ' + esc(C.fmtMoney(Lp.price, cur)) + '</small>' : ''}</span></div>`; };
-  return `<div class="vhero"><span class="ck">Vegas HQ · the third edition</span><b>${esc(s.name)}</b>${s.tag ? '<i class="vhero-tag">' + esc(s.tag) + '</i>' : ''}
+  return `<div class="vhero"><span class="cc-ph"${IMG.hero ? ` style="background-image:url(${IMG.hero})"` : ''}></span><span class="ck">Vegas HQ · the third edition</span><b>${esc(s.name)}</b>${s.tag ? '<i class="vhero-tag">' + esc(s.tag) + '</i>' : ''}
     <small>${s.window.locked ? esc(C.fmtDay(s.window.from)) + ' to ' + esc(C.fmtDay(s.window.to, { year: true })) + ', locked.' : 'Dates inside the ' + esc(C.fmtDay(s.window.from)) + ' to ' + esc(C.fmtDay(s.window.to, { year: true })) + ' window until the hotel confirms.'} Two practice days, three rounds, the women’s 18, the partners’ 9.</small>
     <div class="big">${toVegas > 0 ? toVegas + '<small>days</small>' : toVegas > -9 ? 'This week' : 'Done'}</div></div>
   <div class="hq-grid"><div class="hq-main">
@@ -8848,7 +8967,7 @@ function paint() {
     : meta.fromDevice ? 'No signal — the book as this phone last read it' + (meta.localAt ? ', ' + sinceOf(meta.localAt) : '') + '. Anything you enter is kept and sent when it finds one.'
     : 'Connecting…';
 
-  const html = `
+  const html = `${clubRail()}
   <div class="wrap${UI.screen === 'today' ? ' cover' : ''}">
     <header class="masthead">
       ${IMG.crest ? `<button class="crestbtn" data-act="askOpen" title="Ask the Union a question"
@@ -8925,6 +9044,10 @@ function paint() {
   if (!turning) app.style.minHeight = app.offsetHeight + 'px';
   else app.style.minHeight = '';
   app.innerHTML = html;
+  /* the rail and the bar's mark are the stylesheet's business, and it needs
+     to be told which season the book is in to do either */
+  document.documentElement.classList.toggle('clubseason', inClub());
+  placeTabMark();
   if (UI.screen === 'resort' && UI.resortTab === 'guide') {
     filterGuide();
     if (UI.resortFocusQ) { UI.resortFocusQ = false; const q = document.getElementById('resortQ'); if (q) q.focus({ preventScroll: true }); }
