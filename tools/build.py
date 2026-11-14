@@ -71,6 +71,17 @@ def build_images(force=False):
         d = buf.getvalue()
         open(os.path.join(WEB, key + '.webp'), 'wb').write(d)
         table[key] = 'data:image/webp;base64,' + base64.b64encode(d).decode()
+    # THE STOP COVERS. One picture a stop for the band at the head of the You
+    # tab, and Las Vegas for the HQ tab. They arrive as WebP at the size the
+    # band wants, so they are carried through as they are rather than opened
+    # and squeezed again. The folder's renditions/ holds the ones that were
+    # not chosen; a plain glob leaves them where they are.
+    for f in sorted(glob.glob(os.path.join(SRC, 'assets', 'stops', '*.webp'))):
+        key = os.path.basename(f)[:-5]
+        d = open(f, 'rb').read()
+        open(os.path.join(WEB, key + '.webp'), 'wb').write(d)
+        table[key] = 'data:image/webp;base64,' + base64.b64encode(d).decode()
+
     hero = os.path.join(SRC, 'assets', 'brand', '463041d4-578c-40c2-82ab-413ba30c2b68.jpg')
     im = Image.open(hero).convert('RGB')
     buf = io.BytesIO(); im.save(buf, 'WEBP', quality=80, method=6)

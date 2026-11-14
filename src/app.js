@@ -7912,6 +7912,20 @@ function clubCover(o) {
     ${o.acts ? `<p class="cc-acts">${o.acts}</p>` : ''}
   </section>`;
 }
+/* ---- the picture a stop carries ----
+   Every stop has its own cover, and the book finds it by the stop's own id:
+   the Merry Mulligan Open is `mulligan`, so its picture is `stop_mulligan`.
+   A stop may name another in `art` — either one of the pictures the book
+   carries or a link to one — so the commissioner can change a cover from
+   Manage without a new build. Las Vegas is the season's own. */
+function artOf(a, fallbackKey) {
+  if (a && /^https?:\/\//.test(a)) return a;
+  const key = a ? (/^stop_/.test(a) ? a : 'stop_' + a) : fallbackKey;
+  return (key && IMG[key]) || null;
+}
+const stopArt = st => st ? artOf(st.art, 'stop_' + st.id) : null;
+const seasonArt = () => artOf(seasonNow().art, 'stop_vegas') || IMG.hero;
+
 /* ---- the three figures that were three rings ----
    A number is read in the time it takes to see an arc is two-thirds full,
    and the colour goes back where it belongs: on the data. */
@@ -7968,7 +7982,7 @@ function scrYou() {
   facts.push(line.done + ' of ' + line.of + ' on your Vegas line');
   const acts = (golfer && open ? `<button class="btn" data-act="clubEnter" data-a="${open.id}">${tot && tot.thru ? (card.done ? 'See my card' : 'Carry on my card') : 'Enter my card'}</button>` : '')
     + `<button class="btn ghost" data-act="go" data-a="hq">Open Vegas HQ</button>`;
-  return clubCover({ photo: IMG.course_olympos || IMG.hero, lift: true,
+  return clubCover({ photo: stopArt(open) || stopArt(next) || IMG.hero, lift: true,
     k: 'You · the Clubhouse · ' + esc(C.dowOf(today)) + ' ' + esc(C.fmtDay(today)) + (toVegas > 0 ? ' · ' + toVegas + ' days to Vegas' : ' · Vegas week'),
     h1: head, sub: facts.join(' · '), acts })
   + `<div class="clubgrid lift">
@@ -8005,7 +8019,7 @@ function seasonCover() {
   const today = todayIso();
   const s = seasonNow();
   const cur = C.stopById(T, UI.stopId) || C.currentStop(T, today);
-  if (!cur) return clubCover({ photo: IMG.hero, k: 'Season · ' + esc(s.name),
+  if (!cur) return clubCover({ photo: seasonArt(), k: 'Season · ' + esc(s.name),
     h1: 'No stops on the season yet.', sub: 'The commissioner adds them under Manage.' });
   const st = C.stopState(cur, today);
   const board = C.stopBoard(T, cur.id);
@@ -8024,7 +8038,7 @@ function seasonCover() {
   const me = myPid();
   const golfer = me && (E.person(T, me) || {}).role === 'golfer';
   const myCard = me ? C.cardOf(T, cur.id, me) : null;
-  return clubCover({ photo: IMG.hero,
+  return clubCover({ photo: stopArt(cur) || IMG.hero,
     k: 'Season · the ' + nm + (st === 'open' ? ' · live' : st === 'closed' ? ' · crowned' : ' · next up'),
     h1, sub: facts.join(' · '),
     acts: st === 'open' && golfer ? `<button class="btn" data-act="clubEnter" data-a="${cur.id}">${myCard && C.cardTotals(myCard).thru ? (myCard.done ? 'See my card' : 'Carry on my card') : 'Enter my card'}</button>` : '' });
@@ -8128,7 +8142,7 @@ function scrHq() {
       <span class="fs"><span class="pill ${st || 'none'}">${st === 'in' ? 'In' : st === 'maybe' ? 'Maybe' : st === 'out' ? 'Out' : 'Not yet'}</span></span>
       <span class="fm">${Lp.price ? meterHtml(Lp, cur) : '<span class="muted">—</span>'}</span>
       <span class="fp num">${Lp.price ? esc(C.fmtMoney(Lp.paid, cur)) + ' <small>of ' + esc(C.fmtMoney(Lp.price, cur)) + '</small>' : ''}</span></div>`; };
-  return `<div class="vhero"><span class="cc-ph"${IMG.hero ? ` style="background-image:url(${IMG.hero})"` : ''}></span><span class="ck">Vegas HQ · the third edition</span><b>${esc(s.name)}</b>${s.tag ? '<i class="vhero-tag">' + esc(s.tag) + '</i>' : ''}
+  return `<div class="vhero"><span class="cc-ph"${seasonArt() ? ` style="background-image:url(${seasonArt()})"` : ''}></span><span class="ck">Vegas HQ · the third edition</span><b>${esc(s.name)}</b>${s.tag ? '<i class="vhero-tag">' + esc(s.tag) + '</i>' : ''}
     <small>${s.window.locked ? esc(C.fmtDay(s.window.from)) + ' to ' + esc(C.fmtDay(s.window.to, { year: true })) + ', locked.' : 'Dates inside the ' + esc(C.fmtDay(s.window.from)) + ' to ' + esc(C.fmtDay(s.window.to, { year: true })) + ' window until the hotel confirms.'} Two practice days, three rounds, the women’s 18, the partners’ 9.</small>
     <div class="big">${toVegas > 0 ? toVegas + '<small>days</small>' : toVegas > -9 ? 'This week' : 'Done'}</div></div>
   <div class="hq-grid"><div class="hq-main">
@@ -8300,6 +8314,7 @@ function clubManageHtml() {
         <label>Opens<input class="field" type="date" data-act="stopField" data-a="${i}" data-b="from" value="${esc(x.from || '')}"></label>
         <label>Closes<input class="field" type="date" data-act="stopField" data-a="${i}" data-b="to" value="${esc(x.to || '')}"></label>
         <label class="wide">The line under it<input class="field" data-act="stopField" data-a="${i}" data-b="note" value="${esc(x.note || '')}" maxlength="140"></label>
+        <label class="wide">Cover<input class="field" data-act="stopField" data-a="${i}" data-b="art" value="${esc(x.art || '')}" placeholder="${esc(IMG['stop_' + x.id] ? x.id + ' — the picture this stop already has' : 'a link to a picture, or leave empty')}" maxlength="400"></label>
       </div>
       <div class="acts"><button class="btn ghost danger" data-act="stopRemove" data-a="${i}">Remove this stop</button></div></div>`; }).join('')}
     <div class="acts"><button class="btn" data-act="stopAdd">Add a stop</button></div>`
