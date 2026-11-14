@@ -5439,11 +5439,12 @@ body.rpop-open{overflow:hidden}
 @media (max-width:699px){ .tabbar.three{grid-template-columns:repeat(3,1fr)} }
 h2.greet{font-size:clamp(24px,3.6vw,34px);font-weight:700;margin:16px 0 0;line-height:1.1}
 h2.greet small{display:block;font-size:14px;color:var(--turf);font-weight:400;font-style:italic;margin-top:4px}
-.cdials{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;max-width:560px}
-.cdials.one{grid-template-columns:minmax(0,180px)}
-.cdial{text-align:center;padding:10px 4px 8px;background:var(--page);border:1px solid var(--hair);border-radius:14px}
-.cdial svg{width:72px;height:72px;margin:0 auto 4px;display:block}
-.cdial b{display:block;font-size:13px}.cdial small{display:block;font-size:11.5px;color:var(--turf);line-height:1.25;padding:0 4px}
+.ckpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.ckpis.one{grid-template-columns:minmax(0,220px)}
+.ckpi{border-top:1px solid var(--rule);padding-top:7px;min-width:0}
+.ckpi small{display:block;font-size:12.5px;color:var(--turf);line-height:1.2}
+.ckpi b{display:block;font-size:clamp(24px,5.4vw,30px);font-weight:600;line-height:1.08;margin-top:1px}
+.ckpi span{display:block;font-size:12.5px;color:var(--turf);line-height:1.3;margin-top:2px}
 .cline{margin-top:12px;padding:12px 14px;border:1px solid var(--rule);border-radius:14px;background:var(--page);max-width:680px}
 .cline .ck,.vhero .ck,.award .ck{display:block;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);font-weight:700}
 .cline b.ct{display:block;font-size:17px;margin-top:2px;line-height:1.25}
@@ -5453,12 +5454,17 @@ h2.greet small{display:block;font-size:14px;color:var(--turf);font-weight:400;fo
 .cact{margin:14px 0 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .cline .cact{margin-top:10px}
 .cact .btn{display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
+.ctblwrap{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-top:10px}
+.ctblwrap > .ctbl{margin-top:0}
 .ctbl{width:100%;border-collapse:collapse;font-size:14.5px;margin-top:10px;max-width:760px}
+@media (max-width:560px){ .ctbl .co{display:none} }
 .ctbl th{font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--turf);text-align:left;padding:6px 4px;border-bottom:2px solid var(--ink);font-weight:700}
 .ctbl td{padding:8px 4px;border-bottom:1px solid var(--hair);vertical-align:middle}
 .ctbl .r{text-align:right;font-variant-numeric:tabular-nums}
 .ctbl tr.top td{background:rgba(201,162,83,.16);font-weight:700}
-.ctbl tr.me td{box-shadow:inset 3px 0 0 var(--green)}
+.ctbl tr.me td{background:rgba(201,162,83,.10)}
+.ctbl tr.me td:first-child{box-shadow:inset 3px 0 0 var(--gold-up)}
+.ctbl tr.me.top td{background:rgba(201,162,83,.18)}
 .ctbl .muted{color:var(--turf)}.ctbl .good{color:var(--green);font-weight:700}.ctbl .bad{color:var(--flag);font-weight:700}
 .ctbl td small{color:var(--turf);font-size:12px}
 .ctbl.mini{font-size:12.5px}.ctbl.mini td,.ctbl.mini th{padding:5px 2px}
@@ -5531,11 +5537,11 @@ h2.greet small{display:block;font-size:14px;color:var(--turf);font-weight:400;fo
 /* ---- the Clubhouse on a tablet and a laptop ----
    A phone reads one column; anything wider lays the cards out in two, the
    hero across the top, and the card beside the hole on a virtual round. */
-.cgrid{display:grid;gap:12px;margin-top:12px;max-width:680px}
-.cgrid .cline{margin-top:0;max-width:none}
+.clubgrid{display:grid;gap:12px;margin-top:12px;max-width:680px}
+.clubgrid .cline{margin-top:0;max-width:none}
 @media (min-width:700px){
-  .cgrid{grid-template-columns:1fr 1fr;max-width:1100px;gap:14px}
-  .cgrid .cline.gold{grid-column:1 / -1}
+  .clubgrid{grid-template-columns:1fr 1fr;max-width:1100px;gap:14px}
+  .clubgrid .cline.gold{grid-column:1 / -1}
   .cdials{max-width:600px}
   .vhero{max-width:none;display:grid;grid-template-columns:1fr auto;grid-template-areas:"k big" "t big" "tag big" "s big";column-gap:28px;align-items:start;padding:26px 28px 22px}
   .vhero .ck{grid-area:k}.vhero b{grid-area:t;font-size:34px}.vhero .vhero-tag{grid-area:tag;margin-top:2px}.vhero small{grid-area:s;max-width:60ch}.vhero .big{grid-area:big;font-size:64px;margin-top:0;text-align:right;align-self:end}
@@ -5547,6 +5553,151 @@ h2.greet small{display:block;font-size:14px;color:var(--turf);font-weight:400;fo
   .ce-side{padding-top:14px}
   .ce-side .ctbl{max-width:none}
   .ctbl{max-width:980px}
+}
+
+
+
+/* ---- A ROW THAT SCROLLS MUST NOT WIDEN THE BOOK ----
+   A phone decides how wide to lay the page out from the widest thing in it,
+   and it counts the whole of a row that scrolls sideways, not the part you
+   can see. Five sub-tabs across the Season came to 610 points, so the
+   nameplate, the dateline and every screen under them were drawn 610 wide
+   and read as "the banner has shifted left". `contain:inline-size` tells
+   the browser the row's width is the column's, whatever is inside it.
+   Nothing about how any of them look changes. */
+.btabs,.chiprow,.ctblwrap,.daystrip,.scroller,.tc-chips,.ch-rooms,.xm-cats,
+.xm-about,.xm-pick,.xm-tabs,.cs-rounds,.pk-scopes,.rp-tbl,.rp-card-sc{contain:inline-size}
+
+/* ================= A + C: THE COVER, THE RAIL AND THE MOVES =================
+   The group picked the two together on the laptop — the book's green down
+   the left, and a band of photograph across the top of every screen with
+   the day's question answered on it. The banner, the season switch, the
+   dateline, the rule and the bar at the foot are untouched at every width;
+   all of this lives between them. */
+
+/* ---- the cover ----
+   It bleeds to both edges of the glass, the way the week's Today does, and
+   darkens towards its foot so the words read on any picture. */
+.ccover{position:relative;overflow:hidden;isolation:isolate;
+  margin:10px calc(clamp(14px,3vw,26px) * -1) 0;
+  padding:18px clamp(14px,3vw,26px) 18px;
+  min-height:190px;display:flex;flex-direction:column;justify-content:flex-end;
+  color:var(--onpine);background:var(--pine)}
+.ccover.lifted{padding-bottom:52px}
+.cc-ph{position:absolute;inset:0;z-index:0;background:var(--pine) center/cover no-repeat;pointer-events:none}
+.cc-ph.old{z-index:1;animation:ccFade .55s ease both}
+.ccover::before{content:"";position:absolute;inset:0;z-index:2;pointer-events:none;
+  background:linear-gradient(180deg,rgba(16,22,17,.22) 0,rgba(16,22,17,.72) 58%,rgba(16,22,17,.9) 100%)}
+.cc-in,.cc-acts{position:relative;z-index:3}
+.ccover .ck{display:block;font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;
+  font-weight:700;color:var(--gold-up);text-shadow:0 1px 3px rgba(0,0,0,.5)}
+.cc-h{font-size:clamp(23px,4.4vw,34px);font-weight:700;line-height:1.1;margin:6px 0 0;
+  max-width:26ch;text-wrap:balance;color:var(--onpine)}
+.cc-sub{margin:6px 0 0;font-size:14px;line-height:1.4;color:var(--onpine);opacity:.92;max-width:58ch}
+.cc-sub b{color:var(--gold-up);font-weight:600}
+.cc-acts{margin:13px 0 0;display:flex;gap:9px;flex-wrap:wrap}
+.cc-acts .btn{background:var(--gold-up);border-color:var(--gold-up);color:var(--pine)}
+.cc-acts .btn.ghost{background:rgba(236,232,213,.12);border-color:rgba(236,232,213,.5);color:var(--onpine)}
+/* the first row of cards rises into the picture's foot */
+.clubgrid.lift{position:relative;z-index:4;margin-top:-34px}
+.clubgrid.lift > .cline:first-child{box-shadow:0 8px 22px rgba(29,46,33,.18)}
+
+/* ---- Vegas HQ keeps its pine plate, and gains the picture behind it ---- */
+.vhero{position:relative;overflow:hidden;isolation:isolate}
+.vhero::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:linear-gradient(180deg,rgba(16,22,17,.6) 0,rgba(16,22,17,.84) 60%,rgba(16,22,17,.93) 100%)}
+.vhero > *:not(.cc-ph){position:relative;z-index:2}
+
+/* ---- the bar's one moving mark ---- */
+.tmark{position:absolute;top:0;height:3px;border-radius:0 0 3px 3px;background:var(--gold-up);
+  opacity:0;pointer-events:none;
+  transition:left 320ms cubic-bezier(.2,.7,.2,1),width 320ms cubic-bezier(.2,.7,.2,1),opacity 160ms ease}
+.tabbar:has(.tmark) .navbtn[aria-current="page"]::before{display:none}
+
+/* ---- the pine rail, on a laptop ----
+   Not on a tablet: a tablet holds the bar under the thumb, as a phone does,
+   and the handheld screens were drawn that way. */
+.clubrail{display:none}
+@media (min-width:1100px){
+  html.clubseason:not(.tablet) .clubrail{
+    display:flex;flex-direction:column;gap:2px;
+    position:fixed;left:0;top:0;bottom:0;width:224px;z-index:30;
+    background:var(--pine);color:var(--onpine);border-right:3px solid var(--gold-up);
+    padding:18px 12px calc(16px + env(safe-area-inset-bottom,0px));overflow-y:auto}
+  html.clubseason:not(.tablet) body{padding-left:224px}
+  html.clubseason:not(.tablet) .tabs{display:none}
+  /* The save bar and the keypad are inside the page, and the page carries a
+     transform while it turns, so a fixed box of theirs is already measured
+     from the page rather than the glass: nudging them past the rail would
+     count it twice. The feel bar hangs off the shell and does need it. */
+  html.clubseason:not(.tablet) .feelbar{left:236px}
+}
+.cr-top{display:flex;align-items:center;gap:10px;padding:2px 8px 16px}
+.cr-top img{width:36px;height:36px;flex:0 0 auto}
+.cr-top b{font-size:14px;line-height:1.12;font-weight:700}
+.cr-top small{display:block;font-size:11.5px;font-weight:400;color:var(--sage-up);margin-top:3px}
+.cr-i{display:flex;align-items:center;gap:10px;width:100%;min-height:42px;padding:9px 11px;
+  border:0;background:none;border-radius:9px;color:var(--sage-up);font-family:inherit;font-size:15px;
+  text-align:left;transition:background 180ms ease,color 180ms ease,box-shadow 180ms ease,transform 120ms ease}
+.cr-i .ic{width:19px;height:19px;flex:0 0 auto;transition:transform 250ms cubic-bezier(.2,.7,.2,1)}
+.cr-i.on{background:rgba(236,232,213,.08);color:var(--onpine);font-weight:700;box-shadow:inset 3px 0 0 var(--gold-up)}
+.cr-i:focus-visible{outline:2px solid var(--gold-up);outline-offset:-2px}
+.cr-grp{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--sage-up);
+  padding:15px 11px 4px;opacity:.8}
+.cr-foot{margin-top:auto;padding-top:10px;border-top:1px solid rgba(236,232,213,.14)}
+.cr-me{display:flex;align-items:center;gap:9px;padding:11px 11px 0;font-size:13px;color:var(--sage-up)}
+.cr-me i{width:25px;height:25px;border-radius:50%;background:var(--gold-up);color:var(--pine);
+  display:grid;place-items:center;font-style:normal;font-size:11px;font-weight:700;flex:0 0 auto}
+
+/* ---- the moves ----
+   Arrival in order, from the cover down the page; the pointer answered
+   where there is a pointer; a press answered everywhere. Nothing moves at
+   all for anybody who has asked their system to stop it. */
+@keyframes ccRise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes ccFade{to{opacity:0}}
+.page[data-turn] .ccover .ck{animation:ccRise 400ms cubic-bezier(.2,.7,.2,1) both}
+.page[data-turn] .ccover .cc-h{animation:ccRise 500ms cubic-bezier(.2,.7,.2,1) 50ms both}
+.page[data-turn] .ccover .cc-sub{animation:ccRise 500ms cubic-bezier(.2,.7,.2,1) 120ms both}
+.page[data-turn] .ccover .cc-acts{animation:ccRise 500ms cubic-bezier(.2,.7,.2,1) 180ms both}
+.page[data-turn] .clubgrid > *,.page[data-turn] .btabs,.page[data-turn] .stopchips,
+.page[data-turn] .hq-grid > *{animation:ccRise 450ms cubic-bezier(.2,.7,.2,1) both}
+.page[data-turn] .clubgrid > *:nth-child(1),.page[data-turn] .hq-grid > *:nth-child(1){animation-delay:160ms}
+.page[data-turn] .clubgrid > *:nth-child(2),.page[data-turn] .hq-grid > *:nth-child(2){animation-delay:230ms}
+.page[data-turn] .clubgrid > *:nth-child(3){animation-delay:300ms}
+.page[data-turn] .clubgrid > *:nth-child(4){animation-delay:370ms}
+.page[data-turn] .clubgrid > *:nth-child(n+5){animation-delay:440ms}
+.page[data-turn] .btabs{animation-delay:160ms}
+.page[data-turn] .stopchips{animation-delay:230ms}
+html.clubseason .btn:active,html.clubseason .chip:active,html.clubseason .navbtn:active,
+html.clubseason .pkg:active,html.clubseason .cr-i:active{transform:scale(.975)}
+html.clubseason .btn,html.clubseason .chip,html.clubseason .pkg{transition:transform 120ms ease,background 160ms ease,
+  color 160ms ease,border-color 160ms ease}
+@media (hover:hover) and (pointer:fine){
+  .cr-i:hover{background:rgba(236,232,213,.06);color:var(--onpine)}
+  .cr-i:hover .ic{transform:translateX(2px)}
+  html.clubseason .ctbl tbody tr:hover td{background:rgba(29,46,33,.05)}
+  html.clubseason .ctbl tbody tr.me:hover td{background:rgba(201,162,83,.16)}
+  html.clubseason .cc-acts .btn:hover{filter:brightness(1.06)}
+}
+@media (prefers-reduced-motion:reduce){
+  .ccover *,.clubgrid > *,.btabs,.stopchips,.hq-grid > *,.cc-ph,.tmark,
+  html.clubseason .btn,html.clubseason .chip,html.clubseason .pkg,.cr-i,.cr-i .ic{animation:none!important;transition:none!important}
+  html.clubseason .btn:active,html.clubseason .chip:active,html.clubseason .navbtn:active{transform:none}
+}
+
+/* ---- the cover and the figures, wider ---- */
+@media (min-width:700px){
+  .ccover{min-height:230px;padding:24px 26px 22px;border-radius:16px;
+    margin-left:0;margin-right:0;max-width:1100px}
+  .ccover.lifted{padding-bottom:58px}
+  .cc-sub{font-size:15px}
+  .clubgrid.lift{margin-top:-38px}
+  .clubgrid .ckpis{grid-column:1 / -1}
+  .ckpis.one{grid-template-columns:minmax(0,240px)}
+}
+@media (min-width:1100px){
+  .cc-h{font-size:clamp(28px,2.6vw,36px)}
+  .ccover{min-height:250px}
 }
 
 </style>
