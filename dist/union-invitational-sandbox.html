@@ -5576,9 +5576,11 @@ h2.greet small{display:block;font-size:14px;color:var(--turf);font-weight:400;fo
     padding:18px 12px calc(16px + env(safe-area-inset-bottom,0px));overflow-y:auto}
   html.clubseason:not(.tablet) body{padding-left:224px}
   html.clubseason:not(.tablet) .tabs{display:none}
-  html.clubseason:not(.tablet) .keypad{left:224px}
+  /* The save bar and the keypad are inside the page, and the page carries a
+     transform while it turns, so a fixed box of theirs is already measured
+     from the page rather than the glass: nudging them past the rail would
+     count it twice. The feel bar hangs off the shell and does need it. */
   html.clubseason:not(.tablet) .feelbar{left:236px}
-  html.clubseason:not(.tablet) .savebar{margin-left:112px}
 }
 .cr-top{display:flex;align-items:center;gap:10px;padding:2px 8px 16px}
 .cr-top img{width:36px;height:36px;flex:0 0 auto}
@@ -5745,7 +5747,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261114-1045';
+const BUILD = '20261114-1048';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
