@@ -5753,6 +5753,25 @@ html.clubseason .statusbar{padding-right:40px}
 .gt-you{position:absolute;right:10px;top:10px;background:var(--gold);color:#23331F;border-radius:999px;
   padding:2px 8px;font-size:9px;letter-spacing:.1em;text-transform:uppercase;font-weight:700}
 
+/* ---- your own card, on the You tab ----
+   The drawing is the thing being edited, so it is given the room a thumbnail
+   would not have. It stands on the baseline of the text beside it, the way
+   the Golfers tiles do, so Bert looks planted rather than floated. */
+.yc{display:grid;grid-template-columns:116px 1fr;gap:14px;align-items:end;margin-top:2px}
+.yc-art{align-self:end;margin-bottom:-8px}
+.yc-w{min-width:0;align-self:center}
+.yc-w b{display:block;font-size:17px;font-weight:800;line-height:1.2}
+.yc-w small{display:block;font-size:12.5px;color:var(--turf);margin-top:2px}
+.yc-look{opacity:.85}
+/* Side by side wherever two will fit, and equal widths rather than each one
+   sized to its own words — in the two-column Clubhouse the block is narrow,
+   and a flex row there dropped them into a ragged stack. */
+.yc-acts{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:8px;margin-top:12px}
+/* 17px of padding either side is what makes "Change my look" wrap in a
+   141px column; the words are worth keeping, so the padding gives way. */
+.yc-acts .btn{width:100%;padding-left:11px;padding-right:11px;white-space:nowrap}
+@media (max-width:380px){ .yc{grid-template-columns:88px 1fr;gap:10px} }
+
 /* ---- your look ---- */
 /* Every window in the book is `overflow:hidden`, which suits one that fits.
    This one has a chooser in it and will not always, so it carries its own

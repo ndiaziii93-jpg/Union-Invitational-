@@ -7997,6 +7997,7 @@ function scrYou() {
     h1: head, sub: facts.join(' · '), acts })
   + `<div class="clubgrid lift">
   <div class="cline ckpis${golfer ? '' : ' one'}">${golfer ? kpiHtml(d.form) + kpiHtml(d.played) + kpiHtml(d.ready) : kpiHtml(d.ready)}</div>
+  ${golfer ? youCardHtml(me, today) : ''}
   ${golfer && open ? `<div class="cline"><span class="ck">Open now · ${esc(C.fmtDay(open.from))} to ${esc(C.fmtDay(open.to))}</span><b class="ct">${esc(open.name)}</b>
       ${board.length ? boardTable(board.slice(0, 6), { mini: true }) : '<p>Nobody has posted a card yet; be first.</p>'}</div>` : ''}
   ${golfer && !open && next ? lineHtml('Next stop', esc(next.name), 'Opens ' + esc(C.fmtDay(next.from, { long: true })) + ' and closes ' + esc(C.fmtDay(next.to, { long: true })) + '. ' + esc(next.note || '')) : ''}
@@ -8006,6 +8007,37 @@ function scrYou() {
   ${golfer && mine ? lineHtml('Your practice manual', 'Picked from your Belek report card', 'Putting ' + esc(gradeOf(mine, 'putting')) + ' · par 3s ' + esc(gradeOf(mine, 'par3')) + ' · par 5s ' + esc(gradeOf(mine, 'par5')) + '. Twelve to fifteen drills, drawn and scored, with a coach on video.', `<p style="margin-top:10px"><button class="btn ghost" data-act="manualOpen" data-a="${me}">Open my manual</button></p>`) : ''}
   ${golfer && mine ? lineHtml('Your Belek 2026 card', esc(belekLine(mine)), 'The first season in your archive. Readable any time; nothing in it can change.', `<p class="cact"><button class="btn ghost" data-act="reportPlayer" data-a="${me}">Read my report card</button><button class="btn ghost" data-act="archiveView" data-a="2026">Open the Belek book</button></p>`) : ''}
   </div>`;
+}
+/* ---- YOUR OWN CARD, ON THE YOU TAB ----
+   The Golfers tab is for looking at everybody. This is the one place a
+   golfer is looking at THEMSELVES, so both doors are here: open the card to
+   read it, or go straight to the look and change it. The drawing is large
+   because it is the thing being edited; the figures under it are the same
+   three the card leads with, so opening it holds no surprises. */
+function youCardHtml(me, today) {
+  const st = C.playerStats(T, me, today);
+  const u = C.unionHcp(T, me, today);
+  const pos = (C.merit(T, today).find(r => r.pid === me) || {}).pos || null;
+  const bert = C.bertOf(T, me);
+  const face = C.faceOf(T, me);
+  const name = esc(((E.person(T, me) || {}).display) || 'You');
+  const bits = [u.hcp == null ? 'No Union handicap yet' : 'Union ' + u.hcp,
+    st.cards ? st.cards + ' card' + (st.cards === 1 ? '' : 's') + ' in' : 'no cards yet',
+    pos ? ordinal(pos) + ' on merit' : null].filter(Boolean);
+  const want = C.CARD_MIN - st.cards;
+  return `<div class="cline"><span class="ck">Your player card</span>
+  <div class="yc">
+    <span class="yc-art">${avatarHtml(me, '116px')}</span>
+    <span class="yc-w"><b>${name}</b>
+      <small>${bits.join(' · ')}</small>
+      <small class="yc-look">${esc(bert.name)}${face ? ', with your face in the ball' : ', no photograph in it yet'}</small>
+      <small>${st.ready
+        ? 'The web on the back is drawn from your own cards.'
+        : 'The web fills in after ' + want + ' more card' + (want === 1 ? '' : 's') + '.'}</small>
+    </span>
+  </div>
+  <p class="yc-acts"><button class="btn" data-act="pcard" data-a="${me}">Open my card</button>
+    <button class="btn ghost" data-act="lookOpen">Change my look</button></p></div>`;
 }
 const gradeOf = (pr, k) => (pr && pr.grades && pr.grades[k]) || '—';
 function belekLine(pr) {
