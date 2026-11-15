@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The mascot, three ways</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;0,8..60,900;1,8..60,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --pine:#1D2E21; --pine-up:#27402E; --cream:#EEE8D5; --page:#E6E0CD;
+  --gold:#C9A253; --gold-up:#E2C277; --turf:#5E7A5F; --flag:#9E3B2E; --onpine:#EEE8D5;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--pine);color:var(--cream);
+  font-family:'Source Serif 4',Georgia,serif;line-height:1.5;-webkit-text-size-adjust:100%}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 16px 90px}
+h1{font-size:clamp(28px,5vw,42px);font-weight:900;margin:0 0 6px;letter-spacing:-.01em}
+.sub{color:#C8CCBF;margin:0 0 6px;max-width:66ch}
+.warn{border-left:3px solid var(--flag);background:rgba(158,59,46,.14);padding:12px 14px;
+  border-radius:0 10px 10px 0;margin:18px 0 26px;max-width:80ch}
+.warn b{color:#F0B5AA}
+h2{font-size:clamp(20px,3vw,26px);font-weight:800;color:var(--gold-up);margin:44px 0 2px;
+  padding-top:22px;border-top:1px solid rgba(238,232,213,.16)}
+h2 .k{color:var(--cream);opacity:.45;margin-right:10px}
+.say{color:#C8CCBF;margin:0 0 4px;max-width:72ch}
+.pros{color:#9FB49F;font-size:14.5px;margin:0 0 18px;max-width:72ch}
+.pros b{color:var(--gold-up);font-weight:600}
+.row{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(248px,1fr));margin-bottom:18px}
+.cap{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#9FB49F;margin:0 0 6px}
+
+/* ---- a phone, drawn ---- */
+.ph{background:var(--page);color:var(--pine);border-radius:18px;overflow:hidden;
+  box-shadow:0 10px 30px rgba(0,0,0,.35);position:relative;height:430px;display:flex;flex-direction:column}
+.ph .top{background:var(--pine);color:var(--onpine);padding:9px 12px;font-size:11px;
+  letter-spacing:.08em;text-transform:uppercase;display:flex;justify-content:space-between;align-items:center}
+.ph .body{flex:1;position:relative;overflow:hidden}
+.ph .bar{background:var(--pine);display:flex;justify-content:space-around;padding:8px 0 10px;
+  font-size:10.5px;color:#A9B8A6;position:relative}
+.ph .bar span.on{color:var(--gold-up)}
+.band{height:116px;position:relative;overflow:hidden;background:#3E5540}
+.band img.bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.92}
+.band .vig{position:absolute;inset:0;background:linear-gradient(90deg,rgba(29,46,33,.92) 0%,rgba(29,46,33,.62) 46%,rgba(29,46,33,0) 78%)}
+.band .txt{position:absolute;left:12px;right:96px;bottom:10px;color:var(--cream)}
+.band .txt b{display:block;font-size:15px;font-weight:800;line-height:1.2}
+.band .txt small{font-size:10.5px;opacity:.8}
+.pad{padding:12px}
+.h3{font-size:17px;font-weight:800;margin:0 0 3px}
+.p{font-size:12.5px;color:#4A5B4C;margin:0 0 10px}
+.btn{display:inline-block;background:var(--gold);color:#23331F;border-radius:999px;
+  padding:7px 14px;font-size:12.5px;font-weight:700}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:10px}
+.tile{background:#DCD6C2;border-radius:9px;padding:7px 8px}
+.tile b{display:block;font-size:17px;font-weight:800}
+.tile span{font-size:9.5px;color:#5E7A5F;letter-spacing:.04em;text-transform:uppercase}
+
+/* ---- the mascot ---- */
+.m{position:absolute;pointer-events:none;will-change:transform}
+.m img{display:block;height:100%;width:auto}
+
+/* A — the caddie on the rail: he stands in the corner, above the tabs */
+.A .m{right:8px;bottom:0;height:132px;z-index:3;
+  filter:drop-shadow(0 6px 10px rgba(16,22,17,.34));animation:bob 3.6s ease-in-out infinite}
+.A .m.lean{animation:bob 3.6s ease-in-out infinite, lean 9s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+@keyframes lean{0%,86%,100%{rotate:0deg}92%{rotate:-4deg}}
+
+/* B — in the band: he is part of the artwork, not pasted on it */
+.B .band .m{right:4px;bottom:-6px;height:122px;z-index:2;
+  filter:drop-shadow(0 4px 8px rgba(16,22,17,.45));animation:slide .9s cubic-bezier(.2,.9,.3,1) both}
+@keyframes slide{from{transform:translateX(26px);opacity:0}to{transform:translateX(0);opacity:1}}
+
+/* C — he leans in, says a line, and goes */
+.C .m{right:-4px;bottom:0;height:118px;z-index:3;
+  filter:drop-shadow(0 6px 10px rgba(16,22,17,.34));
+  animation:peek 7s cubic-bezier(.3,.9,.3,1) infinite}
+@keyframes peek{
+  0%,4%{transform:translate(64px,8px) rotate(10deg)}
+  12%,44%{transform:translate(0,0) rotate(0deg)}
+  56%,100%{transform:translate(64px,8px) rotate(10deg)}
+}
+.C .bubble{position:absolute;right:104px;bottom:72px;background:var(--cream);color:var(--pine);
+  border-radius:12px 12px 2px 12px;padding:7px 10px;font-size:12px;max-width:150px;z-index:4;
+  box-shadow:0 6px 14px rgba(16,22,17,.3);animation:say 7s ease-in-out infinite;opacity:0}
+@keyframes say{0%,10%{opacity:0;transform:translateY(6px)}16%,42%{opacity:1;transform:translateY(0)}50%,100%{opacity:0;transform:translateY(6px)}}
+
+/* ---- the card screen, wide ---- */
+.card{background:var(--page);color:var(--pine);border-radius:16px;overflow:hidden;
+  box-shadow:0 12px 34px rgba(0,0,0,.36);position:relative}
+.card .hd{background:var(--pine);color:var(--onpine);padding:11px 14px;display:flex;
+  align-items:center;gap:12px;position:relative;min-height:62px;overflow:hidden}
+.card .hd .n{font-size:30px;font-weight:800;line-height:1}
+.card .hd .l{font-size:10px;letter-spacing:.14em;text-transform:uppercase;opacity:.72}
+.card .hd .r{margin-left:auto;text-align:right;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase}
+.card .hd .r b{display:block;font-size:13px}
+.keys{display:grid;grid-template-columns:repeat(6,1fr);gap:7px;padding:14px}
+.key{background:#DCD6C2;border-radius:10px;text-align:center;padding:12px 0;font-size:17px;font-weight:700}
+.key.par{outline:2px solid var(--gold);outline-offset:-2px}
+.strip{display:flex;gap:4px;padding:0 14px 12px;overflow:hidden}
+.cell{flex:1;min-width:0;background:#DCD6C2;border-radius:7px;text-align:center;padding:5px 0;font-size:11px}
+.cell.on{background:var(--gold-up);font-weight:700}
+
+/* the card's own mascot, per draft. He gets a column of his own so he never
+   sits on a key or on the hole's own numbers — which is the whole point of
+   showing him here. */
+.cardA .m{right:14px;bottom:10px;height:150px;animation:bob 3.6s ease-in-out infinite}
+.cardA .keys,.cardA .strip{padding-right:150px}
+.cardB .hd{padding-right:124px}
+.cardB .hd .m{right:10px;bottom:-16px;height:104px;animation:slide .9s cubic-bezier(.2,.9,.3,1) both}
+.cardC .m{right:14px;bottom:10px;height:160px;animation:react 5s ease-in-out infinite}
+.cardC .keys,.cardC .strip{padding-right:160px}
+@keyframes react{
+  0%,54%{transform:translateY(0) rotate(0)}
+  60%{transform:translateY(-16px) rotate(-6deg)}
+  66%{transform:translateY(0) rotate(0)}
+  72%{transform:translateY(-10px) rotate(4deg)}
+  78%,100%{transform:translateY(0) rotate(0)}
+}
+.pop{position:absolute;right:120px;bottom:118px;background:var(--gold);color:#23331F;
+  border-radius:999px;padding:5px 12px;font-size:12.5px;font-weight:700;z-index:4;opacity:0;
+  animation:pop 5s ease-in-out infinite;box-shadow:0 6px 14px rgba(16,22,17,.3)}
+@keyframes pop{0%,54%{opacity:0;transform:scale(.8)}62%,76%{opacity:1;transform:scale(1)}84%,100%{opacity:0;transform:scale(.9)}}
+
+.foot{margin-top:52px;padding-top:20px;border-top:1px solid rgba(238,232,213,.16);
+  color:#9FB49F;font-size:14px;max-width:74ch}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>The mascot, three ways</h1>
+  <p class="sub">Three ways he could live in the book — on You, on Season, on Vegas HQ, and on the
+    card you fill in. The covers and the layout of You and Vegas HQ do not change in any of them.
+    Everything below moves; watch for a few seconds.</p>
+
+  <div class="warn"><b>First, a fix that is already in.</b> The drawing shipped with the
+    transparency checkerboard painted into it as real pixels, which is the grey box you saw round
+    him on the iPad. I told you that was just the crop. It was not — it was in the file, and on the
+    live app. It is cut out properly now, and that is what you see here.</div>
+
+  <!-- ======================= A ======================= -->
+  <h2><span class="k">A</span>The caddie who stays</h2>
+  <p class="say">He is always there, standing in the bottom corner above the tabs, dressed for
+    whichever tournament is open. He breathes, and every so often he leans. Tap through the tabs
+    and he is simply there, the way a caddie is there.</p>
+  <p class="pros"><b>For:</b> one character, everywhere, no artwork to redraw.
+    <b>Against:</b> he sits on top of the page rather than belonging to it, and he is in the way of
+    the bottom-right of every screen.</p>
+
+  <div class="row">
+    <div>
+      <p class="cap">You</p>
+      <div class="ph A">
+        <div class="top"><span>The Union Invitational</span><span>363 days</span></div>
+        <div class="body">
+          <div class="band"><img class="bg" src="img/stop_mulligan.webp" alt=""><div class="vig"></div>
+            <div class="txt"><b>Morning, Norberto.</b><small>Your card is in · 34 points</small></div></div>
+          <div class="pad"><div class="h3">The Merry Mulligan Open</div>
+            <p class="p">Closes Sunday 20 Dec.</p><span class="btn">See my card</span>
+            <div class="tiles"><div class="tile"><b>16</b><span>Form</span></div>
+              <div class="tile"><b>2 of 2</b><span>Played</span></div>
+              <div class="tile"><b>50%</b><span>Ready</span></div></div></div>
+          <div class="m"><img src="img/mascot_mulligan.webp" alt=""></div>
+        </div>
+        <div class="bar"><span class="on">You</span><span>Season</span><span>Vegas HQ</span></div>
+      </div>
+    </div>
+    <div>
+      <p class="cap">Season</p>
+      <div class="ph A">
+        <div class="top"><span>The Union Invitational</span><span>363 days</span></div>
+        <div class="body">
+          <div class="pad" style="padding-top:16px"><div class="h3">The season</div>
+            <p class="p">Three stops before Vegas.</p>
+            <div class="tiles" style="grid-template-columns:1fr"><div class="tile"><b>The Merry Mulligan Open</b><span>Open · closes 20 Dec</span></div></div>
+            <div class="tiles" style="grid-template-columns:1fr;margin-top:7px"><div class="tile"><b>The Frostbite Open</b><span>Opens 9 Jan</span></div></div>
+            <div class="tiles" style="grid-template-columns:1fr;margin-top:7px"><div class="tile"><b>The Sweetheart Scramble</b><span>Opens 1 Feb</span></div></div></div>
+          <div class="m lean"><img src="img/mascot_mulligan.webp" alt=""></div>
+        </div>
+        <div class="bar"><span>You</span><span class="on">Season</span><span>Vegas HQ</span></div>
+      </div>
+    </div>
+    <div>
+      <p class="cap">Vegas HQ</p>
+      <div class="ph A">
+        <div class="top"><span>The Union Invitational</span><span>363 days</span></div>
+        <div class="body">
+          <div class="band"><img class="bg" src="img/stop_vegas.webp" alt=""><div class="vig"></div>
+            <div class="txt"><b>Las Vegas 2027</b><small>A Desert Showdown · 13–21 Nov</small></div></div>
+          <div class="pad"><div class="h3">Your place is held</div>
+            <p class="p">7 nights · golfer. £1,000 of £2,089 in.</p><span class="btn">Open the ledger</span></div>
+          <div class="m"><img src="img/mascot_vegas.webp" alt=""></div>
+        </div>
+        <div class="bar"><span>You</span><span>Season</span><span class="on">Vegas HQ</span></div>
+      </div>
+    </div>
+  </div>
+
+  <p class="cap">Enter my card — he stands beside the keypad and bobs</p>
+  <div class="card cardA">
+    <div class="hd"><span class="n">1</span><span class="l">Hole</span>
+      <span class="r">Par 5 · Index 18<b>Not scored yet</b></span></div>
+    <div class="strip"><span class="cell on">1</span><span class="cell">2</span><span class="cell">3</span>
+      <span class="cell">4</span><span class="cell">5</span><span class="cell">6</span><span class="cell">7</span>
+      <span class="cell">8</span><span class="cell">9</span></div>
+    <div class="keys"><span class="key">3</span><span class="key">4</span><span class="key par">5</span>
+      <span class="key">6</span><span class="key">7</span><span class="key">8</span></div>
+    <div class="m"><img src="img/mascot_mulligan.webp" alt=""></div>
+  </div>
+
+  <!-- ======================= B ======================= -->
+  <h2><span class="k">B</span>In the band</h2>
+  <p class="say">He belongs to the artwork, not to the page: he stands inside the green band at the
+    head of the tab, half in the picture, and slides in as the tab opens. Nothing else moves, and
+    the rest of the screen is left alone entirely.</p>
+  <p class="pros"><b>For:</b> looks designed rather than stuck on; costs no room anywhere else.
+    <b>Against:</b> he is only at the top, so he is gone the moment you scroll, and a tab with no
+    band — the Season list — needs one adding.</p>
+
+  <div class="row">
+    <div>
+      <p class="cap">You</p>
+      <div class="ph B">
+        <div class="top"><span>The Union Invitational</span><span>363 days</span></div>
+        <div class="body">
+          <div class="band"><img class="bg" src="img/stop_mulligan.webp" alt=""><div class="vig"></div>
+            <div class="txt"><b>Morning, Norberto.</b><small>Your card is in · 34 points</small></div>
+            <div class="m"><img src="img/mascot_mulligan.webp" alt=""></div></div>
+          <div class="pad"><div class="h3">The Merry Mulligan Open</div>
+            <p class="p">Closes Sunday 20 Dec.</p><span class="btn">See my card</span>
+            <div class="tiles"><div class="tile"><b>16</b><span>Form</span></div>
+              <div class="tile"><b>2 of 2</b><span>Played</span></div>
+              <div class="tile"><b>50%</b><span>Ready</span></div></div></div>
+        </div>
+        <div class="bar"><span class="on">You</span><span>Season</span><span>Vegas HQ</span></div>
+      </div>
+    </div>
+    <div>
+      <p class="cap">Season — a band added for him</p>
+      <div class="ph B">
+        <div class="top"><span>The Union Invitational</span><span>363 days</span></div>
+        <div class="body">
+          <div class="band" style="background:linear-gradient(120deg,#27402E,#3E5540)"><div class="vig"></div>
+            <div class="txt"><b>The season</b><small>Three stops before Vegas</small></div>
+            <div class="m"><img src="img/mascot_frostbite.webp" alt=""></div></div>
+          <div class="pad">
+            <div class="tiles" style="grid-template-columns:1fr"><div class="tile"><b>The Merry Mulligan Open</b><span>Open · closes 20 Dec</span></div></div>
+            <div class="tiles" style="grid-template-columns:1fr;margin-top:7px"><div class="tile"><b>The Frostbite Open</b><span>Opens 9 Jan</span></div></div>
+            <div class="tiles" style="grid-template-columns:1fr;margin-top:7px"><div class="tile"><b>The Sweetheart Scramble</b><span>Opens 1 Feb</span></div></div></div>
+        </div>
+        <div class="bar"><span>You</span><span class="on">Season</span><span>Vegas HQ</span></div>
+      </div>
+    </div>
+    <div>
+      <p class="cap">Vegas HQ</p>
+      <div class="ph B">
+        <div class="top"><span>The Union Invitational</span><span>363 days</span></div>
+        <div class="body">
+          <div class="band"><img class="bg" src="img/stop_vegas.webp" alt=""><div class="vig"></div>
+            <div class="txt"><b>Las Vegas 2027</b><small>A Desert Showdown</small></div>
+            <div class="m"><img src="img/mascot_vegas.webp" alt=""></div></div>
+          <div class="pad"><div class="h3">Your place is held</div>
+            <p class="p">7 nights · golfer. £1,000 of £2,089 in.</p><span class="btn">Open the ledger</span></div>
+        </div>
+        <div class="bar"><span>You</span><span>Season</span><span class="on">Vegas HQ</span></div>
+      </div>
+    </div>
+  </div>
+
+  <p class="cap">Enter my card — he leans out of the pine head, over the hole number</p>
+  <div class="card cardB">
+    <div class="hd"><span class="n">1</span><span class="l">Hole</span>
+      <span class="r">Par 5 · Index 18<b>Not scored yet</b></span>
+      <div class="m"><img src="img/mascot_mulligan.webp" alt=""></div></div>
+    <div class="strip"><span class="cell on">1</span><span class="cell">2</span><span class="cell">3</span>
+      <span class="cell">4</span><span class="cell">5</span><span class="cell">6</span><span class="cell">7</span>
+      <span class="cell">8</span><span class="cell">9</span></div>
+    <div class="keys"><span class="key">3</span><span class="key">4</span><span class="key par">5</span>
+      <span class="key">6</span><span class="key">7</span><span class="key">8</span></div>
+  </div>
+
+  <!-- ======================= C ======================= -->
+  <h2><span class="k">C</span>The one who turns up when there is something to say</h2>
+  <p class="say">He is not on the screen all the time. He leans in from the edge when there is
+    something worth saying — and on the card he reacts to what you just wrote: a jump for a birdie,
+    a wince for a blob.</p>
+  <p class="pros"><b>For:</b> the most character by a distance, and he never gets in the way, because
+    he is only there when he has earned it. <b>Against:</b> the most to build, and a mascot that
+    comes and goes can irritate if he has nothing good to say.</p>
+
+  <div class="row">
+    <div>
+      <p class="cap">You</p>
+      <div class="ph C">
+        <div class="top"><span>The Union Invitational</span><span>363 days</span></div>
+        <div class="body">
+          <div class="band"><img class="bg" src="img/stop_mulligan.webp" alt=""><div class="vig"></div>
+            <div class="txt"><b>Morning, Norberto.</b><small>Your card is in · 34 points</small></div></div>
+          <div class="pad"><div class="h3">The Merry Mulligan Open</div>
+            <p class="p">Closes Sunday 20 Dec.</p><span class="btn">See my card</span>
+            <div class="tiles"><div class="tile"><b>16</b><span>Form</span></div>
+              <div class="tile"><b>2 of 2</b><span>Played</span></div>
+              <div class="tile"><b>50%</b><span>Ready</span></div></div></div>
+          <div class="bubble">Second, and one card to play. Go on.</div>
+          <div class="m"><img src="img/mascot_mulligan.webp" alt=""></div>
+        </div>
+        <div class="bar"><span class="on">You</span><span>Season</span><span>Vegas HQ</span></div>
+      </div>
+    </div>
+    <div>
+      <p class="cap">Season</p>
+      <div class="ph C">
+        <div class="top"><span>The Union Invitational</span><span>363 days</span></div>
+        <div class="body">
+          <div class="pad" style="padding-top:16px"><div class="h3">The season</div>
+            <p class="p">Three stops before Vegas.</p>
+            <div class="tiles" style="grid-template-columns:1fr"><div class="tile"><b>The Merry Mulligan Open</b><span>Open · closes 20 Dec</span></div></div>
+            <div class="tiles" style="grid-template-columns:1fr;margin-top:7px"><div class="tile"><b>The Frostbite Open</b><span>Opens 9 Jan</span></div></div>
+            <div class="tiles" style="grid-template-columns:1fr;margin-top:7px"><div class="tile"><b>The Sweetheart Scramble</b><span>Opens 1 Feb</span></div></div></div>
+          <div class="bubble">Five days left on this one.</div>
+          <div class="m"><img src="img/mascot_frostbite.webp" alt=""></div>
+        </div>
+        <div class="bar"><span>You</span><span class="on">Season</span><span>Vegas HQ</span></div>
+      </div>
+    </div>
+    <div>
+      <p class="cap">Vegas HQ</p>
+      <div class="ph C">
+        <div class="top"><span>The Union Invitational</span><span>363 days</span></div>
+        <div class="body">
+          <div class="band"><img class="bg" src="img/stop_vegas.webp" alt=""><div class="vig"></div>
+            <div class="txt"><b>Las Vegas 2027</b><small>A Desert Showdown</small></div></div>
+          <div class="pad"><div class="h3">Your place is held</div>
+            <p class="p">7 nights · golfer. £1,000 of £2,089 in.</p><span class="btn">Open the ledger</span></div>
+          <div class="bubble">Balance by 1 Aug. No rush. Some rush.</div>
+          <div class="m"><img src="img/mascot_vegas.webp" alt=""></div>
+        </div>
+        <div class="bar"><span>You</span><span>Season</span><span class="on">Vegas HQ</span></div>
+      </div>
+    </div>
+  </div>
+
+  <p class="cap">Enter my card — he reacts to the number you just tapped</p>
+  <div class="card cardC">
+    <div class="hd"><span class="n">1</span><span class="l">Hole</span>
+      <span class="r">Par 5 · Index 18<b>You wrote 4 · 4 pts</b></span></div>
+    <div class="strip"><span class="cell on">1</span><span class="cell">2</span><span class="cell">3</span>
+      <span class="cell">4</span><span class="cell">5</span><span class="cell">6</span><span class="cell">7</span>
+      <span class="cell">8</span><span class="cell">9</span></div>
+    <div class="keys"><span class="key">3</span><span class="key">4</span><span class="key par">5</span>
+      <span class="key">6</span><span class="key">7</span><span class="key">8</span></div>
+    <div class="pop">Birdie!</div>
+    <div class="m"><img src="img/mascot_mulligan.webp" alt=""></div>
+  </div>
+
+  <div class="foot">
+    <p><b>Mixing is allowed.</b> B on the tabs and C on the card is the obvious pair: he belongs to
+      the artwork where there is artwork, and he comes alive where you are actually doing something.
+      Say which and I will build it.</p>
+    <p>Four suits of clothes exist — santa hat for the Merry Mulligan, bobble hat and cold breath for
+      the Frostbite, rose for the Sweetheart, hat and boots for Vegas. Whichever draft wins, he wears
+      the tournament he is standing in.</p>
+  </div>
+
+</div>
+</body>
+</html>
