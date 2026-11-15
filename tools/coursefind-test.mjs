@@ -96,7 +96,11 @@ await p.evaluate(([A, H, base]) => {
   window.__forceRender();
 }, [ago(3), ahead(10), BASE]);
 await p.waitForTimeout(300);
+/* A round is declared before it is played, so the way in to the stop now
+   asks what kind this is; the course form is behind that answer. */
 await act('clubEnter', { a: 'frostbite' }); await p.waitForTimeout(400);
+ok('it asks what kind of round first', await p.evaluate(() => window.__UI.modal && window.__UI.modal.kind), 'newround');
+await act('roundGo', { a: 'comp' }); await p.waitForTimeout(400);
 ok('the course form is up', await p.locator('#courseQ').count(), 1);
 
 console.log('\nthe wider list');

@@ -64,7 +64,11 @@ for (const [label, vp] of [['phone', { width: 390, height: 844, isMobile: true, 
     window.__forceRender();
   }, [ago(3), ahead(10)]);
   await p.waitForTimeout(400);
+  /* The declaration comes first now: say it is the stop's card, then play. */
   await act('clubEnter', { a: 'frostbite' }); await p.waitForTimeout(400);
+  if (await p.evaluate(() => window.__UI.modal && window.__UI.modal.kind === 'newround')) {
+    await act('roundGo', { a: 'comp' }); await p.waitForTimeout(400);
+  }
   ok(label + ': the Score Entry screen, on Leatherhead',
     await p.evaluate(() => [window.__UI.screen, (document.querySelector('.lede') || {}).textContent.slice(0, 34)]),
     ['clubentry', 'Leatherhead Golf Club · White tees']);
