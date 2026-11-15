@@ -230,12 +230,53 @@ Money tab and everyone sees the meter.
 
 ---
 
+## 7. The course book — finding any course instead of typing it in
+
+Without this, the search finds only the courses already in the book: the ones
+we typed in, plus every course a member has saved. That works, and it works
+offline. With it, a member types the name of their club and taps it, wherever
+in the world they play.
+
+1. **golfcourseapi.com** → sign up (email only) → copy the API key.
+   Take the **Pro** tier. The free tier allows 35 requests a day across
+   everybody, which twenty-three members will spend before lunch.
+2. Supabase → **Edge Functions** → Deploy a new function → name it `courses`
+   → paste `supabase/functions/courses/index.ts` → Deploy.
+3. Supabase → Edge Functions → **courses** → Secrets → add
+   `GOLF_API_KEY` = the key.
+
+That secret is the only place the key goes. **Not** in the repository, not in
+the app, not in a message to me, not in a screenshot — this repository is
+public and so is the page the group installs.
+
+Nothing breaks if you skip it or do it later: with no function deployed and no
+key set, the search quietly falls back to the book we already have, and the
+form still takes a card typed in by hand.
+
+**What the book does with what it gets back.** Course data at that scale is
+uneven, and the one number the book cannot do without is the stroke index,
+because it decides which holes a member gets a shot on. Every tee set is
+checked — eighteen holes, every par 3 to 6, every index 1 to 18 exactly once —
+and a card that fails is still offered, greyed, saying what is wrong, so the
+member can take the yardages and fill the rest in from their own scorecard.
+The book will not let an unchecked card be saved.
+
+---
+
 ## What I need back from you
 
 | | Where from | Send me |
 |---|---|---|
 | Supabase Project URL | Project Settings → API | `https://….supabase.co` |
 | Supabase anon key | Project Settings → API | `eyJ…` |
-| Anthropic API key | console.anthropic.com → API keys | `sk-ant-…` (privately) |
 
-Nothing else. Not the database password, not the service_role key.
+Nothing else, and **no keys at all**. Every secret goes straight from where you
+made it into the Supabase secret that uses it, and nowhere else:
+
+| Key | Made at | Goes in |
+|---|---|---|
+| Anthropic API key | console.anthropic.com → API keys | Edge Functions → `recap` → Secrets → `ANTHROPIC_API_KEY` |
+| GolfCourseAPI key | golfcourseapi.com | Edge Functions → `courses` → Secrets → `GOLF_API_KEY` |
+| VAPID private key | the book's own key page | Edge Functions → `notify` → Secrets → `VAPID_PRIVATE_KEY` |
+
+Never the database password, never the service_role key, and never a PIN.

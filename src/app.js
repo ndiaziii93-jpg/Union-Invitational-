@@ -128,7 +128,7 @@ const UI = {
   /* the Clubhouse: the season between tournaments */
   archive: null,        // which closed book is being read, by year, or null for the season
   seasonTab: 'stop', stopId: null, clubHole: 0, clubPad: false,
-  courseEdit: false, courseDraft: null, courseQ: '', clubMTab: 'season', moneyDraft: null, cardUp: '', exportNote: '',
+  courseEdit: false, courseDraft: null, courseQ: '', courseNet: null, courseBusy: false, courseTees: null, clubMTab: 'season', moneyDraft: null, cardUp: '', exportNote: '',
 };
 
 const ROLE_KEY = 'union-invitational:role';
@@ -8272,6 +8272,40 @@ function scrClubEntry() {
 }
 const sumOf = l => { const v = l.filter(x => x != null); return v.length ? v.reduce((a, b) => a + b, 0) : '·'; };
 
+/* ---------------- FINDING A COURSE ----------------
+   Two books are searched at once. The near one is this book: every course a
+   member has already entered, which needs no network and answers instantly.
+   The far one is a database of some thirty thousand courses, reached through
+   the `courses` function so the key for it never touches a phone.
+
+   The far book is a courtesy, not a dependency. No function deployed, no key
+   set, no signal — the search quietly shows the near book alone and the form
+   below still takes a card typed in by hand, as it always did. */
+const courseNetOn = () => !!(CFG.SUPABASE_URL && CFG.SUPABASE_KEY);
+let courseTimer = 0, courseSeq = 0;
+
+/** Ask the far book, a moment after the typing stops. */
+function courseSearchSoon() {
+  clearTimeout(courseTimer);
+  const q = String(UI.courseQ || '').trim();
+  if (q.length < 3 || !courseNetOn()) { UI.courseNet = null; UI.courseBusy = false; return; }
+  UI.courseBusy = true;
+  courseTimer = setTimeout(() => courseSearchNow(q), 340);
+}
+async function courseSearchNow(q) {
+  const seq = ++courseSeq;
+  try {
+    const r = await fetch(fnUrl('courses') + '?q=' + encodeURIComponent(q), { headers: { apikey: CFG.SUPABASE_KEY } });
+    const got = await r.json().catch(() => ({}));
+    if (seq !== courseSeq) return;                 /* a later keystroke won the race */
+    UI.courseNet = got && got.unconfigured ? null : ((got && got.courses) || []);
+  } catch (e) {
+    if (seq !== courseSeq) return;
+    UI.courseNet = null;                           /* offline: the near book stands alone */
+  }
+  if (seq === courseSeq) { UI.courseBusy = false; paintCourseHits(); }
+}
+
 /** The results under the search box. Drawn with the form, and redrawn on
  *  its own as somebody types: a full repaint between two keystrokes would
  *  take the caret with it. */
@@ -8279,12 +8313,59 @@ function courseHitsHtml() {
   const q = String(UI.courseQ || '').trim();
   if (q.length < 2) return '';
   const hits = C.courseFind(T, q);
-  if (!hits.length) return `<p class="sublede">Nothing by that name yet. Fill the card in below and it joins the book, so the next member here taps it instead of typing it.</p>`;
-  return `<div class="cfhits">${hits.map(h => `<button class="cfhit" data-act="coursePick" data-a="${esc(h.id)}"><b>${esc(h.name)}</b><small>${esc(h.place || (h.from === 'book' ? 'already in the book' : ''))}${h.tee ? ' · ' + esc(h.tee) + ' tees' : ''} · par ${C.coursePar(h)}</small></button>`).join('')}</div>`;
+  const net = (UI.courseNet || []).filter(n => !hits.some(h => String(h.name || '').trim().toLowerCase() === String(n.name || '').trim().toLowerCase()));
+  const far = net.length ? `<div class="cfhits far">${net.map(n => `<button class="cfhit" data-act="courseNet" data-a="${esc(n.id)}">
+      <b>${esc(n.name)}</b><small>${esc(n.place || '')}${n.tees ? ' · ' + n.tees + ' tee set' + (n.tees === 1 ? '' : 's') : ''}</small></button>`).join('')}</div>` : '';
+  const busy = UI.courseBusy ? `<p class="sublede">Looking further afield…</p>` : '';
+  if (!hits.length) {
+    if (far) return `<p class="sublede">Not in the book here yet — but these are:</p>${far}`;
+    if (UI.courseBusy) return busy;
+    return `<p class="sublede">Nothing by that name${courseNetOn() ? ' in the book or the wider list' : ' yet'}. Fill the card in below and it joins the book, so the next member here taps it instead of typing it.</p>`;
+  }
+  const near = `<div class="cfhits">${hits.map(h => `<button class="cfhit" data-act="coursePick" data-a="${esc(h.id)}"><b>${esc(h.name)}</b><small>${esc(h.place || (h.from === 'book' ? 'already in the book' : ''))}${h.tee ? ' · ' + esc(h.tee) + ' tees' : ''} · par ${C.coursePar(h)}</small></button>`).join('')}</div>`;
+  return near + (far ? `<p class="sublede">Further afield:</p>` + far : busy);
+}
+
+/* The tee sets open under a long form, which on a phone is below the fold: a
+   member taps a course, the panel appears where they cannot see it, and it
+   reads as nothing having happened. So it is brought to them. */
+function showTees() {
+  requestAnimationFrame(() => {
+    const w = document.querySelector('.cfwin');
+    if (!w) return;
+    const smooth = !matchMedia('(prefers-reduced-motion: reduce)').matches;
+    try { w.scrollIntoView({ block: 'center', behavior: smooth ? 'smooth' : 'auto' }); }
+    catch (e) { w.scrollIntoView(); }
+  });
 }
 function paintCourseHits() {
   const host = document.getElementById('courseHits');
   if (host) host.innerHTML = courseHitsHtml();
+}
+
+/* ---- choosing a tee set ----
+   A course comes back with every tee on it, and the member takes the one they
+   actually play, because par and the stroke index differ between them. A set
+   whose card is short or has no index is still offered, greyed, with what is
+   wrong said plainly: the yardages are worth having even when the index has to
+   be filled in by hand. */
+function courseTeesHtml() {
+  const t = UI.courseTees;
+  if (!t) return '';
+  const body = t.loading ? `<p class="sublede">Fetching the card…</p>`
+    : t.err ? `<p class="sublede warn">${esc(t.err)}</p>`
+    : !t.cards || !t.cards.length ? `<p class="sublede">That course has no hole-by-hole card in the list. Fill it in below from your own scorecard and it joins the book here.</p>`
+    : `<div class="cftees">${t.cards.map((c, i) => `<button class="cftee${c.ok ? '' : ' iffy'}" data-act="courseTee" data-a="${i}">
+        <b>${esc(c.tee)}</b>
+        <span class="num">${c.par ? 'par ' + c.par : ''}${c.yards ? ' · ' + c.yards + ' yds' : ''}</span>
+        <small>${c.ok ? (c.rating ? 'rating ' + c.rating + (c.slope ? ' · slope ' + c.slope : '') : 'ready to use')
+                      : esc(c.why) + ' — you can still take the yardages'}</small></button>`).join('')}</div>`;
+  return `<div class="cfwin" role="group" aria-label="Tee sets at ${esc(t.name || 'this course')}">
+    <div class="cfwin-h"><div><b>${esc(t.name || 'This course')}</b>${t.place ? `<small>${esc(t.place)}</small>` : ''}</div>
+      <button class="xx" data-act="courseTeesClose">Close</button></div>
+    ${body}
+    <p class="sublede">Whichever you take, check it against your own scorecard before you save. The stroke index decides which holes you get a shot on.</p>
+  </div>`;
 }
 
 function courseForm(pid, held) {
@@ -8300,6 +8381,7 @@ function courseForm(pid, held) {
       <div id="courseHits">${courseHitsHtml()}</div>
     </div>
   </div>
+  ${courseTeesHtml()}
   <div class="fieldset two">
     <label>Course<input class="field" data-act="courseField" data-a="name" value="${esc(c.name || '')}" placeholder="Rancho Park" maxlength="60"></label>
     <label>Tees<input class="field" data-act="courseField" data-a="tee" value="${esc(c.tee || '')}" placeholder="White" maxlength="20"></label>
@@ -11939,7 +12021,44 @@ function onClick(e) {
       UI.toast = 'Card filled in from ' + hit.name + '. Check it against your own before you save.';
       render(); return;
     }
-    case 'courseEdit': UI.courseEdit = true; UI.courseDraft = null; UI.courseQ = ''; render(); return;
+    case 'courseEdit': UI.courseEdit = true; UI.courseDraft = null; UI.courseQ = ''; UI.courseNet = null; UI.courseTees = null; render(); return;
+    /* a course from the wider list: fetch its tee sets, then let them choose */
+    case 'courseNet': {
+      const hit = (UI.courseNet || []).find(x => x.id === a);
+      UI.courseTees = { id: a, name: hit ? hit.name : '', place: hit ? hit.place : '', loading: true, cards: null, err: '' };
+      render(); showTees();
+      (async () => {
+        try {
+          const r = await fetch(fnUrl('courses') + '?id=' + encodeURIComponent(a), { headers: { apikey: CFG.SUPABASE_KEY } });
+          const got = await r.json().catch(() => ({}));
+          if (!UI.courseTees || UI.courseTees.id !== a) return;
+          if (got && got.course) {
+            UI.courseTees = { ...UI.courseTees, loading: false, name: got.course.name || UI.courseTees.name,
+              place: got.course.place || UI.courseTees.place, cards: got.course.cards || [] };
+          } else {
+            UI.courseTees = { ...UI.courseTees, loading: false, cards: [], err: (got && got.error) || 'That card could not be fetched. Fill it in below instead.' };
+          }
+        } catch (e) {
+          if (UI.courseTees && UI.courseTees.id === a) UI.courseTees = { ...UI.courseTees, loading: false, cards: [], err: 'No signal for the wider list. Fill the card in below instead.' };
+        }
+        render(); showTees();
+      })();
+      return;
+    }
+    case 'courseTeesClose': UI.courseTees = null; render(); return;
+    case 'courseTee': {
+      const me2 = myPid(); const t = UI.courseTees;
+      if (!me2 || !t || !t.cards) return;
+      const card = t.cards[+a];
+      if (!card) return;
+      UI.courseDraft = { pid: me2, name: t.name, tee: card.tee,
+        holes: card.holes.map(h => ({ par: h.par, si: h.si, y: h.y })), approved: false, at: null };
+      UI.courseTees = null; UI.courseQ = ''; UI.courseNet = null;
+      UI.toast = card.ok
+        ? 'Card filled in from ' + t.name + ' (' + card.tee + '). Check it against your own before you save.'
+        : 'Yardages filled in from ' + t.name + ' (' + card.tee + '), but ' + card.why + '. Fill that in before you save.';
+      render(); return;
+    }
     case 'courseCancel': UI.courseEdit = false; UI.courseDraft = null; render(); return;
     case 'courseSave': {
       const me = myPid(); const c = UI.courseDraft;
@@ -12759,7 +12878,7 @@ export function boot() {
       UI.chatRoom = room && (room === TRIP || D.ROUNDS.some(r => r.id === room)) ? room : null;
       UI.modal = { kind: 'chat' };
     }
-    window.__T = T; window.__UI = UI; window.__meta = meta; window.__C = C;   // read by the tests, written by nobody
+    window.__T = T; window.__UI = UI; window.__meta = meta; window.__C = C; window.__CFG = CFG;   // read by the tests, written by nobody
     /* the tests' way to make the book redraw as a poll would: `true` makes it
        redraw even when nothing changed, the way a real change would */
     window.__render = force => { if (force) paintedHTML = ''; render(); };
@@ -12834,7 +12953,7 @@ export function boot() {
     if (e.target && e.target.id === 'askField') UI.askText = e.target.value;
     /* the course search answers every keystroke, and only its own results
        are redrawn, so the caret stays where the typist left it */
-    if (e.target && e.target.id === 'courseQ') { UI.courseQ = String(e.target.value || '').slice(0, 60); paintCourseHits(); }
+    if (e.target && e.target.id === 'courseQ') { UI.courseQ = String(e.target.value || '').slice(0, 60); courseSearchSoon(); paintCourseHits(); }
     if (e.target && e.target.id === 'sotdText' && UI.modal && UI.modal.kind === 'sotdNom') UI.modal.t = e.target.value;
     /* a PIN half typed outlives the redraws the shared book lands */
     if (e.target && /^pin_(master|s1|s2)$/.test(e.target.id)) UI.pinDraft[e.target.id.slice(4)] = e.target.value;

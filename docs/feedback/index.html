@@ -5752,6 +5752,33 @@ html.clubseason .btn,html.clubseason .chip,html.clubseason .pkg{transition:trans
 .cfhit:active{transform:scale(.99)}
 @media (hover:hover) and (pointer:fine){ .cfhit:hover{background:var(--sunk);border-color:var(--gold)} }
 .cfhit:focus-visible{outline:2px solid var(--gold-up);outline-offset:2px}
+/* A hit from the wider list, rather than from the book here: dashed, so it is
+   plain at a glance which courses the group already plays. */
+.cfhits.far .cfhit{border-style:dashed}
+.cfhits.far .cfhit b::after{content:"";}
+/* Choosing a tee set on a course that has just been found. */
+.cfwin{margin-top:12px;max-width:680px;margin-inline:auto;border:1px solid var(--rule);
+  border-radius:14px;padding:12px 13px;background:rgba(255,255,255,.5)}
+.cfwin-h{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px}
+.cfwin-h div{min-width:0}
+.cfwin-h b{display:block;font-size:17px;font-weight:700;line-height:1.25}
+.cfwin-h small{display:block;font-size:12.5px;color:var(--turf);margin-top:1px}
+.cfwin-h .xx{margin-left:auto;flex:0 0 auto;min-height:34px;padding:6px 11px;border-radius:999px;
+  border:1px solid var(--rule);background:transparent;color:var(--turf);font:inherit;font-size:13px;cursor:pointer}
+.cftees{display:grid;gap:6px}
+.cftee{display:grid;gap:1px;width:100%;text-align:left;padding:10px 13px;border:1px solid var(--rule);
+  border-radius:11px;background:var(--cream);color:var(--pine);font:inherit;cursor:pointer;
+  transition:transform .12s ease,border-color .16s ease}
+.cftee b{font-size:16px;font-weight:700}
+.cftee .num{font-size:13.5px;font-variant-numeric:tabular-nums}
+.cftee small{font-size:12.5px;color:var(--turf)}
+.cftee:active{transform:scale(.99)}
+.cftee:focus-visible{outline:2px solid var(--gold-up);outline-offset:2px}
+/* A card the list has, but not whole: offered, and honest about why. */
+.cftee.iffy{border-style:dashed;opacity:.82}
+.cftee.iffy small{color:var(--flag)}
+@media (hover:hover) and (pointer:fine){ .cftee:hover{border-color:var(--gold-up)} }
+.sublede.warn{color:var(--flag)}
 /* the mascot turns up when a card lands */
 .mascot.posted{display:block;width:96px;margin:6px 0 0;justify-self:start}
 @media (min-width:520px){ .mascot.posted{width:110px} }
