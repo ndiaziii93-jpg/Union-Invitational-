@@ -77,13 +77,24 @@ await p.evaluate(([today, A40, A10, A3, H10, H20, H40]) => {
 await p.waitForTimeout(400);
 ok('three tabs, the season switch, and You is the screen', [await tabs(), await p.locator('.sswitch .ssw').count(), await p.evaluate(() => window.__UI.screen)], [['You', 'Season', 'Vegas HQ'], 2, 'you']);
 const you = await p.evaluate(() => ({ greet: document.querySelector('.cc-h') && document.querySelector('.cc-h').textContent.includes('Norberto'), dials: document.querySelectorAll('.ckpi').length, open: !!document.querySelector('[data-act="clubEnter"][data-a="frostbite"]'), form: document.querySelector('.ckpi small') && document.querySelector('.ckpi small').textContent, wide: document.documentElement.scrollWidth - document.documentElement.clientWidth, photo: !!document.querySelector('.ccover .cc-ph') }));
-ok('You: the headline names you, three figures, the open stop with Enter my card, a cover, nothing sideways', [you.greet, you.dials, you.open, you.form, you.wide <= 1, you.photo], [true, 3, true, 'Form', true, true]);
+ok('You: the headline names you, three figures, a way in to the open stop, a cover, nothing sideways', [you.greet, you.dials, you.open, you.form, you.wide <= 1, you.photo], [true, 3, true, 'Form', true, true]);
 /* a stop called the Frostbite Open is the Frostbite in a sentence: the
    full name belongs on its own card, not in a line of running text */
 ok('the dateline reads the road to Vegas and the stop that closes', await p.evaluate(() => [...document.querySelectorAll('.dateline span')].map(x => x.textContent.trim()).join(' ')), 'Road to Vegas ' + Math.round((Date.parse('2027-11-13') - Date.parse(today)) / 86400000) + ' days Frostbite closes ' + new Date(ahead(10) + 'T12:00:00Z').toLocaleString('en-GB', { weekday: 'long', timeZone: 'UTC' }).slice(0, 3));
 
 console.log('\na virtual round');
+/* THE DECLARATION COMES FIRST, and this is the rule it enforces: with
+   nothing written on the stop's card yet, nothing has been declared yet, so
+   the book asks what the round is before it will take a single score. */
 await act('clubEnter', { a: 'frostbite' }); await p.waitForTimeout(300);
+ok('a stop with nothing written asks what kind of round this is first',
+  [await p.evaluate(() => window.__UI.modal && window.__UI.modal.kind),
+    await p.locator('.nr[data-a="comp"]').count(), await p.locator('.nr[data-a="hcp"]').count(),
+    await p.evaluate(() => window.__UI.screen)],
+  ['newround', 1, 1, 'you']);
+await act('roundGo', { a: 'comp' }); await p.waitForTimeout(300);
+ok('declaring it competing takes you to the card, and the window is gone',
+  [await p.evaluate(() => window.__UI.modal), await p.evaluate(() => window.__UI.roundKind)], [null, 'comp']);
 ok('with no home course yet, the course form', [await p.evaluate(() => window.__UI.screen), await p.locator('.ctbl.course input').count(), await p.locator('[data-act="courseSave"]').isDisabled()], ['clubentry', 54, true]);
 await p.evaluate(() => { const c = window.__UI.courseDraft; c.name = 'Blackwolf Run'; c.tee = 'White'; c.holes.forEach((h, i) => { h.par = [4, 4, 3, 4, 5, 4, 3, 4, 5, 4, 5, 4, 3, 4, 4, 4, 3, 5][i]; h.si = [3, 11, 17, 7, 1, 9, 15, 5, 13, 4, 2, 12, 18, 8, 10, 6, 16, 14][i]; }); });
 await act('courseSave'); await p.waitForTimeout(300);

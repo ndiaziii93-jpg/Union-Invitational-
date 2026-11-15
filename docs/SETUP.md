@@ -229,10 +229,19 @@ still offers the look picker and the server refuses the save**, so run it
 before telling anybody the Golfers tab is open. The check at the end lists
 `club_write`.
 
+Then run `docs/supabase-club-4.sql` the same way. It adds the handicap
+round: `club/hcard__<pid>__<rid>`, a round played for the number alone. It is
+not the stop's card and carries no window — it may be posted on any day, from
+any course, at any number of holes — so a golfer can build handicap evidence
+between stops. What it may not do is call itself final, or be rewritten once
+the commissioner has. **Without this file the app still offers a handicap
+round and the server refuses to save it**, so run it before telling anybody
+they can post one. The check at the end lists `club_write`.
+
 Then, in the book, as the master: **Manage → The season → The Clubhouse**.
 That opens the three tabs for everyone, closes the 2026 book, and seeds the
-stops from the sheet (the Merry Mulligan Open, the Frostbite Open, the
-Sweetheart Scramble) with windows you can move. Packages, prices and what
+stops from the sheet (twelve of them, the Merry Mulligan Open through to the
+Santa Swing) with windows you can move. Packages, prices and what
 each covers are on the Packages tab; what people have paid goes in on the
 Money tab and everyone sees the meter.
 

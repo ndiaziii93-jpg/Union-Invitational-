@@ -5728,6 +5728,39 @@ html.clubseason .statusbar{padding-right:40px}
 .yc-acts .btn{width:100%;padding-left:11px;padding-right:11px;white-space:nowrap}
 @media (max-width:380px){ .yc{grid-template-columns:88px 1fr;gap:10px} }
 
+/* ---- the declaration, and the rounds behind it ----
+   The two choices are the whole point of the window, so they are the size of
+   the decision rather than the size of a menu item. */
+.nrmodal{max-width:460px;max-height:100%;overflow-y:auto;overscroll-behavior:contain}
+.nrs{display:grid;gap:10px;margin:10px 0}
+.nrs .ck{margin-top:4px}
+.nr{display:block;width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer;
+  background:var(--paper);border:1px solid var(--hair);border-radius:12px;padding:12px 14px}
+.nr:hover:not(:disabled){border-color:var(--turf)}
+.nr:disabled{opacity:.5;cursor:not-allowed}
+.nr b{display:block;font-size:16px;font-weight:800}
+.nr small{display:block;font-size:12px;color:var(--turf);margin-top:2px}
+.nr i{display:block;font-style:normal;font-size:12.5px;line-height:1.35;margin-top:6px}
+.nr-non{font-size:12.5px;color:var(--turf);margin:0;padding:10px 12px;
+  border:1px dashed var(--hair);border-radius:12px}
+
+/* ---- your rounds ---- */
+.rlist{display:grid;gap:6px;margin:8px 0 4px}
+.rrow{display:flex;align-items:center;gap:10px;width:100%;text-align:left;font:inherit;color:inherit;
+  background:none;border:0;border-top:1px solid var(--hair);padding:8px 0}
+.rrow:first-child{border-top:0}
+.rrow.go{cursor:pointer}
+.rrow.go:hover{color:var(--pine)}
+.rr-w{flex:1;min-width:0}
+.rr-w b{display:block;font-size:14px;font-weight:700;line-height:1.2}
+.rr-w small{display:block;font-size:11.5px;color:var(--turf);margin-top:1px}
+.rr-r{flex:0 0 auto;text-align:right}
+.rr-r b{display:block;font-size:12.5px;font-weight:600}
+.rr-t{display:block;font-style:normal;font-size:9px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--turf);margin-top:2px}
+.rr-t.counts,.rr-t.ontheboard{color:var(--pine);font-weight:700}
+.rr-t.tooshort,.rr-t.unfinished{color:var(--flag)}
+
 /* ---- your look ---- */
 /* Every window in the book is `overflow:hidden`, which suits one that fits.
    This one has a chooser in it and will not always, so it carries its own
@@ -6146,7 +6179,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261115-1738';
+const BUILD = '20261115-1835';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -12084,10 +12117,49 @@ const coursePar = c => (c && c.holes ? c.holes.reduce((a, h) => a + (+h.par || 0
 
 /* ---------- cards and points ---------- */
 
+/* TWO KINDS OF ROUND, AND THE CHOICE IS MADE BEFORE A BALL IS STRUCK.
+
+   A COMPETING round is the stop's: one per golfer per stop, eighteen holes,
+   photographed and posted, and it is what the board ranks and what the Order
+   of Merit pays. It lives where it always has, at card__<stop>__<pid>, so
+   nothing already written has moved.
+
+   A HANDICAP round is played for the number alone. It is not the stop's and
+   cannot win anything; it may be played on any day, at any course, and it
+   need not be eighteen holes. It lives at hcard__<pid>__<rid>.
+
+   They are separate rows on purpose. A round cannot be re-declared after the
+   fact, because the two are not the same document: changing your mind means
+   discarding an empty card and starting the other, which is only possible
+   before a hole is scored. That is the rule the group asked for, enforced by
+   the shape of the thing rather than by a flag somebody could turn. */
+
 const cardKey = (stop, pid) => 'card__' + stop + '__' + pid;
 const cardOf = (T, stop, pid) => (T.club && T.club[cardKey(stop, pid)]) || null;
-function blankClubCard(stop, pid, hcp, course) {
-  return { stop, pid, raw: Array(18).fill(null), hcp, course: course ? { name: course.name, tee: course.tee, holes: course.holes.map(h => ({ par: +h.par, si: +h.si })) } : null, photo: null, at: null, done: false };
+const holesOf = course => (course ? { name: course.name, tee: course.tee, holes: course.holes.map(h => ({ par: +h.par, si: +h.si })) } : null);
+function blankClubCard(stop, pid, hcp, course, date) {
+  return { kind: 'comp', stop, pid, date: date || null, raw: Array(18).fill(null), hcp, course: holesOf(course), photo: null, at: null, done: false };
+}
+
+/* ---------- the handicap round ---------- */
+
+const hcardKey = (pid, rid) => 'hcard__' + pid + '__' + rid;
+const hcardOf = (T, pid, rid) => (T.club && T.club[hcardKey(pid, rid)]) || null;
+/** A round's own name: the day it was played and four characters, so two
+ *  rounds on one day do not land on each other and the id sorts by date. */
+function newRid(date, rnd) {
+  const r = rnd || Math.random;
+  const tail = Array.from({ length: 4 }, () => 'abcdefghjkmnpqrstuvwxyz23456789'[Math.floor(r() * 31)]).join('');
+  return String(date || '').replace(/-/g, '') + '-' + tail;
+}
+function blankHcpCard(pid, rid, hcp, course, date) {
+  return { kind: 'hcp', rid, pid, date, raw: Array(18).fill(null), hcp, course: holesOf(course), photo: null, at: null, done: false };
+}
+/** Every handicap round this golfer has, oldest first. */
+function hcardsOf(T, pid) {
+  const club = (T && T.club) || {}, pre = 'hcard__' + pid + '__', out = [];
+  for (const k of Object.keys(club)) if (k.indexOf(pre) === 0 && club[k] && club[k].rid) out.push(club[k]);
+  return out.sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')) || (a.at || 0) - (b.at || 0));
 }
 const capFor = par => par + 3;
 
@@ -12147,22 +12219,53 @@ function merit(T, today) {
   return rows;
 }
 
+/* ---------- every round a golfer has posted ----------
+   The stop's competing cards and the handicap rounds in one list, oldest
+   first, each knowing which it is and the day it was played. The handicap,
+   the form line and the per-hole figures all read from here, so a round
+   counts exactly once however it was entered. */
+function rounds(T, pid) {
+  const out = [];
+  for (const s of stops(T)) {
+    const c = cardOf(T, s.id, pid);
+    if (c) out.push({ key: cardKey(s.id, pid), kind: 'comp', card: c, stop: s, date: c.date || s.from || '' });
+  }
+  for (const c of hcardsOf(T, pid)) out.push({ key: hcardKey(pid, c.rid), kind: 'hcp', card: c, stop: null, date: c.date || '' });
+  return out.sort((a, b) => String(a.date).localeCompare(String(b.date)) || (a.card.at || 0) - (b.card.at || 0));
+}
+
 /* ---------- the Union handicap ----------
-   Seeded by the Belek band. Each finished card leaves a differential: the
-   handicap it was played off plus how far the points fell short of 36 (or
-   minus how far over). Once three cards are in, the handicap is the mean of
-   the best three of the last six, at 96%, to a decimal; the playing
-   handicap is that rounded. Until then it is the seed. */
+   Seeded by the Belek band. Each posted round leaves a differential: the
+   handicap it was played off plus how far the points fell short of the two
+   a hole that playing to it exactly would give. Once three rounds are in,
+   the handicap is the mean of the best three of the last six, at 96%, to a
+   decimal; the playing handicap is that rounded. Until then it is the seed.
+
+   NINE HOLES COUNT, AND ARE MEASURED ON THE SAME AXIS AS EIGHTEEN. A round
+   of n holes is expected to be worth 2n points; the shortfall is scaled up
+   to what eighteen holes would have cost, so a nine and an eighteen can sit
+   in the same list of six without one of them being worth half the other.
+   At eighteen the sum is unchanged: the shortfall is simply 36 − points.
+
+   Fewer than nine does not move the number. It still feeds every per-hole
+   figure on the player card — three holes is three holes of evidence — but
+   a hot stretch of three is not a round, and the handicap says so. */
+const HCP_MIN_HOLES = 9;
+
 function diffOf(card) {
   const t = cardTotals(card);
-  if (t.thru < 18) return null;
-  return Math.round(((card.hcp == null ? 0 : +card.hcp) + (36 - t.pts)) * 10) / 10;
+  if (t.thru < HCP_MIN_HOLES) return null;
+  const short = (2 * t.thru - t.pts) * 18 / t.thru;
+  return Math.round(((card.hcp == null ? 0 : +card.hcp) + short) * 10) / 10;
 }
+/** A round counts once it is posted and has nine holes on it. */
+const countsForHcp = r => !!(r && r.card && r.card.done && cardTotals(r.card).thru >= HCP_MIN_HOLES);
+const scoringRounds = (T, pid) => rounds(T, pid).filter(countsForHcp);
+
 function unionHcp(T, pid, today) {
   const p = person(T, pid);
   const seed = p && p.band != null ? +p.band : null;
-  const cards = stops(T).map(s => cardOf(T, s.id, pid)).filter(c => c && c.done && cardTotals(c).thru === 18);
-  const diffs = cards.map(diffOf).filter(d => d != null);
+  const diffs = scoringRounds(T, pid).map(r => diffOf(r.card)).filter(d => d != null);
   const last6 = diffs.slice(-6);
   if (last6.length < 3) return { hcp: seed, from: seed == null ? 'none' : 'belek', n: diffs.length, diffs: last6, need: 3 - last6.length };
   const best = last6.slice().sort((a, b) => a - b).slice(0, 3);
@@ -12350,12 +12453,19 @@ const CARD_MIN = 3;
 
 function playerStats(T, pid, today) {
   const p = person(T, pid) || {};
-  const got = stops(T)
-    .map(s => ({ stop: s, card: cardOf(T, s.id, pid) }))
-    .filter(x => x.card && x.card.done && cardTotals(x.card).thru === 18);
+  /* TWO LISTS, AND THE DIFFERENCE MATTERS. `got` is the rounds that count as
+     rounds — nine holes or more, posted — and it is what the form line, the
+     handicap and the three-card gate are built on. `posted` is everything
+     with a hole on it, short rounds included: a six-hole evening still says
+     something true about par 3s, and the per-hole figures read from it. */
+  const all6 = rounds(T, pid);
+  const posted = all6.filter(x => x.card.done && cardTotals(x.card).thru > 0);
+  const got = posted.filter(countsForHcp);
 
   const out = {
     pid, name: p.display || p.name || '', cards: got.length, ready: got.length >= CARD_MIN,
+    posted: posted.length, short: posted.length - got.length,
+    comp: got.filter(x => x.kind === 'comp').length, hcpRounds: got.filter(x => x.kind === 'hcp').length,
     form: [], byPar: [], bySi: [], nine: [], perHole: [], banker: null, nemesis: null,
     counts: { blanks: 0, netPar: 0, bonus: 0, capped: 0, run: 0, holes: 0 },
     marks: { avg: 0, opening: 0, closing: 0 }, attrs: null,
@@ -12389,13 +12499,15 @@ function playerStats(T, pid, today) {
      thirty-six points is playing to it exactly */
   out.form = got.slice(-6).map(x => {
     const t = cardTotals(x.card);
-    return { stop: x.stop.id, name: x.stop.name, pts: t.pts, off: t.pts - 36, at: x.card.at || null };
+    return { stop: x.stop ? x.stop.id : null, kind: x.kind,
+      name: x.stop ? x.stop.name : 'Handicap round', date: x.date || null,
+      pts: t.pts, thru: t.thru, off: t.pts - 2 * t.thru, at: x.card.at || null };
   });
 
   /* every hole of every card, flattened once and read many ways */
   const all = [];
   const seen = [];
-  for (const x of got) {
+  for (const x of posted) {
     const nm = (x.card.course && x.card.course.name) || '';
     if (nm && seen.indexOf(nm) < 0) seen.push(nm);
     for (let h = 0; h < 18; h++) {
@@ -12419,8 +12531,13 @@ function playerStats(T, pid, today) {
   out.bySi = [[1, 6, 'the hard six'], [7, 12, 'the middle six'], [13, 18, 'the gentle six']]
     .map(([a, b, label]) => ({ a, b, label, pts: ptsWhere(x => x.si >= a && x.si <= b),
       over: overWhere(x => x.si >= a && x.si <= b) }));
-  out.nine = [['Front', 0, 8], ['Back', 9, 17]].map(([label, a, b]) => ({ label,
-    pts: r1(mean(got.map(x => { let t = 0; for (let h = a; h <= b; h++) t += (holePts(x.card, h) || 0); return t; }))) }));
+  /* A nine is only a nine if all nine of it were played; a card that stopped
+     at the 13th would otherwise drag the back nine down for no reason. */
+  out.nine = [['Front', 0, 8], ['Back', 9, 17]].map(([label, a, b]) => {
+    const whole = posted.filter(x => { for (let h = a; h <= b; h++) if (holePts(x.card, h) == null) return false; return true; });
+    return { label, n: whole.length,
+      pts: whole.length ? r1(mean(whole.map(x => { let t = 0; for (let h = a; h <= b; h++) t += (holePts(x.card, h) || 0); return t; }))) : null };
+  });
   out.marks = { avg: r1(avg), opening: ptsWhere(x => x.h <= 2), closing: ptsWhere(x => x.h >= 15) };
 
   out.counts.holes = all.length;
@@ -12429,7 +12546,7 @@ function playerStats(T, pid, today) {
   out.counts.bonus = where(x => x.pts >= 3).length;
   out.counts.capped = where(x => x.raw === capFor(x.par)).length;
   let best = 0;
-  for (const x of got) { let run = 0;
+  for (const x of posted) { let run = 0;
     for (let h = 0; h < 18; h++) { if ((holePts(x.card, h) || 0) > 0) { run++; if (run > best) best = run; } else run = 0; } }
   out.counts.run = best;
 
@@ -12470,7 +12587,7 @@ function playerStats(T, pid, today) {
 
   /* head to head: only stops where both of them posted a finished card */
   const mineBy = {};
-  got.forEach(x => { mineBy[x.stop.id] = cardTotals(x.card).pts; });
+  got.filter(x => x.kind === 'comp' && x.stop).forEach(x => { mineBy[x.stop.id] = cardTotals(x.card).pts; });
   out.h2h = golfers(T).filter(g => g.id !== pid).map(g => {
     let w = 0, l = 0, d = 0;
     for (const sid of Object.keys(mineBy)) {
@@ -12514,7 +12631,7 @@ function csvTravel(T) {
   return csv(rows);
 }
 
-return {STOPS_SEED, PACKAGES_SEED, MERIT, VENDORS_SEED, seasonDefaults, season, phaseOf, frozen, isoToday, daysBetween, fmtDay, dowOf, stopState, stops, stopById, openStops, nextStop, closedStops, currentStop, golfers, everyone, person, COURSE_LIB, courseLibrary, courseFind, courseFrom, courseSlug, courseAsBook, blankCourse, courseOf, courseOk, coursePar, cardKey, cardOf, blankClubCard, capFor, holePts, cardTotals, stopBoard, stopWinner, merit, diffOf, unionHcp, playingOf, DIVISIONS, divisionOf, divisionLabel, signupOf, travelOf, moneyOf, packageOf, field, ledger, fmtMoney, lineOf, dials, BERTS, bertById, bertForStop, profileOf, bertOf, faceOf, CARD_MIN, playerStats, csv, csvHeadcount, csvRooms, csvTravel};
+return {STOPS_SEED, PACKAGES_SEED, MERIT, VENDORS_SEED, seasonDefaults, season, phaseOf, frozen, isoToday, daysBetween, fmtDay, dowOf, stopState, stops, stopById, openStops, nextStop, closedStops, currentStop, golfers, everyone, person, COURSE_LIB, courseLibrary, courseFind, courseFrom, courseSlug, courseAsBook, blankCourse, courseOf, courseOk, coursePar, cardKey, cardOf, blankClubCard, hcardKey, hcardOf, newRid, blankHcpCard, hcardsOf, capFor, holePts, cardTotals, stopBoard, stopWinner, merit, rounds, HCP_MIN_HOLES, diffOf, countsForHcp, scoringRounds, unionHcp, playingOf, DIVISIONS, divisionOf, divisionLabel, signupOf, travelOf, moneyOf, packageOf, field, ledger, fmtMoney, lineOf, dials, BERTS, bertById, bertForStop, profileOf, bertOf, faceOf, CARD_MIN, playerStats, csv, csvHeadcount, csvRooms, csvTravel};
 })();
 
 const __m_dbsupa = (function(){
@@ -22792,7 +22909,7 @@ function scrYou() {
   if (open && lead) facts.push('<b>' + esc(lead.name) + ' leads on ' + lead.pts + '</b>' + (lead.thru === 18 ? '' : ' through ' + lead.thru));
   if (open) facts.push('closes ' + esc(C.dowOf(open.to)) + ' ' + esc(C.fmtDay(open.to)));
   facts.push(line.done + ' of ' + line.of + ' on your Vegas line');
-  const acts = (golfer && open ? `<button class="btn" data-act="clubEnter" data-a="${open.id}">${tot && tot.thru ? (card.done ? 'See my card' : 'Carry on my card') : 'Enter my card'}</button>` : '')
+  const acts = (golfer && open ? `<button class="btn" data-act="clubEnter" data-a="${open.id}">${tot && tot.thru ? (card.done ? 'See my card' : 'Carry on my card') : 'Start a round'}</button>` : '')
     + `<button class="btn ghost" data-act="go" data-a="hq">Open Vegas HQ</button>`;
   return clubCover({ photo: stopArt(open) || stopArt(next) || IMG.hero, lift: true,
     k: 'You · the Clubhouse · ' + esc(C.dowOf(today)) + ' ' + esc(C.fmtDay(today)) + (toVegas > 0 ? ' · ' + toVegas + ' days to Vegas' : ' · Vegas week'),
@@ -22800,6 +22917,7 @@ function scrYou() {
   + `<div class="clubgrid lift">
   <div class="cline ckpis${golfer ? '' : ' one'}">${golfer ? kpiHtml(d.form) + kpiHtml(d.played) + kpiHtml(d.ready) : kpiHtml(d.ready)}</div>
   ${golfer ? youCardHtml(me, today) : ''}
+  ${golfer ? youRoundsHtml(me, today) : ''}
   ${golfer && open ? `<div class="cline"><span class="ck">Open now · ${esc(C.fmtDay(open.from))} to ${esc(C.fmtDay(open.to))}</span><b class="ct">${esc(open.name)}</b>
       ${board.length ? boardTable(board.slice(0, 6), { mini: true }) : '<p>Nobody has posted a card yet; be first.</p>'}</div>` : ''}
   ${golfer && !open && next ? lineHtml('Next stop', esc(next.name), 'Opens ' + esc(C.fmtDay(next.from, { long: true })) + ' and closes ' + esc(C.fmtDay(next.to, { long: true })) + '. ' + esc(next.note || '')) : ''}
@@ -22810,6 +22928,43 @@ function scrYou() {
   ${golfer && mine ? lineHtml('Your Belek 2026 card', esc(belekLine(mine)), 'The first season in your archive. Readable any time; nothing in it can change.', `<p class="cact"><button class="btn ghost" data-act="reportPlayer" data-a="${me}">Read my report card</button><button class="btn ghost" data-act="archiveView" data-a="2026">Open the Belek book</button></p>`) : ''}
   </div>`;
 }
+/* ---- YOUR ROUNDS ----
+   Every card posted, newest first, with the one thing a golfer wants to know
+   about each: did it count. A competing card says which stop it won points
+   in; a handicap round says how many holes it was and whether that was
+   enough. The door to a new one is here, because this is the screen a golfer
+   is on when they are about to go and play. */
+function youRoundsHtml(me, today) {
+  const rs = C.rounds(T, me).filter(x => x.card.done || C.cardTotals(x.card).thru > 0);
+  const open = C.openStops(T, today)[0] || null;
+  const u = C.unionHcp(T, me, today);
+  const recent = rs.slice(-5).reverse();
+  const rows = recent.map(x => {
+    const t = C.cardTotals(x.card);
+    const counts = C.countsForHcp(x);
+    const d = C.diffOf(x.card);
+    const when = x.date ? C.fmtDay(x.date) : '';
+    const what = x.kind === 'comp' ? esc(shortStop(x.stop.name)) : 'Handicap round';
+    const tag = !x.card.done ? 'unfinished'
+      : x.kind === 'comp' ? 'on the board'
+      : counts ? 'counts' : 'too short';
+    const note = !x.card.done ? t.thru + ' of 18 written, not posted'
+      : x.kind === 'comp' ? t.pts + ' points off 18'
+      : t.pts + ' points off ' + t.thru + (counts ? ' · differential ' + d : ' · under nine holes');
+    const act = x.kind === 'hcp' && !x.card.done ? ` data-act="roundOpen" data-a="${esc(x.card.rid)}"` : '';
+    return `<${act ? 'button' : 'div'} class="rrow${act ? ' go' : ''}${x.card.done ? '' : ' live'}"${act}>
+      <span class="rr-w"><b>${what}</b><small>${esc(when)}${x.card.course ? ' · ' + esc(x.card.course.name) : ''}</small></span>
+      <span class="rr-r"><b>${esc(note)}</b><i class="rr-t ${tag.replace(/ /g, '')}">${tag}</i></span>
+    </${act ? 'button' : 'div'}>`;
+  }).join('');
+  const needs = u.need ? u.need + ' more round' + (u.need === 1 ? '' : 's') + ' before the season sets your handicap' : null;
+  return `<div class="cline"><span class="ck">Your rounds · ${rs.length} posted</span>
+  ${rows ? `<div class="rlist">${rows}</div>` : '<p>Nothing posted yet. A round is the only thing that moves your handicap.</p>'}
+  <p class="legend">${needs || 'Your handicap is the best three of your last six rounds, at 96%.'} A handicap round can be played any day, at any course, and need not be eighteen holes — nine or more and it counts.</p>
+  <p class="yc-acts"><button class="btn" data-act="roundNew"${open ? ` data-a="${open.id}"` : ''}>Start a round</button>
+    ${rs.length > 5 ? `<button class="btn ghost" data-act="pcard" data-a="${me}">Your last six</button>` : ''}</p></div>`;
+}
+
 /* ---- YOUR OWN CARD, ON THE YOU TAB ----
    The Golfers tab is for looking at everybody. This is the one place a
    golfer is looking at THEMSELVES, so both doors are here: open the card to
@@ -22885,7 +23040,7 @@ function seasonCover() {
   return clubCover({ photo: stopArt(cur) || IMG.hero,
     k: 'Season · the ' + nm + (st === 'open' ? ' · live' : st === 'closed' ? ' · crowned' : ' · next up'),
     h1, sub: facts.join(' · '),
-    acts: st === 'open' && golfer ? `<button class="btn" data-act="clubEnter" data-a="${cur.id}">${myCard && C.cardTotals(myCard).thru ? (myCard.done ? 'See my card' : 'Carry on my card') : 'Enter my card'}</button>` : '' });
+    acts: st === 'open' && golfer ? `<button class="btn" data-act="clubEnter" data-a="${cur.id}">${myCard && C.cardTotals(myCard).thru ? (myCard.done ? 'See my card' : 'Carry on my card') : 'Start a round'}</button>` : '' });
 }
 function scrSeason() {
   const tab = UI.seasonTab || 'stop';
@@ -23074,6 +23229,48 @@ function playerCardHtml() {
    of the backdrop and where it sits, both as percentages. Percentages scale,
    so the same three numbers describe the face at 212px in the chooser and at
    36px on a tile, and every copy of it shows the same face. */
+/* ---- THE DECLARATION ----
+   The group's rule, and the reason this window exists: you say what a round
+   is BEFORE you start it, not after you have seen what you shot. There is no
+   flag to turn afterwards, because the two kinds are two different rows — the
+   only way to change your mind is to walk away from a card with nothing
+   written on it. */
+function newRoundHtml() {
+  const me = myPid(); if (!me) return '';
+  const today = todayIso();
+  const stop = C.stopById(T, UI.newStop) || C.openStops(T, today)[0] || null;
+  const live = stop && C.stopState(stop, today) === 'open' ? stop : null;
+  const comp = live ? C.cardOf(T, live.id, me) : null;
+  const ct = comp ? C.cardTotals(comp) : null;
+  const going = C.rounds(T, me).filter(x => x.kind === 'hcp' && !x.card.done && C.cardTotals(x.card).thru > 0);
+  const u = C.unionHcp(T, me, today);
+  const compRow = !live
+    ? `<p class="nr-non">No stop is open today, so there is nothing to compete in. A handicap round can be played any day.</p>`
+    : `<button class="nr" data-act="roundGo" data-a="comp"${comp && comp.done ? ' disabled' : ''}>
+        <b>A competing round</b>
+        <small>${esc(live.name)} · closes ${esc(C.fmtDay(live.to, { long: true }))}</small>
+        <i>${comp && comp.done ? 'Already posted: ' + ct.pts + ' points. One card a stop, and yours is in.'
+          : ct && ct.thru ? 'Carry on — ' + ct.thru + ' of 18 already written.'
+          : 'Eighteen holes, signed and photographed. It scores on the board and pays Order of Merit places.'}</i></button>`;
+  return `<div class="scrim" data-act="modalScrim"><div class="modal nrmodal" role="dialog" aria-modal="true" aria-label="What kind of round is this">
+    ${modalBanner('Before you start', 'Say what this round is. Once a hole is written it cannot be changed.')}
+    <div class="nrs">${compRow}
+      <button class="nr" data-act="roundGo" data-a="hcp">
+        <b>A handicap round</b>
+        <small>Any course, any day, as many holes as you play</small>
+        <i>It never touches the board. Nine holes or more moves your Union handicap; anything shorter still feeds your player card.</i></button>
+    </div>
+    ${going.length ? `<div class="nrs"><span class="ck">Already going</span>${going.map(x => {
+      const t = C.cardTotals(x.card);
+      return `<button class="nr" data-act="roundOpen" data-a="${esc(x.card.rid)}"><b>A handicap round</b>
+        <small>${esc(C.fmtDay(x.date, { long: true }))}</small>
+        <i>${t.thru} hole${t.thru === 1 ? '' : 's'} written, ${t.pts} point${t.pts === 1 ? '' : 's'} — carry on with it.</i></button>`;
+    }).join('')}</div>` : ''}
+    <p class="sublede">Playing off ${u.hcp == null ? 'your Belek band' : esc(String(u.hcp))}${u.need ? ' · ' + u.need + ' more round' + (u.need === 1 ? '' : 's') + ' and the season takes over from it' : ''}.</p>
+    <p class="cact"><button class="btn ghost" data-act="modalClose">Not now</button></p>
+  </div></div>`;
+}
+
 function lookHtml() {
   const me = myPid();
   if (!me) return '';
@@ -23343,25 +23540,29 @@ function scrHq() {
 function scrClubEntry() {
   const me = myPid();
   const today = todayIso();
-  const stop = C.stopById(T, UI.stopId) || C.openStops(T, today)[0] || C.currentStop(T, today);
   if (!me) return `<h2 class="head">A virtual round</h2>${whoLine()}`;
-  if (!stop) return `<h2 class="head">A virtual round</h2><p class="empty">No stop on the season yet.</p>`;
-  const st = C.stopState(stop, today);
+  const r = roundNow();
+  if (!r) return `<h2 class="head">A virtual round</h2><p class="empty">No stop on the season yet, and no round open.</p>`;
+  const comp = r.kind === 'comp';
+  const stop = r.stop;
+  const st = comp ? C.stopState(stop, today) : 'open';
+  const title = comp ? stop.name : 'A handicap round';
   const p = E.person(T, me) || {};
   const course = C.courseOf(T, me);
-  const back = `<p class="cact"><button class="btn ghost sm" data-act="go" data-a="season">‹ The season</button><span class="sublede">My round · ${esc(p.display || '')}</span></p>`;
-  if (!course || !C.courseOk(course) || UI.courseEdit) return `<h2 class="head">${esc(stop.name)}</h2>${back}${courseForm(me, course, stop)}`;
-  let card = C.cardOf(T, stop.id, me);
+  const back = `<p class="cact"><button class="btn ghost sm" data-act="go" data-a="${comp ? 'season' : 'you'}">‹ ${comp ? 'The season' : 'The Clubhouse'}</button><span class="sublede">My round · ${esc(p.display || '')}</span></p>`;
+  if (!course || !C.courseOk(course) || UI.courseEdit) return `<h2 class="head">${esc(title)}</h2>${back}${courseForm(me, course, stop)}`;
+  let card = r.card;
   const hcpNow = C.playingOf(T, me, today);
   const fresh = !card;
-  if (fresh) card = C.blankClubCard(stop.id, me, hcpNow, course);
+  if (fresh) card = comp ? C.blankClubCard(stop.id, me, hcpNow, course, today)
+    : C.blankHcpCard(me, r.rid, hcpNow, course, r.date);
   const holes = card.course && card.course.holes && card.course.holes.length === 18 ? card.course.holes : course.holes;
   const h = Math.min(Math.max(UI.clubHole || 0, 0), 17);
   const hole = holes[h];
   const cap = C.capFor(+hole.par);
   const raw = card.raw[h];
   const tot = C.cardTotals(card);
-  const open = st === 'open' && !card.final;
+  const open = roundLive({ ...r, card });
   const editable = open && !card.done;
   const pts = C.holePts(card, h);
   const strokes = E.strokesFor(Math.round(card.hcp == null ? 0 : card.hcp), +hole.si) || 0;
@@ -23371,15 +23572,32 @@ function scrClubEntry() {
   const keypad = editable && UI.clubPad ? `<div class="keypad" role="dialog" aria-label="Your score on hole ${hole.n || h + 1}" data-par="${hole.par}" data-cap="${cap}" data-cur="${raw == null ? '' : raw}">
       <div class="kh"><b>${esc(p.display || '')}</b><span>Hole ${h + 1} · par ${hole.par} · picks up at ${cap}</span><button class="xx" data-act="clubPadClose">Done</button></div>
       <div class="keys">${keys.join('')}</div><button class="knext" data-act="clubPadClose">Close</button></div>` : '';
-  const gate = !open ? `<div class="gate"><div class="msg"><b>${st === 'upcoming' ? stop.name + ' opens ' + C.fmtDay(stop.from, { long: true }) : card.final ? 'This card is final' : stop.name + ' has closed'}</b><span>${st === 'upcoming' ? 'Come back when the window opens.' : 'The card is read-only.'}</span></div></div>` : '';
+  const gate = !open ? `<div class="gate"><div class="msg"><b>${card.final ? 'This card is final' : !comp ? 'This round is closed' : st === 'upcoming' ? stop.name + ' opens ' + C.fmtDay(stop.from, { long: true }) : stop.name + ' has closed'}</b><span>${comp && st === 'upcoming' ? 'Come back when the window opens.' : 'The card is read-only.'}</span></div></div>` : '';
   const photo = card.photo && card.photo.url;
-  const donePanel = tot.thru === 18 && open ? `<div class="cline gold" id="cardDone"><span class="ck">${card.done ? 'Posted' : 'Before it counts'}</span><b class="ct">${card.done ? tot.pts + ' points, on the board' : 'A photo of the signed card'}</b>
+  /* THE TWO KINDS POST ON DIFFERENT TERMS, AND THE PANEL SAYS WHICH.
+     A competing card is a tournament result: eighteen holes and a photograph
+     of the signed card before it goes anywhere. A handicap round is evidence
+     for a number — it posts at whatever it reached, and the photograph is
+     offered rather than demanded. What it cannot do is pretend: under nine
+     holes it says plainly that it will not move the handicap. */
+  const countsHcp = tot.thru >= C.HCP_MIN_HOLES;
+  const showPanel = open && (comp ? tot.thru === 18 : tot.thru >= 1);
+  const shot = `${photo ? `<a class="cardshot" href="${esc(photo)}" target="_blank" rel="noopener"><img src="${esc(card.photo.thumb || photo)}" alt="The signed card"></a>` : ''}
+      ${UI.cardUp ? `<p class="sublede">${esc(UI.cardUp)}</p>` : ''}`;
+  const donePanel = !showPanel ? '' : comp
+    ? `<div class="cline gold" id="cardDone"><span class="ck">${card.done ? 'Posted' : 'Before it counts'}</span><b class="ct">${card.done ? tot.pts + ' points, on the board' : 'A photo of the signed card'}</b>
       <p>${card.done ? 'Your card is in. The commissioner can still ask for a correction.' : 'Taken here, now. Then the card posts to the stop and to your Union handicap.'}</p>
       ${card.done && mascotFor(stop) ? `<img class="mascot posted" src="${mascotFor(stop)}" alt="" aria-hidden="true">` : ''}
-      ${photo ? `<a class="cardshot" href="${esc(photo)}" target="_blank" rel="noopener"><img src="${esc(card.photo.thumb || photo)}" alt="The signed card"></a>` : ''}
-      ${UI.cardUp ? `<p class="sublede">${esc(UI.cardUp)}</p>` : ''}
-      <p style="margin-top:10px">${card.done ? '' : `<label class="btn"><input type="file" accept="image/*" capture="environment" data-act="cardPhoto" hidden>${photo ? 'Retake the photo' : 'Photograph the card'}</label> `}${photo && !card.done ? `<button class="btn" data-act="clubPost">Post my card</button>` : ''}</p></div>` : '';
-  return `<h2 class="head">${esc(stop.name)}</h2>
+      ${shot}
+      <p style="margin-top:10px">${card.done ? '' : `<label class="btn"><input type="file" accept="image/*" capture="environment" data-act="cardPhoto" hidden>${photo ? 'Retake the photo' : 'Photograph the card'}</label> `}${photo && !card.done ? `<button class="btn" data-act="clubPost">Post my card</button>` : ''}</p></div>`
+    : `<div class="cline gold" id="cardDone"><span class="ck">${card.done ? 'Posted' : 'When you have had enough'}</span><b class="ct">${card.done ? tot.pts + ' points off ' + tot.thru + (countsHcp ? ', counting' : ', too short to count') : 'Post ' + tot.thru + ' hole' + (tot.thru === 1 ? '' : 's') + ' for ' + tot.pts + ' point' + (tot.pts === 1 ? '' : 's')}</b>
+      <p>${card.done
+        ? countsHcp ? 'This round is in your last six. The commissioner can still ask for a correction.' : 'Under nine holes, so it does not move the handicap — but every hole on it feeds your player card.'
+        : countsHcp ? 'Nine holes or more, so this one moves your Union handicap. Stop whenever you like; what is on the card is what counts.' : 'Under nine holes it will not move your handicap, but the holes still feed your player card. Carry on to nine if you want it to count.'}</p>
+      ${shot}
+      <p style="margin-top:10px">${card.done ? '' : `<label class="btn ghost"><input type="file" accept="image/*" capture="environment" data-act="cardPhoto" hidden>${photo ? 'Retake the photo' : 'Photograph it (optional)'}</label> <button class="btn" data-act="clubPost">Post this round</button>`}</p></div>`;
+  return `<h2 class="head">${esc(title)}</h2>
+  ${comp ? '' : `<p class="kicker">Handicap round · ${esc(C.fmtDay(r.date, { long: true }))} · not for the board</p>`}
   <p class="lede">${esc(course.name)}${course.tee ? ' · ' + esc(course.tee) + ' tees' : ''} · playing off ${card.hcp == null ? '—' : esc(String(Math.round(card.hcp)))}${course.approved ? '' : ' · <i>course awaiting the commissioner’s approval</i>'} <button class="rm" data-act="courseEdit">Change course</button></p>
   ${back}
   <div class="entryhd">
@@ -23828,26 +24046,58 @@ function clubCardHtml() {
 }
 
 /* ---- saving a card, and the photo of it ---- */
-function clubCardWrite(stop, patch) {
-  const me = myPid(); if (!me) return;
-  const held = C.cardOf(T, stop.id, me);
-  const course = C.courseOf(T, me);
-  const base = held || C.blankClubCard(stop.id, me, C.playingOf(T, me, todayIso()), course);
+/* WHICH ROUND IS OPEN IN FRONT OF ME.
+   The entry screen serves both kinds, and everything it does — a score, a
+   photograph, the posting — goes through this one answer rather than
+   reaching for UI.stopId directly. A handicap round has no stop; a competing
+   card has no rid; neither ever stands in for the other. */
+function roundNow() {
+  const me = myPid(); if (!me) return null;
+  const today = todayIso();
+  if (UI.roundKind === 'hcp' && UI.rid) {
+    const card = C.hcardOf(T, me, UI.rid);
+    return { kind: 'hcp', me, stop: null, rid: UI.rid, card,
+      key: C.hcardKey(me, UI.rid), date: (card && card.date) || UI.roundDate || today };
+  }
+  const stop = C.stopById(T, UI.stopId) || C.openStops(T, today)[0] || C.currentStop(T, today);
+  if (!stop) return null;
+  return { kind: 'comp', me, stop, rid: null, card: C.cardOf(T, stop.id, me),
+    key: C.cardKey(stop.id, me), date: stop.from };
+}
+/** May this round still be written to? A stop's card only while its window
+ *  is open; a handicap round on any day, until the commissioner finals it. */
+const roundLive = r => !!r && !(r.card && r.card.final)
+  && (r.kind === 'comp' ? C.stopState(r.stop, todayIso()) === 'open' : true);
+function roundWrite(r, patch) {
+  if (!r || !r.me) return;
+  const course = C.courseOf(T, r.me);
+  const hcp = C.playingOf(T, r.me, todayIso());
+  /* A card is dated the day it was STARTED, not the day its window opened:
+     the handicap reads the last six in the order they were played, and a
+     card written on the 28th does not belong at the 1st. */
+  const base = r.card || (r.kind === 'hcp'
+    ? C.blankHcpCard(r.me, r.rid, hcp, course, r.date)
+    : C.blankClubCard(r.stop.id, r.me, hcp, course, todayIso()));
   const doc = { ...base, ...patch, at: Date.now() };
   delete doc.rev;
-  store.writeClub(C.cardKey(stop.id, me), doc, false);
+  store.writeClub(r.key, doc, false);
+}
+/** Kept for the one caller that still thinks in stops. */
+function clubCardWrite(stop, patch) {
+  const me = myPid(); if (!me) return;
+  roundWrite({ kind: 'comp', me, stop, rid: null, card: C.cardOf(T, stop.id, me),
+    key: C.cardKey(stop.id, me), date: stop.from }, patch);
 }
 async function cardPhotoTake(file) {
-  const me = myPid();
-  const stop = C.stopById(T, UI.stopId) || C.openStops(T, todayIso())[0];
-  if (!me || !stop || !file) return;
+  const r = roundNow();
+  if (!r || !file) return;
   if (!store4) { UI.cardUp = 'This copy of the book cannot store a photo.'; render(); return; }
   UI.cardUp = 'Taking the photo…'; render();
   try {
     const small = await shrink(file, CFG.PHOTO_MAX);
     const thumb = await shrink(file, CFG.THUMB_MAX, 0.7).catch(() => null);
     const up = await store4.upload(small, thumb, { kind: 'photo', mime: file.type || '' });
-    clubCardWrite(stop, { photo: { url: up.url, thumb: up.thumbUrl || null, at: Date.now() } });
+    roundWrite(r, { photo: { url: up.url, thumb: up.thumbUrl || null, at: Date.now() } });
     UI.cardUp = '';
   } catch (e) { UI.cardUp = 'The photo did not go: ' + String((e && e.message) || e).slice(0, 100); }
   render();
@@ -25656,6 +25906,7 @@ function modalHtml() {
        : UI.modal.kind === 'round' ? roundModalHtml()
        : UI.modal.kind === 'roundsheet' ? roundSheetHtml()
        : UI.modal.kind === 'daysheet' ? daySheetHtml()
+       : UI.modal.kind === 'newround' ? newRoundHtml()
        : UI.modal.kind === 'look' ? lookHtml()
        : UI.modal.kind === 'pcard' ? playerCardHtml()
        : UI.modal.kind === 'art' ? artModalHtml()
@@ -27283,33 +27534,84 @@ function onClick(e) {
     case 'seasonTab': UI.seasonTab = a; render(); return;
     case 'stopPick': UI.stopId = a; render(); return;
     case 'clubEnter': {
-      UI.stopId = a; UI.clubPad = false; UI.courseEdit = false; UI.courseDraft = null;
+      /* Nothing written yet means nothing has been declared yet, so the
+         question comes first. A card already under way is resumed without
+         being asked again — the choice was made when it was started. */
       const me = myPid(); const c = me && C.cardOf(T, a, me);
+      const st = C.stopById(T, a);
+      const started = c && (c.done || C.cardTotals(c).thru > 0);
+      if (!started && st && C.stopState(st, todayIso()) === 'open') {
+        UI.newStop = a; UI.modal = { kind: 'newround' }; render(); return;
+      }
+      UI.roundKind = 'comp'; UI.rid = null;
+      UI.stopId = a; UI.clubPad = false; UI.courseEdit = false; UI.courseDraft = null;
       const first = c ? c.raw.findIndex(x => x == null) : 0;
       UI.clubHole = c ? (first < 0 ? 17 : first) : 0;
       goTo('clubentry'); render(); return;
+    }
+    /* ---- a round, and what kind of round it is ---- */
+    case 'roundNew': UI.newStop = a || null; UI.modal = { kind: 'newround' }; render(); return;
+    case 'roundGo': {
+      const me = myPid(); if (!me) return;
+      const today = todayIso();
+      UI.clubPad = false; UI.courseEdit = false; UI.courseDraft = null; UI.clubHole = 0;
+      if (a === 'comp') {
+        const stop = C.stopById(T, UI.newStop) || C.openStops(T, today)[0];
+        if (!stop) return;
+        const c = C.cardOf(T, stop.id, me);
+        if (c && c.done) return;
+        UI.roundKind = 'comp'; UI.rid = null; UI.stopId = stop.id;
+        const first = c ? c.raw.findIndex(x => x == null) : 0;
+        UI.clubHole = c ? (first < 0 ? 17 : first) : 0;
+      } else {
+        /* The row is not written until the first score lands on it, so a
+           window opened and closed again leaves nothing behind. */
+        UI.roundKind = 'hcp'; UI.rid = C.newRid(today); UI.roundDate = today;
+      }
+      closeModal(); goTo('clubentry'); render(); return;
+    }
+    case 'roundOpen': {
+      const me = myPid(); if (!me) return;
+      const card = C.hcardOf(T, me, a); if (!card) return;
+      UI.roundKind = 'hcp'; UI.rid = a; UI.roundDate = card.date;
+      UI.clubPad = false; UI.courseEdit = false; UI.courseDraft = null;
+      const first = card.raw.findIndex(x => x == null);
+      UI.clubHole = first < 0 ? 17 : first;
+      closeModal(); goTo('clubentry'); render(); return;
     }
     case 'clubHole': UI.clubHole = +a; render(); return;
     case 'clubPad': UI.clubPad = true; render(); return;
     case 'clubPadClose': UI.clubPad = false; render(); return;
     case 'clubScore': case 'clubClear': {
-      const me = myPid(); const stop = C.stopById(T, UI.stopId) || C.openStops(T, todayIso())[0];
-      if (!me || !stop || C.stopState(stop, todayIso()) !== 'open') return;
-      const held = C.cardOf(T, stop.id, me);
+      const r = roundNow();
+      if (!r || !roundLive(r)) return;
+      const held = r.card;
       if (held && (held.done || held.final)) return;
       const raw = (held ? held.raw : Array(18).fill(null)).slice();
       const h = Math.min(Math.max(UI.clubHole || 0, 0), 17);
       raw[h] = act === 'clubClear' ? null : +a;
-      clubCardWrite(stop, { raw });
+      roundWrite(r, { raw });
       if (act === 'clubScore' && h < 17) UI.clubHole = h + 1; else UI.clubPad = false;
       render(); return;
     }
     case 'clubPost': {
-      const me = myPid(); const stop = C.stopById(T, UI.stopId) || C.openStops(T, todayIso())[0];
-      const c = me && stop ? C.cardOf(T, stop.id, me) : null;
-      if (!c || !c.photo || C.cardTotals(c).thru < 18 || c.done) return;
-      clubCardWrite(stop, { done: true, postedAt: Date.now() });
-      UI.clubPad = false; UI.toast = 'Your card is posted: ' + C.cardTotals(c).pts + ' points.';
+      const r = roundNow();
+      const c = r && r.card;
+      if (!c || c.done || !roundLive(r)) return;
+      const t = C.cardTotals(c);
+      /* The stop's card is the tournament's: eighteen holes and a photograph
+         of the signed card, as it always was. A handicap round is evidence,
+         not a result — it posts at whatever it reached, and the photograph
+         is welcome rather than required. */
+      if (r.kind === 'comp' && (t.thru < 18 || !c.photo)) return;
+      if (r.kind === 'hcp' && t.thru < 1) return;
+      roundWrite(r, { done: true, postedAt: Date.now() });
+      UI.clubPad = false;
+      UI.toast = r.kind === 'comp'
+        ? 'Your card is posted: ' + t.pts + ' points.'
+        : t.thru >= C.HCP_MIN_HOLES
+          ? 'Round posted: ' + t.pts + ' points off ' + t.thru + '. It counts towards your handicap.'
+          : 'Round posted: ' + t.pts + ' points off ' + t.thru + '. Too short for the handicap, but every hole feeds your card.';
       render(); return;
     }
     case 'coursePick': {
@@ -27536,6 +27838,7 @@ function onClick(e) {
 
     case 'modalOk': submitPin(); return;
     case 'modalCancel': if (UI.modal && UI.modal.kind === 'bulk') bulkDrop(); closeModal(); break;
+    case 'modalClose': closeModal(); break;
     case 'modalScrim': if (e.target.classList.contains('scrim')) { closeModal(); break; } return;
     default: return;
   }

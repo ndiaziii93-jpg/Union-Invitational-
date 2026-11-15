@@ -7990,7 +7990,7 @@ function scrYou() {
   if (open && lead) facts.push('<b>' + esc(lead.name) + ' leads on ' + lead.pts + '</b>' + (lead.thru === 18 ? '' : ' through ' + lead.thru));
   if (open) facts.push('closes ' + esc(C.dowOf(open.to)) + ' ' + esc(C.fmtDay(open.to)));
   facts.push(line.done + ' of ' + line.of + ' on your Vegas line');
-  const acts = (golfer && open ? `<button class="btn" data-act="clubEnter" data-a="${open.id}">${tot && tot.thru ? (card.done ? 'See my card' : 'Carry on my card') : 'Enter my card'}</button>` : '')
+  const acts = (golfer && open ? `<button class="btn" data-act="clubEnter" data-a="${open.id}">${tot && tot.thru ? (card.done ? 'See my card' : 'Carry on my card') : 'Start a round'}</button>` : '')
     + `<button class="btn ghost" data-act="go" data-a="hq">Open Vegas HQ</button>`;
   return clubCover({ photo: stopArt(open) || stopArt(next) || IMG.hero, lift: true,
     k: 'You · the Clubhouse · ' + esc(C.dowOf(today)) + ' ' + esc(C.fmtDay(today)) + (toVegas > 0 ? ' · ' + toVegas + ' days to Vegas' : ' · Vegas week'),
@@ -7998,6 +7998,7 @@ function scrYou() {
   + `<div class="clubgrid lift">
   <div class="cline ckpis${golfer ? '' : ' one'}">${golfer ? kpiHtml(d.form) + kpiHtml(d.played) + kpiHtml(d.ready) : kpiHtml(d.ready)}</div>
   ${golfer ? youCardHtml(me, today) : ''}
+  ${golfer ? youRoundsHtml(me, today) : ''}
   ${golfer && open ? `<div class="cline"><span class="ck">Open now · ${esc(C.fmtDay(open.from))} to ${esc(C.fmtDay(open.to))}</span><b class="ct">${esc(open.name)}</b>
       ${board.length ? boardTable(board.slice(0, 6), { mini: true }) : '<p>Nobody has posted a card yet; be first.</p>'}</div>` : ''}
   ${golfer && !open && next ? lineHtml('Next stop', esc(next.name), 'Opens ' + esc(C.fmtDay(next.from, { long: true })) + ' and closes ' + esc(C.fmtDay(next.to, { long: true })) + '. ' + esc(next.note || '')) : ''}
@@ -8008,6 +8009,43 @@ function scrYou() {
   ${golfer && mine ? lineHtml('Your Belek 2026 card', esc(belekLine(mine)), 'The first season in your archive. Readable any time; nothing in it can change.', `<p class="cact"><button class="btn ghost" data-act="reportPlayer" data-a="${me}">Read my report card</button><button class="btn ghost" data-act="archiveView" data-a="2026">Open the Belek book</button></p>`) : ''}
   </div>`;
 }
+/* ---- YOUR ROUNDS ----
+   Every card posted, newest first, with the one thing a golfer wants to know
+   about each: did it count. A competing card says which stop it won points
+   in; a handicap round says how many holes it was and whether that was
+   enough. The door to a new one is here, because this is the screen a golfer
+   is on when they are about to go and play. */
+function youRoundsHtml(me, today) {
+  const rs = C.rounds(T, me).filter(x => x.card.done || C.cardTotals(x.card).thru > 0);
+  const open = C.openStops(T, today)[0] || null;
+  const u = C.unionHcp(T, me, today);
+  const recent = rs.slice(-5).reverse();
+  const rows = recent.map(x => {
+    const t = C.cardTotals(x.card);
+    const counts = C.countsForHcp(x);
+    const d = C.diffOf(x.card);
+    const when = x.date ? C.fmtDay(x.date) : '';
+    const what = x.kind === 'comp' ? esc(shortStop(x.stop.name)) : 'Handicap round';
+    const tag = !x.card.done ? 'unfinished'
+      : x.kind === 'comp' ? 'on the board'
+      : counts ? 'counts' : 'too short';
+    const note = !x.card.done ? t.thru + ' of 18 written, not posted'
+      : x.kind === 'comp' ? t.pts + ' points off 18'
+      : t.pts + ' points off ' + t.thru + (counts ? ' · differential ' + d : ' · under nine holes');
+    const act = x.kind === 'hcp' && !x.card.done ? ` data-act="roundOpen" data-a="${esc(x.card.rid)}"` : '';
+    return `<${act ? 'button' : 'div'} class="rrow${act ? ' go' : ''}${x.card.done ? '' : ' live'}"${act}>
+      <span class="rr-w"><b>${what}</b><small>${esc(when)}${x.card.course ? ' · ' + esc(x.card.course.name) : ''}</small></span>
+      <span class="rr-r"><b>${esc(note)}</b><i class="rr-t ${tag.replace(/ /g, '')}">${tag}</i></span>
+    </${act ? 'button' : 'div'}>`;
+  }).join('');
+  const needs = u.need ? u.need + ' more round' + (u.need === 1 ? '' : 's') + ' before the season sets your handicap' : null;
+  return `<div class="cline"><span class="ck">Your rounds · ${rs.length} posted</span>
+  ${rows ? `<div class="rlist">${rows}</div>` : '<p>Nothing posted yet. A round is the only thing that moves your handicap.</p>'}
+  <p class="legend">${needs || 'Your handicap is the best three of your last six rounds, at 96%.'} A handicap round can be played any day, at any course, and need not be eighteen holes — nine or more and it counts.</p>
+  <p class="yc-acts"><button class="btn" data-act="roundNew"${open ? ` data-a="${open.id}"` : ''}>Start a round</button>
+    ${rs.length > 5 ? `<button class="btn ghost" data-act="pcard" data-a="${me}">Your last six</button>` : ''}</p></div>`;
+}
+
 /* ---- YOUR OWN CARD, ON THE YOU TAB ----
    The Golfers tab is for looking at everybody. This is the one place a
    golfer is looking at THEMSELVES, so both doors are here: open the card to
@@ -8083,7 +8121,7 @@ function seasonCover() {
   return clubCover({ photo: stopArt(cur) || IMG.hero,
     k: 'Season · the ' + nm + (st === 'open' ? ' · live' : st === 'closed' ? ' · crowned' : ' · next up'),
     h1, sub: facts.join(' · '),
-    acts: st === 'open' && golfer ? `<button class="btn" data-act="clubEnter" data-a="${cur.id}">${myCard && C.cardTotals(myCard).thru ? (myCard.done ? 'See my card' : 'Carry on my card') : 'Enter my card'}</button>` : '' });
+    acts: st === 'open' && golfer ? `<button class="btn" data-act="clubEnter" data-a="${cur.id}">${myCard && C.cardTotals(myCard).thru ? (myCard.done ? 'See my card' : 'Carry on my card') : 'Start a round'}</button>` : '' });
 }
 function scrSeason() {
   const tab = UI.seasonTab || 'stop';
@@ -8272,6 +8310,48 @@ function playerCardHtml() {
    of the backdrop and where it sits, both as percentages. Percentages scale,
    so the same three numbers describe the face at 212px in the chooser and at
    36px on a tile, and every copy of it shows the same face. */
+/* ---- THE DECLARATION ----
+   The group's rule, and the reason this window exists: you say what a round
+   is BEFORE you start it, not after you have seen what you shot. There is no
+   flag to turn afterwards, because the two kinds are two different rows — the
+   only way to change your mind is to walk away from a card with nothing
+   written on it. */
+function newRoundHtml() {
+  const me = myPid(); if (!me) return '';
+  const today = todayIso();
+  const stop = C.stopById(T, UI.newStop) || C.openStops(T, today)[0] || null;
+  const live = stop && C.stopState(stop, today) === 'open' ? stop : null;
+  const comp = live ? C.cardOf(T, live.id, me) : null;
+  const ct = comp ? C.cardTotals(comp) : null;
+  const going = C.rounds(T, me).filter(x => x.kind === 'hcp' && !x.card.done && C.cardTotals(x.card).thru > 0);
+  const u = C.unionHcp(T, me, today);
+  const compRow = !live
+    ? `<p class="nr-non">No stop is open today, so there is nothing to compete in. A handicap round can be played any day.</p>`
+    : `<button class="nr" data-act="roundGo" data-a="comp"${comp && comp.done ? ' disabled' : ''}>
+        <b>A competing round</b>
+        <small>${esc(live.name)} · closes ${esc(C.fmtDay(live.to, { long: true }))}</small>
+        <i>${comp && comp.done ? 'Already posted: ' + ct.pts + ' points. One card a stop, and yours is in.'
+          : ct && ct.thru ? 'Carry on — ' + ct.thru + ' of 18 already written.'
+          : 'Eighteen holes, signed and photographed. It scores on the board and pays Order of Merit places.'}</i></button>`;
+  return `<div class="scrim" data-act="modalScrim"><div class="modal nrmodal" role="dialog" aria-modal="true" aria-label="What kind of round is this">
+    ${modalBanner('Before you start', 'Say what this round is. Once a hole is written it cannot be changed.')}
+    <div class="nrs">${compRow}
+      <button class="nr" data-act="roundGo" data-a="hcp">
+        <b>A handicap round</b>
+        <small>Any course, any day, as many holes as you play</small>
+        <i>It never touches the board. Nine holes or more moves your Union handicap; anything shorter still feeds your player card.</i></button>
+    </div>
+    ${going.length ? `<div class="nrs"><span class="ck">Already going</span>${going.map(x => {
+      const t = C.cardTotals(x.card);
+      return `<button class="nr" data-act="roundOpen" data-a="${esc(x.card.rid)}"><b>A handicap round</b>
+        <small>${esc(C.fmtDay(x.date, { long: true }))}</small>
+        <i>${t.thru} hole${t.thru === 1 ? '' : 's'} written, ${t.pts} point${t.pts === 1 ? '' : 's'} — carry on with it.</i></button>`;
+    }).join('')}</div>` : ''}
+    <p class="sublede">Playing off ${u.hcp == null ? 'your Belek band' : esc(String(u.hcp))}${u.need ? ' · ' + u.need + ' more round' + (u.need === 1 ? '' : 's') + ' and the season takes over from it' : ''}.</p>
+    <p class="cact"><button class="btn ghost" data-act="modalClose">Not now</button></p>
+  </div></div>`;
+}
+
 function lookHtml() {
   const me = myPid();
   if (!me) return '';
@@ -8541,25 +8621,29 @@ function scrHq() {
 function scrClubEntry() {
   const me = myPid();
   const today = todayIso();
-  const stop = C.stopById(T, UI.stopId) || C.openStops(T, today)[0] || C.currentStop(T, today);
   if (!me) return `<h2 class="head">A virtual round</h2>${whoLine()}`;
-  if (!stop) return `<h2 class="head">A virtual round</h2><p class="empty">No stop on the season yet.</p>`;
-  const st = C.stopState(stop, today);
+  const r = roundNow();
+  if (!r) return `<h2 class="head">A virtual round</h2><p class="empty">No stop on the season yet, and no round open.</p>`;
+  const comp = r.kind === 'comp';
+  const stop = r.stop;
+  const st = comp ? C.stopState(stop, today) : 'open';
+  const title = comp ? stop.name : 'A handicap round';
   const p = E.person(T, me) || {};
   const course = C.courseOf(T, me);
-  const back = `<p class="cact"><button class="btn ghost sm" data-act="go" data-a="season">‹ The season</button><span class="sublede">My round · ${esc(p.display || '')}</span></p>`;
-  if (!course || !C.courseOk(course) || UI.courseEdit) return `<h2 class="head">${esc(stop.name)}</h2>${back}${courseForm(me, course, stop)}`;
-  let card = C.cardOf(T, stop.id, me);
+  const back = `<p class="cact"><button class="btn ghost sm" data-act="go" data-a="${comp ? 'season' : 'you'}">‹ ${comp ? 'The season' : 'The Clubhouse'}</button><span class="sublede">My round · ${esc(p.display || '')}</span></p>`;
+  if (!course || !C.courseOk(course) || UI.courseEdit) return `<h2 class="head">${esc(title)}</h2>${back}${courseForm(me, course, stop)}`;
+  let card = r.card;
   const hcpNow = C.playingOf(T, me, today);
   const fresh = !card;
-  if (fresh) card = C.blankClubCard(stop.id, me, hcpNow, course);
+  if (fresh) card = comp ? C.blankClubCard(stop.id, me, hcpNow, course, today)
+    : C.blankHcpCard(me, r.rid, hcpNow, course, r.date);
   const holes = card.course && card.course.holes && card.course.holes.length === 18 ? card.course.holes : course.holes;
   const h = Math.min(Math.max(UI.clubHole || 0, 0), 17);
   const hole = holes[h];
   const cap = C.capFor(+hole.par);
   const raw = card.raw[h];
   const tot = C.cardTotals(card);
-  const open = st === 'open' && !card.final;
+  const open = roundLive({ ...r, card });
   const editable = open && !card.done;
   const pts = C.holePts(card, h);
   const strokes = E.strokesFor(Math.round(card.hcp == null ? 0 : card.hcp), +hole.si) || 0;
@@ -8569,15 +8653,32 @@ function scrClubEntry() {
   const keypad = editable && UI.clubPad ? `<div class="keypad" role="dialog" aria-label="Your score on hole ${hole.n || h + 1}" data-par="${hole.par}" data-cap="${cap}" data-cur="${raw == null ? '' : raw}">
       <div class="kh"><b>${esc(p.display || '')}</b><span>Hole ${h + 1} · par ${hole.par} · picks up at ${cap}</span><button class="xx" data-act="clubPadClose">Done</button></div>
       <div class="keys">${keys.join('')}</div><button class="knext" data-act="clubPadClose">Close</button></div>` : '';
-  const gate = !open ? `<div class="gate"><div class="msg"><b>${st === 'upcoming' ? stop.name + ' opens ' + C.fmtDay(stop.from, { long: true }) : card.final ? 'This card is final' : stop.name + ' has closed'}</b><span>${st === 'upcoming' ? 'Come back when the window opens.' : 'The card is read-only.'}</span></div></div>` : '';
+  const gate = !open ? `<div class="gate"><div class="msg"><b>${card.final ? 'This card is final' : !comp ? 'This round is closed' : st === 'upcoming' ? stop.name + ' opens ' + C.fmtDay(stop.from, { long: true }) : stop.name + ' has closed'}</b><span>${comp && st === 'upcoming' ? 'Come back when the window opens.' : 'The card is read-only.'}</span></div></div>` : '';
   const photo = card.photo && card.photo.url;
-  const donePanel = tot.thru === 18 && open ? `<div class="cline gold" id="cardDone"><span class="ck">${card.done ? 'Posted' : 'Before it counts'}</span><b class="ct">${card.done ? tot.pts + ' points, on the board' : 'A photo of the signed card'}</b>
+  /* THE TWO KINDS POST ON DIFFERENT TERMS, AND THE PANEL SAYS WHICH.
+     A competing card is a tournament result: eighteen holes and a photograph
+     of the signed card before it goes anywhere. A handicap round is evidence
+     for a number — it posts at whatever it reached, and the photograph is
+     offered rather than demanded. What it cannot do is pretend: under nine
+     holes it says plainly that it will not move the handicap. */
+  const countsHcp = tot.thru >= C.HCP_MIN_HOLES;
+  const showPanel = open && (comp ? tot.thru === 18 : tot.thru >= 1);
+  const shot = `${photo ? `<a class="cardshot" href="${esc(photo)}" target="_blank" rel="noopener"><img src="${esc(card.photo.thumb || photo)}" alt="The signed card"></a>` : ''}
+      ${UI.cardUp ? `<p class="sublede">${esc(UI.cardUp)}</p>` : ''}`;
+  const donePanel = !showPanel ? '' : comp
+    ? `<div class="cline gold" id="cardDone"><span class="ck">${card.done ? 'Posted' : 'Before it counts'}</span><b class="ct">${card.done ? tot.pts + ' points, on the board' : 'A photo of the signed card'}</b>
       <p>${card.done ? 'Your card is in. The commissioner can still ask for a correction.' : 'Taken here, now. Then the card posts to the stop and to your Union handicap.'}</p>
       ${card.done && mascotFor(stop) ? `<img class="mascot posted" src="${mascotFor(stop)}" alt="" aria-hidden="true">` : ''}
-      ${photo ? `<a class="cardshot" href="${esc(photo)}" target="_blank" rel="noopener"><img src="${esc(card.photo.thumb || photo)}" alt="The signed card"></a>` : ''}
-      ${UI.cardUp ? `<p class="sublede">${esc(UI.cardUp)}</p>` : ''}
-      <p style="margin-top:10px">${card.done ? '' : `<label class="btn"><input type="file" accept="image/*" capture="environment" data-act="cardPhoto" hidden>${photo ? 'Retake the photo' : 'Photograph the card'}</label> `}${photo && !card.done ? `<button class="btn" data-act="clubPost">Post my card</button>` : ''}</p></div>` : '';
-  return `<h2 class="head">${esc(stop.name)}</h2>
+      ${shot}
+      <p style="margin-top:10px">${card.done ? '' : `<label class="btn"><input type="file" accept="image/*" capture="environment" data-act="cardPhoto" hidden>${photo ? 'Retake the photo' : 'Photograph the card'}</label> `}${photo && !card.done ? `<button class="btn" data-act="clubPost">Post my card</button>` : ''}</p></div>`
+    : `<div class="cline gold" id="cardDone"><span class="ck">${card.done ? 'Posted' : 'When you have had enough'}</span><b class="ct">${card.done ? tot.pts + ' points off ' + tot.thru + (countsHcp ? ', counting' : ', too short to count') : 'Post ' + tot.thru + ' hole' + (tot.thru === 1 ? '' : 's') + ' for ' + tot.pts + ' point' + (tot.pts === 1 ? '' : 's')}</b>
+      <p>${card.done
+        ? countsHcp ? 'This round is in your last six. The commissioner can still ask for a correction.' : 'Under nine holes, so it does not move the handicap — but every hole on it feeds your player card.'
+        : countsHcp ? 'Nine holes or more, so this one moves your Union handicap. Stop whenever you like; what is on the card is what counts.' : 'Under nine holes it will not move your handicap, but the holes still feed your player card. Carry on to nine if you want it to count.'}</p>
+      ${shot}
+      <p style="margin-top:10px">${card.done ? '' : `<label class="btn ghost"><input type="file" accept="image/*" capture="environment" data-act="cardPhoto" hidden>${photo ? 'Retake the photo' : 'Photograph it (optional)'}</label> <button class="btn" data-act="clubPost">Post this round</button>`}</p></div>`;
+  return `<h2 class="head">${esc(title)}</h2>
+  ${comp ? '' : `<p class="kicker">Handicap round · ${esc(C.fmtDay(r.date, { long: true }))} · not for the board</p>`}
   <p class="lede">${esc(course.name)}${course.tee ? ' · ' + esc(course.tee) + ' tees' : ''} · playing off ${card.hcp == null ? '—' : esc(String(Math.round(card.hcp)))}${course.approved ? '' : ' · <i>course awaiting the commissioner’s approval</i>'} <button class="rm" data-act="courseEdit">Change course</button></p>
   ${back}
   <div class="entryhd">
@@ -9026,26 +9127,58 @@ function clubCardHtml() {
 }
 
 /* ---- saving a card, and the photo of it ---- */
-function clubCardWrite(stop, patch) {
-  const me = myPid(); if (!me) return;
-  const held = C.cardOf(T, stop.id, me);
-  const course = C.courseOf(T, me);
-  const base = held || C.blankClubCard(stop.id, me, C.playingOf(T, me, todayIso()), course);
+/* WHICH ROUND IS OPEN IN FRONT OF ME.
+   The entry screen serves both kinds, and everything it does — a score, a
+   photograph, the posting — goes through this one answer rather than
+   reaching for UI.stopId directly. A handicap round has no stop; a competing
+   card has no rid; neither ever stands in for the other. */
+function roundNow() {
+  const me = myPid(); if (!me) return null;
+  const today = todayIso();
+  if (UI.roundKind === 'hcp' && UI.rid) {
+    const card = C.hcardOf(T, me, UI.rid);
+    return { kind: 'hcp', me, stop: null, rid: UI.rid, card,
+      key: C.hcardKey(me, UI.rid), date: (card && card.date) || UI.roundDate || today };
+  }
+  const stop = C.stopById(T, UI.stopId) || C.openStops(T, today)[0] || C.currentStop(T, today);
+  if (!stop) return null;
+  return { kind: 'comp', me, stop, rid: null, card: C.cardOf(T, stop.id, me),
+    key: C.cardKey(stop.id, me), date: stop.from };
+}
+/** May this round still be written to? A stop's card only while its window
+ *  is open; a handicap round on any day, until the commissioner finals it. */
+const roundLive = r => !!r && !(r.card && r.card.final)
+  && (r.kind === 'comp' ? C.stopState(r.stop, todayIso()) === 'open' : true);
+function roundWrite(r, patch) {
+  if (!r || !r.me) return;
+  const course = C.courseOf(T, r.me);
+  const hcp = C.playingOf(T, r.me, todayIso());
+  /* A card is dated the day it was STARTED, not the day its window opened:
+     the handicap reads the last six in the order they were played, and a
+     card written on the 28th does not belong at the 1st. */
+  const base = r.card || (r.kind === 'hcp'
+    ? C.blankHcpCard(r.me, r.rid, hcp, course, r.date)
+    : C.blankClubCard(r.stop.id, r.me, hcp, course, todayIso()));
   const doc = { ...base, ...patch, at: Date.now() };
   delete doc.rev;
-  store.writeClub(C.cardKey(stop.id, me), doc, false);
+  store.writeClub(r.key, doc, false);
+}
+/** Kept for the one caller that still thinks in stops. */
+function clubCardWrite(stop, patch) {
+  const me = myPid(); if (!me) return;
+  roundWrite({ kind: 'comp', me, stop, rid: null, card: C.cardOf(T, stop.id, me),
+    key: C.cardKey(stop.id, me), date: stop.from }, patch);
 }
 async function cardPhotoTake(file) {
-  const me = myPid();
-  const stop = C.stopById(T, UI.stopId) || C.openStops(T, todayIso())[0];
-  if (!me || !stop || !file) return;
+  const r = roundNow();
+  if (!r || !file) return;
   if (!store4) { UI.cardUp = 'This copy of the book cannot store a photo.'; render(); return; }
   UI.cardUp = 'Taking the photo…'; render();
   try {
     const small = await shrink(file, CFG.PHOTO_MAX);
     const thumb = await shrink(file, CFG.THUMB_MAX, 0.7).catch(() => null);
     const up = await store4.upload(small, thumb, { kind: 'photo', mime: file.type || '' });
-    clubCardWrite(stop, { photo: { url: up.url, thumb: up.thumbUrl || null, at: Date.now() } });
+    roundWrite(r, { photo: { url: up.url, thumb: up.thumbUrl || null, at: Date.now() } });
     UI.cardUp = '';
   } catch (e) { UI.cardUp = 'The photo did not go: ' + String((e && e.message) || e).slice(0, 100); }
   render();
@@ -10854,6 +10987,7 @@ function modalHtml() {
        : UI.modal.kind === 'round' ? roundModalHtml()
        : UI.modal.kind === 'roundsheet' ? roundSheetHtml()
        : UI.modal.kind === 'daysheet' ? daySheetHtml()
+       : UI.modal.kind === 'newround' ? newRoundHtml()
        : UI.modal.kind === 'look' ? lookHtml()
        : UI.modal.kind === 'pcard' ? playerCardHtml()
        : UI.modal.kind === 'art' ? artModalHtml()
@@ -12481,33 +12615,84 @@ function onClick(e) {
     case 'seasonTab': UI.seasonTab = a; render(); return;
     case 'stopPick': UI.stopId = a; render(); return;
     case 'clubEnter': {
-      UI.stopId = a; UI.clubPad = false; UI.courseEdit = false; UI.courseDraft = null;
+      /* Nothing written yet means nothing has been declared yet, so the
+         question comes first. A card already under way is resumed without
+         being asked again — the choice was made when it was started. */
       const me = myPid(); const c = me && C.cardOf(T, a, me);
+      const st = C.stopById(T, a);
+      const started = c && (c.done || C.cardTotals(c).thru > 0);
+      if (!started && st && C.stopState(st, todayIso()) === 'open') {
+        UI.newStop = a; UI.modal = { kind: 'newround' }; render(); return;
+      }
+      UI.roundKind = 'comp'; UI.rid = null;
+      UI.stopId = a; UI.clubPad = false; UI.courseEdit = false; UI.courseDraft = null;
       const first = c ? c.raw.findIndex(x => x == null) : 0;
       UI.clubHole = c ? (first < 0 ? 17 : first) : 0;
       goTo('clubentry'); render(); return;
+    }
+    /* ---- a round, and what kind of round it is ---- */
+    case 'roundNew': UI.newStop = a || null; UI.modal = { kind: 'newround' }; render(); return;
+    case 'roundGo': {
+      const me = myPid(); if (!me) return;
+      const today = todayIso();
+      UI.clubPad = false; UI.courseEdit = false; UI.courseDraft = null; UI.clubHole = 0;
+      if (a === 'comp') {
+        const stop = C.stopById(T, UI.newStop) || C.openStops(T, today)[0];
+        if (!stop) return;
+        const c = C.cardOf(T, stop.id, me);
+        if (c && c.done) return;
+        UI.roundKind = 'comp'; UI.rid = null; UI.stopId = stop.id;
+        const first = c ? c.raw.findIndex(x => x == null) : 0;
+        UI.clubHole = c ? (first < 0 ? 17 : first) : 0;
+      } else {
+        /* The row is not written until the first score lands on it, so a
+           window opened and closed again leaves nothing behind. */
+        UI.roundKind = 'hcp'; UI.rid = C.newRid(today); UI.roundDate = today;
+      }
+      closeModal(); goTo('clubentry'); render(); return;
+    }
+    case 'roundOpen': {
+      const me = myPid(); if (!me) return;
+      const card = C.hcardOf(T, me, a); if (!card) return;
+      UI.roundKind = 'hcp'; UI.rid = a; UI.roundDate = card.date;
+      UI.clubPad = false; UI.courseEdit = false; UI.courseDraft = null;
+      const first = card.raw.findIndex(x => x == null);
+      UI.clubHole = first < 0 ? 17 : first;
+      closeModal(); goTo('clubentry'); render(); return;
     }
     case 'clubHole': UI.clubHole = +a; render(); return;
     case 'clubPad': UI.clubPad = true; render(); return;
     case 'clubPadClose': UI.clubPad = false; render(); return;
     case 'clubScore': case 'clubClear': {
-      const me = myPid(); const stop = C.stopById(T, UI.stopId) || C.openStops(T, todayIso())[0];
-      if (!me || !stop || C.stopState(stop, todayIso()) !== 'open') return;
-      const held = C.cardOf(T, stop.id, me);
+      const r = roundNow();
+      if (!r || !roundLive(r)) return;
+      const held = r.card;
       if (held && (held.done || held.final)) return;
       const raw = (held ? held.raw : Array(18).fill(null)).slice();
       const h = Math.min(Math.max(UI.clubHole || 0, 0), 17);
       raw[h] = act === 'clubClear' ? null : +a;
-      clubCardWrite(stop, { raw });
+      roundWrite(r, { raw });
       if (act === 'clubScore' && h < 17) UI.clubHole = h + 1; else UI.clubPad = false;
       render(); return;
     }
     case 'clubPost': {
-      const me = myPid(); const stop = C.stopById(T, UI.stopId) || C.openStops(T, todayIso())[0];
-      const c = me && stop ? C.cardOf(T, stop.id, me) : null;
-      if (!c || !c.photo || C.cardTotals(c).thru < 18 || c.done) return;
-      clubCardWrite(stop, { done: true, postedAt: Date.now() });
-      UI.clubPad = false; UI.toast = 'Your card is posted: ' + C.cardTotals(c).pts + ' points.';
+      const r = roundNow();
+      const c = r && r.card;
+      if (!c || c.done || !roundLive(r)) return;
+      const t = C.cardTotals(c);
+      /* The stop's card is the tournament's: eighteen holes and a photograph
+         of the signed card, as it always was. A handicap round is evidence,
+         not a result — it posts at whatever it reached, and the photograph
+         is welcome rather than required. */
+      if (r.kind === 'comp' && (t.thru < 18 || !c.photo)) return;
+      if (r.kind === 'hcp' && t.thru < 1) return;
+      roundWrite(r, { done: true, postedAt: Date.now() });
+      UI.clubPad = false;
+      UI.toast = r.kind === 'comp'
+        ? 'Your card is posted: ' + t.pts + ' points.'
+        : t.thru >= C.HCP_MIN_HOLES
+          ? 'Round posted: ' + t.pts + ' points off ' + t.thru + '. It counts towards your handicap.'
+          : 'Round posted: ' + t.pts + ' points off ' + t.thru + '. Too short for the handicap, but every hole feeds your card.';
       render(); return;
     }
     case 'coursePick': {
@@ -12734,6 +12919,7 @@ function onClick(e) {
 
     case 'modalOk': submitPin(); return;
     case 'modalCancel': if (UI.modal && UI.modal.kind === 'bulk') bulkDrop(); closeModal(); break;
+    case 'modalClose': closeModal(); break;
     case 'modalScrim': if (e.target.classList.contains('scrim')) { closeModal(); break; } return;
     default: return;
   }

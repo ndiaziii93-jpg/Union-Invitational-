@@ -332,10 +332,49 @@ export const coursePar = c => (c && c.holes ? c.holes.reduce((a, h) => a + (+h.p
 
 /* ---------- cards and points ---------- */
 
+/* TWO KINDS OF ROUND, AND THE CHOICE IS MADE BEFORE A BALL IS STRUCK.
+
+   A COMPETING round is the stop's: one per golfer per stop, eighteen holes,
+   photographed and posted, and it is what the board ranks and what the Order
+   of Merit pays. It lives where it always has, at card__<stop>__<pid>, so
+   nothing already written has moved.
+
+   A HANDICAP round is played for the number alone. It is not the stop's and
+   cannot win anything; it may be played on any day, at any course, and it
+   need not be eighteen holes. It lives at hcard__<pid>__<rid>.
+
+   They are separate rows on purpose. A round cannot be re-declared after the
+   fact, because the two are not the same document: changing your mind means
+   discarding an empty card and starting the other, which is only possible
+   before a hole is scored. That is the rule the group asked for, enforced by
+   the shape of the thing rather than by a flag somebody could turn. */
+
 export const cardKey = (stop, pid) => 'card__' + stop + '__' + pid;
 export const cardOf = (T, stop, pid) => (T.club && T.club[cardKey(stop, pid)]) || null;
-export function blankClubCard(stop, pid, hcp, course) {
-  return { stop, pid, raw: Array(18).fill(null), hcp, course: course ? { name: course.name, tee: course.tee, holes: course.holes.map(h => ({ par: +h.par, si: +h.si })) } : null, photo: null, at: null, done: false };
+const holesOf = course => (course ? { name: course.name, tee: course.tee, holes: course.holes.map(h => ({ par: +h.par, si: +h.si })) } : null);
+export function blankClubCard(stop, pid, hcp, course, date) {
+  return { kind: 'comp', stop, pid, date: date || null, raw: Array(18).fill(null), hcp, course: holesOf(course), photo: null, at: null, done: false };
+}
+
+/* ---------- the handicap round ---------- */
+
+export const hcardKey = (pid, rid) => 'hcard__' + pid + '__' + rid;
+export const hcardOf = (T, pid, rid) => (T.club && T.club[hcardKey(pid, rid)]) || null;
+/** A round's own name: the day it was played and four characters, so two
+ *  rounds on one day do not land on each other and the id sorts by date. */
+export function newRid(date, rnd) {
+  const r = rnd || Math.random;
+  const tail = Array.from({ length: 4 }, () => 'abcdefghjkmnpqrstuvwxyz23456789'[Math.floor(r() * 31)]).join('');
+  return String(date || '').replace(/-/g, '') + '-' + tail;
+}
+export function blankHcpCard(pid, rid, hcp, course, date) {
+  return { kind: 'hcp', rid, pid, date, raw: Array(18).fill(null), hcp, course: holesOf(course), photo: null, at: null, done: false };
+}
+/** Every handicap round this golfer has, oldest first. */
+export function hcardsOf(T, pid) {
+  const club = (T && T.club) || {}, pre = 'hcard__' + pid + '__', out = [];
+  for (const k of Object.keys(club)) if (k.indexOf(pre) === 0 && club[k] && club[k].rid) out.push(club[k]);
+  return out.sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')) || (a.at || 0) - (b.at || 0));
 }
 export const capFor = par => par + 3;
 
@@ -395,22 +434,53 @@ export function merit(T, today) {
   return rows;
 }
 
+/* ---------- every round a golfer has posted ----------
+   The stop's competing cards and the handicap rounds in one list, oldest
+   first, each knowing which it is and the day it was played. The handicap,
+   the form line and the per-hole figures all read from here, so a round
+   counts exactly once however it was entered. */
+export function rounds(T, pid) {
+  const out = [];
+  for (const s of stops(T)) {
+    const c = cardOf(T, s.id, pid);
+    if (c) out.push({ key: cardKey(s.id, pid), kind: 'comp', card: c, stop: s, date: c.date || s.from || '' });
+  }
+  for (const c of hcardsOf(T, pid)) out.push({ key: hcardKey(pid, c.rid), kind: 'hcp', card: c, stop: null, date: c.date || '' });
+  return out.sort((a, b) => String(a.date).localeCompare(String(b.date)) || (a.card.at || 0) - (b.card.at || 0));
+}
+
 /* ---------- the Union handicap ----------
-   Seeded by the Belek band. Each finished card leaves a differential: the
-   handicap it was played off plus how far the points fell short of 36 (or
-   minus how far over). Once three cards are in, the handicap is the mean of
-   the best three of the last six, at 96%, to a decimal; the playing
-   handicap is that rounded. Until then it is the seed. */
+   Seeded by the Belek band. Each posted round leaves a differential: the
+   handicap it was played off plus how far the points fell short of the two
+   a hole that playing to it exactly would give. Once three rounds are in,
+   the handicap is the mean of the best three of the last six, at 96%, to a
+   decimal; the playing handicap is that rounded. Until then it is the seed.
+
+   NINE HOLES COUNT, AND ARE MEASURED ON THE SAME AXIS AS EIGHTEEN. A round
+   of n holes is expected to be worth 2n points; the shortfall is scaled up
+   to what eighteen holes would have cost, so a nine and an eighteen can sit
+   in the same list of six without one of them being worth half the other.
+   At eighteen the sum is unchanged: the shortfall is simply 36 − points.
+
+   Fewer than nine does not move the number. It still feeds every per-hole
+   figure on the player card — three holes is three holes of evidence — but
+   a hot stretch of three is not a round, and the handicap says so. */
+export const HCP_MIN_HOLES = 9;
+
 export function diffOf(card) {
   const t = cardTotals(card);
-  if (t.thru < 18) return null;
-  return Math.round(((card.hcp == null ? 0 : +card.hcp) + (36 - t.pts)) * 10) / 10;
+  if (t.thru < HCP_MIN_HOLES) return null;
+  const short = (2 * t.thru - t.pts) * 18 / t.thru;
+  return Math.round(((card.hcp == null ? 0 : +card.hcp) + short) * 10) / 10;
 }
+/** A round counts once it is posted and has nine holes on it. */
+export const countsForHcp = r => !!(r && r.card && r.card.done && cardTotals(r.card).thru >= HCP_MIN_HOLES);
+export const scoringRounds = (T, pid) => rounds(T, pid).filter(countsForHcp);
+
 export function unionHcp(T, pid, today) {
   const p = person(T, pid);
   const seed = p && p.band != null ? +p.band : null;
-  const cards = stops(T).map(s => cardOf(T, s.id, pid)).filter(c => c && c.done && cardTotals(c).thru === 18);
-  const diffs = cards.map(diffOf).filter(d => d != null);
+  const diffs = scoringRounds(T, pid).map(r => diffOf(r.card)).filter(d => d != null);
   const last6 = diffs.slice(-6);
   if (last6.length < 3) return { hcp: seed, from: seed == null ? 'none' : 'belek', n: diffs.length, diffs: last6, need: 3 - last6.length };
   const best = last6.slice().sort((a, b) => a - b).slice(0, 3);
@@ -598,12 +668,19 @@ export const CARD_MIN = 3;
 
 export function playerStats(T, pid, today) {
   const p = person(T, pid) || {};
-  const got = stops(T)
-    .map(s => ({ stop: s, card: cardOf(T, s.id, pid) }))
-    .filter(x => x.card && x.card.done && cardTotals(x.card).thru === 18);
+  /* TWO LISTS, AND THE DIFFERENCE MATTERS. `got` is the rounds that count as
+     rounds — nine holes or more, posted — and it is what the form line, the
+     handicap and the three-card gate are built on. `posted` is everything
+     with a hole on it, short rounds included: a six-hole evening still says
+     something true about par 3s, and the per-hole figures read from it. */
+  const all6 = rounds(T, pid);
+  const posted = all6.filter(x => x.card.done && cardTotals(x.card).thru > 0);
+  const got = posted.filter(countsForHcp);
 
   const out = {
     pid, name: p.display || p.name || '', cards: got.length, ready: got.length >= CARD_MIN,
+    posted: posted.length, short: posted.length - got.length,
+    comp: got.filter(x => x.kind === 'comp').length, hcpRounds: got.filter(x => x.kind === 'hcp').length,
     form: [], byPar: [], bySi: [], nine: [], perHole: [], banker: null, nemesis: null,
     counts: { blanks: 0, netPar: 0, bonus: 0, capped: 0, run: 0, holes: 0 },
     marks: { avg: 0, opening: 0, closing: 0 }, attrs: null,
@@ -637,13 +714,15 @@ export function playerStats(T, pid, today) {
      thirty-six points is playing to it exactly */
   out.form = got.slice(-6).map(x => {
     const t = cardTotals(x.card);
-    return { stop: x.stop.id, name: x.stop.name, pts: t.pts, off: t.pts - 36, at: x.card.at || null };
+    return { stop: x.stop ? x.stop.id : null, kind: x.kind,
+      name: x.stop ? x.stop.name : 'Handicap round', date: x.date || null,
+      pts: t.pts, thru: t.thru, off: t.pts - 2 * t.thru, at: x.card.at || null };
   });
 
   /* every hole of every card, flattened once and read many ways */
   const all = [];
   const seen = [];
-  for (const x of got) {
+  for (const x of posted) {
     const nm = (x.card.course && x.card.course.name) || '';
     if (nm && seen.indexOf(nm) < 0) seen.push(nm);
     for (let h = 0; h < 18; h++) {
@@ -667,8 +746,13 @@ export function playerStats(T, pid, today) {
   out.bySi = [[1, 6, 'the hard six'], [7, 12, 'the middle six'], [13, 18, 'the gentle six']]
     .map(([a, b, label]) => ({ a, b, label, pts: ptsWhere(x => x.si >= a && x.si <= b),
       over: overWhere(x => x.si >= a && x.si <= b) }));
-  out.nine = [['Front', 0, 8], ['Back', 9, 17]].map(([label, a, b]) => ({ label,
-    pts: r1(mean(got.map(x => { let t = 0; for (let h = a; h <= b; h++) t += (holePts(x.card, h) || 0); return t; }))) }));
+  /* A nine is only a nine if all nine of it were played; a card that stopped
+     at the 13th would otherwise drag the back nine down for no reason. */
+  out.nine = [['Front', 0, 8], ['Back', 9, 17]].map(([label, a, b]) => {
+    const whole = posted.filter(x => { for (let h = a; h <= b; h++) if (holePts(x.card, h) == null) return false; return true; });
+    return { label, n: whole.length,
+      pts: whole.length ? r1(mean(whole.map(x => { let t = 0; for (let h = a; h <= b; h++) t += (holePts(x.card, h) || 0); return t; }))) : null };
+  });
   out.marks = { avg: r1(avg), opening: ptsWhere(x => x.h <= 2), closing: ptsWhere(x => x.h >= 15) };
 
   out.counts.holes = all.length;
@@ -677,7 +761,7 @@ export function playerStats(T, pid, today) {
   out.counts.bonus = where(x => x.pts >= 3).length;
   out.counts.capped = where(x => x.raw === capFor(x.par)).length;
   let best = 0;
-  for (const x of got) { let run = 0;
+  for (const x of posted) { let run = 0;
     for (let h = 0; h < 18; h++) { if ((holePts(x.card, h) || 0) > 0) { run++; if (run > best) best = run; } else run = 0; } }
   out.counts.run = best;
 
@@ -718,7 +802,7 @@ export function playerStats(T, pid, today) {
 
   /* head to head: only stops where both of them posted a finished card */
   const mineBy = {};
-  got.forEach(x => { mineBy[x.stop.id] = cardTotals(x.card).pts; });
+  got.filter(x => x.kind === 'comp' && x.stop).forEach(x => { mineBy[x.stop.id] = cardTotals(x.card).pts; });
   out.h2h = golfers(T).filter(g => g.id !== pid).map(g => {
     let w = 0, l = 0, d = 0;
     for (const sid of Object.keys(mineBy)) {
