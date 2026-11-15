@@ -8211,7 +8211,7 @@ function scrClubEntry() {
   const p = E.person(T, me) || {};
   const course = C.courseOf(T, me);
   const back = `<p class="cact"><button class="btn ghost sm" data-act="go" data-a="season">‹ The season</button><span class="sublede">My round · ${esc(p.display || '')}</span></p>`;
-  if (!course || !C.courseOk(course) || UI.courseEdit) return `<h2 class="head">${esc(stop.name)}</h2>${back}${courseForm(me, course)}`;
+  if (!course || !C.courseOk(course) || UI.courseEdit) return `<h2 class="head">${esc(stop.name)}</h2>${back}${courseForm(me, course, stop)}`;
   let card = C.cardOf(T, stop.id, me);
   const hcpNow = C.playingOf(T, me, today);
   const fresh = !card;
@@ -8236,7 +8236,7 @@ function scrClubEntry() {
   const photo = card.photo && card.photo.url;
   const donePanel = tot.thru === 18 && open ? `<div class="cline gold" id="cardDone"><span class="ck">${card.done ? 'Posted' : 'Before it counts'}</span><b class="ct">${card.done ? tot.pts + ' points, on the board' : 'A photo of the signed card'}</b>
       <p>${card.done ? 'Your card is in. The commissioner can still ask for a correction.' : 'Taken here, now. Then the card posts to the stop and to your Union handicap.'}</p>
-      ${card.done && IMG.mascot_posted ? `<img class="mascot posted" src="${IMG.mascot_posted}" alt="" aria-hidden="true">` : ''}
+      ${card.done && mascotFor(stop) ? `<img class="mascot posted" src="${mascotFor(stop)}" alt="" aria-hidden="true">` : ''}
       ${photo ? `<a class="cardshot" href="${esc(photo)}" target="_blank" rel="noopener"><img src="${esc(card.photo.thumb || photo)}" alt="The signed card"></a>` : ''}
       ${UI.cardUp ? `<p class="sublede">${esc(UI.cardUp)}</p>` : ''}
       <p style="margin-top:10px">${card.done ? '' : `<label class="btn"><input type="file" accept="image/*" capture="environment" data-act="cardPhoto" hidden>${photo ? 'Retake the photo' : 'Photograph the card'}</label> `}${photo && !card.done ? `<button class="btn" data-act="clubPost">Post my card</button>` : ''}</p></div>` : '';
@@ -8368,29 +8368,58 @@ function courseTeesHtml() {
   </div>`;
 }
 
-function courseForm(pid, held) {
+/** Nine holes of the card, as a real scorecard prints them: out, then in. */
+function courseNine(c, from) {
+  const rows = c.holes.slice(from, from + 9).map((x, k) => {
+    const i = from + k;
+    return `<tr><td class="num">${i + 1}</td>
+      <td><input class="field num" type="number" inputmode="numeric" min="3" max="6" data-act="courseField" data-a="${i}" data-b="par" value="${esc(x.par == null ? '' : x.par)}" aria-label="Par on hole ${i + 1}"></td>
+      <td><input class="field num" type="number" inputmode="numeric" min="1" max="18" data-act="courseField" data-a="${i}" data-b="si" value="${esc(x.si == null ? '' : x.si)}" aria-label="Stroke index on hole ${i + 1}"></td>
+      <td><input class="field num" type="number" inputmode="numeric" min="50" max="700" data-act="courseField" data-a="${i}" data-b="y" value="${esc(x.y == null ? '' : x.y)}" aria-label="Yards on hole ${i + 1}"></td></tr>`;
+  }).join('');
+  const sum = k => c.holes.slice(from, from + 9).reduce((a, h) => a + (+h[k] || 0), 0);
+  return `<table class="ctbl course"><thead><tr><th>${from ? 'In' : 'Out'}</th><th>Par</th><th>Index</th><th>Yards</th></tr></thead>
+    <tbody>${rows}</tbody>
+    <tfoot><tr><td>${from ? '10\u201318' : '1\u20139'}</td><td class="num">${sum('par') || ''}</td><td></td><td class="num">${sum('y') || ''}</td></tr></tfoot></table>`;
+}
+
+/* ---- THE MASCOT BELONGS TO THE TOURNAMENT ----
+   He is not the app's mascot, he is the stop's: a santa hat for the Merry
+   Mulligan, a bobble hat and a puff of cold breath for the Frostbite, a rose
+   for the Sweetheart, and the hat and boots only in Las Vegas. One character
+   in different clothes, so each tournament looks like itself and none of them
+   looks odd in July. A stop with no drawing of its own borrows the season's. */
+function mascotFor(stop) {
+  const id = stop && stop.id;
+  return (id && IMG['mascot_' + id]) || IMG.mascot_vegas || IMG.mascot_hello || '';
+}
+
+function courseForm(pid, held, stop) {
   const c = UI.courseDraft && UI.courseDraft.pid === pid ? UI.courseDraft : (held ? JSON.parse(JSON.stringify(held)) : C.blankCourse(pid));
   UI.courseDraft = c;
   const ok = C.courseOk(c);
-  return `<h3 class="sub">Your home course</h3>
-  <p class="sublede">Find it by name and the card fills itself in. Check it against your own scorecard before you save: the stroke index decides which holes you get a shot on, so one wrong number quietly spoils every net score you post all season.</p>
-  <div class="cfind">
-    ${IMG.mascot_hello ? `<img class="mascot" src="${IMG.mascot_hello}" alt="" aria-hidden="true">` : ''}
-    <div class="cf-in">
-      <label>Find your course<input class="field" id="courseQ" value="${esc(UI.courseQ || '')}" placeholder="Leatherhead" maxlength="60" autocomplete="off" autocapitalize="words"></label>
-      <div id="courseHits">${courseHitsHtml()}</div>
+  const masc = mascotFor(stop);
+  return `<div class="cform">
+  <div class="cf-head">
+    <div class="cf-say">
+      <h3 class="sub">Your home course</h3>
+      <p class="sublede">Find it by name and the card fills itself in. Check it against your own scorecard before you save: the stroke index decides which holes you get a shot on, so one wrong number quietly spoils every net score you post all season.</p>
+      <div class="cfind"><div class="cf-in">
+        <label>Find your course<input class="field" id="courseQ" value="${esc(UI.courseQ || '')}" placeholder="Leatherhead" maxlength="60" autocomplete="off" autocapitalize="words"></label>
+        <div id="courseHits">${courseHitsHtml()}</div>
+      </div></div>
     </div>
+    ${masc ? `<img class="mascot" src="${masc}" alt="" aria-hidden="true">` : ''}
   </div>
   ${courseTeesHtml()}
   <div class="fieldset two">
     <label>Course<input class="field" data-act="courseField" data-a="name" value="${esc(c.name || '')}" placeholder="Rancho Park" maxlength="60"></label>
     <label>Tees<input class="field" data-act="courseField" data-a="tee" value="${esc(c.tee || '')}" placeholder="White" maxlength="20"></label>
   </div>
-  <table class="ctbl course"><thead><tr><th>Hole</th><th>Par</th><th>Index</th><th>Yards</th></tr></thead><tbody>
-    ${c.holes.map((x, i) => `<tr><td class="num">${i + 1}</td><td><input class="field num" type="number" inputmode="numeric" min="3" max="6" data-act="courseField" data-a="${i}" data-b="par" value="${esc(x.par == null ? '' : x.par)}"></td><td><input class="field num" type="number" inputmode="numeric" min="1" max="18" data-act="courseField" data-a="${i}" data-b="si" value="${esc(x.si == null ? '' : x.si)}"></td><td><input class="field num" type="number" inputmode="numeric" min="50" max="700" data-act="courseField" data-a="${i}" data-b="y" value="${esc(x.y == null ? '' : x.y)}"></td></tr>`).join('')}
-  </tbody></table>
+  <div class="cnines">${courseNine(c, 0)}${courseNine(c, 9)}</div>
   <p class="sublede">Par ${C.coursePar(c)}.${ok ? '' : ' Every hole needs a par of 3 to 6 and each stroke index 1 to 18 once.'}</p>
-  <div class="acts"><button class="btn" data-act="courseSave"${ok ? '' : ' disabled'}>Save my course</button>${held ? `<button class="btn ghost" data-act="courseCancel">Keep it as it was</button>` : ''}</div>`;
+  <div class="acts"><button class="btn" data-act="courseSave"${ok ? '' : ' disabled'}>Save my course</button>${held ? `<button class="btn ghost" data-act="courseCancel">Keep it as it was</button>` : ''}</div>
+  </div>`;
 }
 
 /* ---------------- MANAGE: THE SEASON ---------------- */

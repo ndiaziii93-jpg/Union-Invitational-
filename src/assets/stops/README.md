@@ -36,9 +36,28 @@ library.
 
 ## The mascot
 
-`../mascot/` holds the two drawings the book uses: `mascot_hello` stands
-over the course form, and `mascot_posted` turns up in the gold panel the
-moment a card goes on the board. Transparent WebP, about 50 KB each, so
-they drop onto paper without a box round them. They are deliberately
-year-round: no bobble hat, no scarf, nothing that would look odd in July.
-The seasonal versions are in `renditions2/`.
+He belongs to the TOURNAMENT, not to the app. One character — a golf ball for
+a head, a wry grin, flat bold outlines, pine green and cream — in different
+clothes for each stop, so a tournament looks like itself:
+
+| File | Worn for | Dressed in |
+|---|---|---|
+| `mascot_mulligan` | The Merry Mulligan Open, December | santa hat, snowflake jumper, scarf, holly on the club |
+| `mascot_frostbite` | The Frostbite Open, January | bobble hat, quilted jacket, mittens, a puff of cold breath, an icicle on the club head |
+| `mascot_sweetheart` | The Sweetheart Scramble, February | flat cap, a heart on the sweater, a rose at the collar |
+| `mascot_vegas` | Las Vegas 2027, and anything with no drawing of its own | cowboy hat, bolo tie, boots, club over the shoulder |
+
+`mascot_hello` is the older neutral drawing, kept only as a last fallback.
+
+**How the book finds them.** By the stop's own id, the same way the covers
+work: `mascotFor(stop)` looks for `mascot_<stop id>` and falls back to Vegas.
+Adding a stop called `putterbowl` and dropping in `mascot_putterbowl.webp` is
+the whole of it — no code to change.
+
+Transparent WebP, 470px, 38–68 KB each, so they drop onto paper without a box
+round them. They turn up twice: over the course form, and again in the gold
+panel the moment a card goes on the board.
+
+**Re-encoding.** `tools/build.py` skips the image table when `src/assets/
+images.js` already exists, so a new or changed drawing needs
+`python3 tools/build.py --images` or it will not reach the app.

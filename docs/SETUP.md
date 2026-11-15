@@ -230,28 +230,29 @@ Money tab and everyone sees the meter.
 
 ---
 
-## 7. The course book — finding any course instead of typing it in
+## 7. The course book — optional, and costs money: skip it
 
-Without this, the search finds only the courses already in the book: the ones
-we typed in, plus every course a member has saved. That works, and it works
-offline. With it, a member types the name of their club and taps it, wherever
-in the world they play.
+**You do not need this, and by default it is off.** It is written down here
+only so the door is not locked.
 
-1. **golfcourseapi.com** → sign up (email only) → copy the API key.
-   Take the **Pro** tier. The free tier allows 35 requests a day across
-   everybody, which twenty-three members will spend before lunch.
-2. Supabase → **Edge Functions** → Deploy a new function → name it `courses`
-   → paste `supabase/functions/courses/index.ts` → Deploy.
-3. Supabase → Edge Functions → **courses** → Secrets → add
-   `GOLF_API_KEY` = the key.
+How the search works without it: the book holds the courses we have typed in
+and checked, plus every course any member has saved. That is instant, works
+with no signal, and grows by itself — the first member to save their club puts
+it in the book for everyone else. To add a club, ask and it gets added: the
+scorecard is public, and the card goes in checked.
 
-That secret is the only place the key goes. **Not** in the repository, not in
-the app, not in a message to me, not in a screenshot — this repository is
-public and so is the page the group installs.
+What the `courses` function would add is the other thirty thousand clubs, for
+a member whose course nobody has entered yet. It needs a paid key
+(golfcourseapi.com, about ten dollars a month; their free tier is 35 requests
+a day across everybody, which twenty-three members would spend before lunch),
+so it is **not** set up. The function sits in the repository doing nothing and
+costing nothing.
 
-Nothing breaks if you skip it or do it later: with no function deployed and no
-key set, the search quietly falls back to the book we already have, and the
-form still takes a card typed in by hand.
+If you ever do want it: deploy `supabase/functions/courses/index.ts` as a
+function named `courses`, then Edge Functions → courses → Secrets → add
+`GOLF_API_KEY`. That secret is the only place the key goes — **not** in the
+repository, not in the app, not in a message to me, not in a screenshot, since
+this repository is public and so is the page the group installs.
 
 **What the book does with what it gets back.** Course data at that scale is
 uneven, and the one number the book cannot do without is the stroke index,
@@ -276,7 +277,7 @@ made it into the Supabase secret that uses it, and nowhere else:
 | Key | Made at | Goes in |
 |---|---|---|
 | Anthropic API key | console.anthropic.com → API keys | Edge Functions → `recap` → Secrets → `ANTHROPIC_API_KEY` |
-| GolfCourseAPI key | golfcourseapi.com | Edge Functions → `courses` → Secrets → `GOLF_API_KEY` |
+| GolfCourseAPI key *(only if you ever turn §7 on)* | golfcourseapi.com | Edge Functions → `courses` → Secrets → `GOLF_API_KEY` |
 | VAPID private key | the book's own key page | Edge Functions → `notify` → Secrets → `VAPID_PRIVATE_KEY` |
 
 Never the database password, never the service_role key, and never a PIN.
