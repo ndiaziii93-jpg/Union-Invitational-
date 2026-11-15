@@ -509,7 +509,12 @@ const cell = v => { const s = v == null ? '' : String(v); return /[",\n]/.test(s
    picture's width, height and width again: the centre of the circle and its
    radius. It is measured off the artwork once, per costume, because the hat
    sits differently on each of them and a photograph dropped in the wrong
-   place eats the costume. A new Bert needs its own three numbers. */
+   place eats the costume. A new Bert needs its own three numbers.
+
+   They move with the POSE as well as the hat: every Bert stands differently,
+   so one crouching to read a putt and one sat flat on the ground do not carry
+   their heads anywhere near the same place in the frame. Measure after the
+   drawing is final, never before. */
 export const BERTS = [
   { id: 'house', name: 'Union Bert', note: 'The house one — a polo and no occasion.',
     head: [49.5, 20.5, 15.0], stop: null },
@@ -519,26 +524,26 @@ export const BERTS = [
     head: [37.5, 27.5, 14.0], stop: 'frostbite' },
   { id: 'sweetheart', name: 'Sweetheart Bert', note: 'Flat cap, a rose, and a heart on his jumper.',
     head: [49.0, 23.5, 14.5], stop: 'sweetheart' },
-  { id: 'lucky', name: 'Lucky Links Bert', note: 'Emerald waistcoat, buckled shoes, a clover at the lapel.',
-    head: [49.0, 22.0, 15.0], stop: 'lucky' },
-  { id: 'bloom', name: 'Bloom Bert', note: 'A straw boater, pink argyle, and blossom in the air.',
-    head: [49.0, 21.5, 15.0], stop: 'bloom' },
-  { id: 'fiesta', name: 'Fiesta Bert', note: 'A striped serape and a wide straw hat with pompoms.',
-    head: [49.0, 22.0, 15.0], stop: 'fiesta' },
-  { id: 'summer', name: 'Summer Bert', note: 'Bucket hat, sunglasses up on the brim, a towel over the shoulder.',
-    head: [48.5, 22.0, 15.0], stop: 'summer' },
-  { id: 'firecracker', name: 'Firecracker Bert', note: 'Stars and stripes, and a sparkler on the club head.',
-    head: [49.0, 21.0, 15.0], stop: 'firecracker' },
-  { id: 'dogdays', name: 'Dog Days Bert', note: 'A visor, sweatbands, a towel, and one bead of sweat.',
-    head: [49.0, 22.0, 15.0], stop: 'dogdays' },
-  { id: 'harvest', name: 'Harvest Bert', note: 'Tweed jacket, plus fours, and leaves coming down.',
-    head: [49.0, 22.0, 15.0], stop: 'harvest' },
-  { id: 'pumpkin', name: 'Pumpkin Bert', note: 'A black cape, a bat on the jumper, a lantern at his feet.',
-    head: [49.0, 22.5, 15.0], stop: 'pumpkin' },
-  { id: 'turkeyshoot', name: 'Turkey Shoot Bert', note: 'A buckled pilgrim hat with a feather in the band.',
-    head: [49.0, 23.0, 15.0], stop: 'turkeyshoot' },
-  { id: 'santa', name: 'Santa Swing Bert', note: 'The whole red suit, and a sack of balls.',
-    head: [49.0, 21.0, 15.0], stop: 'santa' },
+  { id: 'lucky', name: 'Lucky Links Bert', note: 'Emerald waistcoat and a clover, mid heel-click.',
+    head: [51.0, 25.0, 15.0], stop: 'lucky' },
+  { id: 'bloom', name: 'Bloom Bert', note: 'Straw boater and pink argyle, down on a knee reading a putt.',
+    head: [44.5, 22.0, 15.0], stop: 'bloom' },
+  { id: 'fiesta', name: 'Fiesta Bert', note: 'Serape and pompoms, dancing with the club overhead.',
+    head: [48.5, 22.5, 15.0], stop: 'fiesta' },
+  { id: 'summer', name: 'Summer Bert', note: 'Bucket hat and shorts, a hand up shading his eyes.',
+    head: [45.5, 21.0, 15.0], stop: 'summer' },
+  { id: 'firecracker', name: 'Firecracker Bert', note: 'Stars, stripes and a sparkler, at the top of the follow-through.',
+    head: [50.0, 21.0, 15.0], stop: 'firecracker' },
+  { id: 'dogdays', name: 'Dog Days Bert', note: 'Visor, towel and one bead of sweat, sat flat on the ground.',
+    head: [47.0, 20.5, 15.0], stop: 'dogdays' },
+  { id: 'harvest', name: 'Harvest Bert', note: 'Tweed and plus fours, arms folded, surveying.',
+    head: [46.0, 20.0, 15.0], stop: 'harvest' },
+  { id: 'pumpkin', name: 'Pumpkin Bert', note: 'Cape and a lantern, creeping up on tiptoes.',
+    head: [48.5, 22.0, 15.0], stop: 'pumpkin' },
+  { id: 'turkeyshoot', name: 'Turkey Shoot Bert', note: 'Buckled pilgrim hat, stood over the ball.',
+    head: [50.0, 23.0, 15.0], stop: 'turkeyshoot' },
+  { id: 'santa', name: 'Santa Swing Bert', note: 'The whole red suit, striding with the sack over his shoulder.',
+    head: [47.5, 21.0, 15.0], stop: 'santa' },
   { id: 'vegas', name: 'Desert Showdown Bert', note: 'The hat and the boots. Las Vegas only.',
     head: [45.0, 24.0, 15.0], stop: null, week: true },
 ];

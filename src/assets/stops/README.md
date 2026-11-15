@@ -41,22 +41,22 @@ not to the app — one character, a golf ball for a head, a wry grin, flat bold
 outlines, pine green and cream, in different clothes for each stop, so a
 tournament looks like itself.
 
-| File | Bert | Worn for | Dressed in |
+| File | Bert | Worn for | Dressed in, and how he stands |
 |---|---|---|---|
 | `mascot_house` | Union Bert | year round, and any stop with no drawing of its own | The house one — a polo and no occasion. |
 | `mascot_mulligan` | Merry Mulligan Bert | The Merry Mulligan Open, 2026-12 | Santa hat, snowflake jumper, a sprig of holly. |
 | `mascot_frostbite` | Frostbite Bert | The Frostbite Open, 2027-01 | Bobble hat, puffer, and a club with an icicle on it. |
 | `mascot_sweetheart` | Sweetheart Bert | The Sweetheart Scramble, 2027-02 | Flat cap, a rose, and a heart on his jumper. |
-| `mascot_lucky` | Lucky Links Bert | The Lucky Links Classic, 2027-03 | Emerald waistcoat, buckled shoes, a clover at the lapel. |
-| `mascot_bloom` | Bloom Bert | The Bloom Invitational, 2027-04 | A straw boater, pink argyle, and blossom in the air. |
-| `mascot_fiesta` | Fiesta Bert | The Fairway Fiesta, 2027-05 | A striped serape and a wide straw hat with pompoms. |
-| `mascot_summer` | Summer Bert | The Summer Swing, 2027-06 | Bucket hat, sunglasses up on the brim, a towel over the shoulder. |
-| `mascot_firecracker` | Firecracker Bert | The Firecracker Cup, 2027-07 | Stars and stripes, and a sparkler on the club head. |
-| `mascot_dogdays` | Dog Days Bert | The Dog Days Derby, 2027-08 | A visor, sweatbands, a towel, and one bead of sweat. |
-| `mascot_harvest` | Harvest Bert | The Harvest Classic, 2027-09 | Tweed jacket, plus fours, and leaves coming down. |
-| `mascot_pumpkin` | Pumpkin Bert | The Pumpkin Putter Open, 2027-10 | A black cape, a bat on the jumper, a lantern at his feet. |
-| `mascot_turkeyshoot` | Turkey Shoot Bert | The Turkey Shoot, 2027-11 | A buckled pilgrim hat with a feather in the band. |
-| `mascot_santa` | Santa Swing Bert | The Santa Swing, 2027-12 | The whole red suit, and a sack of balls. |
+| `mascot_lucky` | Lucky Links Bert | The Lucky Links Classic, 2027-03 | Emerald waistcoat and a clover, mid heel-click. |
+| `mascot_bloom` | Bloom Bert | The Bloom Invitational, 2027-04 | Straw boater and pink argyle, down on a knee reading a putt. |
+| `mascot_fiesta` | Fiesta Bert | The Fairway Fiesta, 2027-05 | Serape and pompoms, dancing with the club overhead. |
+| `mascot_summer` | Summer Bert | The Summer Swing, 2027-06 | Bucket hat and shorts, a hand up shading his eyes. |
+| `mascot_firecracker` | Firecracker Bert | The Firecracker Cup, 2027-07 | Stars, stripes and a sparkler, at the top of the follow-through. |
+| `mascot_dogdays` | Dog Days Bert | The Dog Days Derby, 2027-08 | Visor, towel and one bead of sweat, sat flat on the ground. |
+| `mascot_harvest` | Harvest Bert | The Harvest Classic, 2027-09 | Tweed and plus fours, arms folded, surveying. |
+| `mascot_pumpkin` | Pumpkin Bert | The Pumpkin Putter Open, 2027-10 | Cape and a lantern, creeping up on tiptoes. |
+| `mascot_turkeyshoot` | Turkey Shoot Bert | The Turkey Shoot, 2027-11 | Buckled pilgrim hat, stood over the ball. |
+| `mascot_santa` | Santa Swing Bert | The Santa Swing, 2027-12 | The whole red suit, striding with the sack over his shoulder. |
 | `mascot_vegas` | Desert Showdown Bert | Las Vegas 2027, the week itself | The hat and the boots. Las Vegas only. |
 
 `mascot_hello` is the oldest drawing, in a different hand entirely. It is kept
@@ -78,20 +78,23 @@ house         49.5  20.5  15.0
 mulligan      48.9  24.4  16.3
 frostbite     37.5  27.5  14.0
 sweetheart    49.0  23.5  14.5
-lucky         49.0  22.0  15.0
-bloom         49.0  21.5  15.0
-fiesta        49.0  22.0  15.0
-summer        48.5  22.0  15.0
-firecracker   49.0  21.0  15.0
-dogdays       49.0  22.0  15.0
-harvest       49.0  22.0  15.0
-pumpkin       49.0  22.5  15.0
-turkeyshoot   49.0  23.0  15.0
-santa         49.0  21.0  15.0
+lucky         51.0  25.0  15.0
+bloom         44.5  22.0  15.0
+fiesta        48.5  22.5  15.0
+summer        45.5  21.0  15.0
+firecracker   50.0  21.0  15.0
+dogdays       47.0  20.5  15.0
+harvest       46.0  20.0  15.0
+pumpkin       48.5  22.0  15.0
+turkeyshoot   50.0  23.0  15.0
+santa         47.5  21.0  15.0
 vegas         45.0  24.0  15.0
 ```
 
-**A NEW BERT NEEDS HIS OWN THREE NUMBERS.** Measure them by laying a circle
+**EVERY BERT STANDS DIFFERENTLY**, which is the point of him — a heel-click,
+a crouch over a putt, a man sat flat on the ground — and the pose moves his
+head as much as the hat does. **A NEW BERT NEEDS HIS OWN THREE NUMBERS**, and
+they can only be measured once the drawing is final. Measure them by laying a circle
 over the drawing and looking: it has to fall inside the ball and below the
 brim of whatever he is wearing, or a photograph eats the costume. A Bert
 without them falls back to the house figures and will very likely be wrong.
