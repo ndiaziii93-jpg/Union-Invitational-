@@ -8453,6 +8453,9 @@ function caddieFit(el) {
      is over nothing at all. Wait for it rather than answer wrongly. */
   const img = e.querySelector('img');
   if (img && !img.complete) { img.addEventListener('load', () => caddieFit(), { once: true }); return; }
+  /* Above a phone's width the page keeps a column clear for him, so there is
+     nothing to step aside from and nothing to measure. */
+  if (typeof window !== 'undefined' && window.innerWidth >= 700) { e.classList.remove('peek'); return; }
   /* A mascot is never worth a thrown frame: if the measure goes wrong he
      simply stays where he is. */
   try { e.classList.toggle('peek', caddieBusy(e)); } catch (err) { /* leave him standing */ }
