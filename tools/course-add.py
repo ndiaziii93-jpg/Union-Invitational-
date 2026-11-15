@@ -114,43 +114,90 @@ def num(s):
 
 
 def read_rows_are_holes(rows):
-    """A card printed with one row per hole: Hole | White | Par | SI | Yellow | ...
+    """A card printed with one row per hole.
 
-    The heading names the tees, and each tee is followed by the columns that
-    belong to it, so Par and SI are read as the tee they sit under.
+    The columns are worked out from the NUMBERS, not from the heading, because
+    headings vary wildly ("WhiteYards", "StrokeIndex", "Marker's Score") while
+    the numbers do not: eighteen values of 3 to 6 is a par column, 1 to 18 once
+    each is a stroke index, and a column of three-figure lengths is a tee. A
+    heading only supplies the tee's name.
+
+    Which par belongs to which tee is the other half. A British card commonly
+    prints White and Yellow side by side and then ONE par and ONE index for
+    both, and a separate par and index for the red tees further along. So a par
+    or index column is given to every tee to its left that has not got one yet.
+    A card that prints par and index after each tee, as Leatherhead does, falls
+    out of the same rule.
     """
-    head = rows[0]
-    if not head or not IS_HOLE.match(head[0] or ''):
-        return []
-    tees, cur = [], None
-    for i, h in enumerate(head[1:], start=1):
-        h = (h or '').strip()
-        if not h:
-            continue
-        if IS_PAR.match(h):
-            if cur: cur['par'] = i
-        elif IS_SI.match(h):
-            if cur: cur['si'] = i
-        elif not NOT_A_TEE.match(h):
-            cur = {'name': h, 'len': i, 'par': None, 'si': None}
-            tees.append(cur)
-    tees = [t for t in tees if t['par'] is not None and t['si'] is not None]
-    if not tees:
-        return []
+    hidx = [i for i, r in enumerate(rows) if r and IS_HOLE.match((r[0] or '').strip())]
     holes = {}
-    for r in rows[1:]:
+    for r in rows:
         n = num(r[0]) if r else None
-        if n is None or not 1 <= n <= 18:
-            continue                              # Out / In / Total lines
-        holes[n] = r
+        if n is not None and 1 <= n <= 18 and n not in holes and len(r) > 2:
+            holes[n] = r
+    if len(holes) != 18:
+        return []
+    head = rows[hidx[-1]] if hidx else []
+    ncol = max(len(r) for r in holes.values())
+
+    def col(i):
+        return [num(holes[n][i]) if i < len(holes[n]) else None for n in range(1, 19)]
+
+    # What a column IS. A heading that says Par or Stroke Index is taken at its
+    # word even when the numbers under it are wrong or missing: a card that
+    # declares an index and then fails to print one must come back as a card
+    # with no index, so it can be refused by name. Silently handing that tee
+    # another tee's index would be the worst thing this tool could do — it
+    # would look complete and play wrong all season.
+    kind = {}
+    for i in range(1, ncol):
+        h = (head[i] if i < len(head) else '') or ''
+        h = re.sub(r'\s+', ' ', h).strip()
+        if IS_PAR.match(h):
+            kind[i] = 'par'; continue
+        if IS_SI.match(h):
+            kind[i] = 'si'; continue
+        v = [x for x in col(i) if x is not None]
+        if len(v) < 14:
+            continue                                   # a column the player fills in
+        if len(v) == 18 and all(3 <= x <= 6 for x in v):
+            kind[i] = 'par'
+        elif len(v) == 18 and sorted(v) == list(range(1, 19)):
+            kind[i] = 'si'
+        elif sum(1 for x in v if 60 <= x <= 999) >= 14:
+            kind[i] = 'yards'
+    if 'yards' not in kind.values():
+        return []
+
+    def name_at(i):
+        h = (head[i] if i < len(head) else '') or ''
+        h = re.sub(r'(yards?|yds?|metres?|meters?)\s*$', '', h.strip(), flags=re.I).strip()
+        return h or ('Tee %d' % i)
+
+    tees, pending = [], []
+    for i in sorted(kind):
+        k = kind[i]
+        if k == 'yards':
+            t = {'name': name_at(i), 'len': i, 'par': None, 'si': None}
+            tees.append(t); pending.append(t)
+        elif k in ('par', 'si'):
+            for t in pending:
+                if t[k] is None:
+                    t[k] = i
+            if all(t['par'] is not None and t['si'] is not None for t in pending):
+                pending = []
+    # A tee the card never gave a par or an index to keeps neither. It is not
+    # filled in from a neighbouring tee: the card gets refused instead, with
+    # what is missing said plainly.
     out = []
     for t in tees:
+        pi, si = t['par'], t['si']
         card = []
         for n in range(1, 19):
-            r = holes.get(n, [])
-            g = lambda i: num(r[i]) if i is not None and i < len(r) else None
-            card.append({'par': g(t['par']), 'si': g(t['si']), 'y': g(t['len'])})
-        out.append({'tee': t['name'], 'holes': card})
+            r = holes[n]
+            g = lambda i: (num(r[i]) if i is not None and i < len(r) else None)
+            card.append({'par': g(pi), 'si': g(si), 'y': g(t['len'])})
+        out.append({'tee': t['name'], 'holes': card, 'note': ''})
     return out
 
 
@@ -218,11 +265,67 @@ def verdict(card):
     return ''
 
 
+TEE_HEAD = re.compile(r'^[\s#*>]*([A-Za-z][A-Za-z()\'/ .-]{0,28}?)\s+TEES?\s*$', re.M | re.I)
+IS_YDS = re.compile(r'^(yards?|yds?|metres?|meters?|length|distance)$', re.I)
+
+
+def read_sections(doc):
+    """A card laid out a tee at a time, each with its own front and back nine.
+
+    Plenty of sites print "WHITE TEES" as a heading and then two little tables
+    under it, holes across the top and rows labelled Yards, Par and SI. The tee
+    is named in the prose, not in the table, so the document has to be read in
+    order: the most recent heading says which tee the next tables belong to,
+    and the nines are stitched together by hole number.
+    """
+    marks = [(m.start(), m.group(1).strip()) for m in TEE_HEAD.finditer(doc)]
+    if not marks:
+        return []
+    chunks = []
+    for i, (pos, name) in enumerate(marks):
+        end = marks[i + 1][0] if i + 1 < len(marks) else len(doc)
+        chunks.append((name, doc[pos:end]))
+    out = []
+    for name, chunk in chunks:
+        holes = {}
+        for rows in list(tables_from_html(chunk)) + tables_from_markdown(chunk):
+            head = rows[0] if rows else []
+            cols = [(num(h), i) for i, h in enumerate(head) if num(h) and 1 <= num(h) <= 18]
+            if len(cols) < 5:
+                continue
+            got = {}
+            for r in rows[1:]:
+                lab = (r[0] if r else '').strip()
+                if IS_PAR.match(lab):
+                    got['par'] = r
+                elif IS_SI.match(lab):
+                    got['si'] = r
+                elif IS_YDS.match(lab):
+                    got['y'] = r
+            if 'par' not in got:
+                continue
+            for n, i in cols:
+                g = lambda k: (num(got[k][i]) if k in got and i < len(got[k]) else None)
+                holes[n] = {'par': g('par'), 'si': g('si'), 'y': g('y')}
+        if len(holes) == 18:
+            out.append({'tee': name.title() if name.isupper() else name,
+                        'holes': [holes[n] for n in range(1, 19)], 'note': ''})
+    return out
+
+
 def read(path):
     doc = io.open(path, encoding='utf-8', errors='replace').read()
     tabs = list(tables_from_html(doc)) + tables_from_markdown(doc)
-    found = []
+    # A card is very often printed as two tables, the back nine continuing the
+    # front with no heading of its own and a line of club notices between them.
+    # Tables of the same width are read together, so the heading found in one
+    # serves the rows in the other.
+    wide = {}
     for rows in tabs:
+        w = max(len(r) for r in rows)
+        wide.setdefault(w, []).extend(rows)
+    found = read_sections(doc)
+    for rows in list(wide.values()) + tabs:
         for reader in (read_rows_are_holes, read_rows_are_measures):
             got = reader(rows)
             if got:
@@ -314,7 +417,13 @@ def main():
 
     cards = read(args.src)
     if not cards:
-        sys.exit('no scorecard table found in ' + args.src)
+        doc = io.open(args.src, encoding='utf-8', errors='replace').read()
+        tabs = list(tables_from_html(doc)) + tables_from_markdown(doc)
+        if tabs:
+            sys.exit('tables were found in %s, but none of them is a card of eighteen holes '
+                     'with par and a stroke index. A nine-hole card cannot be used: the book '
+                     'plays eighteen.' % args.src)
+        sys.exit('no table at all in ' + args.src + ' \u2014 is that the page with the card on it?')
     show(cards, args.name, args.place)
     ok = [c for c in cards if not verdict(c)]
     print('%d tee set%s read, %d usable.' % (len(cards), '' if len(cards) == 1 else 's', len(ok)))

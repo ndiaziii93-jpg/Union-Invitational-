@@ -32,21 +32,54 @@ For a club whose site the container cannot reach, scrape it to Markdown with
 whatever tool is to hand and pass that file instead: the reader takes HTML or
 Markdown.
 
+## What is in the book
+
+| Course | Tees | From |
+|---|---|---|
+| Leatherhead Golf Club | White 71, Yellow 70, Red 69 | the club's own course page |
+| The Grove | Back, White, Yellow, Red (L), all par 72 | a published card, 7,152 down to 5,507 |
+| RAC Woodcote Park (Old Course) | White 72, Yellow 72, Red 73 | the club's own scorecard PDF |
+| RAC Woodcote Park (Coronation Course) | White 70, Yellow 70, Red 71 | the club's own scorecard PDF |
+
+Thirteen cards. RAC Woodcote Park has two eighteens, the Old (1915) and the
+Coronation (1953) — there is no "New" — so each is its own course in the book
+and the search shows them apart.
+
 ## What it reads
 
-Both shapes clubs actually print:
+Four shapes, all of which clubs actually print:
 
 - **One row per hole** — `Hole | White | Par | SI | Yellow | Par | SI | …`.
   Each tee's Par and SI belong to the tee they sit under, so a course whose
   reds play a different par and a different stroke index comes out right.
   Leatherhead is one of those: par 71 off the whites, 69 off the reds, and the
   reds make the 4th the hardest hole rather than the 10th.
+- **One row per hole, tees sharing a par** — `Hole | White | Yellow | Par | SI |
+  … | Red | Par | SI`, which is how most British cards are printed. A par or
+  index column is given to every tee to its left that has not got one yet, so
+  White and Yellow share while the reds keep their own. RAC Woodcote Park's Old
+  Course is one of these: off the reds the 6th is a par 5 and the card is par 73.
 - **One column per hole** — a `Par` row, a `Handicap` row, and a row per tee.
+- **A section per tee** — a `WHITE TEES` heading and then two small tables
+  under it, front nine and back, with rows labelled Yards, Par and SI. The tee
+  is named in the prose rather than in the table, so the document is read in
+  order and the nines are stitched by hole number. The Grove is one of these.
+
+What a column IS comes from the numbers, not the heading, because headings vary
+wildly (`WhiteYards`, `StrokeIndex`, `Marker's Score`) while numbers do not:
+eighteen values of 3 to 6 is a par, 1 to 18 once each is a stroke index, a
+column of three-figure lengths is a tee. A heading only supplies the tee's name
+— **except** that a heading saying Par or Stroke Index is taken at its word
+even when the numbers under it are wrong or missing, so that a card which
+declares an index and fails to print one comes back as a card with no index and
+is refused by name. It is never quietly handed a neighbouring tee's index. That
+would look complete and play wrong all season.
 
 It survives the things real pages do: a `<thead>` whose cells sit loose with no
-`<tr>`, `Out`/`In`/`Total` lines in the middle of the card, thousands commas,
-and cells that ship yards and metres run together (`505462` is 505 yards and
-462 metres, not a 5,054-yard hole).
+`<tr>`, a back nine in a separate table with no heading of its own and club
+notices in between, `Out`/`In`/`Total` lines in the middle of the card,
+thousands commas, and cells that ship yards and metres run together (`505462`
+is 505 yards and 462 metres, not a 5,054-yard hole).
 
 Where a card prints two pars, men's and ladies', it takes the men's and says so.
 

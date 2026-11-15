@@ -98,8 +98,11 @@ ok('an index used twice', CA.verdict(next(c for c in twice if c['tee'] == 'White
 odd = PAR_W[:]; odd[3] = 9
 badpar = read(rows_are_holes(par_w=odd))
 ok('a par of 9', CA.verdict(next(c for c in badpar if c['tee'] == 'White')), 'a par is outside 3 to 6')
+# A card that is not eighteen whole holes is not read at all, rather than read
+# into something with gaps: the columns can only be told apart — which is par,
+# which is the index, which is a tee — by having all eighteen to look at.
 short = rows_are_holes().replace("<tr><td>18</td>", "<tr><td>99</td>")
-ok('a card of seventeen holes', CA.verdict(read(short)[0]), 'a par is missing')
+ok('a card of seventeen holes is not read', read(short), [])
 ok('a page with no card at all', read('<html><p>no tables here</p></html>'), [])
 
 print('\nwhat it would write')
