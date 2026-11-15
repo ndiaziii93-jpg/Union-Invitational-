@@ -481,6 +481,162 @@ export function dials(T, pid, today) {
 /* ---------- exports ---------- */
 
 const cell = v => { const s = v == null ? '' : String(v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+/* ---------- the player card ----------
+   Everything the card shows is read off the cards already in the book: the
+   gross on every hole, that hole's par and stroke index, and the handicap the
+   card was played off. Nobody types a figure for this.
+
+   Only finished, posted cards count, exactly as the Union handicap counts
+   them, so the two can never disagree about how many rounds somebody has
+   played. */
+
+/** Scale a reading onto 0..99 between two anchors, so the five attributes can
+ *  be read against each other and against somebody else's card. */
+const cap99 = (v, lo, hi) => Math.max(1, Math.min(99, Math.round(((v - lo) / (hi - lo)) * 99)));
+const mean = xs => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0);
+const r1 = n => Math.round(n * 10) / 10;
+
+/** How many finished cards a player must have before the card says anything
+ *  about what kind of golfer they are. Two rounds is a mood, not a shape. */
+export const CARD_MIN = 3;
+
+export function playerStats(T, pid, today) {
+  const p = person(T, pid) || {};
+  const got = stops(T)
+    .map(s => ({ stop: s, card: cardOf(T, s.id, pid) }))
+    .filter(x => x.card && x.card.done && cardTotals(x.card).thru === 18);
+
+  const out = {
+    pid, name: p.display || p.name || '', cards: got.length, ready: got.length >= CARD_MIN,
+    form: [], byPar: [], bySi: [], nine: [], perHole: [], banker: null, nemesis: null,
+    counts: { blanks: 0, netPar: 0, bonus: 0, capped: 0, run: 0, holes: 0 },
+    marks: { avg: 0, opening: 0, closing: 0 }, attrs: null,
+    hcp: { band: p.band == null ? null : +p.band, now: null, from: 'none', n: 0 },
+    record: { played: 0, wins: 0, podiums: 0, best: null, merit: 0, meritPos: null, meritOf: 0 },
+    h2h: [], courses: [],
+  };
+  const u = unionHcp(T, pid, today);
+  out.hcp = { band: p.band == null ? null : +p.band, now: u.hcp, from: u.from, n: u.n,
+    playing: u.hcp == null ? null : Math.round(u.hcp) };
+
+  /* the record: where the finished stops left him */
+  const closed = closedStops(T, today);
+  for (const s of closed) {
+    const row = stopBoard(T, s.id).find(r => r.pid === pid);
+    if (!row) continue;
+    out.record.played++;
+    if (row.pos === 1) out.record.wins++;
+    if (row.pos <= 3) out.record.podiums++;
+    if (out.record.best == null || row.pos < out.record.best) out.record.best = row.pos;
+  }
+  const mrows = merit(T, today);
+  const mine = mrows.find(r => r.pid === pid);
+  out.record.merit = mine ? mine.pts : 0;
+  out.record.meritPos = mine ? mine.pos : null;
+  out.record.meritOf = mrows.length;
+
+  if (!got.length) return out;
+
+  /* the last six, newest last, with what each was worth off the handicap:
+     thirty-six points is playing to it exactly */
+  out.form = got.slice(-6).map(x => {
+    const t = cardTotals(x.card);
+    return { stop: x.stop.id, name: x.stop.name, pts: t.pts, off: t.pts - 36, at: x.card.at || null };
+  });
+
+  /* every hole of every card, flattened once and read many ways */
+  const all = [];
+  const seen = [];
+  for (const x of got) {
+    const nm = (x.card.course && x.card.course.name) || '';
+    if (nm && seen.indexOf(nm) < 0) seen.push(nm);
+    for (let h = 0; h < 18; h++) {
+      const pts = holePts(x.card, h);
+      if (pts == null) continue;
+      const hole = x.card.course.holes[h];
+      all.push({ h, par: +hole.par, si: +hole.si, raw: x.card.raw[h], pts });
+    }
+  }
+  out.courses = seen;
+  if (!all.length) return out;
+
+  const where = f => all.filter(f);
+  const ptsWhere = f => r1(mean(where(f).map(x => x.pts)));
+  const overWhere = f => r1(mean(where(f).map(x => x.raw - x.par)));
+  const avg = mean(all.map(x => x.pts));
+
+  out.byPar = [3, 4, 5].map(par => ({ par, n: where(x => x.par === par).length,
+    over: overWhere(x => x.par === par), pts: ptsWhere(x => x.par === par) }))
+    .filter(r => r.n);
+  out.bySi = [[1, 6, 'the hard six'], [7, 12, 'the middle six'], [13, 18, 'the gentle six']]
+    .map(([a, b, label]) => ({ a, b, label, pts: ptsWhere(x => x.si >= a && x.si <= b),
+      over: overWhere(x => x.si >= a && x.si <= b) }));
+  out.nine = [['Front', 0, 8], ['Back', 9, 17]].map(([label, a, b]) => ({ label,
+    pts: r1(mean(got.map(x => { let t = 0; for (let h = a; h <= b; h++) t += (holePts(x.card, h) || 0); return t; }))) }));
+  out.marks = { avg: r1(avg), opening: ptsWhere(x => x.h <= 2), closing: ptsWhere(x => x.h >= 15) };
+
+  out.counts.holes = all.length;
+  out.counts.blanks = where(x => x.pts === 0).length;
+  out.counts.netPar = where(x => x.pts === 2).length;
+  out.counts.bonus = where(x => x.pts >= 3).length;
+  out.counts.capped = where(x => x.raw === capFor(x.par)).length;
+  let best = 0;
+  for (const x of got) { let run = 0;
+    for (let h = 0; h < 18; h++) { if ((holePts(x.card, h) || 0) > 0) { run++; if (run > best) best = run; } else run = 0; } }
+  out.counts.run = best;
+
+  /* The banker and the nemesis are about a particular hole, so they mean
+     nothing once the cards come from more than one course: the 8th at one
+     club is not the 8th at another. */
+  out.perHole = Array.from({ length: 18 }, (_, h) => {
+    const rows = where(x => x.h === h);
+    const any = rows[0];
+    return { n: h + 1, par: any ? any.par : null, si: any ? any.si : null, played: rows.length,
+      pts: r1(mean(rows.map(x => x.pts))), over: r1(mean(rows.map(x => x.raw - x.par))) };
+  });
+  if (seen.length === 1) {
+    const enough = out.perHole.filter(x => x.played >= CARD_MIN);
+    if (enough.length) {
+      out.banker = enough.slice().sort((a, b) => b.pts - a.pts || a.n - b.n)[0];
+      out.nemesis = enough.slice().sort((a, b) => a.pts - b.pts || a.n - b.n)[0];
+    }
+  }
+
+  /* the five, each one a reading of the holes above and nothing else */
+  if (out.ready) {
+    const share = n => n / all.length;
+    out.attrs = [
+      { k: 'Grind', v: cap99(out.bySi[0].pts, 0.6, 2.6),
+        of: 'points a hole on stroke index 1 to 6', raw: out.bySi[0].pts + ' pts' },
+      { k: 'Nerve', v: cap99(out.marks.closing - avg, -1.0, 0.6),
+        of: 'points on 16, 17 and 18 against his own average',
+        raw: (out.marks.closing >= avg ? '+' : '') + r1(out.marks.closing - avg) + ' pts' },
+      { k: 'Fireworks', v: cap99(share(out.counts.bonus), 0.05, 0.35),
+        of: 'share of holes worth three points or more', raw: out.counts.bonus + ' holes' },
+      { k: 'Metronome', v: cap99(share(out.counts.netPar), 0.15, 0.50),
+        of: 'share of holes at exactly two points', raw: out.counts.netPar + ' holes' },
+      { k: 'Damage', v: 100 - cap99(share(out.counts.blanks), 0.05, 0.42),
+        of: 'blank holes, counted the other way up', raw: out.counts.blanks + ' blanks' },
+    ];
+  }
+
+  /* head to head: only stops where both of them posted a finished card */
+  const mineBy = {};
+  got.forEach(x => { mineBy[x.stop.id] = cardTotals(x.card).pts; });
+  out.h2h = golfers(T).filter(g => g.id !== pid).map(g => {
+    let w = 0, l = 0, d = 0;
+    for (const sid of Object.keys(mineBy)) {
+      const c = cardOf(T, sid, g.id);
+      if (!c || !c.done || cardTotals(c).thru !== 18) continue;
+      const them = cardTotals(c).pts;
+      if (mineBy[sid] > them) w++; else if (mineBy[sid] < them) l++; else d++;
+    }
+    return { pid: g.id, name: g.display || g.name, w, l, d, n: w + l + d };
+  }).filter(x => x.n).sort((a, b) => (b.w - b.l) - (a.w - a.l) || b.n - a.n || a.name.localeCompare(b.name));
+
+  return out;
+}
+
 export const csv = rows => rows.map(r => r.map(cell).join(',')).join('\n') + '\n';
 
 export function csvHeadcount(T) {

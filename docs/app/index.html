@@ -5724,22 +5724,146 @@ h2.greet small{display:block;font-size:14px;color:var(--turf);font-weight:400;fo
      ending underneath him */
   html.clubseason .wrap{padding-bottom:calc(162px + env(safe-area-inset-bottom,0px))}
 }
-/* The tablet size is held behind a width as well as the class: a phone that
+/* A phone has no room to give him, so there he steps aside. A tablet and a
+   laptop do: the page keeps a column clear down its right-hand side and he
+   stands in it at a size you can actually see, all the time. Nothing ever
+   runs under him there, so he never has to hide.
+
+   The tablet size is held behind a width as well as the class: a phone that
    reports a coarse pointer must not be given a tablet's mascot. */
 @media (min-width:700px){
-  html.tablet .caddie{height:120px;bottom:calc(64px + env(safe-area-inset-bottom,0px));
+  html.clubseason .wrap{padding-right:154px}
+  html.clubseason .caddie{height:176px}
+  /* the column is his: no stepping aside where there is room */
+  html.clubseason .caddie.peek .cadin{translate:none;scale:1;rotate:0deg}
+  html.tablet.clubseason .caddie{bottom:calc(66px + env(safe-area-inset-bottom,0px));
     transform:translateY(var(--barshift,0px))}
-  html.tablet.clubseason .wrap{padding-bottom:calc(var(--barh) + 142px)}
+  html.tablet.clubseason .wrap{padding-bottom:calc(var(--barh) + 48px)}
 }
 @media (min-width:1100px){
-  html.clubseason:not(.tablet) .caddie{height:148px;bottom:14px;right:10px}
-  html.clubseason:not(.tablet) .wrap{padding-bottom:182px}
+  html.clubseason:not(.tablet) .caddie{height:232px;bottom:14px;right:14px}
+  html.clubseason:not(.tablet) .wrap{padding-right:192px;padding-bottom:52px}
 }
 /* The one line on the page that runs right to the edge is the status bar at
    the foot, and it is the one thing he cannot step clear of — so the page
    leaves him the lane instead. */
 html.clubseason .statusbar{padding-right:40px}
 @media (prefers-reduced-motion:reduce){ .caddie img,.cadin::after{animation:none} }
+
+/* ================= THE PLAYER CARD =================
+   Two sides of one card. Both faces sit in the same grid cell so the card is
+   as tall as the taller of them, and each is turned away from the viewer by
+   its own rotation: without `backface-visibility` they would both draw at
+   once, and without `position:relative` the turn button would hang off
+   whatever is positioned further up the page. */
+.pcmodal{max-width:384px;width:100%;background:none;box-shadow:none;padding:0;overflow:visible}
+.pc-flip{perspective:1500px;width:100%}
+.pc-in{display:grid;position:relative;transform-style:preserve-3d;
+  transition:transform .62s cubic-bezier(.2,.8,.3,1)}
+.pc-face{grid-area:1/1;position:relative;display:flex;flex-direction:column;
+  backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  border-radius:18px;overflow:hidden;box-shadow:0 18px 44px rgba(0,0,0,.45)}
+.pc-front{transform:translateZ(1px)}
+.pc-back{transform:rotateY(180deg) translateZ(1px)}
+.pc-flip.on .pc-in{transform:rotateY(180deg)}
+@media (prefers-reduced-motion:reduce){ .pc-in{transition:none} }
+.pc-turn{position:absolute;right:10px;bottom:10px;z-index:4;display:flex;align-items:center;gap:5px;
+  background:rgba(29,46,33,.80);color:var(--onpine);border:0;border-radius:999px;padding:5px 10px;
+  font:inherit;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;cursor:pointer}
+/* The card carries its own small-caps label: the app's own `.ck` is only
+   dressed inside a few blocks, so a bare one here would come out at body
+   size. */
+.pc-k{display:block;font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;line-height:1.3}
+.pc-close{display:block;margin:12px auto 0}
+
+/* ---- the front ---- */
+.pc-front{background:linear-gradient(176deg,#24382A 0%,#19281D 60%,#1D2E21 100%);
+  border:1px solid rgba(226,194,119,.42);color:var(--onpine)}
+.pc-hd{display:flex;align-items:flex-start;gap:10px;padding:12px 13px 8px;
+  background:linear-gradient(180deg,rgba(226,194,119,.14),rgba(226,194,119,0))}
+.pc-hd .who{flex:1;min-width:0}
+.pc-hd .pc-k{color:var(--gold-up)}
+.pc-hd h3{margin:1px 0 0;font-size:23px;font-weight:900;line-height:1.05;letter-spacing:-.01em;color:#F4EFDF}
+.pc-hd .meta{font-size:11px;color:var(--sage-up);margin-top:2px}
+.pc-hcp{flex:0 0 auto;width:52px;height:52px;border-radius:50%;border:2px solid var(--gold-up);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(226,194,119,.10)}
+.pc-hcp b{font-size:21px;font-weight:900;color:var(--gold-up);line-height:1}
+.pc-hcp span{font-size:7.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--sage-up)}
+/* The rays light him rather than compete with him: a shallow fan from under
+   his feet, well under half the strength of the drawing itself. */
+.pc-port{position:relative;overflow:hidden;flex:1 1 auto;min-height:172px;
+  display:flex;align-items:flex-end;justify-content:center;
+  background:radial-gradient(130% 92% at 50% 108%,#2E4833 0%,#21341F 54%,#1A281C 100%)}
+.pc-rays{position:absolute;inset:0;pointer-events:none}
+.pc-rays::before{content:"";position:absolute;inset:-20%;
+  background:repeating-conic-gradient(from 0deg at 50% 92%,
+    rgba(226,194,119,.19) 0deg 4.5deg, rgba(226,194,119,0) 4.5deg 15deg)}
+.pc-rays::after{content:"";position:absolute;inset:0;
+  background:radial-gradient(66% 54% at 50% 92%,rgba(226,194,119,.16),rgba(226,194,119,0) 74%)}
+.pc-port img{position:relative;display:block;width:min(150px,46%);height:auto;
+  filter:drop-shadow(0 9px 12px rgba(16,22,17,.45))}
+.pc-flash{position:absolute;left:11px;top:11px;z-index:2;background:var(--flag);color:#FBF3E8;
+  border-radius:4px;padding:3px 7px;font-size:9px;letter-spacing:.11em;text-transform:uppercase;font-weight:700}
+.pc-sheet{background:var(--page);color:var(--ink);padding:9px 12px 40px}
+.pc-sixhd{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.pc-sixhd .pc-k{color:var(--turf)}
+.pc-sixhd .hint{font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--turf);font-weight:700;opacity:.8}
+.pc-six{display:flex;gap:4px;margin:4px 0 2px}
+.pc-box{flex:1;min-width:0;border:1px solid var(--rule);border-radius:4px;background:rgba(255,255,255,.34);
+  color:var(--ink);font:inherit;font-size:12.5px;font-weight:700;padding:5px 0 3px;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:1px;
+  transition:background .18s ease,color .18s ease,border-color .18s ease}
+.pc-box .cap{font-size:7.5px;letter-spacing:.09em;text-transform:uppercase;font-weight:700;color:var(--turf)}
+.pc-box.off{background:var(--pine);border-color:var(--pine);color:var(--gold-up)}
+.pc-box.off .cap{color:var(--sage-up)}
+.pc-box.off.up{color:#9EDC9E}
+.pc-box.off.down{color:#F0B5AA}
+.pc-tbl{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:4px}
+.pc-tbl th{text-align:left;font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:var(--turf);
+  font-weight:700;padding:6px 0 2px}
+.pc-tbl th.r{text-align:right}
+.pc-tbl td{padding:3px 0;border-top:1px solid rgba(29,46,33,.10)}
+.pc-tbl td.n{text-align:right;font-weight:700}
+.pc-tbl td.m{color:var(--turf);text-align:center}
+
+/* ---- the back ---- */
+.pc-back{background:var(--page);color:var(--ink)}
+.pc-top{display:grid;grid-template-columns:1.12fr .88fr;
+  background:radial-gradient(74% 58% at 36% 44%,#34502F 0%,#24382A 62%,#1D2E21 100%);color:var(--onpine)}
+.pc-webwrap{padding:8px 2px 6px 6px}
+.pc-web{display:block;width:100%;height:auto}
+.pc-pt{cursor:pointer}
+.pc-pt circle.hit{fill:transparent}
+.pc-pt circle.dot{fill:var(--gold);stroke:var(--pine);stroke-width:1;transition:r .18s ease,fill .18s ease}
+.pc-pt.on circle.dot{r:5.5;fill:#F3DFA8}
+.pc-cap{text-align:center;font-size:11.5px;min-height:32px;padding:2px 6px 0;line-height:1.3}
+.pc-cap b{font-weight:800;color:var(--gold-up)}
+.pc-cap i{font-style:normal;opacity:.72}
+.pc-h2h{padding:11px 11px 8px 6px;border-left:1px solid rgba(238,232,213,.14)}
+.pc-h2h .pc-k{color:var(--gold-up);margin-bottom:4px;display:block}
+.pc-h2h ul{margin:0;padding:0;list-style:none}
+.pc-h2h li{display:grid;grid-template-columns:1fr auto;gap:6px;font-size:11.5px;padding:3px 0;
+  border-top:1px solid rgba(238,232,213,.16);align-items:baseline}
+.pc-h2h li:first-child{border-top:0}
+.pc-h2h b{font-weight:800;font-size:12.5px}
+.pc-h2h b.w{color:#9EDC9E} .pc-h2h b.l{color:#F0B5AA}
+.pc-h2h .none{margin:0;font-size:11.5px;color:var(--sage-up)}
+.pc-pad{padding:8px 12px 10px;flex:1 1 auto}
+.pc-fun{margin:0;padding:0;list-style:none}
+.pc-fun li{display:grid;grid-template-columns:1fr auto;gap:10px;padding:5px 0;font-size:12.5px;
+  border-top:1px solid rgba(29,46,33,.12)}
+.pc-fun li:first-child{border-top:0}
+.pc-fun li b{font-weight:800;text-align:right;white-space:nowrap}
+.pc-fun li span i{font-style:normal;color:var(--turf);font-size:11px;display:block}
+.pc-verd{display:flex;gap:9px;align-items:flex-start;padding:9px 114px 9px 12px;background:#27402E}
+.pc-verd img{width:38px;height:auto;flex:0 0 38px}
+.pc-verd p{margin:0;font-size:12px;font-style:italic;color:#DCD6C2}
+.pc-verd p b{font-style:normal;color:var(--gold-up)}
+
+/* A name on any of the Season's tables is the way in to its card. */
+.pname{background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer;
+  text-align:left;border-bottom:1px dotted var(--rule)}
+.pname:hover{border-bottom-color:var(--turf)}
 
 /* ---- the pine rail, on a laptop ----
    Not on a tablet: a tablet holds the bar under the thumb, as a phone does,
@@ -6028,7 +6152,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261115-1116';
+const BUILD = '20261115-1317';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -12115,6 +12239,162 @@ function dials(T, pid, today) {
 /* ---------- exports ---------- */
 
 const cell = v => { const s = v == null ? '' : String(v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+/* ---------- the player card ----------
+   Everything the card shows is read off the cards already in the book: the
+   gross on every hole, that hole's par and stroke index, and the handicap the
+   card was played off. Nobody types a figure for this.
+
+   Only finished, posted cards count, exactly as the Union handicap counts
+   them, so the two can never disagree about how many rounds somebody has
+   played. */
+
+/** Scale a reading onto 0..99 between two anchors, so the five attributes can
+ *  be read against each other and against somebody else's card. */
+const cap99 = (v, lo, hi) => Math.max(1, Math.min(99, Math.round(((v - lo) / (hi - lo)) * 99)));
+const mean = xs => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0);
+const r1 = n => Math.round(n * 10) / 10;
+
+/** How many finished cards a player must have before the card says anything
+ *  about what kind of golfer they are. Two rounds is a mood, not a shape. */
+const CARD_MIN = 3;
+
+function playerStats(T, pid, today) {
+  const p = person(T, pid) || {};
+  const got = stops(T)
+    .map(s => ({ stop: s, card: cardOf(T, s.id, pid) }))
+    .filter(x => x.card && x.card.done && cardTotals(x.card).thru === 18);
+
+  const out = {
+    pid, name: p.display || p.name || '', cards: got.length, ready: got.length >= CARD_MIN,
+    form: [], byPar: [], bySi: [], nine: [], perHole: [], banker: null, nemesis: null,
+    counts: { blanks: 0, netPar: 0, bonus: 0, capped: 0, run: 0, holes: 0 },
+    marks: { avg: 0, opening: 0, closing: 0 }, attrs: null,
+    hcp: { band: p.band == null ? null : +p.band, now: null, from: 'none', n: 0 },
+    record: { played: 0, wins: 0, podiums: 0, best: null, merit: 0, meritPos: null, meritOf: 0 },
+    h2h: [], courses: [],
+  };
+  const u = unionHcp(T, pid, today);
+  out.hcp = { band: p.band == null ? null : +p.band, now: u.hcp, from: u.from, n: u.n,
+    playing: u.hcp == null ? null : Math.round(u.hcp) };
+
+  /* the record: where the finished stops left him */
+  const closed = closedStops(T, today);
+  for (const s of closed) {
+    const row = stopBoard(T, s.id).find(r => r.pid === pid);
+    if (!row) continue;
+    out.record.played++;
+    if (row.pos === 1) out.record.wins++;
+    if (row.pos <= 3) out.record.podiums++;
+    if (out.record.best == null || row.pos < out.record.best) out.record.best = row.pos;
+  }
+  const mrows = merit(T, today);
+  const mine = mrows.find(r => r.pid === pid);
+  out.record.merit = mine ? mine.pts : 0;
+  out.record.meritPos = mine ? mine.pos : null;
+  out.record.meritOf = mrows.length;
+
+  if (!got.length) return out;
+
+  /* the last six, newest last, with what each was worth off the handicap:
+     thirty-six points is playing to it exactly */
+  out.form = got.slice(-6).map(x => {
+    const t = cardTotals(x.card);
+    return { stop: x.stop.id, name: x.stop.name, pts: t.pts, off: t.pts - 36, at: x.card.at || null };
+  });
+
+  /* every hole of every card, flattened once and read many ways */
+  const all = [];
+  const seen = [];
+  for (const x of got) {
+    const nm = (x.card.course && x.card.course.name) || '';
+    if (nm && seen.indexOf(nm) < 0) seen.push(nm);
+    for (let h = 0; h < 18; h++) {
+      const pts = holePts(x.card, h);
+      if (pts == null) continue;
+      const hole = x.card.course.holes[h];
+      all.push({ h, par: +hole.par, si: +hole.si, raw: x.card.raw[h], pts });
+    }
+  }
+  out.courses = seen;
+  if (!all.length) return out;
+
+  const where = f => all.filter(f);
+  const ptsWhere = f => r1(mean(where(f).map(x => x.pts)));
+  const overWhere = f => r1(mean(where(f).map(x => x.raw - x.par)));
+  const avg = mean(all.map(x => x.pts));
+
+  out.byPar = [3, 4, 5].map(par => ({ par, n: where(x => x.par === par).length,
+    over: overWhere(x => x.par === par), pts: ptsWhere(x => x.par === par) }))
+    .filter(r => r.n);
+  out.bySi = [[1, 6, 'the hard six'], [7, 12, 'the middle six'], [13, 18, 'the gentle six']]
+    .map(([a, b, label]) => ({ a, b, label, pts: ptsWhere(x => x.si >= a && x.si <= b),
+      over: overWhere(x => x.si >= a && x.si <= b) }));
+  out.nine = [['Front', 0, 8], ['Back', 9, 17]].map(([label, a, b]) => ({ label,
+    pts: r1(mean(got.map(x => { let t = 0; for (let h = a; h <= b; h++) t += (holePts(x.card, h) || 0); return t; }))) }));
+  out.marks = { avg: r1(avg), opening: ptsWhere(x => x.h <= 2), closing: ptsWhere(x => x.h >= 15) };
+
+  out.counts.holes = all.length;
+  out.counts.blanks = where(x => x.pts === 0).length;
+  out.counts.netPar = where(x => x.pts === 2).length;
+  out.counts.bonus = where(x => x.pts >= 3).length;
+  out.counts.capped = where(x => x.raw === capFor(x.par)).length;
+  let best = 0;
+  for (const x of got) { let run = 0;
+    for (let h = 0; h < 18; h++) { if ((holePts(x.card, h) || 0) > 0) { run++; if (run > best) best = run; } else run = 0; } }
+  out.counts.run = best;
+
+  /* The banker and the nemesis are about a particular hole, so they mean
+     nothing once the cards come from more than one course: the 8th at one
+     club is not the 8th at another. */
+  out.perHole = Array.from({ length: 18 }, (_, h) => {
+    const rows = where(x => x.h === h);
+    const any = rows[0];
+    return { n: h + 1, par: any ? any.par : null, si: any ? any.si : null, played: rows.length,
+      pts: r1(mean(rows.map(x => x.pts))), over: r1(mean(rows.map(x => x.raw - x.par))) };
+  });
+  if (seen.length === 1) {
+    const enough = out.perHole.filter(x => x.played >= CARD_MIN);
+    if (enough.length) {
+      out.banker = enough.slice().sort((a, b) => b.pts - a.pts || a.n - b.n)[0];
+      out.nemesis = enough.slice().sort((a, b) => a.pts - b.pts || a.n - b.n)[0];
+    }
+  }
+
+  /* the five, each one a reading of the holes above and nothing else */
+  if (out.ready) {
+    const share = n => n / all.length;
+    out.attrs = [
+      { k: 'Grind', v: cap99(out.bySi[0].pts, 0.6, 2.6),
+        of: 'points a hole on stroke index 1 to 6', raw: out.bySi[0].pts + ' pts' },
+      { k: 'Nerve', v: cap99(out.marks.closing - avg, -1.0, 0.6),
+        of: 'points on 16, 17 and 18 against his own average',
+        raw: (out.marks.closing >= avg ? '+' : '') + r1(out.marks.closing - avg) + ' pts' },
+      { k: 'Fireworks', v: cap99(share(out.counts.bonus), 0.05, 0.35),
+        of: 'share of holes worth three points or more', raw: out.counts.bonus + ' holes' },
+      { k: 'Metronome', v: cap99(share(out.counts.netPar), 0.15, 0.50),
+        of: 'share of holes at exactly two points', raw: out.counts.netPar + ' holes' },
+      { k: 'Damage', v: 100 - cap99(share(out.counts.blanks), 0.05, 0.42),
+        of: 'blank holes, counted the other way up', raw: out.counts.blanks + ' blanks' },
+    ];
+  }
+
+  /* head to head: only stops where both of them posted a finished card */
+  const mineBy = {};
+  got.forEach(x => { mineBy[x.stop.id] = cardTotals(x.card).pts; });
+  out.h2h = golfers(T).filter(g => g.id !== pid).map(g => {
+    let w = 0, l = 0, d = 0;
+    for (const sid of Object.keys(mineBy)) {
+      const c = cardOf(T, sid, g.id);
+      if (!c || !c.done || cardTotals(c).thru !== 18) continue;
+      const them = cardTotals(c).pts;
+      if (mineBy[sid] > them) w++; else if (mineBy[sid] < them) l++; else d++;
+    }
+    return { pid: g.id, name: g.display || g.name, w, l, d, n: w + l + d };
+  }).filter(x => x.n).sort((a, b) => (b.w - b.l) - (a.w - a.l) || b.n - a.n || a.name.localeCompare(b.name));
+
+  return out;
+}
+
 const csv = rows => rows.map(r => r.map(cell).join(',')).join('\n') + '\n';
 
 function csvHeadcount(T) {
@@ -12144,7 +12424,7 @@ function csvTravel(T) {
   return csv(rows);
 }
 
-return {STOPS_SEED, PACKAGES_SEED, MERIT, VENDORS_SEED, seasonDefaults, season, phaseOf, frozen, isoToday, daysBetween, fmtDay, dowOf, stopState, stops, stopById, openStops, nextStop, closedStops, currentStop, golfers, everyone, person, COURSE_LIB, courseLibrary, courseFind, courseFrom, courseSlug, courseAsBook, blankCourse, courseOf, courseOk, coursePar, cardKey, cardOf, blankClubCard, capFor, holePts, cardTotals, stopBoard, stopWinner, merit, diffOf, unionHcp, playingOf, DIVISIONS, divisionOf, divisionLabel, signupOf, travelOf, moneyOf, packageOf, field, ledger, fmtMoney, lineOf, dials, csv, csvHeadcount, csvRooms, csvTravel};
+return {STOPS_SEED, PACKAGES_SEED, MERIT, VENDORS_SEED, seasonDefaults, season, phaseOf, frozen, isoToday, daysBetween, fmtDay, dowOf, stopState, stops, stopById, openStops, nextStop, closedStops, currentStop, golfers, everyone, person, COURSE_LIB, courseLibrary, courseFind, courseFrom, courseSlug, courseAsBook, blankCourse, courseOf, courseOk, coursePar, cardKey, cardOf, blankClubCard, capFor, holePts, cardTotals, stopBoard, stopWinner, merit, diffOf, unionHcp, playingOf, DIVISIONS, divisionOf, divisionLabel, signupOf, travelOf, moneyOf, packageOf, field, ledger, fmtMoney, lineOf, dials, CARD_MIN, playerStats, csv, csvHeadcount, csvRooms, csvTravel};
 })();
 
 const __m_dbsupa = (function(){
@@ -22492,6 +22772,176 @@ function scrSeason() {
   ${tab === 'stop' ? seasonStop() : tab === 'merit' ? seasonMerit() : tab === 'hcp' ? seasonHcp() : tab === 'awards' ? seasonAwards() : seasonArchive()}`;
 }
 
+/* ================= THE PLAYER CARD =================
+   Tap a name anywhere on the Season and you get the player's card: the golf
+   on the front, and on the back the web of what kind of golfer they are with
+   the stats worth saying out loud.
+
+   Nothing on it is typed in. Every figure comes out of the cards already in
+   the book, by way of `C.playerStats`, which reads them with the same
+   Stableford and the same stroke allocation the rest of the app uses.
+
+   The card is held in the window's own state rather than in the book: which
+   way up it is, which of the last six have been turned over, which point on
+   the web was last touched. None of that belongs to anybody but the person
+   holding the phone. */
+
+const pcFmtOff = n => (n === 0 ? 'E' : (n > 0 ? '+' : '−') + Math.abs(n));
+
+/** One word for the top-left of the card, taken from whatever stands out. */
+function pcTitle(st) {
+  const par5 = st.byPar.find(x => x.par === 5), par3 = st.byPar.find(x => x.par === 3);
+  const par4 = st.byPar.find(x => x.par === 4);
+  if (!st.ready) return 'New card';
+  if (par5 && par4 && par5.pts - par4.pts >= 0.4) return 'Par 5 merchant';
+  if (par3 && par4 && par3.pts - par4.pts >= 0.3) return 'Short game';
+  if (st.bySi[0].pts >= st.bySi[2].pts) return 'Grinder';
+  if (st.marks.closing > st.marks.avg + 0.15) return 'Closer';
+  if (st.counts.blanks / st.counts.holes < 0.08) return 'Safe hands';
+  return 'All rounder';
+}
+
+/** The caddie's line, picked by whatever the cards complain about loudest. */
+function pcVerdict(st) {
+  if (!st.ready) {
+    return 'Three cards before the caddie says anything. He has seen <b>' + st.cards +
+      '</b> so far and is keeping his counsel.';
+  }
+  const par3 = st.byPar.find(x => x.par === 3), par4 = st.byPar.find(x => x.par === 4);
+  const par5 = st.byPar.find(x => x.par === 5);
+  const blank = st.counts.blanks / st.counts.holes;
+  const fade = st.nine.length === 2 ? st.nine[0].pts - st.nine[1].pts : 0;
+  if (par3 && par4 && par4.pts - par3.pts >= 0.5) {
+    return 'Hands him a <b>5-iron</b> on anything short. ' + st.cards + ' cards, and the par 3s have taken ' +
+      '<b>' + (Math.round(par3.over * 10) / 10) + ' a hole</b> off him every time.';
+  }
+  if (fade >= 1.5) {
+    return 'Hides the <b>driver</b> after the turn. The back nine is worth <b>' + (Math.round(fade * 10) / 10) +
+      ' points less</b> than the front, every card, without fail.';
+  }
+  if (blank >= 0.15) {
+    return '<b>' + st.counts.blanks + ' blanks</b> in ' + st.counts.holes + ' holes. The caddie has stopped ' +
+      'cleaning the ball and started cleaning the sand wedge.';
+  }
+  if (par5 && par4 && par5.pts - par4.pts >= 0.4) {
+    return 'Walks faster on a <b>par 5</b>. They pay him <b>' + (Math.round(par5.pts * 10) / 10) +
+      ' points a hole</b> and he knows it.';
+  }
+  if (st.counts.run >= 12) {
+    return '<b>' + st.counts.run + ' holes</b> in a row without a blank. The caddie would like it known that ' +
+      'he carried the bag for all of them.';
+  }
+  return 'Nothing to complain about, which the caddie finds suspicious. ' +
+    '<b>' + st.marks.avg + ' points a hole</b> across ' + st.cards + ' cards.';
+}
+
+/** The web: five spokes, nothing written round them, every point a target. */
+function pcWeb(st, sel) {
+  const vals = st.attrs ? st.attrs.map(a => a.v) : [0, 0, 0, 0, 0];
+  const n = vals.length, cx = 100, cy = 98, R = 62;
+  const ink = 'rgba(238,232,213,.26)';
+  const P = (v, k) => { const ang = -Math.PI / 2 + k * 2 * Math.PI / n;
+    return [cx + Math.cos(ang) * R * v, cy + Math.sin(ang) * R * v]; };
+  let out = '';
+  for (let ring = 1; ring <= 4; ring++) {
+    const pt = [];
+    for (let i = 0; i < n; i++) pt.push(P(ring / 4, i).map(x => x.toFixed(1)).join(','));
+    out += `<polygon points="${pt.join(' ')}" fill="none" stroke="${ink}" stroke-width="1"/>`;
+  }
+  for (let i = 0; i < n; i++) { const a = P(1, i);
+    out += `<line x1="${cx}" y1="${cy}" x2="${a[0].toFixed(1)}" y2="${a[1].toFixed(1)}" stroke="${ink}"/>`; }
+  if (st.attrs) {
+    const pt = [];
+    for (let i = 0; i < n; i++) pt.push(P(vals[i] / 100, i).map(x => x.toFixed(1)).join(','));
+    out += `<polygon points="${pt.join(' ')}" fill="rgba(201,162,83,.28)" stroke="#E2C277" stroke-width="2" stroke-linejoin="round"/>`;
+    for (let i = 0; i < n; i++) {
+      const a = P(vals[i] / 100, i);
+      out += `<g class="pc-pt${sel === i ? ' on' : ''}" data-act="pcPt" data-a="${i}" role="button" tabindex="0"
+        data-k="${esc(st.attrs[i].k)}" data-v="${st.attrs[i].v}" data-of="${esc(st.attrs[i].of)}"
+        aria-label="${esc(st.attrs[i].k)}, ${st.attrs[i].v} out of 99">
+        <circle class="hit" cx="${a[0].toFixed(1)}" cy="${a[1].toFixed(1)}" r="15"/>
+        <circle class="dot" cx="${a[0].toFixed(1)}" cy="${a[1].toFixed(1)}" r="3.6"/></g>`;
+    }
+  }
+  return `<svg class="pc-web" viewBox="0 0 200 196" role="img"
+    aria-label="Five attributes, unlabelled — touch a point to read it">${out}</svg>`;
+}
+
+function playerCardHtml() {
+  const m = UI.modal || {};
+  const today = todayIso();
+  const st = C.playerStats(T, m.pid, today);
+  const stop = C.stopById(T, UI.stopId) || C.openStops(T, today)[0] || C.currentStop(T, today);
+  const face = mascotFor(stop);
+  const sel = m.pt == null ? null : +m.pt;
+  /* The season's name is already on every screen behind this window; the card
+     takes the year instead, which is short enough not to wrap the line. */
+  const yr = ((C.season(T).window || {}).from || '').slice(0, 4);
+  const off = m.off || {};
+
+  const six = st.form.length
+    ? `<div class="pc-sixhd"><span class="pc-k">The last six</span><span class="hint">tap a card</span></div>
+       <div class="pc-six">${st.form.map((f, i) => {
+         const on = !!off[i];
+         const dir = f.off > 0 ? ' up' : f.off < 0 ? ' down' : '';
+         return `<button class="pc-box num${on ? ' off' + dir : ''}" data-act="pcBox" data-a="${i}"
+           data-p="${f.pts}" data-o="${pcFmtOff(f.off)}" data-d="${dir.trim()}"
+           aria-label="${esc(f.name)}: ${f.pts} points, ${f.off === 0 ? 'level with' : f.off > 0 ? f.off + ' better than' : Math.abs(f.off) + ' worse than'} his handicap">${
+           on ? pcFmtOff(f.off) : f.pts}<span class="cap">${on ? 'off hcp' : 'pts'}</span></button>`;
+       }).join('')}</div>`
+    : '';
+
+  const rows = (head, list) => `<tr><th>${head}</th><th></th><th class="r">Pts</th></tr>` + list;
+  const byPar = st.byPar.map(x => `<tr><td>Par ${x.par}</td><td class="m num">${x.over > 0 ? '+' : ''}${x.over.toFixed(1)}</td><td class="n num">${x.pts.toFixed(1)}</td></tr>`).join('');
+  const bySi = st.bySi.map(x => `<tr><td>${esc(x.label.replace(/^the /, 'The '))}</td><td class="m num">SI ${x.a}–${x.b}</td><td class="n num">${x.pts.toFixed(1)}</td></tr>`).join('');
+
+  const fun = [];
+  if (st.banker) fun.push(['The banker', 'hole ' + st.banker.n + ', a par ' + st.banker.par + ' — ' + st.banker.pts.toFixed(1) + ' points a go', 'Hole ' + st.banker.n]);
+  if (st.nemesis) fun.push(['The nemesis', 'hole ' + st.nemesis.n + ', a par ' + st.nemesis.par + ' — ' + st.nemesis.over.toFixed(1) + ' over, every time', 'Hole ' + st.nemesis.n]);
+  if (st.counts.run) fun.push(['Longest streak', st.counts.run + ' holes without a blank', st.counts.run]);
+  fun.push(['Blanks', st.counts.blanks + ' in ' + st.counts.holes + ' holes (' + Math.round(st.counts.blanks / st.counts.holes * 100) + '%)', st.counts.blanks]);
+  if (st.nine.length === 2) {
+    /* The figure is how far apart the nines are; the word says which way
+       round. A minus sign and the word "better" together read as a riddle. */
+    const gap = Math.round(Math.abs(st.nine[0].pts - st.nine[1].pts) * 10) / 10;
+    fun.push(['Front against back', st.nine[0].pts.toFixed(1) + ' out, ' + st.nine[1].pts.toFixed(1) + ' home',
+      gap === 0 ? 'level' : gap + (st.nine[0].pts > st.nine[1].pts ? ' worse home' : ' better home')]);
+  }
+  if (st.hcp.band != null && st.hcp.now != null) fun.push(['Handicap', 'band ' + st.hcp.band + ' at the start, ' + st.cards + ' card' + (st.cards === 1 ? '' : 's') + ' later', st.hcp.band + ' → ' + st.hcp.now]);
+
+  const capLine = sel != null && st.attrs
+    ? `<b>${esc(st.attrs[sel].k)} ${st.attrs[sel].v}</b> <i>· ${esc(st.attrs[sel].of)}</i>`
+    : st.attrs ? '<i>Touch a point</i>' : `<i>${C.CARD_MIN - st.cards} more card${C.CARD_MIN - st.cards === 1 ? '' : 's'} and the web fills in</i>`;
+
+  const front = `<div class="pc-face pc-front">
+    <button class="pc-turn" data-act="pcTurn" aria-label="Turn the card over">↺ Turn over</button>
+    <div class="pc-hd"><div class="who"><div class="pc-k">The Union Invitational${yr ? ' · ' + yr : ''}</div>
+      <h3>${esc(st.name)}</h3>
+      <div class="meta num">${esc(st.courses[0] || 'No card yet')}${st.cards ? ' · ' + st.cards + ' card' + (st.cards === 1 ? '' : 's') : ''}${st.record.meritPos ? ' · ' + ordinal(st.record.meritPos) + ' of ' + st.record.meritOf : ''}</div></div>
+      <div class="pc-hcp"><b class="num">${st.hcp.playing == null ? '—' : st.hcp.playing}</b><span>Union</span></div></div>
+    <div class="pc-port"><span class="pc-flash">${esc(pcTitle(st))}</span><span class="pc-rays"></span>
+      ${face ? `<img src="${face}" alt="" aria-hidden="true">` : ''}</div>
+    <div class="pc-sheet">${six}
+      ${st.byPar.length ? `<table class="pc-tbl">${rows('By length', byPar)}${rows('By index', bySi)}</table>`
+        : `<p class="empty">No finished card yet. Post one and this fills in.</p>`}</div></div>`;
+
+  const back = `<div class="pc-face pc-back">
+    <button class="pc-turn" data-act="pcTurn" aria-label="Turn the card over">↺ Turn over</button>
+    <div class="pc-top"><div class="pc-webwrap">${pcWeb(st, sel)}<div class="pc-cap">${capLine}</div></div>
+      <div class="pc-h2h"><div class="pc-k">Head to head</div>${st.h2h.length
+        ? `<ul>${st.h2h.slice(0, 6).map(x => `<li><span>${esc(x.name)}</span><b class="num ${x.w > x.l ? 'w' : x.w < x.l ? 'l' : ''}">${x.w}–${x.l}</b></li>`).join('')}</ul>`
+        : '<p class="none">Nobody has played the same stop yet.</p>'}</div></div>
+    <div class="pc-pad">${fun.length ? `<ul class="pc-fun">${fun.map(f =>
+      `<li><span>${esc(f[0])}<i>${esc(f[1])}</i></span><b>${esc(String(f[2]))}</b></li>`).join('')}</ul>` : ''}</div>
+    <div class="pc-verd">${face ? `<img src="${face}" alt="" aria-hidden="true">` : ''}<p>${pcVerdict(st)}</p></div></div>`;
+
+  return `<div class="scrim" data-act="modalScrim"><div class="modal pcmodal" role="dialog" aria-modal="true"
+    aria-label="${esc(st.name)}, player card">
+    <div class="pc-flip${m.back ? ' on' : ''}"><div class="pc-in">${front}${back}</div></div>
+    <button class="btn ghost pc-close" data-act="modalCancel">Close</button>
+  </div></div>`;
+}
+
 function stopChips(sel) {
   const today = todayIso();
   return `<div class="chiprow stopchips">${C.stops(T).map(s => { const st = C.stopState(s, today);
@@ -22500,7 +22950,7 @@ function stopChips(sel) {
 function boardTable(rows, opt) {
   if (!rows.length) return `<p class="empty">${opt && opt.empty || 'No cards yet.'}</p>`;
   return `<div class="ctblwrap nos"><table class="ctbl${opt && opt.mini ? ' mini' : ''}"><thead><tr><th>Pos</th><th>Golfer</th><th class="co">Course</th><th class="r">Thru</th><th class="r">Pts</th></tr></thead><tbody>
-    ${rows.map(r => `<tr class="${r.pos === 1 ? 'top' : ''}${r.pid === myPid() ? ' me' : ''}"><td class="num">${r.tie ? 'T' : ''}${r.pos}</td><td>${esc(r.name)}${r.done ? '' : ' <small>in play</small>'}</td><td class="muted co">${esc(r.course || '')}</td><td class="r num">${r.thru === 18 ? 'F' : r.thru}</td><td class="r num"><b>${r.pts}</b></td></tr>`).join('')}
+    ${rows.map(r => `<tr class="${r.pos === 1 ? 'top' : ''}${r.pid === myPid() ? ' me' : ''}"><td class="num">${r.tie ? 'T' : ''}${r.pos}</td><td><button class="pname" data-act="pcard" data-a="${r.pid}">${esc(r.name)}</button>${r.done ? '' : ' <small>in play</small>'}</td><td class="muted co">${esc(r.course || '')}</td><td class="r num">${r.thru === 18 ? 'F' : r.thru}</td><td class="r num"><b>${r.pts}</b></td></tr>`).join('')}
   </tbody></table></div>`;
 }
 function seasonStop() {
@@ -22518,7 +22968,7 @@ function seasonMerit() {
   const n = C.closedStops(T, todayIso()).length;
   return `<h3 class="sub">Order of Merit · after ${n} stop${n === 1 ? '' : 's'}</h3>
   ${rows.length ? `<div class="ctblwrap nos"><table class="ctbl"><thead><tr><th>Pos</th><th>Golfer</th><th class="r">Played</th><th class="r">Wins</th><th class="r">Pts</th></tr></thead><tbody>
-    ${rows.map(r => `<tr class="${r.pos === 1 ? 'top' : ''}${r.pid === myPid() ? ' me' : ''}"><td class="num">${r.pos}</td><td>${esc(r.name)}</td><td class="r num">${r.played}</td><td class="r num">${r.wins}</td><td class="r num"><b>${r.pts}</b></td></tr>`).join('')}</tbody></table></div>`
+    ${rows.map(r => `<tr class="${r.pos === 1 ? 'top' : ''}${r.pid === myPid() ? ' me' : ''}"><td class="num">${r.pos}</td><td><button class="pname" data-act="pcard" data-a="${r.pid}">${esc(r.name)}</button></td><td class="r num">${r.played}</td><td class="r num">${r.wins}</td><td class="r num"><b>${r.pts}</b></td></tr>`).join('')}</tbody></table></div>`
     : `<p class="empty">The first stop pays its places when it closes.</p>`}
   <p class="legend">A stop pays ${C.MERIT.slice(0, 4).join(', ')}… down the places. The Order of Merit is the season’s own honour, crowned in Vegas.</p>`;
 }
@@ -22528,7 +22978,7 @@ function seasonHcp() {
   return `<h3 class="sub">The Union handicap</h3>
   <div class="ctblwrap nos"><table class="ctbl"><thead><tr><th>Golfer</th><th class="r">Belek</th><th class="r">Union</th><th class="r">Cards</th><th>Since Belek</th></tr></thead><tbody>
     ${rows.map(({ g, u }) => { const seed = g.band == null ? null : +g.band; const move = u.from === 'season' && seed != null ? Math.round((u.hcp - seed) * 10) / 10 : null;
-      return `<tr class="${g.id === myPid() ? 'me' : ''}"><td>${esc(g.display)}</td><td class="r num">${seed == null ? '—' : seed}</td><td class="r num"><b>${u.hcp == null ? '—' : u.hcp}</b></td><td class="r num">${u.n}</td><td class="${move == null ? 'muted' : move < 0 ? 'good' : 'bad'}">${move == null ? (u.need ? u.need + ' more card' + (u.need === 1 ? '' : 's') : '—') : (move < 0 ? '▼ ' : '▲ ') + Math.abs(move)}</td></tr>`; }).join('')}
+      return `<tr class="${g.id === myPid() ? 'me' : ''}"><td><button class="pname" data-act="pcard" data-a="${g.id}">${esc(g.display)}</button></td><td class="r num">${seed == null ? '—' : seed}</td><td class="r num"><b>${u.hcp == null ? '—' : u.hcp}</b></td><td class="r num">${u.n}</td><td class="${move == null ? 'muted' : move < 0 ? 'good' : 'bad'}">${move == null ? (u.need ? u.need + ' more card' + (u.need === 1 ? '' : 's') : '—') : (move < 0 ? '▼ ' : '▲ ') + Math.abs(move)}</td></tr>`; }).join('')}
   </tbody></table></div>
   <p class="legend">Seeded by the Belek band. Each finished card leaves a differential; from three cards the handicap is the best three of the last six, at 96%. The week’s bands lock a month before Vegas.</p>`;
 }
@@ -22885,6 +23335,9 @@ function caddieFit(el) {
      is over nothing at all. Wait for it rather than answer wrongly. */
   const img = e.querySelector('img');
   if (img && !img.complete) { img.addEventListener('load', () => caddieFit(), { once: true }); return; }
+  /* Above a phone's width the page keeps a column clear for him, so there is
+     nothing to step aside from and nothing to measure. */
+  if (typeof window !== 'undefined' && window.innerWidth >= 700) { e.classList.remove('peek'); return; }
   /* A mascot is never worth a thrown frame: if the measure goes wrong he
      simply stays where he is. */
   try { e.classList.toggle('peek', caddieBusy(e)); } catch (err) { /* leave him standing */ }
@@ -24924,6 +25377,7 @@ function modalHtml() {
        : UI.modal.kind === 'round' ? roundModalHtml()
        : UI.modal.kind === 'roundsheet' ? roundSheetHtml()
        : UI.modal.kind === 'daysheet' ? daySheetHtml()
+       : UI.modal.kind === 'pcard' ? playerCardHtml()
        : UI.modal.kind === 'art' ? artModalHtml()
        : UI.modal.kind === 'hours' ? hoursSheetHtml()
        : UI.modal.kind === 'rule' ? ruleModalHtml()
@@ -26734,6 +27188,48 @@ function onClick(e) {
         role => { if (role !== 'master') return; store.resetScores(); UI.screen = 'today'; });
       return;
 
+    /* ---- the player card ----
+       Turning the card, flipping a box and touching a point are all changes
+       to how the card is being LOOKED at, not to the book. They are made on
+       the element itself and mirrored into the window's state, so the flip
+       and the slide actually animate: a full redraw would replace the node
+       and the browser would have nothing to animate from. */
+    case 'pcard': UI.modal = { kind: 'pcard', pid: a, back: false, off: {}, pt: null }; break;
+    case 'pcTurn': {
+      if (!UI.modal || UI.modal.kind !== 'pcard') return;
+      UI.modal.back = !UI.modal.back;
+      const f = document.querySelector('.pc-flip');
+      if (f) f.classList.toggle('on', UI.modal.back); else render();
+      return;
+    }
+    case 'pcBox': {
+      if (!UI.modal || UI.modal.kind !== 'pcard') return;
+      const i = +a;
+      const off = UI.modal.off || (UI.modal.off = {});
+      off[i] = !off[i];
+      el.classList.toggle('off', off[i]);
+      el.classList.remove('up', 'down');
+      if (off[i] && el.dataset.d) el.classList.add(el.dataset.d);
+      el.innerHTML = (off[i] ? el.dataset.o : el.dataset.p) +
+        '<span class="cap">' + (off[i] ? 'off hcp' : 'pts') + '</span>';
+      return;
+    }
+    case 'pcPt': {
+      if (!UI.modal || UI.modal.kind !== 'pcard') return;
+      const i = +a;
+      const same = UI.modal.pt === i;
+      UI.modal.pt = same ? null : i;
+      const host = document.querySelector('.pc-back');
+      if (!host) { render(); return; }
+      Array.prototype.forEach.call(host.querySelectorAll('.pc-pt'), g => g.classList.remove('on'));
+      const cap = host.querySelector('.pc-cap');
+      if (same) { if (cap) cap.innerHTML = '<i>Touch a point</i>'; return; }
+      el.classList.add('on');
+      if (cap) cap.innerHTML = '<b>' + esc(el.dataset.k) + ' ' + esc(el.dataset.v) + '</b> <i>· ' +
+        esc(el.dataset.of) + '</i>';
+      return;
+    }
+
     case 'modalOk': submitPin(); return;
     case 'modalCancel': if (UI.modal && UI.modal.kind === 'bulk') bulkDrop(); closeModal(); break;
     case 'modalScrim': if (e.target.classList.contains('scrim')) { closeModal(); break; } return;
@@ -27603,7 +28099,7 @@ __m_app.boot();
 /* Register the worker that makes the book work with no signal. It is the
    whole point of installing it: Belek is five hours of walking and everyone
    is roaming. A failure here must never stop the page loading. */
-var BOOK_BUILD = '20261115-1116';
+var BOOK_BUILD = '20261115-1317';
 var swReg = null;
 /* the book is never shown inside somebody else's page, where a tap could be
    aimed at a button they have put under the finger */

@@ -5674,6 +5674,121 @@ h2.greet small{display:block;font-size:14px;color:var(--turf);font-weight:400;fo
 html.clubseason .statusbar{padding-right:40px}
 @media (prefers-reduced-motion:reduce){ .caddie img,.cadin::after{animation:none} }
 
+/* ================= THE PLAYER CARD =================
+   Two sides of one card. Both faces sit in the same grid cell so the card is
+   as tall as the taller of them, and each is turned away from the viewer by
+   its own rotation: without `backface-visibility` they would both draw at
+   once, and without `position:relative` the turn button would hang off
+   whatever is positioned further up the page. */
+.pcmodal{max-width:384px;width:100%;background:none;box-shadow:none;padding:0;overflow:visible}
+.pc-flip{perspective:1500px;width:100%}
+.pc-in{display:grid;position:relative;transform-style:preserve-3d;
+  transition:transform .62s cubic-bezier(.2,.8,.3,1)}
+.pc-face{grid-area:1/1;position:relative;display:flex;flex-direction:column;
+  backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  border-radius:18px;overflow:hidden;box-shadow:0 18px 44px rgba(0,0,0,.45)}
+.pc-front{transform:translateZ(1px)}
+.pc-back{transform:rotateY(180deg) translateZ(1px)}
+.pc-flip.on .pc-in{transform:rotateY(180deg)}
+@media (prefers-reduced-motion:reduce){ .pc-in{transition:none} }
+.pc-turn{position:absolute;right:10px;bottom:10px;z-index:4;display:flex;align-items:center;gap:5px;
+  background:rgba(29,46,33,.80);color:var(--onpine);border:0;border-radius:999px;padding:5px 10px;
+  font:inherit;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;cursor:pointer}
+/* The card carries its own small-caps label: the app's own `.ck` is only
+   dressed inside a few blocks, so a bare one here would come out at body
+   size. */
+.pc-k{display:block;font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;line-height:1.3}
+.pc-close{display:block;margin:12px auto 0}
+
+/* ---- the front ---- */
+.pc-front{background:linear-gradient(176deg,#24382A 0%,#19281D 60%,#1D2E21 100%);
+  border:1px solid rgba(226,194,119,.42);color:var(--onpine)}
+.pc-hd{display:flex;align-items:flex-start;gap:10px;padding:12px 13px 8px;
+  background:linear-gradient(180deg,rgba(226,194,119,.14),rgba(226,194,119,0))}
+.pc-hd .who{flex:1;min-width:0}
+.pc-hd .pc-k{color:var(--gold-up)}
+.pc-hd h3{margin:1px 0 0;font-size:23px;font-weight:900;line-height:1.05;letter-spacing:-.01em;color:#F4EFDF}
+.pc-hd .meta{font-size:11px;color:var(--sage-up);margin-top:2px}
+.pc-hcp{flex:0 0 auto;width:52px;height:52px;border-radius:50%;border:2px solid var(--gold-up);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(226,194,119,.10)}
+.pc-hcp b{font-size:21px;font-weight:900;color:var(--gold-up);line-height:1}
+.pc-hcp span{font-size:7.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--sage-up)}
+/* The rays light him rather than compete with him: a shallow fan from under
+   his feet, well under half the strength of the drawing itself. */
+.pc-port{position:relative;overflow:hidden;flex:1 1 auto;min-height:172px;
+  display:flex;align-items:flex-end;justify-content:center;
+  background:radial-gradient(130% 92% at 50% 108%,#2E4833 0%,#21341F 54%,#1A281C 100%)}
+.pc-rays{position:absolute;inset:0;pointer-events:none}
+.pc-rays::before{content:"";position:absolute;inset:-20%;
+  background:repeating-conic-gradient(from 0deg at 50% 92%,
+    rgba(226,194,119,.19) 0deg 4.5deg, rgba(226,194,119,0) 4.5deg 15deg)}
+.pc-rays::after{content:"";position:absolute;inset:0;
+  background:radial-gradient(66% 54% at 50% 92%,rgba(226,194,119,.16),rgba(226,194,119,0) 74%)}
+.pc-port img{position:relative;display:block;width:min(150px,46%);height:auto;
+  filter:drop-shadow(0 9px 12px rgba(16,22,17,.45))}
+.pc-flash{position:absolute;left:11px;top:11px;z-index:2;background:var(--flag);color:#FBF3E8;
+  border-radius:4px;padding:3px 7px;font-size:9px;letter-spacing:.11em;text-transform:uppercase;font-weight:700}
+.pc-sheet{background:var(--page);color:var(--ink);padding:9px 12px 40px}
+.pc-sixhd{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.pc-sixhd .pc-k{color:var(--turf)}
+.pc-sixhd .hint{font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--turf);font-weight:700;opacity:.8}
+.pc-six{display:flex;gap:4px;margin:4px 0 2px}
+.pc-box{flex:1;min-width:0;border:1px solid var(--rule);border-radius:4px;background:rgba(255,255,255,.34);
+  color:var(--ink);font:inherit;font-size:12.5px;font-weight:700;padding:5px 0 3px;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:1px;
+  transition:background .18s ease,color .18s ease,border-color .18s ease}
+.pc-box .cap{font-size:7.5px;letter-spacing:.09em;text-transform:uppercase;font-weight:700;color:var(--turf)}
+.pc-box.off{background:var(--pine);border-color:var(--pine);color:var(--gold-up)}
+.pc-box.off .cap{color:var(--sage-up)}
+.pc-box.off.up{color:#9EDC9E}
+.pc-box.off.down{color:#F0B5AA}
+.pc-tbl{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:4px}
+.pc-tbl th{text-align:left;font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:var(--turf);
+  font-weight:700;padding:6px 0 2px}
+.pc-tbl th.r{text-align:right}
+.pc-tbl td{padding:3px 0;border-top:1px solid rgba(29,46,33,.10)}
+.pc-tbl td.n{text-align:right;font-weight:700}
+.pc-tbl td.m{color:var(--turf);text-align:center}
+
+/* ---- the back ---- */
+.pc-back{background:var(--page);color:var(--ink)}
+.pc-top{display:grid;grid-template-columns:1.12fr .88fr;
+  background:radial-gradient(74% 58% at 36% 44%,#34502F 0%,#24382A 62%,#1D2E21 100%);color:var(--onpine)}
+.pc-webwrap{padding:8px 2px 6px 6px}
+.pc-web{display:block;width:100%;height:auto}
+.pc-pt{cursor:pointer}
+.pc-pt circle.hit{fill:transparent}
+.pc-pt circle.dot{fill:var(--gold);stroke:var(--pine);stroke-width:1;transition:r .18s ease,fill .18s ease}
+.pc-pt.on circle.dot{r:5.5;fill:#F3DFA8}
+.pc-cap{text-align:center;font-size:11.5px;min-height:32px;padding:2px 6px 0;line-height:1.3}
+.pc-cap b{font-weight:800;color:var(--gold-up)}
+.pc-cap i{font-style:normal;opacity:.72}
+.pc-h2h{padding:11px 11px 8px 6px;border-left:1px solid rgba(238,232,213,.14)}
+.pc-h2h .pc-k{color:var(--gold-up);margin-bottom:4px;display:block}
+.pc-h2h ul{margin:0;padding:0;list-style:none}
+.pc-h2h li{display:grid;grid-template-columns:1fr auto;gap:6px;font-size:11.5px;padding:3px 0;
+  border-top:1px solid rgba(238,232,213,.16);align-items:baseline}
+.pc-h2h li:first-child{border-top:0}
+.pc-h2h b{font-weight:800;font-size:12.5px}
+.pc-h2h b.w{color:#9EDC9E} .pc-h2h b.l{color:#F0B5AA}
+.pc-h2h .none{margin:0;font-size:11.5px;color:var(--sage-up)}
+.pc-pad{padding:8px 12px 10px;flex:1 1 auto}
+.pc-fun{margin:0;padding:0;list-style:none}
+.pc-fun li{display:grid;grid-template-columns:1fr auto;gap:10px;padding:5px 0;font-size:12.5px;
+  border-top:1px solid rgba(29,46,33,.12)}
+.pc-fun li:first-child{border-top:0}
+.pc-fun li b{font-weight:800;text-align:right;white-space:nowrap}
+.pc-fun li span i{font-style:normal;color:var(--turf);font-size:11px;display:block}
+.pc-verd{display:flex;gap:9px;align-items:flex-start;padding:9px 114px 9px 12px;background:#27402E}
+.pc-verd img{width:38px;height:auto;flex:0 0 38px}
+.pc-verd p{margin:0;font-size:12px;font-style:italic;color:#DCD6C2}
+.pc-verd p b{font-style:normal;color:var(--gold-up)}
+
+/* A name on any of the Season's tables is the way in to its card. */
+.pname{background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer;
+  text-align:left;border-bottom:1px dotted var(--rule)}
+.pname:hover{border-bottom-color:var(--turf)}
+
 /* ---- the pine rail, on a laptop ----
    Not on a tablet: a tablet holds the bar under the thumb, as a phone does,
    and the handheld screens were drawn that way. */

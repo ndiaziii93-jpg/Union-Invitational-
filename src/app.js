@@ -8060,6 +8060,176 @@ function scrSeason() {
   ${tab === 'stop' ? seasonStop() : tab === 'merit' ? seasonMerit() : tab === 'hcp' ? seasonHcp() : tab === 'awards' ? seasonAwards() : seasonArchive()}`;
 }
 
+/* ================= THE PLAYER CARD =================
+   Tap a name anywhere on the Season and you get the player's card: the golf
+   on the front, and on the back the web of what kind of golfer they are with
+   the stats worth saying out loud.
+
+   Nothing on it is typed in. Every figure comes out of the cards already in
+   the book, by way of `C.playerStats`, which reads them with the same
+   Stableford and the same stroke allocation the rest of the app uses.
+
+   The card is held in the window's own state rather than in the book: which
+   way up it is, which of the last six have been turned over, which point on
+   the web was last touched. None of that belongs to anybody but the person
+   holding the phone. */
+
+const pcFmtOff = n => (n === 0 ? 'E' : (n > 0 ? '+' : '−') + Math.abs(n));
+
+/** One word for the top-left of the card, taken from whatever stands out. */
+function pcTitle(st) {
+  const par5 = st.byPar.find(x => x.par === 5), par3 = st.byPar.find(x => x.par === 3);
+  const par4 = st.byPar.find(x => x.par === 4);
+  if (!st.ready) return 'New card';
+  if (par5 && par4 && par5.pts - par4.pts >= 0.4) return 'Par 5 merchant';
+  if (par3 && par4 && par3.pts - par4.pts >= 0.3) return 'Short game';
+  if (st.bySi[0].pts >= st.bySi[2].pts) return 'Grinder';
+  if (st.marks.closing > st.marks.avg + 0.15) return 'Closer';
+  if (st.counts.blanks / st.counts.holes < 0.08) return 'Safe hands';
+  return 'All rounder';
+}
+
+/** The caddie's line, picked by whatever the cards complain about loudest. */
+function pcVerdict(st) {
+  if (!st.ready) {
+    return 'Three cards before the caddie says anything. He has seen <b>' + st.cards +
+      '</b> so far and is keeping his counsel.';
+  }
+  const par3 = st.byPar.find(x => x.par === 3), par4 = st.byPar.find(x => x.par === 4);
+  const par5 = st.byPar.find(x => x.par === 5);
+  const blank = st.counts.blanks / st.counts.holes;
+  const fade = st.nine.length === 2 ? st.nine[0].pts - st.nine[1].pts : 0;
+  if (par3 && par4 && par4.pts - par3.pts >= 0.5) {
+    return 'Hands him a <b>5-iron</b> on anything short. ' + st.cards + ' cards, and the par 3s have taken ' +
+      '<b>' + (Math.round(par3.over * 10) / 10) + ' a hole</b> off him every time.';
+  }
+  if (fade >= 1.5) {
+    return 'Hides the <b>driver</b> after the turn. The back nine is worth <b>' + (Math.round(fade * 10) / 10) +
+      ' points less</b> than the front, every card, without fail.';
+  }
+  if (blank >= 0.15) {
+    return '<b>' + st.counts.blanks + ' blanks</b> in ' + st.counts.holes + ' holes. The caddie has stopped ' +
+      'cleaning the ball and started cleaning the sand wedge.';
+  }
+  if (par5 && par4 && par5.pts - par4.pts >= 0.4) {
+    return 'Walks faster on a <b>par 5</b>. They pay him <b>' + (Math.round(par5.pts * 10) / 10) +
+      ' points a hole</b> and he knows it.';
+  }
+  if (st.counts.run >= 12) {
+    return '<b>' + st.counts.run + ' holes</b> in a row without a blank. The caddie would like it known that ' +
+      'he carried the bag for all of them.';
+  }
+  return 'Nothing to complain about, which the caddie finds suspicious. ' +
+    '<b>' + st.marks.avg + ' points a hole</b> across ' + st.cards + ' cards.';
+}
+
+/** The web: five spokes, nothing written round them, every point a target. */
+function pcWeb(st, sel) {
+  const vals = st.attrs ? st.attrs.map(a => a.v) : [0, 0, 0, 0, 0];
+  const n = vals.length, cx = 100, cy = 98, R = 62;
+  const ink = 'rgba(238,232,213,.26)';
+  const P = (v, k) => { const ang = -Math.PI / 2 + k * 2 * Math.PI / n;
+    return [cx + Math.cos(ang) * R * v, cy + Math.sin(ang) * R * v]; };
+  let out = '';
+  for (let ring = 1; ring <= 4; ring++) {
+    const pt = [];
+    for (let i = 0; i < n; i++) pt.push(P(ring / 4, i).map(x => x.toFixed(1)).join(','));
+    out += `<polygon points="${pt.join(' ')}" fill="none" stroke="${ink}" stroke-width="1"/>`;
+  }
+  for (let i = 0; i < n; i++) { const a = P(1, i);
+    out += `<line x1="${cx}" y1="${cy}" x2="${a[0].toFixed(1)}" y2="${a[1].toFixed(1)}" stroke="${ink}"/>`; }
+  if (st.attrs) {
+    const pt = [];
+    for (let i = 0; i < n; i++) pt.push(P(vals[i] / 100, i).map(x => x.toFixed(1)).join(','));
+    out += `<polygon points="${pt.join(' ')}" fill="rgba(201,162,83,.28)" stroke="#E2C277" stroke-width="2" stroke-linejoin="round"/>`;
+    for (let i = 0; i < n; i++) {
+      const a = P(vals[i] / 100, i);
+      out += `<g class="pc-pt${sel === i ? ' on' : ''}" data-act="pcPt" data-a="${i}" role="button" tabindex="0"
+        data-k="${esc(st.attrs[i].k)}" data-v="${st.attrs[i].v}" data-of="${esc(st.attrs[i].of)}"
+        aria-label="${esc(st.attrs[i].k)}, ${st.attrs[i].v} out of 99">
+        <circle class="hit" cx="${a[0].toFixed(1)}" cy="${a[1].toFixed(1)}" r="15"/>
+        <circle class="dot" cx="${a[0].toFixed(1)}" cy="${a[1].toFixed(1)}" r="3.6"/></g>`;
+    }
+  }
+  return `<svg class="pc-web" viewBox="0 0 200 196" role="img"
+    aria-label="Five attributes, unlabelled — touch a point to read it">${out}</svg>`;
+}
+
+function playerCardHtml() {
+  const m = UI.modal || {};
+  const today = todayIso();
+  const st = C.playerStats(T, m.pid, today);
+  const stop = C.stopById(T, UI.stopId) || C.openStops(T, today)[0] || C.currentStop(T, today);
+  const face = mascotFor(stop);
+  const sel = m.pt == null ? null : +m.pt;
+  /* The season's name is already on every screen behind this window; the card
+     takes the year instead, which is short enough not to wrap the line. */
+  const yr = ((C.season(T).window || {}).from || '').slice(0, 4);
+  const off = m.off || {};
+
+  const six = st.form.length
+    ? `<div class="pc-sixhd"><span class="pc-k">The last six</span><span class="hint">tap a card</span></div>
+       <div class="pc-six">${st.form.map((f, i) => {
+         const on = !!off[i];
+         const dir = f.off > 0 ? ' up' : f.off < 0 ? ' down' : '';
+         return `<button class="pc-box num${on ? ' off' + dir : ''}" data-act="pcBox" data-a="${i}"
+           data-p="${f.pts}" data-o="${pcFmtOff(f.off)}" data-d="${dir.trim()}"
+           aria-label="${esc(f.name)}: ${f.pts} points, ${f.off === 0 ? 'level with' : f.off > 0 ? f.off + ' better than' : Math.abs(f.off) + ' worse than'} his handicap">${
+           on ? pcFmtOff(f.off) : f.pts}<span class="cap">${on ? 'off hcp' : 'pts'}</span></button>`;
+       }).join('')}</div>`
+    : '';
+
+  const rows = (head, list) => `<tr><th>${head}</th><th></th><th class="r">Pts</th></tr>` + list;
+  const byPar = st.byPar.map(x => `<tr><td>Par ${x.par}</td><td class="m num">${x.over > 0 ? '+' : ''}${x.over.toFixed(1)}</td><td class="n num">${x.pts.toFixed(1)}</td></tr>`).join('');
+  const bySi = st.bySi.map(x => `<tr><td>${esc(x.label.replace(/^the /, 'The '))}</td><td class="m num">SI ${x.a}–${x.b}</td><td class="n num">${x.pts.toFixed(1)}</td></tr>`).join('');
+
+  const fun = [];
+  if (st.banker) fun.push(['The banker', 'hole ' + st.banker.n + ', a par ' + st.banker.par + ' — ' + st.banker.pts.toFixed(1) + ' points a go', 'Hole ' + st.banker.n]);
+  if (st.nemesis) fun.push(['The nemesis', 'hole ' + st.nemesis.n + ', a par ' + st.nemesis.par + ' — ' + st.nemesis.over.toFixed(1) + ' over, every time', 'Hole ' + st.nemesis.n]);
+  if (st.counts.run) fun.push(['Longest streak', st.counts.run + ' holes without a blank', st.counts.run]);
+  fun.push(['Blanks', st.counts.blanks + ' in ' + st.counts.holes + ' holes (' + Math.round(st.counts.blanks / st.counts.holes * 100) + '%)', st.counts.blanks]);
+  if (st.nine.length === 2) {
+    /* The figure is how far apart the nines are; the word says which way
+       round. A minus sign and the word "better" together read as a riddle. */
+    const gap = Math.round(Math.abs(st.nine[0].pts - st.nine[1].pts) * 10) / 10;
+    fun.push(['Front against back', st.nine[0].pts.toFixed(1) + ' out, ' + st.nine[1].pts.toFixed(1) + ' home',
+      gap === 0 ? 'level' : gap + (st.nine[0].pts > st.nine[1].pts ? ' worse home' : ' better home')]);
+  }
+  if (st.hcp.band != null && st.hcp.now != null) fun.push(['Handicap', 'band ' + st.hcp.band + ' at the start, ' + st.cards + ' card' + (st.cards === 1 ? '' : 's') + ' later', st.hcp.band + ' → ' + st.hcp.now]);
+
+  const capLine = sel != null && st.attrs
+    ? `<b>${esc(st.attrs[sel].k)} ${st.attrs[sel].v}</b> <i>· ${esc(st.attrs[sel].of)}</i>`
+    : st.attrs ? '<i>Touch a point</i>' : `<i>${C.CARD_MIN - st.cards} more card${C.CARD_MIN - st.cards === 1 ? '' : 's'} and the web fills in</i>`;
+
+  const front = `<div class="pc-face pc-front">
+    <button class="pc-turn" data-act="pcTurn" aria-label="Turn the card over">↺ Turn over</button>
+    <div class="pc-hd"><div class="who"><div class="pc-k">The Union Invitational${yr ? ' · ' + yr : ''}</div>
+      <h3>${esc(st.name)}</h3>
+      <div class="meta num">${esc(st.courses[0] || 'No card yet')}${st.cards ? ' · ' + st.cards + ' card' + (st.cards === 1 ? '' : 's') : ''}${st.record.meritPos ? ' · ' + ordinal(st.record.meritPos) + ' of ' + st.record.meritOf : ''}</div></div>
+      <div class="pc-hcp"><b class="num">${st.hcp.playing == null ? '—' : st.hcp.playing}</b><span>Union</span></div></div>
+    <div class="pc-port"><span class="pc-flash">${esc(pcTitle(st))}</span><span class="pc-rays"></span>
+      ${face ? `<img src="${face}" alt="" aria-hidden="true">` : ''}</div>
+    <div class="pc-sheet">${six}
+      ${st.byPar.length ? `<table class="pc-tbl">${rows('By length', byPar)}${rows('By index', bySi)}</table>`
+        : `<p class="empty">No finished card yet. Post one and this fills in.</p>`}</div></div>`;
+
+  const back = `<div class="pc-face pc-back">
+    <button class="pc-turn" data-act="pcTurn" aria-label="Turn the card over">↺ Turn over</button>
+    <div class="pc-top"><div class="pc-webwrap">${pcWeb(st, sel)}<div class="pc-cap">${capLine}</div></div>
+      <div class="pc-h2h"><div class="pc-k">Head to head</div>${st.h2h.length
+        ? `<ul>${st.h2h.slice(0, 6).map(x => `<li><span>${esc(x.name)}</span><b class="num ${x.w > x.l ? 'w' : x.w < x.l ? 'l' : ''}">${x.w}–${x.l}</b></li>`).join('')}</ul>`
+        : '<p class="none">Nobody has played the same stop yet.</p>'}</div></div>
+    <div class="pc-pad">${fun.length ? `<ul class="pc-fun">${fun.map(f =>
+      `<li><span>${esc(f[0])}<i>${esc(f[1])}</i></span><b>${esc(String(f[2]))}</b></li>`).join('')}</ul>` : ''}</div>
+    <div class="pc-verd">${face ? `<img src="${face}" alt="" aria-hidden="true">` : ''}<p>${pcVerdict(st)}</p></div></div>`;
+
+  return `<div class="scrim" data-act="modalScrim"><div class="modal pcmodal" role="dialog" aria-modal="true"
+    aria-label="${esc(st.name)}, player card">
+    <div class="pc-flip${m.back ? ' on' : ''}"><div class="pc-in">${front}${back}</div></div>
+    <button class="btn ghost pc-close" data-act="modalCancel">Close</button>
+  </div></div>`;
+}
+
 function stopChips(sel) {
   const today = todayIso();
   return `<div class="chiprow stopchips">${C.stops(T).map(s => { const st = C.stopState(s, today);
@@ -8068,7 +8238,7 @@ function stopChips(sel) {
 function boardTable(rows, opt) {
   if (!rows.length) return `<p class="empty">${opt && opt.empty || 'No cards yet.'}</p>`;
   return `<div class="ctblwrap nos"><table class="ctbl${opt && opt.mini ? ' mini' : ''}"><thead><tr><th>Pos</th><th>Golfer</th><th class="co">Course</th><th class="r">Thru</th><th class="r">Pts</th></tr></thead><tbody>
-    ${rows.map(r => `<tr class="${r.pos === 1 ? 'top' : ''}${r.pid === myPid() ? ' me' : ''}"><td class="num">${r.tie ? 'T' : ''}${r.pos}</td><td>${esc(r.name)}${r.done ? '' : ' <small>in play</small>'}</td><td class="muted co">${esc(r.course || '')}</td><td class="r num">${r.thru === 18 ? 'F' : r.thru}</td><td class="r num"><b>${r.pts}</b></td></tr>`).join('')}
+    ${rows.map(r => `<tr class="${r.pos === 1 ? 'top' : ''}${r.pid === myPid() ? ' me' : ''}"><td class="num">${r.tie ? 'T' : ''}${r.pos}</td><td><button class="pname" data-act="pcard" data-a="${r.pid}">${esc(r.name)}</button>${r.done ? '' : ' <small>in play</small>'}</td><td class="muted co">${esc(r.course || '')}</td><td class="r num">${r.thru === 18 ? 'F' : r.thru}</td><td class="r num"><b>${r.pts}</b></td></tr>`).join('')}
   </tbody></table></div>`;
 }
 function seasonStop() {
@@ -8086,7 +8256,7 @@ function seasonMerit() {
   const n = C.closedStops(T, todayIso()).length;
   return `<h3 class="sub">Order of Merit · after ${n} stop${n === 1 ? '' : 's'}</h3>
   ${rows.length ? `<div class="ctblwrap nos"><table class="ctbl"><thead><tr><th>Pos</th><th>Golfer</th><th class="r">Played</th><th class="r">Wins</th><th class="r">Pts</th></tr></thead><tbody>
-    ${rows.map(r => `<tr class="${r.pos === 1 ? 'top' : ''}${r.pid === myPid() ? ' me' : ''}"><td class="num">${r.pos}</td><td>${esc(r.name)}</td><td class="r num">${r.played}</td><td class="r num">${r.wins}</td><td class="r num"><b>${r.pts}</b></td></tr>`).join('')}</tbody></table></div>`
+    ${rows.map(r => `<tr class="${r.pos === 1 ? 'top' : ''}${r.pid === myPid() ? ' me' : ''}"><td class="num">${r.pos}</td><td><button class="pname" data-act="pcard" data-a="${r.pid}">${esc(r.name)}</button></td><td class="r num">${r.played}</td><td class="r num">${r.wins}</td><td class="r num"><b>${r.pts}</b></td></tr>`).join('')}</tbody></table></div>`
     : `<p class="empty">The first stop pays its places when it closes.</p>`}
   <p class="legend">A stop pays ${C.MERIT.slice(0, 4).join(', ')}… down the places. The Order of Merit is the season’s own honour, crowned in Vegas.</p>`;
 }
@@ -8096,7 +8266,7 @@ function seasonHcp() {
   return `<h3 class="sub">The Union handicap</h3>
   <div class="ctblwrap nos"><table class="ctbl"><thead><tr><th>Golfer</th><th class="r">Belek</th><th class="r">Union</th><th class="r">Cards</th><th>Since Belek</th></tr></thead><tbody>
     ${rows.map(({ g, u }) => { const seed = g.band == null ? null : +g.band; const move = u.from === 'season' && seed != null ? Math.round((u.hcp - seed) * 10) / 10 : null;
-      return `<tr class="${g.id === myPid() ? 'me' : ''}"><td>${esc(g.display)}</td><td class="r num">${seed == null ? '—' : seed}</td><td class="r num"><b>${u.hcp == null ? '—' : u.hcp}</b></td><td class="r num">${u.n}</td><td class="${move == null ? 'muted' : move < 0 ? 'good' : 'bad'}">${move == null ? (u.need ? u.need + ' more card' + (u.need === 1 ? '' : 's') : '—') : (move < 0 ? '▼ ' : '▲ ') + Math.abs(move)}</td></tr>`; }).join('')}
+      return `<tr class="${g.id === myPid() ? 'me' : ''}"><td><button class="pname" data-act="pcard" data-a="${g.id}">${esc(g.display)}</button></td><td class="r num">${seed == null ? '—' : seed}</td><td class="r num"><b>${u.hcp == null ? '—' : u.hcp}</b></td><td class="r num">${u.n}</td><td class="${move == null ? 'muted' : move < 0 ? 'good' : 'bad'}">${move == null ? (u.need ? u.need + ' more card' + (u.need === 1 ? '' : 's') : '—') : (move < 0 ? '▼ ' : '▲ ') + Math.abs(move)}</td></tr>`; }).join('')}
   </tbody></table></div>
   <p class="legend">Seeded by the Belek band. Each finished card leaves a differential; from three cards the handicap is the best three of the last six, at 96%. The week’s bands lock a month before Vegas.</p>`;
 }
@@ -10495,6 +10665,7 @@ function modalHtml() {
        : UI.modal.kind === 'round' ? roundModalHtml()
        : UI.modal.kind === 'roundsheet' ? roundSheetHtml()
        : UI.modal.kind === 'daysheet' ? daySheetHtml()
+       : UI.modal.kind === 'pcard' ? playerCardHtml()
        : UI.modal.kind === 'art' ? artModalHtml()
        : UI.modal.kind === 'hours' ? hoursSheetHtml()
        : UI.modal.kind === 'rule' ? ruleModalHtml()
@@ -12304,6 +12475,48 @@ function onClick(e) {
       askPinStrict('Clear every score', 'Every card, point, note and report for every round, on every device. The roster, bands, pairs and calendar stay. Enter the master PIN.', 'Clear scores',
         role => { if (role !== 'master') return; store.resetScores(); UI.screen = 'today'; });
       return;
+
+    /* ---- the player card ----
+       Turning the card, flipping a box and touching a point are all changes
+       to how the card is being LOOKED at, not to the book. They are made on
+       the element itself and mirrored into the window's state, so the flip
+       and the slide actually animate: a full redraw would replace the node
+       and the browser would have nothing to animate from. */
+    case 'pcard': UI.modal = { kind: 'pcard', pid: a, back: false, off: {}, pt: null }; break;
+    case 'pcTurn': {
+      if (!UI.modal || UI.modal.kind !== 'pcard') return;
+      UI.modal.back = !UI.modal.back;
+      const f = document.querySelector('.pc-flip');
+      if (f) f.classList.toggle('on', UI.modal.back); else render();
+      return;
+    }
+    case 'pcBox': {
+      if (!UI.modal || UI.modal.kind !== 'pcard') return;
+      const i = +a;
+      const off = UI.modal.off || (UI.modal.off = {});
+      off[i] = !off[i];
+      el.classList.toggle('off', off[i]);
+      el.classList.remove('up', 'down');
+      if (off[i] && el.dataset.d) el.classList.add(el.dataset.d);
+      el.innerHTML = (off[i] ? el.dataset.o : el.dataset.p) +
+        '<span class="cap">' + (off[i] ? 'off hcp' : 'pts') + '</span>';
+      return;
+    }
+    case 'pcPt': {
+      if (!UI.modal || UI.modal.kind !== 'pcard') return;
+      const i = +a;
+      const same = UI.modal.pt === i;
+      UI.modal.pt = same ? null : i;
+      const host = document.querySelector('.pc-back');
+      if (!host) { render(); return; }
+      Array.prototype.forEach.call(host.querySelectorAll('.pc-pt'), g => g.classList.remove('on'));
+      const cap = host.querySelector('.pc-cap');
+      if (same) { if (cap) cap.innerHTML = '<i>Touch a point</i>'; return; }
+      el.classList.add('on');
+      if (cap) cap.innerHTML = '<b>' + esc(el.dataset.k) + ' ' + esc(el.dataset.v) + '</b> <i>· ' +
+        esc(el.dataset.of) + '</i>';
+      return;
+    }
 
     case 'modalOk': submitPin(); return;
     case 'modalCancel': if (UI.modal && UI.modal.kind === 'bulk') bulkDrop(); closeModal(); break;
