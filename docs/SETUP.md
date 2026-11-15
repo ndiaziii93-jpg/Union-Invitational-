@@ -235,11 +235,16 @@ Money tab and everyone sees the meter.
 **You do not need this, and by default it is off.** It is written down here
 only so the door is not locked.
 
-How the search works without it: the book holds the courses we have typed in
-and checked, plus every course any member has saved. That is instant, works
-with no signal, and grows by itself — the first member to save their club puts
-it in the book for everyone else. To add a club, ask and it gets added: the
-scorecard is public, and the card goes in checked.
+How the search works without it: the book holds the courses we have put in and
+checked, plus every course any member has saved. That is instant, works with no
+signal, and grows by itself — the first member to save their club puts it in the
+book for everyone else.
+
+To add a club, send the name and town. `tools/course-add.py` reads the club's
+own published scorecard, works out every tee set on it, refuses any card that
+is not eighteen whole holes with a stroke index of 1 to 18 once each, and puts
+the rest in the book with the page it came from recorded beside it.
+`tools/COURSES.md` is the whole of it.
 
 What the `courses` function would add is the other thirty thousand clubs, for
 a member whose course nobody has entered yet. It needs a paid key
