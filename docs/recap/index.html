@@ -892,7 +892,12 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 .h3unit{position:absolute;left:50%;top:calc(max(14px,env(safe-area-inset-top,0px)) + 78px);transform:translateX(-50%);z-index:3;background:rgba(238,232,213,.96);border-radius:999px;padding:5px 4px;display:flex;gap:2px;box-shadow:0 3px 12px rgba(16,22,17,.16)}
 .h3unit button{font-size:12px;font-weight:800;padding:6px 12px;border-radius:999px;color:var(--turf);border:0;background:none;font-family:inherit;min-height:32px}
 .h3unit button.on{background:var(--pine);color:#E2C277}
-.h3note{position:absolute;left:50%;transform:translateX(-50%);bottom:112px;z-index:3;background:rgba(29,46,33,.8);color:var(--onpine);border-radius:999px;padding:6px 12px;font-size:10px;letter-spacing:.11em;text-transform:uppercase;font-weight:700;white-space:nowrap;max-width:92%;overflow:hidden;text-overflow:ellipsis}
+.h3note{position:absolute;left:50%;transform:translateX(-50%);bottom:112px;z-index:3;background:rgba(29,46,33,.8);color:var(--onpine);border-radius:999px;padding:6px 12px;font-size:10px;letter-spacing:.11em;text-transform:uppercase;font-weight:700;max-width:92%;
+  /* It says where the shape came from and that it is not a survey. Both halves
+     matter, so on a narrow phone it wraps onto two lines rather than losing
+     the end of the sentence to an ellipsis. */
+  white-space:normal;text-align:center;line-height:1.35;text-wrap:balance}
+@media (min-width:430px){ .h3note{white-space:nowrap} }
 .h3note.warn{bottom:140px;background:rgba(158,59,46,.92);letter-spacing:.04em;text-transform:none;font-size:12px;white-space:normal;text-align:center;border-radius:12px}
 /* the dock: a cream bar floating over the ground — the band shield, your
    net to par, par, and How'd you feel? */

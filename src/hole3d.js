@@ -351,10 +351,32 @@ export function create(mount, m, opts = {}) {
   const gcard = mk('h3gcard'), tgt = mk('h3tgt'), tcard = mk('h3tcard'), me = mk('h3me'), gline = mk('h3gline');
   const bpins = bunkerPts.map(() => mk('h3pin'));
   const dist = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
+  /* The units pill belongs to the window around the ground, not to the ground,
+     so it is looked up rather than held: the window is rebuilt on every redraw
+     and a kept reference would go stale. */
+  let pillEl = null;
+  function unitPill() {
+    if (pillEl && pillEl.isConnected) return pillEl;
+    const win = el.closest ? el.closest('.h3dwin') : null;
+    pillEl = win ? win.querySelector('.h3unit') : null;
+    return pillEl;
+  }
   function from() { return state.me ? new T3.Vector3(state.me.x, 0, state.me.z) : tp; }
   function place(e, q, dy, show) {
     if (!show || !q.on || q.x < -80 || q.x > W + 80 || q.y < -120 || q.y > Hh + 60) { e.style.display = 'none'; return; }
     e.style.display = ''; e.style.left = Math.max(60, Math.min(W - 60, q.x)) + 'px'; e.style.top = (q.y + dy) + 'px';
+  }
+  /* Keep the first of any pile, drop the rest. `keep` is what must survive. */
+  function declutter(keep, pins) {
+    const hit = (a, b) => a.right > b.left && a.left < b.right && a.bottom > b.top && a.top < b.bottom;
+    const held = [];
+    if (keep) held.push(keep.getBoundingClientRect());
+    for (const e of pins) {
+      if (e.style.display === 'none') continue;
+      const r = e.getBoundingClientRect();
+      if (held.some(h => hit(r, h))) { e.style.display = 'none'; continue; }
+      held.push(r);
+    }
   }
   function dress() {
     const u = state.units, o = from();
@@ -369,8 +391,32 @@ export function create(mount, m, opts = {}) {
     /* the green off the top: the card parks under the unit pill, between
        the rails, so the three numbers never leave the glass */
     if (parked) { gcard.style.display = show ? '' : 'none'; gcard.style.left = (W / 2) + 'px'; gcard.style.top = '232px'; gline.style.display = 'none'; }
-    else { place(gcard, qg, -40, show); gline.style.display = gcard.style.display; gline.style.left = qg.x + 'px'; gline.style.top = (qg.y - 40) + 'px'; }
+    else {
+      place(gcard, qg, -40, show);
+      gline.style.display = gcard.style.display; gline.style.left = qg.x + 'px'; gline.style.top = (qg.y - 40) + 'px';
+      /* The unit pill sits at the top middle of the glass. A green that lands
+         just under it would hide Front behind it, so the card drops clear and
+         gives up its leader line rather than its numbers. The pill is measured
+         rather than assumed, because the safe area moves it on a notched
+         phone. The card hangs from its foot, so the drop is the pill's bottom
+         plus the card's own height. */
+      if (gcard.style.display !== 'none') {
+        const pill = unitPill();
+        if (pill) {
+          const a = gcard.getBoundingClientRect(), c = pill.getBoundingClientRect();
+          if (a.right > c.left && a.left < c.right && a.bottom > c.top && a.top < c.bottom) {
+            gcard.style.top = (parseFloat(gcard.style.top) + (c.bottom - a.top) + 10) + 'px';
+            gline.style.display = 'none';
+          }
+        }
+      }
+    }
     bpins.forEach((e, i) => place(e, proj(bunkerPts[i]), -2, show));
+    /* A hole whose sand runs in a line puts its pins one on top of another, and
+       on top of the green's three numbers. The green card is the one a golfer
+       came for, so it keeps its place and a pin that lands on it stands down;
+       so does a pin that lands on a pin already standing. */
+    declutter(gcard.style.display !== 'none' ? gcard : null, bpins);
     if (state.target) { const q = proj(state.target); place(tgt, q, 0, true); place(tcard, q, -12, show); }
     else { tgt.style.display = 'none'; tcard.style.display = 'none'; }
     place(me, proj(from()), 0, !!state.me);

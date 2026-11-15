@@ -86,8 +86,12 @@ for (const [label, vp] of [['phone', { width: 390, height: 844, isMobile: true, 
   });
   ok(label + ': the window opens on your own course, with no round behind it',
     [seen.ckey, seen.rid, seen.hole, seen.title], ['home__g1', null, 0, 'Hole 1 at Leatherhead Golf Club']);
+  /* Leatherhead's club publishes a map of every hole, and tools/trace-lh.py has
+     measured them, so this hole is the hole the club draws — and the glass
+     says where that came from, and that it is still not a survey. */
   ok(label + ': the ground drew, and the glass is honest about where the shape came from',
-    [seen.ground, seen.ground === '3D' ? seen.note : 'n/a'], ['3D', 'Shape drawn from the card · not surveyed yet']);
+    [seen.ground, seen.ground === '3D' ? seen.note : 'n/a'],
+    ['3D', 'Traced from the club’s own hole map · not surveyed yet']);
   ok(label + ': the dock reads the 1st off your own tee, in yards', seen.dock, '483yds · white');
 
   await p.locator('.h3pill .ar').nth(1).dispatchEvent('click'); await p.waitForTimeout(600);

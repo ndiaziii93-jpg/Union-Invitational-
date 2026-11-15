@@ -209,11 +209,17 @@ export function courseFrom(entry, pid) {
  *  ground is modelled in metres. There is no drawing of a home course, so
  *  `img` is null and the window builds the hole from par and length \u2014 and
  *  says on the glass that the shape is drawn, not surveyed. */
+export const courseSlug = n => String(n || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
 export function courseAsBook(course) {
   if (!courseOk(course)) return null;
   const m = y => (y == null || !isFinite(+y) ? null : Math.round(+y / 1.09361));
   return {
     key: 'home__' + course.pid, name: course.name, tee: course.tee || '',
+    /* The ground belongs to the COURSE, not to the member who entered it: two
+       members at the same club must stand on the same 1st. So the shapes are
+       looked up by the course's name, while the key above stays the member's. */
+    shapeKey: courseSlug(course.name),
     home: true, verified: !!course.approved, meta: null,
     holes: course.holes.map((h, i) => ({
       n: i + 1, par: +h.par, si: +h.si,

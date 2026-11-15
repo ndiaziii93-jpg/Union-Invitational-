@@ -9559,7 +9559,7 @@ function artModalHtml() {
   if (!hole) return '';
   const art = IMG[hole.img];
   const live = H3D.available();
-  const model = HOLES.model(course.key, hole);
+  const model = HOLES.model(course.shapeKey || course.key, hole);
   const units = holeUnits();
   const me = UI.me ? E.person(T, UI.me) : null;
   const scored = me && rid && !UI.modal.ckey ? E.roundToPar(T, rid, UI.me) : null;
@@ -9592,7 +9592,10 @@ function artModalHtml() {
       <button class="${UI.h3labels === false ? '' : 'on'}" data-act="artLabels" aria-label="Yardages on or off" aria-pressed="${UI.h3labels !== false}">${ico.layers}</button>
       <button class="${UI.h3flat ? 'on' : ''}" data-act="artFlat" aria-label="Flat or tilted" aria-pressed="${!!UI.h3flat}">2D</button>
     </div>
-    ${model.traced !== true && live ? `<div class="h3note">${model.traced === 'drawing' ? 'Traced from the drawing' : 'Shape drawn from the card'} · not surveyed yet</div>` : ''}
+    ${model.traced !== true && live ? `<div class="h3note">${
+      model.traced === 'map' ? 'Traced from the club\u2019s own hole map'
+      : model.traced === 'drawing' ? 'Traced from the drawing'
+      : 'Shape drawn from the card'} · not surveyed yet</div>` : ''}
     ${UI.gps && UI.gps.err ? `<div class="h3note warn">${esc(UI.gps.err)}</div>` : ''}
     <div class="h3dock">
       ${canFeel ? `<button class="h3who" data-act="artFeel" aria-label="${me ? 'Handicap ' + me.band : 'Who are you?'}">${shield}</button>`
@@ -9653,7 +9656,7 @@ function mountHole3D() {
     if (!course) return;
     const hole = course.holes[m.hole];
     try {
-      const ctl = H3D.create(mount, HOLES.model(course.key, hole), { units: holeUnits(), flat: !!UI.h3flat, labels: UI.h3labels !== false,
+      const ctl = H3D.create(mount, HOLES.model(course.shapeKey || course.key, hole), { units: holeUnits(), flat: !!UI.h3flat, labels: UI.h3labels !== false,
         onTarget: () => { if (store && store.note) store.note('hole target', course.key + ' ' + hole.n); } });
       UI.h3 = { key, ctl, course: course.key, n: hole.n };
     } catch (err) {
