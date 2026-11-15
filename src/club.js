@@ -24,10 +24,29 @@ import { strokesFor, stablefordPts } from './engine.js';
 
 /* The sheet's own names, carried over. Windows are the commissioner's to
    move; these are the month each one has always been played in. */
+/* The thirteen the sheet names, a month each, from the reveal in December
+   2026 to the week in Las Vegas. The windows are a month apiece and the
+   commissioner moves any of them under Manage.
+
+   TWO OF THEM WANT A DECISION. The Turkey Shoot sits in the same month as
+   Las Vegas, so it is set to close on the 11th, before the week's window
+   opens on the 13th; and the Santa Swing falls AFTER Vegas, which may be a
+   fine way to end the year or may not be wanted at all. Neither is a thing
+   the book should decide on its own. */
 export const STOPS_SEED = [
-  { id: 'mulligan',   name: 'The Merry Mulligan Open',   from: '2026-12-01', to: '2026-12-31', format: 'stableford', note: 'The reveal. Eighteen holes at home, net Stableford, a mulligan a nine.' },
-  { id: 'frostbite',  name: 'The Frostbite Open',        from: '2027-01-09', to: '2027-01-31', format: 'stableford', note: 'Eighteen holes in whatever January gives you. Net Stableford.' },
-  { id: 'sweetheart', name: 'The Sweetheart Scramble',   from: '2027-02-01', to: '2027-02-28', format: 'stableford', note: 'Eighteen holes with a partner of your choosing beside you. Your own card counts.' },
+  { id: 'mulligan',    name: 'The Merry Mulligan Open',  from: '2026-12-01', to: '2026-12-31', format: 'stableford', note: 'The reveal. Eighteen holes at home, net Stableford, a mulligan a nine.' },
+  { id: 'frostbite',   name: 'The Frostbite Open',       from: '2027-01-09', to: '2027-01-31', format: 'stableford', note: 'Eighteen holes in whatever January gives you. Net Stableford.' },
+  { id: 'sweetheart',  name: 'The Sweetheart Scramble',  from: '2027-02-01', to: '2027-02-28', format: 'stableford', note: 'Eighteen holes with a partner of your choosing beside you. Your own card counts.' },
+  { id: 'lucky',       name: 'The Lucky Links Classic',  from: '2027-03-01', to: '2027-03-31', format: 'stableford', note: 'March, and whatever luck is going. Net Stableford.' },
+  { id: 'bloom',       name: 'The Bloom Invitational',   from: '2027-04-01', to: '2027-04-30', format: 'stableford', note: 'The ground has dried out and there are no more excuses.' },
+  { id: 'fiesta',      name: 'The Fairway Fiesta',       from: '2027-05-01', to: '2027-05-31', format: 'stableford', note: 'May, and the first round anybody enjoys.' },
+  { id: 'summer',      name: 'The Summer Swing',         from: '2027-06-01', to: '2027-06-30', format: 'stableford', note: 'Longest days of the year: no excuse for not getting out.' },
+  { id: 'firecracker', name: 'The Firecracker Cup',      from: '2027-07-01', to: '2027-07-31', format: 'stableford', note: 'July. Loud shirts encouraged, loud scores less so.' },
+  { id: 'dogdays',     name: 'The Dog Days Derby',       from: '2027-08-01', to: '2027-08-31', format: 'stableford', note: 'The hottest month, and the one where the wheels come off.' },
+  { id: 'harvest',     name: 'The Harvest Classic',      from: '2027-09-01', to: '2027-09-30', format: 'stableford', note: 'September, and the best golf anybody plays all year.' },
+  { id: 'pumpkin',     name: 'The Pumpkin Putter Open',  from: '2027-10-01', to: '2027-10-31', format: 'stableford', note: 'October. Whatever is in the rough in October, it is yours now.' },
+  { id: 'turkeyshoot', name: 'The Turkey Shoot',         from: '2027-11-01', to: '2027-11-11', format: 'stableford', note: 'The last card before Las Vegas. It closes on the 11th; the week opens on the 13th.' },
+  { id: 'santa',       name: 'The Santa Swing',          from: '2027-12-01', to: '2027-12-31', format: 'stableford', note: 'After Vegas, if there is anything left in the tank.' },
 ];
 
 export const PACKAGES_SEED = [
@@ -500,6 +519,26 @@ export const BERTS = [
     head: [37.5, 27.5, 14.0], stop: 'frostbite' },
   { id: 'sweetheart', name: 'Sweetheart Bert', note: 'Flat cap, a rose, and a heart on his jumper.',
     head: [49.0, 23.5, 14.5], stop: 'sweetheart' },
+  { id: 'lucky', name: 'Lucky Links Bert', note: 'Emerald waistcoat, buckled shoes, a clover at the lapel.',
+    head: [49.0, 22.0, 15.0], stop: 'lucky' },
+  { id: 'bloom', name: 'Bloom Bert', note: 'A straw boater, pink argyle, and blossom in the air.',
+    head: [49.0, 21.5, 15.0], stop: 'bloom' },
+  { id: 'fiesta', name: 'Fiesta Bert', note: 'A striped serape and a wide straw hat with pompoms.',
+    head: [49.0, 22.0, 15.0], stop: 'fiesta' },
+  { id: 'summer', name: 'Summer Bert', note: 'Bucket hat, sunglasses up on the brim, a towel over the shoulder.',
+    head: [48.5, 22.0, 15.0], stop: 'summer' },
+  { id: 'firecracker', name: 'Firecracker Bert', note: 'Stars and stripes, and a sparkler on the club head.',
+    head: [49.0, 21.0, 15.0], stop: 'firecracker' },
+  { id: 'dogdays', name: 'Dog Days Bert', note: 'A visor, sweatbands, a towel, and one bead of sweat.',
+    head: [49.0, 22.0, 15.0], stop: 'dogdays' },
+  { id: 'harvest', name: 'Harvest Bert', note: 'Tweed jacket, plus fours, and leaves coming down.',
+    head: [49.0, 22.0, 15.0], stop: 'harvest' },
+  { id: 'pumpkin', name: 'Pumpkin Bert', note: 'A black cape, a bat on the jumper, a lantern at his feet.',
+    head: [49.0, 22.5, 15.0], stop: 'pumpkin' },
+  { id: 'turkeyshoot', name: 'Turkey Shoot Bert', note: 'A buckled pilgrim hat with a feather in the band.',
+    head: [49.0, 23.0, 15.0], stop: 'turkeyshoot' },
+  { id: 'santa', name: 'Santa Swing Bert', note: 'The whole red suit, and a sack of balls.',
+    head: [49.0, 21.0, 15.0], stop: 'santa' },
   { id: 'vegas', name: 'Desert Showdown Bert', note: 'The hat and the boots. Las Vegas only.',
     head: [45.0, 24.0, 15.0], stop: null, week: true },
 ];

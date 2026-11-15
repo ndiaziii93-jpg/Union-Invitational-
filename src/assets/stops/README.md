@@ -43,11 +43,21 @@ tournament looks like itself.
 
 | File | Bert | Worn for | Dressed in |
 |---|---|---|---|
-| `mascot_house` | Union Bert | year round, and any stop with no drawing of its own | green polo, cream trousers, no occasion |
-| `mascot_mulligan` | Merry Mulligan Bert | The Merry Mulligan Open, December | santa hat, snowflake jumper, scarf, holly on the club |
-| `mascot_frostbite` | Frostbite Bert | The Frostbite Open, January | bobble hat, quilted jacket, mittens, a puff of cold breath, an icicle on the club head |
-| `mascot_sweetheart` | Sweetheart Bert | The Sweetheart Scramble, February | flat cap, a heart on the sweater, a rose at the collar |
-| `mascot_vegas` | Desert Showdown Bert | Las Vegas 2027 | cowboy hat, bolo tie, boots, club over the shoulder |
+| `mascot_house` | Union Bert | year round, and any stop with no drawing of its own | The house one — a polo and no occasion. |
+| `mascot_mulligan` | Merry Mulligan Bert | The Merry Mulligan Open, 2026-12 | Santa hat, snowflake jumper, a sprig of holly. |
+| `mascot_frostbite` | Frostbite Bert | The Frostbite Open, 2027-01 | Bobble hat, puffer, and a club with an icicle on it. |
+| `mascot_sweetheart` | Sweetheart Bert | The Sweetheart Scramble, 2027-02 | Flat cap, a rose, and a heart on his jumper. |
+| `mascot_lucky` | Lucky Links Bert | The Lucky Links Classic, 2027-03 | Emerald waistcoat, buckled shoes, a clover at the lapel. |
+| `mascot_bloom` | Bloom Bert | The Bloom Invitational, 2027-04 | A straw boater, pink argyle, and blossom in the air. |
+| `mascot_fiesta` | Fiesta Bert | The Fairway Fiesta, 2027-05 | A striped serape and a wide straw hat with pompoms. |
+| `mascot_summer` | Summer Bert | The Summer Swing, 2027-06 | Bucket hat, sunglasses up on the brim, a towel over the shoulder. |
+| `mascot_firecracker` | Firecracker Bert | The Firecracker Cup, 2027-07 | Stars and stripes, and a sparkler on the club head. |
+| `mascot_dogdays` | Dog Days Bert | The Dog Days Derby, 2027-08 | A visor, sweatbands, a towel, and one bead of sweat. |
+| `mascot_harvest` | Harvest Bert | The Harvest Classic, 2027-09 | Tweed jacket, plus fours, and leaves coming down. |
+| `mascot_pumpkin` | Pumpkin Bert | The Pumpkin Putter Open, 2027-10 | A black cape, a bat on the jumper, a lantern at his feet. |
+| `mascot_turkeyshoot` | Turkey Shoot Bert | The Turkey Shoot, 2027-11 | A buckled pilgrim hat with a feather in the band. |
+| `mascot_santa` | Santa Swing Bert | The Santa Swing, 2027-12 | The whole red suit, and a sack of balls. |
+| `mascot_vegas` | Desert Showdown Bert | Las Vegas 2027, the week itself | The hat and the boots. Las Vegas only. |
 
 `mascot_hello` is the oldest drawing, in a different hand entirely. It is kept
 only as a last fallback and is not offered in the picker.
@@ -64,11 +74,21 @@ the centre of the face as a share of the picture's width and height, and its
 radius as a share of the width again.
 
 ```
-house       49.5  20.5  15.0
-mulligan    48.9  24.4  16.3
-frostbite   37.5  27.5  14.0
-sweetheart  49.0  23.5  14.5
-vegas       45.0  24.0  15.0
+house         49.5  20.5  15.0
+mulligan      48.9  24.4  16.3
+frostbite     37.5  27.5  14.0
+sweetheart    49.0  23.5  14.5
+lucky         49.0  22.0  15.0
+bloom         49.0  21.5  15.0
+fiesta        49.0  22.0  15.0
+summer        48.5  22.0  15.0
+firecracker   49.0  21.0  15.0
+dogdays       49.0  22.0  15.0
+harvest       49.0  22.0  15.0
+pumpkin       49.0  22.5  15.0
+turkeyshoot   49.0  23.0  15.0
+santa         49.0  21.0  15.0
+vegas         45.0  24.0  15.0
 ```
 
 **A NEW BERT NEEDS HIS OWN THREE NUMBERS.** Measure them by laying a circle

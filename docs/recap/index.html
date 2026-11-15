@@ -5776,8 +5776,12 @@ html.clubseason .statusbar{padding-right:40px}
 .lk-acts{display:flex;gap:8px;flex-wrap:wrap}
 .lk-say{margin:8px 0 0;font-size:11.5px;color:var(--turf)}
 .lk-berts{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+/* The figures are different heights — a man leaning on his club is shorter
+   than one standing up — so the tiles are bottom-aligned and the names line
+   up across the row rather than wandering. */
 .lk-b{background:var(--paper);border:1px solid var(--hair);border-radius:12px;padding:6px 4px 7px;
-  font:inherit;color:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px}
+  font:inherit;color:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;
+  justify-content:flex-end;gap:4px;min-height:122px}
 .lk-b .av{width:100%;max-width:56px}
 .lk-b b{font-size:9.5px;font-weight:700;letter-spacing:.02em;text-align:center;line-height:1.15}
 .lk-b.on{border-color:var(--gold);background:var(--page);box-shadow:inset 0 0 0 1px var(--gold)}
