@@ -15,7 +15,16 @@ const ok = (n, g, w) => { const good = JSON.stringify(g) === JSON.stringify(w);
 console.log('the season, as functions');
 const C = await import('../src/club.js');
 const T0 = { config: { people: [{ id: 'g1', name: 'A', display: 'A', role: 'golfer', band: 20 }, { id: 'g2', name: 'B', display: 'B', role: 'golfer', band: 16 }, { id: 's1', name: 'S', display: 'S', role: 'spectator', band: null }] }, club: {} };
-ok('no season doc: the week, not frozen, three seeded stops', [C.phaseOf(T0), C.frozen(T0), C.stops(T0).map(s => s.id)], ['week', false, ['mulligan', 'frostbite', 'sweetheart']]);
+/* The whole virtual series the sheet names, in the order it plays, each with
+   a Bert of its own. Spelt out rather than counted, so a stop quietly
+   dropped or renamed fails here rather than somewhere a reader would have to
+   go looking for it. */
+ok('no season doc: the week, not frozen, the thirteen seeded stops',
+  [C.phaseOf(T0), C.frozen(T0), C.stops(T0).map(s => s.id)],
+  ['week', false, ['mulligan', 'frostbite', 'sweetheart', 'lucky', 'bloom', 'fiesta', 'summer',
+    'firecracker', 'dogdays', 'harvest', 'pumpkin', 'turkeyshoot', 'santa']]);
+ok('and every one of them has a Bert drawn for it',
+  C.STOPS_SEED.every(s => C.BERTS.some(b => b.stop === s.id)), true);
 const course = { ...C.blankCourse('g1'), name: 'Home', holes: Array.from({ length: 18 }, (_, i) => ({ par: [4, 4, 3, 4, 5, 4, 3, 4, 5, 4, 5, 4, 3, 4, 4, 4, 3, 5][i], si: i + 1, y: 380 })) };
 ok('a course needs 18 pars and each index once', [C.courseOk(course), C.courseOk({ ...course, holes: course.holes.map(h => ({ ...h, si: 1 })) }), C.coursePar(course)], [true, false, 72]);
 const card = C.blankClubCard('frostbite', 'g1', 20, course); card.raw = course.holes.map(h => h.par + 1); card.done = true;
