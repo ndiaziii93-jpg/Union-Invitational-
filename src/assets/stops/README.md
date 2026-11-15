@@ -33,3 +33,12 @@ a link, which the commissioner sets under Manage without a new build.
 `renditions/` and `renditions2/` hold the eighteen that were not chosen.
 Full-resolution originals are in the commissioner's Blueprint Studio
 library.
+
+## The mascot
+
+`../mascot/` holds the two drawings the book uses: `mascot_hello` stands
+over the course form, and `mascot_posted` turns up in the gold panel the
+moment a card goes on the board. Transparent WebP, about 50 KB each, so
+they drop onto paper without a box round them. They are deliberately
+year-round: no bobble hat, no scarf, nothing that would look odd in July.
+The seasonal versions are in `renditions2/`.

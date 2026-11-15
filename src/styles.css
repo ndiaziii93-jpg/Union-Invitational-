@@ -5655,3 +5655,33 @@ html.clubseason .btn,html.clubseason .chip,html.clubseason .pkg{transition:trans
   .cc-h{font-size:clamp(28px,2.6vw,36px)}
   .ccover{min-height:250px}
 }
+
+
+/* ---- FIND YOUR COURSE, DON'T TYPE IT ----
+   Fifty-four numbers off a scorecard is not a thing to ask of anybody. The
+   box searches every course the book knows; tapping one fills the card in
+   and the member checks it. The mascot keeps the empty half of the screen
+   company. */
+.cfind{display:grid;gap:10px;margin-top:12px;max-width:680px;justify-items:center}
+.cfind .cf-in{min-width:0;width:100%}
+.cfind label{display:grid;gap:4px;font-size:13px;color:var(--turf)}
+.cfind .field{width:100%;font-size:16px}
+/* on a phone he stands over the box; wider, he stands beside it */
+.mascot{display:block;width:108px;height:auto}
+@media (min-width:520px){
+  .cfind{grid-template-columns:1fr 136px;align-items:end;justify-items:stretch}
+  .cfind .mascot{width:136px;justify-self:center;align-self:end;order:2}
+  .cfind .cf-in{order:1}
+}
+.cfhits{display:grid;gap:6px;margin-top:8px}
+.cfhit{display:block;width:100%;text-align:left;padding:10px 13px;border:1px solid var(--rule);
+  border-radius:11px;background:var(--page);font-family:inherit;color:var(--ink);
+  transition:background 140ms ease,border-color 140ms ease,transform 120ms ease}
+.cfhit b{display:block;font-size:16px;font-weight:700}
+.cfhit small{display:block;font-size:12.5px;color:var(--turf);margin-top:1px}
+.cfhit:active{transform:scale(.99)}
+@media (hover:hover) and (pointer:fine){ .cfhit:hover{background:var(--sunk);border-color:var(--gold)} }
+.cfhit:focus-visible{outline:2px solid var(--gold-up);outline-offset:2px}
+/* the mascot turns up when a card lands */
+.mascot.posted{display:block;width:96px;margin:6px 0 0;justify-self:start}
+@media (min-width:520px){ .mascot.posted{width:110px} }

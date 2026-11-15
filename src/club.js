@@ -126,6 +126,67 @@ export const person = (T, pid) => (T.config.people || []).find(p => p.id === pid
 
 /* ---------- the home course ---------- */
 
+/* ---------- THE COURSE LIBRARY ----------
+   Nobody should type fifty-four numbers off a scorecard. A course goes in
+   once — researched and written down here, or entered by the first member
+   who plays it — and everybody after that finds it by name, taps it, and
+   checks it against their own card before they save.
+
+   `holes` is eighteen triples: par, stroke index, yards off the named tee.
+   The stroke index is the part that matters and the part that is hardest
+   to find: it decides which holes you get a shot on, so a wrong one
+   quietly spoils every net score all season. Each of these was taken from
+   a published card, and the member approving it is asked to check it
+   against the club's own. */
+const card = (tee, par, si, y) => ({ tee, holes: par.map((p, i) => ({ par: p, si: si[i], y: y ? y[i] : null })) });
+
+export const COURSE_LIB = [
+  { id: 'leatherhead', name: 'Leatherhead Golf Club', place: 'Leatherhead, Surrey, England',
+    note: 'Par 71. Card as published for the white tees; check the index against the club\u2019s own.',
+    ...card('White',
+      [5, 3, 4, 5, 4, 4, 4, 5, 3, 4, 4, 3, 4, 4, 3, 5, 4, 3],
+      [18, 8, 4, 14, 10, 2, 12, 6, 16, 1, 11, 5, 15, 13, 7, 3, 17, 9],
+      [483, 176, 402, 507, 361, 447, 372, 534, 188, 423, 284, 196, 255, 296, 198, 503, 300, 203]) },
+];
+
+/** Every course the book knows: the ones written down above, and every one
+ *  a member has already entered. A member's own course wins on a name
+ *  clash, because they are the one who plays it. */
+export function courseLibrary(T) {
+  const out = [];
+  const seen = new Set();
+  for (const [k, c] of Object.entries((T && T.club) || {})) {
+    if (!k.startsWith('course__') || !c || !c.name) continue;
+    const key = String(c.name).trim().toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ id: k, name: c.name, place: '', tee: c.tee || '', holes: c.holes, from: 'book', approved: !!c.approved });
+  }
+  for (const c of COURSE_LIB) {
+    const key = c.name.trim().toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ ...c, from: 'library' });
+  }
+  return out;
+}
+
+/** Find a course by what somebody typed. Two letters is enough to start. */
+export function courseFind(T, q) {
+  const needle = String(q || '').trim().toLowerCase();
+  if (needle.length < 2) return [];
+  return courseLibrary(T)
+    .filter(c => (c.name + ' ' + (c.place || '')).toLowerCase().includes(needle))
+    .slice(0, 8);
+}
+
+/** One of those, as this person's own course, ready to be checked. */
+export function courseFrom(entry, pid) {
+  return { pid, name: entry.name, tee: entry.tee || '',
+    holes: entry.holes.map(h => ({ par: +h.par, si: +h.si, y: h.y == null ? null : +h.y })),
+    approved: false, at: null };
+}
+
 export function blankCourse(pid) {
   return { pid, name: '', tee: '', holes: Array.from({ length: 18 }, (_, i) => ({ par: 4, si: i + 1, y: null })), approved: false, at: null };
 }

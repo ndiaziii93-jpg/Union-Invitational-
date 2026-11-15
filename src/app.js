@@ -128,7 +128,7 @@ const UI = {
   /* the Clubhouse: the season between tournaments */
   archive: null,        // which closed book is being read, by year, or null for the season
   seasonTab: 'stop', stopId: null, clubHole: 0, clubPad: false,
-  courseEdit: false, courseDraft: null, clubMTab: 'season', moneyDraft: null, cardUp: '', exportNote: '',
+  courseEdit: false, courseDraft: null, courseQ: '', clubMTab: 'season', moneyDraft: null, cardUp: '', exportNote: '',
 };
 
 const ROLE_KEY = 'union-invitational:role';
@@ -8236,6 +8236,7 @@ function scrClubEntry() {
   const photo = card.photo && card.photo.url;
   const donePanel = tot.thru === 18 && open ? `<div class="cline gold" id="cardDone"><span class="ck">${card.done ? 'Posted' : 'Before it counts'}</span><b class="ct">${card.done ? tot.pts + ' points, on the board' : 'A photo of the signed card'}</b>
       <p>${card.done ? 'Your card is in. The commissioner can still ask for a correction.' : 'Taken here, now. Then the card posts to the stop and to your Union handicap.'}</p>
+      ${card.done && IMG.mascot_posted ? `<img class="mascot posted" src="${IMG.mascot_posted}" alt="" aria-hidden="true">` : ''}
       ${photo ? `<a class="cardshot" href="${esc(photo)}" target="_blank" rel="noopener"><img src="${esc(card.photo.thumb || photo)}" alt="The signed card"></a>` : ''}
       ${UI.cardUp ? `<p class="sublede">${esc(UI.cardUp)}</p>` : ''}
       <p style="margin-top:10px">${card.done ? '' : `<label class="btn"><input type="file" accept="image/*" capture="environment" data-act="cardPhoto" hidden>${photo ? 'Retake the photo' : 'Photograph the card'}</label> `}${photo && !card.done ? `<button class="btn" data-act="clubPost">Post my card</button>` : ''}</p></div>` : '';
@@ -8270,12 +8271,34 @@ function scrClubEntry() {
 }
 const sumOf = l => { const v = l.filter(x => x != null); return v.length ? v.reduce((a, b) => a + b, 0) : '·'; };
 
+/** The results under the search box. Drawn with the form, and redrawn on
+ *  its own as somebody types: a full repaint between two keystrokes would
+ *  take the caret with it. */
+function courseHitsHtml() {
+  const q = String(UI.courseQ || '').trim();
+  if (q.length < 2) return '';
+  const hits = C.courseFind(T, q);
+  if (!hits.length) return `<p class="sublede">Nothing by that name yet. Fill the card in below and it joins the book, so the next member here taps it instead of typing it.</p>`;
+  return `<div class="cfhits">${hits.map(h => `<button class="cfhit" data-act="coursePick" data-a="${esc(h.id)}"><b>${esc(h.name)}</b><small>${esc(h.place || (h.from === 'book' ? 'already in the book' : ''))}${h.tee ? ' · ' + esc(h.tee) + ' tees' : ''} · par ${C.coursePar(h)}</small></button>`).join('')}</div>`;
+}
+function paintCourseHits() {
+  const host = document.getElementById('courseHits');
+  if (host) host.innerHTML = courseHitsHtml();
+}
+
 function courseForm(pid, held) {
   const c = UI.courseDraft && UI.courseDraft.pid === pid ? UI.courseDraft : (held ? JSON.parse(JSON.stringify(held)) : C.blankCourse(pid));
   UI.courseDraft = c;
   const ok = C.courseOk(c);
   return `<h3 class="sub">Your home course</h3>
-  <p class="sublede">Entered once, from the scorecard: par and stroke index for every hole, yards if you like. The commissioner approves it; you can score from it straight away.</p>
+  <p class="sublede">Find it by name and the card fills itself in. Check it against your own scorecard before you save: the stroke index decides which holes you get a shot on, so one wrong number quietly spoils every net score you post all season.</p>
+  <div class="cfind">
+    ${IMG.mascot_hello ? `<img class="mascot" src="${IMG.mascot_hello}" alt="" aria-hidden="true">` : ''}
+    <div class="cf-in">
+      <label>Find your course<input class="field" id="courseQ" value="${esc(UI.courseQ || '')}" placeholder="Leatherhead" maxlength="60" autocomplete="off" autocapitalize="words"></label>
+      <div id="courseHits">${courseHitsHtml()}</div>
+    </div>
+  </div>
   <div class="fieldset two">
     <label>Course<input class="field" data-act="courseField" data-a="name" value="${esc(c.name || '')}" placeholder="Rancho Park" maxlength="60"></label>
     <label>Tees<input class="field" data-act="courseField" data-a="tee" value="${esc(c.tee || '')}" placeholder="White" maxlength="20"></label>
@@ -11889,7 +11912,15 @@ function onClick(e) {
       UI.clubPad = false; UI.toast = 'Your card is posted: ' + C.cardTotals(c).pts + ' points.';
       render(); return;
     }
-    case 'courseEdit': UI.courseEdit = true; UI.courseDraft = null; render(); return;
+    case 'coursePick': {
+      const me = myPid(); if (!me) return;
+      const hit = C.courseLibrary(T).find(x => x.id === a); if (!hit) return;
+      UI.courseDraft = C.courseFrom(hit, me);
+      UI.courseQ = '';
+      UI.toast = 'Card filled in from ' + hit.name + '. Check it against your own before you save.';
+      render(); return;
+    }
+    case 'courseEdit': UI.courseEdit = true; UI.courseDraft = null; UI.courseQ = ''; render(); return;
     case 'courseCancel': UI.courseEdit = false; UI.courseDraft = null; render(); return;
     case 'courseSave': {
       const me = myPid(); const c = UI.courseDraft;
@@ -12709,7 +12740,7 @@ export function boot() {
       UI.chatRoom = room && (room === TRIP || D.ROUNDS.some(r => r.id === room)) ? room : null;
       UI.modal = { kind: 'chat' };
     }
-    window.__T = T; window.__UI = UI; window.__meta = meta;   // read by the tests, written by nobody
+    window.__T = T; window.__UI = UI; window.__meta = meta; window.__C = C;   // read by the tests, written by nobody
     /* the tests' way to make the book redraw as a poll would: `true` makes it
        redraw even when nothing changed, the way a real change would */
     window.__render = force => { if (force) paintedHTML = ''; render(); };
@@ -12782,6 +12813,9 @@ export function boot() {
   app.addEventListener('mousedown', atPress);
   app.addEventListener('input', e => {
     if (e.target && e.target.id === 'askField') UI.askText = e.target.value;
+    /* the course search answers every keystroke, and only its own results
+       are redrawn, so the caret stays where the typist left it */
+    if (e.target && e.target.id === 'courseQ') { UI.courseQ = String(e.target.value || '').slice(0, 60); paintCourseHits(); }
     if (e.target && e.target.id === 'sotdText' && UI.modal && UI.modal.kind === 'sotdNom') UI.modal.t = e.target.value;
     /* a PIN half typed outlives the redraws the shared book lands */
     if (e.target && /^pin_(master|s1|s2)$/.test(e.target.id)) UI.pinDraft[e.target.id.slice(4)] = e.target.value;

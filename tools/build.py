@@ -82,6 +82,14 @@ def build_images(force=False):
         open(os.path.join(WEB, key + '.webp'), 'wb').write(d)
         table[key] = 'data:image/webp;base64,' + base64.b64encode(d).decode()
 
+    # THE MASCOT. Transparent WebP, so it drops onto paper without a box
+    # round it. Same treatment as the stop covers: carried through as it is.
+    for f in sorted(glob.glob(os.path.join(SRC, 'assets', 'mascot', '*.webp'))):
+        key = os.path.basename(f)[:-5]
+        d = open(f, 'rb').read()
+        open(os.path.join(WEB, key + '.webp'), 'wb').write(d)
+        table[key] = 'data:image/webp;base64,' + base64.b64encode(d).decode()
+
     hero = os.path.join(SRC, 'assets', 'brand', '463041d4-578c-40c2-82ab-413ba30c2b68.jpg')
     im = Image.open(hero).convert('RGB')
     buf = io.BytesIO(); im.save(buf, 'WEBP', quality=80, method=6)
