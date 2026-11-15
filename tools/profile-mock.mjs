@@ -128,9 +128,10 @@ const out = {
   marks: { opening: r1(opening), closing: r1(closing), avg: r1(avgPts) },
   diffs: u.diffs,
 };
-writeFileSync('docs/preview/profile/data.js',
+const blob =
   '/* Sample figures for the player-card preview. The gross scores behind these\n'
   + '   are invented; every number on the cards is worked out from them by the\n'
   + '   book\u2019s own functions. Rebuild with: node tools/profile-mock.mjs */\n'
-  + 'window.PROFILE = ' + JSON.stringify(out, null, 1) + ';\n');
+  + 'window.PROFILE = ' + JSON.stringify(out, null, 1) + ';\n';
+for (const dir of ['docs/preview/profile', 'docs/preview/card']) writeFileSync(dir + '/data.js', blob);
 console.log(JSON.stringify({ hcp: out.player.hcp, record: out.record, attrs: out.attrs.map(a => a.k + ' ' + a.v), byPar: out.byPar, bySi: out.bySi.map(s => s.label + ' ' + s.pts), nine: out.nine, nemesis, banker, counts: out.counts, marks: out.marks, h2h, form: form.map(f => f.pts) }, null, 1));

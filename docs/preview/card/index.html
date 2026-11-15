@@ -1,0 +1,591 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The flip card, three ways</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;0,8..60,900;1,8..60,400;1,8..60,600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --pine:#1D2E21; --pine-up:#27402E; --cream:#EEE8D5; --page:#E6E0CD; --card:#F2ECDC;
+  --gold:#C9A253; --gold-up:#E2C277; --turf:#5E7A5F; --flag:#9E3B2E; --under:#4E7A4E;
+  --ink:#1B2A1E; --rule:#CFC8B2;
+  /* Where the ball's face sits inside the drawing, as a share of its box.
+     Measured off the artwork once: the circle has to fall inside the ball and
+     below the brim of the hat, or a photograph eats the costume. */
+  --headx:48.9%; --heady:24.4%; --headr:16.3%;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--pine);color:var(--cream);
+  font-family:'Source Serif 4',Georgia,serif;line-height:1.5;-webkit-text-size-adjust:100%}
+.wrap{max-width:1240px;margin:0 auto;padding:28px 16px 100px}
+h1{font-size:clamp(28px,5vw,44px);font-weight:900;margin:0 0 8px;letter-spacing:-.01em;line-height:1.08}
+.sub{color:#C8CCBF;margin:0 0 4px;max-width:70ch}
+.note{border-left:3px solid var(--gold);background:rgba(201,162,83,.12);padding:12px 14px;
+  border-radius:0 10px 10px 0;margin:20px 0 10px;max-width:84ch;font-size:15px;color:#DDD7C4}
+.note b{color:var(--gold-up)}
+.note.warn{border-left-color:var(--flag);background:rgba(158,59,46,.14)}
+.note.warn b{color:#F0B5AA}
+h2{font-size:clamp(20px,3vw,27px);font-weight:800;color:var(--gold-up);margin:52px 0 2px;
+  padding-top:24px;border-top:1px solid rgba(238,232,213,.16)}
+h2 .k{color:var(--cream);opacity:.42;margin-right:10px}
+.say{color:#C8CCBF;margin:0 0 2px;max-width:76ch}
+.pros{color:#9FB49F;font-size:14.5px;margin:6px 0 20px;max-width:76ch}
+.pros b{color:var(--gold-up);font-weight:600}
+.num{font-feature-settings:"tnum" 1;font-variant-numeric:tabular-nums}
+.lab{font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:700}
+
+/* ================= the flip ================= */
+.flip{perspective:1500px;width:100%;max-width:360px;cursor:pointer;display:block}
+.flip:focus-visible{outline:3px solid var(--gold-up);outline-offset:6px;border-radius:20px}
+.fin{display:grid;position:relative;transform-style:preserve-3d;
+  transition:transform .62s cubic-bezier(.2,.8,.3,1)}
+/* `position:relative` matters: without it the turn badge hangs off whatever
+   is positioned further up the page instead of off its own card. The faces are
+   flex columns so each one can nominate the block that takes up the slack —
+   both faces share a cell, so the shorter of the two would otherwise end in a
+   long empty panel. */
+.fin > .face{grid-area:1/1;position:relative;display:flex;flex-direction:column;
+  backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  border-radius:18px;overflow:hidden;box-shadow:0 16px 40px rgba(0,0,0,.42)}
+.grow{flex:1 1 auto;min-height:0}
+.face.front{transform:translateZ(1px)}
+.face.back{transform:rotateY(180deg) translateZ(1px)}
+.flip.on .fin{transform:rotateY(180deg)}
+.turn{position:absolute;right:10px;bottom:10px;z-index:3;display:flex;align-items:center;gap:5px;
+  background:rgba(29,46,33,.72);color:var(--cream);border-radius:999px;padding:4px 9px;
+  font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;pointer-events:none}
+.face.lightfoot .turn{background:rgba(29,46,33,.80)}
+.turn.top{top:10px;bottom:auto}
+/* Every face keeps its last line clear of the turn badge, and the clearance
+   lives in each block's own padding rather than in a block of overrides, since
+   the fuller rules come later in the sheet and quietly won. */
+@media (prefers-reduced-motion:reduce){ .fin{transition:none} }
+
+/* ================= the character ================= */
+.guy{position:relative;display:block}
+.guy img{display:block;width:100%;height:auto}
+.guy .mug{position:absolute;left:var(--headx);top:var(--heady);width:calc(var(--headr) * 2);
+  aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;
+  background-repeat:no-repeat;background-color:#DED7C4;
+  box-shadow:inset 0 0 0 2.5px #1B2A1E, inset 0 -8px 14px rgba(27,42,30,.28),
+    inset 0 7px 12px rgba(255,255,255,.22);
+  display:none}
+body.me .guy .mug{display:block}
+body.me .guy img{filter:none}
+
+/* ================= shared innards ================= */
+.web{display:block;width:100%;height:auto}
+.fun{margin:0;padding:0;list-style:none}
+.fun li{display:grid;grid-template-columns:1fr auto;gap:10px;padding:5px 0;font-size:12.5px;
+  border-top:1px solid rgba(29,46,33,.12)}
+.fun li:first-child{border-top:0}
+.fun li b{font-weight:800;text-align:right;white-space:nowrap}
+.fun li span i{font-style:normal;color:var(--turf);font-size:11px;display:block}
+.dark .fun li{border-top-color:rgba(238,232,213,.16)}
+.dark .fun li span i{color:#9FB49F}
+.verd{display:flex;gap:9px;align-items:flex-start;padding:9px 102px 9px 12px;background:var(--pine-up)}
+.verd .guy{flex:0 0 38px;width:38px}
+.verd p{margin:0;font-size:12px;font-style:italic;color:#DCD6C2}
+.verd p b{font-style:normal;color:var(--gold-up)}
+
+/* ---- V1 the trading card ---- */
+.v1f{background:linear-gradient(176deg,#24382A 0%,#19281D 60%,#1D2E21 100%);
+  border:1px solid rgba(226,194,119,.42);color:var(--cream)}
+.v1f .hd{display:flex;align-items:flex-start;gap:10px;padding:12px 13px 8px;
+  background:linear-gradient(180deg,rgba(226,194,119,.14),rgba(226,194,119,0))}
+.v1f .hd .lab{color:var(--gold-up)}
+.v1f .hd h3{margin:1px 0 0;font-size:23px;font-weight:900;line-height:1.05;letter-spacing:-.01em;color:#F4EFDF}
+.v1f .hd .meta{font-size:11px;color:#9FB49F;margin-top:2px}
+.v1f .hcp{flex:0 0 auto;width:52px;height:52px;border-radius:50%;border:2px solid var(--gold-up);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(226,194,119,.10)}
+.v1f .hcp b{font-size:21px;font-weight:900;color:var(--gold-up);line-height:1}
+.v1f .hcp span{font-size:7.5px;letter-spacing:.12em;text-transform:uppercase;color:#9FB49F}
+.v1f .port{position:relative;height:168px;flex:1 1 auto;
+  background:radial-gradient(130% 92% at 50% 108%,#3C5640 0%,#24382A 52%,#1B2B1F 100%)}
+.v1f .port .guy{position:absolute;left:50%;bottom:0;width:min(150px,48%);transform:translateX(-50%);
+  filter:drop-shadow(0 9px 12px rgba(0,0,0,.45))}
+.v1f .port .flash{position:absolute;left:11px;top:11px;background:var(--flag);color:#FBF3E8;
+  border-radius:4px;padding:3px 7px;font-size:9px;letter-spacing:.11em;text-transform:uppercase;font-weight:700}
+.v1f .sheet{background:var(--card);color:var(--ink);padding:9px 12px 32px}
+.v1f .boxes{display:flex;gap:4px;margin:4px 0 2px}
+.v1f .boxes i{flex:1;border:1px solid var(--rule);border-radius:3px;text-align:center;font-style:normal;
+  font-size:12px;font-weight:700;padding:4px 0;background:#fff8}
+.v1f .boxes i.best{background:var(--gold);border-color:#A9842F;color:#23331F}
+.v1f table{width:100%;border-collapse:collapse;font-size:12.5px}
+.v1f th{text-align:left;font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:var(--turf);
+  font-weight:700;padding:5px 0 2px}
+.v1f td{padding:3px 0;border-top:1px solid rgba(29,46,33,.10)}
+.v1f td.n{text-align:right;font-weight:700}
+.v1f td.m{color:#55674F;text-align:center}
+.v1b{background:var(--card);color:var(--ink)}
+.v1b .hd{padding:10px 13px 2px;border-bottom:1px solid rgba(29,46,33,.12)}
+.v1b .hd .lab{color:var(--turf)}
+.v1b .hd h3{margin:1px 0 6px;font-size:18px;font-weight:800;line-height:1.1}
+.v1b .webwrap{flex:0 0 auto;display:grid;grid-template-columns:1fr 104px;gap:8px;padding:8px 12px 2px;align-items:center}
+.v1b .legend div{display:grid;grid-template-columns:1fr 24px;gap:6px;font-size:11.5px;padding:3px 0}
+.v1b .legend div + div{border-top:1px solid rgba(29,46,33,.10)}
+.v1b .legend b{text-align:right;font-weight:800}
+.v1b .pad{padding:4px 12px 10px;flex:1 1 auto}
+
+/* ---- V2 the scorecard ---- */
+.v2f{background:var(--card);color:var(--ink)}
+.v2f .band{background:var(--pine);color:var(--cream);padding:10px 13px;display:flex;align-items:center;gap:10px}
+.v2f .band .guy{flex:0 0 40px;width:40px}
+.v2f .band .who{flex:1;min-width:0}
+.v2f .band .lab{color:var(--gold-up)}
+.v2f .band h3{margin:1px 0 0;font-size:19px;font-weight:800;line-height:1.1}
+.v2f .band .meta{font-size:10.5px;color:#9FB49F}
+.v2f .band .hcp{text-align:right}
+.v2f .band .hcp b{display:block;font-size:21px;font-weight:900;color:var(--gold-up);line-height:1}
+.v2f .band .hcp span{font-size:7.5px;letter-spacing:.11em;text-transform:uppercase;color:#9FB49F}
+.v2f .ruled{padding:4px 13px 12px;flex:1 1 auto;display:flex;flex-direction:column}
+.v2f .stand{margin-top:auto;padding:12px 104px 0 0;display:flex;justify-content:flex-end;align-items:flex-end}
+.v2f .stand .guy{width:96px}
+.v2f table{width:100%;border-collapse:collapse;font-size:12.5px}
+.v2f caption{caption-side:top;text-align:left;font-size:9px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--turf);font-weight:700;padding:9px 0 3px}
+.v2f th{text-align:left;font-weight:400;color:#55674F;font-size:11.5px;padding:3px 0}
+.v2f td{padding:3px 0;border-top:1px solid var(--rule)}
+.v2f td.n{text-align:right;font-weight:700}
+.v2f .heat{display:flex;gap:2px}
+.v2f .heat i{flex:1;height:22px;border-radius:2px}
+.v2f .heatlab{display:flex;justify-content:space-between;font-size:9px;color:var(--turf);letter-spacing:.06em}
+.v2f .boxes{display:flex;gap:4px;margin-top:3px}
+.v2f .boxes i{flex:1;border:1px solid var(--rule);border-radius:3px;text-align:center;
+  font-style:normal;font-size:13px;font-weight:700;padding:5px 0;background:#fff8}
+.v2f .boxes i.best{background:var(--gold);border-color:#A9842F;color:#23331F}
+.v2b{background:var(--pine);color:var(--cream)}
+.v2b .hd{padding:10px 13px 0}
+.v2b .hd .lab{color:var(--gold-up)}
+.v2b .hd h3{margin:1px 0 0;font-size:18px;font-weight:800}
+.v2b .green{position:relative;padding:4px 13px 0;flex:1 1 auto;display:flex;align-items:center;
+  background:radial-gradient(74% 56% at 50% 46%,#34502F 0%,#24382A 62%,#1D2E21 100%)}
+.v2b .pad{padding:6px 13px 36px}
+.v2b .fun li b{color:var(--gold-up)}
+
+/* ---- V3 the poster ---- */
+.v3f{position:relative;background:
+  linear-gradient(142deg,#2C4430 0%,#1F3224 46%,#16241A 100%);color:var(--cream);overflow:hidden}
+.v3f .rays{position:absolute;inset:0;opacity:.30;
+  background:repeating-conic-gradient(from 210deg at 76% 92%,
+    rgba(226,194,119,.26) 0deg 6deg, rgba(226,194,119,0) 6deg 14deg)}
+.v3f .guy{position:absolute;right:-10px;bottom:44px;width:168px;z-index:1;
+  filter:drop-shadow(0 10px 16px rgba(0,0,0,.5))}
+.v3f .inner{position:relative;padding:13px 13px 11px;flex:1 1 auto}
+.v3f .lab{color:var(--gold-up)}
+.v3f h3{margin:2px 0 0;font-size:27px;font-weight:900;letter-spacing:-.015em;line-height:1;
+  max-width:62%;color:#F6F1E2}
+.v3f .meta{font-size:10.5px;color:#9FB49F;margin-top:4px;max-width:58%}
+.v3f .big{display:flex;align-items:baseline;gap:7px;margin-top:9px}
+.v3f .big b{font-size:52px;font-weight:900;line-height:.86;color:var(--gold-up);letter-spacing:-.03em}
+.v3f .big span{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:#9FB49F;max-width:60px}
+.v3f .rows{margin-top:10px;max-width:60%}
+.v3f .rows div{display:grid;grid-template-columns:1fr auto;gap:8px;font-size:12px;padding:3px 0;
+  border-top:1px solid rgba(238,232,213,.16)}
+.v3f .rows div b{font-weight:800}
+.v3f .strip{position:relative;z-index:2;display:grid;grid-template-columns:repeat(3,1fr);
+  background:rgba(13,22,16,.60);border-top:1px solid rgba(226,194,119,.30)}
+.v3f .strip div{padding:7px 6px;text-align:center}
+.v3f .strip div + div{border-left:1px solid rgba(238,232,213,.14)}
+.v3f .strip b{display:block;font-size:15px;font-weight:900}
+.v3f .strip span{font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:#9FB49F}
+.v3b{background:var(--card);color:var(--ink);position:relative}
+.v3b .hd{padding:11px 13px 0}
+.v3b .hd .lab{color:var(--turf)}
+.v3b .hd h3{margin:1px 0 0;font-size:18px;font-weight:800}
+.v3b .webbig{padding:2px 10px 0;position:relative;flex:1 1 auto;display:flex;align-items:center}
+.v3b .pad{padding:0 13px 10px}
+.v3b .guy{position:absolute;right:8px;top:8px;width:40px}
+
+/* ================= the digester ================= */
+.dig{display:grid;gap:18px;grid-template-columns:1fr;align-items:start;margin:16px 0 4px}
+@media (min-width:760px){ .dig{grid-template-columns:300px 1fr} }
+.crop{background:var(--pine-up);border:1px solid rgba(238,232,213,.18);border-radius:16px;padding:14px}
+.cropwin{width:212px;height:212px;margin:2px auto 10px;border-radius:50%;position:relative;
+  background:#DED7C4 no-repeat;box-shadow:inset 0 0 0 3px var(--ink), 0 6px 18px rgba(0,0,0,.35);
+  touch-action:none;cursor:grab;overflow:hidden}
+.cropwin.grab{cursor:grabbing}
+.cropwin .hint{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  text-align:center;padding:26px;font-size:12.5px;color:#4A5B4C}
+.crop label.pick{display:block;text-align:center;background:var(--gold);color:#23331F;border-radius:999px;
+  padding:9px 14px;font-weight:700;font-size:14px;cursor:pointer}
+.crop .zoom{display:flex;align-items:center;gap:9px;margin-top:11px;font-size:11px;color:#9FB49F}
+.crop input[type=range]{flex:1;accent-color:var(--gold)}
+.crop .acts{display:flex;gap:8px;margin-top:10px}
+.crop .acts button{flex:1;background:none;border:1px solid rgba(238,232,213,.3);color:var(--cream);
+  border-radius:999px;padding:7px 10px;font:inherit;font-size:12.5px;cursor:pointer}
+.crop .acts button.on{background:var(--cream);color:var(--ink);border-color:var(--cream);font-weight:700}
+.digsay h3{margin:0 0 6px;font-size:19px;font-weight:800;color:var(--gold-up)}
+.digsay p{margin:0 0 10px;color:#C8CCBF;font-size:14.5px;max-width:68ch}
+.digsay p b{color:var(--gold-up)}
+
+.three{display:grid;gap:30px;grid-template-columns:1fr;justify-items:center;align-items:start}
+@media (min-width:860px){ .three{grid-template-columns:repeat(3,1fr)} }
+.capt{max-width:360px;margin:14px auto 0;font-size:13.5px;color:#C8CCBF}
+.capt b{color:var(--gold-up)}
+.pagefoot{margin-top:60px;padding-top:18px;border-top:1px solid rgba(238,232,213,.16);
+  font-size:13px;color:#9FB49F}
+.pagefoot a{color:var(--gold-up)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>The flip card, three ways</h1>
+  <p class="sub">C’s numbers, A’s character, and a card with two sides: the golf on the front, the web
+    and the funny ones on the back. <b>Tap any card to turn it over.</b></p>
+
+  <div class="note">
+    <b>The figures are worked out, not invented.</b> Six pretend rounds at Leatherhead off the White
+    tees; every number on every card is then derived from them by the book’s own functions — the same
+    Stableford, the same stroke allocation, the same Union handicap, the same Order of Merit.
+  </div>
+
+  <h2><span class="k">First</span> Put your own face in the ball</h2>
+  <p class="say">Pick a photograph, drag it about, size it with the slider. It goes into the golf ball’s
+    head on all three cards at once, under the hat, so you keep the costume and the tournament still
+    dresses you for the time of year.</p>
+  <div class="dig">
+    <div class="crop">
+      <div class="cropwin" id="win"><span class="hint" id="hint">Your face goes here. Pick a photograph
+        below, then drag it about.</span></div>
+      <label class="pick">Choose a photograph
+        <input type="file" accept="image/*" id="file" hidden></label>
+      <div class="zoom"><span>Size</span><input type="range" id="zoom" min="100" max="320" value="130"></div>
+      <div class="acts">
+        <button type="button" id="useMe" class="on">Use my face</button>
+        <button type="button" id="useGuy">Use the golf guy</button>
+      </div>
+    </div>
+    <div class="digsay">
+      <h3>What this is, and what it is not</h3>
+      <p><b>Nothing leaves this page.</b> The photograph is read by your own browser and never sent
+        anywhere — not to the site, not to me, not to anyone. Close the tab and it is gone. If we build
+        it for real the picture would go into the book with everything else, and that is a decision for
+        the group rather than for me.</p>
+      <p><b>This is a face set into the ball, not a drawing of you.</b> That is deliberate. The two
+        other ways of doing it, honestly:</p>
+      <p>— <b>A built avatar.</b> You pick a skin tone, hair, beard, cap and so on, and the character is
+        drawn in the same hand as the golf guy. Always on style, never a bad likeness, no photograph
+        anywhere. Costs a drawing kit and an afternoon of picking.</p>
+      <p>— <b>A generated character.</b> Send the selfie to an image model and have it drawn as a
+        cartoon caddie. Much the best likeness, and the only one that really makes <i>you</i> as the golf
+        guy. But it costs money per picture, it needs a key on the server, and everybody’s face leaves
+        the phone and goes to a company. I would not turn that on without asking the group first.</p>
+      <p>My view: <b>ship the face in the ball</b>, because it works today, costs nothing and keeps the
+        photographs on the phone. Keep the generated one in your pocket for the Vegas shirts.</p>
+    </div>
+  </div>
+
+  <h2><span class="k">Then</span> The three</h2>
+  <p class="say">Same two sides on each. Front: what he shoots. Back: the web, and the ones you would
+    actually read out at dinner.</p>
+  <div id="renders"></div>
+
+  <h2><span class="k">Last</span> What I would still settle</h2>
+  <p class="pros">
+    <b>Three cards in, not one.</b> The web is noise off two rounds. I would hold it back until three
+    finished cards and say so on the card rather than draw a shape that means nothing.<br>
+    <b>Whose card everyone can see.</b> A nemesis hole is funny between mates; it is less funny on a
+    page anybody can open. Likely answer: the whole card inside the book, nothing on the public site.<br>
+    <b>The caddie’s mouth.</b> The verdict lines are mine and can be drier, or a good deal ruder.
+  </p>
+
+  <p class="pagefoot">The Union Invitational · a preview, not the app ·
+    <a href="../../">back to the site</a> · <a href="../profile/">the first three</a></p>
+</div>
+
+<script src="data.js"></script>
+<script>
+(function () {
+  var D = window.PROFILE;
+  var esc = function (s) { return String(s).replace(/[&<>"]/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+  var p1 = function (n) { return (Math.round(n * 10) / 10).toFixed(1); };
+  var r1 = function (n) { return (Math.round(n * 10) / 10).toFixed(1).replace(/\.0$/, ''); };
+  var ord = function (n) { return n + (n % 100 >= 11 && n % 100 <= 13 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] || 'th'); };
+  var pct = function (n) { return Math.round(n / D.counts.holes * 100); };
+
+  /* The character, with a hole in the ball for a face. The same markup
+     everywhere, so one photograph reaches every card at once. */
+  function guy(w) {
+    return '<span class="guy"' + (w ? ' style="width:' + w + 'px"' : '') + '>' +
+      '<img src="img/mascot_mulligan.webp" alt=""><span class="mug"></span></span>';
+  }
+
+  /* ---- the web, drawn from the five ---- */
+  function web(vals, keys, opt) {
+    var n = vals.length, cx = 100, cy = 96, R = opt && opt.r || 68, out = '', i, a, pt;
+    var ink = opt && opt.dark ? 'rgba(238,232,213,.22)' : 'rgba(29,46,33,.16)';
+    var fill = opt && opt.dark ? 'rgba(201,162,83,.26)' : 'rgba(94,122,95,.34)';
+    var line = opt && opt.dark ? '#E2C277' : '#3F6440';
+    var P = function (v, k) { var ang = -Math.PI / 2 + k * 2 * Math.PI / n;
+      return [cx + Math.cos(ang) * R * v, cy + Math.sin(ang) * R * v]; };
+    for (var ring = 1; ring <= 4; ring++) { pt = [];
+      for (i = 0; i < n; i++) pt.push(P(ring / 4, i).map(function (x) { return x.toFixed(1); }).join(','));
+      out += '<polygon points="' + pt.join(' ') + '" fill="none" stroke="' + ink + '" stroke-width="1"/>'; }
+    for (i = 0; i < n; i++) { a = P(1, i);
+      out += '<line x1="' + cx + '" y1="' + cy + '" x2="' + a[0].toFixed(1) + '" y2="' + a[1].toFixed(1) + '" stroke="' + ink + '"/>'; }
+    pt = [];
+    for (i = 0; i < n; i++) pt.push(P(vals[i] / 100, i).map(function (x) { return x.toFixed(1); }).join(','));
+    out += '<polygon points="' + pt.join(' ') + '" fill="' + fill + '" stroke="' + line + '" stroke-width="2" stroke-linejoin="round"/>';
+    for (i = 0; i < n; i++) { a = P(vals[i] / 100, i);
+      out += '<circle cx="' + a[0].toFixed(1) + '" cy="' + a[1].toFixed(1) + '" r="3" fill="#C9A253" stroke="#1D2E21" stroke-width="1"/>'; }
+    if (keys) for (i = 0; i < n; i++) { a = P(1.26, i);
+      var anch = Math.abs(a[0] - cx) < 6 ? 'middle' : a[0] > cx ? 'start' : 'end';
+      out += '<text x="' + a[0].toFixed(1) + '" y="' + (a[1] + 3.5).toFixed(1) + '" text-anchor="' + anch +
+        '" font-size="10.5" font-weight="700" fill="' + (opt && opt.dark ? '#DCD6C2' : '#1B2A1E') + '">' +
+        esc(keys[i]) + '</text>'; }
+    /* Names on the spokes stick out past the shape, and "Metronome" set
+       right-aligned at the left-hand spoke ran off the edge. The box is
+       widened to hold them rather than the names shortened. */
+    var box = keys ? '-34 -10 268 216' : '0 0 200 196';
+    return '<svg class="web" viewBox="' + box + '" role="img" aria-label="The five attributes">' + out + '</svg>';
+  }
+  var AV = D.attrs.map(function (a) { return a.v; });
+  var AK = D.attrs.map(function (a) { return a.k; });
+
+  /* ---- the back-of-card stats: the ones tied to real cards ---- */
+  var FUN = [
+    ['The banker', 'hole ' + D.banker.n + ', a par ' + D.banker.par + ' — ' + p1(D.banker.pts) + ' points every time', 'Hole ' + D.banker.n],
+    ['The nemesis', 'hole ' + D.nemesis.n + ', a par ' + D.nemesis.par + ' — ' + p1(D.nemesis.over) + ' over, six goes running', 'Hole ' + D.nemesis.n],
+    ['Longest streak', D.counts.run + ' holes without a blank', D.counts.run],
+    ['Blanks', D.counts.blanks + ' in ' + D.counts.holes + ' holes (' + pct(D.counts.blanks) + '%)', D.counts.blanks],
+    ['Front against back', p1(D.nine[0].pts) + ' out, ' + p1(D.nine[1].pts) + ' home', r1(D.nine[0].pts - D.nine[1].pts) + ' worse'],
+    ['Handicap', 'band ' + D.player.band + ' when he started, ' + D.record.played + ' cards later', D.player.band + ' → ' + D.player.hcp]
+  ];
+  function funList(dark) {
+    return '<ul class="fun' + (dark ? ' dark' : '') + '">' + FUN.map(function (f) {
+      return '<li><span>' + esc(f[0]) + '<i>' + esc(f[1]) + '</i></span><b>' + esc(String(f[2])) + '</b></li>';
+    }).join('') + '</ul>';
+  }
+  function h2hRows(dark) {
+    return '<ul class="fun' + (dark ? ' dark' : '') + '">' + D.h2h.map(function (x) {
+      return '<li><span>' + esc(x.name) + '</span><b style="color:' + (x.w > x.l ? '#4E7A4E' : '#9E3B2E') + '">' +
+        x.w + '–' + x.l + '</b></li>'; }).join('') + '</ul>';
+  }
+  var verdict = 'Hands him a <b>5-iron</b> on anything short and hides the <b>driver</b> after the turn. ' +
+    'Six cards, ' + D.counts.blanks + ' blanks, every one on a hole he could see the green from.';
+  function turn(light, top) {
+    return '<span class="turn' + (light ? ' lightfoot' : '') + (top ? ' top' : '') +
+      '">↺ Tap to turn</span>';
+  }
+
+  /* ---- the golf, in three dressings ---- */
+  function formBoxes() {
+    var mx = Math.max.apply(null, D.form.map(function (f) { return f.pts; }));
+    return D.form.map(function (f) {
+      return '<i class="num' + (f.pts === mx ? ' best' : '') + '">' + f.pts + '</i>'; }).join('');
+  }
+  function heatStrip() {
+    return D.perHole.map(function (h) {
+      var col = h.pts >= 2.4 ? '#4E7A4E' : h.pts >= 1.9 ? '#7E9A6A' : h.pts >= 1.4 ? '#C9A253' : '#9E3B2E';
+      var t = Math.max(0, Math.min(1, h.pts / 3));
+      return '<i style="background:' + col + ';opacity:' + (0.5 + t * 0.5).toFixed(2) +
+        '" title="Hole ' + h.n + ' \u00b7 par ' + h.par + '"></i>'; }).join('');
+  }
+  function lengthRows(cls) {
+    return D.byPar.map(function (p) {
+      return '<tr><td>Par ' + p.par + '</td><td class="m num">' + (p.over > 0 ? '+' : '') + p1(p.over) +
+        '</td><td class="n num">' + p1(p.pts) + '</td></tr>'; }).join('');
+  }
+  function indexRows() {
+    return D.bySi.map(function (s) {
+      return '<tr><td>' + esc(s.label.replace(/^the /, 'The ')) + '</td><td class="m num">SI ' + s.a + '–' + s.b +
+        '</td><td class="n num">' + p1(s.pts) + '</td></tr>'; }).join('');
+  }
+
+  /* ========== V1 — the trading card ========== */
+  function v1() {
+    var front = '<div class="face front v1f">' + turn() +
+      '<div class="hd"><div class="who"><div class="lab">The Union Invitational · 2027</div>' +
+        '<h3>' + esc(D.player.short) + '</h3>' +
+        '<div class="meta num">' + esc(D.course.name) + ' · ' + D.record.played + ' cards · ' +
+          ord(D.record.meritPos) + ' of ' + D.record.meritOf + '</div></div>' +
+        '<div class="hcp"><b class="num">' + D.player.playing + '</b><span>Union</span></div></div>' +
+      '<div class="port"><span class="flash">Par 5 merchant</span>' + guy() + '</div>' +
+      '<div class="sheet"><div class="lab" style="color:var(--turf)">The last six, in points</div>' +
+        '<div class="boxes">' + formBoxes() + '</div>' +
+        '<table>' +
+        '<tr><th>By length</th><th></th><th style="text-align:right">Pts</th></tr>' + lengthRows() +
+        '<tr><th>By index</th><th></th><th></th></tr>' + indexRows() +
+      '</table></div></div>';
+    var back = '<div class="face back v1b">' + turn(true) +
+      '<div class="hd"><div class="lab">The web · six cards deep</div><h3>What kind of golfer</h3></div>' +
+      '<div class="webwrap"><div>' + web(AV, null, { r: 62 }) + '</div>' +
+        '<div class="legend">' + D.attrs.map(function (a) {
+          return '<div title="' + esc(a.of) + '"><span>' + esc(a.k) + '</span><b class="num">' + a.v + '</b></div>'; }).join('') +
+        '</div></div>' +
+      '<div class="pad">' + funList(false) + '</div>' +
+      '<div class="verd">' + guy(38) + '<p>' + verdict + '</p></div></div>';
+    return card(front, back, 'v1') +
+      '<p class="capt"><b>1 · The trading card.</b> The character fills the front and the numbers sit ' +
+      'under him like the back of a sticker; turn it and the web is the headline with the funny ones ' +
+      'beneath. The one that most wants to be collected, and the one a photograph of somebody’s face ' +
+      'flatters most. The cost: the golf side is cramped — two small tables and no room for the form.</p>';
+  }
+
+  /* ========== V2 — the club scorecard ========== */
+  function v2() {
+    var boxes = formBoxes();
+    var front = '<div class="face front v2f">' + turn(true) +
+      '<div class="band">' + guy(40) +
+        '<div class="who"><div class="lab">Player card</div><h3>' + esc(D.player.short) + '</h3>' +
+          '<div class="meta num">' + esc(D.course.tee) + ' tees · par ' + D.course.par + ' · ' +
+            D.record.played + ' cards</div></div>' +
+        '<div class="hcp"><b class="num">' + D.player.playing + '</b><span>Union</span></div></div>' +
+      '<div class="ruled">' +
+        '<table><caption>The last six, in points</caption></table>' +
+        '<div class="boxes">' + boxes + '</div>' +
+        '<table><caption>By length of hole</caption>' +
+          '<tr><th>Hole</th><th style="text-align:center">To par</th><th style="text-align:right">Points</th></tr>' +
+          lengthRows() + '</table>' +
+        '<table><caption>By stroke index</caption>' + indexRows() + '</table>' +
+        '<div class="lab" style="color:var(--turf);padding:11px 0 3px">Every hole, six cards deep</div>' +
+        '<div class="heat">' + heatStrip() + '</div>' +
+        '<div class="heatlab"><span>1</span><span>9</span><span>18</span></div>' +
+        '<div class="stand">' + guy(96) + '</div>' +
+      '</div></div>';
+    var back = '<div class="face back v2b">' + turn() +
+      '<div class="hd"><div class="lab">The web · six cards deep</div><h3>What kind of golfer</h3></div>' +
+      '<div class="green">' + web(AV, AK, { dark: true, r: 56 }) + '</div>' +
+      '<div class="pad">' + funList(true) +
+        '<div style="height:8px"></div>' + h2hRows(true) + '</div></div>';
+    return card(front, back, 'v2') +
+      '<p class="capt"><b>2 · The club scorecard.</b> The front is the card you actually sign: hairline ' +
+      'rules, the last six pencilled into boxes, every split where you would look for it. Turn it and the ' +
+      'web sits on a green under floodlight with the head-to-heads below. Most room for golf of the three, ' +
+      'and the one that ages best. The cost: the character is reduced to a badge in the corner.</p>';
+  }
+
+  /* ========== V3 — the poster ========== */
+  function v3() {
+    var front = '<div class="face front v3f">' + turn(false, true) + '<div class="rays"></div>' + guy() +
+      '<div class="inner"><div class="lab">The Union Invitational · 2027</div>' +
+        '<h3>' + esc(D.player.short) + '</h3>' +
+        '<div class="meta num">' + esc(D.course.name) + ' · ' + esc(D.course.tee) + ' tees · ' +
+          ord(D.record.meritPos) + ' of ' + D.record.meritOf + ' on merit</div>' +
+        '<div class="big"><b class="num">' + D.player.playing + '</b><span>Union handicap</span></div>' +
+        '<div class="rows">' + D.byPar.map(function (p) {
+          return '<div><span>Par ' + p.par + '</span><b class="num">' + p1(p.pts) + '</b></div>'; }).join('') +
+          '<div><span>The hard six</span><b class="num">' + p1(D.bySi[0].pts) + '</b></div>' +
+        '</div></div>' +
+      '<div class="strip">' +
+        '<div><b class="num">' + D.totals.bestPts + '</b><span>Best card</span></div>' +
+        '<div><b class="num">' + p1(D.marks.avg * 18) + '</b><span>Average</span></div>' +
+        '<div><b class="num">' + D.counts.blanks + '</b><span>Blanks</span></div>' +
+      '</div></div>';
+    var back = '<div class="face back v3b">' + turn(true) + guy(40) +
+      '<div class="hd"><div class="lab">The web · six cards deep</div><h3>What kind of golfer</h3></div>' +
+      '<div class="webbig">' + web(AV, AK, { r: 60 }) + '</div>' +
+      '<div class="pad">' + funList(false) + '</div>' +
+      '<div class="verd">' + guy(38) + '<p>' + verdict + '</p></div></div>';
+    return card(front, back, 'v3') +
+      '<p class="capt"><b>3 · The poster.</b> Biggest the character ever gets: cut out against the ' +
+      'light, the handicap in numerals you can read across a room, and only the five figures that matter ' +
+      'beside him. The back gives the web the whole card with the names on the spokes. The showiest, and ' +
+      'the best one to put in the group chat. The cost: it is the least information of the three, and the ' +
+      'one that will look most dated in three years.</p>';
+  }
+
+  /* Not a <button>: a button establishes its own layout box, which flattens
+     the 3D scene and drew both faces at once. A div that behaves like a button
+     instead, with the keyboard wired up by hand. */
+  function card(front, back, k) {
+    return '<div class="flip" role="button" tabindex="0" data-k="' + k + '" aria-pressed="false" ' +
+      'aria-label="Player card, front. Activate to turn it over."><div class="fin">' + front + back + '</div></div>';
+  }
+
+  document.getElementById('renders').innerHTML =
+    '<div class="three"><div>' + v1() + '</div><div>' + v2() + '</div><div>' + v3() + '</div></div>';
+
+  /* ---- turning them over ---- */
+  Array.prototype.forEach.call(document.querySelectorAll('.flip'), function (f) {
+    var turnIt = function () {
+      var on = f.classList.toggle('on');
+      f.setAttribute('aria-pressed', on ? 'true' : 'false');
+      f.setAttribute('aria-label', 'Player card, ' + (on ? 'back' : 'front') + '. Activate to turn it over.');
+    };
+    f.addEventListener('click', turnIt);
+    f.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') { e.preventDefault(); turnIt(); }
+    });
+  });
+
+  /* ================= the digester =================
+     A photograph is read by this browser and nothing else. It is drawn as the
+     background of a circle; the circle is positioned as a share of its own
+     width, so the same three numbers describe the crop at 212px in the chooser
+     and at 36px on a card, and every copy shows the same face. */
+  var state = { url: null, zoom: 130, x: 50, y: 42 };
+  var win = document.getElementById('win'), hint = document.getElementById('hint');
+  var zoom = document.getElementById('zoom'), file = document.getElementById('file');
+
+  function paint() {
+    var mugs = document.querySelectorAll('.mug');
+    var css = state.url
+      ? { img: 'url("' + state.url + '")', size: state.zoom + '% auto', pos: state.x + '% ' + state.y + '%' }
+      : null;
+    [win].concat(Array.prototype.slice.call(mugs)).forEach(function (el) {
+      if (!el) return;
+      el.style.backgroundImage = css ? css.img : '';
+      el.style.backgroundSize = css ? css.size : '';
+      el.style.backgroundPosition = css ? css.pos : '';
+    });
+    if (hint) hint.style.display = state.url ? 'none' : 'flex';
+    document.body.classList.toggle('me', !!state.url && !document.body.classList.contains('guyonly'));
+  }
+
+  file.addEventListener('change', function () {
+    var f = file.files && file.files[0];
+    if (!f) return;
+    if (state.url) { try { URL.revokeObjectURL(state.url); } catch (e) { /* already gone */ } }
+    state.url = URL.createObjectURL(f);
+    state.x = 50; state.y = 42; state.zoom = +zoom.value;
+    document.body.classList.remove('guyonly');
+    document.getElementById('useMe').classList.add('on');
+    document.getElementById('useGuy').classList.remove('on');
+    paint();
+  });
+  zoom.addEventListener('input', function () { state.zoom = +zoom.value; paint(); });
+
+  var drag = null;
+  win.addEventListener('pointerdown', function (e) {
+    if (!state.url) return;
+    drag = { x: e.clientX, y: e.clientY, sx: state.x, sy: state.y };
+    win.classList.add('grab');
+    try { win.setPointerCapture(e.pointerId); } catch (err) { /* older browser */ }
+  });
+  win.addEventListener('pointermove', function (e) {
+    if (!drag) return;
+    /* A percentage background position moves by the slack between the picture
+       and the window, so a pixel of drag is worth more the closer the two
+       sizes are. This keeps the picture moving at roughly the speed of the
+       finger instead of bolting across the circle. */
+    var slack = Math.max(8, state.zoom - 100);
+    state.x = Math.max(0, Math.min(100, drag.sx - (e.clientX - drag.x) / win.clientWidth * 100 * (100 / slack)));
+    state.y = Math.max(0, Math.min(100, drag.sy - (e.clientY - drag.y) / win.clientHeight * 100 * (100 / slack)));
+    paint();
+  });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (k) {
+    win.addEventListener(k, function () { drag = null; win.classList.remove('grab'); });
+  });
+
+  document.getElementById('useMe').addEventListener('click', function () {
+    if (!state.url) { file.click(); return; }
+    document.body.classList.remove('guyonly');
+    this.classList.add('on'); document.getElementById('useGuy').classList.remove('on');
+    paint();
+  });
+  document.getElementById('useGuy').addEventListener('click', function () {
+    document.body.classList.add('guyonly');
+    this.classList.add('on'); document.getElementById('useMe').classList.remove('on');
+    paint();
+  });
+  paint();
+})();
+</script>
+</body>
+</html>
