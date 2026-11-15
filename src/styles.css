@@ -5592,6 +5592,79 @@ h2.greet small{display:block;font-size:14px;color:var(--turf);font-weight:400;fo
   transition:left 320ms cubic-bezier(.2,.7,.2,1),width 320ms cubic-bezier(.2,.7,.2,1),opacity 160ms ease}
 .tabbar:has(.tmark) .navbtn[aria-current="page"]::before{display:none}
 
+/* ---- THE CADDIE WHO STAYS ----
+   The bottom corner of the Clubhouse, above the tabs, dressed for whichever
+   tournament is open. He is furniture: nothing taps him, nothing reads him
+   out, and he never covers the thing being done — the markup takes him away
+   the moment a window or the keypad is up.
+
+   He is animated with the individual `translate` and `rotate` properties
+   rather than `transform`, because `transform` is already carrying the bar's
+   own shift and the two would fight. */
+.caddie{position:fixed;z-index:30;pointer-events:none;
+  right:max(2px,env(safe-area-inset-right,0px));
+  bottom:calc(14px + env(safe-area-inset-bottom,0px));
+  height:128px;
+  transition:opacity .22s ease,translate .26s cubic-bezier(.3,.8,.4,1)}
+/* The bob is on the picture and the contact shadow stays on the ground, so he
+   reads as a man standing and bouncing rather than a sticker floating.
+   Three layers, each owning one property, so nothing fights: the figure
+   itself bobs, the sleeve it sits in steps aside, and the outer box ducks. */
+.cadin{display:block;position:relative;height:100%;
+  transition:translate .34s cubic-bezier(.3,.8,.4,1),scale .34s cubic-bezier(.3,.8,.4,1),rotate .34s ease;
+  transform-origin:0 100%}
+.caddie img{display:block;height:100%;width:auto;
+  filter:drop-shadow(0 7px 10px rgba(16,22,17,.26));
+  transform-origin:50% 100%;
+  animation:cadBob 3.8s ease-in-out infinite}
+.cadin::after{content:'';position:absolute;left:14%;right:10%;bottom:-3px;height:8px;
+  border-radius:50%;
+  background:radial-gradient(50% 50% at 50% 50%,rgba(16,22,17,.34),rgba(16,22,17,0) 72%);
+  animation:cadShade 3.8s ease-in-out infinite}
+/* Words under him: he steps back to the edge of the screen and leans in from
+   it, so the line underneath is readable. He shrinks as he goes, because a
+   narrow sliver of a small caddie is still a caddie, where the same sliver of
+   a big one is a stray golf club. The step is a fixed number of pixels rather
+   than a share of his width, so the lane he leaves is the same on a phone as
+   on a laptop however big he is drawn there. */
+.caddie.peek .cadin{translate:calc(100% - 26px) 0;scale:.62;rotate:6deg}
+/* Out of the way while the page moves, back when it stops. Both animations go
+   off as he ducks, so nothing else is writing the properties he moves with. */
+.caddie.duck{opacity:0;translate:0 30px}
+.caddie.duck img,.caddie.duck .cadin::after{animation:none}
+/* Season is the one screen with no cover of its own, so he does more there. */
+.caddie.lean:not(.peek) img{animation:cadBob 3.8s ease-in-out infinite,cadLean 11s ease-in-out infinite}
+@keyframes cadBob{0%,100%{translate:0 0}50%{translate:0 -5px}}
+@keyframes cadShade{0%,100%{opacity:1;scale:1}50%{opacity:.6;scale:.86 .8}}
+@keyframes cadLean{0%,88%,100%{rotate:0deg}92%{rotate:-4.5deg}96%{rotate:1.5deg}}
+/* How big he is, is set by how much room there is to the right of the card.
+   He stands in the page's own gutter: small enough on a phone that the
+   right-hand column of a table still ends before he begins. */
+@media (max-width:699px){
+  .caddie{height:86px;bottom:calc(56px + env(safe-area-inset-bottom,0px));
+    right:max(0px,env(safe-area-inset-right,0px));
+    transform:translateY(var(--barshift,0px))}
+  /* room at the foot of the page so the last card clears him rather than
+     ending underneath him */
+  html.clubseason .wrap{padding-bottom:calc(162px + env(safe-area-inset-bottom,0px))}
+}
+/* The tablet size is held behind a width as well as the class: a phone that
+   reports a coarse pointer must not be given a tablet's mascot. */
+@media (min-width:700px){
+  html.tablet .caddie{height:120px;bottom:calc(64px + env(safe-area-inset-bottom,0px));
+    transform:translateY(var(--barshift,0px))}
+  html.tablet.clubseason .wrap{padding-bottom:calc(var(--barh) + 142px)}
+}
+@media (min-width:1100px){
+  html.clubseason:not(.tablet) .caddie{height:148px;bottom:14px;right:10px}
+  html.clubseason:not(.tablet) .wrap{padding-bottom:182px}
+}
+/* The one line on the page that runs right to the edge is the status bar at
+   the foot, and it is the one thing he cannot step clear of — so the page
+   leaves him the lane instead. */
+html.clubseason .statusbar{padding-right:40px}
+@media (prefers-reduced-motion:reduce){ .caddie img,.cadin::after{animation:none} }
+
 /* ---- the pine rail, on a laptop ----
    Not on a tablet: a tablet holds the bar under the thumb, as a phone does,
    and the handheld screens were drawn that way. */

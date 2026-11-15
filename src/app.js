@@ -8383,6 +8383,109 @@ function courseNine(c, from) {
     <tfoot><tr><td>${from ? '10\u201318' : '1\u20139'}</td><td class="num">${sum('par') || ''}</td><td></td><td class="num">${sum('y') || ''}</td></tr></tfoot></table>`;
 }
 
+/* He steps aside while the page is moving. A figure standing over a table of
+   numbers is in the way; the same figure, stepping out as you scroll and
+   coming back when you stop, is a caddie. The class is set on the element
+   rather than through a repaint, because a repaint on every scroll frame
+   would cost far more than it is worth. */
+let caddieOff = 0;
+function caddieDuck() {
+  const el = document.querySelector('.caddie');
+  if (!el) return;
+  el.classList.add('duck');
+  clearTimeout(caddieOff);
+  caddieOff = setTimeout(() => {
+    const e = document.querySelector('.caddie');
+    if (!e) return;
+    /* He works out where to stand while he is still out of sight, so the page
+       never shows him sliding sideways after it has settled. */
+    caddieFit(e);
+    e.classList.remove('duck');
+  }, 560);
+}
+
+/* ---- HE NEVER STANDS ON A WORD ----
+   The bottom right of a phone is where a table's values end, so standing there
+   means standing on them. Rather than shrink him until he is a sticker, he
+   checks what is actually under him and steps back behind the edge of the
+   screen when it is words, leaving a shoulder and the club showing. At the
+   foot of a page, or anywhere with room, he steps out in full.
+
+   The check is on the real inked boxes of the text — `Range.getClientRects()`,
+   not the elements' own boxes — because a table cell's box runs the width of
+   the column while its glyphs may end well before him. An element box would
+   have him hiding from whitespace. */
+function caddieBusy(el) {
+  const root = document.querySelector('.wrap');
+  if (!root) return false;
+  /* The box he hangs in, not the figure: the figure is what slides, and this
+     has to answer "is there room for him standing out in full" whatever he is
+     doing at this instant. Asking the figure would read a half-finished slide,
+     and asking after toggling the class would read the animation rather than
+     the answer. Transforms do not move the box, so the box is the full-size
+     resting position at all times. */
+  const a = el.getBoundingClientRect();
+  const walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+  const r = document.createRange();
+  for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+    if (!n.nodeValue || !n.nodeValue.trim()) continue;
+    const p = n.parentElement;
+    if (!p || p.closest('.caddie')) continue;
+    const b = p.getBoundingClientRect();
+    if (!b.width || b.right < a.left || b.left > a.right || b.bottom < a.top || b.top > a.bottom) continue;
+    r.selectNodeContents(n);
+    const q = r.getClientRects();
+    for (let i = 0; i < q.length; i++) {
+      const t = q[i];
+      if (t.right > a.left + 2 && t.left < a.right - 2 && t.bottom > a.top + 2 && t.top < a.bottom - 2) return true;
+    }
+  }
+  return false;
+}
+function caddieSoon() {
+  if (typeof requestAnimationFrame !== 'function') return;
+  requestAnimationFrame(() => caddieFit());
+}
+function caddieFit(el) {
+  const e = el || document.querySelector('.caddie');
+  if (!e) return;
+  /* Before the drawing has arrived he has no width, and a nought-wide figure
+     is over nothing at all. Wait for it rather than answer wrongly. */
+  const img = e.querySelector('img');
+  if (img && !img.complete) { img.addEventListener('load', () => caddieFit(), { once: true }); return; }
+  /* A mascot is never worth a thrown frame: if the measure goes wrong he
+     simply stays where he is. */
+  try { e.classList.toggle('peek', caddieBusy(e)); } catch (err) { /* leave him standing */ }
+}
+if (typeof window !== 'undefined') {
+  window.addEventListener('scroll', caddieDuck, { passive: true });
+  window.addEventListener('resize', () => caddieFit(), { passive: true });
+}
+
+/* ---- THE CADDIE WHO STAYS ----
+   He stands in the bottom corner of the Clubhouse, above the tabs, dressed for
+   whichever tournament is open, and he is there on all three screens. He is
+   furniture, not a control: `pointer-events:none` so every tap goes through
+   him to whatever is underneath, and `aria-hidden` so a screen reader never
+   has to mention him.
+
+   Only in the Clubhouse. The 2026 week is a finished book and he was not in
+   it; turning up there now would be a lie about what that week looked like. */
+function caddie() {
+  if (!inClub() || UI.archive) return '';
+  /* He stands down when something is actually being done: a window is open,
+     the keypad is up, or a question is being asked. A mascot in front of the
+     thing you are typing into is not a mascot, it is an obstacle. */
+  if (UI.modal || UI.clubPad || UI.recapOpen || UI.askOpen || UI.whoOpen) return '';
+  const today = todayIso();
+  const stop = C.stopById(T, UI.stopId) || C.openStops(T, today)[0] || C.currentStop(T, today);
+  const src = mascotFor(stop);
+  if (!src) return '';
+  /* Season has no cover of its own, so he leans there — it is the one screen
+     with room for him to do more than stand. */
+  return `<div class="caddie${UI.screen === 'season' ? ' lean' : ''}" aria-hidden="true"><span class="cadin"><img src="${src}" alt=""></span></div>`;
+}
+
 /* ---- THE MASCOT BELONGS TO THE TOURNAMENT ----
    He is not the app's mascot, he is the stop's: a santa hat for the Merry
    Mulligan, a bobble hat and a puff of cold breath for the Frostbite, a rose
@@ -9041,7 +9144,7 @@ function mustChoose() {
 function render() {
   X.invalidate();                       // every draw reckons the bets afresh, once
   if (mustChoose()) UI.modal = { kind: 'who', forced: true };
-  try { paint(); centrePick(); recapSlides(); }
+  try { paint(); centrePick(); recapSlides(); caddieSoon(); }
   catch (err) {
     // The screen is the least of it: a throw here used to abort whatever write
     // was in flight. Record it, and let the save carry on.
@@ -9174,6 +9277,7 @@ function paint() {
     </div>
   </div>
   ${feelBar()}
+  ${caddie()}
   ${chatFab()}
   ${tabBar()}
   ${stickyTop(role)}

@@ -5596,6 +5596,79 @@ h2.greet small{display:block;font-size:14px;color:var(--turf);font-weight:400;fo
   transition:left 320ms cubic-bezier(.2,.7,.2,1),width 320ms cubic-bezier(.2,.7,.2,1),opacity 160ms ease}
 .tabbar:has(.tmark) .navbtn[aria-current="page"]::before{display:none}
 
+/* ---- THE CADDIE WHO STAYS ----
+   The bottom corner of the Clubhouse, above the tabs, dressed for whichever
+   tournament is open. He is furniture: nothing taps him, nothing reads him
+   out, and he never covers the thing being done — the markup takes him away
+   the moment a window or the keypad is up.
+
+   He is animated with the individual `translate` and `rotate` properties
+   rather than `transform`, because `transform` is already carrying the bar's
+   own shift and the two would fight. */
+.caddie{position:fixed;z-index:30;pointer-events:none;
+  right:max(2px,env(safe-area-inset-right,0px));
+  bottom:calc(14px + env(safe-area-inset-bottom,0px));
+  height:128px;
+  transition:opacity .22s ease,translate .26s cubic-bezier(.3,.8,.4,1)}
+/* The bob is on the picture and the contact shadow stays on the ground, so he
+   reads as a man standing and bouncing rather than a sticker floating.
+   Three layers, each owning one property, so nothing fights: the figure
+   itself bobs, the sleeve it sits in steps aside, and the outer box ducks. */
+.cadin{display:block;position:relative;height:100%;
+  transition:translate .34s cubic-bezier(.3,.8,.4,1),scale .34s cubic-bezier(.3,.8,.4,1),rotate .34s ease;
+  transform-origin:0 100%}
+.caddie img{display:block;height:100%;width:auto;
+  filter:drop-shadow(0 7px 10px rgba(16,22,17,.26));
+  transform-origin:50% 100%;
+  animation:cadBob 3.8s ease-in-out infinite}
+.cadin::after{content:'';position:absolute;left:14%;right:10%;bottom:-3px;height:8px;
+  border-radius:50%;
+  background:radial-gradient(50% 50% at 50% 50%,rgba(16,22,17,.34),rgba(16,22,17,0) 72%);
+  animation:cadShade 3.8s ease-in-out infinite}
+/* Words under him: he steps back to the edge of the screen and leans in from
+   it, so the line underneath is readable. He shrinks as he goes, because a
+   narrow sliver of a small caddie is still a caddie, where the same sliver of
+   a big one is a stray golf club. The step is a fixed number of pixels rather
+   than a share of his width, so the lane he leaves is the same on a phone as
+   on a laptop however big he is drawn there. */
+.caddie.peek .cadin{translate:calc(100% - 26px) 0;scale:.62;rotate:6deg}
+/* Out of the way while the page moves, back when it stops. Both animations go
+   off as he ducks, so nothing else is writing the properties he moves with. */
+.caddie.duck{opacity:0;translate:0 30px}
+.caddie.duck img,.caddie.duck .cadin::after{animation:none}
+/* Season is the one screen with no cover of its own, so he does more there. */
+.caddie.lean:not(.peek) img{animation:cadBob 3.8s ease-in-out infinite,cadLean 11s ease-in-out infinite}
+@keyframes cadBob{0%,100%{translate:0 0}50%{translate:0 -5px}}
+@keyframes cadShade{0%,100%{opacity:1;scale:1}50%{opacity:.6;scale:.86 .8}}
+@keyframes cadLean{0%,88%,100%{rotate:0deg}92%{rotate:-4.5deg}96%{rotate:1.5deg}}
+/* How big he is, is set by how much room there is to the right of the card.
+   He stands in the page's own gutter: small enough on a phone that the
+   right-hand column of a table still ends before he begins. */
+@media (max-width:699px){
+  .caddie{height:86px;bottom:calc(56px + env(safe-area-inset-bottom,0px));
+    right:max(0px,env(safe-area-inset-right,0px));
+    transform:translateY(var(--barshift,0px))}
+  /* room at the foot of the page so the last card clears him rather than
+     ending underneath him */
+  html.clubseason .wrap{padding-bottom:calc(162px + env(safe-area-inset-bottom,0px))}
+}
+/* The tablet size is held behind a width as well as the class: a phone that
+   reports a coarse pointer must not be given a tablet's mascot. */
+@media (min-width:700px){
+  html.tablet .caddie{height:120px;bottom:calc(64px + env(safe-area-inset-bottom,0px));
+    transform:translateY(var(--barshift,0px))}
+  html.tablet.clubseason .wrap{padding-bottom:calc(var(--barh) + 142px)}
+}
+@media (min-width:1100px){
+  html.clubseason:not(.tablet) .caddie{height:148px;bottom:14px;right:10px}
+  html.clubseason:not(.tablet) .wrap{padding-bottom:182px}
+}
+/* The one line on the page that runs right to the edge is the status bar at
+   the foot, and it is the one thing he cannot step clear of — so the page
+   leaves him the lane instead. */
+html.clubseason .statusbar{padding-right:40px}
+@media (prefers-reduced-motion:reduce){ .caddie img,.cadin::after{animation:none} }
+
 /* ---- the pine rail, on a laptop ----
    Not on a tablet: a tablet holds the bar under the thumb, as a phone does,
    and the handheld screens were drawn that way. */
@@ -5883,7 +5956,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261115-1037';
+const BUILD = '20261115-1116';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -22670,6 +22743,109 @@ function courseNine(c, from) {
     <tfoot><tr><td>${from ? '10\u201318' : '1\u20139'}</td><td class="num">${sum('par') || ''}</td><td></td><td class="num">${sum('y') || ''}</td></tr></tfoot></table>`;
 }
 
+/* He steps aside while the page is moving. A figure standing over a table of
+   numbers is in the way; the same figure, stepping out as you scroll and
+   coming back when you stop, is a caddie. The class is set on the element
+   rather than through a repaint, because a repaint on every scroll frame
+   would cost far more than it is worth. */
+let caddieOff = 0;
+function caddieDuck() {
+  const el = document.querySelector('.caddie');
+  if (!el) return;
+  el.classList.add('duck');
+  clearTimeout(caddieOff);
+  caddieOff = setTimeout(() => {
+    const e = document.querySelector('.caddie');
+    if (!e) return;
+    /* He works out where to stand while he is still out of sight, so the page
+       never shows him sliding sideways after it has settled. */
+    caddieFit(e);
+    e.classList.remove('duck');
+  }, 560);
+}
+
+/* ---- HE NEVER STANDS ON A WORD ----
+   The bottom right of a phone is where a table's values end, so standing there
+   means standing on them. Rather than shrink him until he is a sticker, he
+   checks what is actually under him and steps back behind the edge of the
+   screen when it is words, leaving a shoulder and the club showing. At the
+   foot of a page, or anywhere with room, he steps out in full.
+
+   The check is on the real inked boxes of the text — `Range.getClientRects()`,
+   not the elements' own boxes — because a table cell's box runs the width of
+   the column while its glyphs may end well before him. An element box would
+   have him hiding from whitespace. */
+function caddieBusy(el) {
+  const root = document.querySelector('.wrap');
+  if (!root) return false;
+  /* The box he hangs in, not the figure: the figure is what slides, and this
+     has to answer "is there room for him standing out in full" whatever he is
+     doing at this instant. Asking the figure would read a half-finished slide,
+     and asking after toggling the class would read the animation rather than
+     the answer. Transforms do not move the box, so the box is the full-size
+     resting position at all times. */
+  const a = el.getBoundingClientRect();
+  const walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+  const r = document.createRange();
+  for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+    if (!n.nodeValue || !n.nodeValue.trim()) continue;
+    const p = n.parentElement;
+    if (!p || p.closest('.caddie')) continue;
+    const b = p.getBoundingClientRect();
+    if (!b.width || b.right < a.left || b.left > a.right || b.bottom < a.top || b.top > a.bottom) continue;
+    r.selectNodeContents(n);
+    const q = r.getClientRects();
+    for (let i = 0; i < q.length; i++) {
+      const t = q[i];
+      if (t.right > a.left + 2 && t.left < a.right - 2 && t.bottom > a.top + 2 && t.top < a.bottom - 2) return true;
+    }
+  }
+  return false;
+}
+function caddieSoon() {
+  if (typeof requestAnimationFrame !== 'function') return;
+  requestAnimationFrame(() => caddieFit());
+}
+function caddieFit(el) {
+  const e = el || document.querySelector('.caddie');
+  if (!e) return;
+  /* Before the drawing has arrived he has no width, and a nought-wide figure
+     is over nothing at all. Wait for it rather than answer wrongly. */
+  const img = e.querySelector('img');
+  if (img && !img.complete) { img.addEventListener('load', () => caddieFit(), { once: true }); return; }
+  /* A mascot is never worth a thrown frame: if the measure goes wrong he
+     simply stays where he is. */
+  try { e.classList.toggle('peek', caddieBusy(e)); } catch (err) { /* leave him standing */ }
+}
+if (typeof window !== 'undefined') {
+  window.addEventListener('scroll', caddieDuck, { passive: true });
+  window.addEventListener('resize', () => caddieFit(), { passive: true });
+}
+
+/* ---- THE CADDIE WHO STAYS ----
+   He stands in the bottom corner of the Clubhouse, above the tabs, dressed for
+   whichever tournament is open, and he is there on all three screens. He is
+   furniture, not a control: `pointer-events:none` so every tap goes through
+   him to whatever is underneath, and `aria-hidden` so a screen reader never
+   has to mention him.
+
+   Only in the Clubhouse. The 2026 week is a finished book and he was not in
+   it; turning up there now would be a lie about what that week looked like. */
+function caddie() {
+  if (!inClub() || UI.archive) return '';
+  /* He stands down when something is actually being done: a window is open,
+     the keypad is up, or a question is being asked. A mascot in front of the
+     thing you are typing into is not a mascot, it is an obstacle. */
+  if (UI.modal || UI.clubPad || UI.recapOpen || UI.askOpen || UI.whoOpen) return '';
+  const today = todayIso();
+  const stop = C.stopById(T, UI.stopId) || C.openStops(T, today)[0] || C.currentStop(T, today);
+  const src = mascotFor(stop);
+  if (!src) return '';
+  /* Season has no cover of its own, so he leans there — it is the one screen
+     with room for him to do more than stand. */
+  return `<div class="caddie${UI.screen === 'season' ? ' lean' : ''}" aria-hidden="true"><span class="cadin"><img src="${src}" alt=""></span></div>`;
+}
+
 /* ---- THE MASCOT BELONGS TO THE TOURNAMENT ----
    He is not the app's mascot, he is the stop's: a santa hat for the Merry
    Mulligan, a bobble hat and a puff of cold breath for the Frostbite, a rose
@@ -23328,7 +23504,7 @@ function mustChoose() {
 function render() {
   X.invalidate();                       // every draw reckons the bets afresh, once
   if (mustChoose()) UI.modal = { kind: 'who', forced: true };
-  try { paint(); centrePick(); recapSlides(); }
+  try { paint(); centrePick(); recapSlides(); caddieSoon(); }
   catch (err) {
     // The screen is the least of it: a throw here used to abort whatever write
     // was in flight. Record it, and let the save carry on.
@@ -23461,6 +23637,7 @@ function paint() {
     </div>
   </div>
   ${feelBar()}
+  ${caddie()}
   ${chatFab()}
   ${tabBar()}
   ${stickyTop(role)}
