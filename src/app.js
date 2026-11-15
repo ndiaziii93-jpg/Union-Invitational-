@@ -8244,7 +8244,8 @@ function scrClubEntry() {
   <p class="lede">${esc(course.name)}${course.tee ? ' · ' + esc(course.tee) + ' tees' : ''} · playing off ${card.hcp == null ? '—' : esc(String(Math.round(card.hcp)))}${course.approved ? '' : ' · <i>course awaiting the commissioner’s approval</i>'} <button class="rm" data-act="courseEdit">Change course</button></p>
   ${back}
   <div class="entryhd">
-    <div class="ehd-facts"><span class="ehd-n num">${h + 1}</span><span class="ehd-l">Hole</span><span class="ehd-m">Par ${hole.par} · Index ${hole.si}<b>${raw == null ? 'Not scored yet' : 'You wrote ' + raw + (pts != null ? ' · ' + pts + ' pt' + (pts === 1 ? '' : 's') : '')}</b></span></div>
+    <div class="ehd-facts"><span class="ehd-n num">${h + 1}</span><span class="ehd-l">Hole</span><span class="ehd-m">Par ${hole.par} · Index ${hole.si}<b>${raw == null ? 'Not scored yet' : 'You wrote ' + raw + (pts != null ? ' · ' + pts + ' pt' + (pts === 1 ? '' : 's') : '')}</b></span>
+      <button class="ehd-art" data-act="holeArt" data-a="${h}" data-b="home__${esc(me)}" aria-label="Stand on the tee of hole ${h + 1} at ${esc(course.name)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 21V4l9 3-9 3"/><path d="M3 21h8"/></svg>See the hole</button></div>
     <div class="scroller nos"><div class="hstrip">${holes.map((x, i) => `<button class="hcell${i === h ? ' on' : ''}${card.raw[i] != null ? ' saved' : ''}" data-act="clubHole" data-a="${i}" aria-label="Hole ${i + 1}, par ${x.par}"><span class="n num">${i + 1}</span><span class="p num">par ${x.par}</span></button>`).join('')}</div></div>
   </div>
   ${gate}
@@ -9541,9 +9542,19 @@ function holeUnits() {
   if (!UI.units) { try { UI.units = localStorage.getItem(UNITS_KEY) || 'yd'; } catch (e) { UI.units = 'yd'; } }
   return UI.units === 'm' ? 'm' : 'yd';
 }
+/** The course a hole window was opened on. The week's three courses come
+ *  from the book and have a drawing each; a `home__<pid>` key is somebody's
+ *  own course, which has a card but no drawing, so the ground is modelled
+ *  from par and length and the glass says so. */
+function courseForKey(key) {
+  if (!key) return null;
+  if (key.indexOf('home__') === 0) return C.courseAsBook(C.courseOf(T, key.slice(6)));
+  return E.courseByKey(T, key);
+}
 function artModalHtml() {
   const rid = UI.modal.rid, h = UI.modal.hole;
-  const course = UI.modal.ckey ? E.courseByKey(T, UI.modal.ckey) : E.courseOf(T, rid);
+  const course = UI.modal.ckey ? courseForKey(UI.modal.ckey) : E.courseOf(T, rid);
+  if (!course) return '';
   const hole = course.holes[h];
   if (!hole) return '';
   const art = IMG[hole.img];
@@ -9564,7 +9575,9 @@ function artModalHtml() {
     role="dialog" aria-modal="true" aria-label="Hole ${hole.n} at ${esc(course.name)}">
     <div class="h3sky"></div>
     <div class="h3mount" id="h3dMount" data-key="${esc(course.key + ':' + h)}">${live ? ''
-      : `<div class="h3fallback nos"><img src="${art || ''}" alt="Hole ${hole.n} at ${esc(course.name)}, drawn from tee to green"></div>`}</div>
+      : art ? `<div class="h3fallback nos"><img src="${art}" alt="Hole ${hole.n} at ${esc(course.name)}, drawn from tee to green"></div>`
+      : `<div class="h3fallback flat nos"><b class="num">${hole.n}</b><span class="num">Par ${hole.par} · index ${hole.si}${
+          hole.y ? ' · ' + hole.y + ' yds' : ''}</span><small>This phone cannot draw the ground. The card is all of it.</small></div>`}</div>
     <div class="h3pill"><span class="fl">${ico.flag}</span><span class="sep"></span>
       <button class="ar" data-act="artHole" data-a="${h - 1}"${h === 0 ? ' disabled' : ''} aria-label="Previous hole">‹</button>
       <span class="n">Hole ${hole.n}</span>
@@ -9591,7 +9604,9 @@ function artModalHtml() {
         <div class="par"><b class="num">${hole.par}</b><span>Par</span></div>
       </div>
       ${canFeel ? `<button class="h3feel" data-act="artFeel">HOW'D<br>YOU FEEL?</button>`
-        : `<span class="h3feel still"><b>${hole.mY}</b><small>m · yellow</small></span>`}
+        : course.home
+          ? `<span class="h3feel still"><b>${hole.y == null ? '\u2014' : hole.y}</b><small>yds${course.tee ? ' \u00B7 ' + esc(course.tee.toLowerCase()) : ''}</small></span>`
+          : `<span class="h3feel still"><b>${hole.mY}</b><small>m · yellow</small></span>`}
     </div>
     ${UI.modal.feel && canFeel ? feelSheet(rid, h, hole) : ''}
   </div></div>`;
@@ -9634,7 +9649,8 @@ function mountHole3D() {
   const key = mount.dataset.key;
   if (UI.h3 && UI.h3.key !== key) dropHole3D();
   if (!UI.h3) {
-    const m = UI.modal; const course = m.ckey ? E.courseByKey(T, m.ckey) : E.courseOf(T, m.rid);
+    const m = UI.modal; const course = m.ckey ? courseForKey(m.ckey) : E.courseOf(T, m.rid);
+    if (!course) return;
     const hole = course.holes[m.hole];
     try {
       const ctl = H3D.create(mount, HOLES.model(course.key, hole), { units: holeUnits(), flat: !!UI.h3flat, labels: UI.h3labels !== false,
@@ -10480,7 +10496,7 @@ function onClick(e) {
       UI.modal = { kind: 'daysheet', n: +a };
       break;
     case 'holeArt':
-      UI.modal = { kind: 'art', rid: UI.entryRound, hole: +a, ckey: b || null };
+      UI.modal = { kind: 'art', rid: b && b.indexOf('home__') === 0 ? null : UI.entryRound, hole: +a, ckey: b || null };
       break;
     /* ---- the hole window ---- */
     case 'artHole': {

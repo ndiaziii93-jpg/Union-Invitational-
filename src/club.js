@@ -147,7 +147,24 @@ export const COURSE_LIB = [
       [5, 3, 4, 5, 4, 4, 4, 5, 3, 4, 4, 3, 4, 4, 3, 5, 4, 3],
       [18, 8, 4, 14, 10, 2, 12, 6, 16, 1, 11, 5, 15, 13, 7, 3, 17, 9],
       [483, 176, 402, 507, 361, 447, 372, 534, 188, 423, 284, 196, 255, 296, 198, 503, 300, 203]) },
+  { id: 'leatherhead-yellow', name: 'Leatherhead Golf Club', place: 'Leatherhead, Surrey, England',
+    note: 'Par 70 off the yellows \u2014 the 4th plays as a par 4. Same stroke index as the whites.',
+    ...card('Yellow',
+      [5, 3, 4, 4, 4, 4, 4, 5, 3, 4, 4, 3, 4, 4, 3, 5, 4, 3],
+      [18, 8, 4, 14, 10, 2, 12, 6, 16, 1, 11, 5, 15, 13, 7, 3, 17, 9],
+      [444, 166, 367, 440, 302, 424, 364, 519, 175, 414, 274, 175, 248, 284, 182, 494, 290, 195]) },
+  { id: 'leatherhead-red', name: 'Leatherhead Golf Club', place: 'Leatherhead, Surrey, England',
+    note: 'Par 69 off the reds, and the reds have a stroke index of their own \u2014 the 4th is the hardest hole, not the 10th.',
+    ...card('Red',
+      [4, 3, 4, 4, 4, 4, 4, 5, 3, 4, 4, 3, 4, 4, 3, 5, 4, 3],
+      [9, 15, 7, 1, 17, 3, 11, 5, 13, 2, 14, 12, 18, 10, 4, 8, 16, 6],
+      [429, 142, 338, 433, 292, 398, 345, 491, 162, 370, 245, 166, 248, 278, 175, 479, 282, 182]) },
 ];
+
+/** A course in the library is a name AND a tee: Leatherhead off the whites
+ *  is par 71 and Leatherhead off the reds is par 69, with a stroke index of
+ *  its own. They are two cards, and a member picks the one they play. */
+const libKey = (name, tee) => String(name || '').trim().toLowerCase() + '|' + String(tee || '').trim().toLowerCase();
 
 /** Every course the book knows: the ones written down above, and every one
  *  a member has already entered. A member's own course wins on a name
@@ -157,13 +174,13 @@ export function courseLibrary(T) {
   const seen = new Set();
   for (const [k, c] of Object.entries((T && T.club) || {})) {
     if (!k.startsWith('course__') || !c || !c.name) continue;
-    const key = String(c.name).trim().toLowerCase();
+    const key = libKey(c.name, c.tee);
     if (seen.has(key)) continue;
     seen.add(key);
     out.push({ id: k, name: c.name, place: '', tee: c.tee || '', holes: c.holes, from: 'book', approved: !!c.approved });
   }
   for (const c of COURSE_LIB) {
-    const key = c.name.trim().toLowerCase();
+    const key = libKey(c.name, c.tee);
     if (seen.has(key)) continue;
     seen.add(key);
     out.push({ ...c, from: 'library' });
@@ -185,6 +202,24 @@ export function courseFrom(entry, pid) {
   return { pid, name: entry.name, tee: entry.tee || '',
     holes: entry.holes.map(h => ({ par: +h.par, si: +h.si, y: h.y == null ? null : +h.y })),
     approved: false, at: null };
+}
+
+/** A home course as the hole window reads a course: a key of its own, the
+ *  holes numbered, and the card's yards carried over as metres, because the
+ *  ground is modelled in metres. There is no drawing of a home course, so
+ *  `img` is null and the window builds the hole from par and length \u2014 and
+ *  says on the glass that the shape is drawn, not surveyed. */
+export function courseAsBook(course) {
+  if (!courseOk(course)) return null;
+  const m = y => (y == null || !isFinite(+y) ? null : Math.round(+y / 1.09361));
+  return {
+    key: 'home__' + course.pid, name: course.name, tee: course.tee || '',
+    home: true, verified: !!course.approved, meta: null,
+    holes: course.holes.map((h, i) => ({
+      n: i + 1, par: +h.par, si: +h.si,
+      y: h.y == null ? null : +h.y, mY: m(h.y), mW: m(h.y), img: null,
+    })),
+  };
 }
 
 export function blankCourse(pid) {

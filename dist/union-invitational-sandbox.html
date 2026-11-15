@@ -796,6 +796,12 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 .h3layer{position:absolute;inset:0;pointer-events:none}
 .h3fallback{position:absolute;inset:60px 0 120px;overflow:auto;display:grid;place-items:center}
 .h3fallback img{width:100%;max-width:520px;height:auto;filter:drop-shadow(0 10px 18px rgba(0,0,0,.35)) saturate(1.1)}
+/* A home course has no drawing to fall back on, so the card stands in. */
+.h3fallback.flat{display:grid;place-content:center;justify-items:center;gap:6px;text-align:center;
+  color:var(--onpine);padding:0 24px}
+.h3fallback.flat b{font-size:clamp(56px,16vw,96px);font-weight:900;line-height:1;letter-spacing:-.03em}
+.h3fallback.flat span{font-size:15px;letter-spacing:.04em}
+.h3fallback.flat small{font-size:12.5px;opacity:.72;max-width:26ch;line-height:1.45}
 /* the pins and cards over the ground */
 .h3pin{position:absolute;transform:translate(-50%,-100%);background:var(--page);color:var(--ink);font-weight:900;font-size:16px;line-height:1;
   padding:6px 9px 5px;border-radius:9px;box-shadow:0 3px 10px rgba(16,22,17,.3);font-variant-numeric:tabular-nums;letter-spacing:-.01em;white-space:nowrap}
@@ -2346,6 +2352,15 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
 .ehd-m{margin-left:auto;text-align:right;font-size:10.5px;letter-spacing:.1em;
   text-transform:uppercase;color:var(--sage-up);font-weight:700;line-height:1.5}
 .ehd-m b{display:block;color:var(--onpine)}
+/* "See the hole" on your own course: the ground is modelled from the card. */
+.ehd-art{margin-left:12px;flex:0 0 auto;align-self:center;display:inline-flex;align-items:center;gap:6px;
+  padding:8px 12px;min-height:38px;border-radius:999px;cursor:pointer;
+  background:rgba(238,232,213,.10);border:1px solid rgba(238,232,213,.34);color:var(--onpine);
+  font:inherit;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+  transition:background .16s ease,border-color .16s ease,transform .12s ease}
+.ehd-art svg{width:15px;height:15px;flex:0 0 auto}
+.ehd-art:active{transform:scale(.96);background:rgba(238,232,213,.18)}
+@media (hover:hover) and (pointer:fine){ .ehd-art:hover{background:rgba(238,232,213,.18);border-color:rgba(238,232,213,.6)} }
 .entryhd .scroller{margin:10px 0 0;overflow-x:auto}
 .entryhd .hstrip{display:flex;gap:5px;min-width:0;padding-bottom:12px}
 .entryhd .hstrip .hcell{flex:1 1 0;min-width:40px;min-height:46px;padding:4px 0;
@@ -3690,6 +3705,8 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
   .ehd-m{margin-left:auto;text-align:right;font-size:10px;letter-spacing:.1em;
     text-transform:uppercase;color:var(--sage-up);font-weight:700;line-height:1.5}
   .ehd-m b{display:block;color:var(--onpine)}
+  .ehd-art{margin-left:10px;padding:7px 10px;min-height:34px;font-size:0;gap:0;letter-spacing:0}
+  .ehd-art svg{width:17px;height:17px}
   /* The eighteen, as a ribbon on the band: one row, not two, and small
      enough that a dozen are on the glass at once. */
   .entryhd .scroller{margin:8px 0 0;overflow-x:auto}
@@ -5787,7 +5804,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261115-0741';
+const BUILD = '20261115-0801';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -11483,7 +11500,24 @@ const COURSE_LIB = [
       [5, 3, 4, 5, 4, 4, 4, 5, 3, 4, 4, 3, 4, 4, 3, 5, 4, 3],
       [18, 8, 4, 14, 10, 2, 12, 6, 16, 1, 11, 5, 15, 13, 7, 3, 17, 9],
       [483, 176, 402, 507, 361, 447, 372, 534, 188, 423, 284, 196, 255, 296, 198, 503, 300, 203]) },
+  { id: 'leatherhead-yellow', name: 'Leatherhead Golf Club', place: 'Leatherhead, Surrey, England',
+    note: 'Par 70 off the yellows \u2014 the 4th plays as a par 4. Same stroke index as the whites.',
+    ...card('Yellow',
+      [5, 3, 4, 4, 4, 4, 4, 5, 3, 4, 4, 3, 4, 4, 3, 5, 4, 3],
+      [18, 8, 4, 14, 10, 2, 12, 6, 16, 1, 11, 5, 15, 13, 7, 3, 17, 9],
+      [444, 166, 367, 440, 302, 424, 364, 519, 175, 414, 274, 175, 248, 284, 182, 494, 290, 195]) },
+  { id: 'leatherhead-red', name: 'Leatherhead Golf Club', place: 'Leatherhead, Surrey, England',
+    note: 'Par 69 off the reds, and the reds have a stroke index of their own \u2014 the 4th is the hardest hole, not the 10th.',
+    ...card('Red',
+      [4, 3, 4, 4, 4, 4, 4, 5, 3, 4, 4, 3, 4, 4, 3, 5, 4, 3],
+      [9, 15, 7, 1, 17, 3, 11, 5, 13, 2, 14, 12, 18, 10, 4, 8, 16, 6],
+      [429, 142, 338, 433, 292, 398, 345, 491, 162, 370, 245, 166, 248, 278, 175, 479, 282, 182]) },
 ];
+
+/** A course in the library is a name AND a tee: Leatherhead off the whites
+ *  is par 71 and Leatherhead off the reds is par 69, with a stroke index of
+ *  its own. They are two cards, and a member picks the one they play. */
+const libKey = (name, tee) => String(name || '').trim().toLowerCase() + '|' + String(tee || '').trim().toLowerCase();
 
 /** Every course the book knows: the ones written down above, and every one
  *  a member has already entered. A member's own course wins on a name
@@ -11493,13 +11527,13 @@ function courseLibrary(T) {
   const seen = new Set();
   for (const [k, c] of Object.entries((T && T.club) || {})) {
     if (!k.startsWith('course__') || !c || !c.name) continue;
-    const key = String(c.name).trim().toLowerCase();
+    const key = libKey(c.name, c.tee);
     if (seen.has(key)) continue;
     seen.add(key);
     out.push({ id: k, name: c.name, place: '', tee: c.tee || '', holes: c.holes, from: 'book', approved: !!c.approved });
   }
   for (const c of COURSE_LIB) {
-    const key = c.name.trim().toLowerCase();
+    const key = libKey(c.name, c.tee);
     if (seen.has(key)) continue;
     seen.add(key);
     out.push({ ...c, from: 'library' });
@@ -11521,6 +11555,24 @@ function courseFrom(entry, pid) {
   return { pid, name: entry.name, tee: entry.tee || '',
     holes: entry.holes.map(h => ({ par: +h.par, si: +h.si, y: h.y == null ? null : +h.y })),
     approved: false, at: null };
+}
+
+/** A home course as the hole window reads a course: a key of its own, the
+ *  holes numbered, and the card's yards carried over as metres, because the
+ *  ground is modelled in metres. There is no drawing of a home course, so
+ *  `img` is null and the window builds the hole from par and length \u2014 and
+ *  says on the glass that the shape is drawn, not surveyed. */
+function courseAsBook(course) {
+  if (!courseOk(course)) return null;
+  const m = y => (y == null || !isFinite(+y) ? null : Math.round(+y / 1.09361));
+  return {
+    key: 'home__' + course.pid, name: course.name, tee: course.tee || '',
+    home: true, verified: !!course.approved, meta: null,
+    holes: course.holes.map((h, i) => ({
+      n: i + 1, par: +h.par, si: +h.si,
+      y: h.y == null ? null : +h.y, mY: m(h.y), mW: m(h.y), img: null,
+    })),
+  };
 }
 
 function blankCourse(pid) {
@@ -11735,7 +11787,7 @@ function csvTravel(T) {
   return csv(rows);
 }
 
-return {STOPS_SEED, PACKAGES_SEED, MERIT, VENDORS_SEED, seasonDefaults, season, phaseOf, frozen, isoToday, daysBetween, fmtDay, dowOf, stopState, stops, stopById, openStops, nextStop, closedStops, currentStop, golfers, everyone, person, COURSE_LIB, courseLibrary, courseFind, courseFrom, blankCourse, courseOf, courseOk, coursePar, cardKey, cardOf, blankClubCard, capFor, holePts, cardTotals, stopBoard, stopWinner, merit, diffOf, unionHcp, playingOf, DIVISIONS, divisionOf, divisionLabel, signupOf, travelOf, moneyOf, packageOf, field, ledger, fmtMoney, lineOf, dials, csv, csvHeadcount, csvRooms, csvTravel};
+return {STOPS_SEED, PACKAGES_SEED, MERIT, VENDORS_SEED, seasonDefaults, season, phaseOf, frozen, isoToday, daysBetween, fmtDay, dowOf, stopState, stops, stopById, openStops, nextStop, closedStops, currentStop, golfers, everyone, person, COURSE_LIB, courseLibrary, courseFind, courseFrom, courseAsBook, blankCourse, courseOf, courseOk, coursePar, cardKey, cardOf, blankClubCard, capFor, holePts, cardTotals, stopBoard, stopWinner, merit, diffOf, unionHcp, playingOf, DIVISIONS, divisionOf, divisionLabel, signupOf, travelOf, moneyOf, packageOf, field, ledger, fmtMoney, lineOf, dials, csv, csvHeadcount, csvRooms, csvTravel};
 })();
 
 const __m_dbsupa = (function(){
@@ -22267,7 +22319,8 @@ function scrClubEntry() {
   <p class="lede">${esc(course.name)}${course.tee ? ' · ' + esc(course.tee) + ' tees' : ''} · playing off ${card.hcp == null ? '—' : esc(String(Math.round(card.hcp)))}${course.approved ? '' : ' · <i>course awaiting the commissioner’s approval</i>'} <button class="rm" data-act="courseEdit">Change course</button></p>
   ${back}
   <div class="entryhd">
-    <div class="ehd-facts"><span class="ehd-n num">${h + 1}</span><span class="ehd-l">Hole</span><span class="ehd-m">Par ${hole.par} · Index ${hole.si}<b>${raw == null ? 'Not scored yet' : 'You wrote ' + raw + (pts != null ? ' · ' + pts + ' pt' + (pts === 1 ? '' : 's') : '')}</b></span></div>
+    <div class="ehd-facts"><span class="ehd-n num">${h + 1}</span><span class="ehd-l">Hole</span><span class="ehd-m">Par ${hole.par} · Index ${hole.si}<b>${raw == null ? 'Not scored yet' : 'You wrote ' + raw + (pts != null ? ' · ' + pts + ' pt' + (pts === 1 ? '' : 's') : '')}</b></span>
+      <button class="ehd-art" data-act="holeArt" data-a="${h}" data-b="home__${esc(me)}" aria-label="Stand on the tee of hole ${h + 1} at ${esc(course.name)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 21V4l9 3-9 3"/><path d="M3 21h8"/></svg>See the hole</button></div>
     <div class="scroller nos"><div class="hstrip">${holes.map((x, i) => `<button class="hcell${i === h ? ' on' : ''}${card.raw[i] != null ? ' saved' : ''}" data-act="clubHole" data-a="${i}" aria-label="Hole ${i + 1}, par ${x.par}"><span class="n num">${i + 1}</span><span class="p num">par ${x.par}</span></button>`).join('')}</div></div>
   </div>
   ${gate}
@@ -23564,9 +23617,19 @@ function holeUnits() {
   if (!UI.units) { try { UI.units = localStorage.getItem(UNITS_KEY) || 'yd'; } catch (e) { UI.units = 'yd'; } }
   return UI.units === 'm' ? 'm' : 'yd';
 }
+/** The course a hole window was opened on. The week's three courses come
+ *  from the book and have a drawing each; a `home__<pid>` key is somebody's
+ *  own course, which has a card but no drawing, so the ground is modelled
+ *  from par and length and the glass says so. */
+function courseForKey(key) {
+  if (!key) return null;
+  if (key.indexOf('home__') === 0) return C.courseAsBook(C.courseOf(T, key.slice(6)));
+  return E.courseByKey(T, key);
+}
 function artModalHtml() {
   const rid = UI.modal.rid, h = UI.modal.hole;
-  const course = UI.modal.ckey ? E.courseByKey(T, UI.modal.ckey) : E.courseOf(T, rid);
+  const course = UI.modal.ckey ? courseForKey(UI.modal.ckey) : E.courseOf(T, rid);
+  if (!course) return '';
   const hole = course.holes[h];
   if (!hole) return '';
   const art = IMG[hole.img];
@@ -23587,7 +23650,9 @@ function artModalHtml() {
     role="dialog" aria-modal="true" aria-label="Hole ${hole.n} at ${esc(course.name)}">
     <div class="h3sky"></div>
     <div class="h3mount" id="h3dMount" data-key="${esc(course.key + ':' + h)}">${live ? ''
-      : `<div class="h3fallback nos"><img src="${art || ''}" alt="Hole ${hole.n} at ${esc(course.name)}, drawn from tee to green"></div>`}</div>
+      : art ? `<div class="h3fallback nos"><img src="${art}" alt="Hole ${hole.n} at ${esc(course.name)}, drawn from tee to green"></div>`
+      : `<div class="h3fallback flat nos"><b class="num">${hole.n}</b><span class="num">Par ${hole.par} · index ${hole.si}${
+          hole.y ? ' · ' + hole.y + ' yds' : ''}</span><small>This phone cannot draw the ground. The card is all of it.</small></div>`}</div>
     <div class="h3pill"><span class="fl">${ico.flag}</span><span class="sep"></span>
       <button class="ar" data-act="artHole" data-a="${h - 1}"${h === 0 ? ' disabled' : ''} aria-label="Previous hole">‹</button>
       <span class="n">Hole ${hole.n}</span>
@@ -23614,7 +23679,9 @@ function artModalHtml() {
         <div class="par"><b class="num">${hole.par}</b><span>Par</span></div>
       </div>
       ${canFeel ? `<button class="h3feel" data-act="artFeel">HOW'D<br>YOU FEEL?</button>`
-        : `<span class="h3feel still"><b>${hole.mY}</b><small>m · yellow</small></span>`}
+        : course.home
+          ? `<span class="h3feel still"><b>${hole.y == null ? '\u2014' : hole.y}</b><small>yds${course.tee ? ' \u00B7 ' + esc(course.tee.toLowerCase()) : ''}</small></span>`
+          : `<span class="h3feel still"><b>${hole.mY}</b><small>m · yellow</small></span>`}
     </div>
     ${UI.modal.feel && canFeel ? feelSheet(rid, h, hole) : ''}
   </div></div>`;
@@ -23657,7 +23724,8 @@ function mountHole3D() {
   const key = mount.dataset.key;
   if (UI.h3 && UI.h3.key !== key) dropHole3D();
   if (!UI.h3) {
-    const m = UI.modal; const course = m.ckey ? E.courseByKey(T, m.ckey) : E.courseOf(T, m.rid);
+    const m = UI.modal; const course = m.ckey ? courseForKey(m.ckey) : E.courseOf(T, m.rid);
+    if (!course) return;
     const hole = course.holes[m.hole];
     try {
       const ctl = H3D.create(mount, HOLES.model(course.key, hole), { units: holeUnits(), flat: !!UI.h3flat, labels: UI.h3labels !== false,
@@ -24503,7 +24571,7 @@ function onClick(e) {
       UI.modal = { kind: 'daysheet', n: +a };
       break;
     case 'holeArt':
-      UI.modal = { kind: 'art', rid: UI.entryRound, hole: +a, ckey: b || null };
+      UI.modal = { kind: 'art', rid: b && b.indexOf('home__') === 0 ? null : UI.entryRound, hole: +a, ckey: b || null };
       break;
     /* ---- the hole window ---- */
     case 'artHole': {
