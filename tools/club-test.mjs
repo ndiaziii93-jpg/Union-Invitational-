@@ -19,10 +19,16 @@ const T0 = { config: { people: [{ id: 'g1', name: 'A', display: 'A', role: 'golf
    a Bert of its own. Spelt out rather than counted, so a stop quietly
    dropped or renamed fails here rather than somewhere a reader would have to
    go looking for it. */
-ok('no season doc: the week, not frozen, the thirteen seeded stops',
+ok('no season doc: the week, not frozen, the twelve seeded stops',
   [C.phaseOf(T0), C.frozen(T0), C.stops(T0).map(s => s.id)],
   ['week', false, ['mulligan', 'frostbite', 'sweetheart', 'lucky', 'bloom', 'fiesta', 'summer',
-    'firecracker', 'dogdays', 'harvest', 'pumpkin', 'turkeyshoot', 'santa']]);
+    'firecracker', 'dogdays', 'harvest', 'pumpkin', 'santa']]);
+/* The Turkey Shoot was taken out: November belongs to Las Vegas. Its costume
+   outlived it and is still a Bert anybody may wear. */
+ok('the Turkey Shoot is not played, and nothing seeds it',
+  C.STOPS_SEED.some(s => s.id === 'turkeyshoot'), false);
+ok('but its costume is still there to choose, wearing no occasion',
+  (C.BERTS.find(b => b.id === 'turkeyshoot') || {}).stop, null);
 ok('and every one of them has a Bert drawn for it',
   C.STOPS_SEED.every(s => C.BERTS.some(b => b.stop === s.id)), true);
 const course = { ...C.blankCourse('g1'), name: 'Home', holes: Array.from({ length: 18 }, (_, i) => ({ par: [4, 4, 3, 4, 5, 4, 3, 4, 5, 4, 5, 4, 3, 4, 4, 4, 3, 5][i], si: i + 1, y: 380 })) };

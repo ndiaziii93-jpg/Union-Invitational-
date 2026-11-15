@@ -55,9 +55,15 @@ tournament looks like itself.
 | `mascot_dogdays` | Dog Days Bert | The Dog Days Derby, 2027-08 | Visor, towel and one bead of sweat, sat flat on the ground. |
 | `mascot_harvest` | Harvest Bert | The Harvest Classic, 2027-09 | Tweed and plus fours, arms folded, surveying. |
 | `mascot_pumpkin` | Pumpkin Bert | The Pumpkin Putter Open, 2027-10 | Cape and a lantern, creeping up on tiptoes. |
-| `mascot_turkeyshoot` | Turkey Shoot Bert | The Turkey Shoot, 2027-11 | Buckled pilgrim hat, stood over the ball. |
+| `mascot_turkeyshoot` | Turkey Shoot Bert | nothing — see below | Buckled pilgrim hat, stood over the ball. |
 | `mascot_santa` | Santa Swing Bert | The Santa Swing, 2027-12 | The whole red suit, striding with the sack over his shoulder. |
 | `mascot_vegas` | Desert Showdown Bert | Las Vegas 2027, the week itself | The hat and the boots. Las Vegas only. |
+
+**Turkey Shoot Bert wears no occasion.** The Turkey Shoot was dropped: it fell
+in November beside the week in Las Vegas, and nobody wanted to be asked for a
+card days before the flight. The drawing stayed, with its `stop` set to `null`,
+so he is simply a costume anybody may choose. If the tournament ever comes
+back, give him his stop id again and nothing else needs doing.
 
 `mascot_hello` is the oldest drawing, in a different hand entirely. It is kept
 only as a last fallback and is not offered in the picker.

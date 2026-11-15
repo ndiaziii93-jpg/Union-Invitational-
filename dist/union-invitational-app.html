@@ -6156,7 +6156,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261115-1400';
+const BUILD = '20261115-1729';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -11786,15 +11786,18 @@ const { strokesFor, stablefordPts } = __m_engine;
 
 /* The sheet's own names, carried over. Windows are the commissioner's to
    move; these are the month each one has always been played in. */
-/* The thirteen the sheet names, a month each, from the reveal in December
-   2026 to the week in Las Vegas. The windows are a month apiece and the
-   commissioner moves any of them under Manage.
+/* The twelve that are played, a month each, from the reveal in December
+   2026 to the week in Las Vegas and one month past it. The windows are a
+   month apiece and the commissioner moves any of them under Manage.
 
-   TWO OF THEM WANT A DECISION. The Turkey Shoot sits in the same month as
-   Las Vegas, so it is set to close on the 11th, before the week's window
-   opens on the 13th; and the Santa Swing falls AFTER Vegas, which may be a
-   fine way to end the year or may not be wanted at all. Neither is a thing
-   the book should decide on its own. */
+   THE TURKEY SHOOT IS NOT HERE. The sheet names it, but it fell in November
+   alongside the week in Las Vegas, and the commissioner took it out rather
+   than ask anybody for a card days before the flight. Its costume is still
+   drawn and anyone may still wear it; nothing else of it is left.
+
+   THE SANTA SWING IS AFTER VEGAS ON PURPOSE. It is not the limp end of this
+   run, it is the first card of the next one: the winter's practice begins
+   the month the week finishes. */
 const STOPS_SEED = [
   { id: 'mulligan',    name: 'The Merry Mulligan Open',  from: '2026-12-01', to: '2026-12-31', format: 'stableford', note: 'The reveal. Eighteen holes at home, net Stableford, a mulligan a nine.' },
   { id: 'frostbite',   name: 'The Frostbite Open',       from: '2027-01-09', to: '2027-01-31', format: 'stableford', note: 'Eighteen holes in whatever January gives you. Net Stableford.' },
@@ -11807,8 +11810,7 @@ const STOPS_SEED = [
   { id: 'dogdays',     name: 'The Dog Days Derby',       from: '2027-08-01', to: '2027-08-31', format: 'stableford', note: 'The hottest month, and the one where the wheels come off.' },
   { id: 'harvest',     name: 'The Harvest Classic',      from: '2027-09-01', to: '2027-09-30', format: 'stableford', note: 'September, and the best golf anybody plays all year.' },
   { id: 'pumpkin',     name: 'The Pumpkin Putter Open',  from: '2027-10-01', to: '2027-10-31', format: 'stableford', note: 'October. Whatever is in the rough in October, it is yours now.' },
-  { id: 'turkeyshoot', name: 'The Turkey Shoot',         from: '2027-11-01', to: '2027-11-11', format: 'stableford', note: 'The last card before Las Vegas. It closes on the 11th; the week opens on the 13th.' },
-  { id: 'santa',       name: 'The Santa Swing',          from: '2027-12-01', to: '2027-12-31', format: 'stableford', note: 'After Vegas, if there is anything left in the tank.' },
+  { id: 'santa',       name: 'The Santa Swing',          from: '2027-12-01', to: '2027-12-31', format: 'stableford', note: 'The month after Las Vegas, and the first card of the next run rather than the last of this one.' },
 ];
 
 const PACKAGES_SEED = [
@@ -12302,8 +12304,10 @@ const BERTS = [
     head: [46.0, 20.0, 15.0], stop: 'harvest' },
   { id: 'pumpkin', name: 'Pumpkin Bert', note: 'Cape and a lantern, creeping up on tiptoes.',
     head: [48.5, 22.0, 15.0], stop: 'pumpkin' },
+  /* Drawn for a Turkey Shoot that is no longer played. He keeps no stop and
+     wears no occasion; he is simply a costume anybody may choose. */
   { id: 'turkeyshoot', name: 'Turkey Shoot Bert', note: 'Buckled pilgrim hat, stood over the ball.',
-    head: [50.0, 23.0, 15.0], stop: 'turkeyshoot' },
+    head: [50.0, 23.0, 15.0], stop: null },
   { id: 'santa', name: 'Santa Swing Bert', note: 'The whole red suit, striding with the sack over his shoulder.',
     head: [47.5, 21.0, 15.0], stop: 'santa' },
   { id: 'vegas', name: 'Desert Showdown Bert', note: 'The hat and the boots. Las Vegas only.',
