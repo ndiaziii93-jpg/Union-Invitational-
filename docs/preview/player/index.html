@@ -1,0 +1,588 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The player card, round three</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;0,8..60,900;1,8..60,400;1,8..60,600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --pine:#1D2E21; --pine-up:#27402E; --cream:#EEE8D5; --page:#E6E0CD; --card:#F2ECDC;
+  --gold:#C9A253; --gold-up:#E2C277; --turf:#5E7A5F; --flag:#9E3B2E; --under:#4E7A4E;
+  --ink:#1B2A1E; --rule:#CFC8B2;
+  /* Where the ball's face sits in the drawing, as a share of its box. */
+  --headx:48.9%; --heady:24.4%; --headr:16.3%;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--pine);color:var(--cream);
+  font-family:'Source Serif 4',Georgia,serif;line-height:1.5;-webkit-text-size-adjust:100%}
+.wrap{max-width:1240px;margin:0 auto;padding:28px 16px 100px}
+h1{font-size:clamp(28px,5vw,44px);font-weight:900;margin:0 0 8px;letter-spacing:-.01em;line-height:1.08}
+.sub{color:#C8CCBF;margin:0 0 4px;max-width:72ch}
+.sub b{color:var(--gold-up)}
+.note{border-left:3px solid var(--gold);background:rgba(201,162,83,.12);padding:12px 14px;
+  border-radius:0 10px 10px 0;margin:20px 0 10px;max-width:84ch;font-size:15px;color:#DDD7C4}
+.note b{color:var(--gold-up)}
+h2{font-size:clamp(20px,3vw,27px);font-weight:800;color:var(--gold-up);margin:52px 0 2px;
+  padding-top:24px;border-top:1px solid rgba(238,232,213,.16)}
+h2 .k{color:var(--cream);opacity:.42;margin-right:10px}
+.say{color:#C8CCBF;margin:0 0 2px;max-width:76ch}
+.pros{color:#9FB49F;font-size:14.5px;margin:6px 0 20px;max-width:76ch}
+.pros b{color:var(--gold-up);font-weight:600}
+.num{font-feature-settings:"tnum" 1;font-variant-numeric:tabular-nums}
+.lab{font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:700}
+
+/* ================= the flip ================= */
+.flip{perspective:1500px;width:100%;max-width:360px;cursor:pointer;display:block}
+.fin{display:grid;position:relative;transform-style:preserve-3d;
+  transition:transform .62s cubic-bezier(.2,.8,.3,1)}
+.fin > .face{grid-area:1/1;position:relative;display:flex;flex-direction:column;
+  backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  border-radius:18px;overflow:hidden;box-shadow:0 16px 40px rgba(0,0,0,.42)}
+.face.front{transform:translateZ(1px)}
+.face.back{transform:rotateY(180deg) translateZ(1px)}
+.flip.on .fin{transform:rotateY(180deg)}
+@media (prefers-reduced-motion:reduce){ .fin{transition:none} }
+/* The turn control is a real button, so the card itself need not pretend to
+   be one — which matters now that there are buttons inside it. */
+.turn{position:absolute;right:10px;bottom:10px;z-index:4;display:flex;align-items:center;gap:5px;
+  background:rgba(29,46,33,.78);color:var(--cream);border:0;border-radius:999px;padding:5px 10px;
+  font:inherit;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;cursor:pointer}
+.turn.top{top:10px;bottom:auto}
+.turn:focus-visible,.pbox:focus-visible,.pt:focus-visible{outline:3px solid var(--gold-up);outline-offset:2px}
+
+/* ================= the character ================= */
+.guy{position:relative;display:block}
+.guy img{display:block;width:100%;height:auto}
+.guy .mug{position:absolute;left:var(--headx);top:var(--heady);width:calc(var(--headr) * 2);
+  aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;
+  background-repeat:no-repeat;background-color:#DED7C4;
+  box-shadow:inset 0 0 0 2.5px #1B2A1E, inset 0 -8px 14px rgba(27,42,30,.28),
+    inset 0 7px 12px rgba(255,255,255,.22);
+  display:none}
+body.me .guy .mug{display:block}
+
+/* rays, behind him */
+.rays{position:absolute;inset:0;pointer-events:none}
+.rays::before{content:"";position:absolute;inset:-20%;
+  background:repeating-conic-gradient(from 0deg at 50% 92%,
+    rgba(226,194,119,.19) 0deg 4.5deg, rgba(226,194,119,0) 4.5deg 15deg)}
+.rays::after{content:"";position:absolute;inset:0;
+  background:radial-gradient(66% 54% at 50% 92%,rgba(226,194,119,.16),rgba(226,194,119,0) 74%)}
+
+/* ================= the last six, tappable ================= */
+.sixhd{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.sixhd .hint{font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--turf);font-weight:700}
+.six{display:flex;gap:4px;margin:4px 0 2px}
+.pbox{flex:1;border:1px solid var(--rule);border-radius:4px;background:#FFFFFF55;color:var(--ink);
+  font:inherit;font-size:12.5px;font-weight:700;padding:5px 0 3px;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:1px;min-width:0;
+  transition:background .18s ease,color .18s ease}
+.pbox .cap{font-size:7.5px;letter-spacing:.09em;text-transform:uppercase;font-weight:700;color:var(--turf)}
+.pbox.best{background:var(--gold);border-color:#A9842F;color:#23331F}
+.pbox.best .cap{color:#4A3A12}
+.pbox.off{background:var(--pine);border-color:var(--pine);color:var(--gold-up)}
+.pbox.off .cap{color:#9FB49F}
+.pbox.off.up{color:#9EDC9E}
+.pbox.off.down{color:#F0B5AA}
+
+/* ================= the web ================= */
+.web{display:block;width:100%;height:auto}
+.pt{cursor:pointer}
+.pt circle.hit{fill:transparent}
+.pt circle.dot{fill:#C9A253;stroke:#1D2E21;stroke-width:1;transition:r .18s ease}
+.pt.on circle.dot{r:5.5;fill:#F3DFA8}
+.webcap{text-align:center;font-size:12px;min-height:19px;padding:2px 10px 0}
+.webcap b{font-weight:800}
+.webcap i{font-style:normal;opacity:.7}
+.greenpad{background:radial-gradient(74% 58% at 50% 44%,#34502F 0%,#24382A 62%,#1D2E21 100%);
+  color:var(--cream)}
+
+/* ================= lists ================= */
+.fun{margin:0;padding:0;list-style:none}
+.fun li{display:grid;grid-template-columns:1fr auto;gap:10px;padding:5px 0;font-size:12.5px;
+  border-top:1px solid rgba(29,46,33,.12)}
+.fun li:first-child{border-top:0}
+.fun li b{font-weight:800;text-align:right;white-space:nowrap}
+.fun li span i{font-style:normal;color:var(--turf);font-size:11px;display:block}
+.fun.dark li{border-top-color:rgba(238,232,213,.16)}
+.fun.dark li span i{color:#9FB49F}
+.fun.dark li b{color:var(--gold-up)}
+.verd{display:flex;gap:9px;align-items:flex-start;padding:9px 102px 9px 12px;background:var(--pine-up)}
+.verd .guy{flex:0 0 38px;width:38px}
+.verd p{margin:0;font-size:12px;font-style:italic;color:#DCD6C2}
+.verd p b{font-style:normal;color:var(--gold-up)}
+.h2h{margin:0;padding:0;list-style:none}
+.h2h li{display:grid;grid-template-columns:1fr auto;gap:6px;font-size:11.5px;padding:3px 0;
+  border-top:1px solid rgba(238,232,213,.16);align-items:baseline}
+.h2h li:first-child{border-top:0}
+.h2h b{font-weight:800;font-size:12.5px}
+.h2h .w{color:#9EDC9E} .h2h .l{color:#F0B5AA}
+.h2h.ink li{border-top-color:rgba(29,46,33,.12)}
+.h2h.ink .w{color:var(--under)} .h2h.ink .l{color:var(--flag)}
+
+/* ================= shared card chrome ================= */
+.hd{display:flex;align-items:flex-start;gap:10px;padding:12px 13px 8px}
+.hd .who{flex:1;min-width:0}
+.hd .lab{color:var(--gold-up)}
+.hd h3{margin:1px 0 0;font-size:23px;font-weight:900;line-height:1.05;letter-spacing:-.01em;color:#F4EFDF}
+.hd .meta{font-size:11px;color:#9FB49F;margin-top:2px}
+.hcp{flex:0 0 auto;width:52px;height:52px;border-radius:50%;border:2px solid var(--gold-up);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(226,194,119,.10)}
+.hcp b{font-size:21px;font-weight:900;color:var(--gold-up);line-height:1}
+.hcp span{font-size:7.5px;letter-spacing:.12em;text-transform:uppercase;color:#9FB49F}
+.sheet{background:var(--card);color:var(--ink);padding:9px 12px 40px}
+.sheet table{width:100%;border-collapse:collapse;font-size:12.5px}
+.sheet th{text-align:left;font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:var(--turf);
+  font-weight:700;padding:6px 0 2px}
+.sheet td{padding:3px 0;border-top:1px solid rgba(29,46,33,.10)}
+.sheet td.n{text-align:right;font-weight:700}
+.sheet td.m{color:#55674F;text-align:center}
+.port{position:relative;overflow:hidden;
+  background:radial-gradient(130% 92% at 50% 108%,#2E4833 0%,#21341F 54%,#1A281C 100%)}
+.port .guy{position:relative;margin:0 auto;display:block;
+  filter:drop-shadow(0 9px 12px rgba(0,0,0,.45))}
+.flash{position:absolute;left:11px;top:11px;z-index:2;background:var(--flag);color:#FBF3E8;
+  border-radius:4px;padding:3px 7px;font-size:9px;letter-spacing:.11em;text-transform:uppercase;font-weight:700}
+
+/* ---- A ---- */
+.a-f{background:linear-gradient(176deg,#24382A 0%,#19281D 60%,#1D2E21 100%);
+  border:1px solid rgba(226,194,119,.42);color:var(--cream)}
+.a-f .hd{background:linear-gradient(180deg,rgba(226,194,119,.14),rgba(226,194,119,0))}
+.a-f .port{flex:1 1 auto;min-height:170px;display:flex;align-items:flex-end}
+.a-f .port .guy{width:min(150px,46%);margin-bottom:0}
+.a-b{background:var(--card);color:var(--ink)}
+.a-b .top{display:grid;grid-template-columns:1.15fr .85fr;gap:0}
+.a-b .top .left{padding:8px 4px 6px 8px}
+.a-b .top .right{padding:11px 11px 8px 6px;border-left:1px solid rgba(238,232,213,.14)}
+.a-b .top .right .lab{color:var(--gold-up);margin-bottom:4px}
+.a-b .pad{padding:8px 12px 10px;flex:1 1 auto}
+
+/* ---- B ---- */
+.b-f{background:#18261B;color:var(--cream);border:1px solid rgba(226,194,119,.34)}
+.b-f .port{flex:1 1 auto;min-height:196px;display:flex;align-items:flex-end;justify-content:center}
+.b-f .port .guy{width:min(168px,54%)}
+.b-f .nameplate{position:absolute;left:0;right:0;bottom:0;z-index:2;
+  background:linear-gradient(0deg,rgba(13,22,16,.94) 40%,rgba(13,22,16,0));padding:22px 13px 9px}
+.b-f .nameplate .lab{color:var(--gold-up)}
+.b-f .nameplate h3{margin:1px 0 0;font-size:25px;font-weight:900;line-height:1.02;color:#F6F1E2}
+.b-f .nameplate .meta{font-size:10.5px;color:#9FB49F;margin-top:2px}
+.b-f .nameplate .big{position:absolute;right:13px;bottom:8px;text-align:right}
+.b-f .nameplate .big b{display:block;font-size:40px;font-weight:900;line-height:.86;color:var(--gold-up);
+  letter-spacing:-.03em}
+.b-f .nameplate .big span{font-size:8px;letter-spacing:.11em;text-transform:uppercase;color:#9FB49F}
+.b-b{background:var(--card);color:var(--ink)}
+.b-b .chips{display:flex;flex-wrap:wrap;gap:5px;padding:8px 12px 2px}
+.b-b .chips span{border:1px solid var(--rule);border-radius:999px;padding:3px 9px;font-size:11.5px}
+.b-b .chips span b{font-weight:800}
+.b-b .chips span.w b{color:var(--under)} .b-b .chips span.l b{color:var(--flag)}
+.b-b .pad{padding:6px 12px 10px;flex:1 1 auto}
+
+/* ---- C ---- */
+.c-f{background:#1B2A1E;color:var(--cream);border:1px solid rgba(226,194,119,.3)}
+.c-f .port{flex:1 1 auto;min-height:178px;display:flex;align-items:flex-end;justify-content:flex-end;padding-right:6px}
+.c-f .port .guy{width:108px;margin:0}
+.c-f .port .stack{position:absolute;left:13px;bottom:12px;z-index:2}
+.c-f .port .stack .lab{color:var(--gold-up)}
+.c-f .port .stack h3{margin:1px 0 0;font-size:22px;font-weight:900;line-height:1.02;color:#F6F1E2;
+  max-width:170px}
+.c-f .port .stack b.big{display:block;font-size:38px;font-weight:900;line-height:.9;color:var(--gold-up);
+  letter-spacing:-.03em;margin-top:5px}
+.c-f .port .stack b.big span{font-size:8.5px;letter-spacing:.11em;text-transform:uppercase;color:#9FB49F;
+  font-weight:700;display:block;margin-top:1px}
+.c-f .sixwrap{background:var(--pine-up);padding:9px 12px 10px}
+.c-f .sixwrap .pbox{background:rgba(242,236,220,.94);border-color:rgba(242,236,220,.45)}
+.c-f .sixwrap .pbox.off{background:#14201680;border-color:rgba(226,194,119,.45)}
+.c-f .sixwrap .sixhd .lab{color:var(--gold-up)}
+.c-f .sixwrap .sixhd .hint{color:#9FB49F}
+.c-f .sixwrap .six{margin-top:5px}
+.c-f .heat{display:flex;gap:2px;margin-top:9px}
+.c-f .heat i{flex:1;height:16px;border-radius:2px}
+.c-f .heatlab{display:flex;justify-content:space-between;font-size:8.5px;color:#9FB49F;letter-spacing:.06em}
+.c-b{background:var(--card);color:var(--ink)}
+.c-b .roundel{position:relative;padding:8px 10px 2px}
+.c-b .roundel .disc{border-radius:14px;overflow:hidden;padding:6px 4px 2px}
+.c-b .grid{display:grid;grid-template-columns:1fr 1fr;gap:0 12px;padding:8px 12px 2px}
+.c-b .pad{padding:4px 12px 10px;flex:1 1 auto}
+
+/* ================= the digester ================= */
+.dig{display:grid;gap:18px;grid-template-columns:1fr;align-items:start;margin:16px 0 4px}
+@media (min-width:760px){ .dig{grid-template-columns:300px 1fr} }
+.crop{background:var(--pine-up);border:1px solid rgba(238,232,213,.18);border-radius:16px;padding:14px}
+.cropwin{width:212px;height:212px;margin:2px auto 10px;border-radius:50%;position:relative;
+  background:#DED7C4 no-repeat;box-shadow:inset 0 0 0 3px var(--ink), 0 6px 18px rgba(0,0,0,.35);
+  touch-action:none;cursor:grab;overflow:hidden}
+.cropwin.grab{cursor:grabbing}
+.cropwin .hint{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  text-align:center;padding:26px;font-size:12.5px;color:#4A5B4C}
+.crop label.pick{display:block;text-align:center;background:var(--gold);color:#23331F;border-radius:999px;
+  padding:9px 14px;font-weight:700;font-size:14px;cursor:pointer}
+.crop .zoom{display:flex;align-items:center;gap:9px;margin-top:11px;font-size:11px;color:#9FB49F}
+.crop input[type=range]{flex:1;accent-color:var(--gold)}
+.crop .acts{display:flex;gap:8px;margin-top:10px}
+.crop .acts button{flex:1;background:none;border:1px solid rgba(238,232,213,.3);color:var(--cream);
+  border-radius:999px;padding:7px 10px;font:inherit;font-size:12.5px;cursor:pointer}
+.crop .acts button.on{background:var(--cream);color:var(--ink);border-color:var(--cream);font-weight:700}
+.digsay p{margin:0 0 10px;color:#C8CCBF;font-size:14.5px;max-width:68ch}
+.digsay p b{color:var(--gold-up)}
+
+.three{display:grid;gap:30px;grid-template-columns:1fr;justify-items:center;align-items:start}
+@media (min-width:860px){ .three{grid-template-columns:repeat(3,1fr)} }
+.capt{max-width:360px;margin:14px auto 0;font-size:13.5px;color:#C8CCBF}
+.capt b{color:var(--gold-up)}
+.pagefoot{margin-top:60px;padding-top:18px;border-top:1px solid rgba(238,232,213,.16);
+  font-size:13px;color:#9FB49F}
+.pagefoot a{color:var(--gold-up)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>The player card, round three</h1>
+  <p class="sub">The front of 1 with the rays of 3 behind him. The last six turned into buttons: tap one
+    and it shows what that round was worth off the handicap. The back of 1, with the web on card 2’s
+    green, no numbers printed round it — <b>tap a point and it tells you</b> — and the match-ups where
+    the legend used to be.</p>
+
+  <div class="note">
+    <b>Still derived, not invented.</b> Six pretend rounds at Leatherhead; every figure is worked out
+    from them by the book’s own functions. <b>Thirty-six points is playing to your handicap</b>, so the
+    ± on a tapped box is simply that round against the handicap it was played off: 38 points is +2, 30 is
+    −6, 36 is level.
+  </div>
+
+  <h2><span class="k">First</span> Put your face in the ball</h2>
+  <div class="dig">
+    <div class="crop">
+      <div class="cropwin" id="win"><span class="hint" id="hint">Pick a photograph below, then drag it
+        about.</span></div>
+      <label class="pick">Choose a photograph
+        <input type="file" accept="image/*" id="file" hidden></label>
+      <div class="zoom"><span>Size</span><input type="range" id="zoom" min="100" max="320" value="130"></div>
+      <div class="acts">
+        <button type="button" id="useMe" class="on">Use my face</button>
+        <button type="button" id="useGuy">Use the golf guy</button>
+      </div>
+    </div>
+    <div class="digsay">
+      <p><b>Nothing leaves this page.</b> Your browser reads the photograph and draws it; it is not sent
+        to the site, to me, or to anyone. Close the tab and it is gone.</p>
+      <p>It goes into the ball on all three cards at once, under the hat, so the tournament still dresses
+        you for the time of year.</p>
+    </div>
+  </div>
+
+  <h2><span class="k">Then</span> The three</h2>
+  <p class="say">Tap a card to turn it. Tap a box in the last six. Tap a point on the web.</p>
+  <div id="renders"></div>
+
+  <p class="pagefoot">The Union Invitational · a preview, not the app ·
+    <a href="../../">back to the site</a> ·
+    <a href="../card/">round two</a> · <a href="../profile/">round one</a></p>
+</div>
+
+<script src="data.js"></script>
+<script>
+(function () {
+  var D = window.PROFILE;
+  var esc = function (s) { return String(s).replace(/[&<>"]/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+  var p1 = function (n) { return (Math.round(n * 10) / 10).toFixed(1); };
+  var r1 = function (n) { return (Math.round(n * 10) / 10).toFixed(1).replace(/\.0$/, ''); };
+  var ord = function (n) { return n + (n % 100 >= 11 && n % 100 <= 13 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] || 'th'); };
+  var pct = function (n) { return Math.round(n / D.counts.holes * 100); };
+  var AV = D.attrs.map(function (a) { return a.v; });
+  var AK = D.attrs.map(function (a) { return a.k; });
+  var MX = Math.max.apply(null, D.form.map(function (f) { return f.pts; }));
+
+  function guy(w) {
+    return '<span class="guy"' + (w ? ' style="width:' + w + 'px"' : '') + '>' +
+      '<img src="img/mascot_mulligan.webp" alt=""><span class="mug"></span></span>';
+  }
+  function turn(top) {
+    return '<button type="button" class="turn' + (top ? ' top' : '') + '" data-turn="1">' +
+      '↺ Turn over</button>';
+  }
+
+  /* ---- the last six, as buttons ----
+     Thirty-six points is the handicap exactly, so a round is simply its
+     points less thirty-six: the figure a golfer would say out loud. */
+  function sixBoxes() {
+    return D.form.map(function (f) {
+      var d = f.pts - 36;
+      var sign = d === 0 ? 'E' : (d > 0 ? '+' : '−') + Math.abs(d);
+      return '<button type="button" class="pbox num' + (f.pts === MX ? ' best' : '') + '" ' +
+        'data-pts="' + f.pts + '" data-off="' + sign + '" data-dir="' + (d > 0 ? 'up' : d < 0 ? 'down' : '') + '" ' +
+        'aria-label="' + f.pts + ' points, ' + (d === 0 ? 'level with' : (d > 0 ? d + ' better than' : Math.abs(d) + ' worse than')) +
+        ' his handicap">' + f.pts + '<span class="cap">pts</span></button>';
+    }).join('');
+  }
+  function sixBlock(hint) {
+    return '<div class="sixhd"><span class="lab">The last six</span>' +
+      '<span class="hint">' + (hint || 'tap a card') + '</span></div>' +
+      '<div class="six">' + sixBoxes() + '</div>';
+  }
+
+  /* ---- the web, with nothing written round it ---- */
+  var webSeq = 0;
+  function web(opt) {
+    opt = opt || {};
+    var id = 'w' + (++webSeq);
+    var n = AV.length, cx = 100, cy = 98, R = opt.r || 70, out = '', i, a, pt;
+    var dark = opt.dark;
+    var ink = dark ? 'rgba(238,232,213,.26)' : 'rgba(29,46,33,.16)';
+    var fill = dark ? 'rgba(201,162,83,.28)' : 'rgba(94,122,95,.34)';
+    var line = dark ? '#E2C277' : '#3F6440';
+    var P = function (v, k) { var ang = -Math.PI / 2 + k * 2 * Math.PI / n;
+      return [cx + Math.cos(ang) * R * v, cy + Math.sin(ang) * R * v]; };
+    for (var ring = 1; ring <= 4; ring++) { pt = [];
+      for (i = 0; i < n; i++) pt.push(P(ring / 4, i).map(function (x) { return x.toFixed(1); }).join(','));
+      out += '<polygon points="' + pt.join(' ') + '" fill="none" stroke="' + ink + '" stroke-width="1"/>'; }
+    for (i = 0; i < n; i++) { a = P(1, i);
+      out += '<line x1="' + cx + '" y1="' + cy + '" x2="' + a[0].toFixed(1) + '" y2="' + a[1].toFixed(1) + '" stroke="' + ink + '"/>'; }
+    pt = [];
+    for (i = 0; i < n; i++) pt.push(P(AV[i] / 100, i).map(function (x) { return x.toFixed(1); }).join(','));
+    out += '<polygon points="' + pt.join(' ') + '" fill="' + fill + '" stroke="' + line + '" stroke-width="2" stroke-linejoin="round"/>';
+    for (i = 0; i < n; i++) {
+      a = P(AV[i] / 100, i);
+      out += '<g class="pt" role="button" tabindex="0" data-web="' + id + '" data-k="' + esc(AK[i]) +
+        '" data-v="' + AV[i] + '" data-of="' + esc(D.attrs[i].of) + '" aria-label="' + esc(AK[i]) + ', ' + AV[i] + ' out of 99">' +
+        '<circle class="hit" cx="' + a[0].toFixed(1) + '" cy="' + a[1].toFixed(1) + '" r="15"/>' +
+        '<circle class="dot" cx="' + a[0].toFixed(1) + '" cy="' + a[1].toFixed(1) + '" r="3.6"/></g>';
+    }
+    return '<svg class="web" viewBox="0 0 200 200" role="img" aria-label="The five attributes, unlabelled — tap a point">' +
+      out + '</svg>' +
+      '<div class="webcap" data-cap="' + id + '"><i>Tap a point</i></div>';
+  }
+
+  /* ---- the lists ---- */
+  var FUN = [
+    ['The banker', 'hole ' + D.banker.n + ', a par ' + D.banker.par + ' — ' + p1(D.banker.pts) + ' points every time', 'Hole ' + D.banker.n],
+    ['The nemesis', 'hole ' + D.nemesis.n + ', a par ' + D.nemesis.par + ' — ' + p1(D.nemesis.over) + ' over, six goes running', 'Hole ' + D.nemesis.n],
+    ['Longest streak', D.counts.run + ' holes without a blank', D.counts.run],
+    ['Blanks', D.counts.blanks + ' in ' + D.counts.holes + ' holes (' + pct(D.counts.blanks) + '%)', D.counts.blanks],
+    ['Front against back', p1(D.nine[0].pts) + ' out, ' + p1(D.nine[1].pts) + ' home', r1(D.nine[0].pts - D.nine[1].pts) + ' worse'],
+    ['Handicap', 'band ' + D.player.band + ' at the start, ' + D.record.played + ' cards later', D.player.band + ' → ' + D.player.hcp]
+  ];
+  function funList(dark, from, to) {
+    return '<ul class="fun' + (dark ? ' dark' : '') + '">' + FUN.slice(from || 0, to == null ? FUN.length : to).map(function (f) {
+      return '<li><span>' + esc(f[0]) + '<i>' + esc(f[1]) + '</i></span><b>' + esc(String(f[2])) + '</b></li>';
+    }).join('') + '</ul>';
+  }
+  function h2hList(ink) {
+    return '<ul class="h2h' + (ink ? ' ink' : '') + '">' + D.h2h.map(function (x) {
+      return '<li><span>' + esc(x.name) + '</span><b class="num ' + (x.w > x.l ? 'w' : 'l') + '">' +
+        x.w + '–' + x.l + '</b></li>'; }).join('') + '</ul>';
+  }
+  function h2hChips() {
+    return D.h2h.map(function (x) {
+      return '<span class="' + (x.w > x.l ? 'w' : 'l') + '">' + esc(x.name) + ' <b class="num">' +
+        x.w + '–' + x.l + '</b></span>'; }).join('');
+  }
+  function heatStrip() {
+    return D.perHole.map(function (h) {
+      var col = h.pts >= 2.4 ? '#4E7A4E' : h.pts >= 1.9 ? '#7E9A6A' : h.pts >= 1.4 ? '#C9A253' : '#9E3B2E';
+      return '<i style="background:' + col + ';opacity:' + (0.5 + Math.min(1, h.pts / 3) * 0.5).toFixed(2) +
+        '" title="Hole ' + h.n + '"></i>'; }).join('');
+  }
+  function lengthRows() {
+    return D.byPar.map(function (p) {
+      return '<tr><td>Par ' + p.par + '</td><td class="m num">' + (p.over > 0 ? '+' : '') + p1(p.over) +
+        '</td><td class="n num">' + p1(p.pts) + '</td></tr>'; }).join('');
+  }
+  function indexRows() {
+    return D.bySi.map(function (s) {
+      return '<tr><td>' + esc(s.label.replace(/^the /, 'The ')) + '</td><td class="m num">SI ' + s.a + '–' + s.b +
+        '</td><td class="n num">' + p1(s.pts) + '</td></tr>'; }).join('');
+  }
+  var verdict = 'Hands him a <b>5-iron</b> on anything short and hides the <b>driver</b> after the turn. ' +
+    'Six cards, ' + D.counts.blanks + ' blanks, every one on a hole he could see the green from.';
+
+  /* ================= A ================= */
+  function A() {
+    var front = '<div class="face front a-f">' + turn() +
+      '<div class="hd"><div class="who"><div class="lab">The Union Invitational · 2027</div>' +
+        '<h3>' + esc(D.player.short) + '</h3>' +
+        '<div class="meta num">' + esc(D.course.name) + ' · ' + D.record.played + ' cards · ' +
+          ord(D.record.meritPos) + ' of ' + D.record.meritOf + '</div></div>' +
+        '<div class="hcp"><b class="num">' + D.player.playing + '</b><span>Union</span></div></div>' +
+      '<div class="port"><span class="flash">Par 5 merchant</span><span class="rays"></span>' + guy() + '</div>' +
+      '<div class="sheet">' + sixBlock() +
+        '<table><tr><th>By length</th><th></th><th style="text-align:right">Pts</th></tr>' + lengthRows() +
+        '<tr><th>By index</th><th></th><th></th></tr>' + indexRows() + '</table>' +
+      '</div></div>';
+    var back = '<div class="face back a-b">' + turn() +
+      '<div class="top greenpad"><div class="left">' + web({ dark: true, r: 62 }) + '</div>' +
+        '<div class="right"><div class="lab">Head to head</div>' + h2hList() + '</div></div>' +
+      '<div class="pad">' + funList(false) + '</div>' +
+      '<div class="verd">' + guy(38) + '<p>' + verdict + '</p></div></div>';
+    return card(front, back) +
+      '<p class="capt"><b>A · As asked.</b> The front of 1 with the rays of 3 behind him and the last ' +
+      'six made into buttons. The back keeps 1’s shape but the web sits on 2’s green with nothing ' +
+      'written round it, and the match-ups take the legend’s place. The cost: the web has to share ' +
+      'the strip with four names, so it is the smallest of the three.</p>';
+  }
+
+  /* ================= B ================= */
+  function B() {
+    var front = '<div class="face front b-f">' + turn() +
+      '<div class="port"><span class="flash">Par 5 merchant</span><span class="rays"></span>' + guy() +
+        '<div class="nameplate"><div class="lab">The Union Invitational · 2027</div>' +
+          '<h3>' + esc(D.player.short) + '</h3>' +
+          '<div class="meta num">' + esc(D.course.name) + ' · ' + ord(D.record.meritPos) + ' of ' + D.record.meritOf + '</div>' +
+          '<div class="big"><b class="num">' + D.player.playing + '</b><span>Union</span></div></div></div>' +
+      '<div class="sheet">' + sixBlock() +
+        '<table><tr><th>By length</th><th></th><th style="text-align:right">Pts</th></tr>' + lengthRows() +
+        '<tr><th>By index</th><th></th><th></th></tr>' + indexRows() + '</table>' +
+      '</div></div>';
+    var back = '<div class="face back b-b">' + turn(true) +
+      '<div class="greenpad" style="padding:8px 8px 4px">' + web({ dark: true, r: 74 }) + '</div>' +
+      '<div class="chips">' + h2hChips() + '</div>' +
+      '<div class="pad">' + funList(false) + '</div>' +
+      '<div class="verd">' + guy(38) + '<p>' + verdict + '</p></div></div>';
+    return card(front, back) +
+      '<p class="capt"><b>B · The nameplate.</b> The rays and the character take the whole top of the ' +
+      'card and his name is lit from underneath, so the figure is the biggest of the three and the handicap ' +
+      'sits in the corner where a shirt number goes. On the back the green runs the full width, which makes ' +
+      'the web far easier to tap, and the match-ups become a row of chips underneath. The cost: the ' +
+      'match-ups read as an afterthought rather than a column.</p>';
+  }
+
+  /* ================= C ================= */
+  function C() {
+    var front = '<div class="face front c-f">' + turn() +
+      '<div class="port"><span class="rays"></span>' + guy(122) +
+        '<div class="stack"><div class="lab">The Union Invitational</div>' +
+          '<h3>' + esc(D.player.short) + '</h3>' +
+          '<b class="big num">' + D.player.playing + '<span>Union handicap</span></b></div></div>' +
+      '<div class="sixwrap">' + sixBlock('tap a card') +
+        '<div class="heat">' + heatStrip() + '</div>' +
+        '<div class="heatlab"><span>1</span><span>every hole, six cards deep</span><span>18</span></div>' +
+      '</div>' +
+      '<div class="sheet"><table>' +
+        '<tr><th>By length</th><th></th><th style="text-align:right">Pts</th></tr>' + lengthRows() +
+        '<tr><th>By index</th><th></th><th></th></tr>' + indexRows() + '</table></div></div>';
+    var back = '<div class="face back c-b">' + turn(true) +
+      '<div class="roundel"><div class="disc greenpad">' + web({ dark: true, r: 66 }) + '</div></div>' +
+      '<div class="grid"><div><div class="lab" style="color:var(--turf)">Head to head</div>' + h2hList(true) + '</div>' +
+        '<div><div class="lab" style="color:var(--turf)">The holes</div>' + funList(false, 0, 2) + '</div></div>' +
+      '<div class="pad">' + funList(false, 2) + '</div>' +
+      '<div class="verd">' + guy(38) + '<p>' + verdict + '</p></div></div>';
+    return card(front, back) +
+      '<p class="capt"><b>C · The one with everything.</b> The rays light him from the left of a wider, ' +
+      'shallower portrait, the last six get a dark band of their own with all eighteen holes beneath them, ' +
+      'and the tables sit at the foot. The back puts the green in a rounded panel and splits the space below ' +
+      'into two columns — match-ups beside the two holes that decide his cards. The cost: it is the busiest ' +
+      'of the three, and the character is the smallest.</p>';
+  }
+
+  function card(front, back) {
+    return '<div class="flip"><div class="fin">' + front + back + '</div></div>';
+  }
+
+  document.getElementById('renders').innerHTML =
+    '<div class="three"><div>' + A() + '</div><div>' + B() + '</div><div>' + C() + '</div></div>';
+
+  /* ---- turning over: the whole card is a target, but never at the cost of a
+     control inside it. A tap that lands on a button belongs to the button. ---- */
+  Array.prototype.forEach.call(document.querySelectorAll('.flip'), function (f) {
+    var flip = function () { f.classList.toggle('on'); };
+    f.addEventListener('click', function (e) {
+      var b = e.target.closest ? e.target.closest('button,.pt') : null;
+      if (b && !b.hasAttribute('data-turn')) return;
+      flip();
+    });
+  });
+
+  /* ---- a box in the last six: points, or what the round was off the handicap ---- */
+  Array.prototype.forEach.call(document.querySelectorAll('.pbox'), function (b) {
+    b.addEventListener('click', function () {
+      var off = b.classList.toggle('off');
+      b.classList.remove('up', 'down');
+      if (off) {
+        if (b.dataset.dir) b.classList.add(b.dataset.dir);
+        b.innerHTML = b.dataset.off + '<span class="cap">off hcp</span>';
+      } else {
+        b.innerHTML = b.dataset.pts + '<span class="cap">pts</span>';
+      }
+    });
+  });
+
+  /* ---- a point on the web says what it is ---- */
+  function readPoint(g) {
+    var id = g.dataset.web;
+    var cap = document.querySelector('.webcap[data-cap="' + id + '"]');
+    var was = g.classList.contains('on');
+    Array.prototype.forEach.call(document.querySelectorAll('.pt[data-web="' + id + '"]'), function (o) {
+      o.classList.remove('on'); });
+    if (was) { if (cap) cap.innerHTML = '<i>Tap a point</i>'; return; }
+    g.classList.add('on');
+    if (cap) cap.innerHTML = '<b>' + g.dataset.k + ' ' + g.dataset.v + '</b> <i>· ' + g.dataset.of + '</i>';
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('.pt'), function (g) {
+    g.addEventListener('click', function (e) { e.stopPropagation(); readPoint(g); });
+    g.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') { e.preventDefault(); e.stopPropagation(); readPoint(g); }
+    });
+  });
+
+  /* ================= the digester ================= */
+  var state = { url: null, zoom: 130, x: 50, y: 42 };
+  var win = document.getElementById('win'), hint = document.getElementById('hint');
+  var zoom = document.getElementById('zoom'), file = document.getElementById('file');
+  function paint() {
+    var css = state.url
+      ? { img: 'url("' + state.url + '")', size: state.zoom + '% auto', pos: state.x + '% ' + state.y + '%' } : null;
+    [win].concat(Array.prototype.slice.call(document.querySelectorAll('.mug'))).forEach(function (el) {
+      if (!el) return;
+      el.style.backgroundImage = css ? css.img : '';
+      el.style.backgroundSize = css ? css.size : '';
+      el.style.backgroundPosition = css ? css.pos : '';
+    });
+    if (hint) hint.style.display = state.url ? 'none' : 'flex';
+    document.body.classList.toggle('me', !!state.url && !document.body.classList.contains('guyonly'));
+  }
+  file.addEventListener('change', function () {
+    var f = file.files && file.files[0];
+    if (!f) return;
+    if (state.url) { try { URL.revokeObjectURL(state.url); } catch (e) { /* already gone */ } }
+    state.url = URL.createObjectURL(f);
+    state.x = 50; state.y = 42; state.zoom = +zoom.value;
+    document.body.classList.remove('guyonly');
+    document.getElementById('useMe').classList.add('on');
+    document.getElementById('useGuy').classList.remove('on');
+    paint();
+  });
+  zoom.addEventListener('input', function () { state.zoom = +zoom.value; paint(); });
+  var drag = null;
+  win.addEventListener('pointerdown', function (e) {
+    if (!state.url) return;
+    drag = { x: e.clientX, y: e.clientY, sx: state.x, sy: state.y };
+    win.classList.add('grab');
+    try { win.setPointerCapture(e.pointerId); } catch (err) { /* older browser */ }
+  });
+  win.addEventListener('pointermove', function (e) {
+    if (!drag) return;
+    var slack = Math.max(8, state.zoom - 100);
+    state.x = Math.max(0, Math.min(100, drag.sx - (e.clientX - drag.x) / win.clientWidth * 100 * (100 / slack)));
+    state.y = Math.max(0, Math.min(100, drag.sy - (e.clientY - drag.y) / win.clientHeight * 100 * (100 / slack)));
+    paint();
+  });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (k) {
+    win.addEventListener(k, function () { drag = null; win.classList.remove('grab'); });
+  });
+  document.getElementById('useMe').addEventListener('click', function () {
+    if (!state.url) { file.click(); return; }
+    document.body.classList.remove('guyonly');
+    this.classList.add('on'); document.getElementById('useGuy').classList.remove('on'); paint();
+  });
+  document.getElementById('useGuy').addEventListener('click', function () {
+    document.body.classList.add('guyonly');
+    this.classList.add('on'); document.getElementById('useMe').classList.remove('on'); paint();
+  });
+  paint();
+})();
+</script>
+</body>
+</html>

@@ -133,5 +133,5 @@ const blob =
   + '   are invented; every number on the cards is worked out from them by the\n'
   + '   book\u2019s own functions. Rebuild with: node tools/profile-mock.mjs */\n'
   + 'window.PROFILE = ' + JSON.stringify(out, null, 1) + ';\n';
-for (const dir of ['docs/preview/profile', 'docs/preview/card']) writeFileSync(dir + '/data.js', blob);
+for (const dir of ['docs/preview/profile', 'docs/preview/card', 'docs/preview/player']) writeFileSync(dir + '/data.js', blob);
 console.log(JSON.stringify({ hcp: out.player.hcp, record: out.record, attrs: out.attrs.map(a => a.k + ' ' + a.v), byPar: out.byPar, bySi: out.bySi.map(s => s.label + ' ' + s.pts), nine: out.nine, nemesis, banker, counts: out.counts, marks: out.marks, h2h, form: form.map(f => f.pts) }, null, 1));
