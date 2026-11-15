@@ -481,6 +481,54 @@ export function dials(T, pid, today) {
 /* ---------- exports ---------- */
 
 const cell = v => { const s = v == null ? '' : String(v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+/* ---------- Union Bert ----------
+   One character, dressed for whichever tournament is on. Every stop has its
+   own Bert and the week in Las Vegas has his; `house` is the year-round one
+   and the one a stop with no costume of its own falls back to.
+
+   `head` is where the ball's face sits inside each drawing, as a share of the
+   picture's width, height and width again: the centre of the circle and its
+   radius. It is measured off the artwork once, per costume, because the hat
+   sits differently on each of them and a photograph dropped in the wrong
+   place eats the costume. A new Bert needs its own three numbers. */
+export const BERTS = [
+  { id: 'house', name: 'Union Bert', note: 'The house one — a polo and no occasion.',
+    head: [49.5, 20.5, 15.0], stop: null },
+  { id: 'mulligan', name: 'Merry Mulligan Bert', note: 'Santa hat, snowflake jumper, a sprig of holly.',
+    head: [48.9, 24.4, 16.3], stop: 'mulligan' },
+  { id: 'frostbite', name: 'Frostbite Bert', note: 'Bobble hat, puffer, and a club with an icicle on it.',
+    head: [37.5, 27.5, 14.0], stop: 'frostbite' },
+  { id: 'sweetheart', name: 'Sweetheart Bert', note: 'Flat cap, a rose, and a heart on his jumper.',
+    head: [49.0, 23.5, 14.5], stop: 'sweetheart' },
+  { id: 'vegas', name: 'Desert Showdown Bert', note: 'The hat and the boots. Las Vegas only.',
+    head: [45.0, 24.0, 15.0], stop: null, week: true },
+];
+export const bertById = id => BERTS.find(b => b.id === id) || null;
+/** The Bert a stop wears, or the house one when nobody has drawn it yet. */
+export const bertForStop = sid => BERTS.find(b => b.stop && b.stop === sid) || BERTS[0];
+
+/* ---------- a golfer's own page in the book ----------
+   club/profile__<pid>: which Bert they go by and, if they have put one there,
+   their own face to set into his head. Their row, written by them, read by
+   everybody — the group decided it that way. */
+export const profileOf = (T, pid) => (T && T.club && T.club['profile__' + pid]) || null;
+
+/** The Bert this person goes by. Theirs if they picked one, else the house. */
+export function bertOf(T, pid) {
+  const pr = profileOf(T, pid);
+  return (pr && pr.bert && bertById(pr.bert)) || BERTS[0];
+}
+
+/** Their face, if they put one in: a picture and where it sits in the circle. */
+export function faceOf(T, pid) {
+  const pr = profileOf(T, pid);
+  const f = pr && pr.face;
+  if (!f || !f.url) return null;
+  return { url: f.url, thumb: f.thumb || null,
+    x: f.x == null ? 50 : +f.x, y: f.y == null ? 42 : +f.y, zoom: f.zoom == null ? 130 : +f.zoom,
+    at: f.at || null };
+}
+
 /* ---------- the player card ----------
    Everything the card shows is read off the cards already in the book: the
    gross on every hole, that hole's par and stroke index, and the handicap the

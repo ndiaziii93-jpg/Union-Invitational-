@@ -8021,7 +8021,7 @@ function fieldReportSafe() {
 }
 
 /* ---------------- SEASON ---------------- */
-const SEASON_TABS = [['stop', 'This stop'], ['merit', 'Standings'], ['hcp', 'Handicaps'], ['awards', 'Awards'], ['archive', 'Archive']];
+const SEASON_TABS = [['stop', 'This stop'], ['merit', 'Standings'], ['golfers', 'Golfers'], ['hcp', 'Handicaps'], ['awards', 'Awards'], ['archive', 'Archive']];
 /** The head of the Season: whoever is leading the stop in hand, on the
  *  photograph. It was a pine plate under a page title that said only "The
  *  Season"; the plate's colour was chrome, and the news was inside it. */
@@ -8057,7 +8057,7 @@ function scrSeason() {
   const tab = UI.seasonTab || 'stop';
   return seasonCover()
   + `<div class="btabs nos" role="tablist">${SEASON_TABS.map(([id, l]) => `<button class="btab${tab === id ? ' on' : ''}" data-act="seasonTab" data-a="${id}" role="tab" aria-selected="${tab === id}">${esc(l)}</button>`).join('')}</div>
-  ${tab === 'stop' ? seasonStop() : tab === 'merit' ? seasonMerit() : tab === 'hcp' ? seasonHcp() : tab === 'awards' ? seasonAwards() : seasonArchive()}`;
+  ${tab === 'stop' ? seasonStop() : tab === 'merit' ? seasonMerit() : tab === 'golfers' ? seasonGolfers() : tab === 'hcp' ? seasonHcp() : tab === 'awards' ? seasonAwards() : seasonArchive()}`;
 }
 
 /* ================= THE PLAYER CARD =================
@@ -8159,8 +8159,7 @@ function playerCardHtml() {
   const m = UI.modal || {};
   const today = todayIso();
   const st = C.playerStats(T, m.pid, today);
-  const stop = C.stopById(T, UI.stopId) || C.openStops(T, today)[0] || C.currentStop(T, today);
-  const face = mascotFor(stop);
+  const mine = m.pid === myPid();
   const sel = m.pt == null ? null : +m.pt;
   /* The season's name is already on every screen behind this window; the card
      takes the year instead, which is short enough not to wrap the line. */
@@ -8208,7 +8207,8 @@ function playerCardHtml() {
       <div class="meta num">${esc(st.courses[0] || 'No card yet')}${st.cards ? ' · ' + st.cards + ' card' + (st.cards === 1 ? '' : 's') : ''}${st.record.meritPos ? ' · ' + ordinal(st.record.meritPos) + ' of ' + st.record.meritOf : ''}</div></div>
       <div class="pc-hcp"><b class="num">${st.hcp.playing == null ? '—' : st.hcp.playing}</b><span>Union</span></div></div>
     <div class="pc-port"><span class="pc-flash">${esc(pcTitle(st))}</span><span class="pc-rays"></span>
-      ${face ? `<img src="${face}" alt="" aria-hidden="true">` : ''}</div>
+      ${avatarHtml(m.pid, 'min(150px,46%)', 'pc-av')}
+      ${mine ? `<button class="pc-look" data-act="lookOpen">Your look</button>` : ''}</div>
     <div class="pc-sheet">${six}
       ${st.byPar.length ? `<table class="pc-tbl">${rows('By length', byPar)}${rows('By index', bySi)}</table>`
         : `<p class="empty">No finished card yet. Post one and this fills in.</p>`}</div></div>`;
@@ -8221,13 +8221,121 @@ function playerCardHtml() {
         : '<p class="none">Nobody has played the same stop yet.</p>'}</div></div>
     <div class="pc-pad">${fun.length ? `<ul class="pc-fun">${fun.map(f =>
       `<li><span>${esc(f[0])}<i>${esc(f[1])}</i></span><b>${esc(String(f[2]))}</b></li>`).join('')}</ul>` : ''}</div>
-    <div class="pc-verd">${face ? `<img src="${face}" alt="" aria-hidden="true">` : ''}<p>${pcVerdict(st)}</p></div></div>`;
+    <div class="pc-verd">${avatarHtml(m.pid, '38px')}<p>${pcVerdict(st)}</p></div></div>`;
 
   return `<div class="scrim" data-act="modalScrim"><div class="modal pcmodal" role="dialog" aria-modal="true"
     aria-label="${esc(st.name)}, player card">
     <div class="pc-flip${m.back ? ' on' : ''}"><div class="pc-in">${front}${back}</div></div>
     <button class="btn ghost pc-close" data-act="modalCancel">Close</button>
   </div></div>`;
+}
+
+/* ================= YOUR LOOK =================
+   Which Bert you go by, and whether your own face is in his head. The row is
+   yours: you write it, everybody reads it. The picture goes into the book
+   with the rest of the photographs, because the group asked for it that way
+   — so it is worth saying plainly on the panel that it does.
+
+   The crop is kept as three numbers rather than a cut-out picture: the size
+   of the backdrop and where it sits, both as percentages. Percentages scale,
+   so the same three numbers describe the face at 212px in the chooser and at
+   36px on a tile, and every copy of it shows the same face. */
+function lookHtml() {
+  const me = myPid();
+  if (!me) return '';
+  const pr = C.profileOf(T, me) || {};
+  const got = C.faceOf(T, me);
+  const d = UI.look || (UI.look = { bert: pr.bert || 'house',
+    x: got ? got.x : 50, y: got ? got.y : 42, zoom: got ? got.zoom : 130,
+    url: got ? got.url : null, thumb: got ? got.thumb : null, busy: '' });
+  const bert = C.bertById(d.bert) || C.BERTS[0];
+  const [hx, hy, hr] = bert.head;
+  const prev = `<span class="av lk-big"><img src="${bertImg(bert.id)}" alt="" aria-hidden="true">${
+    d.url ? `<span class="av-mug" style="left:${hx}%;top:${hy}%;width:${(hr * 2).toFixed(1)}%;
+      background-image:url('${esc(d.url)}');background-size:${d.zoom}% auto;
+      background-position:${d.x}% ${d.y}%"></span>` : ''}</span>`;
+  return `<div class="scrim" data-act="modalScrim"><div class="modal lkmodal" role="dialog" aria-modal="true"
+    aria-label="Your look">
+    ${modalBanner('Your look', 'Which Bert you go by, and whose face he has')}
+    <div class="lk-top">${prev}
+      <div class="lk-crop">
+        <div class="lk-win" id="lkWin"${d.url ? ` style="background-image:url('${esc(d.url)}');background-size:${d.zoom}% auto;background-position:${d.x}% ${d.y}%"` : ''}>
+          ${d.url ? '' : '<span class="lk-hint">Bert’s own face, until you put yours in</span>'}</div>
+        ${d.url ? `<label class="lk-z"><span>Size</span><input type="range" min="100" max="320" value="${d.zoom}" data-act="lookZoom"></label>` : ''}
+        <div class="lk-acts">
+          <label class="btn sm"><input type="file" accept="image/*" data-act="lookPhoto" hidden>${d.url ? 'Change the photo' : 'Add your face'}</label>
+          ${d.url ? '<button class="btn ghost sm" data-act="lookClear">Bert’s face</button>' : ''}
+        </div>
+        ${d.url ? '<p class="lk-say">Drag the picture about to place it.</p>' : ''}
+      </div></div>
+    <div class="lk-berts">${C.BERTS.map(b => `
+      <button class="lk-b${b.id === d.bert ? ' on' : ''}" data-act="lookBert" data-a="${b.id}"
+        aria-pressed="${b.id === d.bert}" aria-label="${esc(b.name)}">
+        <span class="av"><img src="${bertImg(b.id)}" alt="" aria-hidden="true"></span>
+        <b>${esc(b.name.replace(/ Bert$/, ''))}</b></button>`).join('')}</div>
+    <p class="lk-note">${esc((C.bertById(d.bert) || {}).note || '')}</p>
+    <p class="lk-warn">Your photograph goes into the book, and everyone on the trip can see it.
+      Take it off again whenever you like.</p>
+    ${d.busy ? `<p class="lk-busy">${esc(d.busy)}</p>` : ''}
+    <div class="lk-go"><button class="btn" data-act="lookSave">Save my look</button>
+      <button class="btn ghost" data-act="modalCancel">Cancel</button></div>
+  </div></div>`;
+}
+
+async function lookPhotoTake(file) {
+  const me = myPid();
+  if (!me || !file || !UI.look) return;
+  if (!store4) { UI.look.busy = 'This copy of the book cannot store a photograph.'; render(); return; }
+  UI.look.busy = 'Reading the photograph…'; render();
+  try {
+    const small = await shrink(file, 640);
+    const thumb = await shrink(file, 160, 0.72).catch(() => null);
+    const up = await store4.upload(small, thumb, { kind: 'photo', mime: file.type || '' });
+    UI.look.url = up.url; UI.look.thumb = up.thumbUrl || null;
+    UI.look.x = 50; UI.look.y = 42; UI.look.busy = '';
+  } catch (e) {
+    UI.look.busy = 'The photograph did not go: ' + String((e && e.message) || e).slice(0, 90);
+  }
+  render();
+}
+
+/* Dragging the picture inside the circle. A percentage background position
+   moves by the slack between the picture and the window, so a pixel of drag
+   is worth more the closer the two sizes are; without that correction the
+   picture bolts across the circle. */
+let lkDrag = null;
+function lookDragStart(e) {
+  if (!UI.look || !UI.look.url) return;
+  const w = e.target.closest('.lk-win');
+  if (!w) return;
+  lkDrag = { x: e.clientX, y: e.clientY, sx: UI.look.x, sy: UI.look.y, w };
+  try { w.setPointerCapture(e.pointerId); } catch (err) { /* older browser */ }
+}
+function lookDragMove(e) {
+  if (!lkDrag || !UI.look) return;
+  const w = lkDrag.w;
+  const slack = Math.max(8, UI.look.zoom - 100);
+  UI.look.x = Math.max(0, Math.min(100, lkDrag.sx - (e.clientX - lkDrag.x) / w.clientWidth * 100 * (100 / slack)));
+  UI.look.y = Math.max(0, Math.min(100, lkDrag.sy - (e.clientY - lkDrag.y) / w.clientHeight * 100 * (100 / slack)));
+  lookPaint();
+}
+function lookDragEnd() { lkDrag = null; }
+/* The crop is moved on the elements themselves: a redraw on every frame of a
+   drag would be a redraw of the whole book. */
+function lookPaint() {
+  const d = UI.look;
+  if (!d) return;
+  const pos = d.x + '% ' + d.y + '%', size = d.zoom + '% auto';
+  const w = document.getElementById('lkWin');
+  if (w) { w.style.backgroundSize = size; w.style.backgroundPosition = pos; }
+  const mug = document.querySelector('.lk-big .av-mug');
+  if (mug) { mug.style.backgroundSize = size; mug.style.backgroundPosition = pos; }
+}
+if (typeof document !== 'undefined') {
+  document.addEventListener('pointerdown', lookDragStart, true);
+  document.addEventListener('pointermove', lookDragMove, true);
+  document.addEventListener('pointerup', lookDragEnd, true);
+  document.addEventListener('pointercancel', lookDragEnd, true);
 }
 
 function stopChips(sel) {
@@ -8251,6 +8359,33 @@ function seasonStop() {
   ${boardTable(board, { empty: st === 'upcoming' ? 'Opens ' + C.fmtDay(cur.from, { long: true }) + '. ' + (cur.note || '') : st === 'open' ? 'No cards yet. ' + (cur.note || '') : 'No cards were posted for this stop.' })}
   <p class="legend">${esc(cur.note || '')} ${esc(C.fmtDay(cur.from))} to ${esc(C.fmtDay(cur.to))}: net Stableford off your Union handicap, a photo of the signed card before it counts.${st === 'closed' ? ' The stop is crowned and the Order of Merit has it.' : ' At midnight on the last day the stop crowns its winner.'}</p>`;
 }
+/* ---- THE GOLFERS ----
+   Everybody on the roster, as they have chosen to be seen, with just enough
+   on the tile to be worth a tap. The card is behind every one of them. */
+function seasonGolfers() {
+  const today = todayIso();
+  const me = myPid();
+  const merit = C.merit(T, today);
+  const pos = {};
+  merit.forEach(r => { pos[r.pid] = r.pos; });
+  const rows = E.golfers(T).map(g => {
+    const u = C.unionHcp(T, g.id, today);
+    const cards = C.stops(T).filter(st => { const c = C.cardOf(T, st.id, g.id); return c && c.done && C.cardTotals(c).thru === 18; }).length;
+    return { g, u, cards, pos: pos[g.id] || null };
+  }).sort((a, b) => (a.pos || 99) - (b.pos || 99) || b.cards - a.cards || a.g.display.localeCompare(b.g.display));
+  return `<h3 class="sub">The golfers</h3>
+  <div class="glist">${rows.map(({ g, u, cards, pos: p }) => `
+    <button class="gtile${g.id === me ? ' me' : ''}" data-act="pcard" data-a="${g.id}"
+      aria-label="${esc(g.display)}, player card">
+      <span class="gt-art">${avatarHtml(g.id, '84px')}</span>
+      <span class="gt-w"><b>${esc(g.display)}</b>
+        <small>${u.hcp == null ? 'No handicap yet' : 'Union ' + u.hcp}${cards ? ' · ' + cards + ' card' + (cards === 1 ? '' : 's') : ''}</small>
+        <i>${p ? ordinal(p) + ' on merit' : cards ? 'Not on the merit table yet' : 'No card posted yet'}</i></span>
+      ${g.id === me ? '<span class="gt-you">You</span>' : ''}
+    </button>`).join('')}</div>
+  <p class="legend">Tap a name for their card. Everyone can see everyone’s.${me ? ' Yours is the one marked “You” — open it to change your Bert or put your face in.' : ''}</p>`;
+}
+
 function seasonMerit() {
   const rows = C.merit(T, todayIso());
   const n = C.closedStops(T, todayIso()).length;
@@ -8665,9 +8800,31 @@ function caddie() {
    for the Sweetheart, and the hat and boots only in Las Vegas. One character
    in different clothes, so each tournament looks like itself and none of them
    looks odd in July. A stop with no drawing of its own borrows the season's. */
+/* ---- UNION BERT ----
+   The drawing for a costume, the costume a stop wears, and the one a person
+   goes by. A stop with no Bert drawn for it falls back to the house one
+   rather than to nothing. */
+const bertImg = id => IMG['mascot_' + id] || IMG.mascot_house || IMG.mascot_vegas || IMG.mascot_hello || '';
 function mascotFor(stop) {
   const id = stop && stop.id;
-  return (id && IMG['mascot_' + id]) || IMG.mascot_vegas || IMG.mascot_hello || '';
+  return (id && IMG['mascot_' + id]) || bertImg('house');
+}
+
+/** Bert as this person goes by him, with their face in his head if they put
+ *  one there. `size` is a CSS length for the figure's width. */
+function avatarHtml(pid, size, cls) {
+  const bert = C.bertOf(T, pid);
+  const face = C.faceOf(T, pid);
+  const img = bertImg(bert.id);
+  if (!img) return '';
+  const [hx, hy, hr] = bert.head;
+  const mug = face
+    ? `<span class="av-mug" style="left:${hx}%;top:${hy}%;width:${(hr * 2).toFixed(1)}%;
+        background-image:url('${esc(face.url)}');background-size:${face.zoom}% auto;
+        background-position:${face.x}% ${face.y}%"></span>`
+    : '';
+  return `<span class="av${cls ? ' ' + cls : ''}"${size ? ` style="width:${size}"` : ''}>
+    <img src="${img}" alt="" aria-hidden="true">${mug}</span>`;
 }
 
 function courseForm(pid, held, stop) {
@@ -10665,6 +10822,7 @@ function modalHtml() {
        : UI.modal.kind === 'round' ? roundModalHtml()
        : UI.modal.kind === 'roundsheet' ? roundSheetHtml()
        : UI.modal.kind === 'daysheet' ? daySheetHtml()
+       : UI.modal.kind === 'look' ? lookHtml()
        : UI.modal.kind === 'pcard' ? playerCardHtml()
        : UI.modal.kind === 'art' ? artModalHtml()
        : UI.modal.kind === 'hours' ? hoursSheetHtml()
@@ -12476,6 +12634,30 @@ function onClick(e) {
         role => { if (role !== 'master') return; store.resetScores(); UI.screen = 'today'; });
       return;
 
+    /* ---- your look ---- */
+    case 'lookOpen': {
+      const me = myPid();
+      if (!me) { UI.toast = 'Choose your name first, then your look is yours to set.'; break; }
+      const pr = C.profileOf(T, me) || {}; const got = C.faceOf(T, me);
+      UI.look = { bert: pr.bert || 'house', x: got ? got.x : 50, y: got ? got.y : 42,
+        zoom: got ? got.zoom : 130, url: got ? got.url : null, thumb: got ? got.thumb : null, busy: '' };
+      UI.modal = { kind: 'look' };
+      break;
+    }
+    case 'lookBert': if (UI.look) UI.look.bert = a; break;
+    case 'lookClear': if (UI.look) { UI.look.url = null; UI.look.thumb = null; } break;
+    case 'lookSave': {
+      const me = myPid();
+      if (!me || !UI.look) { closeModal(); break; }
+      const d = UI.look;
+      store.writeClub('profile__' + me, { pid: me, bert: d.bert,
+        face: d.url ? { url: d.url, thumb: d.thumb || null, x: Math.round(d.x), y: Math.round(d.y),
+          zoom: Math.round(d.zoom), at: Date.now() } : null }, false);
+      UI.look = null; UI.toast = 'Your look is saved.';
+      closeModal();
+      break;
+    }
+
     /* ---- the player card ----
        Turning the card, flipping a box and touching a point are all changes
        to how the card is being LOOKED at, not to the book. They are made on
@@ -12541,6 +12723,7 @@ function onChange(e) {
   if (act === 'resortNote') { UI.resortNote = { k: a, v: el.value }; commitResortNote(); render(); return; }
   /* ---- the Clubhouse's own boxes ---- */
   if (act === 'cardPhoto') { const f = el.files && el.files[0]; if (f) cardPhotoTake(f); return; }
+  if (act === 'lookPhoto') { const f = el.files && el.files[0]; if (f) lookPhotoTake(f); return; }
   if (act === 'signField') { const me = myPid(); if (me) store.writeClub('signup__' + me, { pid: me, [a]: String(el.value || '').trim().slice(0, 60) }, true); return; }
   if (act === 'travelField') {
     const me = myPid(); if (!me) return;
@@ -13300,6 +13483,12 @@ export function boot() {
   app.addEventListener('mousedown', atPress);
   app.addEventListener('input', e => {
     if (e.target && e.target.id === 'askField') UI.askText = e.target.value;
+    /* The size slider moves the crop on the elements themselves, for the same
+       reason the drag does: a redraw of the whole book on every frame of a
+       slider is a redraw too many. */
+    if (e.target && e.target.dataset && e.target.dataset.act === 'lookZoom' && UI.look) {
+      UI.look.zoom = +e.target.value; lookPaint();
+    }
     /* the course search answers every keystroke, and only its own results
        are redrawn, so the caret stays where the typist left it */
     if (e.target && e.target.id === 'courseQ') { UI.courseQ = String(e.target.value || '').slice(0, 60); courseSearchSoon(); paintCourseHits(); }

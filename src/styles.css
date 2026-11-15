@@ -5674,6 +5674,78 @@ h2.greet small{display:block;font-size:14px;color:var(--turf);font-weight:400;fo
 html.clubseason .statusbar{padding-right:40px}
 @media (prefers-reduced-motion:reduce){ .caddie img,.cadin::after{animation:none} }
 
+/* ================= UNION BERT, AND WHOSE FACE HE HAS =================
+   The figure is a picture; the face, when somebody has put one in, is a
+   circle of backdrop laid over the ball's own. Where that circle goes is the
+   costume's business and comes through as inline percentages, because each
+   Bert wears his hat differently. The circle is drawn with the ball's own ink
+   line round it and a little shading inside, so a photograph reads as set
+   into the ball rather than stuck on top of it. */
+.av{position:relative;display:block;line-height:0}
+.av img{display:block;width:100%;height:auto}
+.av-mug{position:absolute;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;
+  background-repeat:no-repeat;background-color:#DED7C4;
+  box-shadow:inset 0 0 0 2.5px #1B2A1E, inset 0 -8px 14px rgba(27,42,30,.28),
+    inset 0 7px 12px rgba(255,255,255,.22)}
+
+/* ---- the golfers ---- */
+.glist{display:grid;gap:10px;grid-template-columns:1fr}
+@media (min-width:560px){ .glist{grid-template-columns:1fr 1fr} }
+@media (min-width:1000px){ .glist{grid-template-columns:repeat(3,1fr)} }
+.gtile{position:relative;display:flex;align-items:center;gap:12px;text-align:left;
+  background:var(--paper);border:1px solid var(--hair);border-radius:14px;padding:10px 12px;
+  font:inherit;color:inherit;cursor:pointer;min-height:92px}
+.gtile:hover{border-color:var(--turf)}
+.gtile.me{border-color:var(--gold);box-shadow:inset 0 0 0 1px var(--gold)}
+.gt-art{flex:0 0 auto;align-self:flex-end;margin-bottom:-10px}
+.gt-w{flex:1;min-width:0;display:block}
+.gt-w b{display:block;font-size:16px;font-weight:800;line-height:1.2}
+.gt-w small{display:block;font-size:12.5px;color:var(--turf);margin-top:1px}
+.gt-w i{display:block;font-style:normal;font-size:11px;color:var(--turf);opacity:.8;margin-top:2px}
+.gt-you{position:absolute;right:10px;top:10px;background:var(--gold);color:#23331F;border-radius:999px;
+  padding:2px 8px;font-size:9px;letter-spacing:.1em;text-transform:uppercase;font-weight:700}
+
+/* ---- your look ---- */
+/* Every window in the book is `overflow:hidden`, which suits one that fits.
+   This one has a chooser in it and will not always, so it carries its own
+   scroll rather than losing its buttons off the bottom. */
+.lkmodal{max-width:460px;max-height:100%;overflow-y:auto;overscroll-behavior:contain}
+.lk-top{display:grid;grid-template-columns:116px 1fr;gap:14px;align-items:start;margin:4px 0 12px}
+.lk-big{width:116px}
+.lk-crop{min-width:0}
+.lk-win{width:148px;height:148px;border-radius:50%;margin:0 0 8px;background:var(--sunk) no-repeat;
+  box-shadow:inset 0 0 0 3px var(--ink);touch-action:none;cursor:grab;position:relative;overflow:hidden}
+.lk-hint{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  text-align:center;padding:18px;font-size:11.5px;color:var(--turf);line-height:1.3}
+.lk-z{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--turf);margin-bottom:8px;max-width:200px}
+.lk-z input{flex:1;accent-color:var(--gold)}
+.lk-acts{display:flex;gap:8px;flex-wrap:wrap}
+.lk-say{margin:8px 0 0;font-size:11.5px;color:var(--turf)}
+.lk-berts{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.lk-b{background:var(--paper);border:1px solid var(--hair);border-radius:12px;padding:6px 4px 7px;
+  font:inherit;color:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px}
+.lk-b .av{width:100%;max-width:56px}
+.lk-b b{font-size:9.5px;font-weight:700;letter-spacing:.02em;text-align:center;line-height:1.15}
+.lk-b.on{border-color:var(--gold);background:var(--page);box-shadow:inset 0 0 0 1px var(--gold)}
+.lk-note{margin:9px 0 0;font-size:12.5px;color:var(--turf);min-height:18px}
+.lk-warn{margin:8px 0 0;font-size:12px;color:var(--ink);background:rgba(158,59,46,.10);
+  border-left:3px solid var(--flag);border-radius:0 8px 8px 0;padding:8px 10px}
+.lk-busy{margin:8px 0 0;font-size:12.5px;color:var(--flag)}
+.lk-go{display:flex;gap:8px;margin-top:12px}
+.lk-go .btn{flex:1}
+@media (max-width:460px){
+  .lk-top{grid-template-columns:92px 1fr;gap:10px}
+  .lk-big{width:92px}
+  .lk-win{width:128px;height:128px}
+  .lk-berts{grid-template-columns:repeat(3,1fr)}
+}
+
+/* The card's own figure, and the way in to changing it. */
+.pc-av{position:relative;filter:drop-shadow(0 9px 12px rgba(16,22,17,.45))}
+.pc-look{position:absolute;left:10px;bottom:10px;z-index:3;background:rgba(29,46,33,.80);
+  color:var(--onpine);border:1px solid rgba(226,194,119,.5);border-radius:999px;padding:5px 11px;
+  font:inherit;font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;cursor:pointer}
+
 /* ================= THE PLAYER CARD =================
    Two sides of one card. Both faces sit in the same grid cell so the card is
    as tall as the taller of them, and each is turned away from the viewer by
@@ -5724,8 +5796,8 @@ html.clubseason .statusbar{padding-right:40px}
     rgba(226,194,119,.19) 0deg 4.5deg, rgba(226,194,119,0) 4.5deg 15deg)}
 .pc-rays::after{content:"";position:absolute;inset:0;
   background:radial-gradient(66% 54% at 50% 92%,rgba(226,194,119,.16),rgba(226,194,119,0) 74%)}
-.pc-port img{position:relative;display:block;width:min(150px,46%);height:auto;
-  filter:drop-shadow(0 9px 12px rgba(16,22,17,.45))}
+.pc-port > .av{position:relative}
+.pc-verd .av{width:38px;flex:0 0 38px}
 .pc-flash{position:absolute;left:11px;top:11px;z-index:2;background:var(--flag);color:#FBF3E8;
   border-radius:4px;padding:3px 7px;font-size:9px;letter-spacing:.11em;text-transform:uppercase;font-weight:700}
 .pc-sheet{background:var(--page);color:var(--ink);padding:9px 12px 40px}
@@ -5780,7 +5852,7 @@ html.clubseason .statusbar{padding-right:40px}
 .pc-fun li b{font-weight:800;text-align:right;white-space:nowrap}
 .pc-fun li span i{font-style:normal;color:var(--turf);font-size:11px;display:block}
 .pc-verd{display:flex;gap:9px;align-items:flex-start;padding:9px 114px 9px 12px;background:#27402E}
-.pc-verd img{width:38px;height:auto;flex:0 0 38px}
+
 .pc-verd p{margin:0;font-size:12px;font-style:italic;color:#DCD6C2}
 .pc-verd p b{font-style:normal;color:var(--gold-up)}
 

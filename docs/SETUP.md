@@ -221,6 +221,14 @@ guard so a name can still be chosen while the 2026 book is closed. Without
 it, nobody new can pick their name. The check at the end lists `club_join`,
 `club_roster` and `season_guard`.
 
+Then run `docs/supabase-club-3.sql` the same way. It adds one row a golfer
+may write: `club/profile__<pid>`, their own page — which Union Bert they go
+by, and the photograph of their face if they put one there. Everyone can see
+everyone's, which is how the group wanted it. **Without this file the app
+still offers the look picker and the server refuses the save**, so run it
+before telling anybody the Golfers tab is open. The check at the end lists
+`club_write`.
+
 Then, in the book, as the master: **Manage → The season → The Clubhouse**.
 That opens the three tabs for everyone, closes the 2026 book, and seeds the
 stops from the sheet (the Merry Mulligan Open, the Frostbite Open, the

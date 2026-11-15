@@ -34,29 +34,52 @@ a link, which the commissioner sets under Manage without a new build.
 Full-resolution originals are in the commissioner's Blueprint Studio
 library.
 
-## The mascot
+## Union Bert
 
-He belongs to the TOURNAMENT, not to the app. One character — a golf ball for
-a head, a wry grin, flat bold outlines, pine green and cream — in different
-clothes for each stop, so a tournament looks like itself:
+The character has a name now: **Union Bert**. He belongs to the TOURNAMENT,
+not to the app — one character, a golf ball for a head, a wry grin, flat bold
+outlines, pine green and cream, in different clothes for each stop, so a
+tournament looks like itself.
 
-| File | Worn for | Dressed in |
-|---|---|---|
-| `mascot_mulligan` | The Merry Mulligan Open, December | santa hat, snowflake jumper, scarf, holly on the club |
-| `mascot_frostbite` | The Frostbite Open, January | bobble hat, quilted jacket, mittens, a puff of cold breath, an icicle on the club head |
-| `mascot_sweetheart` | The Sweetheart Scramble, February | flat cap, a heart on the sweater, a rose at the collar |
-| `mascot_vegas` | Las Vegas 2027, and anything with no drawing of its own | cowboy hat, bolo tie, boots, club over the shoulder |
+| File | Bert | Worn for | Dressed in |
+|---|---|---|---|
+| `mascot_house` | Union Bert | year round, and any stop with no drawing of its own | green polo, cream trousers, no occasion |
+| `mascot_mulligan` | Merry Mulligan Bert | The Merry Mulligan Open, December | santa hat, snowflake jumper, scarf, holly on the club |
+| `mascot_frostbite` | Frostbite Bert | The Frostbite Open, January | bobble hat, quilted jacket, mittens, a puff of cold breath, an icicle on the club head |
+| `mascot_sweetheart` | Sweetheart Bert | The Sweetheart Scramble, February | flat cap, a heart on the sweater, a rose at the collar |
+| `mascot_vegas` | Desert Showdown Bert | Las Vegas 2027 | cowboy hat, bolo tie, boots, club over the shoulder |
 
-`mascot_hello` is the older neutral drawing, kept only as a last fallback.
+`mascot_hello` is the oldest drawing, in a different hand entirely. It is kept
+only as a last fallback and is not offered in the picker.
 
 **How the book finds them.** By the stop's own id, the same way the covers
-work: `mascotFor(stop)` looks for `mascot_<stop id>` and falls back to Vegas.
-Adding a stop called `putterbowl` and dropping in `mascot_putterbowl.webp` is
-the whole of it — no code to change.
+work: `mascotFor(stop)` looks for `mascot_<stop id>` and falls back to the
+house Bert. Adding a stop called `putterbowl` and dropping in
+`mascot_putterbowl.webp` is the whole of it — no code to change.
 
-Transparent WebP, 470px, 38–68 KB each, so they drop onto paper without a box
-round them. They turn up twice: over the course form, and again in the gold
-panel the moment a card goes on the board.
+**Where a face goes.** A member can set their own photograph into Bert's head.
+Where that circle sits is different for every costume, because the hat sits
+differently on each of them, so each Bert carries three numbers in `C.BERTS`:
+the centre of the face as a share of the picture's width and height, and its
+radius as a share of the width again.
+
+```
+house       49.5  20.5  15.0
+mulligan    48.9  24.4  16.3
+frostbite   37.5  27.5  14.0
+sweetheart  49.0  23.5  14.5
+vegas       45.0  24.0  15.0
+```
+
+**A NEW BERT NEEDS HIS OWN THREE NUMBERS.** Measure them by laying a circle
+over the drawing and looking: it has to fall inside the ball and below the
+brim of whatever he is wearing, or a photograph eats the costume. A Bert
+without them falls back to the house figures and will very likely be wrong.
+
+Transparent WebP, 560px tall, 38–54 KB each, so they drop onto paper without a
+box round them. Bert turns up on the course form, in the gold panel the moment
+a card goes on the board, in the corner of every Clubhouse screen, on the
+Golfers tiles and on the player card.
 
 **Re-encoding.** `tools/build.py` skips the image table when `src/assets/
 images.js` already exists, so a new or changed drawing needs
