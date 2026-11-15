@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The player card, three ways</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;0,8..60,900;1,8..60,400;1,8..60,600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --pine:#1D2E21; --pine-up:#27402E; --cream:#EEE8D5; --page:#E6E0CD; --card:#F2ECDC;
+  --gold:#C9A253; --gold-up:#E2C277; --turf:#5E7A5F; --flag:#9E3B2E; --under:#4E7A4E;
+  --ink:#1B2A1E; --rule:#CFC8B2;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--pine);color:var(--cream);
+  font-family:'Source Serif 4',Georgia,serif;line-height:1.5;-webkit-text-size-adjust:100%}
+.wrap{max-width:1240px;margin:0 auto;padding:28px 16px 100px}
+h1{font-size:clamp(28px,5vw,44px);font-weight:900;margin:0 0 8px;letter-spacing:-.01em;line-height:1.08}
+.sub{color:#C8CCBF;margin:0 0 4px;max-width:70ch}
+.note{border-left:3px solid var(--gold);background:rgba(201,162,83,.12);padding:12px 14px;
+  border-radius:0 10px 10px 0;margin:20px 0 10px;max-width:84ch;font-size:15px;color:#DDD7C4}
+.note b{color:var(--gold-up)}
+h2{font-size:clamp(20px,3vw,27px);font-weight:800;color:var(--gold-up);margin:52px 0 2px;
+  padding-top:24px;border-top:1px solid rgba(238,232,213,.16)}
+h2 .k{color:var(--cream);opacity:.42;margin-right:10px}
+.say{color:#C8CCBF;margin:0 0 2px;max-width:76ch}
+.pros{color:#9FB49F;font-size:14.5px;margin:6px 0 20px;max-width:76ch}
+.pros b{color:var(--gold-up);font-weight:600}
+.stage{display:flex;justify-content:center;padding:6px 0 4px}
+
+/* ============ shared card furniture ============ */
+.cardbox{width:100%;max-width:380px}
+.lab{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700}
+.num{font-feature-settings:"tnum" 1;font-variant-numeric:tabular-nums}
+
+/* ============ A — the trump card ============ */
+.tc{background:linear-gradient(176deg,#24382A 0%,#19281D 58%,#1D2E21 100%);
+  border-radius:20px;padding:5px;box-shadow:0 18px 44px rgba(0,0,0,.45);
+  background-clip:padding-box;border:1px solid rgba(226,194,119,.42)}
+.tc .in{border:1px solid rgba(226,194,119,.30);border-radius:16px;overflow:hidden}
+.tc .hd{display:flex;align-items:flex-start;gap:10px;padding:13px 14px 10px;
+  background:linear-gradient(180deg,rgba(226,194,119,.14),rgba(226,194,119,0))}
+.tc .hd .who{flex:1;min-width:0}
+.tc .hd .who .lab{color:var(--gold-up)}
+.tc .hd h3{margin:1px 0 0;font-size:25px;font-weight:900;letter-spacing:-.01em;line-height:1.05;color:#F4EFDF}
+.tc .hd .meta{font-size:11.5px;color:#9FB49F;margin-top:3px}
+.tc .hcp{flex:0 0 auto;width:58px;height:58px;border-radius:50%;border:2px solid var(--gold-up);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(226,194,119,.10)}
+.tc .hcp b{font-size:23px;font-weight:900;color:var(--gold-up);line-height:1}
+.tc .hcp span{font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:#9FB49F;margin-top:2px}
+.tc .port{position:relative;height:184px;background:
+  radial-gradient(130% 92% at 50% 108%, #3C5640 0%, #24382A 52%, #1B2B1F 100%)}
+.tc .port .glow{position:absolute;left:50%;bottom:4px;width:200px;height:84px;transform:translateX(-50%);
+  background:radial-gradient(50% 50% at 50% 50%,rgba(226,194,119,.26),rgba(226,194,119,0) 70%)}
+.tc .port img{position:absolute;left:50%;bottom:0;transform:translateX(-50%);height:176px;width:auto;
+  filter:drop-shadow(0 10px 14px rgba(0,0,0,.45))}
+.tc .port .flash{position:absolute;left:12px;top:12px;background:var(--flag);color:#FBF3E8;
+  border-radius:4px;padding:4px 7px;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700}
+.tc .attrs{background:#F2ECDC;color:var(--ink);padding:11px 13px 9px}
+.tc .at{display:grid;grid-template-columns:76px 1fr 30px;align-items:center;gap:9px;padding:4px 0}
+.tc .at + .at{border-top:1px solid rgba(29,46,33,.10)}
+.tc .at .k{font-size:12px;font-weight:700;letter-spacing:.02em}
+.tc .at .bar{height:9px;border-radius:999px;background:rgba(29,46,33,.13);overflow:hidden}
+.tc .at .bar i{display:block;height:100%;border-radius:999px;
+  background:linear-gradient(90deg,var(--turf),#3F6440)}
+.tc .at.hi .bar i{background:linear-gradient(90deg,var(--gold),#B88B33)}
+.tc .at.lo .bar i{background:linear-gradient(90deg,#B4594A,var(--flag))}
+.tc .at .v{font-size:16px;font-weight:900;text-align:right;letter-spacing:-.02em}
+.tc .sig{background:#E6E0CD;color:var(--ink);display:grid;grid-template-columns:repeat(3,1fr);
+  border-top:1px solid rgba(29,46,33,.12)}
+.tc .sig div{padding:8px 6px;text-align:center}
+.tc .sig div + div{border-left:1px solid rgba(29,46,33,.12)}
+.tc .sig b{display:block;font-size:17px;font-weight:900;line-height:1.1}
+.tc .sig span{font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--turf)}
+.tc .verdict{background:var(--pine-up);padding:10px 13px;display:flex;gap:9px;align-items:flex-start}
+.tc .verdict img{height:40px;width:auto;flex:0 0 auto;margin-top:1px}
+.tc .verdict p{margin:0;font-size:13px;font-style:italic;color:#DCD6C2}
+.tc .verdict p b{font-style:normal;color:var(--gold-up)}
+
+/* ============ B — the scouting report ============ */
+.sr{background:var(--page);color:var(--ink);border-radius:16px;overflow:hidden;
+  box-shadow:0 16px 40px rgba(0,0,0,.40);max-width:380px}
+.sr .top{padding:14px 16px 10px;border-bottom:2px solid var(--ink)}
+.sr .top .lab{color:var(--turf)}
+.sr .top h3{margin:3px 0 0;font-size:23px;font-weight:900;letter-spacing:-.01em;line-height:1.05}
+.sr .top .meta{font-size:11.5px;color:#55674F;margin-top:3px}
+.sr .lede{margin:0;padding:13px 16px 10px;font-size:19px;font-weight:700;line-height:1.22;letter-spacing:-.005em}
+.sr .lede em{font-style:italic;color:var(--flag)}
+.sr .body{padding:0 16px 14px}
+.sr h4{margin:14px 0 5px;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--turf);font-weight:700}
+.sr ul{margin:0;padding:0;list-style:none}
+.sr li{font-size:13.5px;line-height:1.42;padding:5px 0 5px 15px;position:relative;border-top:1px solid var(--rule)}
+.sr li:first-child{border-top:0}
+.sr li::before{content:"";position:absolute;left:0;top:12px;width:6px;height:6px;border-radius:50%}
+.sr ul.good li::before{background:var(--under)}
+.sr ul.bad li::before{background:var(--flag)}
+.sr li b{font-weight:700}
+.sr .strip{display:flex;gap:2px;margin:4px 0 2px}
+.sr .strip i{flex:1;height:26px;border-radius:2px;position:relative}
+.sr .striplab{display:flex;justify-content:space-between;font-size:9px;color:var(--turf);letter-spacing:.06em}
+.sr .key{display:flex;gap:10px;margin-top:6px;font-size:10px;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--turf)}
+.sr .key span{display:flex;align-items:center;gap:4px}
+.sr .key i{width:8px;height:8px;border-radius:2px;display:block}
+.sr .hon{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
+.sr .hon span{border:1px solid var(--rule);border-radius:999px;padding:3px 9px;font-size:11.5px}
+.sr .hon span b{font-weight:700}
+.sr .h2h{display:grid;grid-template-columns:1fr auto;gap:2px 10px;font-size:12.5px;margin-top:2px}
+.sr .h2h .n{padding:4px 0;border-top:1px solid var(--rule)}
+.sr .h2h .s{padding:4px 0;border-top:1px solid var(--rule);text-align:right;font-weight:700}
+.sr .h2h .s.w{color:var(--under)} .sr .h2h .s.l{color:var(--flag)}
+.sr .foot{background:var(--ink);color:var(--cream);padding:9px 16px;font-size:11.5px;font-style:italic}
+
+/* ============ C — the data card ============ */
+.dc{background:var(--card);color:var(--ink);border-radius:16px;overflow:hidden;
+  box-shadow:0 16px 40px rgba(0,0,0,.40);max-width:380px}
+.dc .top{background:var(--pine);color:var(--cream);padding:12px 14px;display:flex;align-items:center;gap:10px}
+.dc .top img{height:44px;width:auto}
+.dc .top .who{flex:1;min-width:0}
+.dc .top .lab{color:var(--gold-up)}
+.dc .top h3{margin:2px 0 0;font-size:20px;font-weight:800;line-height:1.1}
+.dc .top .meta{font-size:11px;color:#9FB49F;margin-top:2px}
+.dc .top .hcp{text-align:right}
+.dc .top .hcp b{display:block;font-size:22px;font-weight:900;color:var(--gold-up);line-height:1}
+.dc .top .hcp span{font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:#9FB49F}
+.dc .radar{display:block;width:100%;height:auto}
+.dc .radarwrap{display:grid;grid-template-columns:1fr 112px;gap:8px;padding:10px 12px 4px;align-items:center}
+.dc .legend div{display:grid;grid-template-columns:1fr 26px;gap:6px;font-size:11.5px;padding:3px 0}
+.dc .legend div + div{border-top:1px solid rgba(29,46,33,.10)}
+.dc .legend b{text-align:right;font-weight:800}
+.dc .spark{padding:4px 12px 8px}
+.dc .spark .row{display:flex;align-items:flex-end;gap:4px;height:46px}
+.dc .spark .row i{flex:1;background:var(--turf);border-radius:2px 2px 0 0;position:relative}
+.dc .spark .row i.best{background:var(--gold)}
+.dc .spark .row i b{position:absolute;left:0;right:0;top:-14px;text-align:center;font-size:9.5px;
+  font-weight:700;color:var(--ink)}
+.dc .spark .axis{display:flex;justify-content:space-between;font-size:9px;color:var(--turf);
+  letter-spacing:.06em;text-transform:uppercase;margin-top:3px}
+.dc table{width:100%;border-collapse:collapse;font-size:12.5px}
+.dc table th{text-align:left;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--turf);font-weight:700;padding:6px 12px 3px}
+.dc table td{padding:4px 12px;border-top:1px solid rgba(29,46,33,.10)}
+.dc table td.n{text-align:right;font-weight:700}
+.dc .tiles{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:rgba(29,46,33,.12);margin-top:10px}
+.dc .tiles div{background:var(--card);padding:9px 12px}
+.dc .tiles .lab{color:var(--turf)}
+.dc .tiles b{display:block;font-size:16px;font-weight:900;margin-top:2px}
+.dc .tiles span{font-size:11px;color:#55674F}
+.dc .foot{background:var(--page);padding:8px 12px;font-size:11px;color:#55674F;
+  border-top:1px solid rgba(29,46,33,.12)}
+
+/* ============ layout of the three ============ */
+.three{display:grid;gap:26px;grid-template-columns:1fr;justify-items:center}
+@media (min-width:860px){ .three{grid-template-columns:repeat(3,1fr);align-items:start} }
+.capt{max-width:380px;margin:12px auto 0;font-size:13.5px;color:#C8CCBF}
+.capt b{color:var(--gold-up)}
+/* The page's own footer, named apart from the cards' feet: a bare `.foot`
+   was reaching inside them and pushing each card's last line 60px down. */
+.pagefoot{margin-top:60px;padding-top:18px;border-top:1px solid rgba(238,232,213,.16);
+  font-size:13px;color:#9FB49F}
+.pagefoot a{color:var(--gold-up)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>The player card, three ways</h1>
+  <p class="sub">Three takes on the same player, before any of it goes into the app. Pick one, or take
+    the parts you like from each.</p>
+
+  <div class="note">
+    <b>Everything here is worked out, not invented.</b> The gross scores behind these numbers are made
+    up — six pretend rounds at Leatherhead off the White tees. Every figure on the cards is then
+    derived from them by the book’s own functions: the same Stableford, the same stroke allocation,
+    the same Union handicap. So what you are judging is what the app can actually say about somebody
+    from the cards it already keeps, with nobody typing a single extra number.
+  </div>
+
+  <div id="renders"></div>
+
+  <h2><span class="k">Where it would live</span></h2>
+  <p class="say">On the Season tab, behind a player’s name on the standings and the Order of Merit —
+    tap a name, get their card. The same card is what you would hold up next to somebody else’s
+    before a stop opens.</p>
+  <p class="pros">Nothing here needs a new screen on a phone: each of these is drawn at 380px, which
+    is a phone’s width with the page’s own margins taken off.</p>
+
+  <h2><span class="k">What I would still want to settle</span></h2>
+  <p class="say">Three things, whichever one you pick:</p>
+  <p class="pros">
+    <b>Sample size.</b> Six cards is enough for this to mean something; two is not. I would hold the
+    attributes back until three finished cards are in and say so plainly rather than print a number
+    that is noise.<br>
+    <b>Who sees it.</b> Everybody’s card visible to everybody, or your own card plus a thinner public
+    version? A weakness is funny between mates and less funny on a page anyone can open.<br>
+    <b>How sharp the voice is.</b> The verdict lines below are mine. They can be drier, or a good deal
+    ruder.
+  </p>
+
+  <p class="pagefoot">The Union Invitational · a preview, not the app ·
+    <a href="../../">back to the site</a></p>
+</div>
+
+<script src="data.js"></script>
+<script>
+(function () {
+  var D = window.PROFILE;
+  var esc = function (s) { return String(s).replace(/[&<>]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]; }); };
+  var r1 = function (n) { return (Math.round(n * 10) / 10).toFixed(1).replace(/\.0$/, ''); };
+  /* A column of points a hole reads as a column only if every figure has the
+     same shape: 2 beside 1.3 and 2.5 looks like a different kind of number. */
+  var p1 = function (n) { return (Math.round(n * 10) / 10).toFixed(1); };
+  var ordinal = function (n) { return n + (n % 100 >= 11 && n % 100 <= 13 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] || 'th'); };
+
+  /* ---- the reading of the numbers, shared by all three ----
+     Each line names the figure it came from, so nothing on a card is a
+     claim the book cannot show its working for. */
+  var par3 = D.byPar[0], par4 = D.byPar[1], par5 = D.byPar[2];
+  var hard = D.bySi[0], mid = D.bySi[1], soft = D.bySi[2];
+  var pct = function (n) { return Math.round(n / D.counts.holes * 100); };
+
+  var good = [
+    ['The long holes are his', 'par 5s cost him <b>' + r1(par5.over) + ' a hole</b> and pay <b>' + r1(par5.pts) + ' points</b> — his best scoring of any length'],
+    ['He turns up for the hard ones', '<b>' + r1(hard.pts) + ' points a hole</b> on stroke index 1 to 6, against ' + r1(mid.pts) + ' through the middle six'],
+    ['He keeps the card alive', '<b>' + D.counts.run + ' holes</b> in a row at one point without a blank; ' + pct(D.counts.netPar) + '% of his holes are a flat net par']
+  ];
+  var bad = [
+    ['Par 3s eat him', '<b>' + r1(par3.over) + ' over a hole</b> on the short ones and only ' + r1(par3.pts) + ' points — a shot and a half worse than his par 4s'],
+    ['The ' + ordinal(D.nemesis.n) + ' owns him', 'a par ' + D.nemesis.par + ', index ' + D.nemesis.si + ': <b>' + r1(D.nemesis.over) + ' over</b> across six goes, worth ' + r1(D.nemesis.pts) + ' points'],
+    ['He gives it back late', 'the back nine is worth <b>' + r1(D.nine[0].pts - D.nine[1].pts) + ' points less</b> than the front; ' + D.counts.capped + ' holes picked up']
+  ];
+  var verdict = 'Hands him a <b>5-iron</b> on anything short and hides the <b>driver</b> after the turn. ' +
+    'Six cards, ' + D.counts.blanks + ' blanks, and every one of them on a hole he could see the green from.';
+
+  /* ---- A: the trump card ---- */
+  function trump() {
+    var at = D.attrs.map(function (a) {
+      var cls = a.v >= 78 ? ' hi' : a.v <= 45 ? ' lo' : '';
+      return '<div class="at' + cls + '" title="' + esc(a.of) + '">' +
+        '<span class="k">' + esc(a.k) + '</span>' +
+        '<span class="bar"><i style="width:' + a.v + '%"></i></span>' +
+        '<span class="v num">' + a.v + '</span></div>';
+    }).join('');
+    return '<div class="cardbox"><div class="tc"><div class="in">' +
+      '<div class="hd"><div class="who"><div class="lab">The Union Invitational · 2027</div>' +
+        '<h3>' + esc(D.player.short) + '</h3>' +
+        '<div class="meta num">' + esc(D.course.name) + ' · ' + D.record.played + ' cards · ' +
+          ordinal(D.record.meritPos) + ' of ' + D.record.meritOf + ' on merit</div></div>' +
+        '<div class="hcp"><b class="num">' + D.player.playing + '</b><span>Union</span></div></div>' +
+      '<div class="port"><div class="glow"></div>' +
+        '<div class="flash">Par 5 merchant</div>' +
+        '<img src="img/mascot_mulligan.webp" alt=""></div>' +
+      '<div class="attrs">' + at + '</div>' +
+      '<div class="sig">' +
+        '<div><b class="num">' + D.totals.bestPts + '</b><span>Best card</span></div>' +
+        '<div><b class="num">' + r1(D.marks.avg * 18) + '</b><span>Average</span></div>' +
+        '<div><b class="num">' + D.counts.blanks + '</b><span>Blanks</span></div></div>' +
+      '<div class="verdict"><img src="img/mascot_mulligan.webp" alt="">' +
+        '<p>' + verdict + '</p></div>' +
+      '</div></div></div>' +
+      '<p class="capt"><b>A · The trump card.</b> A thing you collect. Five attributes out of 99, the ' +
+      'tournament’s own mascot as the portrait, and the caddie with the last word. Strongest on a phone, ' +
+      'strongest held up against somebody else’s, and the easiest to make people want a full set of. ' +
+      'The cost: the attributes flatten a round into five bars, and a bar cannot tell you <i>why</i>.</p>';
+  }
+
+  /* ---- B: the scouting report ---- */
+  function report() {
+    var heat = D.perHole.map(function (h) {
+      var t = Math.max(0, Math.min(1, h.pts / 3));
+      var col = h.pts >= 2.4 ? '#4E7A4E' : h.pts >= 1.9 ? '#7E9A6A' : h.pts >= 1.4 ? '#C9A253' : '#9E3B2E';
+      return '<i style="background:' + col + ';opacity:' + (0.45 + t * 0.55).toFixed(2) + '" title="Hole ' + h.n + ' · par ' + h.par + ' · ' + r1(h.pts) + ' pts"></i>';
+    }).join('');
+    var li = function (rows, cls) {
+      return '<ul class="' + cls + '">' + rows.map(function (r) {
+        return '<li><b>' + r[0] + '.</b> ' + r[1] + '.</li>'; }).join('') + '</ul>';
+    };
+    return '<div class="cardbox"><div class="sr">' +
+      '<div class="top"><div class="lab">Scouting report · the Clubhouse</div>' +
+        '<h3>' + esc(D.player.name) + '</h3>' +
+        '<div class="meta num">Union ' + D.player.playing + ' (band ' + D.player.band + ') · ' +
+          D.record.played + ' cards · best ' + ordinal(D.record.best) + ' · ' + D.record.merit + ' merit</div></div>' +
+      '<p class="lede">Long holes, <em>short patience</em>. Thirty-eight points when the par 5s behave, ' +
+        'thirty when the short ones do not.</p>' +
+      '<div class="body">' +
+        '<h4>What he does well</h4>' + li(good, 'good') +
+        '<h4>Where it goes</h4>' + li(bad, 'bad') +
+        '<h4>Every hole, six cards deep</h4>' +
+        '<div class="strip">' + heat + '</div>' +
+        '<div class="striplab"><span>1</span><span>9</span><span>18</span></div>' +
+        '<div class="key"><span><i style="background:#9E3B2E"></i>blank</span>' +
+          '<span><i style="background:#C9A253"></i>one</span>' +
+          '<span><i style="background:#7E9A6A"></i>two</span>' +
+          '<span><i style="background:#4E7A4E"></i>three up</span></div>' +
+        '<h4>Honours</h4>' +
+        '<div class="hon"><span><b>' + ordinal(D.record.best) + '</b> best finish</span>' +
+          '<span><b>' + D.record.podiums + '</b> podium</span>' +
+          '<span><b>' + D.record.merit + '</b> merit pts</span>' +
+          '<span>handicap <b>' + D.player.band + ' → ' + D.player.hcp + '</b></span></div>' +
+        '<h4>Head to head</h4>' +
+        '<div class="h2h">' + D.h2h.map(function (x) {
+          return '<div class="n">' + esc(x.name) + '</div><div class="s ' + (x.w > x.l ? 'w' : 'l') + '">' +
+            x.w + '–' + x.l + '</div>'; }).join('') + '</div>' +
+      '</div>' +
+      '<div class="foot">Read off six finished cards. Nothing here was typed in by hand.</div>' +
+      '</div></div>' +
+      '<p class="capt"><b>B · The scouting report.</b> The one that sounds like the book already does: ' +
+      'serif, prose, a verdict in a headline, and every claim carrying the number it came from. It tells ' +
+      'you <i>why</i>, which the bars cannot. The cost: it is reading rather than looking, it does not ' +
+      'sit side by side as well, and somebody has to be comfortable seeing their own weaknesses written ' +
+      'out in sentences.</p>';
+  }
+
+  /* ---- C: the data card ---- */
+  function radar(vals) {
+    var n = vals.length, cx = 92, cy = 92, R = 72, out = '', i, a, pt;
+    var P = function (v, k) { var ang = -Math.PI / 2 + k * 2 * Math.PI / n;
+      return [cx + Math.cos(ang) * R * v, cy + Math.sin(ang) * R * v]; };
+    for (var ring = 1; ring <= 4; ring++) {
+      pt = [];
+      for (i = 0; i < n; i++) pt.push(P(ring / 4, i).map(function (x) { return x.toFixed(1); }).join(','));
+      out += '<polygon points="' + pt.join(' ') + '" fill="none" stroke="rgba(29,46,33,.16)" stroke-width="1"/>';
+    }
+    for (i = 0; i < n; i++) { a = P(1, i); out += '<line x1="' + cx + '" y1="' + cy + '" x2="' + a[0].toFixed(1) + '" y2="' + a[1].toFixed(1) + '" stroke="rgba(29,46,33,.16)"/>'; }
+    pt = [];
+    for (i = 0; i < n; i++) pt.push(P(vals[i] / 100, i).map(function (x) { return x.toFixed(1); }).join(','));
+    out += '<polygon points="' + pt.join(' ') + '" fill="rgba(94,122,95,.34)" stroke="#3F6440" stroke-width="2" stroke-linejoin="round"/>';
+    for (i = 0; i < n; i++) { a = P(vals[i] / 100, i); out += '<circle cx="' + a[0].toFixed(1) + '" cy="' + a[1].toFixed(1) + '" r="3" fill="#C9A253" stroke="#1D2E21" stroke-width="1"/>'; }
+    return '<svg viewBox="0 0 184 184" class="radar" role="img" aria-label="Attributes">' + out + '</svg>';
+  }
+  function data() {
+    var mx = Math.max.apply(null, D.form.map(function (f) { return f.pts; }));
+    var bars = D.form.map(function (f) {
+      return '<i class="' + (f.pts === mx ? 'best' : '') + '" style="height:' + Math.round(f.pts / mx * 100) + '%">' +
+        '<b class="num">' + f.pts + '</b></i>'; }).join('');
+    return '<div class="cardbox"><div class="dc">' +
+      '<div class="top"><img src="img/mascot_mulligan.webp" alt="">' +
+        '<div class="who"><div class="lab">Player card</div><h3>' + esc(D.player.short) + '</h3>' +
+          '<div class="meta num">' + D.record.played + ' cards · ' + esc(D.course.tee) + ' tees · par ' + D.course.par + '</div></div>' +
+        '<div class="hcp"><b class="num">' + D.player.playing + '</b><span>Union</span></div></div>' +
+      '<div class="radarwrap"><div>' + radar(D.attrs.map(function (a) { return a.v; })) + '</div>' +
+        '<div class="legend">' + D.attrs.map(function (a) {
+          return '<div title="' + esc(a.of) + '"><span>' + esc(a.k) + '</span><b class="num">' + a.v + '</b></div>'; }).join('') +
+        '</div></div>' +
+      '<div class="spark"><div class="row">' + bars + '</div>' +
+        '<div class="axis"><span>Six cards, oldest first</span><span>points</span></div></div>' +
+      '<table><tr><th>By length</th><th></th><th style="text-align:right">Pts a hole</th></tr>' +
+        D.byPar.map(function (p) {
+          return '<tr><td>Par ' + p.par + '</td><td class="num" style="color:#55674F">' +
+            (p.over > 0 ? '+' : '') + p1(p.over) + ' a hole</td><td class="n num">' + p1(p.pts) + '</td></tr>'; }).join('') +
+        '<tr><th>By index</th><th></th><th></th></tr>' +
+        D.bySi.map(function (s) {
+          return '<tr><td>' + esc(s.label.replace(/^the /, 'The ')) + '</td><td class="num" style="color:#55674F">SI ' +
+            s.a + '–' + s.b + '</td><td class="n num">' + r1(s.pts) + '</td></tr>'; }).join('') +
+      '</table>' +
+      '<div class="tiles">' +
+        '<div><div class="lab">The banker</div><b class="num">Hole ' + D.banker.n + '</b>' +
+          '<span class="num">par ' + D.banker.par + ' · ' + r1(D.banker.pts) + ' pts a go</span></div>' +
+        '<div><div class="lab">The nemesis</div><b class="num">Hole ' + D.nemesis.n + '</b>' +
+          '<span class="num">par ' + D.nemesis.par + ' · ' + r1(D.nemesis.pts) + ' pts a go</span></div>' +
+      '</div>' +
+      '<div class="foot num">Front ' + D.nine[0].pts + ' · back ' + D.nine[1].pts + ' · ' +
+        D.counts.blanks + ' blanks in ' + D.counts.holes + ' holes · handicap ' + D.player.band + ' → ' + D.player.hcp + '</div>' +
+      '</div></div>' +
+      '<p class="capt"><b>C · The data card.</b> The one a golfer would actually study: a shape you can ' +
+      'read at a glance, the last six cards as bars, and the real splits underneath. Best of the three ' +
+      'for someone trying to get better, and the only one that survives a season of data without ' +
+      'needing rewriting. The cost: it is the least funny, and a radar with five spokes flatters ' +
+      'everybody a little.</p>';
+  }
+
+  document.getElementById('renders').innerHTML =
+    '<div class="three">' +
+      '<div>' + trump() + '</div>' +
+      '<div>' + report() + '</div>' +
+      '<div>' + data() + '</div>' +
+    '</div>';
+})();
+</script>
+</body>
+</html>
