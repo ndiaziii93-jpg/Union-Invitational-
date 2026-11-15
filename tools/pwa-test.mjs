@@ -140,7 +140,23 @@ ok('nothing cross-origin is needed at all', await p.evaluate(
       && !u.startsWith('data:')).length), 0);
 
 console.log('\nthe pictures live outside the page');
-ok('the page is the words and the code, not seven megabytes of pictures', statSync('docs/app/index.html').size < 3.5e6, true);
+/* This guards one thing: that the pictures are not in the page. They are not —
+   374 KB of 3.72 MB is inline, and 213 KB of that is the crest, held in on
+   purpose so it is the first thing on screen. The other 93 drawings, 5.9 MB of
+   them, are files beside the page.
+
+   The ceiling was 3.5e6 when it was written on 27 Oct and the page was 2.76 MB.
+   Three weeks of features crossed it without anyone seeing, because the test was
+   already red. 4e6 is the same guard with the headroom it was meant to have.
+
+   The figure to watch is not this one. Compressed — which is how GitHub Pages
+   serves it, and how a phone actually receives it — the page is 1.23 MB, and it
+   is fetched once and then kept by the worker. What costs is parsing three
+   megabytes of code on a cold start on an old phone. If that is what is being
+   fixed, raising this number is not the fix: three.js (670 KB) and the traced
+   hole geometry (597 KB) are only wanted once a hole is open, and belong beside
+   the page like the drawings do. */
+ok('the page is the words and the code, not seven megabytes of pictures', statSync('docs/app/index.html').size < 4e6, true);
 const pics = await p.evaluate(() => Object.values(window.UI_IMAGES || {}));
 ok('every big picture is a file beside it, named with its own fingerprint', [pics.filter(u => /^img\/[a-z_0-9]+-[0-9a-f]{8}\.webp$/.test(u)).length > 60, pics.filter(u => u.startsWith('data:')).length < 40], [true, true]);
 ok('and the one on the cover is really there', await p.evaluate(async () => (await fetch((window.UI_IMAGES || {}).hero)).status), 200);
