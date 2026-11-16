@@ -6275,7 +6275,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261116-1447';
+const BUILD = '20261116-1559';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -28105,8 +28105,14 @@ function onClick(e) {
       if (held && (held.done || held.final)) return;
       const raw = (held ? held.raw : Array(18).fill(null)).slice();
       const h = Math.min(Math.max(UI.clubHole || 0, 0), 17);
+      const had = held ? C.cardTotals(held).thru : 0;
       raw[h] = act === 'clubClear' ? null : +a;
       roundWrite(r, { raw });
+      /* THE FIRST HOLE IS THE NEWS. Not the app being opened, not the round
+         being declared — the moment a score goes on the card, everybody with
+         notifications on hears that somebody is out. Said once a card: the
+         server marks it and will not pass it on twice. */
+      if (!had && act === 'clubScore') notifyOthers('club/' + r.key);
       if (act === 'clubScore' && h < 17) UI.clubHole = h + 1; else UI.clubPad = false;
       render(); return;
     }

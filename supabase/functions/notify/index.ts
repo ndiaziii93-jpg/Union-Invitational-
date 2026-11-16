@@ -150,7 +150,57 @@ async function handler(req: Request): Promise<Response> {
     }));
     return json({ sent: msent, security: true });
   }
-  if (!/^(chat\/m|market\/q)[a-z0-9]{4,40}$/.test(path)) return json({ error: 'bad_request', message: 'Send {"path": "chat/m…"} or {"path": "market/q…"}' }, 400);
+  /* ---- SOMEBODY IS OUT PLAYING ----
+     Sent when the first hole of a round goes onto a card, not when the app is
+     opened: "he is actually out there" is the news, and it is news once. The
+     card is read from the book rather than taken from the caller, so this can
+     only pass on a round that is really being played, and the mark that stops
+     it going twice is made with the service key, which no phone holds. */
+  if (/^club\/(card__[A-Za-z0-9_.-]{1,40}__[A-Za-z0-9_.-]{1,40}|hcard__[A-Za-z0-9_.-]{1,40}__[0-9]{8}-[a-z0-9]{4})$/.test(path)) {
+    const apikey = req.headers.get('apikey') || '';
+    const url = Deno.env.get('SUPABASE_URL') || '';
+    const db = createClient(url, apikey, { auth: { persistSession: false } });
+    const { data: rows, error } = await db.from('docs').select('doc').eq('path', path).limit(1);
+    if (error) return json({ error: 'upstream_error', message: error.message }, 502);
+    const c: any = rows && rows[0] && rows[0].doc;
+    if (!c || !Array.isArray(c.raw)) return json({ error: 'not_found' }, 404);
+    if (!c.raw.some((x: any) => x != null)) return json({ sent: 0, none: true });
+    if (c.teed_at) return json({ sent: 0, already: true });
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+    if (!serviceKey) return json({ sent: 0, nokey: true });
+    const asOwner = createClient(url, serviceKey, { auth: { persistSession: false } });
+    await asOwner.rpc('merge_doc', { p: path, patch: { teed_at: Date.now() }, who: 'notify' });
+
+    const { data: cfg } = await db.from('docs').select('doc').eq('path', 'config/tournament').limit(1);
+    const people: any[] = (cfg && cfg[0] && (cfg[0].doc as any)?.people) || [];
+    const who = people.find((p: any) => p && p.id === c.pid) || {};
+    const name = String(who.display || who.name || 'Somebody').slice(0, 40);
+    let where = 'A handicap round';
+    if (c.kind !== 'hcp' && c.stop) {
+      const { data: sr } = await db.from('docs').select('doc').eq('path', 'club/season').limit(1);
+      const stops: any[] = (sr && sr[0] && (sr[0].doc as any)?.stops) || [];
+      const st = stops.find((x: any) => x && x.id === c.stop);
+      where = st ? String(st.name).slice(0, 60) : 'A round';
+    }
+    const course = c.course && c.course.name ? ' \u00b7 ' + String(c.course.name).slice(0, 50) : '';
+    const payload = JSON.stringify({ title: '\u26f3 ' + name + ' is out', body: where + course,
+      room: 'trip', tag: 'round-' + path.slice(5) });
+    const { data: subs } = await db.from('docs').select('path,doc').like('path', 'push/%');
+    let sent = 0;
+    await Promise.all((subs || []).map(async (r: { path: string; doc: any }) => {
+      const s2 = r.doc;
+      if (!s2 || !s2.on || !s2.sub || !s2.sub.endpoint) return;
+      if (s2.pid && c.pid && s2.pid === c.pid) return;      /* never back to the golfer who teed off */
+      try {
+        const status = await sendPush(s2.sub, payload, keys);
+        if (status === 404 || status === 410) await db.from('docs').delete().eq('path', r.path);
+        else if (status < 300) sent++;
+      } catch (e) { console.error('push', String(e).slice(0, 200)); }
+    }));
+    return json({ sent, round: true });
+  }
+
+  if (!/^(chat\/m|market\/q)[a-z0-9]{4,40}$/.test(path)) return json({ error: 'bad_request', message: 'Send {"path": "chat/m…", "market/q…" or "club/card__…"}' }, 400);
   const isBet = path.startsWith('market/');
 
   const apikey = req.headers.get('apikey') || '';

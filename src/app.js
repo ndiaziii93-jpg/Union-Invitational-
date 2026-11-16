@@ -12860,8 +12860,14 @@ function onClick(e) {
       if (held && (held.done || held.final)) return;
       const raw = (held ? held.raw : Array(18).fill(null)).slice();
       const h = Math.min(Math.max(UI.clubHole || 0, 0), 17);
+      const had = held ? C.cardTotals(held).thru : 0;
       raw[h] = act === 'clubClear' ? null : +a;
       roundWrite(r, { raw });
+      /* THE FIRST HOLE IS THE NEWS. Not the app being opened, not the round
+         being declared — the moment a score goes on the card, everybody with
+         notifications on hears that somebody is out. Said once a card: the
+         server marks it and will not pass it on twice. */
+      if (!had && act === 'clubScore') notifyOthers('club/' + r.key);
       if (act === 'clubScore' && h < 17) UI.clubHole = h + 1; else UI.clubPad = false;
       render(); return;
     }

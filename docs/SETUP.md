@@ -238,6 +238,19 @@ the commissioner has. **Without this file the app still offers a handicap
 round and the server refuses to save it**, so run it before telling anybody
 they can post one. The check at the end lists `club_write`.
 
+Then run `docs/supabase-club-5.sql` the same way. It judges a card by the day
+it was PLAYED rather than the day it was posted: finish on the last Sunday of
+a stop, post it at ten past midnight, and the book takes it. A card may not
+claim a day in the future, and may not arrive more than three days after its
+stop closed — long enough for "finished Sunday, posted Tuesday", short enough
+that a crowned stop does not change under the commissioner. The check at the
+end lists `club_write`.
+
+**Redeploy the `notify` function** after this release
+(`supabase/functions/notify/index.ts`). It gained one more thing it will pass
+on: the first hole of anybody's round, which buzzes everyone else once. No new
+secrets — the same VAPID keys and service role key it already uses.
+
 Then, in the book, as the master: **Manage → The season → The Clubhouse**.
 That opens the three tabs for everyone, closes the 2026 book, and seeds the
 stops from the sheet (twelve of them, the Merry Mulligan Open through to the
