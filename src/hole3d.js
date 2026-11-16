@@ -109,15 +109,29 @@ function buildScene(m) {
   /* AN OUTLINE FROM THE DRAWING, as a shape on the ground: its points laid
      along the line, smoothed round (centripetal, so it never loops past a
      point), and grown outward by `grow` metres for a lip or a shore. */
-  function outlineRing(poly) {
-    const raw = poly.map(([t, d]) => side(t, d));
+  /* A TRACED OUTLINE CARRIES THE TRACER'S OWN HAND. Every wobble of the
+     stylus is in it, and a spline through those points keeps every one,
+     which is what made the turf look chewed. Averaging each point with its
+     neighbours a couple of times takes the jitter out and leaves the shape,
+     before the curve is drawn through what is left. */
+  function softRing(pts, k) {
+    let a = pts;
+    for (let n = 0; n < k; n++) {
+      a = a.map((p, i) => { const q = a[(i - 1 + a.length) % a.length], r = a[(i + 1) % a.length];
+        return new T3.Vector3((q.x + p.x * 2 + r.x) / 4, 0, (q.z + p.z * 2 + r.z) / 4); });
+    }
+    return a;
+  }
+  function outlineRing(poly, soft = 0) {
+    const raw0 = poly.map(([t, d]) => side(t, d));
+    const raw = soft ? softRing(raw0, soft) : raw0;
     const ring = new T3.CatmullRomCurve3(raw, true, 'centripetal').getSpacedPoints(Math.max(40, poly.length * 4));
     ring.pop();
     let area = 0; ring.forEach((p, i) => { const q = ring[(i + 1) % ring.length]; area += p.x * q.z - q.x * p.z; });
     return { ring, out: Math.sign(area) || 1 };
   }
-  function outlineShape(poly, grow = 0) {
-    const { ring, out } = outlineRing(poly);
+  function outlineShape(poly, grow = 0, soft = 0) {
+    const { ring, out } = outlineRing(poly, soft);
     const pts = ring.map((p, i) => { if (!grow) return new T3.Vector2(p.x, p.z);
       const a0 = ring[(i - 1 + ring.length) % ring.length], a1 = ring[(i + 1) % ring.length];
       let dx = a1.x - a0.x, dz = a1.z - a0.z; const l = Math.hypot(dx, dz) || 1; dx /= l; dz /= l;
@@ -151,14 +165,22 @@ function buildScene(m) {
   }
   function stripes() {
     const c = document.createElement('canvas'); c.width = 64; c.height = 64; const x = c.getContext('2d');
-    x.fillStyle = '#86CB45'; x.fillRect(0, 0, 64, 64); x.fillStyle = '#76BC39'; x.fillRect(0, 0, 64, 32);
-    const t = new T3.CanvasTexture(c); t.colorSpace = T3.SRGBColorSpace; t.wrapS = t.wrapT = T3.RepeatWrapping; t.repeat.set(1 / 22, 1 / 22); return t;
+    /* Two greens a hair apart, with the join blurred: at a phone's size a
+       hard-edged chequer reads as speckle, not as a mown fairway. */
+    x.fillStyle = '#83C745'; x.fillRect(0, 0, 64, 64);
+    const g = x.createLinearGradient(0, 0, 0, 64);
+    g.addColorStop(0, '#7CC03E'); g.addColorStop(0.46, '#7CC03E');
+    g.addColorStop(0.54, '#88CB4B'); g.addColorStop(1, '#88CB4B');
+    x.fillStyle = g; x.fillRect(0, 0, 64, 64);
+    const t = new T3.CanvasTexture(c); t.colorSpace = T3.SRGBColorSpace; t.wrapS = t.wrapT = T3.RepeatWrapping;
+    t.repeat.set(1 / 30, 1 / 30); t.anisotropy = 4; return t;
   }
 
   const sc = new T3.Scene();
-  sc.add(new T3.HemisphereLight(0xdfeeff, 0x4e7a2e, 1.05));
-  const sun = new T3.DirectionalLight(0xfff4e0, 1.35); sun.position.set(-160, 260, -40); sun.castShadow = true;
-  sun.shadow.mapSize.set(1024, 1024);
+  sc.add(new T3.HemisphereLight(0xe4f1ff, 0x5a8738, 1.22));
+  const sun = new T3.DirectionalLight(0xfff4e0, 0.98); sun.position.set(-160, 260, -40); sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.radius = 3;
   Object.assign(sun.shadow.camera, { left: -200, right: 200, top: 80, bottom: -LEN - 80, near: 10, far: 900 });
   sun.target.position.set(0, 0, -LEN / 2); sc.add(sun.target);
   sun.shadow.bias = -0.0008; sc.add(sun);
@@ -175,7 +197,7 @@ function buildScene(m) {
      tee box and full-size trees swamped the hole the drawing draws. They
      are scaled to the hole: full size from 300 metres. */
   const kS = Math.max(.42, Math.min(1, LEN / 300));
-  (m.grounds && m.grounds.length ? m.grounds.map(p => outlineShape(p, 5 * kS)) : [islandShape()]).forEach((shape, gi) => {
+  (m.grounds && m.grounds.length ? m.grounds.map(p => outlineShape(p, 5 * kS, 2)) : [islandShape()]).forEach((shape, gi) => {
     const eg = G(new T3.ExtrudeGeometry(shape, { depth: 14, bevelEnabled: true, bevelThickness: 7, bevelSize: m.grounds && m.grounds.length ? 7 * kS : 9, bevelSegments: 4, curveSegments: 40 }));
     eg.rotateX(Math.PI / 2);
     const island = new T3.Mesh(eg, topM); island.position.y = -7.1 + gi * .12; island.receiveShadow = true; island.castShadow = true;
@@ -195,7 +217,7 @@ function buildScene(m) {
   });
 
   const tex = stripes();
-  if (m.fairways && m.fairways.length) m.fairways.forEach(p => sc.add(flat(outlineShape(p), 0xffffff, LAYER.fairway[0], tex, LAYER.fairway[1])));
+  if (m.fairways && m.fairways.length) m.fairways.forEach(p => sc.add(flat(outlineShape(p, 0, 2), 0xffffff, LAYER.fairway[0], tex, LAYER.fairway[1])));
   else if (m.lakes && m.lakes.length) fairwayRuns(m.fw.t0, m.fw.t1).forEach(sh => sc.add(flat(sh, 0xffffff, LAYER.fairway[0], tex, LAYER.fairway[1])));
   else sc.add(flat(ribbon(m.fw.w0, m.fw.w1, m.fw.t0, m.fw.t1), 0xffffff, LAYER.fairway[0], tex, LAYER.fairway[1]));
   /* the cart paths, pale, as the drawing runs them */
@@ -342,8 +364,16 @@ export function create(mount, m, opts = {}) {
     const w = el.clientWidth || mount.clientWidth || 360, h = el.clientHeight || mount.clientHeight || 640;
     if (w === W && h === Hh) return;
     W = w; Hh = h; r.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); state.dirty = true;
-    /* it opens on the whole hole, once the glass's shape is known */
-    if (!fitted) { fitted = true; state.zoom = fitZoom(LEN, w / h); state.focus = 0.5; }
+    /* It opens on the whole hole, once the glass's shape is known — except
+       where the caller says otherwise. The small glass on the Score Entry
+       screen is short and wide, and the whole of a 480-yard hole squeezed
+       into it is a green smudge in a lot of sky; it opens on the ground
+       being played instead. A zoom here counts OUTWARD — bigger is further
+       away, as the wheel handler below has always had it — so a multiplier
+       under one is what brings the hole closer. */
+    if (!fitted) { fitted = true;
+      state.zoom = fitZoom(LEN, w / h) * (opts.zoomMul || 1);
+      state.focus = opts.focus != null ? opts.focus : 0.5; }
   }
   const proj = v => { const p = v.clone().project(cam); return { x: (p.x + 1) / 2 * W, y: (1 - p.y) / 2 * Hh, on: p.z < 1 }; };
 
@@ -466,12 +496,18 @@ export function create(mount, m, opts = {}) {
 
   /* ---- fingers ---- */
   const ptrs = new Map(); let pinch0 = 0, zoom0 = 1, moved = 0, downAt = 0;
-  el.addEventListener('pointerdown', e => { el.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (opts.still) el.style.touchAction = 'pan-y';
+  el.addEventListener('pointerdown', e => { if (!opts.still) el.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (ptrs.size === 1) { moved = 0; downAt = Date.now(); }
     if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch0 = Math.hypot(a.x - b.x, a.y - b.y); zoom0 = state.zoom; } });
   el.addEventListener('pointermove', e => {
     const p = ptrs.get(e.pointerId); if (!p) return;
     const dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY;
+    /* THE SMALL GLASS ON THE SCORE SCREEN DOES NOT PAN. It sits in the middle
+       of a page that scrolls, and a canvas that eats a vertical drag is a
+       hole in the page as far as a thumb is concerned. It still takes a tap,
+       which is the whole reason it is there. */
+    if (opts.still) { moved += Math.abs(dx) + Math.abs(dy); return; }
     if (ptrs.size === 1) {
       moved += Math.abs(dx) + Math.abs(dy);
       /* a screen's worth of drag is about 230 metres of hole at zoom one */
@@ -508,6 +544,7 @@ export function create(mount, m, opts = {}) {
     setUnits(u) { state.units = u === 'm' ? 'm' : 'yd'; dress(); touch(); },
     setMe(p) { state.me = p || null; dress(); touch(); },
     setFlat(b) { state.flat = !!b; touch(); },
+    setView(focus, zoom) { if (focus != null) state.focus = focus; if (zoom != null) state.zoom = zoom; touch(); },
     setPick(on) { state.pick = !!on; el.classList.toggle('picking', !!on); },
     setShots(list) {
       shotList = Array.isArray(list) ? list.slice(0, 40) : [];

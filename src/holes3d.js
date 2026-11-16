@@ -125,7 +125,16 @@ function fromDrawing(courseKey, hole, d, kind) {
   const poly = p => (p && p.length >= 4 ? p.map(([t, dd]) => [t, dd * L]) : null);
   /* the ground can come in pieces, parted by a path or a stream */
   const grounds = (Array.isArray(d.ground) && Array.isArray(d.ground[0]) && Array.isArray(d.ground[0][0]) ? d.ground : d.ground ? [d.ground] : []).map(poly).filter(Boolean);
-  const fairways = (d.fairways || []).map(poly).filter(Boolean);
+  /* THE TRACER SEES EVERY MOWN PATCH. A hole's fairway comes back as two or
+     three real pieces and a handful of slivers, and drawn each on its own
+     the slivers read as confetti thrown over the grass rather than as
+     fairway — which is exactly what the 2nd looked like. Anything under an
+     eighth of the biggest piece goes: at the size a phone draws this, it was
+     never going to say "fairway" to anybody. */
+  const polyArea = q => { let a = 0; for (let i = 0, j = q.length - 1; i < q.length; j = i++) a += q[j][0] * q[i][1] - q[i][0] * q[j][1]; return Math.abs(a / 2); };
+  const fwRaw = (d.fairways || []).filter(q => q && q.length >= 4);
+  const fwBig = fwRaw.reduce((mx, q) => Math.max(mx, polyArea(q)), 0);
+  const fairways = fwRaw.filter(q => polyArea(q) >= fwBig * 0.125).map(poly).filter(Boolean);
   const paths = (d.paths || []).map(poly).filter(Boolean);
   const greenPoly = poly(d.green);
   const inAny = (list, t, dd) => list.some(p => inside(p, t, dd));

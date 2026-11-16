@@ -63,7 +63,29 @@ await p.evaluate(([from, to]) => {
 await p.waitForTimeout(400);
 await act('clubEnter', { a: 'frostbite' }); await p.waitForTimeout(350);
 if (await p.evaluate(() => window.__UI.modal && window.__UI.modal.kind === 'newround')) { await act('roundGo', { a: 'comp' }); await p.waitForTimeout(500); }
+console.log('--- the hole is on the Score Entry screen, not behind a tap ---');
+const inline = await p.evaluate(() => ({
+  canvas: document.querySelectorAll('#h3dInline canvas').length,
+  bar: document.querySelectorAll('.h3in .h3shotbar').length,
+  big: document.querySelectorAll('.h3big').length,
+  pans: getComputedStyle(document.querySelector('#h3dInline .h3live')).touchAction }));
+ok('the glass is there without opening anything', inline.canvas, 1);
+ok('with its own shot bar', inline.bar, 1);
+ok('and a way to see it full screen', inline.big, 1);
+ok('it does not eat the page\u2019s scroll', inline.pans, 'pan-y');
+{
+  const box = await p.locator('#h3dInline .h3live').boundingBox();
+  await p.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.55);
+  await p.mouse.down(); await p.waitForTimeout(40); await p.mouse.up(); await p.waitForTimeout(400);
+}
+ok('a tap on it writes a shot, same as the big one',
+  await p.evaluate(() => { const c = window.__T.club.card__frostbite__g1; return c && c.shots && c.shots['0'] ? c.shots['0'].length : 0; }), 1);
+await p.evaluate(() => { const b = document.querySelector('.h3in [data-act="shotClear"]'); if (b) b.click(); });
+await p.waitForTimeout(300);
+
 await act('holeArt', { a: '0', b: 'home__g1' }); await p.waitForTimeout(1800);
+ok('and when the big window opens, the small one stands down',
+  await p.evaluate(() => [document.querySelectorAll('#h3dInline').length, document.querySelectorAll('.h3shotbar').length]), [0, 1]);
 
 console.log('--- the window turns into a notebook ---');
 ok('the glass is up', await p.locator('.h3live').count(), 1);

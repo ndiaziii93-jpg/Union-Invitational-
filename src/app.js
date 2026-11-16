@@ -8723,6 +8723,11 @@ function scrClubEntry() {
       return `<button class="hcell${i === h ? ' on' : ''}${card.raw[i] != null ? ' saved' : ''}" data-act="clubHole" data-a="${i}" aria-label="Hole ${i + 1}, par ${x.par}${sn ? ', ' + sn + ' shots tracked' : ''}"><span class="n num">${i + 1}</span><span class="p num">par ${x.par}</span>${sn ? `<span class="sdot" aria-hidden="true">${sn}</span>` : ''}</button>`; }).join('')}</div></div>
   </div>
   ${gate}
+  ${H3D.available() && !UI.courseEdit && !UI.modal ? `<div class="h3in">
+    <div class="h3mount in" id="h3dInline" data-key="${esc('home__' + me + ':' + h)}"></div>
+    <button class="h3big" data-act="holeArt" data-a="${h}" data-b="home__${esc(me)}">Open it full screen</button>
+    ${open && !card.done ? shotBarHtml({ card }, h) : ''}
+  </div>` : ''}
   <div class="ce-grid"><div class="ce-main">
   <div class="savebar mine">
     <div class="sv"><b>${tot.thru} of 18 · ${tot.pts} pts</b><span>${tot.toPar == null ? 'Par ' + hole.par + (strokes ? ' · ' + strokes + ' stroke' + (strokes === 1 ? '' : 's') + ' here' : '') : (tot.toPar === 0 ? 'Level' : tot.toPar > 0 ? '+' + tot.toPar : tot.toPar) + ' gross thru ' + tot.thru}</span></div>
@@ -9926,6 +9931,7 @@ function paint() {
 
   opened.forEach(id => { const el = document.getElementById(id); if (el) el.open = true; });
   mountHole3D();
+  mountInline();
   setTimeout(recapWatch, 0);
 
   applyScrollMarks(strips);
@@ -10322,16 +10328,24 @@ function courseForKey(key) {
    shots on three holes and nothing on the rest posts exactly as it is, counts
    for the handicap exactly the same, and is never nagged about. That is the
    whole reason this is a layer on the window rather than a step in the card. */
-function shotRound() {
-  const m = UI.modal;
-  if (!m || m.kind !== 'art' || !m.ckey || m.ckey.indexOf('home__') !== 0) return null;
-  const me = myPid();
-  if (!me || m.ckey.slice(6) !== me) return null;     /* only ever your own */
+/* WHERE THE SHOTS ARE GOING, and onto which hole. There are two glasses
+   now — the one on the Score Entry screen and the big one that opens over
+   it — and a shot written on either goes to the same card. The window wins
+   when it is open, because that is what the golfer is looking at. */
+function shotTarget() {
+  const me = myPid(); if (!me) return null;
   const r = roundNow();
   if (!r || !roundLive(r)) return null;
   if (r.card && r.card.done) return null;             /* a posted card is closed */
-  return r;
+  const m = UI.modal;
+  if (m && m.kind === 'art') {
+    if (!m.ckey || m.ckey !== 'home__' + me) return null;   /* only ever your own */
+    return { r, h: m.hole };
+  }
+  if (!m && UI.screen === 'clubentry') return { r, h: Math.min(Math.max(UI.clubHole || 0, 0), 17) };
+  return null;
 }
+const shotRound = () => { const t = shotTarget(); return t ? t.r : null; };
 function shotBarHtml(r, h) {
   const ss = C.shotsOf(r.card, h);
   const club = UI.shotClub || 'Dr';
@@ -10350,20 +10364,21 @@ function shotBarHtml(r, h) {
 /* Drawn straight onto the window rather than through a redraw: a full render
    replaces the mount, and the glass would blink on every shot. */
 function paintShots() {
-  const r = shotRound();
-  const h = UI.modal && UI.modal.hole;
-  if (!r || h == null) return;
-  const ss = C.shotsOf(r.card, h);
-  if (UI.h3 && UI.h3.ctl && UI.h3.ctl.setShots) UI.h3.ctl.setShots(ss);
-  const bar = document.querySelector('.h3shotbar');
-  if (bar) bar.outerHTML = shotBarHtml(r, h);
+  const t = shotTarget();
+  if (!t) return;
+  const ss = C.shotsOf(t.r.card, t.h);
+  [UI.h3, UI.h3in].forEach(w => { if (w && w.ctl && w.ctl.setShots) w.ctl.setShots(ss); });
+  document.querySelectorAll('.h3shotbar').forEach(bar => { bar.outerHTML = shotBarHtml(t.r, t.h); });
+  const dot = document.querySelector('.hcell.on .sdot');
+  if (dot) { if (ss.length) dot.textContent = String(ss.length); else dot.remove(); }
+  else if (ss.length) { const cell = document.querySelector('.hcell.on');
+    if (cell) { const d = document.createElement('span'); d.className = 'sdot'; d.setAttribute('aria-hidden', 'true'); d.textContent = String(ss.length); cell.appendChild(d); } }
 }
 function addShot(p) {
-  const r = shotRound();
-  if (!r || !p) return;
-  const h = UI.modal.hole;
-  if (C.shotsOf(r.card, h).length >= C.SHOTS_MAX) { UI.toast = 'Fifteen shots is enough for one hole.'; render(); return; }
-  roundWrite(r, { shots: C.withShot(r.card, h, C.clubIndex(UI.shotClub || 'Dr'), p.x, p.z) });
+  const t = shotTarget();
+  if (!t || !p) return;
+  if (C.shotsOf(t.r.card, t.h).length >= C.SHOTS_MAX) { UI.toast = 'Fifteen shots is enough for one hole.'; render(); return; }
+  roundWrite(t.r, { shots: C.withShot(t.r.card, t.h, C.clubIndex(UI.shotClub || 'Dr'), p.x, p.z) });
   paintShots();
 }
 
@@ -10489,6 +10504,39 @@ function mountHole3D() {
     UI.h3.ctl.refresh();
   }
   placeMe();
+}
+/* The same scene, smaller, living on the Score Entry screen so the hole is
+   simply there rather than behind a tap. It is disposed while the big window
+   is open: two WebGL contexts drawing the same hole is a waste of an old
+   phone's battery, and only one of them is being looked at. */
+function mountInline() {
+  /* The big window stands in front of this one, so while it is open the
+     small glass is taken down entirely — not just its canvas. Two shot bars
+     on one screen is two answers to the same question. */
+  const mount = document.getElementById('h3dInline');
+  if (!mount || UI.modal) { if (UI.h3in) { UI.h3in.ctl.dispose(); UI.h3in = null; } return; }
+  if (!H3D.available()) return;
+  const key = mount.dataset.key;
+  if (UI.h3in && UI.h3in.key !== key) { UI.h3in.ctl.dispose(); UI.h3in = null; }
+  if (!UI.h3in) {
+    const me = myPid(); if (!me) return;
+    const course = courseForKey('home__' + me); if (!course) return;
+    const hole = course.holes[Math.min(Math.max(UI.clubHole || 0, 0), 17)]; if (!hole) return;
+    try {
+      /* A par three is a hole you can see all of; anything longer opens on
+         the tee shot, which is the only part you are about to play. */
+      const short = +hole.par === 3;
+      const ctl = H3D.create(mount, HOLES.model(course.shapeKey || course.key, hole),
+        { units: holeUnits(), labels: false, still: true, onPick: pt => addShot(pt),
+          zoomMul: short ? 0.92 : 0.6, focus: short ? 0.5 : 0.3 });
+      UI.h3in = { key, ctl };
+    } catch (err) {
+      if (store && store.note) store.note('hole3d inline FAILED', String(err && err.message || err).slice(0, 120));
+      return;
+    }
+  } else if (UI.h3in.ctl.el.parentNode !== mount) { mount.appendChild(UI.h3in.ctl.el); UI.h3in.ctl.refresh(); }
+  const t = shotTarget();
+  if (UI.h3in.ctl.setPick) { UI.h3in.ctl.setPick(!!t); UI.h3in.ctl.setShots(t ? C.shotsOf(t.r.card, t.h) : []); }
 }
 function dropHole3D() {
   if (UI.h3) { UI.h3.ctl.dispose(); UI.h3 = null; }
@@ -11328,19 +11376,21 @@ function onClick(e) {
     /* ---- shots: none of these redraw the book, so the glass never blinks ---- */
     case 'shotClub': {
       UI.shotClub = a;
-      const r = shotRound();
-      const bar = document.querySelector('.h3shotbar');
-      if (r && bar) { bar.outerHTML = shotBarHtml(r, UI.modal.hole); return; }
+      const t = shotTarget();
+      if (t && document.querySelector('.h3shotbar')) {
+        document.querySelectorAll('.h3shotbar').forEach(bar => { bar.outerHTML = shotBarHtml(t.r, t.h); });
+        return;
+      }
       break;
     }
     case 'shotUndo': {
-      const r = shotRound(); if (!r) return;
-      roundWrite(r, { shots: C.withoutLastShot(r.card, UI.modal.hole) });
+      const t = shotTarget(); if (!t) return;
+      roundWrite(t.r, { shots: C.withoutLastShot(t.r.card, t.h) });
       paintShots(); return;
     }
     case 'shotClear': {
-      const r = shotRound(); if (!r) return;
-      roundWrite(r, { shots: C.withoutHoleShots(r.card, UI.modal.hole) });
+      const t = shotTarget(); if (!t) return;
+      roundWrite(t.r, { shots: C.withoutHoleShots(t.r.card, t.h) });
       paintShots(); return;
     }
     case 'artHole': {
