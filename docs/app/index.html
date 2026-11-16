@@ -886,9 +886,15 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 /* ---- the hole, on the Score Entry screen ----
    Not behind a tap: it is the thing being played. Short enough that the
    keypad and the card are still on the same screen under it. */
-.h3in{position:relative;margin:10px 0 2px;border-radius:14px;overflow:hidden;
+/* A HOLE IS A PORTRAIT SUBJECT. Four hundred and eighty yards long and forty
+   wide: let the glass run the full width of an iPad and the hole becomes a
+   sliver down the middle of a lot of sky, with its ends cropped. So the frame
+   is capped and centred, and keeps roughly the same upright shape on a phone,
+   a tablet and a laptop — which is also why the camera inside it can be tuned
+   once and be right everywhere. */
+.h3in{position:relative;margin:10px auto 2px;max-width:560px;border-radius:14px;overflow:hidden;
   border:1px solid var(--rule);background:#CFE0EC}
-.h3mount.in{position:relative;width:100%;height:clamp(220px,34vh,320px)}
+.h3mount.in{position:relative;width:100%;height:clamp(240px,42vh,430px)}
 .h3mount.in .h3live{position:absolute;inset:0}
 .h3big{position:absolute;right:8px;top:8px;z-index:5;border:1px solid rgba(239,233,216,.5);
   border-radius:999px;padding:5px 11px;font-size:11.5px;font-weight:700;color:var(--onpine);
@@ -896,7 +902,7 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 .h3in .h3shotbar{position:static;margin:0;border-radius:0;backdrop-filter:none;
   background:rgba(16,22,17,.92);box-shadow:none;left:auto;right:auto;bottom:auto;
   padding-bottom:12px}
-@media (min-width:900px){ .h3mount.in{height:380px} }
+@media (min-width:900px){ .h3mount.in{height:430px} }
 /* ---- a shot on the glass ----
    The pin carries the number of the shot and what it was hit with, so a
    track reads as a round rather than a row of dots. Dark against the grass,
@@ -6364,7 +6370,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261116-1750';
+const BUILD = '20261116-1758';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -29414,7 +29420,7 @@ __m_app.boot();
 /* Register the worker that makes the book work with no signal. It is the
    whole point of installing it: Belek is five hours of walking and everyone
    is roaming. A failure here must never stop the page loading. */
-var BOOK_BUILD = '20261116-1750';
+var BOOK_BUILD = '20261116-1758';
 var swReg = null;
 /* the book is never shown inside somebody else's page, where a tap could be
    aimed at a button they have put under the finger */
