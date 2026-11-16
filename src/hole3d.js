@@ -33,6 +33,7 @@ const fmt = (metres, units) => String(Math.round(units === 'yd' ? metres * H.YAR
    shows about 230 metres of ground on a phone. */
 /* A short hole is stood closer to, so a par three fills the glass as its
    drawing fills the page instead of sitting small in the middle of it. */
+const FAR = 12000;
 const fitZoom = (LEN, aspect) => Math.max(.62, Math.min(3.6, LEN / 230 * 1.08 * Math.max(1, (0.5 / aspect))));
 
 /* ---- the ground ---- */
@@ -319,11 +320,15 @@ function buildScene(m) {
     if (!clear(t, d)) continue; const p = side(t, d); tree(p.x, p.z, .8 + rnd() * .5); i++; }
 
   const points = { tee: tp, gMid: gC, gFront, gBack, bunkers: bunkerPts };
-  /* where the camera stands for a focus along the line, a zoom and a tilt */
-  function aim(cam, focus, ox, zoom, flatView) {
+  /* Where the camera stands for a focus along the line, a zoom and a tilt.
+     `lead` is how far up the hole it looks: raise it and the lens tips up,
+     dropping the hole down the glass; lower it and the hole rides up. It is
+     what decides whether a hole sits in the middle of the picture or hangs
+     off the bottom of it under a lot of empty sky. */
+  function aim(cam, focus, ox, zoom, flatView, lead = 50) {
     const f = at(focus).add(nrm(focus).multiplyScalar(ox)), g = tan(focus);
     if (flatView) { cam.position.set(f.x, 420 * zoom, f.z); cam.up.copy(g); cam.lookAt(f.x, 0, f.z); }
-    else { cam.up.set(0, 1, 0); cam.position.set(f.x - g.x * 200 * zoom, 300 * zoom, f.z - g.z * 200 * zoom); cam.lookAt(f.x + g.x * 50, -20, f.z + g.z * 50); }
+    else { cam.up.set(0, 1, 0); cam.position.set(f.x - g.x * 200 * zoom, 300 * zoom, f.z - g.z * 200 * zoom); cam.lookAt(f.x + g.x * lead, -20, f.z + g.z * lead); }
   }
   const dispose = () => { geos.forEach(g => g.dispose()); mats.forEach(mt => mt.dispose()); tex.dispose(); };
   return { sc, at, tan, nrm, side, LEN, points, aim, dispose };
@@ -346,7 +351,7 @@ export function snapshot(m, w = 520, h = 650, across = false) {
   }
   snapR.setSize(w, h, false);
   const S = buildScene(m);
-  const cam = new T3.PerspectiveCamera(44, w / h, 5, 4000);
+  const cam = new T3.PerspectiveCamera(44, w / h, 5, FAR);
   if (across) {
     /* the same stand behind the tee, the camera rolled a quarter turn so the
        hole runs along the long side of the picture */
@@ -367,7 +372,7 @@ export function create(mount, m, opts = {}) {
   const { at, nrm, LEN, points } = S;
   const tp = points.tee, bunkerPts = points.bunkers;
   const state = { units: opts.units || 'yd', me: opts.me || null, flat: !!opts.flat, labels: opts.labels !== false,
-    focus: 0.5, zoom: 1, ox: 0, target: null, dirty: true, dead: false, pick: false };
+    focus: 0.5, zoom: 1, ox: 0, lead: 50, target: null, dirty: true, dead: false, pick: false };
 
   const el = document.createElement('div'); el.className = 'h3live';
   const canvas = document.createElement('canvas'); canvas.className = 'h3canvas'; el.appendChild(canvas);
@@ -375,10 +380,74 @@ export function create(mount, m, opts = {}) {
   const r = new T3.WebGLRenderer({ canvas, antialias: true, alpha: true });
   r.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   r.shadowMap.enabled = true; r.shadowMap.type = T3.PCFSoftShadowMap; r.outputColorSpace = T3.SRGBColorSpace;
-  const cam = new T3.PerspectiveCamera(44, 1, 5, 4000);
+  const cam = new T3.PerspectiveCamera(44, 1, 5, FAR);
   const ground = new T3.Plane(new T3.Vector3(0, 1, 0), 0);
   const ray = new T3.Raycaster();
   let W = 1, Hh = 1, fitted = false;
+
+  /* ---- THE WHOLE HOLE, MEASURED RATHER THAN GUESSED ----
+     The old fit was a sum on the hole's length, tuned against one phone.
+     A lens holds a fixed angle, the glass changes shape between a phone, a
+     tablet and a laptop, and a hole bends: so that sum cropped the tee off
+     a 500-yard par five on anything but the screen it was written for. This
+     stands the camera at a trial zoom, projects the corridor the hole is
+     actually played down, and keeps the closest zoom that still leaves
+     every one of those points on the glass with a margin round it. It is
+     right on a screen nobody has tried and on a course nobody has drawn. */
+  const corridor = (() => {
+    const out = [];
+    /* THE GROUND, NOT THE CENTRE LINE. Fitting the corridor from tee to
+       green left the drawn ground running off the bottom edge, which reads
+       as a cropped hole whatever the measurement says — what the eye calls
+       the hole is the whole green shape sitting on the sky. So the fit is
+       measured against the outline that is actually drawn. */
+    const polys = (m.grounds && m.grounds.length) ? m.grounds : null;
+    if (polys) { let n = 0; polys.forEach(poly => n += poly.length);
+      const step = Math.max(1, Math.ceil(n / 360));
+      polys.forEach(poly => poly.forEach(([t, d], i) => { if (i % step === 0) out.push(S.side(t, d)); })); }
+    for (let i = 0; i <= 26; i++) { const t = -0.03 + (1.06 * i) / 26;
+      out.push(at(t));
+      if (!polys) { const e = m.islandW ? 0 : 44;
+        out.push(S.side(t, e || 44), S.side(t, -(e || 44))); } }
+    return out;
+  })();
+  function fitAll(w, h, pad = 0.055) {
+    const probe = new T3.PerspectiveCamera(44, w / h, 5, FAR);
+    const lim = 1 - pad;
+    const spill = (z, lead) => {
+      S.aim(probe, 0.5, 0, z, state.flat, lead);
+      probe.updateMatrixWorld(true); probe.updateProjectionMatrix();
+      let worst = 0;
+      for (const p of corridor) { const q = p.clone().project(probe);
+        if (!(q.z < 1)) return 9;                 /* behind the lens: far too close */
+        worst = Math.max(worst, Math.abs(q.x), Math.abs(q.y)); }
+      return worst;
+    };
+    /* Pulling the camera back is not the only way to get a hole onto the
+       glass, and it is the one that makes it small. Aim first — the lead
+       that centres the hole between the top and the bottom of the picture —
+       and only then ask how far back it has to stand. */
+    const best = z => { let bz = 9, bl = 50;
+      for (let i = 0; i <= 16; i++) { const lead = -160 + i * 40, v = spill(z, lead);
+        if (v < bz) { bz = v; bl = lead; } }
+      return { over: bz, lead: bl }; };
+    let lo = 0.3, hi = 9, lead = 50;
+    const top = best(hi);
+    if (top.over > lim) return { zoom: hi, lead: top.lead };   /* nothing holds it: show what we can */
+    lead = top.lead;
+    for (let i = 0; i < 22; i++) { const mid = (lo + hi) / 2, r = best(mid);
+      if (r.over > lim) lo = mid; else { hi = mid; lead = r.lead; } }
+    return { zoom: hi, lead };
+  }
+  /* how far outside the glass the hole runs, in half-screens: 1 or less is
+     the whole of it in view. Measured off the camera as it stands. */
+  function extent() {
+    let worst = 0;
+    for (const p of corridor) { const q = p.clone().project(cam);
+      if (!(q.z < 1)) return 9;
+      worst = Math.max(worst, Math.abs(q.x), Math.abs(q.y)); }
+    return worst;
+  }
 
   function resize() {
     const w = el.clientWidth || mount.clientWidth || 360, h = el.clientHeight || mount.clientHeight || 640;
@@ -392,7 +461,8 @@ export function create(mount, m, opts = {}) {
        away, as the wheel handler below has always had it — so a multiplier
        under one is what brings the hole closer. */
     if (!fitted) { fitted = true;
-      state.zoom = fitZoom(LEN, w / h) * (opts.zoomMul || 1);
+      const f = fitAll(w, h);
+      state.zoom = f.zoom * (opts.zoomMul || 1); state.lead = f.lead;
       state.focus = opts.focus != null ? opts.focus : 0.5; }
   }
   const proj = v => { const p = v.clone().project(cam); return { x: (p.x + 1) / 2 * W, y: (1 - p.y) / 2 * Hh, on: p.z < 1 }; };
@@ -510,7 +580,7 @@ export function create(mount, m, opts = {}) {
   function loop() {
     raf = 0; if (state.dead) return;
     resize(); if (!state.dirty) return;
-    state.dirty = false; S.aim(cam, state.focus, state.ox, state.zoom, state.flat); r.render(S.sc, cam); lay();
+    state.dirty = false; S.aim(cam, state.focus, state.ox, state.zoom, state.flat, state.lead); r.render(S.sc, cam); lay();
   }
   function touch() { state.dirty = true; if (!raf) raf = requestAnimationFrame(loop); }
 
@@ -572,7 +642,8 @@ export function create(mount, m, opts = {}) {
     },
     setLabels(b) { state.labels = b !== false; touch(); },
     focusMe() { const o = from(); let best = 0, bd = 1e9; for (let i = 0; i <= 50; i++) { const d = dist(at(i / 50), o); if (d < bd) { bd = d; best = i / 50; } } state.focus = best; state.ox = 0; state.zoom = 1; touch(); },
-    fit() { state.focus = 0.5; state.ox = 0; state.zoom = fitZoom(LEN, W / Hh); touch(); },
+    fit() { const f = fitAll(W, Hh); state.focus = 0.5; state.ox = 0; state.zoom = f.zoom; state.lead = f.lead; touch(); },
+    extent,
     refresh() { W = 0; touch(); },
     dispose() { state.dead = true; if (raf) cancelAnimationFrame(raf);
       try { if (track) { S.sc.remove(track); track.geometry.dispose(); track.material.dispose(); track = null; } } catch (e) { /* already gone */ }

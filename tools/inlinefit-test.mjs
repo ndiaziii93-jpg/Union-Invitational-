@@ -1,7 +1,10 @@
-/* THE GLASS ON THE SCORE SCREEN MUST KEEP ITS SHAPE ON EVERY SCREEN.
-   A hole is long and thin. Let the frame run the full width of an iPad and
-   the hole is a sliver in a sea of sky with its ends cropped, so the frame is
-   capped and centred and stays roughly upright everywhere. */
+/* THE WHOLE HOLE, ON EVERY SCREEN.
+   A hole seen from behind the tee stands up in the frame, so the glass is
+   upright, capped and centred rather than running the width of an iPad. And
+   the picture inside it has to hold the hole: the camera measures its own
+   fit, and this checks the measurement, by asking the live camera how far
+   outside the glass the corridor from tee to green runs. One or less is all
+   of it in view. A laptop used to crop the tee clean off. */
 import { chromium } from 'playwright';
 import { createServer } from 'node:http';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
@@ -48,17 +51,37 @@ for (const [name, w, h] of [['phone', 390, 844], ['iPad', 1024, 1366], ['iPad la
     const cs = getComputedStyle(wrap);
     const left = page.left + parseFloat(cs.paddingLeft || 0);
     const right = page.right - parseFloat(cs.paddingRight || 0);
+    const ctl = window.__UI.h3in && window.__UI.h3in.ctl;
     return { w: Math.round(r.width), h: Math.round(r.height),
       ratio: +(r.width / r.height).toFixed(2),
+      extent: ctl && ctl.extent ? +ctl.extent().toFixed(3) : null,
+      zoom: ctl ? +ctl.state.zoom.toFixed(2) : null,
       centred: Math.abs((br.left - left) - (right - br.right)) < 4,
       canvas: document.querySelectorAll('#h3dInline canvas').length };
   });
   console.log('--- ' + name + ' (' + w + 'x' + h + ') ---');
   ok(name + ': the glass is there', m && m.canvas, 1);
-  ok('it stays upright rather than a letterbox', m.ratio <= 1.45, true);
-  ok('and never wider than it needs', m.w <= 560, true);
+  ok('it stands upright rather than a letterbox', m.ratio <= 1.05, true);
+  ok('and never wider than it needs', m.w <= 420, true);
   ok('sitting in the middle of the page', m.centred, true);
+  console.log('      hole runs to ' + m.extent + ' of a half-screen, at zoom ' + m.zoom + ', glass ' + m.w + 'x' + m.h);
+  ok('the WHOLE hole is on the glass', m.extent != null && m.extent <= 1, true);
   await p.screenshot({ path: S + '/fit/' + name.replace(' ', '-') + '.png' });
+
+  /* ONE HOLE FITTING IS NOT A COURSE FITTING. The first is a par five that
+     runs straight; the fit has to hold for the dogleg, the short par three
+     and the long one too, or somebody finds the broken one by playing it. */
+  if (name === 'phone') {
+    const worst = [];
+    for (let h = 1; h < 18; h++) {
+      await go('clubHole', { a: String(h) });
+      await p.waitForTimeout(1100);
+      const e = await p.evaluate(() => { const c = window.__UI.h3in && window.__UI.h3in.ctl;
+        return c && c.extent ? +c.extent().toFixed(3) : null; });
+      if (e == null || e > 1) worst.push((h + 1) + ':' + e);
+    }
+    ok('every hole on the course fits its glass', worst, []);
+  }
   await ctx.close();
 }
 await b.close(); srv.close();

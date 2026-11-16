@@ -865,14 +865,15 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
    Not behind a tap: it is the thing being played. Short enough that the
    keypad and the card are still on the same screen under it. */
 /* A HOLE IS A PORTRAIT SUBJECT. Four hundred and eighty yards long and forty
-   wide: let the glass run the full width of an iPad and the hole becomes a
-   sliver down the middle of a lot of sky, with its ends cropped. So the frame
-   is capped and centred, and keeps roughly the same upright shape on a phone,
-   a tablet and a laptop — which is also why the camera inside it can be tuned
-   once and be right everywhere. */
-.h3in{position:relative;margin:10px auto 2px;max-width:560px;border-radius:14px;overflow:hidden;
-  border:1px solid var(--rule);background:#CFE0EC}
-.h3mount.in{position:relative;width:100%;height:clamp(240px,42vh,430px)}
+   wide, seen from behind the tee: it stands up in the frame. Give it a wide
+   landscape glass and the whole hole only fits by shrinking to a strip down
+   the middle of a lot of sky — so the frame is upright, four by five, capped
+   and centred, and it keeps that shape on a phone, a tablet and a laptop.
+   The camera measures its own fit against the glass (hole3d fitAll), so what
+   is framed is the hole, tee to green, whatever the screen. */
+.h3in{position:relative;margin:10px auto 2px;width:100%;max-width:420px;border-radius:14px;
+  overflow:hidden;border:1px solid var(--rule);background:#CFE0EC}
+.h3mount.in{position:relative;width:100%;aspect-ratio:4 / 5;max-height:72vh}
 .h3mount.in .h3live{position:absolute;inset:0}
 .h3big{position:absolute;right:8px;top:8px;z-index:5;border:1px solid rgba(239,233,216,.5);
   border-radius:999px;padding:5px 11px;font-size:11.5px;font-weight:700;color:var(--onpine);
@@ -880,7 +881,7 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 .h3in .h3shotbar{position:static;margin:0;border-radius:0;backdrop-filter:none;
   background:rgba(16,22,17,.92);box-shadow:none;left:auto;right:auto;bottom:auto;
   padding-bottom:12px}
-@media (min-width:900px){ .h3mount.in{height:430px} }
+
 /* ---- a shot on the glass ----
    The pin carries the number of the shot and what it was hit with, so a
    track reads as a round rather than a row of dots. Dark against the grass,

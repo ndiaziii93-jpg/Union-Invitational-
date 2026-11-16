@@ -10605,12 +10605,14 @@ function mountInline() {
     const course = courseForKey('home__' + me); if (!course) return;
     const hole = course.holes[Math.min(Math.max(UI.clubHole || 0, 0), 17)]; if (!hole) return;
     try {
-      /* A par three is a hole you can see all of; anything longer opens on
-         the tee shot, which is the only part you are about to play. */
-      const short = +hole.par === 3;
+      /* THE WHOLE HOLE, EVERY HOLE. This used to open a long hole on the tee
+         shot, on the reasoning that the tee shot is the part about to be
+         played — but a hole map that shows half a hole reads as a broken
+         picture, not as a choice, and where the ball finishes is the other
+         half. So it opens on all of it; the full-screen view is for
+         standing on the tee. */
       const ctl = H3D.create(mount, HOLES.model(course.shapeKey || course.key, hole),
-        { units: holeUnits(), labels: false, still: true, onPick: pt => addShot(pt),
-          zoomMul: short ? 0.92 : 0.6, focus: short ? 0.5 : 0.3 });
+        { units: holeUnits(), labels: false, still: true, onPick: pt => addShot(pt) });
       UI.h3in = { key, ctl };
     } catch (err) {
       if (store && store.note) store.note('hole3d inline FAILED', String(err && err.message || err).slice(0, 120));
