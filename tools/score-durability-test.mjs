@@ -3,6 +3,7 @@
    scores collection empty. Run: node tools/score-durability-test.mjs */
 import { chromium } from 'playwright';
 import { readFileSync, writeFileSync } from 'node:fs';
+import { createServer } from 'node:http';
 
 /* THE KEYPAD. A score goes in by tapping the golfer's tile and then the
    number on the pad that rises. These emulate n taps of the old plus or
@@ -86,6 +87,20 @@ const wrap = f => '<!doctype html><html><head><meta charset="utf-8">'
   + readFileSync(f, 'utf8').replace('const PINS_ENABLED = true', 'const PINS_ENABLED = false') + '</body></html>';
 writeFileSync(S + '/dur-local.html', wrap('dist/union-invitational-sandbox.html'));
 writeFileSync(S + '/dur-db.html', wrap('dist/union-invitational.html'));
+/* OVER HTTP, NOT OFF THE DISK. This test turns on whether the book keeps a
+   score across a reload, so the stand-in database has to keep ITS copy
+   across the same reload. Opened as file://, Chromium hands the page an
+   opaque origin and roughly one reload in five came back with the store
+   empty — the test then blamed the book for losing a score it had written
+   and saved. A probe read ten thousand characters in the store a moment
+   before the reload and nothing at all after. A real origin, even a local
+   one, has storage that survives, which is all this needs. */
+const srv = createServer((q, r) => {
+  const f = q.url.startsWith('/dur-db') ? '/dur-db.html' : '/dur-local.html';
+  r.writeHead(200, { 'content-type': 'text/html' }); r.end(readFileSync(S + f));
+});
+await new Promise(r => srv.listen(0, '127.0.0.1', r));
+const BASE = 'http://127.0.0.1:' + srv.address().port;
 
 const fails = [];
 const ok = (n, g, w) => { const good = g === w;
@@ -95,13 +110,17 @@ const ok = (n, g, w) => { const good = g === w;
 /* A database that behaves like the real one: the body comes from data(), it
    survives a reload, and it can be told to deliver an empty snapshot. */
 const MOCK = (seed) => {
+  /* The database has to survive a reload, because that is the whole point
+     of the test. Storage is per browser context, so it is still a clean
+     database for every run; it is served over http for the reason given
+     where the server is started. */
   const KEY = '__durdb';
   let saved = null;
-  try { saved = JSON.parse(sessionStorage.getItem(KEY) || 'null'); } catch (e) {}
+  try { saved = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
   const docs = saved || (seed ? JSON.parse(JSON.stringify(seed)) : {});
   window.__lieEmptyFirst = !!(seed && seed.__lie);
   delete docs.__lie;
-  const persist = () => { try { sessionStorage.setItem(KEY, JSON.stringify(docs)); } catch (e) {} };
+  const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(docs)); } catch (e) {} };
   const clone = o => JSON.parse(JSON.stringify(o));
   /* The real store hands back FROZEN bodies — a mock that does not freeze
      proves nothing. */
@@ -191,7 +210,7 @@ for (const mode of ['the test copy (this device only)', 'the real book (shared d
   const shown = () => p.locator('.fig.raw .v').first().innerText();
 
   await p.clock.install({ time: new Date('2026-10-24T08:00:00Z') });   // the week before the trip, so the rounds read the same all year
-  await p.goto('file://' + S + (isDb ? '/dur-db.html' : '/dur-local.html')); await settled(p); await clear();
+  await p.goto(BASE + (isDb ? '/dur-db' : '/dur-local')); await settled(p); await clear();
 
   // --- enter a stroke and save the hole ---
   await openEntry();
@@ -254,7 +273,7 @@ for (const mode of ['the test copy (this device only)', 'the real book (shared d
   const clear = async () => { for (let i = 0; i < 5; i++) { if (!await p.locator('.scrim').count()) return;
     await p.locator('.scrim [data-act="modalCancel"]').click({ force: true }).catch(() => {}); await p.waitForTimeout(200); } };
   await p.clock.install({ time: new Date('2026-10-24T08:00:00Z') });   // the week before the trip, so the rounds read the same all year
-  await p.goto('file://' + S + '/dur-db.html'); await settled(p); await clear();
+  await p.goto(BASE + '/dur-db'); await settled(p); await clear();
   await goTab(p, 'Score Entry'); await p.waitForTimeout(600); await clear();
   const open = p.locator('[data-act="openRound"]');
   if (await open.count()) { await nominate(p); await clear();
@@ -275,7 +294,7 @@ for (const mode of ['the test copy (this device only)', 'the real book (shared d
   const clear = async () => { for (let i = 0; i < 5; i++) { if (!await p.locator('.scrim').count()) return;
     await p.locator('.scrim [data-act="modalCancel"]').click({ force: true }).catch(() => {}); await p.waitForTimeout(200); } };
   await p.clock.install({ time: new Date('2026-10-24T08:00:00Z') });   // the week before the trip, so the rounds read the same all year
-  await p.goto('file://' + S + '/dur-local.html'); await settled(p); await clear();
+  await p.goto(BASE + '/dur-local'); await settled(p); await clear();
   await goTab(p, 'Score Entry'); await p.waitForTimeout(600); await clear();
   const open = p.locator('[data-act="openRound"]');
   if (await open.count()) { await nominate(p); await clear();
@@ -293,5 +312,6 @@ for (const mode of ['the test copy (this device only)', 'the real book (shared d
 }
 
 await b.close();
+srv.close();
 console.log(fails.length ? '\nFAILED: ' + fails.join(', ') : '\nA saved score survives everything thrown at it.');
 process.exit(fails.length ? 1 : 0);
