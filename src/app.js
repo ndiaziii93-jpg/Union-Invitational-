@@ -6835,6 +6835,58 @@ function setResortSeason(v) {
   store.writeConfig(c => { c.resort = { ...(c.resort || { notes: {} }), season }; });
 }
 
+/* ---- A TYPED ANSWER IS AN ANSWER THE MOMENT IT IS TYPED ----
+   The boxes in Vegas HQ — shirt size, initials, the name on the merch, the
+   six flight boxes — were kept on `change`, which a browser fires when a
+   box LOSES FOCUS. Tap the chips and they save on the tap. Type your size
+   and then press home, swipe the app away or hit the back gesture, and the
+   box never lost focus, `change` never fired, and the answer was never
+   written anywhere. That is exactly the report: some of an answer carried
+   over and the rest did not, and being walked through it fixed it, because
+   being walked through it meant tapping somewhere else.
+
+   So the boxes are kept as they are typed, settled after half a second so a
+   six-letter size is one write and not six — and flushed outright when the
+   page is hidden, which is the moment the old code lost everything.
+
+   The two kinds are gathered before writing: a travel document is written
+   whole, so two boxes filled in quickly had to become ONE write or the
+   second would be built on a copy of the book that did not have the first
+   yet, and quietly drop it. */
+const pendField = { sign: {}, travel: {} };
+let pendFieldT = null;
+function fieldFlush() {
+  if (pendFieldT) { clearTimeout(pendFieldT); pendFieldT = null; }
+  const me = myPid(); if (!me || !store) { pendField.sign = {}; pendField.travel = {}; return; }
+  const sg = pendField.sign; pendField.sign = {};
+  const tv = pendField.travel; pendField.travel = {};
+  const sKeys = Object.keys(sg);
+  if (sKeys.length) { const doc = { pid: me };
+    sKeys.forEach(k => { doc[k] = String(sg[k] == null ? '' : sg[k]).trim().slice(0, 60); });
+    store.writeClub('signup__' + me, doc, true); }
+  const tKeys = Object.keys(tv);
+  if (tKeys.length) { const t = C.travelOf(T, me) || { pid: me };
+    const next = { ...t, pid: me };
+    tKeys.forEach(a => { const [k1, k2] = a.split('.');
+      next[k1] = { ...(next[k1] || {}), [k2]: String(tv[a] == null ? '' : tv[a]).trim().slice(0, 40) }; });
+    delete next.rev;
+    store.writeClub('travel__' + me, next, false); }
+}
+function fieldSoon(kind, a, v) {
+  if (!a) return;
+  pendField[kind][a] = v;
+  if (pendFieldT) clearTimeout(pendFieldT);
+  pendFieldT = setTimeout(fieldFlush, 500);
+}
+/* Whatever is in the boxes on screen, written now, whoever typed it and
+   however they left it. This is what the Send button runs, so the button is
+   a promise the book can actually keep. */
+function fieldSweep() {
+  document.querySelectorAll('[data-act="signField"]').forEach(el => fieldSoon('sign', el.dataset.a, el.value));
+  document.querySelectorAll('[data-act="travelField"]').forEach(el => fieldSoon('travel', el.dataset.a, el.value));
+  fieldFlush();
+}
+
 function commitResortNote() {
   const d = UI.resortNote;
   UI.resortNote = null;
@@ -8102,6 +8154,32 @@ function resumeBtn(r, cls) {
    the book had it and walked away — so when this phone is holding writes the
    server would not take, the You tab says so where the eye lands, in the
    colour the book keeps for trouble, with the one button that fixes it. */
+/* ---- SEND IT, AND BE TOLD IT LANDED ----
+   Everything here saves itself as it is typed, which is how it should have
+   worked from the start — but "it saved itself" is a claim, and three
+   people have now reported answers that did not come through. A button that
+   sweeps the boxes, writes them, and then says plainly what the book has is
+   worth more than a promise nobody can check. It is not the only way an
+   answer gets in; it is the way you can watch happen.
+
+   What it says is the truth and not a reassurance: held behind a PIN says
+   held behind a PIN. */
+function signSendHtml(me, sign, line) {
+  const held = meta.pinHeld || 0;
+  const sent = sign && sign.sentAt;
+  const state = held
+    ? `<b class="ss-wait">Held on this phone · the book wants the PIN for your name</b>
+       <span>Nothing is lost. It goes the moment the PIN is accepted.</span>`
+    : sent
+      ? `<b class="ss-ok">In the book · sent ${esc(sinceOf(sent))}</b>
+         <span>${line.done} of ${line.of} on your line is done${line.next ? ' · next: ' + esc(line.next.label.toLowerCase()) : ''}.</span>`
+      : `<b>Not sent yet</b>
+         <span>Your answers save as you type. This tells the commissioner you are done.</span>`;
+  return `<div class="signsend${held ? ' wait' : sent ? ' ok' : ''}">
+    <button class="btn big" data-act="signSend">${sent ? 'Send it again' : 'Send to the commissioner'}</button>
+    <p class="ss-state">${state}</p></div>`;
+}
+
 function heldHtml(me) {
   const n = meta.pinHeld || 0;
   if (!n || !me) return '';
@@ -8704,7 +8782,8 @@ function scrHq() {
     <label>Back · date<input class="field" type="date" data-act="travelField" data-a="back.date" value="${esc(back.date || '')}"></label>
     <label>Back · flight<input class="field" data-act="travelField" data-a="back.flight" value="${esc(back.flight || '')}" placeholder="BA 274" maxlength="12"></label>
     <label>Back · lands<input class="field" data-act="travelField" data-a="back.lands" value="${esc(back.lands || '')}" placeholder="12:10" maxlength="8"></label>
-  </div>` : ''}`}
+  </div>
+  ${signSendHtml(me, sign, line)}` : ''}`}
   </div><aside class="hq-side">
   <h3 class="sub">The field · ${f.in.length} in, ${f.maybe.length} maybe, ${f.out.length} out${f.unanswered.length ? ', ' + f.unanswered.length + ' to answer' : ''}</h3>
   <div class="frows">${f.in.concat(f.maybe, f.out, f.unanswered).map(rowOf).join('') || '<p class="empty">Nobody on the roster yet.</p>'}</div>
@@ -11721,6 +11800,13 @@ function onClick(e) {
       UI.modal = { kind: 'whopin', mode: 'join', name, division: UI.joinDiv || 'men', pid: null, back: UI.modal && UI.modal.back, a: '', b: '', err: '' };
       redrawFrom('whoPinA'); return;   // the name box is still focused, and a focused box holds the redraw back
     }
+    /* The sweep comes first: the box being typed into at the moment the
+       button is pressed has not fired anything yet, and it is exactly the
+       box somebody would fill in last. */
+    case 'signSend': { const me = myPid(); if (!me) return;
+      fieldSweep();
+      store.writeClub('signup__' + me, { pid: me, sentAt: Date.now() }, true);
+      render(); return; }
     case 'signDivision': { const me = myPid(); if (!me) return; store.writeClub('signup__' + me, { pid: me, division: a }, true); render(); return; }
     case 'onAppOpen': if (!canAdmin()) return; UI.modal = { kind: 'onapp' }; UI.modalErr = ''; render(); return;
     case 'onAppReload': onAppLoad(true); render(); return;
@@ -13210,13 +13296,11 @@ function onChange(e) {
   /* ---- the Clubhouse's own boxes ---- */
   if (act === 'cardPhoto') { const f = el.files && el.files[0]; if (f) cardPhotoTake(f); return; }
   if (act === 'lookPhoto') { const f = el.files && el.files[0]; if (f) lookPhotoTake(f); return; }
-  if (act === 'signField') { const me = myPid(); if (me) store.writeClub('signup__' + me, { pid: me, [a]: String(el.value || '').trim().slice(0, 60) }, true); return; }
-  if (act === 'travelField') {
-    const me = myPid(); if (!me) return;
-    const t = C.travelOf(T, me) || { pid: me }; const [k1, k2] = a.split('.');
-    const next = { ...t, pid: me, [k1]: { ...(t[k1] || {}), [k2]: String(el.value || '').trim().slice(0, 40) } }; delete next.rev;
-    store.writeClub('travel__' + me, next, false); return;
-  }
+  /* `change` still lands — a date picker and a browser's autofill announce
+     themselves this way and nothing else — but it goes through the same
+     path, written at once rather than after the pause. */
+  if (act === 'signField') { fieldSoon('sign', a, el.value); fieldFlush(); return; }
+  if (act === 'travelField') { fieldSoon('travel', a, el.value); fieldFlush(); return; }
   if (act === 'courseField') {
     const c = UI.courseDraft; if (!c) return;
     if (a === 'name' || a === 'tee') c[a] = String(el.value || '').slice(0, 60);
@@ -13969,6 +14053,10 @@ export function boot() {
   app.addEventListener('mousedown', atPress);
   app.addEventListener('input', e => {
     if (e.target && e.target.id === 'askField') UI.askText = e.target.value;
+    /* the Vegas HQ boxes, kept as they are typed — see fieldSoon() */
+    if (e.target && e.target.dataset && (e.target.dataset.act === 'signField' || e.target.dataset.act === 'travelField')) {
+      fieldSoon(e.target.dataset.act === 'signField' ? 'sign' : 'travel', e.target.dataset.a, e.target.value);
+    }
     /* The size slider moves the crop on the elements themselves, for the same
        reason the drag does: a redraw of the whole book on every frame of a
        slider is a redraw too many. */
@@ -14043,7 +14131,14 @@ export function boot() {
      network. */
   /* nothing on the recap turns on the minute: while it is open the clock leaves it be */
   setInterval(() => { if (document.visibilityState === 'hidden' || UI.mode === 'low' || UI.recapOpen) return; now = E.nowLocal(); render(); }, 60000);
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { now = E.nowLocal(); dropKeyboard(); resetViewport(); render(); } });
+  /* THE MOMENT THE OLD CODE LOST EVERYTHING. A phone put away mid-answer
+     hides the page without ever blurring the box, so anything half typed is
+     written out here before the app goes quiet. `pagehide` as well, because
+     a tab closed or navigated away does not always report a hide first. */
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') { fieldSweep(); return; }
+    now = E.nowLocal(); dropKeyboard(); resetViewport(); render(); });
+  window.addEventListener('pagehide', fieldSweep);
   window.addEventListener('pageshow', () => { dropKeyboard(); resetViewport(); });
   render();
   loadMode(); applyMode();

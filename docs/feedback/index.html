@@ -6227,6 +6227,21 @@ html.clubseason .btn,html.clubseason .chip,html.clubseason .pkg{transition:trans
 /* the mascot turns up when a card lands */
 .mascot.posted{display:block;width:96px;margin:6px 0 0;justify-self:start}
 @media (min-width:520px){ .mascot.posted{width:110px} }
+
+/* ---- SEND IT, AND BE TOLD IT LANDED ----
+   The button is wide because it is the last thing on a long form and a
+   thumb is at the bottom of the screen by then. The line under it carries
+   the state: green when the book has it, amber while a PIN is holding it
+   back, plain before anything has been sent. */
+.signsend{margin:18px 0 6px;padding:16px;border:1px solid var(--rule);border-radius:14px;background:var(--sunk)}
+.signsend.ok{border-color:color-mix(in srgb,var(--green) 45%,var(--rule))}
+.signsend.wait{border-color:var(--gold)}
+.signsend .btn.big{display:block;width:100%;min-height:50px;font-size:16.5px}
+.signsend .ss-state{margin:10px 0 0;display:grid;gap:3px;font-size:13.5px;line-height:1.45}
+.signsend .ss-state b{font-size:14.5px;font-weight:700;color:var(--ink)}
+.signsend .ss-state b.ss-ok{color:var(--green)}
+.signsend .ss-state b.ss-wait{color:var(--gold)}
+.signsend .ss-state span{color:var(--turf)}
 </style>
 <style>
 html,body{margin:0;background:var(--paper);color:var(--ink)}
