@@ -5675,7 +5675,12 @@ h2.greet small{display:block;font-size:14px;color:var(--turf);font-weight:400;fo
    a big one is a stray golf club. The step is a fixed number of pixels rather
    than a share of his width, so the lane he leaves is the same on a phone as
    on a laptop however big he is drawn there. */
-.caddie.peek .cadin{translate:calc(100% - 26px) 0;scale:.62;rotate:6deg}
+/* 26px of him was a stray golf club in the corner, which is what made him
+   read as a smudge on a phone: he is in this state most of the time, because
+   a phone has no gutter to give him. He still steps out of the words' way —
+   that is the whole job — but he leaves enough of himself behind to be a
+   person leaning in from the edge. */
+.caddie.peek .cadin{translate:calc(100% - var(--cadpeek,26px)) 0;scale:.82;rotate:6deg}
 /* Out of the way while the page moves, back when it stops. Both animations go
    off as he ducks, so nothing else is writing the properties he moves with. */
 .caddie.duck{opacity:0;translate:0 30px}
@@ -5689,12 +5694,22 @@ h2.greet small{display:block;font-size:14px;color:var(--turf);font-weight:400;fo
    He stands in the page's own gutter: small enough on a phone that the
    right-hand column of a table still ends before he begins. */
 @media (max-width:699px){
-  .caddie{height:86px;bottom:calc(56px + env(safe-area-inset-bottom,0px));
+  /* HE IS A CHARACTER, NOT A WATERMARK. At 86px he read as a smudge in the
+     corner of an iPhone; at 136 he is a man standing at the edge of the page.
+     The sliver he leaves when he steps aside is unchanged, so the words under
+     him are as readable as they were — he is only bigger when there is room,
+     never more in the way when there is not. */
+  .caddie{height:136px;bottom:calc(56px + env(safe-area-inset-bottom,0px));
     right:max(0px,env(safe-area-inset-right,0px));
     transform:translateY(var(--barshift,0px))}
   /* room at the foot of the page so the last card clears him rather than
      ending underneath him */
-  html.clubseason .wrap{padding-bottom:calc(162px + env(safe-area-inset-bottom,0px))}
+  html.clubseason .wrap{padding-bottom:calc(212px + env(safe-area-inset-bottom,0px))}
+}
+@media (max-width:360px){
+  /* the smallest phones still in the group: a shade back, never to 86 */
+  .caddie{height:116px}
+  html.clubseason .wrap{padding-bottom:calc(192px + env(safe-area-inset-bottom,0px))}
 }
 /* A phone has no room to give him, so there he steps aside. A tablet and a
    laptop do: the page keeps a column clear down its right-hand side and he

@@ -7977,8 +7977,11 @@ function scrYou() {
   /* THE HEADLINE ANSWERS THE QUESTION THE SCREEN IS FOR. "Morning, Norberto
      III." is a greeting; it is not news. The first line says where the
      card stands, and the line under it carries the facts. */
+  const liveNow = golfer ? liveRound(me, today) : null;
   const head = !golfer
     ? `${greeting()}, ${first}.${line.next ? ' Your Vegas line is ' + line.done + ' of ' + line.of + '; ' + esc(line.next.label) + ' is next.' : ' Your Vegas line is complete.'}`
+    : liveNow
+      ? `${greeting()}, ${first}. You have a round open: ${C.cardTotals(liveNow.card).thru} hole${C.cardTotals(liveNow.card).thru === 1 ? '' : 's'} written${liveNow.kind === 'comp' ? ' in the ' + shortStop(liveNow.stop.name) : ''}.`
     : open && tot && tot.thru === 18 && card.done
       ? `${greeting()}, ${first}. Your card is in: ${tot.pts} points${myRow ? ', ' + ord(myRow.pos) + ' in the ' + shortStop(open.name) : ''}.`
     : open && tot && tot.thru === 18 ? `${greeting()}, ${first}. Eighteen scored — photograph the signed card and post it.`
@@ -7990,7 +7993,10 @@ function scrYou() {
   if (open && lead) facts.push('<b>' + esc(lead.name) + ' leads on ' + lead.pts + '</b>' + (lead.thru === 18 ? '' : ' through ' + lead.thru));
   if (open) facts.push('closes ' + esc(C.dowOf(open.to)) + ' ' + esc(C.fmtDay(open.to)));
   facts.push(line.done + ' of ' + line.of + ' on your Vegas line');
-  const acts = (golfer && open ? `<button class="btn" data-act="clubEnter" data-a="${open.id}">${tot && tot.thru ? (card.done ? 'See my card' : 'Carry on my card') : 'Start a round'}</button>` : '')
+  const live = golfer ? liveRound(me, today) : null;
+  const acts = (live ? resumeBtn(live) + `<button class="btn ghost" data-act="roundNew"${open ? ` data-a="${open.id}"` : ''}>Start another</button>`
+      : golfer && open ? `<button class="btn" data-act="clubEnter" data-a="${open.id}">${tot && tot.thru ? (card.done ? 'See my card' : 'Carry on my card') : 'Start a round'}</button>`
+      : golfer ? `<button class="btn" data-act="roundNew">Start a round</button>` : '')
     + `<button class="btn ghost" data-act="go" data-a="hq">Open Vegas HQ</button>`;
   return clubCover({ photo: stopArt(open) || stopArt(next) || IMG.hero, lift: true,
     k: 'You · the Clubhouse · ' + esc(C.dowOf(today)) + ' ' + esc(C.fmtDay(today)) + (toVegas > 0 ? ' · ' + toVegas + ' days to Vegas' : ' · Vegas week'),
@@ -8009,6 +8015,35 @@ function scrYou() {
   ${golfer && mine ? lineHtml('Your Belek 2026 card', esc(belekLine(mine)), 'The first season in your archive. Readable any time; nothing in it can change.', `<p class="cact"><button class="btn ghost" data-act="reportPlayer" data-a="${me}">Read my report card</button><button class="btn ghost" data-act="archiveView" data-a="2026">Open the Belek book</button></p>`) : ''}
   </div>`;
 }
+/** A round started and not posted: the stop's card while its window is open,
+ *  or a handicap round, whichever was touched last. The app being closed
+ *  mid-round is the normal case, not the exception — a phone goes in a pocket
+ *  at the turn — so the way back in belongs at the top of the You tab, not
+ *  buried behind the same taps that started it. */
+function liveRound(me, today) {
+  if (!me) return null;
+  const open = C.stops(T).filter(st => C.stopState(st, today) === 'open');
+  const out = [];
+  for (const st of open) {
+    const c = C.cardOf(T, st.id, me);
+    if (c && !c.done && !c.final && C.cardTotals(c).thru > 0) out.push({ kind: 'comp', stop: st, rid: null, card: c });
+  }
+  for (const c of C.hcardsOf(T, me)) {
+    if (!c.done && !c.final && C.cardTotals(c).thru > 0) out.push({ kind: 'hcp', stop: null, rid: c.rid, card: c });
+  }
+  out.sort((a, b) => (b.card.at || 0) - (a.card.at || 0));
+  return out[0] || null;
+}
+/** The button that picks a round back up, wherever it is drawn. */
+function resumeBtn(r, cls) {
+  if (!r) return '';
+  const t = C.cardTotals(r.card);
+  const label = 'Resume my round · ' + t.thru + (r.kind === 'comp' ? ' of 18' : ' hole' + (t.thru === 1 ? '' : 's'));
+  return r.kind === 'comp'
+    ? `<button class="btn${cls ? ' ' + cls : ''}" data-act="clubEnter" data-a="${r.stop.id}">${esc(label)}</button>`
+    : `<button class="btn${cls ? ' ' + cls : ''}" data-act="roundOpen" data-a="${esc(r.rid)}">${esc(label)}</button>`;
+}
+
 /* ---- YOUR ROUNDS ----
    Every card posted, newest first, with the one thing a golfer wants to know
    about each: did it count. A competing card says which stop it won points
@@ -8042,7 +8077,7 @@ function youRoundsHtml(me, today) {
   return `<div class="cline"><span class="ck">Your rounds · ${rs.length} posted</span>
   ${rows ? `<div class="rlist">${rows}</div>` : '<p>Nothing posted yet. A round is the only thing that moves your handicap.</p>'}
   <p class="legend">${needs || 'Your handicap is the best three of your last six rounds, at 96%.'} A handicap round can be played any day, at any course, and need not be eighteen holes — nine or more and it counts.</p>
-  <p class="yc-acts"><button class="btn" data-act="roundNew"${open ? ` data-a="${open.id}"` : ''}>Start a round</button>
+  <p class="yc-acts">${resumeBtn(liveRound(me, today)) || `<button class="btn" data-act="roundNew"${open ? ` data-a="${open.id}"` : ''}>Start a round</button>`}
     ${rs.length > 5 ? `<button class="btn ghost" data-act="pcard" data-a="${me}">Your last six</button>` : ''}</p></div>`;
 }
 
@@ -8853,9 +8888,14 @@ function caddieDuck() {
    not the elements' own boxes — because a table cell's box runs the width of
    the column while its glyphs may end well before him. An element box would
    have him hiding from whitespace. */
+/* HOW FAR RIGHT THE WORDS REACH in the band he stands in, or null when
+   nothing of theirs is beside him. A boolean was enough while he always
+   stepped aside by the same fixed amount; now he steps aside by exactly as
+   much as the words need and no more, so he keeps as much of himself on
+   screen as the page allows. */
 function caddieBusy(el) {
   const root = document.querySelector('.wrap');
-  if (!root) return false;
+  if (!root) return null;
   /* The box he hangs in, not the figure: the figure is what slides, and this
      has to answer "is there room for him standing out in full" whatever he is
      doing at this instant. Asking the figure would read a half-finished slide,
@@ -8863,6 +8903,7 @@ function caddieBusy(el) {
      the answer. Transforms do not move the box, so the box is the full-size
      resting position at all times. */
   const a = el.getBoundingClientRect();
+  let edge = null;
   const walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
   const r = document.createRange();
   for (let n = walk.nextNode(); n; n = walk.nextNode()) {
@@ -8875,10 +8916,12 @@ function caddieBusy(el) {
     const q = r.getClientRects();
     for (let i = 0; i < q.length; i++) {
       const t = q[i];
-      if (t.right > a.left + 2 && t.left < a.right - 2 && t.bottom > a.top + 2 && t.top < a.bottom - 2) return true;
+      if (t.right > a.left + 2 && t.left < a.right - 2 && t.bottom > a.top + 2 && t.top < a.bottom - 2) {
+        if (edge === null || t.right > edge) edge = t.right;
+      }
     }
   }
-  return false;
+  return edge;
 }
 function caddieSoon() {
   if (typeof requestAnimationFrame !== 'function') return;
@@ -8896,7 +8939,16 @@ function caddieFit(el) {
   if (typeof window !== 'undefined' && window.innerWidth >= 700) { e.classList.remove('peek'); return; }
   /* A mascot is never worth a thrown frame: if the measure goes wrong he
      simply stays where he is. */
-  try { e.classList.toggle('peek', caddieBusy(e)); } catch (err) { /* leave him standing */ }
+  try {
+    const edge = caddieBusy(e);
+    if (edge === null) { e.classList.remove('peek'); e.style.removeProperty('--cadpeek'); return; }
+    /* Leave exactly the strip the words are not using, between a sliver and a
+       whole shoulder. Four pixels of air so a descender never touches him. */
+    const a = e.getBoundingClientRect();
+    const show = Math.max(12, Math.min(58, Math.round(a.right - edge - 4)));
+    e.style.setProperty('--cadpeek', show + 'px');
+    e.classList.add('peek');
+  } catch (err) { /* leave him standing */ }
 }
 if (typeof window !== 'undefined') {
   window.addEventListener('scroll', caddieDuck, { passive: true });
