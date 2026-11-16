@@ -165,6 +165,30 @@ ok('with neither label wrapped onto a second line', two.oneLine, true);
 await p.setViewportSize({ width: 390, height: 844 });
 await p.waitForTimeout(400);
 
+/* SIX PEOPLE READ "waiting for signal", believed the book had their
+   answers and walked away. When this phone is holding writes the server
+   would not take, the You tab has to say so where the eye lands. */
+console.log('--- when the book has not got your answers ---');
+const heldOn = await p.evaluate(() => {
+  window.__meta.pinHeld = 2;
+  window.__UI.modal = null; window.__UI.screen = 'you';
+  window.__forceRender();
+  const b = document.querySelector('.cline.held');
+  return { there: !!b,
+    says: b ? b.querySelector('.ct').textContent.trim() : '',
+    lost: b ? /Nothing is lost/.test(b.textContent) : false,
+    act: b ? (b.querySelector('button') || {}).dataset?.act : '',
+    first: !!document.querySelector('.clubgrid > .cline.held:first-child') };
+});
+ok('the You tab says so, not just the foot', heldOn.there, true);
+ok('and says how many', /2 things you entered have/.test(heldOn.says), true);
+ok('that nothing is lost', heldOn.lost, true);
+ok('with the one button that fixes it', heldOn.act, 'whoPick');
+ok('at the top, above everything else', heldOn.first, true);
+ok('and it is gone when nothing is held', await p.evaluate(() => {
+  window.__meta.pinHeld = 0; window.__forceRender();
+  return document.querySelectorAll('.cline.held').length; }), 0);
+
 console.log('--- nothing runs off the side ---');
 ok('the block fits the phone', await p.evaluate(() => {
   const y = document.querySelector('.yc').closest('.cline');

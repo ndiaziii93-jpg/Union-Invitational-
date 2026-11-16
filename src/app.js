@@ -6531,6 +6531,50 @@ function masterPhonesPanel() {
       <span class="chiprow"><input class="field small" id="mpDev" placeholder="id" autocomplete="off" maxlength="64"><input class="field small" id="mpLabel" placeholder="whose" autocomplete="off" maxlength="40"><button class="btn ghost sm" data-act="mpAdd">Add</button></span></div>` : ''}
   </div>`;
 }
+/* ---- WHO THE BOOK IS TURNING AWAY ----
+   The security log already holds all of this; what it did not have was a
+   reader that answered the commissioner's actual question, which is not
+   "what happened" but "whose answers am I missing, and why". Built from the
+   log the watch already fetches and the book's own rows: no new call, no new
+   table, nothing more for anybody to run. */
+function stuckPanel() {
+  if (!store || store.backend !== 'supabase') return '';
+  const sec = UI.sec;
+  const ev = (sec && sec.events) || [];
+  const blocked = (sec && sec.blocked) || [];
+  const today = todayIso();
+  const open = C.openStops(T, today)[0] || null;
+  const why = d => /name PIN/.test(d) ? 'no PIN on their phone'
+    : /outside/.test(d) || /window/.test(d) ? 'played outside the window'
+    : /not yours/.test(d) ? 'a row that is not theirs'
+    : /blocked/.test(d) ? 'their phone was blocked' : String(d || 'refused').slice(0, 34);
+  const rows = E.golfers(T).map(g => {
+    const mine = ev.filter(e => e.kind === 'denied' && e.pid === g.id);
+    const devs = [...new Set(mine.map(e => e.who).filter(Boolean))];
+    const shut = blocked.filter(b => devs.includes(b.dev));
+    const miss = [];
+    if (!C.signupOf(T, g.id)) miss.push('no sign-up');
+    if (!C.courseOf(T, g.id)) miss.push('no home course');
+    if (open && !C.cardOf(T, open.id, g.id)) miss.push('no ' + shortStop(open.name) + ' card');
+    return { g, n: mine.length, why: mine.length ? why(mine[0].detail || '') : '', shut, miss };
+  }).filter(r => r.n || r.shut.length || r.miss.length)
+    .sort((a, b) => b.n - a.n || b.miss.length - a.miss.length);
+  return `<h3 class="sub" id="stuck">Who the book is turning away</h3>
+  <div class="panel secpanel">
+    <div class="kv"><span class="k">Whose answers are missing<small>Read from the same log as the watch below. A refusal here means their phone wrote something and the server would not take it — what they typed is still on their phone and goes through once the reason is cleared.</small></span>
+      <span class="chiprow"><button class="btn ghost sm" data-act="secRefresh">${secBusy ? 'Looking…' : 'Look now'}</button></span></div>
+    ${!sec ? '<p class="empty">Not read yet — tap Look now.</p>'
+      : !rows.length ? '<p class="empty">Nobody is stuck. Everyone the book expects has got through.</p>'
+      : `<div class="stucks">${rows.map(r => `<div class="stuck${r.n ? ' bad' : ''}">
+        <span class="st-w"><b>${esc(r.g.display || r.g.name)}</b>
+          <small>${r.n ? r.n + ' write' + (r.n === 1 ? '' : 's') + ' refused · ' + esc(r.why) : 'nothing refused'}</small>
+          ${r.miss.length ? `<i>${esc(r.miss.join(' · '))}</i>` : ''}</span>
+        ${r.shut.length ? `<span class="st-r">${r.shut.map(b => `<button class="btn ghost sm" data-act="secUnblock" data-a="${esc(b.dev)}">Unblock ${esc(b.dev)}</button>`).join('')}</span>` : ''}
+      </div>`).join('')}</div>`}
+    <p class="legend">A phone that has never been asked for its PIN is the usual reason. Tell them to open the book and
+      tap their name; everything they typed goes through by itself.</p>
+  </div>`;
+}
 function securityPanel() {
   if (!store || store.backend !== 'supabase') return '';
   const sec = UI.sec, fresh = secNew(), alerts = secAlerts();
@@ -6639,6 +6683,7 @@ function scrSetup() {
   </div>
 
   ${masterPhonesPanel()}
+  ${stuckPanel()}
   ${securityPanel()}
 
   <h3 class="sub">Relief</h3>
@@ -8007,6 +8052,7 @@ function scrYou() {
     k: 'You · the Clubhouse · ' + esc(C.dowOf(today)) + ' ' + esc(C.fmtDay(today)) + (toVegas > 0 ? ' · ' + toVegas + ' days to Vegas' : ' · Vegas week'),
     h1: head, sub: facts.join(' · '), acts })
   + `<div class="clubgrid lift">
+  ${heldHtml(me)}
   <div class="cline ckpis${golfer ? '' : ' one'}">${golfer ? kpiHtml(d.form) + kpiHtml(d.played) + kpiHtml(d.ready) : kpiHtml(d.ready)}</div>
   ${golfer ? youCardHtml(me, today) : ''}
   ${golfer ? youRoundsHtml(me, today) : ''}
@@ -8047,6 +8093,22 @@ function resumeBtn(r, cls) {
   return r.kind === 'comp'
     ? `<button class="btn${cls ? ' ' + cls : ''}" data-act="clubEnter" data-a="${r.stop.id}">${esc(label)}</button>`
     : `<button class="btn${cls ? ' ' + cls : ''}" data-act="roundOpen" data-a="${esc(r.rid)}">${esc(label)}</button>`;
+}
+
+/* ---- NOTHING OF YOURS IS IN THE BOOK ----
+   The foot of the page says it, but the foot of the page is where nobody
+   looks. Six people filled in a sign-up, read "waiting for signal", believed
+   the book had it and walked away — so when this phone is holding writes the
+   server would not take, the You tab says so where the eye lands, in the
+   colour the book keeps for trouble, with the one button that fixes it. */
+function heldHtml(me) {
+  const n = meta.pinHeld || 0;
+  if (!n || !me) return '';
+  return `<div class="cline held"><span class="ck">Not in the book yet</span>
+    <b class="ct">${n === 1 ? 'One thing you entered has' : n + ' things you entered have'} not reached the others</b>
+    <p>The book will not take them until it has the PIN for your name. Nothing is lost — it is all kept on this
+      phone and goes through the moment the PIN is accepted.</p>
+    <p class="cact"><button class="btn" data-act="whoPick" data-a="${esc(me)}">Enter my PIN</button></p></div>`;
 }
 
 /* ---- YOUR ROUNDS ----

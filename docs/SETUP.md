@@ -246,10 +246,14 @@ stop closed — long enough for "finished Sunday, posted Tuesday", short enough
 that a crowned stop does not change under the commissioner. The check at the
 end lists `club_write`.
 
-**Redeploy the `notify` function** after this release
-(`supabase/functions/notify/index.ts`). It gained one more thing it will pass
-on: the first hole of anybody's round, which buzzes everyone else once. No new
-secrets — the same VAPID keys and service role key it already uses.
+**Redeploy the `notify` function** after this release. It gained one more
+thing it will pass on: the first hole of anybody's round, which buzzes
+everyone else once. No new secrets — the same VAPID keys and service role key
+it already uses. The whole file is at
+<https://ndiaziii93-jpg.github.io/Union-Invitational-/setup/notify/> with a
+button that copies it, which is the only sane way to do this from a phone;
+`tools/fnpage.py` rebuilds that page from
+`supabase/functions/notify/index.ts`.
 
 Then, in the book, as the master: **Manage → The season → The Clubhouse**.
 That opens the three tabs for everyone, closes the 2026 book, and seeds the

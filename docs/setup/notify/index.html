@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1D2E21">
+<meta name="robots" content="noindex">
+<link rel="icon" href="../../app/icon-192.png">
+<title>The notifications function</title>
+<style>
+:root{color-scheme:light;--paper:#E3DBCB;--page:#EEE8D5;--ink:#1D2E21;--turf:#5C6B55;--rule:#C4B896;--gold:#8C6B2F;--onpine:#EFE9D8;--pine:#3E5C43}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.45 'Iowan Old Style',Georgia,serif;
+  padding:22px max(14px,env(safe-area-inset-right,0px)) 60px max(14px,env(safe-area-inset-left,0px))}
+.wrap{max-width:1100px;margin:0 auto}
+h1{margin:0 0 6px;font-size:clamp(22px,4vw,30px)}
+p{margin:0 0 14px;color:var(--turf);max-width:76ch}
+.bar{position:sticky;top:0;z-index:2;background:var(--paper);padding:10px 0 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+button{font:inherit;border:1px solid var(--ink);background:var(--pine);color:var(--onpine);
+  border-radius:3px;padding:11px 18px;font-weight:600;cursor:pointer}
+button.ghost{background:none;color:var(--ink);border-color:var(--rule)}
+.said{font-size:13px;color:var(--gold);font-weight:700}
+pre{margin:0;background:#17231A;color:#DCE7D8;border-radius:12px;padding:14px;overflow:auto;
+  font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;max-height:70vh;-webkit-overflow-scrolling:touch}
+.foot{margin-top:18px;font-size:13px;color:var(--turf);border-top:1px solid var(--rule);padding-top:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>The notifications function</h1>
+  <p>Buzzes everyone when somebody posts in the chat, a bet is settled, or a round gets its first hole. Paste it over the whole of Edge Functions → notify → Edit, then Deploy.</p>
+  <div class="bar">
+    <button id="copy">Copy the whole file</button>
+    <button class="ghost" id="sel">Select it instead</button>
+    <span class="said" id="said"></span>
+  </div>
+  <pre id="src">/* Notifications — a buzz when somebody posts in the chat, or puts a bet on you.
+ *
+ * A phone that turns notifications on leaves its push address in the book,
+ * at push/&lt;its device id&gt;. When someone posts in the chat, their phone asks
+ * this function to pass the message on, and it sends it to every other phone
+ * that asked — in their own words, under their name, from the chat it was
+ * posted in. Tapping the notification opens the book on that chat.
+ *
+ * A bet made about people — tagged on it, or named as its answers — is
+ * passed on the same way, but only to the phones of the people on it.
+ * Tapping that one opens the bet.
+ *
+ * Someone called out by name with @ gets the message as their own
+ * (&quot;called you out&quot;), and someone replied to gets it as a reply. A reaction to a message goes only to whoever wrote it,
+ * once per person reacting, however often they change their mind.
+ *
+ * Deploy: Supabase dashboard -&gt; Edge Functions -&gt; Deploy a new function -&gt;
+ * name it `notify` -&gt; paste this file -&gt; Deploy.
+ * Then Edge Functions -&gt; Secrets, and add the two keys made on the book&#x27;s
+ * key page (docs/setup/push-keys/), in the browser, never sent anywhere:
+ *   VAPID_PUBLIC_KEY   and   VAPID_PRIVATE_KEY
+ * The private key is what proves a notification came from this book. It
+ * lives in that secret and nowhere else: not in the repository, not in the
+ * app, not in a message.
+ *
+ * Called with the project&#x27;s publishable key, like the recap function, and
+ * it reads the book with that same key: it can see exactly what any phone
+ * can, and nothing more.
+ *
+ * SECURITY ALERTS. A database webhook (Database -&gt; Webhooks: table
+ * security_log, on insert, HTTP POST to this function) calls this with a
+ * header `x-security-secret` that matches the SECURITY_WEBHOOK_SECRET set in
+ * this function&#x27;s secrets; the row it carries goes as a push to the phones
+ * that hold the master PIN, and to nobody else. A call without the matching
+ * secret is treated as what it is: not an alert.
+ */
+import &#x27;jsr:@supabase/functions-js/edge-runtime.d.ts&#x27;;
+import { withSupabase } from &#x27;jsr:@supabase/server@^1&#x27;;
+import { createClient } from &#x27;npm:@supabase/supabase-js@2&#x27;;
+
+/* Who the notifications say they are from, if a push service ever asks. A
+   web address, so no email address has to sit in a public repository. */
+const SUBJECT = &#x27;https://ndiaziii93-jpg.github.io/Union-Invitational-/&#x27;;
+const FRESH_MS = 10 * 60 * 1000;   // a message older than this is not news
+
+const CORS = {
+  &#x27;Access-Control-Allow-Origin&#x27;: &#x27;*&#x27;,
+  &#x27;Access-Control-Allow-Headers&#x27;: &#x27;authorization, x-client-info, apikey, content-type&#x27;,
+  &#x27;Access-Control-Allow-Methods&#x27;: &#x27;GET, POST, OPTIONS&#x27;,
+};
+const json = (body: unknown, status = 200) =&gt;
+  new Response(JSON.stringify(body), { status, headers: { ...CORS, &#x27;content-type&#x27;: &#x27;application/json&#x27; } });
+
+// ---- web push ----
+/* Web Push, written out with the platform&#x27;s own cryptography (RFC 8291 for
+   the message, RFC 8292 for the signature), so nothing here depends on a
+   Node library behaving inside the edge runtime. */
+const enc = new TextEncoder();
+const b64u = (bytes: ArrayBuffer | Uint8Array): string =&gt; btoa(String.fromCharCode(...new Uint8Array(bytes))).replace(/\+/g, &#x27;-&#x27;).replace(/\//g, &#x27;_&#x27;).replace(/=+$/, &#x27;&#x27;);
+const unb64u = (s: string): Uint8Array =&gt; Uint8Array.from(atob(String(s).replace(/-/g, &#x27;+&#x27;).replace(/_/g, &#x27;/&#x27;) + &#x27;===&#x27;.slice((String(s).length + 3) % 4)), c =&gt; c.charCodeAt(0));
+const cat = (...parts: Uint8Array[]): Uint8Array =&gt; { const out = new Uint8Array(parts.reduce((n, p) =&gt; n + p.length, 0)); let i = 0; for (const p of parts) { out.set(p, i); i += p.length; } return out; };
+async function hmac(key: Uint8Array, data: Uint8Array): Promise&lt;Uint8Array&gt; {
+  const k = await crypto.subtle.importKey(&#x27;raw&#x27;, key, { name: &#x27;HMAC&#x27;, hash: &#x27;SHA-256&#x27; }, false, [&#x27;sign&#x27;]);
+  return new Uint8Array(await crypto.subtle.sign(&#x27;HMAC&#x27;, k, data));
+}
+/** The signed token that says this book sent it. */
+async function vapidToken(endpoint: string, publicKey: string, privateKey: string, subject: string): Promise&lt;string&gt; {
+  const pub = unb64u(publicKey);
+  const jwk = { kty: &#x27;EC&#x27;, crv: &#x27;P-256&#x27;, d: privateKey, x: b64u(pub.slice(1, 33)), y: b64u(pub.slice(33, 65)), ext: true };
+  const key = await crypto.subtle.importKey(&#x27;jwk&#x27;, jwk, { name: &#x27;ECDSA&#x27;, namedCurve: &#x27;P-256&#x27; }, false, [&#x27;sign&#x27;]);
+  const head = b64u(enc.encode(JSON.stringify({ typ: &#x27;JWT&#x27;, alg: &#x27;ES256&#x27; })));
+  const body = b64u(enc.encode(JSON.stringify({ aud: new URL(endpoint).origin, exp: Math.floor(Date.now() / 1000) + 12 * 3600, sub: subject })));
+  const sig = await crypto.subtle.sign({ name: &#x27;ECDSA&#x27;, hash: &#x27;SHA-256&#x27; }, key, enc.encode(head + &#x27;.&#x27; + body));
+  return head + &#x27;.&#x27; + body + &#x27;.&#x27; + b64u(sig);
+}
+/** The message, sealed so only the phone it is for can open it. */
+async function seal(payload: string, p256dh: string, auth: string): Promise&lt;Uint8Array&gt; {
+  const ua = unb64u(p256dh), secret = unb64u(auth);
+  const mine = await crypto.subtle.generateKey({ name: &#x27;ECDH&#x27;, namedCurve: &#x27;P-256&#x27; }, true, [&#x27;deriveBits&#x27;]);
+  const as = new Uint8Array(await crypto.subtle.exportKey(&#x27;raw&#x27;, mine.publicKey));
+  const theirs = await crypto.subtle.importKey(&#x27;raw&#x27;, ua, { name: &#x27;ECDH&#x27;, namedCurve: &#x27;P-256&#x27; }, false, []);
+  const shared = new Uint8Array(await crypto.subtle.deriveBits({ name: &#x27;ECDH&#x27;, public: theirs }, mine.privateKey, 256));
+  const prkKey = await hmac(secret, shared);
+  const ikm = await hmac(prkKey, cat(enc.encode(&#x27;WebPush: info\0&#x27;), ua, as, new Uint8Array([1])));
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const prk = await hmac(salt, ikm);
+  const cek = (await hmac(prk, enc.encode(&#x27;Content-Encoding: aes128gcm\0\x01&#x27;))).slice(0, 16);
+  const nonce = (await hmac(prk, enc.encode(&#x27;Content-Encoding: nonce\0\x01&#x27;))).slice(0, 12);
+  const key = await crypto.subtle.importKey(&#x27;raw&#x27;, cek, &#x27;AES-GCM&#x27;, false, [&#x27;encrypt&#x27;]);
+  const sealed = new Uint8Array(await crypto.subtle.encrypt({ name: &#x27;AES-GCM&#x27;, iv: nonce }, key, cat(enc.encode(payload), new Uint8Array([2]))));
+  const rs = new Uint8Array([0, 0, 16, 0]);                       // 4096, the record size
+  return cat(salt, rs, new Uint8Array([as.length]), as, sealed);
+}
+/** One notification to one phone. Resolves to the push service&#x27;s status. */
+type Keys = { publicKey: string; privateKey: string; subject: string };
+type Sub = { endpoint: string; keys: { p256dh: string; auth: string } };
+/* A push goes to a push service and nowhere else. The address comes from a
+   row any phone can write, so without this the function could be pointed
+   at any URL on the internet with a signed POST. */
+const PUSH_HOSTS = /^([a-z0-9-]+\.)*(googleapis\.com|push\.apple\.com|push\.services\.mozilla\.com|notify\.windows\.com|push\.samsungosp\.com)$/;
+function pushService(endpoint: string): boolean {
+  try { const u = new URL(endpoint); return u.protocol === &#x27;https:&#x27; &amp;&amp; PUSH_HOSTS.test(u.hostname); } catch { return false; }
+}
+async function sendPush(sub: Sub, payload: string, keys: Keys): Promise&lt;number&gt; {
+  if (!pushService(sub.endpoint)) return 400;
+  const body = await seal(payload, sub.keys.p256dh, sub.keys.auth);
+  const token = await vapidToken(sub.endpoint, keys.publicKey, keys.privateKey, keys.subject);
+  const res = await fetch(sub.endpoint, {
+    method: &#x27;POST&#x27;,
+    headers: { &#x27;content-encoding&#x27;: &#x27;aes128gcm&#x27;, &#x27;content-type&#x27;: &#x27;application/octet-stream&#x27;, ttl: &#x27;3600&#x27;, urgency: &#x27;high&#x27;,
+               authorization: &#x27;vapid t=&#x27; + token + &#x27;, k=&#x27; + keys.publicKey },
+    body,
+  });
+  return res.status;
+}
+// ---- end web push ----
+
+async function handler(req: Request): Promise&lt;Response&gt; {
+  if (req.method === &#x27;OPTIONS&#x27;) return new Response(&#x27;ok&#x27;, { headers: CORS });
+  const keys = { publicKey: Deno.env.get(&#x27;VAPID_PUBLIC_KEY&#x27;) || &#x27;&#x27;, privateKey: Deno.env.get(&#x27;VAPID_PRIVATE_KEY&#x27;) || &#x27;&#x27;, subject: SUBJECT };
+  if (!keys.publicKey || !keys.privateKey) return json({ error: &#x27;not_set_up&#x27;, message: &#x27;The notification keys are not set on this project.&#x27; }, 503);
+
+  /* A phone asking how to sign up: the public half of the key is all it needs. */
+  if (req.method === &#x27;GET&#x27;) return json({ publicKey: keys.publicKey });
+  if (req.method !== &#x27;POST&#x27;) return json({ error: &#x27;bad_request&#x27; }, 405);
+
+  let path = &#x27;&#x27;, rx = &#x27;&#x27;, body: any = null, settled = false;
+  try { body = await req.json(); path = String(body?.path || &#x27;&#x27;); rx = String(body?.rx || &#x27;&#x27;); settled = body?.settled === true; } catch { /* falls through */ }
+
+  /* a row of the security log, from the database&#x27;s own webhook */
+  const secret = Deno.env.get(&#x27;SECURITY_WEBHOOK_SECRET&#x27;) || &#x27;&#x27;;
+  const given = req.headers.get(&#x27;x-security-secret&#x27;) || &#x27;&#x27;;
+  if (given &amp;&amp; secret &amp;&amp; given.length === secret.length &amp;&amp; given === secret &amp;&amp; body &amp;&amp; body.record) {
+    const r = body.record;
+    if (r.kind === &#x27;signin&#x27;) return json({ sent: 0, skipped: &#x27;signin&#x27; });
+    const word: Record&lt;string, string&gt; = { direct: &#x27;Public-key write dropped&#x27;, pin: &#x27;Wrong PIN&#x27;, denied: &#x27;Write refused&#x27;, blocked: &#x27;Phone blocked&#x27;, claim: &#x27;Name claim refused&#x27; };
+    const secPayload = JSON.stringify({
+      title: &#x27;⚠️ &#x27; + (word[String(r.kind)] || String(r.kind)),
+      body: [r.path, r.who ? &#x27;phone &#x27; + r.who : &#x27;&#x27;, r.pid ? &#x27;as &#x27; + r.pid : &#x27;&#x27;, r.ip ? &#x27;from &#x27; + r.ip : &#x27;&#x27;, r.detail].filter(Boolean).join(&#x27; · &#x27;).slice(0, 180),
+      room: &#x27;&#x27;, tag: &#x27;security&#x27;,
+    });
+    const apikey2 = req.headers.get(&#x27;apikey&#x27;) || &#x27;&#x27;;
+    const db2 = createClient(Deno.env.get(&#x27;SUPABASE_URL&#x27;) || &#x27;&#x27;, apikey2, { auth: { persistSession: false } });
+    const { data: msubs } = await db2.from(&#x27;docs&#x27;).select(&#x27;path,doc&#x27;).like(&#x27;path&#x27;, &#x27;push/%&#x27;);
+    let msent = 0;
+    await Promise.all((msubs || []).map(async (row: { path: string; doc: any }) =&gt; {
+      const s = row.doc;
+      if (!s || !s.on || !s.sub || !s.sub.endpoint || s.master !== true) return;
+      try { const status = await sendPush(s.sub, secPayload, keys); if (status &lt; 300) msent++; } catch (e) { console.error(&#x27;push&#x27;, String(e).slice(0, 200)); }
+    }));
+    return json({ sent: msent, security: true });
+  }
+  /* ---- SOMEBODY IS OUT PLAYING ----
+     Sent when the first hole of a round goes onto a card, not when the app is
+     opened: &quot;he is actually out there&quot; is the news, and it is news once. The
+     card is read from the book rather than taken from the caller, so this can
+     only pass on a round that is really being played, and the mark that stops
+     it going twice is made with the service key, which no phone holds. */
+  if (/^club\/(card__[A-Za-z0-9_.-]{1,40}__[A-Za-z0-9_.-]{1,40}|hcard__[A-Za-z0-9_.-]{1,40}__[0-9]{8}-[a-z0-9]{4})$/.test(path)) {
+    const apikey = req.headers.get(&#x27;apikey&#x27;) || &#x27;&#x27;;
+    const url = Deno.env.get(&#x27;SUPABASE_URL&#x27;) || &#x27;&#x27;;
+    const db = createClient(url, apikey, { auth: { persistSession: false } });
+    const { data: rows, error } = await db.from(&#x27;docs&#x27;).select(&#x27;doc&#x27;).eq(&#x27;path&#x27;, path).limit(1);
+    if (error) return json({ error: &#x27;upstream_error&#x27;, message: error.message }, 502);
+    const c: any = rows &amp;&amp; rows[0] &amp;&amp; rows[0].doc;
+    if (!c || !Array.isArray(c.raw)) return json({ error: &#x27;not_found&#x27; }, 404);
+    if (!c.raw.some((x: any) =&gt; x != null)) return json({ sent: 0, none: true });
+    if (c.teed_at) return json({ sent: 0, already: true });
+    const serviceKey = Deno.env.get(&#x27;SUPABASE_SERVICE_ROLE_KEY&#x27;) || &#x27;&#x27;;
+    if (!serviceKey) return json({ sent: 0, nokey: true });
+    const asOwner = createClient(url, serviceKey, { auth: { persistSession: false } });
+    await asOwner.rpc(&#x27;merge_doc&#x27;, { p: path, patch: { teed_at: Date.now() }, who: &#x27;notify&#x27; });
+
+    const { data: cfg } = await db.from(&#x27;docs&#x27;).select(&#x27;doc&#x27;).eq(&#x27;path&#x27;, &#x27;config/tournament&#x27;).limit(1);
+    const people: any[] = (cfg &amp;&amp; cfg[0] &amp;&amp; (cfg[0].doc as any)?.people) || [];
+    const who = people.find((p: any) =&gt; p &amp;&amp; p.id === c.pid) || {};
+    const name = String(who.display || who.name || &#x27;Somebody&#x27;).slice(0, 40);
+    let where = &#x27;A handicap round&#x27;;
+    if (c.kind !== &#x27;hcp&#x27; &amp;&amp; c.stop) {
+      const { data: sr } = await db.from(&#x27;docs&#x27;).select(&#x27;doc&#x27;).eq(&#x27;path&#x27;, &#x27;club/season&#x27;).limit(1);
+      const stops: any[] = (sr &amp;&amp; sr[0] &amp;&amp; (sr[0].doc as any)?.stops) || [];
+      const st = stops.find((x: any) =&gt; x &amp;&amp; x.id === c.stop);
+      where = st ? String(st.name).slice(0, 60) : &#x27;A round&#x27;;
+    }
+    const course = c.course &amp;&amp; c.course.name ? &#x27; \u00b7 &#x27; + String(c.course.name).slice(0, 50) : &#x27;&#x27;;
+    const payload = JSON.stringify({ title: &#x27;\u26f3 &#x27; + name + &#x27; is out&#x27;, body: where + course,
+      room: &#x27;trip&#x27;, tag: &#x27;round-&#x27; + path.slice(5) });
+    const { data: subs } = await db.from(&#x27;docs&#x27;).select(&#x27;path,doc&#x27;).like(&#x27;path&#x27;, &#x27;push/%&#x27;);
+    let sent = 0;
+    await Promise.all((subs || []).map(async (r: { path: string; doc: any }) =&gt; {
+      const s2 = r.doc;
+      if (!s2 || !s2.on || !s2.sub || !s2.sub.endpoint) return;
+      if (s2.pid &amp;&amp; c.pid &amp;&amp; s2.pid === c.pid) return;      /* never back to the golfer who teed off */
+      try {
+        const status = await sendPush(s2.sub, payload, keys);
+        if (status === 404 || status === 410) await db.from(&#x27;docs&#x27;).delete().eq(&#x27;path&#x27;, r.path);
+        else if (status &lt; 300) sent++;
+      } catch (e) { console.error(&#x27;push&#x27;, String(e).slice(0, 200)); }
+    }));
+    return json({ sent, round: true });
+  }
+
+  if (!/^(chat\/m|market\/q)[a-z0-9]{4,40}$/.test(path)) return json({ error: &#x27;bad_request&#x27;, message: &#x27;Send {&quot;path&quot;: &quot;chat/m…&quot;, &quot;market/q…&quot; or &quot;club/card__…&quot;}&#x27; }, 400);
+  const isBet = path.startsWith(&#x27;market/&#x27;);
+
+  const apikey = req.headers.get(&#x27;apikey&#x27;) || &#x27;&#x27;;
+  const db = createClient(Deno.env.get(&#x27;SUPABASE_URL&#x27;) || &#x27;&#x27;, apikey, { auth: { persistSession: false } });
+
+  /* The message is read from the book, never taken from the caller, so this
+     can only ever pass on something that was really posted — once. */
+  const { data: rows, error } = await db.from(&#x27;docs&#x27;).select(&#x27;doc&#x27;).eq(&#x27;path&#x27;, path).limit(1);
+  if (error) return json({ error: &#x27;upstream_error&#x27;, message: error.message }, 502);
+  const m = rows &amp;&amp; rows[0] &amp;&amp; rows[0].doc;
+  if (!m || (isBet ? m.k !== &#x27;q&#x27; || !m.q : m.k !== &#x27;m&#x27; || !m.text)) return json({ error: &#x27;not_found&#x27; }, 404);
+  /* ONCE. A message is passed on one time, however often the function is
+     asked: the mark is made with the service key, which no phone holds, so
+     nobody can make a message buzz the whole trip again and again. */
+  if (!rx &amp;&amp; !settled) {
+    const serviceKey = Deno.env.get(&#x27;SUPABASE_SERVICE_ROLE_KEY&#x27;) || &#x27;&#x27;;
+    if (serviceKey) {
+      if (m.notified_at) return json({ sent: 0, already: true });
+      const asOwner = createClient(Deno.env.get(&#x27;SUPABASE_URL&#x27;) || &#x27;&#x27;, serviceKey, { auth: { persistSession: false } });
+      await asOwner.rpc(&#x27;merge_doc&#x27;, { p: path, patch: { notified_at: Date.now() }, who: &#x27;notify&#x27; });
+    }
+  }
+  /* A reaction: to whoever wrote the message, once per person reacting. */
+  if (rx) {
+    if (isBet || !/^[A-Za-z0-9_-]{1,64}$/.test(rx)) return json({ error: &#x27;bad_request&#x27; }, 400);
+    const emoji = String(m[&#x27;rx_&#x27; + rx] || &#x27;&#x27;);
+    if (!emoji) return json({ sent: 0, none: true });
+    if (m[&#x27;rxsent_&#x27; + rx]) return json({ sent: 0, already: true });
+    await db.rpc(&#x27;merge_doc&#x27;, { p: path, patch: { [&#x27;rxsent_&#x27; + rx]: Date.now() }, who: &#x27;notify&#x27; });
+    const rroom = String(m.rid || &#x27;trip&#x27;);
+    const said = String(m.text);
+    const rxPayload = JSON.stringify({
+      title: emoji + &#x27; &#x27; + String(m[&#x27;rxby_&#x27; + rx] || &#x27;Someone&#x27;).slice(0, 40) + &#x27; reacted to your message&#x27;,
+      body: &#x27;“&#x27; + (said.length &gt; 120 ? said.slice(0, 118) + &#x27;…&#x27; : said) + &#x27;”&#x27;,
+      room: rroom, tag: &#x27;rx-&#x27; + path.slice(&#x27;chat/&#x27;.length),
+    });
+    const { data: rsubs } = await db.from(&#x27;docs&#x27;).select(&#x27;path,doc&#x27;).like(&#x27;path&#x27;, &#x27;push/%&#x27;);
+    let rsent = 0;
+    await Promise.all((rsubs || []).map(async (r: { path: string; doc: any }) =&gt; {
+      const s = r.doc;
+      if (!s || !s.on || !s.sub || !s.sub.endpoint || s.dev === rx) return;
+      if (!(m.pid &amp;&amp; s.pid === m.pid) &amp;&amp; !(m.dev &amp;&amp; s.dev === m.dev)) return;    // only the one who wrote it
+      try {
+        const status = await sendPush(s.sub, rxPayload, keys);
+        if (status === 404 || status === 410) await db.from(&#x27;docs&#x27;).delete().eq(&#x27;path&#x27;, r.path);
+        else if (status &lt; 300) rsent++;
+      } catch (e) { console.error(&#x27;push&#x27;, String(e).slice(0, 200)); }
+    }));
+    return json({ sent: rsent });
+  }
+  /* A BET HAS SETTLED. Who hit, and what it paid, worked out from the trades
+     in the book — never from the caller — and sent to everyone once. */
+  if (isBet &amp;&amp; settled) {
+    const done = m.void === true || !!m.result || (Array.isArray(m.winners) &amp;&amp; m.winners.length &gt; 0);
+    if (!done) return json({ sent: 0, open: true });
+    const serviceKey = Deno.env.get(&#x27;SUPABASE_SERVICE_ROLE_KEY&#x27;) || &#x27;&#x27;;
+    const asOwner = serviceKey ? createClient(Deno.env.get(&#x27;SUPABASE_URL&#x27;) || &#x27;&#x27;, serviceKey, { auth: { persistSession: false } }) : null;
+    if (m.settled_notified) return json({ sent: 0, already: true });
+    if (asOwner) await asOwner.rpc(&#x27;merge_doc&#x27;, { p: path, patch: { settled_notified: Date.now() }, who: &#x27;notify&#x27; });
+    const qid = path.slice(&#x27;market/&#x27;.length);
+    const { data: trows } = await db.from(&#x27;docs&#x27;).select(&#x27;doc&#x27;).like(&#x27;path&#x27;, &#x27;market/t%&#x27;);
+    const { data: prows } = await db.from(&#x27;docs&#x27;).select(&#x27;path,doc&#x27;).like(&#x27;path&#x27;, &#x27;people/%&#x27;);
+    const names: Record&lt;string, string&gt; = {};
+    (prows || []).forEach((r: { path: string; doc: any }) =&gt; { names[r.path.slice(&#x27;people/&#x27;.length)] = String(r.doc?.display || r.doc?.name || &#x27;&#x27;); });
+    const { data: grows } = await db.from(&#x27;docs&#x27;).select(&#x27;doc&#x27;).like(&#x27;path&#x27;, &#x27;chat/guest_%&#x27;);
+    (grows || []).forEach((r: { doc: any }) =&gt; { if (r.doc?.pid) names[String(r.doc.pid)] = String(r.doc.name || &#x27;&#x27;); });
+    const winners: string[] = Array.isArray(m.winners) ? m.winners.map(String) : [];
+    const isVoid = m.void === true || m.result === &#x27;void&#x27;;
+    const rounds = (x: number) =&gt; Math.round(x * 4) / 4;
+    const paid: Record&lt;string, number&gt; = {}, spent: Record&lt;string, number&gt; = {};
+    for (const r of trows || []) {
+      const t = r.doc; if (!t || t.k !== &#x27;t&#x27; || !t.m || !t.pid) continue;
+      const mid = String(t.m);
+      let onThis = false, win = false;
+      if (mid === qid) { onThis = true; win = isVoid ? false : t.side === m.result; }
+      else if (mid.startsWith(qid + &#x27;__&#x27;)) { onThis = true; const w = mid.slice(qid.length + 2); win = isVoid ? false : (winners.includes(w) ? t.side === &#x27;yes&#x27; : t.side === &#x27;no&#x27;); }
+      if (!onThis) continue;
+      spent[t.pid] = (spent[t.pid] || 0) + Number(t.cost || 0);
+      if (isVoid) paid[t.pid] = (paid[t.pid] || 0) + Math.max(0, Number(t.cost || 0));
+      else if (win) paid[t.pid] = (paid[t.pid] || 0) + Number(t.n || 0);
+    }
+    const beer = (n: number) =&gt; { const q = Math.round(Math.abs(n) * 4), w = Math.floor(q / 4), f = [&#x27;&#x27;, &#x27;¼&#x27;, &#x27;½&#x27;, &#x27;¾&#x27;][q % 4]; return (w || !f ? String(w) : &#x27;&#x27;) + f; };
+    const hits = Object.keys(paid).map(p =&gt; ({ p, paid: rounds(paid[p]), net: rounds(paid[p] - (spent[p] || 0)) })).filter(x =&gt; x.net &gt; 1e-4).sort((a, b) =&gt; b.net - a.net);
+    const what = isVoid ? &#x27;Void&#x27; : winners.length ? &#x27;It was &#x27; + winners.map(w =&gt; names[w] || &#x27;someone&#x27;).join(&#x27; and &#x27;) : m.result === &#x27;yes&#x27; ? &#x27;Yes&#x27; : &#x27;No&#x27;;
+    const line = hits.length ? hits.slice(0, 4).map(x =&gt; (names[x.p] || &#x27;Someone&#x27;) + &#x27; cashed &#x27; + beer(x.paid) + &#x27; 🍺&#x27;).join(&#x27;, &#x27;) + (hits.length &gt; 4 ? &#x27; and more&#x27; : &#x27;&#x27;) : (isVoid ? &#x27;Everyone got their beers back&#x27; : &#x27;Nobody hit it&#x27;);
+    const settledPayload = JSON.stringify({ title: &#x27;🏆 Bet settled: &#x27; + what, body: (String(m.q).slice(0, 120) + &#x27; — &#x27; + line).slice(0, 240), bet: qid, tag: &#x27;settled-&#x27; + qid });
+    const { data: ssubs } = await db.from(&#x27;docs&#x27;).select(&#x27;path,doc&#x27;).like(&#x27;path&#x27;, &#x27;push/%&#x27;);
+    let ssent = 0;
+    await Promise.all((ssubs || []).map(async (r: { path: string; doc: any }) =&gt; {
+      const s = r.doc;
+      if (!s || !s.on || !s.sub || !s.sub.endpoint) return;
+      try { const status = await sendPush(s.sub, settledPayload, keys); if (status === 404 || status === 410) { await db.from(&#x27;docs&#x27;).delete().eq(&#x27;path&#x27;, r.path); } else if (status &lt; 300) ssent++; }
+      catch (e) { console.error(&#x27;push&#x27;, String(e).slice(0, 200)); }
+    }));
+    return json({ sent: ssent, settled: true });
+  }
+  /* a bet goes only to the people it is about */
+  const onIt: string[] = isBet ? [].concat(m.tags || [], m.opts || []).map(String) : [];
+  if (isBet &amp;&amp; !onIt.length) return json({ sent: 0, nobody: true });
+  if (m.notified) return json({ sent: 0, already: true });
+  if (Date.now() - (m.at || 0) &gt; FRESH_MS) return json({ sent: 0, stale: true });
+  await db.rpc(&#x27;merge_doc&#x27;, { p: path, patch: { notified: Date.now() }, who: &#x27;notify&#x27; });
+
+  const room = String(m.rid || &#x27;trip&#x27;);
+  const where = room === &#x27;trip&#x27; ? &#x27;The trip&#x27; : room === &#x27;practice&#x27; ? &#x27;Practice&#x27; : &#x27;Round &#x27; + room.replace(/^r/, &#x27;&#x27;);
+  const payload = isBet
+    ? JSON.stringify({
+        title: (m.byName || &#x27;Someone&#x27;) + (m.opts &amp;&amp; m.opts.length ? &#x27; put you in a bet&#x27; : &#x27; put a bet on you&#x27;),
+        body: String(m.q).slice(0, 240),
+        bet: path.slice(&#x27;market/&#x27;.length), tag: &#x27;bet-&#x27; + path.slice(&#x27;market/&#x27;.length),
+      })
+    : JSON.stringify({
+        title: (m.name || &#x27;Someone&#x27;) + (m.re ? &#x27; heckled&#x27; : &#x27;&#x27;) + &#x27; · &#x27; + where,
+        body: String(m.text).slice(0, 240),
+        room, tag: &#x27;chat-&#x27; + room,
+      });
+
+  /* someone called out by name gets it as theirs, and it stays on their screen
+     beside the room&#x27;s own line rather than replacing it */
+  const ment: string[] = !isBet &amp;&amp; Array.isArray(m.ment) ? m.ment.map(String) : [];
+  /* whoever was answered gets it as a reply to them */
+  const rto = !isBet &amp;&amp; m.to &amp;&amp; m.rto ? String(m.rto) : &#x27;&#x27;;
+  const repliedTo = rto ? JSON.stringify({
+    title: &#x27;↩️ &#x27; + (m.name || &#x27;Someone&#x27;) + &#x27; replied to you · &#x27; + where,
+    body: String(m.text).slice(0, 240),
+    room, tag: &#x27;reply-&#x27; + path.slice(&#x27;chat/&#x27;.length),
+  }) : payload;
+  const calledOut = ment.length ? JSON.stringify({
+    title: &#x27;📣 &#x27; + (m.name || &#x27;Someone&#x27;) + &#x27; called you out · &#x27; + where,
+    body: String(m.text).slice(0, 240),
+    room, tag: &#x27;ment-&#x27; + path.slice(&#x27;chat/&#x27;.length),
+  }) : payload;
+
+  const { data: subs } = await db.from(&#x27;docs&#x27;).select(&#x27;path,doc&#x27;).like(&#x27;path&#x27;, &#x27;push/%&#x27;);
+  let sent = 0, gone = 0;
+  await Promise.all((subs || []).map(async (r: { path: string; doc: any }) =&gt; {
+    const s = r.doc;
+    if (!s || !s.on || !s.sub || !s.sub.endpoint) return;
+    if (s.dev === m.dev || (m.pid &amp;&amp; s.pid === m.pid)) return;    // not back to whoever posted it
+    if (isBet &amp;&amp; !onIt.includes(String(s.pid))) return;          // a bet, only to the people on it
+    try {
+      const status = await sendPush(s.sub, ment.includes(String(s.pid)) ? calledOut : rto &amp;&amp; String(s.pid) === rto ? repliedTo : payload, keys);
+      if (status === 404 || status === 410) { gone++; await db.from(&#x27;docs&#x27;).delete().eq(&#x27;path&#x27;, r.path); }
+      else if (status &lt; 300) sent++;
+      else console.error(&#x27;push&#x27;, status, new URL(s.sub.endpoint).host);
+    } catch (e) { console.error(&#x27;push&#x27;, String(e).slice(0, 200)); }
+  }));
+  return json({ sent, gone });
+}
+
+export default {
+  fetch: withSupabase({ auth: [&#x27;publishable&#x27;, &#x27;secret&#x27;] }, handler),
+};
+</pre>
+  <p class="foot">356 lines · <a href="../../">The Union Invitational</a></p>
+</div>
+<script>
+(function () {
+  var src = document.getElementById('src'), said = document.getElementById('said');
+  function tell(t) { said.textContent = t; setTimeout(function () { said.textContent = ''; }, 2600); }
+  document.getElementById('copy').addEventListener('click', function () {
+    var text = src.textContent;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { tell('Copied — paste it over the function.'); },
+        function () { tell('Could not copy. Use Select it instead.'); });
+      return;
+    }
+    tell('Could not copy. Use Select it instead.');
+  });
+  document.getElementById('sel').addEventListener('click', function () {
+    var r = document.createRange(); r.selectNodeContents(src);
+    var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+    tell('Selected — hold and choose Copy.');
+  });
+}());
+</script>
+</body>
+</html>
