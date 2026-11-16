@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1D2E21">
+<meta name="robots" content="noindex">
+<link rel="icon" href="../../app/icon-192.png">
+<title>Shot data · three ways</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap">
+<style>
+:root{
+  color-scheme:light;
+  --paper:#E3DBCB; --page:#EEE8D5; --sunk:#DBD2BA; --ink:#1D2E21; --ink2:#2A3D2E; --turf:#5C6B55;
+  --green:#3E5C43; --rule:#C4B896; --hair:#DCD1B4; --gold:#8C6B2F; --gold-up:#C9A253;
+  --flag:#9E3B2E; --yes:#2F7A4A; --onpine:#EFE9D8;
+  --serif:'Source Serif 4','Iowan Old Style',Georgia,'Times New Roman',serif;
+  --ui:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:16px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:26px 64px}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:inherit;-webkit-tap-highlight-color:transparent}
+:focus-visible{outline:2px solid var(--flag);outline-offset:2px}
+.wrap{max-width:1280px;margin:0 auto}
+h1{margin:0 0 8px;font-size:clamp(26px,4.4vw,36px);line-height:1.12}
+.lede{margin:0 0 6px;color:var(--turf);max-width:80ch}
+.kick{font-family:var(--ui);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);font-weight:700}
+.row{display:grid;gap:22px;margin-top:26px;grid-template-columns:1fr}
+@media (min-width:860px){ .row{grid-template-columns:repeat(3,minmax(0,1fr))} }
+/* A grid item's min-width is auto, so the scrolling club row — fifteen
+   buttons wide — pushed the whole card out to 739px inside a 390px phone.
+   Every box between the grid and the scroller has to be told it may be
+   narrower than its contents. */
+.row > *{min-width:0}
+.card{background:var(--page);border:1px solid var(--hair);border-radius:16px;padding:16px 15px 18px;
+  box-shadow:0 2px 10px rgba(29,46,33,.07);min-width:0;overflow:hidden}
+.card h2{margin:4px 0 2px;font-size:21px;line-height:1.15}
+.card .sub{margin:0 0 12px;font-size:13px;color:var(--turf)}
+.phone{background:var(--paper);border:1px solid var(--rule);border-radius:14px;overflow:hidden;min-width:0}
+.ph-top{background:var(--ink);color:var(--onpine);padding:8px 12px;display:flex;justify-content:space-between;align-items:baseline;
+  font-family:var(--ui);font-size:11px;letter-spacing:.06em}
+.ph-top b{font-family:var(--serif);font-size:14px;letter-spacing:0}
+.ph-body{padding:10px;min-width:0}
+/* A 480-yard hole is a long thin shape: left to compute its own height it
+   came out 1130px tall on a phone. So the frame is fixed and the drawing is
+   fitted inside it, with the surround in rough green rather than letterbox
+   grey — the empty sides read as more of the course, which is what they are. */
+svg.hole{display:block;width:100%;height:clamp(290px,50vh,420px);background:#3C6338;border-radius:10px;touch-action:manipulation}
+.clubs{display:flex;gap:5px;overflow-x:auto;padding:8px 2px 4px;-webkit-overflow-scrolling:touch;min-width:0;max-width:100%}
+.club{flex:0 0 auto;border:1px solid var(--rule);border-radius:999px;padding:5px 11px;font-size:13px;font-weight:600;background:var(--page)}
+.club.on{background:var(--green);color:var(--onpine);border-color:var(--green)}
+.shots{margin:8px 0 0;font-family:var(--ui);font-size:12px;color:var(--ink2)}
+.shots ol{margin:4px 0 0;padding-left:0;list-style:none}
+.shots li{display:flex;justify-content:space-between;gap:8px;border-top:1px solid var(--hair);padding:4px 0}
+.shots li b{font-weight:700}
+.acts{display:flex;gap:7px;margin-top:9px;flex-wrap:wrap}
+.btn{border:1px solid var(--ink);background:var(--green);color:var(--onpine);border-radius:3px;padding:7px 12px;font-size:13px;font-weight:600}
+.btn.ghost{background:none;color:var(--ink);border-color:var(--rule)}
+.hint{margin:8px 0 0;font-size:12px;color:var(--turf);font-style:italic}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+.chip{border:1px solid var(--rule);border-radius:999px;padding:5px 10px;font-size:12.5px;background:var(--page)}
+.chip.on{background:var(--gold);color:#23331F;border-color:var(--gold);font-weight:700}
+.lbl{font-family:var(--ui);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--turf);margin-top:10px}
+.dist{display:flex;align-items:center;gap:8px;margin-top:6px}
+.dist b{font-size:26px;min-width:76px;text-align:center}
+.step{border:1px solid var(--rule);border-radius:8px;width:40px;height:40px;font-size:20px;line-height:1}
+.gps{position:relative;border-radius:10px;overflow:hidden}
+.walkbtn{width:100%;margin-top:8px}
+.pros{margin:14px 0 0;padding:12px 13px;background:var(--sunk);border-radius:10px;font-size:13.5px}
+.pros dt{font-family:var(--ui);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--turf);margin-top:8px}
+.pros dt:first-child{margin-top:0}
+.pros dd{margin:2px 0 0}
+.cost{margin-top:10px;font-family:var(--ui);font-size:11px;color:var(--turf)}
+.cost b{color:var(--ink)}
+.verdict{margin-top:30px;background:var(--ink);color:var(--onpine);border-radius:16px;padding:20px 18px}
+.verdict h2{margin:0 0 8px;font-size:22px}
+.verdict p{margin:0 0 10px;max-width:86ch}
+.verdict .kick{color:var(--gold-up)}
+.verdict ol{margin:6px 0 0;padding-left:20px}
+.verdict li{margin:5px 0}
+.pagefoot{margin-top:28px;font-size:12.5px;color:var(--turf);border-top:1px solid var(--rule);padding-top:12px}
+.sel{display:flex;gap:6px;margin:14px 0 0;flex-wrap:wrap}
+.sel button{border:1px solid var(--rule);border-radius:999px;padding:5px 12px;font-size:13px;background:var(--page)}
+.sel button.on{background:var(--ink);color:var(--onpine);border-color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="kick">The Union Invitational · for the commissioner</p>
+  <h1>Shot data: three ways to get it</h1>
+  <p class="lede">All three capture the same thing — <b>club, where the ball finished, how far it went</b> — and all three
+    write the same row, so a round entered one way reads identically to a round entered another. What differs is what the
+    golfer has to do while they are stood there with a club in their hand.</p>
+  <p class="lede">The hole below is the real 1st at Leatherhead, drawn from the club's own map — the same geometry the
+    app's 3D view already uses. Tap through all three, then tell me which to build.</p>
+
+  <div class="sel" id="holeSel"></div>
+
+  <div class="row">
+
+    <!-- ─────────────── A ─────────────── -->
+    <section class="card">
+      <p class="kick">Way one</p>
+      <h2>Tap the hole</h2>
+      <p class="sub">Your idea. Pick the club, tap where it finished.</p>
+      <div class="phone">
+        <div class="ph-top"><b id="tA">Hole 1</b><span id="sA">Par 5 · 483 yds</span></div>
+        <div class="ph-body">
+          <svg class="hole" id="svgA" role="img" aria-label="Tap the hole to place a shot"></svg>
+          <div class="clubs" id="clubsA"></div>
+          <div class="shots" id="listA"></div>
+          <div class="acts">
+            <button class="btn ghost" data-undo="A">Undo</button>
+            <button class="btn ghost" data-clear="A">Clear</button>
+          </div>
+          <p class="hint" id="hintA">A played hole, already on the card. Press Clear, then pick a club and tap the ground yourself.</p>
+        </div>
+      </div>
+      <dl class="pros">
+        <dt>What it is good at</dt>
+        <dd>Fast and obvious. You already know where your ball went — pointing at it needs no thought. Gives true
+          coordinates, so every number downstream (distance, dispersion, proximity) is real.</dd>
+        <dt>What it is bad at</dt>
+        <dd>You are aiming at a drawing. A tap is accurate to maybe five yards on a 480-yard hole at phone size, and worse
+          near the green where everything matters most. It also needs you to remember to do it.</dd>
+      </dl>
+      <p class="cost"><b>Build:</b> about two days. The hole geometry and the tap-to-ground maths already exist in the 3D
+        view. The work is the shot layer, the club row, and the undo.</p>
+    </section>
+
+    <!-- ─────────────── B ─────────────── -->
+    <section class="card">
+      <p class="kick">Way two</p>
+      <h2>Say what happened</h2>
+      <p class="sub">No map. Club, where it ended up, how far is left.</p>
+      <div class="phone">
+        <div class="ph-top"><b id="tB">Hole 1</b><span id="sB">Par 5 · 483 yds</span></div>
+        <div class="ph-body">
+          <p class="lbl">Shot <span id="nB">1</span> · club</p>
+          <div class="clubs" id="clubsB"></div>
+          <p class="lbl">Where it finished</p>
+          <div class="chips" id="lieB"></div>
+          <p class="lbl">Yards left to the pin</p>
+          <div class="dist">
+            <button class="step" data-nudge="-10">−</button>
+            <b id="leftB">483</b>
+            <button class="step" data-nudge="10">+</button>
+            <span style="font-size:12px;color:var(--turf)">yds</span>
+          </div>
+          <div class="acts"><button class="btn" data-add="B">Add this shot</button>
+            <button class="btn ghost" data-undo="B">Undo</button></div>
+          <div class="shots" id="listB"></div>
+        </div>
+      </div>
+      <dl class="pros">
+        <dt>What it is good at</dt>
+        <dd>Works on any phone, in any light, with no signal and no 3D. Three taps a shot and you are done. It is also the
+          only one that still works when you are writing the round up afterwards in the bar.</dd>
+        <dt>What it is bad at</dt>
+        <dd>No spatial truth. "Right rough, 150 left" cannot tell you <i>how far</i> right, so you get club distances and
+          a miss bias but never a real dispersion pattern. The yardage is whatever the golfer guesses.</dd>
+      </dl>
+      <p class="cost"><b>Build:</b> about a day. It is chips and a number — no geometry at all.</p>
+    </section>
+
+    <!-- ─────────────── C ─────────────── -->
+    <section class="card">
+      <p class="kick">Way three</p>
+      <h2>Walk it</h2>
+      <p class="sub">The phone knows where you are. Stand at the ball, tap once.</p>
+      <div class="phone">
+        <div class="ph-top"><b id="tC">Hole 1</b><span id="sC">Par 5 · 483 yds</span></div>
+        <div class="ph-body">
+          <div class="gps"><svg class="hole" id="svgC" role="img" aria-label="Your position on the hole"></svg></div>
+          <div class="clubs" id="clubsC"></div>
+          <button class="btn walkbtn" data-walk="1">I'm at my ball — log it</button>
+          <div class="shots" id="listC"></div>
+          <div class="acts"><button class="btn ghost" data-undo="C">Undo</button>
+            <button class="btn ghost" data-clear="C">Clear</button></div>
+          <p class="hint" id="hintC">Simulated: each tap walks you down the hole the way a round actually plays.</p>
+        </div>
+      </div>
+      <dl class="pros">
+        <dt>What it is good at</dt>
+        <dd>The most accurate by a long way, and the least work while playing: one tap at the ball, no aiming. The app
+          already takes a GPS fix on the hole, so the hard part is done. Distances are measured, not guessed.</dd>
+        <dt>What it is bad at</dt>
+        <dd>A phone's fix is good to three to ten yards and worse under trees. It only works while you are actually out
+          there — nothing can be reconstructed later. And it costs battery on a four-hour round.</dd>
+      </dl>
+      <p class="cost"><b>Build:</b> about three days. The fix exists; the work is averaging a stable reading, an accuracy
+        ring, and the "that reading was rubbish, let me drag it" correction.</p>
+    </section>
+  </div>
+
+  <div class="verdict">
+    <p class="kick">What I would do</p>
+    <h2>Build one data shape, and let the way in change</h2>
+    <p>These are not really three products. A shot is <code>{ hole, n, club, x, y, lie }</code> in every one of them —
+      only <i>x, y</i> is sometimes missing. So the thing to decide first is not which screen to build, it is that all
+      three write the same row. Then the way in can change without a migration, and a golfer can use whichever suits the
+      moment: GPS on the course, the map when the fix is poor, words when they are filling it in from memory.</p>
+    <p>If you want one to start with, I would build <b>way one</b> first and make <b>way three</b> an upgrade to it, with
+      way two as the fallback that never fails. In that order:</p>
+    <ol>
+      <li><b>Tap the hole.</b> It is the cheapest real data you can get, it needs nothing from the network, and it is the
+        screen the other two hang off. The 3D hole is already drawn; this adds a layer on top of it.</li>
+      <li><b>Walk it.</b> Once the shot layer exists, GPS just fills it in automatically — same shots, less typing. The
+        tap stays as the correction when the fix is bad, which is the pattern every serious golf app uses.</li>
+      <li><b>Say it.</b> One evening's work, and it is the honest answer for anyone who forgets, or plays somewhere the
+        hole is not drawn.</li>
+    </ol>
+    <p style="margin-top:12px">What it unlocks, in order of how soon it is worth anything: <b>club distances</b> (after
+      about three rounds), <b>miss bias</b> — which way you actually leak it (five rounds), <b>approach proximity</b>
+      (ten), and eventually <b>strokes gained</b> against the group's own baseline rather than a tour average, which is
+      the number that would actually settle arguments in Las Vegas.</p>
+    <p style="margin-top:12px"><b>One warning worth hearing now.</b> Shot capture is the feature golfers love in the shop
+      and abandon on the 4th tee. Whichever we build, it has to survive being ignored: a round with shots on three holes
+      and nothing on the rest must still post, still count for the handicap, and never nag. I would build it that way
+      from the first commit rather than bolt it on.</p>
+  </div>
+
+  <p class="pagefoot">A preview for the commissioner, not for the group.
+    <a href="../../">The Union Invitational</a></p>
+</div>
+
+<script src="holes.js"></script>
+<script>
+(function () {
+  'use strict';
+  var H = window.HOLES || {};
+  var keys = Object.keys(H);
+  var cur = keys[0];
+  var CLUBS = ['Dr', '3w', '5w', 'Hy', '4i', '5i', '6i', '7i', '8i', '9i', 'PW', 'GW', 'SW', 'LW', 'Putt'];
+  var LIES = ['Fairway', 'Left rough', 'Right rough', 'Short', 'Long', 'Green', 'Bunker', 'Water', 'Trees'];
+  var S = { A: { shots: [], club: 'Dr' }, B: { shots: [], club: 'Dr', lie: 'Fairway', left: 0 }, C: { shots: [], club: 'Dr' } };
+
+  function hole() { return H[cur]; }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]; }); }
+
+  /* ---- the hole, drawn from the club's own map ----
+     The tracer's x runs tee (0) to green (1) and y is how far off the line.
+     On the page the hole stands up, so x becomes height and y becomes width. */
+  function bounds(h) {
+    var xs = [], ys = [];
+    (h.ground || []).forEach(function (p) { p.forEach(function (q) { xs.push(q[0]); ys.push(q[1]); }); });
+    if (!xs.length) { xs = [0, 1]; ys = [-0.2, 0.2]; }
+    return { x0: Math.min.apply(null, xs), x1: Math.max.apply(null, xs), y0: Math.min.apply(null, ys), y1: Math.max.apply(null, ys) };
+  }
+  function path(poly) {
+    return poly.map(function (p, i) { return (i ? 'L' : 'M') + p[1].toFixed(4) + ' ' + (-p[0]).toFixed(4); }).join(' ') + 'Z';
+  }
+  function draw(svg, withShots, id) {
+    var h = hole(); if (!h) return;
+    var b = bounds(h), pad = 0.03;
+    svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+    svg.setAttribute('viewBox', [(b.y0 - pad).toFixed(3), (-b.x1 - pad).toFixed(3),
+      (b.y1 - b.y0 + pad * 2).toFixed(3), (b.x1 - b.x0 + pad * 2).toFixed(3)].join(' '));
+    var g = '';
+    (h.ground || []).forEach(function (p) { g += '<path d="' + path(p) + '" fill="#4C7A43"/>'; });
+    (h.fairways || []).forEach(function (p) { g += '<path d="' + path(p) + '" fill="#6FA04F"/>'; });
+    (h.lakes || []).forEach(function (p) { g += '<path d="' + path(p) + '" fill="#4E86A8"/>'; });
+    (h.bunkers || []).forEach(function (p) { g += '<path d="' + path(p) + '" fill="#E4D6A8"/>'; });
+    if (h.green && h.green.length) g += '<path d="' + path(h.green) + '" fill="#8FC06A"/>';
+    (h.trees || []).forEach(function (p) {
+      g += '<circle cx="' + p[1].toFixed(4) + '" cy="' + (-p[0]).toFixed(4) + '" r="0.012" fill="#2F5331" opacity=".85"/>';
+    });
+    /* tee and pin */
+    g += '<circle cx="0" cy="0" r="0.014" fill="#EFE9D8" stroke="#1D2E21" stroke-width="0.004"/>';
+    var pin = h.green && h.green.length ? mid(h.green) : [1, 0];
+    g += '<circle cx="' + pin[1].toFixed(4) + '" cy="' + (-pin[0]).toFixed(4) + '" r="0.010" fill="#9E3B2E"/>';
+    if (withShots) {
+      var pts = [[0, 0]].concat(S[id].shots.map(function (s) { return [s.x, s.y]; }));
+      for (var i = 1; i < pts.length; i++) {
+        g += '<line x1="' + pts[i - 1][1].toFixed(4) + '" y1="' + (-pts[i - 1][0]).toFixed(4) +
+          '" x2="' + pts[i][1].toFixed(4) + '" y2="' + (-pts[i][0]).toFixed(4) +
+          '" stroke="#EFE9D8" stroke-width="0.005" stroke-dasharray="0.014 0.012" opacity=".95"/>';
+      }
+      S[id].shots.forEach(function (s, i) {
+        g += '<circle cx="' + s.y.toFixed(4) + '" cy="' + (-s.x).toFixed(4) + '" r="0.019" fill="#1D2E21" opacity=".92"/>' +
+          '<text x="' + s.y.toFixed(4) + '" y="' + (-s.x + 0.0072).toFixed(4) + '" text-anchor="middle" ' +
+          'font-size="0.022" font-family="-apple-system,sans-serif" font-weight="700" fill="#EFE9D8">' + (i + 1) + '</text>';
+        if (s.acc) g += '<circle cx="' + s.y.toFixed(4) + '" cy="' + (-s.x).toFixed(4) + '" r="' + s.acc.toFixed(4) +
+          '" fill="#C9A253" opacity=".22"/>';
+      });
+    }
+    svg.innerHTML = g;
+  }
+  function mid(poly) {
+    var sx = 0, sy = 0; poly.forEach(function (p) { sx += p[0]; sy += p[1]; });
+    return [sx / poly.length, sy / poly.length];
+  }
+  /* a hole's own units into yards: x of 1 is the card's length */
+  function yards(a, b) {
+    var h = hole();
+    return Math.round(Math.sqrt(Math.pow(a[0] - b[0], 2) + Math.pow(a[1] - b[1], 2)) * h.yds);
+  }
+
+  function clubRow(el, id) {
+    el.innerHTML = CLUBS.map(function (c) {
+      return '<button class="club' + (S[id].club === c ? ' on' : '') + '" data-club="' + c + '" data-for="' + id + '">' + c + '</button>';
+    }).join('');
+  }
+  function listOf(id, el) {
+    var ss = S[id].shots;
+    if (!ss.length) { el.innerHTML = '<p style="margin:8px 0 0;color:var(--turf)">No shots yet.</p>'; return; }
+    el.innerHTML = '<ol>' + ss.map(function (s, i) {
+      return '<li><span><b>' + (i + 1) + '.</b> ' + esc(s.club) + '</span><span>' + esc(s.note) + '</span></li>';
+    }).join('') + '</ol>';
+  }
+
+  /* ---------- A: tap the hole ---------- */
+  var svgA = document.getElementById('svgA');
+  function addA(x, y) {
+    var prev = S.A.shots.length ? [S.A.shots[S.A.shots.length - 1].x, S.A.shots[S.A.shots.length - 1].y] : [0, 0];
+    S.A.shots.push({ club: S.A.club, x: x, y: y, note: yards(prev, [x, y]) + ' yds' });
+    paint('A');
+  }
+  svgA.addEventListener('click', function (ev) {
+    var m = svgA.getScreenCTM(); if (!m) return;
+    var p = svgA.createSVGPoint(); p.x = ev.clientX; p.y = ev.clientY;
+    var q = p.matrixTransform(m.inverse());
+    addA(-q.y, q.x);
+  });
+
+  /* ---------- B: say it ---------- */
+  function paintB() {
+    document.getElementById('nB').textContent = String(S.B.shots.length + 1);
+    document.getElementById('leftB').textContent = String(S.B.left);
+    document.getElementById('lieB').innerHTML = LIES.map(function (l) {
+      return '<button class="chip' + (S.B.lie === l ? ' on' : '') + '" data-lie="' + l + '">' + l + '</button>';
+    }).join('');
+    clubRow(document.getElementById('clubsB'), 'B');
+    listOf('B', document.getElementById('listB'));
+  }
+
+  /* ---------- C: walk it ---------- */
+  var svgC = document.getElementById('svgC');
+  var WALK = [[0.52, 0.03], [0.79, -0.05], [0.93, 0.02], [0.965, -0.005], [0.975, 0.001]];
+  var WALK_CLUB = ['Dr', '5w', '9i', 'SW', 'Putt'];
+  function addC() {
+    var n = S.C.shots.length;
+    if (n < WALK_CLUB.length) S.C.club = WALK_CLUB[n];
+    var w = WALK[Math.min(n, WALK.length - 1)];
+    var jitterA = ((n * 37) % 11 - 5) / 900, jitterB = ((n * 53) % 9 - 4) / 900;
+    var prev = n ? [S.C.shots[n - 1].x, S.C.shots[n - 1].y] : [0, 0];
+    var pt = [w[0] + jitterA, w[1] + jitterB];
+    S.C.shots.push({ club: S.C.club, x: pt[0], y: pt[1], acc: 0.014 + (n % 3) * 0.006,
+      note: yards(prev, pt) + ' yds · ±' + (6 + (n % 3) * 3) + ' yds fix' });
+    paint('C');
+  }
+
+  function paint(id) {
+    if (id === 'A') { draw(svgA, true, 'A'); clubRow(document.getElementById('clubsA'), 'A'); listOf('A', document.getElementById('listA')); }
+    if (id === 'B') paintB();
+    if (id === 'C') { draw(svgC, true, 'C'); clubRow(document.getElementById('clubsC'), 'C'); listOf('C', document.getElementById('listC')); }
+  }
+
+  document.addEventListener('click', function (ev) {
+    var t = ev.target.closest ? ev.target.closest('[data-club],[data-lie],[data-nudge],[data-add],[data-undo],[data-clear],[data-walk],[data-hole]') : null;
+    if (!t) return;
+    if (t.dataset.club) { S[t.dataset.for].club = t.dataset.club; paint(t.dataset.for); return; }
+    if (t.dataset.lie) { S.B.lie = t.dataset.lie; paintB(); return; }
+    if (t.dataset.nudge) { S.B.left = Math.max(0, S.B.left + (+t.dataset.nudge)); paintB(); return; }
+    if (t.dataset.add === 'B') {
+      S.B.shots.push({ club: S.B.club, note: S.B.lie + ' · ' + S.B.left + ' yds left' });
+      S.B.left = Math.max(0, Math.round(S.B.left * 0.45 / 5) * 5);
+      paintB(); return;
+    }
+    if (t.dataset.undo) { S[t.dataset.undo].shots.pop(); if (t.dataset.undo === 'B' && !S.B.shots.length) S.B.left = Math.round(hole().yds * 0.42 / 5) * 5; paint(t.dataset.undo); return; }
+    if (t.dataset.clear) { S[t.dataset.clear].shots = []; paint(t.dataset.clear); return; }
+    if (t.dataset.walk) { addC(); return; }
+    if (t.dataset.hole) { cur = t.dataset.hole; reset(); return; }
+  });
+
+  /* A worked hole, already on the card. An empty mockup makes you imagine the
+     point; a played one shows it. Clear takes it away and you can try it. */
+  function seed() {
+    var h = hole();
+    var par = +(h.par.match(/[0-9]/) || [4])[0];
+    var route = par === 3 ? [[0.93, 0.02], [0.975, 0.004]]
+      : par === 5 ? [[0.52, 0.03], [0.79, -0.05], [0.93, 0.02], [0.965, -0.005], [0.975, 0.001]]
+      : [[0.62, 0.04], [0.94, -0.02], [0.968, 0.004], [0.976, 0]];
+    var clubs = par === 3 ? ['7i', 'Putt'] : par === 5 ? ['Dr', '5w', '9i', 'SW', 'Putt'] : ['Dr', '8i', 'Putt', 'Putt'];
+    var prev = [0, 0];
+    route.forEach(function (pt, i) {
+      S.A.shots.push({ club: clubs[i] || 'Putt', x: pt[0], y: pt[1], note: yards(prev, pt) + ' yds' });
+      S.C.shots.push({ club: clubs[i] || 'Putt', x: pt[0], y: pt[1], acc: 0.013 + (i % 3) * 0.005,
+        note: yards(prev, pt) + ' yds · \u00b1' + (6 + (i % 3) * 3) + ' yds fix' });
+      var left = Math.round((1 - pt[0]) * h.yds / 5) * 5;
+      var lie = i === route.length - 1 ? 'Green' : i === 0 ? 'Fairway' : i === 1 ? 'Right rough' : 'Green';
+      S.B.shots.push({ club: clubs[i] || 'Putt', note: lie + ' \u00b7 ' + left + ' yds left' });
+      prev = pt;
+    });
+    S.B.left = Math.round((1 - route[route.length - 1][0]) * h.yds / 5) * 5;
+  }
+  function reset() {
+    var h = hole();
+    ['A', 'B', 'C'].forEach(function (id) { S[id].shots = []; });
+    S.B.left = Math.round(h.yds * 0.42 / 5) * 5;
+    seed();
+    ['A', 'B', 'C'].forEach(function (id) {
+      document.getElementById('t' + id).textContent = h.name;
+      document.getElementById('s' + id).textContent = h.par.replace('par', 'Par') + ' · ' + h.yds + ' yds';
+    });
+    document.getElementById('holeSel').innerHTML = keys.map(function (k) {
+      return '<button data-hole="' + k + '" class="' + (k === cur ? 'on' : '') + '">' + esc(H[k].name) + ' · ' + esc(H[k].par) + '</button>';
+    }).join('');
+    paint('A'); paint('B'); paint('C');
+  }
+  reset();
+}());
+</script>
+</body>
+</html>
