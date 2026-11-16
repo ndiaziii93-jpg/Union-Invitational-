@@ -6559,11 +6559,12 @@ function stuckPanel() {
     return { g, n: mine.length, why: mine.length ? why(mine[0].detail || '') : '', shut, miss };
   }).filter(r => r.n || r.shut.length || r.miss.length)
     .sort((a, b) => b.n - a.n || b.miss.length - a.miss.length);
+  /* Its own class, not the watch's: the watch is one panel and the tests
+     count it, and a second thing wearing its name made them count two. */
   return `<h3 class="sub" id="stuck">Who the book is turning away</h3>
-  <div class="panel secpanel">
-    <div class="kv"><span class="k">Whose answers are missing<small>Read from the same log as the watch below. A refusal here means their phone wrote something and the server would not take it — what they typed is still on their phone and goes through once the reason is cleared.</small></span>
-      <span class="chiprow"><button class="btn ghost sm" data-act="secRefresh">${secBusy ? 'Looking…' : 'Look now'}</button></span></div>
-    ${!sec ? '<p class="empty">Not read yet — tap Look now.</p>'
+  <div class="panel stuckpanel">
+    <div class="kv"><span class="k">Whose answers are missing<small>Read from the same log as the watch below, so one Look now serves both — two buttons doing one thing is two things to wonder about. A refusal here means their phone wrote something and the server would not take it; what they typed is still on their phone and goes through once the reason is cleared.</small></span></div>
+    ${!sec ? '<p class="empty">Not read yet — tap Look now under Security, just below.</p>'
       : !rows.length ? '<p class="empty">Nobody is stuck. Everyone the book expects has got through.</p>'
       : `<div class="stucks">${rows.map(r => `<div class="stuck${r.n ? ' bad' : ''}">
         <span class="st-w"><b>${esc(r.g.display || r.g.name)}</b>

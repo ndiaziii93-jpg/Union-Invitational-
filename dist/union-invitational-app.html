@@ -2133,7 +2133,7 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
 .loadbar.bad{border-left-color:var(--flag);color:var(--ink)}
 .loadbar.off{border-left-color:var(--gold)}
 /* the watch: refusals, in a list the master can read at a glance */
-.secpanel .sec-sum{margin:8px 0 0;font-size:14px;color:var(--turf)}
+.secpanel .sec-sum,.stuckpanel .sec-sum{margin:8px 0 0;font-size:14px;color:var(--turf)}
 .secpanel .sec-sum.new{color:var(--flag);font-weight:700}
 .seclog{list-style:none;margin:10px 0 0;padding:0;font-size:12.5px;line-height:1.45;color:var(--turf);font-family:var(--mono,ui-monospace,monospace)}
 .seclog li{padding:5px 0;border-top:1px solid var(--rule);word-break:break-word}
@@ -2141,7 +2141,7 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
 .seclog li.ev-direct,.seclog li.ev-blocked,.seclog li.ev-denied{color:var(--flag)}
 .seclog li.ev-signin{opacity:.7}
 /* on a phone the watch's words and its buttons stack: side by side the words were a column four letters wide */
-@media (max-width:699px){ .secpanel > .kv,.mpanel > .kv{grid-template-columns:1fr} .secpanel > .kv .chiprow,.mpanel > .kv .chiprow{justify-self:start} }
+@media (max-width:699px){ .secpanel > .kv,.stuckpanel > .kv,.mpanel > .kv{grid-template-columns:1fr} .secpanel > .kv .chiprow,.stuckpanel > .kv .chiprow,.mpanel > .kv .chiprow{justify-self:start} }
 /* a card's history: when, who, what moved, and the way back */
 .histlist{list-style:none;margin:10px 0 0;padding:0}
 .histlist li{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:9px 0;border-top:1px solid var(--rule);align-items:center}
@@ -6292,7 +6292,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261116-1650';
+const BUILD = '20261116-1744';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -21821,11 +21821,12 @@ function stuckPanel() {
     return { g, n: mine.length, why: mine.length ? why(mine[0].detail || '') : '', shut, miss };
   }).filter(r => r.n || r.shut.length || r.miss.length)
     .sort((a, b) => b.n - a.n || b.miss.length - a.miss.length);
+  /* Its own class, not the watch's: the watch is one panel and the tests
+     count it, and a second thing wearing its name made them count two. */
   return `<h3 class="sub" id="stuck">Who the book is turning away</h3>
-  <div class="panel secpanel">
-    <div class="kv"><span class="k">Whose answers are missing<small>Read from the same log as the watch below. A refusal here means their phone wrote something and the server would not take it — what they typed is still on their phone and goes through once the reason is cleared.</small></span>
-      <span class="chiprow"><button class="btn ghost sm" data-act="secRefresh">${secBusy ? 'Looking…' : 'Look now'}</button></span></div>
-    ${!sec ? '<p class="empty">Not read yet — tap Look now.</p>'
+  <div class="panel stuckpanel">
+    <div class="kv"><span class="k">Whose answers are missing<small>Read from the same log as the watch below, so one Look now serves both — two buttons doing one thing is two things to wonder about. A refusal here means their phone wrote something and the server would not take it; what they typed is still on their phone and goes through once the reason is cleared.</small></span></div>
+    ${!sec ? '<p class="empty">Not read yet — tap Look now under Security, just below.</p>'
       : !rows.length ? '<p class="empty">Nobody is stuck. Everyone the book expects has got through.</p>'
       : `<div class="stucks">${rows.map(r => `<div class="stuck${r.n ? ' bad' : ''}">
         <span class="st-w"><b>${esc(r.g.display || r.g.name)}</b>
