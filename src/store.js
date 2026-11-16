@@ -199,6 +199,7 @@ export function createStore(onChange) {
   const notify = () => {
     keepLocal();                 // the device keeps its own copy of whatever it knows
     onChange(T, { ready, mode, status, saveState, lastSavedAt, settled, backend, fromDevice, localAt, deniedAt, deniedPath, lowPower,
+      pinHeld: (() => { try { return db && db.pinWaiting ? db.pinWaiting() : 0; } catch (e) { return 0; } })(),
                   /* the phone's own log waits too, but nobody is waiting for it */
                   pending: ((db && db.pendingPaths) ? db.pendingPaths() : []).filter(x => !x.startsWith('diag/')).length,
                   waiting: (db && db.pendingPaths) ? db.pendingPaths() : [],

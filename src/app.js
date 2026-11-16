@@ -201,12 +201,17 @@ let deniedSeen = 0;
 function checkRole() {
   /* a post, bet or note the server would not sign: this phone must prove
      its name again — the PIN may never have been kept here, or was cleared */
-  if (store && store.backend === 'supabase' && meta.deniedAt && meta.deniedAt > deniedSeen && /^(chat|market|notes)\//.test(meta.deniedPath || '')) {
+  /* THE SIGN-UP WAS NOT ON THIS LIST, AND SIX PEOPLE PAID FOR IT. A post or
+     a bet refused for a name PIN asked for the PIN; a club row — a sign-up,
+     a shirt size, a card — did not, so it failed in silence and the phone
+     went on showing what the server had refused. Every row a name writes
+     asks the same question now. */
+  if (store && store.backend === 'supabase' && meta.deniedAt && meta.deniedAt > deniedSeen && /^(chat|market|notes|club)\//.test(meta.deniedPath || '')) {
     deniedSeen = meta.deniedAt;
     const me = whoAmI();
     if (me && !isGuest(me) && !(UI.modal && UI.modal.kind === 'whopin')) {
       UI.modal = { kind: 'whopin', pid: me, back: UI.modal && UI.modal.kind ? UI.modal.kind : null, mode: pinOf(me) ? 'enter' : 'set', a: '', b: '',
-        err: 'The book needs the PIN for your name before it will take that. Anything you posted is kept and goes through once it has it.' };
+        err: 'The book needs the PIN for your name before it will take that. Nothing you entered is lost — it is kept on this phone and goes through the moment the PIN is accepted.' };
     }
     return;
   }
@@ -9771,9 +9776,16 @@ function paint() {
      refused tee time look like a control that "resets itself", and a refused
      Open round look like a button that does nothing. */
   const pend = meta.pending || 0;
+  /* A WRITE HELD FOR A PIN IS NOT WAITING FOR A SIGNAL, and saying so was
+     the whole of the problem: people read "waiting for signal", assumed the
+     book had it, and walked away. It says what is actually wrong now. */
+  const held = meta.pinHeld || 0;
   const bad = !pend && (meta.status === 'error' || meta.saveState === 'error');
-  const dot = pend ? 'wait' : bad ? 'err' : meta.status === 'live' ? 'live' : '';
-  const statusText = pend
+  const dot = held ? 'err' : pend ? 'wait' : bad ? 'err' : meta.status === 'live' ? 'live' : '';
+  const statusText = held
+    ? (held === 1 ? 'One change is' : held + ' changes are') + ' waiting for the PIN for your name — nothing is lost, but the book has not got it yet. '
+      + 'Tap your name below to enter it.'
+    : pend
     ? (pend === 1 ? 'One change' : pend + ' changes') + ' waiting for signal — kept on this phone, sent the moment it finds one'
     : bad
     ? (loaded() ? 'Save failed — your last change may not have reached the others'

@@ -211,6 +211,39 @@ export function createSupabaseDb(opts) {
     say('queued');
     armRetry();
   }
+  /* ---- A WRITE HELD BACK FOR A PIN ----
+     A refusal for a PIN is not a refusal for a signal, and it was being
+     treated as one: the entry stayed in the outbox and went again on every
+     flush, which is how six people's phones each earned ten refusals in ten
+     minutes and shut themselves out for a day. It is marked instead, and sits
+     still until somebody actually confirms a PIN. */
+  /* The mark goes on at the moment of the refusal, not on the next flush:
+     a held entry is never flushed again, so waiting for one to mark it left
+     the entry unmarked for good and the screen counting nothing. */
+  let pinFresh = false;          // a PIN was just confirmed: the held writes get one more go
+  function markPin(path) {
+    const q = readOutbox(); if (!q[path]) return;
+    q[path].pin = true; writeOutbox(q);
+  }
+  function clearPinMarks() {
+    const q = readOutbox(); let n = 0;
+    for (const k of Object.keys(q)) if (q[k].pin) { delete q[k].pin; n++; }
+    if (n) writeOutbox(q);
+  }
+  function pinWaiting() {
+    const q = readOutbox();
+    return Object.keys(q).filter(k => q[k] && q[k].pin).length;
+  }
+  /* A WRITE THAT LANDED IS PROOF THE PIN IS GOOD NOW. Holding until somebody
+     confirms a PIN was too strict on its own: a phone shut out for a day gets
+     the same refusal, and when the block lifts nobody touches the PIN, so the
+     held writes would have waited for ever. Anything getting through releases
+     them — and while everything is being refused, nothing is released, which
+     is the part that stops a phone shutting itself out. */
+  function releaseHeld() {
+    if (!pinWaiting()) return;
+    clearPinMarks(); pinFresh = true; armRetry(true);
+  }
   function unqueue(path, stamp) {
     const q = readOutbox();
     if (q[path] && q[path].at === stamp) { delete q[path]; writeOutbox(q); }
@@ -282,18 +315,23 @@ export function createSupabaseDb(opts) {
       const paths = Object.keys(q);
       if (!paths.length) return;
       let stuck = false;
+      const fresh = pinFresh; pinFresh = false;
       for (const path of paths) {
         const job = q[path];
+        /* held for a PIN: it goes when a PIN is confirmed, not when a signal
+           returns, and sending it again before then only earns another
+           refusal against this phone */
+        if (job.pin && !fresh) continue;
         const done = job.op === 'delete' ? await rawDelete(path, true)
                    : job.op === 'bbb' ? await rawBbb(job.doc, true)
                    : job.op === 'score' ? await rawScore(job.doc, true)
                                       : await rawWrite(path, job.doc, job.op === 'merge', true);
         /* 'denied' first: it is a word, and a word is truthy, so it used to
            read as landed and the write was thrown out of the outbox */
-        if (done === 'denied') continue;    // waits for a PIN, not for a signal: the rest of the queue goes
+        if (done === 'denied') { markPin(path); continue; }   // waits for a PIN: held, not retried
         if (done || done === null) {
           if (job.op === 'score' && done) unqueueCells(path, job); else unqueue(path, job.at);
-          if (done) say('landed', path);
+          if (done) { say('landed', path); releaseHeld(); }
           /* turned down on the way out: the screen has been showing a write
              the book will never hold, so read what the book does hold */
           else pull({ eq: path }).then(rows => { if (rows.length) absorb(rows[0]); else forget(path); }).catch(() => {});
@@ -338,9 +376,10 @@ export function createSupabaseDb(opts) {
          network to display what the ref just wrote. */
       absorbLocal(path, merge ? { ...(((cache.get(path) || {}).doc) || {}), ...doc } : doc);
       say('saved');
+      if (!fromOutbox) releaseHeld();
       return true;
     } catch (e) {
-      if (denied(e)) { if (!fromOutbox) queue(path, merge ? 'merge' : 'set', doc); say('denied', path); return fromOutbox ? 'denied' : false; }
+      if (denied(e)) { if (!fromOutbox) { queue(path, merge ? 'merge' : 'set', doc); markPin(path); } say('denied', path); return fromOutbox ? 'denied' : false; }
       if (refused(e)) { say('refused'); return fromOutbox ? null : false; }
       if (!fromOutbox) queue(path, merge ? 'merge' : 'set', doc);
       say('offline');
@@ -378,7 +417,7 @@ export function createSupabaseDb(opts) {
     } catch (e) {
       /* no bbb_mark on the server, or the first one, which took only t-groups: the row, as before */
       if (noGate(e) || /for that row|not a bingo row/.test(String(e && e.message || ''))) return fromOutbox ? bbbByRow(m, true) : 'nogate';
-      if (denied(e)) { if (!fromOutbox) queue(key, 'bbb', m); say('denied', 'bbb/' + m.rid); return fromOutbox ? 'denied' : false; }
+      if (denied(e)) { if (!fromOutbox) { queue(key, 'bbb', m); markPin(key); } say('denied', 'bbb/' + m.rid); return fromOutbox ? 'denied' : false; }
       if (refused(e)) { say('refused'); return fromOutbox ? null : false; }
       if (!fromOutbox) queue(key, 'bbb', m);
       say('offline');
@@ -426,7 +465,7 @@ export function createSupabaseDb(opts) {
     } catch (e) {
       flying.delete(key);
       if (noGate(e) || /not a score card/.test(String(e && e.message || ''))) return fromOutbox ? scoreByRow(m, true) : 'nogate';
-      if (denied(e)) { if (!fromOutbox) queue(key, 'score', m); say('denied', path); return fromOutbox ? 'denied' : false; }
+      if (denied(e)) { if (!fromOutbox) { queue(key, 'score', m); markPin(key); } say('denied', path); return fromOutbox ? 'denied' : false; }
       if (refused(e)) { say('refused'); return fromOutbox ? null : false; }
       if (!fromOutbox) queue(key, 'score', m);
       say('offline');
@@ -453,7 +492,7 @@ export function createSupabaseDb(opts) {
       say('saved');
       return true;
     } catch (e) {
-      if (denied(e)) { if (!fromOutbox) queue(path, 'delete'); say('denied', path); return fromOutbox ? 'denied' : false; }
+      if (denied(e)) { if (!fromOutbox) { queue(path, 'delete'); markPin(path); } say('denied', path); return fromOutbox ? 'denied' : false; }
       if (refused(e)) { say('refused'); return fromOutbox ? null : false; }
       if (!fromOutbox) queue(path, 'delete');
       say('offline');
@@ -621,7 +660,8 @@ export function createSupabaseDb(opts) {
       return true;
     },
     /** A PIN just arrived on this phone: anything that waited for one goes now. */
-    pinChanged() { if (waiting.size) armRetry(true); },
+    pinChanged() { clearPinMarks(); pinFresh = true; if (waiting.size) armRetry(true); },
+    pinWaiting,
     /** Take a name with a four-digit PIN. Throws 'taken' if it already has one. */
     /** A person not on the roster adds themselves as a golfer, with their PIN: resolves to the new id. */
     async clubJoin(name, division, p) {
