@@ -5059,7 +5059,18 @@ html.kbd .chatsheet .ch-bub{padding:6px 11px 7px}
 .btn.cfoot{display:block;width:100%;margin-top:12px;min-height:48px;font-size:16px}
 
 /* the pad closes after a score; the next golfer without one glows */
-.prow.nextup{box-shadow:0 0 0 2px var(--gold-up);border-radius:14px;animation:nextglow 1.6s ease-in-out 6}   /* six breaths, then the still gold ring: a shadow animated all round is a screen repainted all round */
+/* A RING NEEDS ROOM INSIDE IT. A .prow is a row in a list, divided from the
+   next by a rule, so it carries no padding down its sides — which is right
+   for a rule and wrong for a box. Drawn round it, the ring sat hard against
+   the name and the handicap line under it. So the ringed row takes its own
+   inset and is pulled back out by the same amount, keeping it flush with
+   every other row on the screen; the same inset .prow.sel uses, so a row
+   that is both does not jump. The ring stands less proud than the padding
+   inside it, because on a phone the column has only sixteen points of air
+   to its left and a ring pulled the whole way out sits hard on the edge of
+   the screen — which is the same fault one step further out. */
+.prow.nextup{box-shadow:0 0 0 2px var(--gold-up);border-radius:14px;
+  margin:0 -6px;padding:15px 16px;animation:nextglow 1.6s ease-in-out 6}   /* six breaths, then the still gold ring: a shadow animated all round is a screen repainted all round */
 @keyframes nextglow{50%{box-shadow:0 0 0 4px color-mix(in srgb,var(--gold-up) 55%,transparent)}}
 @media (prefers-reduced-motion:reduce){.prow.nextup{animation:none}}
 .nexttag{display:inline-block;margin:2px 0 0;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:800;color:var(--gold)}
@@ -6270,7 +6281,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261116-1904';
+const BUILD = '20261116-1909';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
