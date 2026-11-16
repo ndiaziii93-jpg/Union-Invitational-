@@ -856,6 +856,44 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 .h3pin{position:absolute;transform:translate(-50%,-100%);background:var(--page);color:var(--ink);font-weight:900;font-size:16px;line-height:1;
   padding:6px 9px 5px;border-radius:9px;box-shadow:0 3px 10px rgba(16,22,17,.3);font-variant-numeric:tabular-nums;letter-spacing:-.01em;white-space:nowrap}
 .h3pin::after{content:"";position:absolute;left:50%;bottom:-9px;margin-left:-9px;border:9px solid transparent;border-top-color:var(--onpine);border-bottom:0}
+/* a hole with shots written on it, on the entry strip */
+.hcell{position:relative}
+.hcell .sdot{position:absolute;top:2px;right:2px;min-width:13px;height:13px;border-radius:999px;
+  background:var(--gold-up);color:#23331F;font-size:9px;font-weight:800;line-height:13px;text-align:center;
+  padding:0 2px;font-variant-numeric:tabular-nums}
+/* ---- a shot on the glass ----
+   The pin carries the number of the shot and what it was hit with, so a
+   track reads as a round rather than a row of dots. Dark against the grass,
+   where the yardage pins are light, because these are the golfer's own. */
+.h3shot{position:absolute;transform:translate(-50%,-100%);background:var(--pine);color:var(--onpine);
+  border:2px solid var(--page);border-radius:999px;padding:3px 9px 3px 4px;display:flex;align-items:center;gap:6px;
+  box-shadow:0 3px 9px rgba(16,22,17,.38);white-space:nowrap;pointer-events:none}
+.h3shot b{display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border-radius:50%;
+  background:var(--gold-up);color:#23331F;font-size:11px;font-weight:900;line-height:1;font-variant-numeric:tabular-nums}
+.h3shot span{font-size:11px;font-weight:700;letter-spacing:.01em}
+.h3shot::after{content:"";position:absolute;left:50%;bottom:-7px;margin-left:-6px;
+  border:6px solid transparent;border-top-color:var(--page);border-bottom:0}
+/* while shots are being written, the glass says so */
+.h3live.picking{cursor:crosshair}
+.h3live.picking .h3canvas{box-shadow:inset 0 0 0 2px var(--gold-up)}
+/* the bar along the foot: the club, and what to do with the last one */
+/* It sits ABOVE the hole's own dock rather than over it: the dock carries the
+   band, the par and the yardage, and a bar laid across those made the glass
+   unreadable at exactly the moment a golfer is using it. */
+.h3shotbar{position:absolute;left:14px;right:14px;z-index:4;
+  bottom:calc(max(16px,env(safe-area-inset-bottom,0px) + 10px) + 80px);
+  padding:8px 10px 9px;border-radius:18px;
+  background:rgba(16,22,17,.88);backdrop-filter:blur(6px);
+  box-shadow:0 8px 24px rgba(16,22,17,.34);display:grid;gap:7px}
+.h3sb-row{display:flex;gap:5px;overflow-x:auto;min-width:0;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.h3sb-row::-webkit-scrollbar{display:none}
+.h3club{flex:0 0 auto;border:1px solid rgba(239,233,216,.4);border-radius:999px;padding:5px 11px;
+  font-size:13px;font-weight:700;color:var(--onpine);background:rgba(16,22,17,.4)}
+.h3club.on{background:var(--gold-up);color:#23331F;border-color:var(--gold-up)}
+.h3sb-foot{display:flex;align-items:center;gap:8px;justify-content:space-between}
+.h3sb-foot span{font-size:11.5px;color:var(--onpine);opacity:.92;font-weight:600}
+.h3sb-foot button{border:1px solid rgba(239,233,216,.45);border-radius:999px;padding:4px 11px;
+  font-size:12px;font-weight:700;color:var(--onpine)}
 .h3gcard{position:absolute;transform:translate(-50%,-100%);background:var(--pine);color:var(--onpine);border-radius:11px;padding:7px 12px 6px;text-align:center;
   box-shadow:0 5px 14px rgba(16,22,17,.4);border:2px solid var(--page);display:grid;grid-template-columns:auto auto auto;gap:0 12px}
 .h3gcard small{display:block;font-size:7.5px;font-weight:700;line-height:1;color:var(--sage-up);letter-spacing:.12em;text-transform:uppercase;margin-top:3px}

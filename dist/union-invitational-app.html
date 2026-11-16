@@ -806,6 +806,44 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 .h3pin{position:absolute;transform:translate(-50%,-100%);background:var(--page);color:var(--ink);font-weight:900;font-size:16px;line-height:1;
   padding:6px 9px 5px;border-radius:9px;box-shadow:0 3px 10px rgba(16,22,17,.3);font-variant-numeric:tabular-nums;letter-spacing:-.01em;white-space:nowrap}
 .h3pin::after{content:"";position:absolute;left:50%;bottom:-9px;margin-left:-9px;border:9px solid transparent;border-top-color:var(--onpine);border-bottom:0}
+/* a hole with shots written on it, on the entry strip */
+.hcell{position:relative}
+.hcell .sdot{position:absolute;top:2px;right:2px;min-width:13px;height:13px;border-radius:999px;
+  background:var(--gold-up);color:#23331F;font-size:9px;font-weight:800;line-height:13px;text-align:center;
+  padding:0 2px;font-variant-numeric:tabular-nums}
+/* ---- a shot on the glass ----
+   The pin carries the number of the shot and what it was hit with, so a
+   track reads as a round rather than a row of dots. Dark against the grass,
+   where the yardage pins are light, because these are the golfer's own. */
+.h3shot{position:absolute;transform:translate(-50%,-100%);background:var(--pine);color:var(--onpine);
+  border:2px solid var(--page);border-radius:999px;padding:3px 9px 3px 4px;display:flex;align-items:center;gap:6px;
+  box-shadow:0 3px 9px rgba(16,22,17,.38);white-space:nowrap;pointer-events:none}
+.h3shot b{display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border-radius:50%;
+  background:var(--gold-up);color:#23331F;font-size:11px;font-weight:900;line-height:1;font-variant-numeric:tabular-nums}
+.h3shot span{font-size:11px;font-weight:700;letter-spacing:.01em}
+.h3shot::after{content:"";position:absolute;left:50%;bottom:-7px;margin-left:-6px;
+  border:6px solid transparent;border-top-color:var(--page);border-bottom:0}
+/* while shots are being written, the glass says so */
+.h3live.picking{cursor:crosshair}
+.h3live.picking .h3canvas{box-shadow:inset 0 0 0 2px var(--gold-up)}
+/* the bar along the foot: the club, and what to do with the last one */
+/* It sits ABOVE the hole's own dock rather than over it: the dock carries the
+   band, the par and the yardage, and a bar laid across those made the glass
+   unreadable at exactly the moment a golfer is using it. */
+.h3shotbar{position:absolute;left:14px;right:14px;z-index:4;
+  bottom:calc(max(16px,env(safe-area-inset-bottom,0px) + 10px) + 80px);
+  padding:8px 10px 9px;border-radius:18px;
+  background:rgba(16,22,17,.88);backdrop-filter:blur(6px);
+  box-shadow:0 8px 24px rgba(16,22,17,.34);display:grid;gap:7px}
+.h3sb-row{display:flex;gap:5px;overflow-x:auto;min-width:0;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.h3sb-row::-webkit-scrollbar{display:none}
+.h3club{flex:0 0 auto;border:1px solid rgba(239,233,216,.4);border-radius:999px;padding:5px 11px;
+  font-size:13px;font-weight:700;color:var(--onpine);background:rgba(16,22,17,.4)}
+.h3club.on{background:var(--gold-up);color:#23331F;border-color:var(--gold-up)}
+.h3sb-foot{display:flex;align-items:center;gap:8px;justify-content:space-between}
+.h3sb-foot span{font-size:11.5px;color:var(--onpine);opacity:.92;font-weight:600}
+.h3sb-foot button{border:1px solid rgba(239,233,216,.45);border-radius:999px;padding:4px 11px;
+  font-size:12px;font-weight:700;color:var(--onpine)}
 .h3gcard{position:absolute;transform:translate(-50%,-100%);background:var(--pine);color:var(--onpine);border-radius:11px;padding:7px 12px 6px;text-align:center;
   box-shadow:0 5px 14px rgba(16,22,17,.4);border:2px solid var(--page);display:grid;grid-template-columns:auto auto auto;gap:0 12px}
 .h3gcard small{display:block;font-size:7.5px;font-weight:700;line-height:1;color:var(--sage-up);letter-spacing:.12em;text-transform:uppercase;margin-top:3px}
@@ -6223,7 +6261,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261116-1011';
+const BUILD = '20261116-1108';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -10020,7 +10058,7 @@ function create(mount, m, opts = {}) {
   const { at, nrm, LEN, points } = S;
   const tp = points.tee, bunkerPts = points.bunkers;
   const state = { units: opts.units || 'yd', me: opts.me || null, flat: !!opts.flat, labels: opts.labels !== false,
-    focus: 0.5, zoom: 1, ox: 0, target: null, dirty: true, dead: false };
+    focus: 0.5, zoom: 1, ox: 0, target: null, dirty: true, dead: false, pick: false };
 
   const el = document.createElement('div'); el.className = 'h3live';
   const canvas = document.createElement('canvas'); canvas.className = 'h3canvas'; el.appendChild(canvas);
@@ -10045,6 +10083,27 @@ function create(mount, m, opts = {}) {
   const mk = (cls) => { const e = document.createElement('div'); e.className = cls; layer.appendChild(e); return e; };
   const gcard = mk('h3gcard'), tgt = mk('h3tgt'), tcard = mk('h3tcard'), me = mk('h3me'), gline = mk('h3gline');
   const bpins = bunkerPts.map(() => mk('h3pin'));
+  /* ---- the shots, when a round is being written ----
+     The pins are DOM, like every other label on the glass, because they carry
+     a number and must stay the same size however far away the ground is. The
+     track between them is in the scene itself: it lies on the ground and so
+     has to bend with the camera, which a flat overlay cannot do. */
+  let shotList = [];
+  const shotPins = [];
+  let track = null;
+  function shotPin(i) { while (shotPins.length <= i) shotPins.push(mk('h3shot')); return shotPins[i]; }
+  function rebuildTrack() {
+    if (track) { S.sc.remove(track); track.geometry.dispose(); track.material.dispose(); track = null; }
+    if (!shotList.length) return;
+    const pts = [new T3.Vector3(tp.x, 0.7, tp.z)]
+      .concat(shotList.map(p => new T3.Vector3(p.x, 0.7, p.z)));
+    const g = new T3.BufferGeometry().setFromPoints(pts);
+    track = new T3.Line(g, new T3.LineDashedMaterial({ color: 0xF2ECDB, dashSize: 7, gapSize: 5,
+      transparent: true, opacity: 0.95, depthTest: false }));
+    track.computeLineDistances();
+    track.renderOrder = 6;
+    S.sc.add(track);
+  }
   const dist = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
   /* The units pill belongs to the window around the ground, not to the ground,
      so it is looked up rather than held: the window is rebuilt on every redraw
@@ -10077,6 +10136,11 @@ function create(mount, m, opts = {}) {
     const u = state.units, o = from();
     gcard.innerHTML = `<div><i>${fmt(dist(o, points.gFront), u)}</i><small>Front</small></div><div><b>${fmt(dist(o, points.gMid), u)}</b><small>Middle</small></div><div><i>${fmt(dist(o, points.gBack), u)}</i><small>Back</small></div>`;
     bpins.forEach((e, i) => { e.textContent = fmt(dist(o, bunkerPts[i]), u); });
+    shotList.forEach((p, i) => {
+      const prev = i ? shotList[i - 1] : { x: tp.x, z: tp.z };
+      const d = Math.sqrt((p.x - prev.x) * (p.x - prev.x) + (p.z - prev.z) * (p.z - prev.z));
+      shotPin(i).innerHTML = '<b>' + (i + 1) + '</b><span>' + (p.club || '') + ' · ' + fmt(d, u) + '</span>';
+    });
     if (state.target) tcard.innerHTML = `<small>${fmt(dist(state.target, points.gMid), u)} to the green</small><b>${fmt(dist(o, state.target), u)}</b>`;
   }
   function lay() {
@@ -10107,11 +10171,20 @@ function create(mount, m, opts = {}) {
       }
     }
     bpins.forEach((e, i) => place(e, proj(bunkerPts[i]), -2, show));
+    shotPins.forEach((e, i) => {
+      if (i >= shotList.length) { e.style.display = 'none'; return; }
+      place(e, proj(new T3.Vector3(shotList[i].x, 0, shotList[i].z)), -10, true);
+    });
     /* A hole whose sand runs in a line puts its pins one on top of another, and
        on top of the green's three numbers. The green card is the one a golfer
        came for, so it keeps its place and a pin that lands on it stands down;
        so does a pin that lands on a pin already standing. */
-    declutter(gcard.style.display !== 'none' ? gcard : null, bpins);
+    /* WHILE SHOTS ARE BEING WRITTEN THEY OUTRANK EVERYTHING. A bunker's
+       carry, and even the green's own card, can be read again in a second;
+       the pin on the ball you just put down is the thing being looked at.
+       Any other time the green card wins, as it always has. */
+    if (state.pick) declutter(null, shotPins.concat([gcard], bpins));
+    else declutter(gcard.style.display !== 'none' ? gcard : null, bpins);
     if (state.target) { const q = proj(state.target); place(tgt, q, 0, true); place(tcard, q, -12, show); }
     else { tgt.style.display = 'none'; tcard.style.display = 'none'; }
     place(me, proj(from()), 0, !!state.me);
@@ -10150,6 +10223,10 @@ function create(mount, m, opts = {}) {
     const b = el.getBoundingClientRect();
     ray.setFromCamera(new T3.Vector2(((e.clientX - b.left) / b.width) * 2 - 1, -((e.clientY - b.top) / b.height) * 2 + 1), cam);
     const hit = new T3.Vector3(); if (!ray.ray.intersectPlane(ground, hit)) return;
+    /* WHILE A ROUND IS BEING WRITTEN THE TAP MEANS SOMETHING ELSE. The same
+       ray onto the same ground, but it says "the ball finished here" rather
+       than "I am aiming there". Nothing else about the window changes. */
+    if (state.pick) { if (opts.onPick) opts.onPick({ x: hit.x, z: hit.z }); return; }
     state.target = state.target && dist(state.target, hit) < 6 ? null : hit;   // a tap on the target lifts it
     dress(); touch();
     if (opts.onTarget) opts.onTarget(state.target);
@@ -10164,11 +10241,18 @@ function create(mount, m, opts = {}) {
     setUnits(u) { state.units = u === 'm' ? 'm' : 'yd'; dress(); touch(); },
     setMe(p) { state.me = p || null; dress(); touch(); },
     setFlat(b) { state.flat = !!b; touch(); },
+    setPick(on) { state.pick = !!on; el.classList.toggle('picking', !!on); },
+    setShots(list) {
+      shotList = Array.isArray(list) ? list.slice(0, 40) : [];
+      rebuildTrack(); dress(); touch();
+    },
     setLabels(b) { state.labels = b !== false; touch(); },
     focusMe() { const o = from(); let best = 0, bd = 1e9; for (let i = 0; i <= 50; i++) { const d = dist(at(i / 50), o); if (d < bd) { bd = d; best = i / 50; } } state.focus = best; state.ox = 0; state.zoom = 1; touch(); },
     fit() { state.focus = 0.5; state.ox = 0; state.zoom = fitZoom(LEN, W / Hh); touch(); },
     refresh() { W = 0; touch(); },
-    dispose() { state.dead = true; if (raf) cancelAnimationFrame(raf); try { r.dispose(); S.dispose(); } catch (e) { /* already gone */ } if (el.parentNode) el.parentNode.removeChild(el); },
+    dispose() { state.dead = true; if (raf) cancelAnimationFrame(raf);
+      try { if (track) { S.sc.remove(track); track.geometry.dispose(); track.material.dispose(); track = null; } } catch (e) { /* already gone */ }
+      try { r.dispose(); S.dispose(); } catch (e) { /* already gone */ } if (el.parentNode) el.parentNode.removeChild(el); },
   };
 }
 
@@ -12278,6 +12362,103 @@ function rounds(T, pid) {
   return out.sort((a, b) => String(a.date).localeCompare(String(b.date)) || (a.card.at || 0) - (b.card.at || 0));
 }
 
+/* ---------- shots ----------
+   A shot is two things: the club, and where the ball finished. Where is kept
+   in the hole's OWN frame — metres from the tee, the same frame the 3D view
+   measures its distances in — so it means the same thing whoever is looking
+   and whatever the phone's screen is doing.
+
+   On the card it is written tight: [clubIndex, x*10, z*10], one array a shot,
+   keyed by the hole. A finished card with a photograph on it is 794
+   characters and the server will take 4000; ninety shots in this shape cost
+   about 1.3 KB, so a whole round of them still fits with room to spare. That
+   is why it is indexes and tenths rather than names and decimals.
+
+   SHOT_CLUBS IS APPEND-ONLY, AND THE REASON IS IN THE LINE ABOVE. The index
+   is what gets written down. Move a club in this list and every shot anybody
+   has ever posted changes club. Add to the end, never reorder, never remove. */
+const SHOT_CLUBS = ['Dr', '3w', '5w', '7w', 'Hy', '2i', '3i', '4i', '5i', '6i',
+  '7i', '8i', '9i', 'PW', 'GW', 'SW', 'LW', 'Putt'];
+const clubName = i => SHOT_CLUBS[i] || '?';
+const clubIndex = n => { const i = SHOT_CLUBS.indexOf(n); return i < 0 ? 0 : i; };
+/** No hole takes more than this many; a blow-up is still a hole, not a novel. */
+const SHOTS_MAX = 15;
+const YARDS = 1.09361;
+
+/** The shots written on one hole of a card, in the order they were played. */
+function shotsOf(card, h) {
+  const row = card && card.shots && card.shots[String(h)];
+  if (!Array.isArray(row)) return [];
+  return row.filter(a => Array.isArray(a) && a.length >= 3)
+    .map(a => ({ ci: a[0] | 0, club: clubName(a[0] | 0), x: a[1] / 10, z: a[2] / 10 }));
+}
+/** Every shot on the card, hole by hole. */
+function allShots(card) {
+  const out = [];
+  for (let h = 0; h < 18; h++) for (const s of shotsOf(card, h)) out.push({ ...s, h });
+  return out;
+}
+const shotCount = card => allShots(card).length;
+/** How far apart two points on the ground are, in metres. */
+const shotGap = (a, b) => Math.round(Math.sqrt((a.x - b.x) * (a.x - b.x) + (a.z - b.z) * (a.z - b.z)) * 10) / 10;
+const toYards = m => Math.round(m * YARDS);
+
+/* The three writers. Each returns a NEW shots map rather than touching the
+   card, because the card is written whole and a half-changed one in the
+   outbox is a card nobody can explain. */
+function withShot(card, h, ci, x, z) {
+  const map = { ...((card && card.shots) || {}) };
+  const row = (map[String(h)] || []).slice();
+  if (row.length >= SHOTS_MAX) return map;
+  row.push([ci | 0, Math.round(x * 10), Math.round(z * 10)]);
+  map[String(h)] = row;
+  return map;
+}
+function withoutLastShot(card, h) {
+  const map = { ...((card && card.shots) || {}) };
+  const row = (map[String(h)] || []).slice();
+  row.pop();
+  if (row.length) map[String(h)] = row; else delete map[String(h)];
+  return map;
+}
+function withoutHoleShots(card, h) {
+  const map = { ...((card && card.shots) || {}) };
+  delete map[String(h)];
+  return map;
+}
+
+/* ---------- what the shots are worth ----------
+   The one figure that means something early: how far each club actually
+   goes. A club needs a few swings behind it before its average is worth
+   printing, and the putter is not a distance at all. */
+const CLUB_MIN = 3;
+function clubDistances(T, pid) {
+  const hit = {};
+  for (const r of rounds(T, pid)) {
+    const card = r.card;
+    if (!card || !card.shots) continue;
+    for (let h = 0; h < 18; h++) {
+      const ss = shotsOf(card, h);
+      if (!ss.length) continue;
+      let prev = { x: 0, z: 0 };
+      for (const s of ss) {
+        const d = shotGap(prev, s);
+        prev = s;
+        if (s.club === 'Putt' || d < 5) continue;
+        (hit[s.club] = hit[s.club] || []).push(d);
+      }
+    }
+  }
+  return SHOT_CLUBS.map(c => {
+    const l = hit[c] || [];
+    if (l.length < CLUB_MIN) return null;
+    const sorted = l.slice().sort((a, b) => a - b);
+    const mean = l.reduce((a, b) => a + b, 0) / l.length;
+    return { club: c, n: l.length, yds: toYards(mean),
+      low: toYards(sorted[0]), high: toYards(sorted[sorted.length - 1]) };
+  }).filter(Boolean);
+}
+
 /* ---------- the Union handicap ----------
    Seeded by the Belek band. Each posted round leaves a differential: the
    handicap it was played off plus how far the points fell short of the two
@@ -12675,7 +12856,7 @@ function csvTravel(T) {
   return csv(rows);
 }
 
-return {STOPS_SEED, PACKAGES_SEED, MERIT, VENDORS_SEED, seasonDefaults, season, phaseOf, frozen, isoToday, daysBetween, fmtDay, dowOf, stopState, stops, stopById, openStops, nextStop, closedStops, currentStop, golfers, everyone, person, COURSE_LIB, courseLibrary, courseFind, courseFrom, courseSlug, courseAsBook, blankCourse, courseOf, courseOk, coursePar, cardKey, cardOf, blankClubCard, hcardKey, hcardOf, newRid, blankHcpCard, hcardsOf, capFor, holePts, cardTotals, stopBoard, stopWinner, merit, rounds, HCP_MIN_HOLES, diffOf, countsForHcp, scoringRounds, unionHcp, playingOf, DIVISIONS, divisionOf, divisionLabel, signupOf, travelOf, moneyOf, packageOf, field, ledger, fmtMoney, lineOf, dials, BERTS, bertById, bertForStop, profileOf, bertOf, faceOf, CARD_MIN, playerStats, csv, csvHeadcount, csvRooms, csvTravel};
+return {STOPS_SEED, PACKAGES_SEED, MERIT, VENDORS_SEED, seasonDefaults, season, phaseOf, frozen, isoToday, daysBetween, fmtDay, dowOf, stopState, stops, stopById, openStops, nextStop, closedStops, currentStop, golfers, everyone, person, COURSE_LIB, courseLibrary, courseFind, courseFrom, courseSlug, courseAsBook, blankCourse, courseOf, courseOk, coursePar, cardKey, cardOf, blankClubCard, hcardKey, hcardOf, newRid, blankHcpCard, hcardsOf, capFor, holePts, cardTotals, stopBoard, stopWinner, merit, rounds, SHOT_CLUBS, clubName, clubIndex, SHOTS_MAX, YARDS, shotsOf, allShots, shotCount, shotGap, toYards, withShot, withoutLastShot, withoutHoleShots, CLUB_MIN, clubDistances, HCP_MIN_HOLES, diffOf, countsForHcp, scoringRounds, unionHcp, playingOf, DIVISIONS, divisionOf, divisionLabel, signupOf, travelOf, moneyOf, packageOf, field, ledger, fmtMoney, lineOf, dials, BERTS, bertById, bertForStop, profileOf, bertOf, faceOf, CARD_MIN, playerStats, csv, csvHeadcount, csvRooms, csvTravel};
 })();
 
 const __m_dbsupa = (function(){
@@ -23682,7 +23863,8 @@ function scrClubEntry() {
   <div class="entryhd">
     <div class="ehd-facts"><span class="ehd-n num">${h + 1}</span><span class="ehd-l">Hole</span><span class="ehd-m">Par ${hole.par} · Index ${hole.si}<b>${raw == null ? 'Not scored yet' : 'You wrote ' + raw + (pts != null ? ' · ' + pts + ' pt' + (pts === 1 ? '' : 's') : '')}</b></span>
       <button class="ehd-art" data-act="holeArt" data-a="${h}" data-b="home__${esc(me)}" aria-label="Stand on the tee of hole ${h + 1} at ${esc(course.name)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 21V4l9 3-9 3"/><path d="M3 21h8"/></svg>See the hole</button></div>
-    <div class="scroller nos"><div class="hstrip">${holes.map((x, i) => `<button class="hcell${i === h ? ' on' : ''}${card.raw[i] != null ? ' saved' : ''}" data-act="clubHole" data-a="${i}" aria-label="Hole ${i + 1}, par ${x.par}"><span class="n num">${i + 1}</span><span class="p num">par ${x.par}</span></button>`).join('')}</div></div>
+    <div class="scroller nos"><div class="hstrip">${holes.map((x, i) => { const sn = C.shotsOf(card, i).length;
+      return `<button class="hcell${i === h ? ' on' : ''}${card.raw[i] != null ? ' saved' : ''}" data-act="clubHole" data-a="${i}" aria-label="Hole ${i + 1}, par ${x.par}${sn ? ', ' + sn + ' shots tracked' : ''}"><span class="n num">${i + 1}</span><span class="p num">par ${x.par}</span>${sn ? `<span class="sdot" aria-hidden="true">${sn}</span>` : ''}</button>`; }).join('')}</div></div>
   </div>
   ${gate}
   <div class="ce-grid"><div class="ce-main">
@@ -25276,6 +25458,59 @@ function courseForKey(key) {
   if (key.indexOf('home__') === 0) return C.courseAsBook(C.courseOf(T, key.slice(6)));
   return E.courseByKey(T, key);
 }
+/* ---- SHOTS ON THE HOLE ----
+   The hole window already casts a ray from a tap onto the ground, because
+   that is how you aim at something. While your own round is open and not yet
+   posted, the same tap says instead: the ball finished here. Nothing else
+   about the window changes, and nothing about it is required — a round with
+   shots on three holes and nothing on the rest posts exactly as it is, counts
+   for the handicap exactly the same, and is never nagged about. That is the
+   whole reason this is a layer on the window rather than a step in the card. */
+function shotRound() {
+  const m = UI.modal;
+  if (!m || m.kind !== 'art' || !m.ckey || m.ckey.indexOf('home__') !== 0) return null;
+  const me = myPid();
+  if (!me || m.ckey.slice(6) !== me) return null;     /* only ever your own */
+  const r = roundNow();
+  if (!r || !roundLive(r)) return null;
+  if (r.card && r.card.done) return null;             /* a posted card is closed */
+  return r;
+}
+function shotBarHtml(r, h) {
+  const ss = C.shotsOf(r.card, h);
+  const club = UI.shotClub || 'Dr';
+  const last = ss.length ? ss[ss.length - 1] : null;
+  const prev = ss.length > 1 ? ss[ss.length - 2] : { x: 0, z: 0 };
+  const said = !ss.length ? 'Tap the ground where your ball finished'
+    : ss.length + ' shot' + (ss.length === 1 ? '' : 's') + ' here'
+      + (last ? ' \u00b7 last ' + C.toYards(C.shotGap(prev, last)) + ' yds' : '');
+  return `<div class="h3shotbar">
+    <div class="h3sb-row">${C.SHOT_CLUBS.map(c =>
+      `<button class="h3club${c === club ? ' on' : ''}" data-act="shotClub" data-a="${esc(c)}">${esc(c)}</button>`).join('')}</div>
+    <div class="h3sb-foot"><span>${esc(said)}</span><span style="display:flex;gap:6px">${
+      ss.length ? '<button data-act="shotUndo">Undo</button><button data-act="shotClear">Clear</button>' : ''}</span></div>
+  </div>`;
+}
+/* Drawn straight onto the window rather than through a redraw: a full render
+   replaces the mount, and the glass would blink on every shot. */
+function paintShots() {
+  const r = shotRound();
+  const h = UI.modal && UI.modal.hole;
+  if (!r || h == null) return;
+  const ss = C.shotsOf(r.card, h);
+  if (UI.h3 && UI.h3.ctl && UI.h3.ctl.setShots) UI.h3.ctl.setShots(ss);
+  const bar = document.querySelector('.h3shotbar');
+  if (bar) bar.outerHTML = shotBarHtml(r, h);
+}
+function addShot(p) {
+  const r = shotRound();
+  if (!r || !p) return;
+  const h = UI.modal.hole;
+  if (C.shotsOf(r.card, h).length >= C.SHOTS_MAX) { UI.toast = 'Fifteen shots is enough for one hole.'; render(); return; }
+  roundWrite(r, { shots: C.withShot(r.card, h, C.clubIndex(UI.shotClub || 'Dr'), p.x, p.z) });
+  paintShots();
+}
+
 function artModalHtml() {
   const rid = UI.modal.rid, h = UI.modal.hole;
   const course = UI.modal.ckey ? courseForKey(UI.modal.ckey) : E.courseOf(T, rid);
@@ -25299,6 +25534,7 @@ function artModalHtml() {
   return `<div class="scrim h3scrim" data-act="modalScrim"><div class="modal h3dwin"
     role="dialog" aria-modal="true" aria-label="Hole ${hole.n} at ${esc(course.name)}">
     <div class="h3sky"></div>
+    ${(function () { const sr = shotRound(); return sr ? shotBarHtml(sr, h) : ''; }())}
     <div class="h3mount" id="h3dMount" data-key="${esc(course.key + ':' + h)}">${live ? ''
       : art ? `<div class="h3fallback nos"><img src="${art}" alt="Hole ${hole.n} at ${esc(course.name)}, drawn from tee to green"></div>`
       : `<div class="h3fallback flat nos"><b class="num">${hole.n}</b><span class="num">Par ${hole.par} · index ${hole.si}${
@@ -25382,13 +25618,16 @@ function mountHole3D() {
     const hole = course.holes[m.hole];
     try {
       const ctl = H3D.create(mount, HOLES.model(course.shapeKey || course.key, hole), { units: holeUnits(), flat: !!UI.h3flat, labels: UI.h3labels !== false,
-        onTarget: () => { if (store && store.note) store.note('hole target', course.key + ' ' + hole.n); } });
+        onTarget: () => { if (store && store.note) store.note('hole target', course.key + ' ' + hole.n); },
+        onPick: pt => addShot(pt) });
       UI.h3 = { key, ctl, course: course.key, n: hole.n };
     } catch (err) {
       if (store && store.note) store.note('hole3d FAILED', String(err && err.message || err).slice(0, 160));
       mount.innerHTML = `<div class="h3fallback nos"><img src="${IMG[hole.img] || ''}" alt=""></div>`;
       return;
     }
+    const sr0 = shotRound();
+    if (UI.h3 && UI.h3.ctl.setPick) { UI.h3.ctl.setPick(!!sr0); UI.h3.ctl.setShots(sr0 ? C.shotsOf(sr0.card, m.hole) : []); }
   } else if (UI.h3.ctl.el.parentNode !== mount) {
     mount.appendChild(UI.h3.ctl.el);
     UI.h3.ctl.refresh();
@@ -26230,6 +26469,24 @@ function onClick(e) {
       UI.modal = { kind: 'art', rid: b && b.indexOf('home__') === 0 ? null : UI.entryRound, hole: +a, ckey: b || null };
       break;
     /* ---- the hole window ---- */
+    /* ---- shots: none of these redraw the book, so the glass never blinks ---- */
+    case 'shotClub': {
+      UI.shotClub = a;
+      const r = shotRound();
+      const bar = document.querySelector('.h3shotbar');
+      if (r && bar) { bar.outerHTML = shotBarHtml(r, UI.modal.hole); return; }
+      break;
+    }
+    case 'shotUndo': {
+      const r = shotRound(); if (!r) return;
+      roundWrite(r, { shots: C.withoutLastShot(r.card, UI.modal.hole) });
+      paintShots(); return;
+    }
+    case 'shotClear': {
+      const r = shotRound(); if (!r) return;
+      roundWrite(r, { shots: C.withoutHoleShots(r.card, UI.modal.hole) });
+      paintShots(); return;
+    }
     case 'artHole': {
       const n = Math.max(0, Math.min(17, +a));
       UI.modal = { ...UI.modal, hole: n, feel: false };

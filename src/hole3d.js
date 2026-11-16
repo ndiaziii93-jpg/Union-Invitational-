@@ -325,7 +325,7 @@ export function create(mount, m, opts = {}) {
   const { at, nrm, LEN, points } = S;
   const tp = points.tee, bunkerPts = points.bunkers;
   const state = { units: opts.units || 'yd', me: opts.me || null, flat: !!opts.flat, labels: opts.labels !== false,
-    focus: 0.5, zoom: 1, ox: 0, target: null, dirty: true, dead: false };
+    focus: 0.5, zoom: 1, ox: 0, target: null, dirty: true, dead: false, pick: false };
 
   const el = document.createElement('div'); el.className = 'h3live';
   const canvas = document.createElement('canvas'); canvas.className = 'h3canvas'; el.appendChild(canvas);
@@ -350,6 +350,27 @@ export function create(mount, m, opts = {}) {
   const mk = (cls) => { const e = document.createElement('div'); e.className = cls; layer.appendChild(e); return e; };
   const gcard = mk('h3gcard'), tgt = mk('h3tgt'), tcard = mk('h3tcard'), me = mk('h3me'), gline = mk('h3gline');
   const bpins = bunkerPts.map(() => mk('h3pin'));
+  /* ---- the shots, when a round is being written ----
+     The pins are DOM, like every other label on the glass, because they carry
+     a number and must stay the same size however far away the ground is. The
+     track between them is in the scene itself: it lies on the ground and so
+     has to bend with the camera, which a flat overlay cannot do. */
+  let shotList = [];
+  const shotPins = [];
+  let track = null;
+  function shotPin(i) { while (shotPins.length <= i) shotPins.push(mk('h3shot')); return shotPins[i]; }
+  function rebuildTrack() {
+    if (track) { S.sc.remove(track); track.geometry.dispose(); track.material.dispose(); track = null; }
+    if (!shotList.length) return;
+    const pts = [new T3.Vector3(tp.x, 0.7, tp.z)]
+      .concat(shotList.map(p => new T3.Vector3(p.x, 0.7, p.z)));
+    const g = new T3.BufferGeometry().setFromPoints(pts);
+    track = new T3.Line(g, new T3.LineDashedMaterial({ color: 0xF2ECDB, dashSize: 7, gapSize: 5,
+      transparent: true, opacity: 0.95, depthTest: false }));
+    track.computeLineDistances();
+    track.renderOrder = 6;
+    S.sc.add(track);
+  }
   const dist = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
   /* The units pill belongs to the window around the ground, not to the ground,
      so it is looked up rather than held: the window is rebuilt on every redraw
@@ -382,6 +403,11 @@ export function create(mount, m, opts = {}) {
     const u = state.units, o = from();
     gcard.innerHTML = `<div><i>${fmt(dist(o, points.gFront), u)}</i><small>Front</small></div><div><b>${fmt(dist(o, points.gMid), u)}</b><small>Middle</small></div><div><i>${fmt(dist(o, points.gBack), u)}</i><small>Back</small></div>`;
     bpins.forEach((e, i) => { e.textContent = fmt(dist(o, bunkerPts[i]), u); });
+    shotList.forEach((p, i) => {
+      const prev = i ? shotList[i - 1] : { x: tp.x, z: tp.z };
+      const d = Math.sqrt((p.x - prev.x) * (p.x - prev.x) + (p.z - prev.z) * (p.z - prev.z));
+      shotPin(i).innerHTML = '<b>' + (i + 1) + '</b><span>' + (p.club || '') + ' · ' + fmt(d, u) + '</span>';
+    });
     if (state.target) tcard.innerHTML = `<small>${fmt(dist(state.target, points.gMid), u)} to the green</small><b>${fmt(dist(o, state.target), u)}</b>`;
   }
   function lay() {
@@ -412,11 +438,20 @@ export function create(mount, m, opts = {}) {
       }
     }
     bpins.forEach((e, i) => place(e, proj(bunkerPts[i]), -2, show));
+    shotPins.forEach((e, i) => {
+      if (i >= shotList.length) { e.style.display = 'none'; return; }
+      place(e, proj(new T3.Vector3(shotList[i].x, 0, shotList[i].z)), -10, true);
+    });
     /* A hole whose sand runs in a line puts its pins one on top of another, and
        on top of the green's three numbers. The green card is the one a golfer
        came for, so it keeps its place and a pin that lands on it stands down;
        so does a pin that lands on a pin already standing. */
-    declutter(gcard.style.display !== 'none' ? gcard : null, bpins);
+    /* WHILE SHOTS ARE BEING WRITTEN THEY OUTRANK EVERYTHING. A bunker's
+       carry, and even the green's own card, can be read again in a second;
+       the pin on the ball you just put down is the thing being looked at.
+       Any other time the green card wins, as it always has. */
+    if (state.pick) declutter(null, shotPins.concat([gcard], bpins));
+    else declutter(gcard.style.display !== 'none' ? gcard : null, bpins);
     if (state.target) { const q = proj(state.target); place(tgt, q, 0, true); place(tcard, q, -12, show); }
     else { tgt.style.display = 'none'; tcard.style.display = 'none'; }
     place(me, proj(from()), 0, !!state.me);
@@ -455,6 +490,10 @@ export function create(mount, m, opts = {}) {
     const b = el.getBoundingClientRect();
     ray.setFromCamera(new T3.Vector2(((e.clientX - b.left) / b.width) * 2 - 1, -((e.clientY - b.top) / b.height) * 2 + 1), cam);
     const hit = new T3.Vector3(); if (!ray.ray.intersectPlane(ground, hit)) return;
+    /* WHILE A ROUND IS BEING WRITTEN THE TAP MEANS SOMETHING ELSE. The same
+       ray onto the same ground, but it says "the ball finished here" rather
+       than "I am aiming there". Nothing else about the window changes. */
+    if (state.pick) { if (opts.onPick) opts.onPick({ x: hit.x, z: hit.z }); return; }
     state.target = state.target && dist(state.target, hit) < 6 ? null : hit;   // a tap on the target lifts it
     dress(); touch();
     if (opts.onTarget) opts.onTarget(state.target);
@@ -469,10 +508,17 @@ export function create(mount, m, opts = {}) {
     setUnits(u) { state.units = u === 'm' ? 'm' : 'yd'; dress(); touch(); },
     setMe(p) { state.me = p || null; dress(); touch(); },
     setFlat(b) { state.flat = !!b; touch(); },
+    setPick(on) { state.pick = !!on; el.classList.toggle('picking', !!on); },
+    setShots(list) {
+      shotList = Array.isArray(list) ? list.slice(0, 40) : [];
+      rebuildTrack(); dress(); touch();
+    },
     setLabels(b) { state.labels = b !== false; touch(); },
     focusMe() { const o = from(); let best = 0, bd = 1e9; for (let i = 0; i <= 50; i++) { const d = dist(at(i / 50), o); if (d < bd) { bd = d; best = i / 50; } } state.focus = best; state.ox = 0; state.zoom = 1; touch(); },
     fit() { state.focus = 0.5; state.ox = 0; state.zoom = fitZoom(LEN, W / Hh); touch(); },
     refresh() { W = 0; touch(); },
-    dispose() { state.dead = true; if (raf) cancelAnimationFrame(raf); try { r.dispose(); S.dispose(); } catch (e) { /* already gone */ } if (el.parentNode) el.parentNode.removeChild(el); },
+    dispose() { state.dead = true; if (raf) cancelAnimationFrame(raf);
+      try { if (track) { S.sc.remove(track); track.geometry.dispose(); track.material.dispose(); track = null; } } catch (e) { /* already gone */ }
+      try { r.dispose(); S.dispose(); } catch (e) { /* already gone */ } if (el.parentNode) el.parentNode.removeChild(el); },
   };
 }

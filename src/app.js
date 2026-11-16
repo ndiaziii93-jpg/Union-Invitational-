@@ -8719,7 +8719,8 @@ function scrClubEntry() {
   <div class="entryhd">
     <div class="ehd-facts"><span class="ehd-n num">${h + 1}</span><span class="ehd-l">Hole</span><span class="ehd-m">Par ${hole.par} · Index ${hole.si}<b>${raw == null ? 'Not scored yet' : 'You wrote ' + raw + (pts != null ? ' · ' + pts + ' pt' + (pts === 1 ? '' : 's') : '')}</b></span>
       <button class="ehd-art" data-act="holeArt" data-a="${h}" data-b="home__${esc(me)}" aria-label="Stand on the tee of hole ${h + 1} at ${esc(course.name)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 21V4l9 3-9 3"/><path d="M3 21h8"/></svg>See the hole</button></div>
-    <div class="scroller nos"><div class="hstrip">${holes.map((x, i) => `<button class="hcell${i === h ? ' on' : ''}${card.raw[i] != null ? ' saved' : ''}" data-act="clubHole" data-a="${i}" aria-label="Hole ${i + 1}, par ${x.par}"><span class="n num">${i + 1}</span><span class="p num">par ${x.par}</span></button>`).join('')}</div></div>
+    <div class="scroller nos"><div class="hstrip">${holes.map((x, i) => { const sn = C.shotsOf(card, i).length;
+      return `<button class="hcell${i === h ? ' on' : ''}${card.raw[i] != null ? ' saved' : ''}" data-act="clubHole" data-a="${i}" aria-label="Hole ${i + 1}, par ${x.par}${sn ? ', ' + sn + ' shots tracked' : ''}"><span class="n num">${i + 1}</span><span class="p num">par ${x.par}</span>${sn ? `<span class="sdot" aria-hidden="true">${sn}</span>` : ''}</button>`; }).join('')}</div></div>
   </div>
   ${gate}
   <div class="ce-grid"><div class="ce-main">
@@ -10313,6 +10314,59 @@ function courseForKey(key) {
   if (key.indexOf('home__') === 0) return C.courseAsBook(C.courseOf(T, key.slice(6)));
   return E.courseByKey(T, key);
 }
+/* ---- SHOTS ON THE HOLE ----
+   The hole window already casts a ray from a tap onto the ground, because
+   that is how you aim at something. While your own round is open and not yet
+   posted, the same tap says instead: the ball finished here. Nothing else
+   about the window changes, and nothing about it is required — a round with
+   shots on three holes and nothing on the rest posts exactly as it is, counts
+   for the handicap exactly the same, and is never nagged about. That is the
+   whole reason this is a layer on the window rather than a step in the card. */
+function shotRound() {
+  const m = UI.modal;
+  if (!m || m.kind !== 'art' || !m.ckey || m.ckey.indexOf('home__') !== 0) return null;
+  const me = myPid();
+  if (!me || m.ckey.slice(6) !== me) return null;     /* only ever your own */
+  const r = roundNow();
+  if (!r || !roundLive(r)) return null;
+  if (r.card && r.card.done) return null;             /* a posted card is closed */
+  return r;
+}
+function shotBarHtml(r, h) {
+  const ss = C.shotsOf(r.card, h);
+  const club = UI.shotClub || 'Dr';
+  const last = ss.length ? ss[ss.length - 1] : null;
+  const prev = ss.length > 1 ? ss[ss.length - 2] : { x: 0, z: 0 };
+  const said = !ss.length ? 'Tap the ground where your ball finished'
+    : ss.length + ' shot' + (ss.length === 1 ? '' : 's') + ' here'
+      + (last ? ' \u00b7 last ' + C.toYards(C.shotGap(prev, last)) + ' yds' : '');
+  return `<div class="h3shotbar">
+    <div class="h3sb-row">${C.SHOT_CLUBS.map(c =>
+      `<button class="h3club${c === club ? ' on' : ''}" data-act="shotClub" data-a="${esc(c)}">${esc(c)}</button>`).join('')}</div>
+    <div class="h3sb-foot"><span>${esc(said)}</span><span style="display:flex;gap:6px">${
+      ss.length ? '<button data-act="shotUndo">Undo</button><button data-act="shotClear">Clear</button>' : ''}</span></div>
+  </div>`;
+}
+/* Drawn straight onto the window rather than through a redraw: a full render
+   replaces the mount, and the glass would blink on every shot. */
+function paintShots() {
+  const r = shotRound();
+  const h = UI.modal && UI.modal.hole;
+  if (!r || h == null) return;
+  const ss = C.shotsOf(r.card, h);
+  if (UI.h3 && UI.h3.ctl && UI.h3.ctl.setShots) UI.h3.ctl.setShots(ss);
+  const bar = document.querySelector('.h3shotbar');
+  if (bar) bar.outerHTML = shotBarHtml(r, h);
+}
+function addShot(p) {
+  const r = shotRound();
+  if (!r || !p) return;
+  const h = UI.modal.hole;
+  if (C.shotsOf(r.card, h).length >= C.SHOTS_MAX) { UI.toast = 'Fifteen shots is enough for one hole.'; render(); return; }
+  roundWrite(r, { shots: C.withShot(r.card, h, C.clubIndex(UI.shotClub || 'Dr'), p.x, p.z) });
+  paintShots();
+}
+
 function artModalHtml() {
   const rid = UI.modal.rid, h = UI.modal.hole;
   const course = UI.modal.ckey ? courseForKey(UI.modal.ckey) : E.courseOf(T, rid);
@@ -10336,6 +10390,7 @@ function artModalHtml() {
   return `<div class="scrim h3scrim" data-act="modalScrim"><div class="modal h3dwin"
     role="dialog" aria-modal="true" aria-label="Hole ${hole.n} at ${esc(course.name)}">
     <div class="h3sky"></div>
+    ${(function () { const sr = shotRound(); return sr ? shotBarHtml(sr, h) : ''; }())}
     <div class="h3mount" id="h3dMount" data-key="${esc(course.key + ':' + h)}">${live ? ''
       : art ? `<div class="h3fallback nos"><img src="${art}" alt="Hole ${hole.n} at ${esc(course.name)}, drawn from tee to green"></div>`
       : `<div class="h3fallback flat nos"><b class="num">${hole.n}</b><span class="num">Par ${hole.par} · index ${hole.si}${
@@ -10419,13 +10474,16 @@ function mountHole3D() {
     const hole = course.holes[m.hole];
     try {
       const ctl = H3D.create(mount, HOLES.model(course.shapeKey || course.key, hole), { units: holeUnits(), flat: !!UI.h3flat, labels: UI.h3labels !== false,
-        onTarget: () => { if (store && store.note) store.note('hole target', course.key + ' ' + hole.n); } });
+        onTarget: () => { if (store && store.note) store.note('hole target', course.key + ' ' + hole.n); },
+        onPick: pt => addShot(pt) });
       UI.h3 = { key, ctl, course: course.key, n: hole.n };
     } catch (err) {
       if (store && store.note) store.note('hole3d FAILED', String(err && err.message || err).slice(0, 160));
       mount.innerHTML = `<div class="h3fallback nos"><img src="${IMG[hole.img] || ''}" alt=""></div>`;
       return;
     }
+    const sr0 = shotRound();
+    if (UI.h3 && UI.h3.ctl.setPick) { UI.h3.ctl.setPick(!!sr0); UI.h3.ctl.setShots(sr0 ? C.shotsOf(sr0.card, m.hole) : []); }
   } else if (UI.h3.ctl.el.parentNode !== mount) {
     mount.appendChild(UI.h3.ctl.el);
     UI.h3.ctl.refresh();
@@ -11267,6 +11325,24 @@ function onClick(e) {
       UI.modal = { kind: 'art', rid: b && b.indexOf('home__') === 0 ? null : UI.entryRound, hole: +a, ckey: b || null };
       break;
     /* ---- the hole window ---- */
+    /* ---- shots: none of these redraw the book, so the glass never blinks ---- */
+    case 'shotClub': {
+      UI.shotClub = a;
+      const r = shotRound();
+      const bar = document.querySelector('.h3shotbar');
+      if (r && bar) { bar.outerHTML = shotBarHtml(r, UI.modal.hole); return; }
+      break;
+    }
+    case 'shotUndo': {
+      const r = shotRound(); if (!r) return;
+      roundWrite(r, { shots: C.withoutLastShot(r.card, UI.modal.hole) });
+      paintShots(); return;
+    }
+    case 'shotClear': {
+      const r = shotRound(); if (!r) return;
+      roundWrite(r, { shots: C.withoutHoleShots(r.card, UI.modal.hole) });
+      paintShots(); return;
+    }
     case 'artHole': {
       const n = Math.max(0, Math.min(17, +a));
       UI.modal = { ...UI.modal, hole: n, feel: false };

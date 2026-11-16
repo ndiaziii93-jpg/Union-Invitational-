@@ -449,6 +449,103 @@ export function rounds(T, pid) {
   return out.sort((a, b) => String(a.date).localeCompare(String(b.date)) || (a.card.at || 0) - (b.card.at || 0));
 }
 
+/* ---------- shots ----------
+   A shot is two things: the club, and where the ball finished. Where is kept
+   in the hole's OWN frame — metres from the tee, the same frame the 3D view
+   measures its distances in — so it means the same thing whoever is looking
+   and whatever the phone's screen is doing.
+
+   On the card it is written tight: [clubIndex, x*10, z*10], one array a shot,
+   keyed by the hole. A finished card with a photograph on it is 794
+   characters and the server will take 4000; ninety shots in this shape cost
+   about 1.3 KB, so a whole round of them still fits with room to spare. That
+   is why it is indexes and tenths rather than names and decimals.
+
+   SHOT_CLUBS IS APPEND-ONLY, AND THE REASON IS IN THE LINE ABOVE. The index
+   is what gets written down. Move a club in this list and every shot anybody
+   has ever posted changes club. Add to the end, never reorder, never remove. */
+export const SHOT_CLUBS = ['Dr', '3w', '5w', '7w', 'Hy', '2i', '3i', '4i', '5i', '6i',
+  '7i', '8i', '9i', 'PW', 'GW', 'SW', 'LW', 'Putt'];
+export const clubName = i => SHOT_CLUBS[i] || '?';
+export const clubIndex = n => { const i = SHOT_CLUBS.indexOf(n); return i < 0 ? 0 : i; };
+/** No hole takes more than this many; a blow-up is still a hole, not a novel. */
+export const SHOTS_MAX = 15;
+export const YARDS = 1.09361;
+
+/** The shots written on one hole of a card, in the order they were played. */
+export function shotsOf(card, h) {
+  const row = card && card.shots && card.shots[String(h)];
+  if (!Array.isArray(row)) return [];
+  return row.filter(a => Array.isArray(a) && a.length >= 3)
+    .map(a => ({ ci: a[0] | 0, club: clubName(a[0] | 0), x: a[1] / 10, z: a[2] / 10 }));
+}
+/** Every shot on the card, hole by hole. */
+export function allShots(card) {
+  const out = [];
+  for (let h = 0; h < 18; h++) for (const s of shotsOf(card, h)) out.push({ ...s, h });
+  return out;
+}
+export const shotCount = card => allShots(card).length;
+/** How far apart two points on the ground are, in metres. */
+export const shotGap = (a, b) => Math.round(Math.sqrt((a.x - b.x) * (a.x - b.x) + (a.z - b.z) * (a.z - b.z)) * 10) / 10;
+export const toYards = m => Math.round(m * YARDS);
+
+/* The three writers. Each returns a NEW shots map rather than touching the
+   card, because the card is written whole and a half-changed one in the
+   outbox is a card nobody can explain. */
+export function withShot(card, h, ci, x, z) {
+  const map = { ...((card && card.shots) || {}) };
+  const row = (map[String(h)] || []).slice();
+  if (row.length >= SHOTS_MAX) return map;
+  row.push([ci | 0, Math.round(x * 10), Math.round(z * 10)]);
+  map[String(h)] = row;
+  return map;
+}
+export function withoutLastShot(card, h) {
+  const map = { ...((card && card.shots) || {}) };
+  const row = (map[String(h)] || []).slice();
+  row.pop();
+  if (row.length) map[String(h)] = row; else delete map[String(h)];
+  return map;
+}
+export function withoutHoleShots(card, h) {
+  const map = { ...((card && card.shots) || {}) };
+  delete map[String(h)];
+  return map;
+}
+
+/* ---------- what the shots are worth ----------
+   The one figure that means something early: how far each club actually
+   goes. A club needs a few swings behind it before its average is worth
+   printing, and the putter is not a distance at all. */
+export const CLUB_MIN = 3;
+export function clubDistances(T, pid) {
+  const hit = {};
+  for (const r of rounds(T, pid)) {
+    const card = r.card;
+    if (!card || !card.shots) continue;
+    for (let h = 0; h < 18; h++) {
+      const ss = shotsOf(card, h);
+      if (!ss.length) continue;
+      let prev = { x: 0, z: 0 };
+      for (const s of ss) {
+        const d = shotGap(prev, s);
+        prev = s;
+        if (s.club === 'Putt' || d < 5) continue;
+        (hit[s.club] = hit[s.club] || []).push(d);
+      }
+    }
+  }
+  return SHOT_CLUBS.map(c => {
+    const l = hit[c] || [];
+    if (l.length < CLUB_MIN) return null;
+    const sorted = l.slice().sort((a, b) => a - b);
+    const mean = l.reduce((a, b) => a + b, 0) / l.length;
+    return { club: c, n: l.length, yds: toYards(mean),
+      low: toYards(sorted[0]), high: toYards(sorted[sorted.length - 1]) };
+  }).filter(Boolean);
+}
+
 /* ---------- the Union handicap ----------
    Seeded by the Belek band. Each posted round leaves a differential: the
    handicap it was played off plus how far the points fell short of the two
