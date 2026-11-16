@@ -8939,6 +8939,13 @@ let caddieOff = 0;
 function caddieDuck() {
   const el = document.querySelector('.caddie');
   if (!el) return;
+  /* HE ONLY GETS OUT OF THE WAY WHERE HE IS IN IT. Ducking is for a phone,
+     whose page runs under him because there is no room beside it. A tablet
+     and a laptop keep a column clear down the right-hand side that is his
+     alone — nothing ever passes through it — so ducking there bought nothing
+     and cost him: scroll the page and the character vanished, on the screens
+     with the most room to show him. */
+  if (typeof window !== 'undefined' && window.innerWidth >= 700) { el.classList.remove('duck'); return; }
   el.classList.add('duck');
   clearTimeout(caddieOff);
   caddieOff = setTimeout(() => {
