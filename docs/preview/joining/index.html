@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1D2E21">
+<meta name="robots" content="noindex">
+<link rel="icon" href="../../app/icon-192.png">
+<title>Two questions · how you’re joining, and resuming a round</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;0,8..60,900;1,8..60,400&display=swap">
+<style>
+:root{
+  color-scheme:light;
+  --paper:#E3DBCB; --page:#EEE8D5; --sunk:#DBD2BA;
+  --ink:#1D2E21; --turf:#5C6B55; --green:#3E5C43;
+  --rule:#C4B896; --hair:#DCD1B4;
+  --flag:#9E3B2E; --gold:#8C6B2F; --gold-up:#C9A253; --sage-up:#9FB3A3;
+  --pine:#1D2E21; --onpine:#EEE8D5;
+  --serif:'Source Serif 4','Iowan Old Style',Georgia,'Times New Roman',serif;
+  --ui:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+}
+html[data-theme="night"]{color-scheme:dark;
+  --paper:#121A14; --page:#1A2420; --sunk:#0E1511;
+  --ink:#ECE5D4; --turf:#A7B5A2; --green:#A9CBAE;
+  --rule:#3B4C3E; --hair:#2A3A2E;
+  --flag:#E39385; --gold:#D9B45C;
+  --pine:#0B110D; --onpine:#ECE5D4;}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:16px;line-height:1.45;
+  padding:26px max(16px,env(safe-area-inset-right,0px)) 72px max(16px,env(safe-area-inset-left,0px))}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:inherit;-webkit-tap-highlight-color:transparent}
+:focus-visible{outline:2px solid var(--flag);outline-offset:2px}
+.wrap{max-width:1180px;margin:0 auto}
+h1{margin:0 0 10px;font-size:clamp(26px,4.4vw,36px);line-height:1.12}
+h2{margin:0 0 6px;font-size:clamp(21px,3vw,27px);line-height:1.15}
+h3{margin:0;font-size:17px}
+.lede{margin:0 0 4px;color:var(--turf);max-width:76ch}
+.kick{display:block;font-family:var(--ui);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);font-weight:700}
+.sec{margin-top:46px;padding-top:28px;border-top:2px solid var(--rule)}
+.topbar{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:20px}
+.tog{font-family:var(--ui);font-size:12.5px;font-weight:700;border:1px solid var(--rule);border-radius:999px;
+  padding:8px 15px;background:var(--page);color:var(--ink)}
+.grid{display:grid;gap:22px;margin-top:22px;grid-template-columns:1fr}
+@media(min-width:900px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.opt{border:1px solid var(--rule);border-radius:16px;background:var(--page);overflow:hidden;min-width:0}
+.opt > header{padding:14px 16px 12px;border-bottom:1px solid var(--hair)}
+.opt > header p{margin:5px 0 0;font-size:14px;color:var(--turf)}
+.stage{padding:18px 16px 20px;background:var(--paper)}
+.verdict{padding:12px 16px 15px;font-size:13.5px;color:var(--turf);border-top:1px solid var(--hair);display:grid;gap:5px}
+.verdict b{color:var(--ink);font-size:13.5px}
+.pick{display:inline-block;font-family:var(--ui);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;
+  font-weight:800;color:#23331F;background:var(--gold-up);border-radius:999px;padding:3px 9px;margin-left:8px;vertical-align:3px}
+
+/* ---- the book's own furniture, so the comparison is honest ---- */
+.cline{margin-top:12px;padding:12px 14px;border:1px solid var(--rule);border-radius:14px;background:var(--page)}
+.cline:first-child{margin-top:0}
+.cline .ck{display:block;font-family:var(--ui);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);font-weight:700}
+.cline b.ct{display:block;font-size:17px;margin-top:2px;line-height:1.25}
+.cline p{margin:3px 0 0;font-size:14.5px;color:var(--turf);line-height:1.4}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 17px;
+  border:1px solid var(--ink);background:var(--pine);color:var(--onpine);font-size:15px;font-weight:600;border-radius:2px}
+.btn.ghost{background:none;color:var(--ink);border-color:var(--rule)}
+.cact{margin:12px 0 0;display:flex;gap:10px;flex-wrap:wrap}
+.chks{display:grid;gap:4px;margin-top:8px}
+.chk{display:flex;justify-content:space-between;gap:12px;font-size:14px}
+.chk b{font-weight:600}.chk b.ok{color:var(--green)}.chk b.todo{color:var(--turf)}
+
+/* ---- RESUME: the four treatments ---- */
+.r-slab{margin-top:12px;border-radius:14px;background:var(--pine);color:var(--onpine);padding:15px 16px;
+  border:1px solid var(--pine);box-shadow:0 10px 24px rgba(29,46,33,.22)}
+.r-slab .ck{color:var(--gold-up)}
+.r-slab b.ct{display:block;font-size:19px;margin-top:3px;color:var(--onpine)}
+.r-slab p{margin:4px 0 0;font-size:14.5px;color:#BFCBBC}
+.r-slab .btn{background:var(--gold-up);border-color:var(--gold-up);color:#23331F;font-weight:800;margin-top:12px}
+.r-slab .btn.ghost{background:none;color:var(--onpine);border-color:rgba(238,232,213,.45);font-weight:600}
+
+.r-spine{margin-top:12px;padding:13px 14px 14px 18px;border:1px solid var(--rule);border-left:6px solid var(--flag);
+  border-radius:14px;background:var(--page);position:relative}
+.r-spine .ck{color:var(--flag)}
+.r-spine b.ct{display:block;font-size:18px;margin-top:2px}
+.r-spine p{margin:3px 0 0;font-size:14.5px;color:var(--turf)}
+.livedot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--flag);margin-right:6px;
+  vertical-align:1px;animation:beat 1.7s ease-in-out infinite}
+@keyframes beat{50%{opacity:.25;transform:scale(.72)}}
+@media(prefers-reduced-motion:reduce){.livedot{animation:none}}
+
+.r-card{margin-top:12px;border:1px solid var(--rule);border-radius:14px;background:var(--page);overflow:hidden}
+.r-card .top{padding:13px 14px 11px;background:var(--pine);color:var(--onpine)}
+.r-card .top .ck{color:var(--gold-up)}
+.r-card .top b{display:block;font-size:18px;margin-top:2px}
+.r-card .strip{display:flex;gap:3px;padding:11px 14px;background:var(--sunk);overflow:hidden}
+.r-card .h{flex:1 1 0;min-width:0;height:30px;border-radius:4px;background:#CDBF9E;display:grid;place-items:center;
+  font-family:var(--ui);font-size:10px;font-weight:800;color:var(--turf)}
+.r-card .h.done{background:#F4EFE2;color:var(--ink)}
+.r-card .h.now{background:var(--gold-up);color:#23331F;box-shadow:0 0 0 2px var(--gold)}
+.r-card .foot{padding:12px 14px 14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.r-card .foot .sc{font-size:14px;color:var(--turf);margin-right:auto}
+.r-card .foot .sc b{color:var(--ink);font-size:17px}
+.r-card .foot .btn{background:var(--gold-up);border-color:var(--gold-up);color:#23331F;font-weight:800}
+
+.r-hole{margin-top:12px;border-radius:14px;overflow:hidden;border:1px solid var(--rule);position:relative;
+  background:linear-gradient(#BBD3EC,#D6E5F3 42%,#E9F0F6 72%)}
+.r-hole .art{height:160px;position:relative;overflow:hidden}
+.r-hole .art svg{position:absolute;left:50%;top:6px;height:186px;width:auto;translate:-50% 0}
+.r-hole .body{position:relative;padding:22px 15px 15px;color:var(--onpine);margin-top:-46px;
+  background:linear-gradient(rgba(29,46,33,0),rgba(29,46,33,.86) 34%,var(--pine) 68%)}
+.r-hole .ck{color:var(--gold-up)}
+.r-hole b.ct{display:block;font-size:19px;margin-top:2px;color:var(--onpine)}
+.r-hole p{margin:4px 0 0;font-size:14px;color:#BFCBBC}
+.r-hole .btn{background:var(--gold-up);border-color:var(--gold-up);color:#23331F;font-weight:800;margin-top:12px}
+
+/* ---- JOINING: the three models ---- */
+.chiprow{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.chip{border:1px solid var(--rule);border-radius:999px;padding:9px 15px;font-size:14.5px;background:var(--page);color:var(--ink)}
+.chip.on{background:var(--pine);border-color:var(--pine);color:var(--onpine);font-weight:700}
+.chip.sm{padding:7px 12px;font-size:13.5px}
+.sub{margin:16px 0 0;font-size:15px;font-weight:700}
+.sub:first-child{margin-top:0}
+.hint{margin:3px 0 0;font-size:13.5px;color:var(--turf)}
+.fset{display:grid;gap:10px;margin-top:9px;grid-template-columns:repeat(auto-fit,minmax(145px,1fr))}
+.fset label{display:grid;gap:4px;font-size:13px;color:var(--turf)}
+.fset input{min-height:42px;padding:8px 10px;border:1px solid var(--rule);background:var(--page);color:var(--ink);
+  border-radius:2px;font:inherit;font-size:15px}
+.pkg{display:block;width:100%;text-align:left;border:1px solid var(--rule);border-radius:12px;background:var(--page);
+  padding:11px 13px;margin-top:8px}
+.pkg.on{border-color:var(--pine);box-shadow:inset 3px 0 0 var(--gold-up)}
+.pkg .pn{font-weight:700;font-size:15.5px}
+.pkg .pp{float:right;font-weight:700}
+.pkg small{display:block;color:var(--turf);font-size:13px;margin-top:2px}
+.menu{border:1px solid var(--rule);border-radius:14px;background:var(--page);overflow:hidden}
+.menu a,.menu .it{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:13px 15px;
+  border-bottom:1px solid var(--hair);font-size:15.5px;color:inherit;text-decoration:none}
+.menu .it:last-child{border-bottom:0}
+.menu .it small{color:var(--turf);font-size:13.5px;font-weight:600}
+.menu .hd{background:var(--sunk);font-family:var(--ui);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--turf);font-weight:800;padding:9px 15px}
+.warn{margin-top:12px;border:1px solid var(--gold-up);border-radius:12px;background:var(--page);padding:11px 13px;font-size:14px}
+.warn b{color:var(--gold)}
+.note{margin-top:30px;border:1px solid var(--rule);border-radius:14px;padding:16px 18px;background:var(--page)}
+.note ul{margin:8px 0 0;padding-left:20px}
+.note li{margin:5px 0;font-size:15px}
+.foot{margin-top:40px;color:var(--turf);font-size:13.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="topbar">
+  <div>
+    <span class="kick">The Union Invitational · for the commissioner</span>
+    <h1>Two questions, a few answers each</h1>
+    <p class="lede">Nothing here is built yet. Pick one from each and I’ll build it.</p>
+  </div>
+  <button class="tog" id="tog">Night</button>
+</div>
+
+<!-- ============ ONE ============ -->
+<section class="sec" style="border-top:0;padding-top:0;margin-top:30px">
+  <span class="kick">Question one</span>
+  <h2>Changing how you’re joining</h2>
+  <p class="lede">The book already knows two of the three things you need. <b>Division</b> says men’s, women’s or
+    not golfing. <b>Package</b> carries the nights and whether it includes golf. What it has no word for is the
+    middle: somebody who is golfing, but not all of it. That is the real gap, and each option below closes it
+    differently.</p>
+
+  <div class="grid">
+
+    <article class="opt">
+      <header>
+        <h3>A · “How you’re joining” — one card, three questions<span class="pick">suggested</span></h3>
+        <p>Three chip rows in a single card. Lives on the You tab and in Vegas HQ — the same card, both places,
+          one source of truth.</p>
+      </header>
+      <div class="stage">
+        <div class="cline">
+          <span class="ck">How you’re joining · change any time</span>
+          <p class="sub">Golf</p>
+          <div class="chiprow">
+            <button class="chip">All of it</button>
+            <button class="chip on">Some of it</button>
+            <button class="chip">Not golfing</button>
+          </div>
+          <p class="sub">Which rounds</p>
+          <p class="hint">For the tee sheets. Tap the ones you’re playing.</p>
+          <div class="chiprow">
+            <button class="chip sm">Practice Mon</button>
+            <button class="chip sm on">Practice Tue</button>
+            <button class="chip sm on">Round 1</button>
+            <button class="chip sm on">Round 2</button>
+            <button class="chip sm">Round 3</button>
+            <button class="chip sm">Partners’ 9</button>
+          </div>
+          <p class="sub">How long you’re there</p>
+          <div class="chiprow">
+            <button class="chip">The full week</button>
+            <button class="chip on">Part of it</button>
+          </div>
+          <div class="fset">
+            <label>Arrive<input value="2027-11-15"></label>
+            <label>Leave<input value="2027-11-19"></label>
+          </div>
+          <div class="warn"><b>The commissioner is told.</b> You were on 7 nights · golfer. This is 4 nights, a practice
+            day and two rounds, so the price changes — it shows up on his desk as a change to confirm.</div>
+          <p class="cact"><button class="btn">Send the change</button></p>
+        </div>
+      </div>
+      <div class="verdict">
+        <b>For it</b><span>Says exactly what the tee sheets and the hotel need. One card, one place, and it reads
+          as a question rather than a form. Handles every Turkey case you named.</span>
+        <b>Against it</b><span>Three new fields on the sign-up, and the round list has to exist before “which
+          rounds” means anything.</span>
+      </div>
+    </article>
+
+    <article class="opt">
+      <header>
+        <h3>B · Let the package say it</h3>
+        <p>No new model at all. You add more packages; everyone just picks the one that fits.</p>
+      </header>
+      <div class="stage">
+        <div class="cline">
+          <span class="ck">Your package · change any time</span>
+          <button class="pkg"><span class="pp">£2,200</span><span class="pn">7 nights · golfer</span>
+            <small>Two practice days and three rounds · merch and the trophies</small></button>
+          <button class="pkg on"><span class="pp">£1,500</span><span class="pn">4 nights · golfer · two rounds</span>
+            <small>Arrive Monday · Rounds 1 and 2 · merch</small></button>
+          <button class="pkg"><span class="pp">£1,150</span><span class="pn">4 nights · not golfing</span>
+            <small>The dinners and the partners’ 9 · merch</small></button>
+          <button class="pkg"><span class="pp">£900</span><span class="pn">Weekend · golfer · one round</span>
+            <small>Friday to Sunday · Round 3 · merch</small></button>
+          <p style="margin-top:12px;font-size:14px;color:var(--turf)">…and one more for each combination somebody asks for.</p>
+        </div>
+      </div>
+      <div class="verdict">
+        <b>For it</b><span>Nothing new to build. The money already follows the package, so a change reprices
+          itself and the meters stay honest.</span>
+        <b>Against it</b><span>The list multiplies: nights × golf × which rounds. And it still cannot say
+          <i>which</i> two rounds somebody is playing, which is the thing a tee sheet needs.</span>
+      </div>
+    </article>
+
+    <article class="opt">
+      <header>
+        <h3>C · A “You and your trip” screen behind your name</h3>
+        <p>Your instinct — a profile. Tap your name in the sidebar and everything about <i>you</i> is in one
+          place, with the joining card from A inside it.</p>
+      </header>
+      <div class="stage">
+        <div class="menu">
+          <div class="hd">Norberto III</div>
+          <div class="it"><span>Name on the board</span><small>Norberto III ›</small></div>
+          <div class="it"><span>How you’re joining</span><small>Golfing · some · 4 nights ›</small></div>
+          <div class="it"><span>Your package</span><small>4 nights · golfer ›</small></div>
+          <div class="it"><span>Shirt and merch</span><small>XXL · ND ›</small></div>
+          <div class="it"><span>Your flights</span><small>BA275 · lands 15:40 ›</small></div>
+          <div class="it"><span>Your home course</span><small>Leatherhead ›</small></div>
+          <div class="hd">The book</div>
+          <div class="it"><span>Your PIN</span><small>Set ›</small></div>
+          <div class="it"><span>Notifications</span><small>On ›</small></div>
+          <div class="it"><span>Day or night</span><small>Day ›</small></div>
+        </div>
+      </div>
+      <div class="verdict">
+        <b>For it</b><span>A permanent home for “change something about me”, which the sign-up form is not —
+          a form is for filling in once. Also where the PIN and notifications belong.</span>
+        <b>Against it</b><span>A whole new screen, and a risk of two doors onto the same answer unless every
+          row is the same field Vegas HQ already writes.</span>
+      </div>
+    </article>
+
+    <article class="opt">
+      <header>
+        <h3>A + C together</h3>
+        <p>What I would actually build, if you want the short answer.</p>
+      </header>
+      <div class="stage">
+        <div class="cline">
+          <span class="ck">What it would be</span>
+          <b class="ct">The card from A, living on the screen from C</b>
+          <p>The joining card is written once and drawn in three places: the You tab (where you look), Vegas HQ
+            (where you signed up), and the profile screen (where you go to change something). All three write the
+            same field, so there is no second truth.</p>
+          <div class="chks">
+            <div class="chk"><span>Golfing → not golfing</span><b class="ok">Covered</b></div>
+            <div class="chk"><span>Fewer rounds, and which ones</span><b class="ok">Covered</b></div>
+            <div class="chk"><span>Fewer nights, arrive and leave</span><b class="ok">Covered</b></div>
+            <div class="chk"><span>Commissioner sees a change that moves money</span><b class="ok">Covered</b></div>
+            <div class="chk"><span>Packages stay a short list</span><b class="ok">Covered</b></div>
+          </div>
+        </div>
+      </div>
+      <div class="verdict">
+        <b>The one thing to decide</b><span>What happens when somebody drops to fewer rounds <i>after</i> paying.
+          I’d flag it to you rather than reprice it automatically — the money is collected outside the book and
+          you are the one who knows what was agreed.</span>
+      </div>
+    </article>
+
+  </div>
+</section>
+
+<!-- ============ TWO ============ -->
+<section class="sec">
+  <span class="kick">Question two</span>
+  <h2>Making “Resume my round” land</h2>
+  <p class="lede">Each one is shown where it actually sits — between two ordinary cream cards — because that is
+    the only fair test of whether it stands out.</p>
+
+  <div class="grid">
+
+    <article class="opt">
+      <header>
+        <h3>A · The pine slab<span class="pick">most contrast</span></h3>
+        <p>The one dark thing on a cream page, with the gold button the book keeps for “do this”.</p>
+      </header>
+      <div class="stage">
+        <div class="cline"><span class="ck">Your form</span><b class="ct">34 points, last three rounds</b><p>Two over your Union handicap.</p></div>
+        <div class="r-slab">
+          <span class="ck">Still out there</span>
+          <b class="ct">The Frostbite Open · 7 of 18</b>
+          <p>Leatherhead · started 09:12 · 14 points so far</p>
+          <div class="cact"><button class="btn">Resume my round</button><button class="btn ghost">Post it as is</button></div>
+        </div>
+        <div class="cline"><span class="ck">Your Vegas line · 3 of 8</span><p>Playing is next.</p></div>
+      </div>
+      <div class="verdict">
+        <b>For it</b><span>Impossible to miss, and it uses furniture the book already owns — pine and gold,
+          the same pair as the masthead. Cheapest to build.</span>
+        <b>Against it</b><span>Pine is also the colour of every button, so a whole pine panel is a big voice. On
+          a page that already has a pine cover photo at the top it is the second dark block.</span>
+      </div>
+    </article>
+
+    <article class="opt">
+      <header>
+        <h3>B · The red spine, with a live pulse</h3>
+        <p>Cream, so it stays part of the page — but flagged in the one colour the book reserves for live.</p>
+      </header>
+      <div class="stage">
+        <div class="cline"><span class="ck">Your form</span><b class="ct">34 points, last three rounds</b><p>Two over your Union handicap.</p></div>
+        <div class="r-spine">
+          <span class="ck"><span class="livedot"></span>Round open</span>
+          <b class="ct">The Frostbite Open · 7 of 18</b>
+          <p>Leatherhead · started 09:12 · 14 points so far</p>
+          <div class="cact"><button class="btn">Resume my round</button><button class="btn ghost">Post it as is</button></div>
+        </div>
+        <div class="cline"><span class="ck">Your Vegas line · 3 of 8</span><p>Playing is next.</p></div>
+      </div>
+      <div class="verdict">
+        <b>For it</b><span>Quietest of the four and still unmistakable, because nothing else on the page is red.
+          The pulse says “now” without shouting.</span>
+        <b>Against it</b><span>Red is the book’s trouble colour — it is also the held-writes banner. Two red
+          things on one screen would muddle what red means.</span>
+      </div>
+    </article>
+
+    <article class="opt">
+      <header>
+        <h3>C · The round itself, not a button</h3>
+        <p>The holes you have played, drawn. It differs from the cream cards by <i>content</i>, not just colour.</p>
+      </header>
+      <div class="stage">
+        <div class="cline"><span class="ck">Your form</span><b class="ct">34 points, last three rounds</b><p>Two over your Union handicap.</p></div>
+        <div class="r-card">
+          <div class="top"><span class="ck">Still out there</span><b>The Frostbite Open · Leatherhead</b></div>
+          <div class="strip">
+            <span class="h done">1</span><span class="h done">2</span><span class="h done">3</span>
+            <span class="h done">4</span><span class="h done">5</span><span class="h done">6</span>
+            <span class="h done">7</span><span class="h now">8</span><span class="h">9</span>
+            <span class="h">10</span><span class="h">11</span><span class="h">12</span>
+            <span class="h">13</span><span class="h">14</span><span class="h">15</span>
+            <span class="h">16</span><span class="h">17</span><span class="h">18</span>
+          </div>
+          <div class="foot">
+            <span class="sc"><b>14 pts</b> through 7 · you’re on the 8th</span>
+            <button class="btn">Pick it up on 8</button>
+          </div>
+        </div>
+        <div class="cline"><span class="ck">Your Vegas line · 3 of 8</span><p>Playing is next.</p></div>
+      </div>
+      <div class="verdict">
+        <b>For it</b><span>Tells you something the others don’t — where you are and what it’s worth — so it earns
+          its size. The strip is already drawn on the entry screen, so it is familiar.</span>
+        <b>Against it</b><span>Tallest of the four, and it pushes your card and your rounds further down the
+          You tab.</span>
+      </div>
+    </article>
+
+    <article class="opt">
+      <header>
+        <h3>D · The hole you’re standing on</h3>
+        <p>The 3D hole as the panel’s own picture, with the pine washing up over it.</p>
+      </header>
+      <div class="stage">
+        <div class="cline"><span class="ck">Your form</span><b class="ct">34 points, last three rounds</b><p>Two over your Union handicap.</p></div>
+        <div class="r-hole">
+          <div class="art">
+            <svg viewBox="0 0 150 190" aria-hidden="true">
+              <path d="M62 190 C40 150 44 96 58 58 C68 30 92 14 104 16 C120 19 126 44 118 74 C110 104 96 150 94 190 Z" fill="#3F7A26"/>
+              <path d="M66 186 C48 148 52 100 64 64 C73 38 92 22 102 24 C114 27 119 48 112 76 C104 106 92 150 90 186 Z" fill="#4D9430"/>
+              <path d="M74 176 C64 144 68 106 76 80 C82 60 92 50 97 52 C104 55 106 70 101 92 C95 118 86 148 84 176 Z" fill="#6FB83A"/>
+              <ellipse cx="103" cy="40" rx="15" ry="11" fill="#8ED14F"/>
+              <rect x="101" y="26" width="2" height="13" fill="#3E5C43"/><path d="M103 27 l9 4 -9 4 z" fill="#9E3B2E"/>
+              <ellipse cx="86" cy="58" rx="7" ry="4" fill="#E6DCC0"/><ellipse cx="117" cy="92" rx="6" ry="4" fill="#E6DCC0"/>
+              <circle cx="72" cy="126" r="9" fill="#2F6B22"/><circle cx="118" cy="140" r="8" fill="#2F6B22"/><circle cx="60" cy="96" r="7" fill="#2F6B22"/>
+            </svg>
+          </div>
+          <div class="body">
+            <span class="ck">Still out there · the 8th</span>
+            <b class="ct">The Frostbite Open · 7 of 18</b>
+            <p>Par 4 · 388 yards · 14 points through seven</p>
+            <div class="cact"><button class="btn">Pick it up on 8</button></div>
+          </div>
+        </div>
+        <div class="cline"><span class="ck">Your Vegas line · 3 of 8</span><p>Playing is next.</p></div>
+      </div>
+      <div class="verdict">
+        <b>For it</b><span>The most alive of the four by a distance, and it is the only one that shows you the
+          hole you walked off. The book already draws these.</span>
+        <b>Against it</b><span>Dearest: a hole has to be drawn on the You tab as well as the score screen. On a
+          phone with no WebGL it has to fall back to one of the others.</span>
+      </div>
+    </article>
+
+  </div>
+
+  <div class="note">
+    <span class="kick">If you want my answer</span>
+    <p class="lede" style="margin-top:4px">Build <b>C</b>, and steal the gold button from <b>A</b>. It stands out
+      because it is doing something none of the cream cards do — showing you the round — rather than because it
+      has been painted a louder colour, and painting things louder is a trick that only works until the second
+      thing gets painted. <b>D</b> is the one to add later if you want it to feel like a golf app rather than a
+      ledger; it is a bolt-on to C, not a different road.</p>
+  </div>
+</section>
+
+<p class="foot">The Union Invitational · Las Vegas 2027 · a working sketch, not the book.
+  <a href="../../" style="color:var(--gold)">Back to the site</a></p>
+
+</div>
+<script>
+(function(){
+  var t = document.getElementById('tog');
+  t.addEventListener('click', function(){
+    var on = document.documentElement.getAttribute('data-theme') === 'night';
+    document.documentElement.setAttribute('data-theme', on ? 'day' : 'night');
+    t.textContent = on ? 'Night' : 'Day';
+  });
+})();
+</script>
+</body>
+</html>
