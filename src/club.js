@@ -69,6 +69,24 @@ export const VENDORS_SEED = [
   { k: 'merch',   name: 'Merch and trophies', status: 'To design', due: '' },
 ];
 
+/* ---------- WHAT THERE IS TO PLAY ----------
+   The book knew two things about a person: which tournament they are in,
+   and which package they bought. Neither can say "golfing, but not all of
+   it" — and after Belek that is half the field: somebody who will play two
+   of the three, or arrive on the Wednesday. So the trip carries a list of
+   what there is to play, and a person says which of it they are in for.
+   It lives on the season, not in the code, so it can be edited when the tee
+   sheet changes without anybody shipping a new book. */
+export const TRIP_SEED = [
+  { id: 'p1',  name: 'Practice · day one', kind: 'practice' },
+  { id: 'p2',  name: 'Practice · day two', kind: 'practice' },
+  { id: 'r1',  name: 'Round 1',            kind: 'round', div: 'men' },
+  { id: 'r2',  name: 'Round 2',            kind: 'round', div: 'men' },
+  { id: 'r3',  name: 'Round 3',            kind: 'round', div: 'men' },
+  { id: 'w18', name: 'The women\u2019s 18',    kind: 'round', div: 'women' },
+  { id: 'p9',  name: 'The partners\u2019 9',   kind: 'social' },
+];
+
 export function seasonDefaults() {
   return {
     id: '2027',
@@ -85,6 +103,7 @@ export function seasonDefaults() {
     stops: STOPS_SEED.map(s => ({ ...s })),
     rooms: [],
     vendors: VENDORS_SEED.map(v => ({ ...v })),
+    trip: TRIP_SEED.map(r => ({ ...r })),
     archive: { '2026': { name: 'Belek 2026', venue: 'Titanic Deluxe Golf Belek', place: 'Antalya, Türkiye', from: '2026-10-26', to: '2026-11-02' } },
   };
 }
@@ -101,6 +120,7 @@ export function season(T) {
   out.stops = Array.isArray(held.stops) ? held.stops : base.stops;
   out.rooms = Array.isArray(held.rooms) ? held.rooms : [];
   out.vendors = Array.isArray(held.vendors) ? held.vendors : base.vendors;
+  out.trip = Array.isArray(held.trip) && held.trip.length ? held.trip : base.trip;
   out.archive = { ...base.archive, ...(held.archive || {}) };
   return out;
 }
@@ -590,13 +610,73 @@ export const playingOf = (T, pid, today) => { const u = unionHcp(T, pid, today);
 
 export const DIVISIONS = [['men', 'Tournament · men’s'], ['women', 'Tournament · women’s'], ['none', 'Not golfing']];
 /** Men's, women's, or not golfing: the sign-up's word first, the roster's second. */
-export function divisionOf(T, pid) {
+function rawDivision(T, pid) {
   const s = signupOf(T, pid), p = person(T, pid);
   if (s && ['men', 'women', 'none'].includes(s.division)) return s.division;
   if (p && (p.division === 'men' || p.division === 'women')) return p.division;
   return p && p.role === 'golfer' ? 'men' : p ? 'none' : null;
 }
+export function divisionOf(T, pid) {
+  const d = rawDivision(T, pid);
+  if (d == null) return null;
+  /* ONE TRUTH ABOUT WHETHER SOMEBODY GOLFS. Turning golf off here reads
+     through to the tee sheets, the dials and the exports at once. */
+  const s = signupOf(T, pid);
+  if (s && s.golf === 'none') return 'none';
+  if (s && (s.golf === 'all' || s.golf === 'some') && d === 'none') return 'men';
+  return d;
+}
 export const divisionLabel = d => (DIVISIONS.find(x => x[0] === d) || [])[1] || '—';
+
+/* ---------- HOW YOU ARE JOINING ----------
+   Three answers, kept apart because they fail apart. How much golf, which
+   of it, and how long you are there: somebody can change one without
+   touching the others, and after Belek most of them will.
+
+   `golf` is the authority on WHETHER, `division` on WHICH tournament — so a
+   person who turns golf off reads as not golfing everywhere, the exports
+   included, without anybody having to remember to change two things. */
+export const GOLF_AMOUNT = [['all', 'All of it'], ['some', 'Some of it'], ['none', 'Not golfing']];
+export const tripRounds = T => season(T).trip || [];
+export const tripRound = (T, id) => tripRounds(T).find(r => r.id === id) || null;
+/** The parts of the trip THIS person could play: a man is not offered the
+ *  women's 18, and a woman is not offered the men's three. Anything with no
+ *  division on it — the practice days, the partners' 9 — is for everybody. */
+export const tripFor = (T, pid) => { const d = divisionOf(T, pid);
+  return tripRounds(T).filter(r => !r.div || r.div === d); };
+
+export function golfOf(T, pid) {
+  const s = signupOf(T, pid);
+  if (s && ['all', 'some', 'none'].includes(s.golf)) return s.golf;
+  /* nobody has answered the new question yet: read it off the old one */
+  return rawDivision(T, pid) === 'none' ? 'none' : 'all';
+}
+/** Which of the trip a person is in for. All of it, none of it, or what they ticked. */
+export function roundsOf(T, pid) {
+  const g = golfOf(T, pid);
+  const all = tripFor(T, pid).map(r => r.id);
+  if (g === 'none') return [];
+  if (g === 'all') return all;
+  const s = signupOf(T, pid);
+  return (Array.isArray(s && s.rounds) ? s.rounds : []).filter(id => all.includes(id));
+}
+/** How long they are there: the whole window, or their own dates inside it. */
+export function stayOf(T, pid) {
+  const s = signupOf(T, pid), w = season(T).window;
+  const part = !!(s && s.stay === 'part');
+  const arrive = part && s.arrive ? s.arrive : w.from;
+  const depart = part && s.depart ? s.depart : w.to;
+  const nights = Math.max(0, Math.round((Date.parse(depart) - Date.parse(arrive)) / 86400000));
+  return { kind: part ? 'part' : 'full', arrive, depart, nights, full: !part };
+}
+/** One line for a profile row, a roster column and an export cell. */
+export function joiningLine(T, pid) {
+  const g = golfOf(T, pid), st = stayOf(T, pid), rs = roundsOf(T, pid);
+  const golf = g === 'none' ? 'Not golfing'
+    : g === 'all' ? 'Golfing · all of it'
+    : 'Golfing · ' + rs.length + ' of ' + tripFor(T, pid).length;
+  return golf + ' · ' + (st.full ? 'the full week' : st.nights + ' night' + (st.nights === 1 ? '' : 's'));
+}
 
 /* ---------- Vegas HQ ---------- */
 
@@ -918,10 +998,22 @@ export const csv = rows => rows.map(r => r.map(cell).join(',')).join('\n') + '\n
 
 export function csvHeadcount(T) {
   const f = field(T);
-  const rows = [['Name', 'Role', 'Playing', 'Status', 'Package', 'Nights', 'Golfing', 'Shirt', 'Initials on polo', 'Name on merch', 'Price', 'Paid', 'Outstanding']];
+  /* The tee sheets are drawn off this. A person who is golfing SOME of it
+     is useless to whoever draws them unless the sheet says which, so the
+     rounds they ticked are named here, and their own dates with them. */
+  const rows = [['Name', 'Role', 'Playing', 'Status', 'Golf', 'Rounds', 'Arrives', 'Leaves', 'Nights there',
+                 'Package', 'Package nights', 'Shirt', 'Initials on polo', 'Name on merch', 'Price', 'Paid', 'Outstanding']];
   for (const st of ['in', 'maybe']) for (const p of f[st]) {
     const L = ledger(T, p.id);
-    rows.push([p.name, p.role, divisionLabel(divisionOf(T, p.id)), st, L.pkg ? L.pkg.name : '', L.pkg ? L.pkg.nights : '', L.pkg ? (L.pkg.golf ? 'yes' : 'no') : '', p.signup && p.signup.shirt || '', p.signup && p.signup.initials || '', p.signup && p.signup.nameOn || '', L.price, L.paid, L.left]);
+    const g = golfOf(T, p.id), stay = stayOf(T, p.id);
+    const rs = roundsOf(T, p.id);
+    rows.push([p.name, p.role, divisionLabel(divisionOf(T, p.id)), st,
+      g === 'none' ? 'no' : g === 'all' ? 'all of it' : 'some of it',
+      g === 'all' ? 'all' : rs.map(id => (tripRound(T, id) || {}).name || id).join(' | '),
+      stay.arrive, stay.depart, stay.nights,
+      L.pkg ? L.pkg.name : '', L.pkg ? L.pkg.nights : '',
+      p.signup && p.signup.shirt || '', p.signup && p.signup.initials || '', p.signup && p.signup.nameOn || '',
+      L.price, L.paid, L.left]);
   }
   return csv(rows);
 }

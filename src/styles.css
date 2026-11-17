@@ -6194,3 +6194,132 @@ html.clubseason .btn,html.clubseason .chip,html.clubseason .pkg{transition:trans
 .signsend .ss-state b.ss-ok{color:var(--green)}
 .signsend .ss-state b.ss-wait{color:var(--gold)}
 .signsend .ss-state span{color:var(--turf)}
+
+/* ---- A SWITCH IS THE ONE CONTROL NOBODY HAS TO BE TAUGHT ----
+   Seven rounds asked as chips read as a paragraph: you have to look at the
+   fill of each one to know the answer, and the answers do not line up. As
+   switches they are a column you can run a thumb down, each with its state
+   on the right where the eye already is. The track moves, not the colour
+   alone, so it still reads with the colour taken away. */
+.swlist{margin-top:8px;border:1px solid var(--rule);border-radius:12px;overflow:hidden;background:var(--page)}
+.sw{display:flex;width:100%;align-items:center;gap:12px;padding:11px 13px;min-height:52px;
+  border:0;border-bottom:1px solid var(--hair);background:none;text-align:left;color:var(--ink)}
+.sw:last-child{border-bottom:0}
+.sw-l{flex:1 1 auto;min-width:0;display:grid;gap:1px}
+.sw-l b{font-size:15.5px;font-weight:600;line-height:1.2}
+.sw-l small{font-size:11.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--turf);font-weight:700}
+.sw-t{flex:0 0 auto;width:48px;height:29px;border-radius:999px;background:var(--sunk);
+  border:1px solid var(--rule);position:relative;transition:background .18s ease,border-color .18s ease}
+.sw-t i{position:absolute;top:2px;left:2px;width:23px;height:23px;border-radius:50%;background:var(--page);
+  box-shadow:0 1px 3px rgba(16,22,17,.35);transition:translate .18s ease}
+.sw[aria-checked="true"] .sw-t{background:var(--green);border-color:var(--green)}
+.sw[aria-checked="true"] .sw-t i{translate:19px 0;background:#F4EFE2}
+.sw[aria-checked="true"] .sw-l b{font-weight:700}
+@media (prefers-reduced-motion:reduce){.sw-t,.sw-t i{transition:none}}
+
+/* ---- HOW YOU'RE JOINING ---- */
+.joincard .jq{margin:14px 0 0;font-size:15px;font-weight:700;color:var(--ink)}
+.joincard .jq:first-of-type{margin-top:10px}
+.joincard .jh{margin:3px 0 0;font-size:13.5px;color:var(--turf)}
+.joincard .chiprow{margin-top:8px}
+.joincard .jdates{margin-top:9px}
+.joincard.flat{margin-top:0;border:0;border-radius:0;padding:0;background:none;max-width:none}
+.jwarn{margin-top:13px;border:1px solid var(--gold-up);border-radius:12px;background:var(--page);
+  padding:10px 12px;font-size:13.5px;line-height:1.45;color:var(--turf)}
+.jwarn b{color:var(--gold);display:block}
+.mejoin{display:block;width:100%;text-align:left;cursor:pointer}
+.mejoin .ct{margin-top:2px}
+
+/* ---- YOU AND YOUR TRIP ---- */
+.me-id{display:flex;align-items:center;gap:12px;margin-top:12px;padding:13px 15px;border:1px solid var(--rule);
+  border-radius:14px;background:var(--page);max-width:680px}
+.me-id i{flex:0 0 auto;width:44px;height:44px;border-radius:50%;background:var(--pine);color:var(--onpine);
+  display:grid;place-items:center;font-style:normal;font-weight:800;font-size:15px;letter-spacing:.02em}
+.me-id b{font-size:19px;line-height:1.15;display:block}
+.me-id small{display:block;font-size:13px;color:var(--turf);margin-top:1px}
+.me-menu{margin-top:14px;border:1px solid var(--rule);border-radius:14px;overflow:hidden;background:var(--page);max-width:680px}
+.me-hd{background:var(--sunk);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--turf);
+  font-weight:800;padding:9px 15px}
+.me-r{display:flex;width:100%;justify-content:space-between;gap:14px;align-items:center;min-height:54px;
+  padding:13px 15px;border:0;border-bottom:1px solid var(--hair);background:none;color:var(--ink);
+  font-size:16px;text-align:left}
+.me-r:last-child{border-bottom:0}
+.me-r span{flex:0 1 auto;min-width:0;color:var(--turf);font-size:14px;font-weight:600;text-align:right;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.me-r span::after{content:" \203A";color:var(--rule)}
+.me-r.on{background:var(--sunk)}
+.me-r.on span::after{content:" \2304"}
+.me-body{padding:4px 15px 17px;border-bottom:1px solid var(--hair);background:var(--sunk)}
+.me-body:last-child{border-bottom:0}
+.me-body .pkgs{margin-top:4px}
+/* the rail's name is a door now, not a label */
+.cr-me{display:flex;width:100%;align-items:center;gap:10px;padding:9px 12px;border:0;background:none;
+  color:var(--onpine);text-align:left;border-radius:10px}
+.cr-me i{flex:0 0 auto;width:30px;height:30px;border-radius:50%;background:rgba(238,232,213,.14);
+  display:grid;place-items:center;font-style:normal;font-weight:800;font-size:11.5px;letter-spacing:.02em}
+.cr-me span{min-width:0;display:grid;gap:0;font-size:14.5px;line-height:1.2;overflow:hidden}
+.cr-me small{font-size:11px;color:var(--sage-up);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cr-me.on{background:rgba(238,232,213,.12)}
+
+/* ---- THE ROUND YOU WALKED AWAY FROM ----
+   The only dark panel between the cover and the foot of the You tab, and
+   the only one carrying something none of the cream cards can: the holes
+   written, the hole you are standing on, and what it is worth. It is that
+   — not the colour — doing the work; the pine and the gold only make sure
+   it is seen first.
+
+   Sized three ways. A phone gets one nine at a time, because eighteen cells
+   across 330 points is eighteen slivers nobody can read, and the half you
+   are not on is a thin line under it. An iPad and a laptop get both nines
+   side by side, with room for a number inside every cell. */
+/* A NAME IS A NAMESPACE. This panel first wore `rp-`, which is the report
+   page's prefix — and the report page has an `.rp-strip` of its own, 18
+   columns wide. The resume strip silently inherited it, came out 14 points
+   across with every cell at zero, and nothing in this file said why. The
+   panel is `rz-`, and the lesson is that a two-letter prefix in a single
+   stylesheet is a claim, not a convenience.
+
+   IT IS A HERO, NOT A CARD IN THE ROW. Above 700 points the You tab runs
+   two columns, and a strip of eighteen holes dropped into one of them is
+   half as wide as it needs to be — the cells came out at twelve points on
+   an iPad. It spans the grid, like the other panel that is one thing and
+   not one of several. */
+.clubgrid .resume{grid-column:1 / -1;margin-top:0;max-width:none}
+.resume{margin-top:12px;max-width:680px;border-radius:16px;overflow:hidden;background:var(--pine);
+  border:1px solid var(--pine);box-shadow:0 12px 26px var(--shadow)}
+.resume .rz-top{padding:13px 15px 10px}
+.resume .ck{display:block;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold-up);font-weight:700}
+.resume .ct{display:block;font-size:18px;line-height:1.2;margin-top:2px;color:var(--onpine)}
+.rz-strip{display:grid;gap:5px;padding:0 15px 12px}
+.rz-nine{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:4px}
+.rz-h{height:30px;border-radius:5px;background:rgba(238,232,213,.13);color:#9FB3A3;
+  display:grid;place-items:center;font-size:11px;font-weight:800;font-variant-numeric:tabular-nums}
+.rz-h.done{background:rgba(238,232,213,.82);color:var(--pine)}
+.rz-h.now{background:var(--gold-up);color:#23331F;box-shadow:0 0 0 2px rgba(201,162,83,.4)}
+.rz-foot{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 15px 14px;
+  border-top:1px solid rgba(238,232,213,.14)}
+.rz-sc{flex:1 1 150px;min-width:0;font-size:14px;color:#BFCBBC;line-height:1.35}
+.rz-sc b{color:var(--onpine);font-size:18px;font-weight:800}
+.btn.rz-go{background:var(--gold-up);border-color:var(--gold-up);color:#23331F;font-weight:800;border-radius:3px}
+/* ON A PHONE, ONE NINE. The other is a rule under it, so the round still
+   reads as eighteen without pretending to show them all. */
+@media (max-width:539px){
+  .rz-nine{display:none}
+  .rz-nine.here{display:grid}
+  .rz-strip::after{content:"";height:3px;border-radius:999px;background:rgba(238,232,213,.18)}
+  .rz-h{height:34px;font-size:12px}
+  .resume .ct{font-size:17px}
+}
+@media (min-width:540px){
+  .rz-strip{grid-template-columns:1fr 1fr;gap:10px;padding:0 15px 13px}
+  .rz-h{height:32px;font-size:11.5px}
+}
+@media (min-width:900px){
+  .resume .rz-top{padding:16px 18px 11px}
+  .resume .ct{font-size:20px}
+  .rz-strip{padding:0 18px 15px;gap:14px}
+  .rz-h{height:38px;font-size:13px;border-radius:6px}
+  .rz-foot{padding:14px 18px 16px}
+  .rz-sc{font-size:15px}
+  .rz-sc b{font-size:20px}
+}

@@ -7617,7 +7617,7 @@ function clubRail() {
       item('archiveView', yr, false, navIcon('book'), String(a.name || yr))).join('') : ''}
     <div class="cr-foot">
       ${canAdmin() ? item('manageClub', '', false, navIcon('manage'), 'Manage') : ''}
-      ${p ? `<span class="cr-me"><i>${esc(ini)}</i>${esc(p.display || p.name)}</span>`
+      ${p ? `<button class="cr-me${UI.screen === 'me' ? ' on' : ''}" data-act="go" data-a="me"${UI.screen === 'me' ? ' aria-current="page"' : ''}><i>${esc(ini)}</i><span>${esc(p.display || p.name)}<small>You and your trip</small></span></button>`
           : `<button class="cr-i" data-act="whoOpen">${navIcon('you')}<span>Choose my name</span></button>`}
     </div>
   </nav>`;
@@ -7957,7 +7957,7 @@ const CLUB_NAV = [
   ['season', 'Season',   'Season'],
   ['hq',     'Vegas HQ', 'Vegas HQ'],
 ];
-const CLUB_SCREENS = ['you', 'season', 'hq', 'clubentry'];
+const CLUB_SCREENS = ['you', 'season', 'hq', 'clubentry', 'me'];
 const clubPhase = () => C.phaseOf(T) === 'club';
 const inClub = () => clubPhase() && !UI.archive;
 const bookFrozen = () => C.frozen(T);
@@ -8057,6 +8057,69 @@ function whoLine() {
 }
 
 /* ---------------- YOU ---------------- */
+/* ---------------- YOU AND YOUR TRIP ----------------
+   A sign-up form is for filling in once. Everything on it is also a thing
+   that CHANGES — a size, a flight, whether you are golfing at all — and a
+   form is the wrong shape for changing one thing: you have to find it
+   again among the things you are not changing.
+
+   So the one screen that is about you, reached from your own name. Every
+   row writes the field Vegas HQ already writes; nothing here is a second
+   copy of anything, which is the only way two doors onto one answer stay
+   honest. */
+function scrMe() {
+  const me = myPid();
+  if (!me) return `<div class="page-head"><h2>You</h2></div>${whoLine()}`;
+  const p = E.person(T, me) || {};
+  const today = todayIso();
+  const L = C.ledger(T, me);
+  const line = C.lineOf(T, me);
+  const t = C.travelOf(T, me) || {};
+  const out = t.out || {};
+  const sign = C.signupOf(T, me) || {};
+  const course = courseForKey('home__' + me);
+  const cur = seasonNow().currency || '£';
+  const open = UI.meOpen || null;
+  const row = (k, label, val, act, a) =>
+    `<button class="me-r${open === k ? ' on' : ''}" data-act="${act || 'meOpen'}" data-a="${esc(a != null ? a : k)}"
+      aria-expanded="${open === k}">${esc(label)}<span>${esc(val)}</span></button>`;
+  const ini = String(p.display || p.name || '').split(/\s+/).map(w => w[0] || '').join('').toUpperCase().slice(0, 2);
+  return `<div class="page-head"><h2>You and your trip</h2>
+    <p class="lede">Everything the book holds about you, and all of it changeable. Changes save themselves.</p></div>
+  <div class="clubgrid">
+  ${heldHtml(me)}
+  <div class="me-id"><i>${esc(ini)}</i><b>${esc(p.display || p.name || '')}</b>
+    <small>${esc(C.joiningLine(T, me))} \u00b7 ${line.done} of ${line.of} on your line</small></div>
+
+  <div class="me-menu">
+    ${row('join', 'How you\u2019re joining', C.joiningLine(T, me))}
+    ${open === 'join' ? `<div class="me-body">${joiningHtml(me, { inline: true, flat: true, bare: true })}</div>` : ''}
+    ${row('pkg', 'Your package', L.pkg ? L.pkg.name : 'Not picked')}
+    ${open === 'pkg' ? `<div class="me-body"><div class="pkgs">${seasonNow().packages.map(x =>
+      `<button class="pkg${sign.pkg === x.id ? ' on' : ''}" data-act="signPkg" data-a="${esc(x.id)}" aria-pressed="${sign.pkg === x.id}"><span class="pk-n">${esc(x.name)}</span><span class="pk-p num">${x.price ? esc(C.fmtMoney(x.price, cur)) : 'price to come'}</span><ul>${(x.inc || []).map(i => `<li>${esc(i)}</li>`).join('')}</ul></button>`).join('')}</div>
+      ${L.price ? `<div class="mymeter">${meterHtml(L, cur)}<span class="num">${esc(C.fmtMoney(L.paid, cur))} paid \u00b7 ${L.settled ? 'settled' : esc(C.fmtMoney(L.left, cur)) + ' to go'}</span></div>` : ''}</div>` : ''}
+    ${row('merch', 'Shirt and merch', [sign.shirt, sign.initials].filter(Boolean).join(' \u00b7 ') || 'Not given')}
+    ${open === 'merch' ? `<div class="me-body"><div class="fieldset three">
+      <label>Shirt size<input class="field" data-act="signField" data-a="shirt" value="${esc(sign.shirt || '')}" placeholder="XL" maxlength="6"></label>
+      <label>Initials on the polo<input class="field" data-act="signField" data-a="initials" value="${esc(sign.initials || '')}" maxlength="5" autocapitalize="characters"></label>
+      <label>Name on the merch<input class="field" data-act="signField" data-a="nameOn" value="${esc(sign.nameOn || '')}" maxlength="40"></label>
+    </div></div>` : ''}
+    ${row('fly', 'Your flights', out.flight ? out.flight + (out.lands ? ' \u00b7 lands ' + out.lands : '') : 'Not booked')}
+    ${open === 'fly' ? `<div class="me-body">${travelFieldsHtml(t)}</div>` : ''}
+    ${row('course', 'Your home course', course ? course.name : 'Not set', 'go', 'season')}
+  </div>
+
+  <div class="me-menu">
+    <div class="me-hd">The book on this phone</div>
+    ${row('pin', 'Your PIN', store && store.who && store.who.pin ? 'Entered on this phone' : 'Not entered', 'whoPick', me)}
+    ${row('name', 'Not you?', 'Change who this phone is', 'whoOpen', '')}
+  </div>
+
+  <p class="cact"><button class="btn ghost" data-act="go" data-a="hq">Open Vegas HQ</button>
+    <button class="btn ghost" data-act="go" data-a="you">Back to You</button></p>
+  </div>`;
+}
+
 function scrYou() {
   const me = myPid();
   const today = todayIso();
@@ -8097,7 +8160,8 @@ function scrYou() {
   if (open) facts.push('closes ' + esc(C.dowOf(open.to)) + ' ' + esc(C.fmtDay(open.to)));
   facts.push(line.done + ' of ' + line.of + ' on your Vegas line');
   const live = golfer ? liveRound(me, today) : null;
-  const acts = (live ? resumeBtn(live) + `<button class="btn ghost" data-act="roundNew"${open ? ` data-a="${open.id}"` : ''}>Start another</button>`
+  /* The panel below says it in full, so the cover does not say it twice. */
+  const acts = (live ? `<button class="btn ghost" data-act="roundNew"${open ? ` data-a="${open.id}"` : ''}>Start another</button>`
       : golfer && open ? `<button class="btn" data-act="clubEnter" data-a="${open.id}">${tot && tot.thru ? (card.done ? 'See my card' : 'Carry on my card') : 'Start a round'}</button>`
       : golfer ? `<button class="btn" data-act="roundNew">Start a round</button>` : '')
     + `<button class="btn ghost" data-act="go" data-a="hq">Open Vegas HQ</button>`;
@@ -8106,6 +8170,7 @@ function scrYou() {
     h1: head, sub: facts.join(' · '), acts })
   + `<div class="clubgrid lift">
   ${heldHtml(me)}
+  ${golfer ? resumePanel(liveRound(me, today)) : ''}
   <div class="cline ckpis${golfer ? '' : ' one'}">${golfer ? kpiHtml(d.form) + kpiHtml(d.played) + kpiHtml(d.ready) : kpiHtml(d.ready)}</div>
   ${golfer ? youCardHtml(me, today) : ''}
   ${golfer ? youRoundsHtml(me, today) : ''}
@@ -8114,7 +8179,15 @@ function scrYou() {
   ${golfer && !open && next ? lineHtml('Next stop', esc(next.name), 'Opens ' + esc(C.fmtDay(next.from, { long: true })) + ' and closes ' + esc(C.fmtDay(next.to, { long: true })) + '. ' + esc(next.note || '')) : ''}
   <div class="cline"><span class="ck">Your Vegas line · ${line.done} of ${line.of}</span>
     <div class="chks">${line.items.map(i => `<div class="chk"><span>${esc(i.label)}</span><b class="${i.ok ? 'ok' : 'todo'}">${esc(i.val)}</b></div>`).join('')}</div>
-    <p class="cact"><button class="btn ghost" data-act="go" data-a="hq">${line.next ? 'Open Vegas HQ' : 'Open Vegas HQ'}</button></p></div>
+    <p class="cact"><button class="btn ghost" data-act="go" data-a="hq">Open Vegas HQ</button>
+      <button class="btn ghost" data-act="go" data-a="me">You and your trip</button></p></div>
+  ${/* A PHONE HAS NO RAIL. The door to your own screen is the name in the
+        sidebar, which a phone never draws — so the same door stands here,
+        saying what it holds rather than just your name. */ ''}
+  <button class="cline mejoin" data-act="go" data-a="me">
+    <span class="ck">How you’re joining</span>
+    <b class="ct">${esc(C.joiningLine(T, me))}</b>
+    <p>Golfing less, or there for fewer days? Change it here.</p></button>
   ${golfer && mine ? lineHtml('Your practice manual', 'Picked from your Belek report card', 'Putting ' + esc(gradeOf(mine, 'putting')) + ' · par 3s ' + esc(gradeOf(mine, 'par3')) + ' · par 5s ' + esc(gradeOf(mine, 'par5')) + '. Twelve to fifteen drills, drawn and scored, with a coach on video.', `<p style="margin-top:10px"><button class="btn ghost" data-act="manualOpen" data-a="${me}">Open my manual</button></p>`) : ''}
   ${golfer && mine ? lineHtml('Your Belek 2026 card', esc(belekLine(mine)), 'The first season in your archive. Readable any time; nothing in it can change.', `<p class="cact"><button class="btn ghost" data-act="reportPlayer" data-a="${me}">Read my report card</button><button class="btn ghost" data-act="archiveView" data-a="2026">Open the Belek book</button></p>`) : ''}
   </div>`;
@@ -8148,6 +8221,54 @@ function resumeBtn(r, cls) {
     : `<button class="btn${cls ? ' ' + cls : ''}" data-act="roundOpen" data-a="${esc(r.rid)}">${esc(label)}</button>`;
 }
 
+/* ---- THE ROUND YOU WALKED AWAY FROM ----
+   This was a button the colour of every other button, in a cream card the
+   shape of every other card, on a page of cream cards — so the one thing on
+   the screen that was actually happening looked like the six that were not.
+
+   It is pine now, the only dark thing between the cover and the foot, and
+   it carries the round itself: the holes written, the hole you are standing
+   on, what it is worth. That is what makes it stand out rather than the
+   colour — it is the one panel on the You tab telling you something none of
+   the others can. A louder colour is a trick that stops working the moment
+   a second thing is painted.
+
+   The strip is eighteen cells on a laptop and nine on a phone, because
+   eighteen across 330 points is eighteen slivers; the half you are not in
+   is a line under it instead. */
+function resumePanel(r) {
+  if (!r) return '';
+  const t = C.cardTotals(r.card);
+  const holes = r.card.raw || [];
+  /* the hole being played: the first unwritten one, or the last if it is full */
+  let at = holes.findIndex(v => v == null);
+  if (at < 0) at = Math.min(17, t.thru);
+  const half = at >= 9 ? 1 : 0;
+  const cell = i => `<span class="rz-h${holes[i] != null ? ' done' : ''}${i === at ? ' now' : ''}"
+    aria-hidden="true">${i + 1}</span>`;
+  const nine = n => `<span class="rz-nine${half === n ? ' here' : ''}">${
+    Array.from({ length: 9 }, (_, j) => cell(n * 9 + j)).join('')}</span>`;
+  const where = r.kind === 'comp' ? shortStop(r.stop.name) : 'A handicap round';
+  const course = courseForKey(r.kind === 'comp' ? 'home__' + myPid() : 'home__' + myPid());
+  const act = r.kind === 'comp'
+    ? `data-act="clubEnter" data-a="${esc(r.stop.id)}"`
+    : `data-act="roundOpen" data-a="${esc(r.rid)}"`;
+  return `<section class="resume" aria-label="A round you have not finished">
+    <div class="rz-top">
+      <span class="ck">Still out there</span>
+      <b class="ct">${esc(where)}${course ? ' · ' + esc(course.name) : ''}</b>
+    </div>
+    <div class="rz-strip" role="img" aria-label="${t.thru} of 18 written; you are on hole ${at + 1}">
+      ${nine(0)}${nine(1)}
+    </div>
+    <div class="rz-foot">
+      <span class="rz-sc"><b class="num">${t.pts} pt${t.pts === 1 ? '' : 's'}</b> through ${t.thru}
+        · you’re on the ${ord(at + 1)}</span>
+      <button class="btn rz-go" ${act}>Pick it up on ${at + 1}</button>
+    </div>
+  </section>`;
+}
+
 /* ---- NOTHING OF YOURS IS IN THE BOOK ----
    The foot of the page says it, but the foot of the page is where nobody
    looks. Six people filled in a sign-up, read "waiting for signal", believed
@@ -8178,6 +8299,87 @@ function signSendHtml(me, sign, line) {
   return `<div class="signsend${held ? ' wait' : sent ? ' ok' : ''}">
     <button class="btn big" data-act="signSend">${sent ? 'Send it again' : 'Send to the commissioner'}</button>
     <p class="ss-state">${state}</p></div>`;
+}
+
+/* ---- HOW YOU ARE JOINING ----
+   After Belek half the field is changing shape: one is not golfing, one
+   will play two of the three, one arrives on the Wednesday. None of that
+   could be said in the book — a package said five nights or seven and the
+   division said golfing or not, and between them there was no word for
+   "golfing, but not all of it".
+
+   Three questions, kept apart because they fail apart, and drawn the same
+   wherever they appear: on the You tab, in Vegas HQ and on your own screen.
+   One card, written once, so there is never a second answer.
+
+   The rounds are switches rather than chips because a switch is the one
+   control nobody has to be taught: it is on or it is off, you can see which
+   at a glance down a list, and a list of seven is exactly where chips stop
+   reading as a set of answers and start reading as a paragraph. */
+function switchHtml(on, act, a, label, sub) {
+  return `<button class="sw" role="switch" aria-checked="${on ? 'true' : 'false'}" data-act="${act}" data-a="${esc(a)}">
+    <span class="sw-l"><b>${esc(label)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</span>
+    <span class="sw-t" aria-hidden="true"><i></i></span></button>`;
+}
+/* The flight boxes, in one copy. Vegas HQ asks for them during sign-up and
+   your own screen asks for them when a flight moves; two copies of six
+   boxes is two places for them to drift apart. */
+function travelFieldsHtml(t) {
+  const out = (t && t.out) || {}, back = (t && t.back) || {};
+  return `<div class="fieldset two">
+    <label>Out · date<input class="field" type="date" data-act="travelField" data-a="out.date" value="${esc(out.date || '')}"></label>
+    <label>Out · flight<input class="field" data-act="travelField" data-a="out.flight" value="${esc(out.flight || '')}" placeholder="BA 275" maxlength="12"></label>
+    <label>Out · lands<input class="field" data-act="travelField" data-a="out.lands" value="${esc(out.lands || '')}" placeholder="15:40" maxlength="8"></label>
+    <label>Back · date<input class="field" type="date" data-act="travelField" data-a="back.date" value="${esc(back.date || '')}"></label>
+    <label>Back · flight<input class="field" data-act="travelField" data-a="back.flight" value="${esc(back.flight || '')}" placeholder="BA 274" maxlength="12"></label>
+    <label>Back · lands<input class="field" data-act="travelField" data-a="back.lands" value="${esc(back.lands || '')}" placeholder="12:10" maxlength="8"></label>
+  </div>`;
+}
+
+function joiningHtml(me, opts) {
+  if (!me) return '';
+  const o = opts || {};
+  const g = C.golfOf(T, me);
+  const mine = C.roundsOf(T, me);
+  const stay = C.stayOf(T, me);
+  const trip = C.tripFor(T, me);
+  const w = seasonNow().window;
+  const sign = C.signupOf(T, me) || {};
+  const L = C.ledger(T, me);
+  /* What changed since the package was bought, said plainly. The book does
+     not reprice anybody: the money is collected outside it and the
+     commissioner is the one who knows what was agreed. */
+  const pkgNights = L.pkg && L.pkg.nights != null ? +L.pkg.nights : null;
+  const drift = [];
+  if (L.pkg && L.pkg.golf && g === 'none') drift.push('your package includes golf');
+  if (L.pkg && !L.pkg.golf && g !== 'none') drift.push('your package does not include golf');
+  if (pkgNights != null && !stay.full && stay.nights !== pkgNights) {
+    drift.push('your package is ' + pkgNights + ' nights and you have said ' + stay.nights);
+  }
+  return `<div class="cline joincard${o.flat ? ' flat' : ''}">
+    ${o.bare ? '' : `<span class="ck">How you\u2019re joining${o.inline ? '' : ' \u00b7 change any time'}</span>`}
+    ${o.title ? `<b class="ct">${esc(o.title)}</b>` : ''}
+    <p class="jq">Golf</p>
+    <div class="chiprow">${C.GOLF_AMOUNT.map(([k, l]) =>
+      `<button class="chip${g === k ? ' on' : ''}" data-act="joinGolf" data-a="${k}" aria-pressed="${g === k}">${l}</button>`).join('')}</div>
+    ${g === 'some' ? `<p class="jq">Which of it</p>
+    <p class="jh">For the tee sheets. ${mine.length ? mine.length + ' of ' + trip.length + ' on.' : 'Nothing on yet.'}</p>
+    <div class="swlist">${trip.map(r => switchHtml(mine.includes(r.id), 'joinRound', r.id, r.name,
+        r.kind === 'practice' ? 'Practice' : r.kind === 'social' ? 'Everyone' : 'Counts')).join('')}</div>` : ''}
+    <p class="jq">How long you\u2019re there</p>
+    <div class="chiprow">
+      <button class="chip${stay.full ? ' on' : ''}" data-act="joinStay" data-a="full" aria-pressed="${stay.full}">The full week</button>
+      <button class="chip${stay.full ? '' : ' on'}" data-act="joinStay" data-a="part" aria-pressed="${!stay.full}">Part of it</button>
+    </div>
+    ${stay.full ? `<p class="jh">${esc(C.fmtDay(w.from))} to ${esc(C.fmtDay(w.to, { year: true }))}.</p>`
+      : `<div class="fieldset two jdates">
+      <label>Arrive<input class="field" type="date" data-act="joinField" data-a="arrive" value="${esc(sign.arrive || w.from)}" min="${esc(w.from)}" max="${esc(w.to)}"></label>
+      <label>Leave<input class="field" type="date" data-act="joinField" data-a="depart" value="${esc(sign.depart || w.to)}" min="${esc(w.from)}" max="${esc(w.to)}"></label>
+    </div>
+    <p class="jh">${stay.nights} night${stay.nights === 1 ? '' : 's'} inside the ${esc(C.fmtDay(w.from))} to ${esc(C.fmtDay(w.to))} window.</p>`}
+    ${drift.length ? `<div class="jwarn"><b>Worth telling the commissioner.</b> ${esc(drift.join(', and '))}.
+      Nothing is repriced here \u2014 the money is settled with him, not in the book.</div>` : ''}
+  </div>`;
 }
 
 function heldHtml(me) {
@@ -8723,7 +8925,7 @@ function seasonArchive() {
   return `<h3 class="sub">The archive</h3>
   ${Object.entries(s.archive || {}).map(([yr, a]) => `<div class="cline"><span class="ck">${esc(yr)} · closed book</span><b class="ct">${esc(a.name || yr)}</b><p>${esc(a.venue || '')}${a.place ? ', ' + esc(a.place) : ''} · ${esc(C.fmtDay(a.from))} to ${esc(C.fmtDay(a.to, { year: true }))}. Every card, board, recap, photo and report card, readable as they ended.</p>
     <p class="cact"><button class="btn" data-act="archiveView" data-a="${esc(yr)}">Open the ${esc(a.name || yr)} book</button><a class="btn ghost" href="${esc(D.SITE_URL)}recap/?r=report" target="_blank" rel="noopener">The players report</a></p></div>`).join('')}
-  ${F ? `<h3 class="sub">Belek report cards</h3><div class="rp-list">${F.players.map(pr => `<button class="rp-row" data-act="reportPlayer" data-a="${pr.id}"><span class="rp-rw"><b>${esc(pr.name)}</b><small>${esc(belekLine(pr))}</small></span><span class="rp-go" aria-hidden="true">›</span></button>`).join('')}</div>` : ''}`;
+  ${F ? `<h3 class="sub">Belek report cards</h3><div class="rp-list">${F.players.map(pr => `<button class="rp-row" data-act="reportPlayer" data-a="${pr.id}"><span class="rp-rw"><b>${esc(pr.name)}</b><small>${esc(belekLine(pr))}</small></span><span class="rz-go" aria-hidden="true">›</span></button>`).join('')}</div>` : ''}`;
 }
 
 /* ---------------- VEGAS HQ ---------------- */
@@ -8761,9 +8963,11 @@ function scrHq() {
   </div>
   <h3 class="sub">Are you in?</h3>
   <div class="chiprow">${[['in', 'I’m in'], ['maybe', 'Maybe'], ['out', 'Not this one']].map(([k, l]) => `<button class="chip${status === k ? ' on' : ''}" data-act="signStatus" data-a="${k}" aria-pressed="${status === k}">${l}</button>`).join('')}</div>
-  ${status && status !== 'out' ? `<h3 class="sub">Playing?</h3>
-  <p class="sublede">Which tournament you’re in, for the tee sheets and the trophies. It changes nothing about the season’s stops.</p>
-  <div class="chiprow">${C.DIVISIONS.map(([k, l]) => `<button class="chip${C.divisionOf(T, me) === k ? ' on' : ''}" data-act="signDivision" data-a="${k}" aria-pressed="${C.divisionOf(T, me) === k}">${l}</button>`).join('')}</div>` : ''}
+  ${status && status !== 'out' ? `<h3 class="sub">How you’re joining</h3>
+  <p class="sublede">How much golf, which of it, and how long you’re there. For the tee sheets and the hotel; it changes nothing about the season’s stops.</p>
+  ${joiningHtml(me, { inline: true })}
+  ${C.golfOf(T, me) !== 'none' ? `<h3 class="sub">Which tournament</h3>
+  <div class="chiprow">${C.DIVISIONS.filter(d => d[0] !== 'none').map(([k, l]) => `<button class="chip${C.divisionOf(T, me) === k ? ' on' : ''}" data-act="signDivision" data-a="${k}" aria-pressed="${C.divisionOf(T, me) === k}">${l}</button>`).join('')}</div>` : ''}` : ''}
   ${status && status !== 'out' ? `<h3 class="sub">Your package</h3>
   <p class="sublede">One price for the trip. Each package says what it covers; there are no itemised receipts, the money is collected outside the book and the commissioner marks it paid here.</p>
   <div class="pkgs">${pkgs.map(p => `<button class="pkg${sign && sign.pkg === p.id ? ' on' : ''}" data-act="signPkg" data-a="${p.id}" aria-pressed="${sign && sign.pkg === p.id}"><span class="pk-n">${esc(p.name)}</span><span class="pk-p num">${p.price ? esc(C.fmtMoney(p.price, cur)) : 'price to come'}</span><ul>${(p.inc || []).map(x => `<li>${esc(x)}</li>`).join('')}</ul></button>`).join('')}</div>
@@ -8775,14 +8979,7 @@ function scrHq() {
   </div>
   <h3 class="sub">Your flights</h3>
   <p class="sublede">Add them when they are booked. The commissioner exports these for the airport runs.</p>
-  <div class="fieldset two">
-    <label>Out · date<input class="field" type="date" data-act="travelField" data-a="out.date" value="${esc(out.date || '')}"></label>
-    <label>Out · flight<input class="field" data-act="travelField" data-a="out.flight" value="${esc(out.flight || '')}" placeholder="BA 275" maxlength="12"></label>
-    <label>Out · lands<input class="field" data-act="travelField" data-a="out.lands" value="${esc(out.lands || '')}" placeholder="15:40" maxlength="8"></label>
-    <label>Back · date<input class="field" type="date" data-act="travelField" data-a="back.date" value="${esc(back.date || '')}"></label>
-    <label>Back · flight<input class="field" data-act="travelField" data-a="back.flight" value="${esc(back.flight || '')}" placeholder="BA 274" maxlength="12"></label>
-    <label>Back · lands<input class="field" data-act="travelField" data-a="back.lands" value="${esc(back.lands || '')}" placeholder="12:10" maxlength="8"></label>
-  </div>
+  ${travelFieldsHtml(t)}
   ${signSendHtml(me, sign, line)}` : ''}`}
   </div><aside class="hq-side">
   <h3 class="sub">The field · ${f.in.length} in, ${f.maybe.length} maybe, ${f.out.length} out${f.unanswered.length ? ', ' + f.unanswered.length + ' to answer' : ''}</h3>
@@ -9906,7 +10103,7 @@ function paint() {
                  calendar: scrCalendar, entry: scrEntry, roster: scrRoster, rules: scrRules,
                  tees: scrTees,
                  courses: scrCourses, setup: scrSetup,
-                 you: scrYou, season: scrSeason, hq: scrHq, clubentry: scrClubEntry }[UI.screen]();
+                 you: scrYou, season: scrSeason, hq: scrHq, clubentry: scrClubEntry, me: scrMe }[UI.screen]();
   /* AN ARRIVAL IS NOT A REDRAW. The book redraws itself every few seconds
      off the shared store, and a page that faded in on each of those would
      flicker all week. The screen rises and resolves only when it is actually
@@ -11807,6 +12004,28 @@ function onClick(e) {
       fieldSweep();
       store.writeClub('signup__' + me, { pid: me, sentAt: Date.now() }, true);
       render(); return; }
+    /* ---- how you're joining ---- */
+    case 'meOpen': { UI.meOpen = UI.meOpen === a ? null : a; render(); return; }
+    case 'joinGolf': { const me = myPid(); if (!me) return;
+      const patch = { pid: me, golf: a };
+      /* Turning it on with nothing ticked would show an empty list and
+         read as a broken screen, so "some" starts from what they had, or
+         from the rounds that count if they had nothing. */
+      if (a === 'some' && !(C.signupOf(T, me) || {}).rounds) {
+        patch.rounds = C.tripFor(T, me).filter(r => r.kind === 'round').map(r => r.id);
+      }
+      store.writeClub('signup__' + me, patch, true); render(); return; }
+    case 'joinRound': { const me = myPid(); if (!me) return;
+      const had = C.roundsOf(T, me);
+      const next = had.includes(a) ? had.filter(x => x !== a) : had.concat([a]);
+      const order = C.tripFor(T, me).map(r => r.id);
+      next.sort((x, y) => order.indexOf(x) - order.indexOf(y));
+      store.writeClub('signup__' + me, { pid: me, golf: 'some', rounds: next }, true); render(); return; }
+    case 'joinStay': { const me = myPid(); if (!me) return;
+      const w = seasonNow().window;
+      const patch = { pid: me, stay: a };
+      if (a === 'part' && !(C.signupOf(T, me) || {}).arrive) { patch.arrive = w.from; patch.depart = w.to; }
+      store.writeClub('signup__' + me, patch, true); render(); return; }
     case 'signDivision': { const me = myPid(); if (!me) return; store.writeClub('signup__' + me, { pid: me, division: a }, true); render(); return; }
     case 'onAppOpen': if (!canAdmin()) return; UI.modal = { kind: 'onapp' }; UI.modalErr = ''; render(); return;
     case 'onAppReload': onAppLoad(true); render(); return;
@@ -13300,6 +13519,9 @@ function onChange(e) {
      themselves this way and nothing else — but it goes through the same
      path, written at once rather than after the pause. */
   if (act === 'signField') { fieldSoon('sign', a, el.value); fieldFlush(); return; }
+  /* The arrive and leave dates are a sign-up field under another name; they
+     redraw, because the nights counted under them change with them. */
+  if (act === 'joinField') { fieldSoon('sign', a, el.value); fieldFlush(); setTimeout(render, 0); return; }
   if (act === 'travelField') { fieldSoon('travel', a, el.value); fieldFlush(); return; }
   if (act === 'courseField') {
     const c = UI.courseDraft; if (!c) return;
@@ -14054,8 +14276,8 @@ export function boot() {
   app.addEventListener('input', e => {
     if (e.target && e.target.id === 'askField') UI.askText = e.target.value;
     /* the Vegas HQ boxes, kept as they are typed — see fieldSoon() */
-    if (e.target && e.target.dataset && (e.target.dataset.act === 'signField' || e.target.dataset.act === 'travelField')) {
-      fieldSoon(e.target.dataset.act === 'signField' ? 'sign' : 'travel', e.target.dataset.a, e.target.value);
+    if (e.target && e.target.dataset && ['signField', 'travelField', 'joinField'].includes(e.target.dataset.act)) {
+      fieldSoon(e.target.dataset.act === 'travelField' ? 'travel' : 'sign', e.target.dataset.a, e.target.value);
     }
     /* The size slider moves the crop on the elements themselves, for the same
        reason the drag does: a redraw of the whole book on every frame of a
