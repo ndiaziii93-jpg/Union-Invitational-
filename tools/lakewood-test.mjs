@@ -20,8 +20,8 @@ const CARD = [
   ['Black',  72, 3491, 3542, 7033],
   ['Blue',   72, 3385, 3344, 6729],
   ['White',  72, 3226, 3190, 6416],
-  ['Silver', 74, 2944, 2959, 5903],
-  ['Orange', 74, 2274, 2219, 4493],
+  ['Silver', 72, 2944, 2959, 5903],
+  ['Orange', 72, 2274, 2219, 4493],
 ];
 const lib = C.COURSE_LIB.filter(c => c.name === 'Lakewood Country Club');
 console.log('\nthe five tees, against the printed card');
@@ -37,13 +37,21 @@ for (const [tee, par, out, back, tot] of CARD) {
   ok(tee + ': eighteen holes', c.holes.length, 18);
 }
 
-console.log('\nthe card carries two indexes and two pars, and the book keeps them apart');
+/* ONE CARD FOR THE COURSE. The club prints two — a men's par 72 with its
+   index, and a second index under the Silver where the 6th and the 13th
+   play as 5s for 74. The book plays every tee off the men's card, so that
+   a stop played off the Silver and one played off the Black are the same
+   par and the stableford points they pay are comparable. This is the one
+   place the book knowingly prints less than the club does, so it is pinned
+   here rather than left to drift back. */
+console.log('\none card for the course, whichever tee you stand on');
 const white = lib.find(c => c.tee === 'White'), silver = lib.find(c => c.tee === 'Silver');
-ok('the 6th is a par 4 off the white and a 5 off the silver',
-  [white.holes[5].par, silver.holes[5].par], [4, 5]);
-ok('and so is the 13th', [white.holes[12].par, silver.holes[12].par], [4, 5]);
-ok('the hardest hole is the 6th off the white, the 7th off the silver',
-  [white.holes.findIndex(h => h.si === 1) + 1, silver.holes.findIndex(h => h.si === 1) + 1], [6, 7]);
+ok('the 6th is a par 4 off every tee', [white.holes[5].par, silver.holes[5].par], [4, 4]);
+ok('and so is the 13th', [white.holes[12].par, silver.holes[12].par], [4, 4]);
+ok('the 6th is the hardest hole from anywhere',
+  [white.holes.findIndex(h => h.si === 1) + 1, silver.holes.findIndex(h => h.si === 1) + 1], [6, 6]);
+ok('and every tee agrees, hole for hole',
+  lib.every(c => c.holes.every((h, i) => h.par === white.holes[i].par && h.si === white.holes[i].si)), true);
 
 console.log('\nit stands beside Leatherhead rather than instead of it');
 const names = new Set(C.COURSE_LIB.map(c => c.name));

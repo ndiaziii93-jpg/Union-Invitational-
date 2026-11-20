@@ -6601,7 +6601,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261120-2008';
+const BUILD = '20261120-2154';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -12574,9 +12574,7 @@ const card = (tee, par, si, y) => ({ tee, holes: par.map((p, i) => ({ par: p, si
 /* Lakewood's card, which every one of its five tees is cut from. */
 const SRC_LAKEWOOD = 'https://www.lakewoodgolfcc.com/golf-tee-times/view-scorecard/';
 const LKW_MEN_PAR = [4, 4, 3, 4, 3, 4, 5, 4, 5, 4, 4, 3, 4, 5, 4, 4, 3, 5];
-const LKW_WOM_PAR = [4, 4, 3, 4, 3, 5, 5, 4, 5, 4, 4, 3, 5, 5, 4, 4, 3, 5];
 const LKW_MEN_SI  = [7, 3, 17, 15, 13, 1, 9, 11, 5, 2, 10, 12, 4, 14, 18, 8, 16, 6];
-const LKW_WOM_SI  = [9, 5, 13, 15, 17, 3, 1, 11, 7, 2, 14, 16, 8, 4, 12, 10, 18, 6];
 
 const COURSE_LIB = [
   { id: 'the-grove-back', name: 'The Grove', place: 'Chandler\'s Cross, Hertfordshire, England',
@@ -12656,13 +12654,17 @@ const COURSE_LIB = [
 
      Taken off the club's own printed card, which is the authority here: the
      website's prose says 7,010 off the back and the card says 7,033, and
-     the card wins. The card also carries TWO stroke indexes — one under the
-     men's rows and a different one under the Silver — and a par that reads
-     4/5 at the 6th and the 13th, which is 72 played as the men's card and
-     74 as the women's. So the Black, Blue and White are the men's par and
-     index; the Silver and Orange are the women's. A man playing the Silver
-     plays a par 72 round off a 74 card, which is the one judgement in here
-     and is worth correcting if the club says otherwise. */
+     the card wins.
+
+     The card carries two stroke indexes and two pars — a men's row, and a
+     second index under the Silver with the 6th and the 13th playing as par
+     5s for 74. Every tee here takes the MEN'S par and the men's index, by
+     decision: one card for the course means a stop played off the Silver
+     and a stop played off the Black are the same par, so the points a
+     stableford pays are comparable whoever is playing and wherever they
+     stood. The women's rows are on the club's card if anybody wants them
+     back; this is the one place the book knowingly prints less than the
+     club does. */
   { id: 'lakewood-black', name: 'Lakewood Country Club', place: 'Lakewood, California, USA',
     note: 'Par 72, 7,033 yards off the black. Rating 73.0, slope 128. The club\u2019s own card.',
     src: SRC_LAKEWOOD,
@@ -12679,14 +12681,14 @@ const COURSE_LIB = [
     ...card('White', LKW_MEN_PAR, LKW_MEN_SI,
       [409, 389, 139, 330, 196, 437, 494, 337, 495, 388, 356, 203, 391, 476, 323, 356, 178, 519]) },
   { id: 'lakewood-silver', name: 'Lakewood Country Club', place: 'Lakewood, California, USA',
-    note: 'Par 74, 5,903 yards off the silver — the 6th and the 13th play as par 5s, and the silver has a stroke index of its own.',
+    note: 'Par 72, 5,903 yards off the silver. The club\u2019s card also prints a women\u2019s par of 74 here; the book plays every tee off the one card.',
     src: SRC_LAKEWOOD,
-    ...card('Silver', LKW_WOM_PAR, LKW_WOM_SI,
+    ...card('Silver', LKW_MEN_PAR, LKW_MEN_SI,
       [365, 329, 116, 322, 135, 418, 480, 307, 472, 362, 340, 148, 404, 461, 308, 341, 148, 447]) },
   { id: 'lakewood-orange', name: 'Lakewood Country Club', place: 'Lakewood, California, USA',
-    note: 'Par 74, 4,493 yards off the orange. The forward tee; the card prints no index of its own, so it takes the silver\u2019s.',
+    note: 'Par 72, 4,493 yards off the orange. The forward tee.',
     src: SRC_LAKEWOOD,
-    ...card('Orange', LKW_WOM_PAR, LKW_WOM_SI,
+    ...card('Orange', LKW_MEN_PAR, LKW_MEN_SI,
       [280, 254, 84, 231, 134, 364, 262, 271, 394, 270, 280, 116, 266, 350, 222, 251, 101, 363]) },
   { id: 'leatherhead', name: 'Leatherhead Golf Club', place: 'Leatherhead, Surrey, England',
     note: 'Par 71. Card as published for the white tees; check the index against the club\u2019s own.',
@@ -30261,7 +30263,7 @@ __m_app.boot();
 /* Register the worker that makes the book work with no signal. It is the
    whole point of installing it: Belek is five hours of walking and everyone
    is roaming. A failure here must never stop the page loading. */
-var BOOK_BUILD = '20261120-2008';
+var BOOK_BUILD = '20261120-2154';
 var swReg = null;
 /* the book is never shown inside somebody else's page, where a tap could be
    aimed at a button they have put under the finger */
