@@ -6391,6 +6391,10 @@ html.clubseason .btn,html.clubseason .chip,html.clubseason .pkg{transition:trans
 .me-r.still{opacity:.72;cursor:default}
 .me-why{margin:0;padding:0 15px 13px;font-size:12.5px;line-height:1.45;color:var(--turf);
   border-bottom:1px solid var(--hair);background:var(--sunk)}
-/* a field that cannot be filled in yet says why, under itself */
+/* A FIELD THAT CANNOT BE FILLED IN YET SAYS WHY, UNDER ITSELF.
+   The note goes AFTER the hidden select, not between it and the field: the
+   select has to stay the field's immediate next sibling, which is the
+   contract picker-test holds the book to and which the first cut of this
+   broke. */
 .pk-off .pkf{opacity:.45;cursor:not-allowed}
 .pk-why{display:block;margin-top:3px;font-size:11.5px;color:var(--turf);font-style:italic}

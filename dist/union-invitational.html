@@ -6395,7 +6395,11 @@ html.clubseason .btn,html.clubseason .chip,html.clubseason .pkg{transition:trans
 .me-r.still{opacity:.72;cursor:default}
 .me-why{margin:0;padding:0 15px 13px;font-size:12.5px;line-height:1.45;color:var(--turf);
   border-bottom:1px solid var(--hair);background:var(--sunk)}
-/* a field that cannot be filled in yet says why, under itself */
+/* A FIELD THAT CANNOT BE FILLED IN YET SAYS WHY, UNDER ITSELF.
+   The note goes AFTER the hidden select, not between it and the field: the
+   select has to stay the field's immediate next sibling, which is the
+   contract picker-test holds the book to and which the first cut of this
+   broke. */
 .pk-off .pkf{opacity:.45;cursor:not-allowed}
 .pk-why{display:block;margin-top:3px;font-size:11.5px;color:var(--turf);font-style:italic}
 
@@ -6496,7 +6500,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261120-0716';
+const BUILD = '20261120-0814';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -21213,7 +21217,7 @@ function pickWrap(sel, o) {
   const hidden = sel.replace(/<select class="/, '<select tabindex="-1" aria-hidden="true" class="pk-sel ');
   const why = off ? (o.why || 'Nothing to choose from yet') : '';
   return `<span class="pk pk-${kind}${o.small ? ' sm' : ''}${o.cls ? ' ' + o.cls : ''}${off ? ' pk-off' : ''}"><button type="button" class="pkf${quiet ? ' unset' : ''}"
-    data-act="pickOpen" data-pk="${kind}" data-title="${esc(o.title || '')}" data-sub="${esc(o.sub || '')}"${off ? ` disabled aria-disabled="true" title="${esc(why)}"` : ''}>${inner}</button>${off ? `<small class="pk-why">${esc(why)}</small>` : ''}${hidden}</span>`;
+    data-act="pickOpen" data-pk="${kind}" data-title="${esc(o.title || '')}" data-sub="${esc(o.sub || '')}"${off ? ` disabled aria-disabled="true" title="${esc(why)}"` : ''}>${inner}</button>${hidden}${off ? `<small class="pk-why">${esc(why)}</small>` : ''}</span>`;
 }
 
 /** The window for a field just tapped, built from the select under it. */

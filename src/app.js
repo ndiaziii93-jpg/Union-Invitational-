@@ -5564,7 +5564,7 @@ function pickWrap(sel, o) {
   const hidden = sel.replace(/<select class="/, '<select tabindex="-1" aria-hidden="true" class="pk-sel ');
   const why = off ? (o.why || 'Nothing to choose from yet') : '';
   return `<span class="pk pk-${kind}${o.small ? ' sm' : ''}${o.cls ? ' ' + o.cls : ''}${off ? ' pk-off' : ''}"><button type="button" class="pkf${quiet ? ' unset' : ''}"
-    data-act="pickOpen" data-pk="${kind}" data-title="${esc(o.title || '')}" data-sub="${esc(o.sub || '')}"${off ? ` disabled aria-disabled="true" title="${esc(why)}"` : ''}>${inner}</button>${off ? `<small class="pk-why">${esc(why)}</small>` : ''}${hidden}</span>`;
+    data-act="pickOpen" data-pk="${kind}" data-title="${esc(o.title || '')}" data-sub="${esc(o.sub || '')}"${off ? ` disabled aria-disabled="true" title="${esc(why)}"` : ''}>${inner}</button>${hidden}${off ? `<small class="pk-why">${esc(why)}</small>` : ''}</span>`;
 }
 
 /** The window for a field just tapped, built from the select under it. */
