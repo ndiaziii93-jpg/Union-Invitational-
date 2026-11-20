@@ -97,11 +97,19 @@ await p.evaluate(() => {
       if (el.disabled) continue;
       const tag = el.tagName.toLowerCase();
       if (tag === 'input' || tag === 'select' || tag === 'textarea') continue;   // typing is another test's job
-      const name = (el.getAttribute('aria-label') || el.textContent || '').replace(/\s+/g, ' ').trim();
+      const name = (el.getAttribute('aria-label') || el.title || el.textContent || '').replace(/\s+/g, ' ').trim();
+      /* HIDDEN ON PURPOSE IS NOT MISSING BY ACCIDENT. The top strip is a
+         second copy of two controls, put a thumb's reach away for whoever
+         has scrolled, and the whole strip is aria-hidden with tabindex -1:
+         the nameplate's own shield and dial are the ones read out. Reported
+         as "nothing for a screen reader to say", it read as a fault when it
+         is the opposite — somebody thought about it. A screen reader never
+         reaches these, so nothing here is missing a name. */
+      const hidden = !!el.closest('[aria-hidden="true"]') || el.getAttribute('tabindex') === '-1';
       const chosen = el.getAttribute('aria-pressed') === 'true' || el.getAttribute('aria-checked') === 'true'
         || el.getAttribute('aria-current') === 'page' || /(^| )on( |$)/.test(el.className || '');
       out.push({ act: el.dataset.act, a: el.dataset.a || '', b: el.dataset.b || '', chosen,
-        name: name.slice(0, 48), w: Math.round(r.width), h: Math.round(r.height),
+        name: name.slice(0, 48), hidden, w: Math.round(r.width), h: Math.round(r.height),
         tag, cls: (typeof el.className === 'string' ? el.className : '').trim().split(/\s+/)[0] || '' });
     }
     return out;
@@ -173,7 +181,7 @@ while (queue.length && taps < BUDGET) {
 
   for (const c of controls) {
     if (taps >= BUDGET) break;
-    if (!c.name) findings.unnamed.push({ where: here, act: c.act, cls: c.cls, w: c.w, h: c.h });
+    if (!c.name && !c.hidden) findings.unnamed.push({ where: here, act: c.act, cls: c.cls, w: c.w, h: c.h });
     if (Math.min(c.w, c.h) < TAP && c.tag === 'button')
       findings.small.push({ where: here, act: c.act, name: c.name, size: c.w + 'x' + c.h, cls: c.cls });
 
