@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1D2E21">
+<meta name="robots" content="noindex">
+<link rel="icon" href="../../app/icon-192.png">
+<title>What the agents found</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;0,8..60,900;1,8..60,400&display=swap">
+<style>
+:root{color-scheme:light;
+  --paper:#E3DBCB; --page:#EEE8D5; --sunk:#DBD2BA; --card:#F7F2E6;
+  --ink:#1D2E21; --turf:#5C6B55; --green:#3E5C43;
+  --rule:#C4B896; --hair:#DCD1B4; --flag:#9E3B2E; --gold:#8C6B2F; --gold-up:#C9A253;
+  --pine:#1D2E21; --onpine:#EEE8D5;
+  --serif:'Source Serif 4','Iowan Old Style',Georgia,serif;
+  --ui:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;}
+html[data-theme="night"]{color-scheme:dark;
+  --paper:#121A14; --page:#1A2420; --sunk:#0E1511; --card:#202C25;
+  --ink:#ECE5D4; --turf:#A7B5A2; --green:#A9CBAE;
+  --rule:#3B4C3E; --hair:#2A3A2E; --flag:#E39385; --gold:#D9B45C;
+  --pine:#0B110D; --onpine:#ECE5D4;}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:16px;line-height:1.45;
+  padding:26px max(16px,env(safe-area-inset-right,0px)) 72px max(16px,env(safe-area-inset-left,0px))}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.wrap{max-width:1060px;margin:0 auto}
+h1{margin:0 0 10px;font-size:clamp(26px,4.4vw,36px);line-height:1.12}
+h2{margin:0;font-size:clamp(19px,2.6vw,23px);line-height:1.2}
+.lede{margin:0 0 4px;color:var(--turf);max-width:76ch}
+.kick{display:block;font-family:var(--ui);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);font-weight:700}
+.topbar{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;margin-bottom:22px}
+.tog{font-family:var(--ui);font-size:12.5px;font-weight:700;border:1px solid var(--rule);border-radius:999px;padding:8px 15px;background:var(--page)}
+.band{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin:22px 0 10px}
+.stat{border:1px solid var(--rule);border-radius:14px;background:var(--page);padding:12px 14px}
+.stat b{display:block;font-size:27px;line-height:1.05;font-variant-numeric:tabular-nums}
+.stat small{display:block;font-size:12.5px;color:var(--turf);margin-top:2px}
+.stat.ok b{color:var(--green)}
+.f{margin-top:22px;border:1px solid var(--rule);border-radius:16px;background:var(--page);overflow:hidden}
+.f>header{padding:14px 17px 13px;border-bottom:1px solid var(--hair);display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.f>header .n{flex:0 0 auto;width:30px;height:30px;border-radius:50%;background:var(--pine);color:var(--onpine);
+  display:grid;place-items:center;font-weight:800;font-size:14px;font-family:var(--ui)}
+.f>header .t{flex:1 1 240px;min-width:0}
+.sev{flex:0 0 auto;font-family:var(--ui);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;font-weight:800;
+  border-radius:999px;padding:4px 10px;background:var(--sunk);color:var(--turf)}
+.sev.hi{background:var(--flag);color:#fff}
+.sev.mid{background:var(--gold-up);color:#23331F}
+.sev.q{background:none;border:1px dashed var(--rule)}
+.body{padding:14px 17px 17px}
+.ev{font-family:var(--ui);font-size:12.5px;background:var(--sunk);border-radius:10px;padding:9px 12px;margin:0 0 12px;
+  color:var(--turf);overflow-x:auto;white-space:pre-wrap;line-height:1.6}
+.ev b{color:var(--ink)}
+.ways{display:grid;gap:10px;grid-template-columns:1fr;margin-top:12px}
+@media(min-width:800px){.ways{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.way{border:1px solid var(--hair);border-radius:12px;background:var(--card);padding:11px 13px 12px}
+.way.pick{border-color:var(--gold-up);box-shadow:inset 3px 0 0 var(--gold-up)}
+.way h3{margin:0 0 4px;font-size:15px;line-height:1.25}
+.way h3 em{font-style:normal;color:var(--gold);font-family:var(--ui);font-size:10px;letter-spacing:.1em;
+  text-transform:uppercase;font-weight:800;display:block;margin-bottom:2px}
+.way p{margin:0;font-size:14px;color:var(--turf);line-height:1.45}
+.way .cost{display:block;margin-top:7px;font-size:12px;color:var(--ink);font-weight:600}
+.note{margin-top:30px;border:1px solid var(--rule);border-radius:14px;padding:16px 18px;background:var(--page)}
+.foot{margin-top:34px;color:var(--turf);font-size:13.5px}
+.foot a{color:var(--gold)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="topbar">
+  <div>
+    <span class="kick">The Union Invitational · for the commissioner</span>
+    <h1>What the agents found</h1>
+    <p class="lede">Night mode is fixed and pushed. Everything below is a <b>finding, not a change</b> — three ways
+      out of each, nothing built.</p>
+  </div>
+  <button class="tog" id="tog">Night</button>
+</div>
+
+<div class="band">
+  <div class="stat ok"><b>0</b><small>unreadable at night, from 14</small></div>
+  <div class="stat ok"><b>0</b><small>errors in 1,500 taps</small></div>
+  <div class="stat ok"><b>0</b><small>windows with no way out</small></div>
+  <div class="stat"><b>32</b><small>places walked</small></div>
+  <div class="stat"><b>7</b><small>findings, below</small></div>
+</div>
+
+<!-- 1 -->
+<article class="f">
+  <header><span class="n">1</span><div class="t"><h2>Targets you have to aim at, while holding a club</h2>
+    <p class="lede">Apple's own floor is 44 points. Six controls are under it — and the worst of them are the ones
+      you press standing on a tee.</p></div><span class="sev hi">Worth doing</span></header>
+  <div class="body">
+    <p class="ev"><b>.hcell</b> 34×40, the hole strip, 36 of them on the scoring screen
+      · <b>.h3club</b> 40×32, the club chips on the hole
+      · <b>.ehd-art</b> 39×34, “See the hole”
+      · <b>.h3big</b> 130×29, “Open it full screen”
+      · <b>.moonbtn</b> 32×32 on a phone
+      · <b>.ts-ask</b> 40×40</p>
+    <div class="ways">
+      <div class="way pick"><h3><em>Way one</em>Grow the hit area, not the ink</h3>
+        <p>Keep every one of them looking exactly as it does and hang an invisible 44-point pad off it. Nothing
+          moves, nothing is redrawn, and the strip still fits eighteen holes across a phone.</p>
+        <span class="cost">Cheapest. No visual change at all.</span></div>
+      <div class="way"><h3><em>Way two</em>Make the ones you use playing genuinely bigger</h3>
+        <p>The hole strip and the club chips grow to 44, and the strip shows fewer holes at a time, scrolling as
+          it already does. Honest, and it admits the screen is used outdoors.</p>
+        <span class="cost">Changes how the scoring screen looks.</span></div>
+      <div class="way"><h3><em>Way three</em>A glove mode</h3>
+        <p>One switch in your own screen that grows every target in the book to 44 and keeps it there. Belek was
+          cold; Vegas in November is not warm at seven in the morning.</p>
+        <span class="cost">Dearest, and a setting nobody may find.</span></div>
+    </div>
+  </div>
+</article>
+
+<!-- 2 -->
+<article class="f">
+  <header><span class="n">2</span><div class="t"><h2>A button with no name</h2>
+    <p class="lede">The “ask” control carries no label of any kind — a screen reader announces it as “button”, and
+      nothing else in the book can describe it either.</p></div><span class="sev hi">Worth doing</span></header>
+  <div class="body">
+    <p class="ev"><b>act=askOpen</b> · <b>.ts-ask</b> · 40×40 · no text, no aria-label · on every screen</p>
+    <div class="ways">
+      <div class="way pick"><h3><em>Way one</em>Give it the name it already has</h3>
+        <p>One attribute: “Ask about the rules”. It is a one-line change and it is simply missing.</p>
+        <span class="cost">Minutes. No argument against it.</span></div>
+      <div class="way"><h3><em>Way two</em>Name it and audit every other control at once</h3>
+        <p>The agent already checks this on every crawl. Make an unnamed control fail the suite, so the next one
+          never ships.</p>
+        <span class="cost">An hour, and it stays fixed.</span></div>
+      <div class="way"><h3><em>Way three</em>Give it a word on the glass</h3>
+        <p>Not just a label for the reader: put “Rules” under the icon. Nobody has to guess what it does, and the
+          target gets bigger for free.</p>
+        <span class="cost">Takes room on a phone.</span></div>
+    </div>
+  </div>
+</article>
+
+<!-- 3 -->
+<article class="f">
+  <header><span class="n">3</span><div class="t"><h2>Nine ways to Vegas HQ on one screen</h2>
+    <p class="lede">The You tab offers the same destination nine times. Each one made sense when it was added;
+      together they read as a page that does not know what it wants you to do.</p></div><span class="sev mid">Judgement</span></header>
+  <div class="body">
+    <p class="ev"><b>act=go a=hq</b> × 9, all on the You tab — the cover, the line panel, the joining card, and six more</p>
+    <div class="ways">
+      <div class="way"><h3><em>Way one</em>Cut it to two</h3>
+        <p>One on the cover, one at the end of your Vegas line. Everything else loses its button and keeps its
+          words.</p>
+        <span class="cost">Quick. Somebody will miss a shortcut.</span></div>
+      <div class="way pick"><h3><em>Way two</em>One door per panel, and only where the panel is about HQ</h3>
+        <p>A panel that talks about money, rooms or the sign-up gets a door; a panel about your round does not.
+          The rule is stateable, so it stays true as panels are added.</p>
+        <span class="cost">An afternoon, and it holds.</span></div>
+      <div class="way"><h3><em>Way three</em>Leave it, and make the agent watch the number</h3>
+        <p>Nine is not hurting anybody today. Set the ceiling at nine and let the crawl shout when a tenth
+          appears.</p>
+        <span class="cost">Free. Fixes nothing.</span></div>
+    </div>
+  </div>
+</article>
+
+<!-- 4 -->
+<article class="f">
+  <header><span class="n">4</span><div class="t"><h2>“Choose” — twice, and neither one opens</h2>
+    <p class="lede">On the week's entry setup there are two identical “Choose” controls for closest-to-the-pin, and
+      tapping either changes nothing on screen. This is my best candidate for a real defect; I have not confirmed
+      it is not simply waiting for data my fixture lacks.</p></div><span class="sev q">Needs a look</span></header>
+  <div class="body">
+    <p class="ev"><b>act=pickOpen</b> · <b>.pkf</b> · “? Not chosen yet · Choose” · 2 identical controls · nothing
+      happened on tap · at <b>entry » setup</b></p>
+    <div class="ways">
+      <div class="way pick"><h3><em>Way one</em>Find out first</h3>
+        <p>Half an hour with a real week fixture — rounds, pairs, a field — to see whether it is broken or just
+          idle. Everything else here is guessing until that is known.</p>
+        <span class="cost">Half an hour. Do this one first.</span></div>
+      <div class="way"><h3><em>Way two</em>Make it say why it cannot open</h3>
+        <p>If it is idle because nothing is nominated yet, it should say so instead of looking pressable. A
+          control that cannot act should not look like one that can.</p>
+        <span class="cost">Small, once the cause is known.</span></div>
+      <div class="way"><h3><em>Way three</em>Give the agent a week to walk</h3>
+        <p>Build a full week fixture — three rounds, pairings, cards — and let the crawl run against it. This one
+          would have been answered already, and so would the next twenty.</p>
+        <span class="cost">A day. Pays for itself.</span></div>
+    </div>
+  </div>
+</article>
+
+<!-- 5 -->
+<article class="f">
+  <header><span class="n">5</span><div class="t"><h2>Post, with nothing to post</h2>
+    <p class="lede">The chat's Post button is pressable when the box is empty. It does nothing and says nothing,
+      which reads as a broken button rather than an empty box.</p></div><span class="sev mid">Judgement</span></header>
+  <div class="body">
+    <p class="ev"><b>act=chatSend</b> · “Post” · nothing happened · at <b>today » chat</b></p>
+    <div class="ways">
+      <div class="way pick"><h3><em>Way one</em>Grey it out until there are words</h3>
+        <p>The ordinary answer, and the one nobody has to learn. The button says what it can do before it is
+          pressed.</p>
+        <span class="cost">Minutes.</span></div>
+      <div class="way"><h3><em>Way two</em>Leave it live and say why</h3>
+        <p>“Write something first”, under the box. Better for a thumb that has already committed, worse for a
+          thumb that has not.</p>
+        <span class="cost">Minutes. A matter of taste.</span></div>
+      <div class="way"><h3><em>Way three</em>Fix the whole family</h3>
+        <p>Every Save, Post and Send in the book, one rule: a control that cannot act is disabled and explains
+          itself. The agent counts them and holds the line.</p>
+        <span class="cost">A day. Ends the class.</span></div>
+    </div>
+  </div>
+</article>
+
+<!-- 6 -->
+<article class="f">
+  <header><span class="n">6</span><div class="t"><h2>The book's second ink is just under the line, in daylight</h2>
+    <p class="lede">Night is clean. Day has 23 places where the secondary text sits between 3.78 and 4.14 against
+      cream, where the standard asks 4.5. It is the same colour every time.</p></div><span class="sev mid">Judgement</span></header>
+  <div class="body">
+    <p class="ev"><b>--turf #5C6B55</b> → 4.14 on paper · 3.78 on sunk · 4.65 on page · needs 4.5
+      <br>A 12% darkening to <b>#515E4B</b> clears every surface: 5.00 · 4.57 · 5.61. Same hue, same character.</p>
+    <div class="ways">
+      <div class="way pick"><h3><em>Way one</em>Darken the one token</h3>
+        <p>Every secondary line in the book gets a shade deeper and clears the standard. One value, same hue,
+          nothing else moves. Reversible in a second if you hate it.</p>
+        <span class="cost">One line. Changes the whole book, slightly.</span></div>
+      <div class="way"><h3><em>Way two</em>Only where it actually fails</h3>
+        <p>Darken it on the sunk and paper surfaces and leave it alone on the page. Surgical, and a second rule to
+          remember forever.</p>
+        <span class="cost">Fiddly. Two truths about one colour.</span></div>
+      <div class="way"><h3><em>Way three</em>Decide it is fine and write that down</h3>
+        <p>4.14 is close, it is the book's established look, and nobody has complained. Record the exception so
+          the test stops raising it and a real regression still would.</p>
+        <span class="cost">Free. An honest decision, not a dodge.</span></div>
+    </div>
+  </div>
+</article>
+
+<!-- 7 -->
+<article class="f">
+  <header><span class="n">7</span><div class="t"><h2>Pressing what you already chose says nothing at all</h2>
+    <p class="lede">Fifteen controls do nothing when tapped because they are already the answer — the package you
+      bought, the tab you are on, the club already selected. Correct, and silent. On a phone, silence and broken
+      look identical.</p></div><span class="sev mid">Judgement</span></header>
+  <div class="body">
+    <p class="ev">15 controls · <b>signPkg</b>, <b>joinGolf</b>, <b>joinStay</b>, <b>shotClub</b>, <b>stopPick</b>,
+      <b>clubMTab</b>, <b>packKind</b> and nine more</p>
+    <div class="ways">
+      <div class="way"><h3><em>Way one</em>A flicker on the press</h3>
+        <p>Any already-chosen control gives the same small pulse when pressed. One rule, every control, and it
+          answers “did that work?” before the question is asked.</p>
+        <span class="cost">An afternoon. One rule for the lot.</span></div>
+      <div class="way pick"><h3><em>Way two</em>Leave them, fix the ones you press while playing</h3>
+        <p>Nobody taps a package twice. People absolutely tap a club twice, in the rain, unsure whether the first
+          one took. Do <b>shotClub</b>, <b>clubHole</b> and the keypad; leave the rest.</p>
+        <span class="cost">An hour, aimed where it matters.</span></div>
+      <div class="way"><h3><em>Way three</em>Leave them alone</h3>
+        <p>Every one of them already shows its state — the chosen chip is pine, the current tab is marked. A
+          flicker on fifteen controls is motion the book does not currently have.</p>
+        <span class="cost">Free. Defensible.</span></div>
+    </div>
+  </div>
+</article>
+
+<div class="note">
+  <span class="kick">What I would do, in order</span>
+  <p class="lede" style="margin-top:4px"><b>2</b> (the unnamed button) and <b>5</b> (Post) are minutes each and
+    have no argument against them. <b>1</b>, way one — padding the targets without moving a pixel — is the best
+    value in the list, because the controls it fixes are the ones held in a cold hand on a tee. <b>4</b> needs
+    half an hour of finding out before anybody decides anything. <b>3</b>, <b>6</b> and <b>7</b> are yours: they
+    are taste, not faults, and I have given you the case for leaving each of them alone.</p>
+  <p class="lede" style="margin-top:10px">The one thing I would add that is not on the list: <b>a real week
+    fixture</b>. Half of what the crawl could not judge, it could not judge because the book had no tournament in
+    it. Build that and the agent gets twice as useful overnight.</p>
+</div>
+
+<p class="foot">The Union Invitational · an audit, not a change ·
+  <a href="../../">back to the site</a> · <a href="../joining/">the joining sketch</a></p>
+
+</div>
+<script>
+(function(){var t=document.getElementById('tog');t.addEventListener('click',function(){
+  var on=document.documentElement.getAttribute('data-theme')==='night';
+  document.documentElement.setAttribute('data-theme',on?'day':'night');
+  t.textContent=on?'Night':'Day';});})();
+</script>
+</body>
+</html>
