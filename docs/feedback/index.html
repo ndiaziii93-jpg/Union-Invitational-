@@ -60,9 +60,18 @@
 :root {
   color-scheme: light;
   --paper:#E3DBCB; --page:#EEE8D5; --sunk:#DBD2BA;
-  --ink:#1D2E21;   --turf:#5C6B55;  --green:#3E5C43;
+  /* --turf is every second line in the book. At #5C6B55 it measured 4.14
+     against the paper and 3.78 against the sunk panel, where the standard
+     asks 4.5 — twenty-three places, all of them this one colour. Twelve per
+     cent darker clears every surface (5.00, 4.57, 5.61) at the same hue, so
+     the book reads the same and is legible to more people. */
+  --ink:#1D2E21;   --turf:#515E4B;  --green:#3E5C43;
   --rule:#C4B896;  --hair:#DCD1B4;
-  --flag:#9E3B2E;  --gold:#8C6B2F;
+  /* --gold is the kicker over every panel: ten-point caps, which the
+     standard counts as ordinary text. It measured 4.02 on the page and
+     3.27 on the sunk panel. This clears both. --gold-up, the gold on every
+     dark surface, is untouched — the brand on pine is as it was. */
+  --flag:#9E3B2E;  --gold:#715726;
   --under:#B4892B; --over:#9E3B2E; --level:#1D2E21;
   /* The gold on a cream page goes muddy on the ink, so the bar has its own:
      light enough to read at eleven pixels against the dark. And a sage for
@@ -887,7 +896,8 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 .h3mount.in{position:relative;width:100%;aspect-ratio:4 / 5;max-height:72vh}
 .h3mount.in .h3live{position:absolute;inset:0}
 .h3big{position:absolute;right:8px;top:8px;z-index:5;border:1px solid rgba(239,233,216,.5);
-  border-radius:999px;padding:5px 11px;font-size:11.5px;font-weight:700;color:var(--onpine);
+  border-radius:999px;padding:12px 14px;min-height:44px;display:inline-flex;align-items:center;
+  font-size:11.5px;font-weight:700;color:var(--onpine);
   background:rgba(16,22,17,.6);backdrop-filter:blur(5px)}
 .h3in .h3shotbar{position:static;margin:0;border-radius:0;backdrop-filter:none;
   background:rgba(16,22,17,.92);box-shadow:none;left:auto;right:auto;bottom:auto;
@@ -919,8 +929,10 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
   box-shadow:0 8px 24px rgba(16,22,17,.34);display:grid;gap:7px}
 .h3sb-row{display:flex;gap:5px;overflow-x:auto;min-width:0;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .h3sb-row::-webkit-scrollbar{display:none}
-.h3club{flex:0 0 auto;border:1px solid rgba(239,233,216,.4);border-radius:999px;padding:5px 11px;
-  font-size:13px;font-weight:700;color:var(--onpine);background:rgba(16,22,17,.4)}
+/* the same, for the club you pick before writing a shot: 40 by 32 before */
+.h3club{flex:0 0 auto;border:1px solid rgba(239,233,216,.4);border-radius:999px;padding:12px 14px;
+  min-height:44px;display:inline-flex;align-items:center;
+  font-size:13.5px;font-weight:700;color:var(--onpine);background:rgba(16,22,17,.4)}
 .h3club.on{background:var(--gold-up);color:#23331F;border-color:var(--gold-up)}
 .h3sb-foot{display:flex;align-items:center;gap:8px;justify-content:space-between}
 .h3sb-foot span{font-size:11.5px;color:var(--onpine);opacity:.92;font-weight:600}
@@ -2488,7 +2500,7 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
 @media (hover:hover) and (pointer:fine){ .ehd-art:hover{background:rgba(238,232,213,.18);border-color:rgba(238,232,213,.6)} }
 .entryhd .scroller{margin:10px 0 0;overflow-x:auto}
 .entryhd .hstrip{display:flex;gap:5px;min-width:0;padding-bottom:12px}
-.entryhd .hstrip .hcell{flex:1 1 0;min-width:40px;min-height:46px;padding:4px 0;
+.entryhd .hstrip .hcell{flex:0 0 auto;min-width:48px;min-height:46px;padding:4px 0;
   border-radius:8px;border:1px solid rgba(255,255,255,.2);background:none;
   color:var(--sage-up);display:grid;place-items:center;gap:0}
 .entryhd .hstrip .hcell .n{font-size:14px;font-weight:600;line-height:1.1}
@@ -3830,15 +3842,20 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
   .ehd-m{margin-left:auto;text-align:right;font-size:10px;letter-spacing:.1em;
     text-transform:uppercase;color:var(--sage-up);font-weight:700;line-height:1.5}
   .ehd-m b{display:block;color:var(--onpine)}
-  .ehd-art{margin-left:10px;padding:7px 10px;min-height:34px;font-size:0;gap:0;letter-spacing:0}
+  .ehd-art{margin-left:10px;padding:7px 12px;min-height:44px;min-width:44px;font-size:0;gap:0;letter-spacing:0}
   .ehd-art svg{width:17px;height:17px}
   /* The eighteen, as a ribbon on the band: one row, not two, and small
      enough that a dozen are on the glass at once. */
   .entryhd .scroller{margin:8px 0 0;overflow-x:auto}
   .entryhd .hstrip{display:flex;gap:4px;min-width:0;padding-bottom:9px}
-  /* Forty points tall, because a thumb has to hit it on a moving buggy.
-     Narrow is fine — it is a number — but short is not. */
-  .entryhd .hstrip .hcell{flex:0 0 auto;width:34px;min-width:0;min-height:40px;padding:0;
+  /* A TARGET YOU AIM AT HOLDING A CLUB.
+     This used to read "narrow is fine — it is a number — but short is
+     not", and set 34 by 40. It is not fine. A thumb in November does not
+     aim at a column, it aims at a hole, and 34 points is under every floor
+     there is. Forty-eight by forty-four, which puts seven on the glass
+     instead of ten: the strip already scrolls, so the rest are one thumb
+     away, and the one you want is the one you can hit. */
+  .entryhd .hstrip .hcell{flex:0 0 auto;width:48px;min-width:48px;min-height:44px;padding:0;
     border-radius:7px;border:1px solid rgba(255,255,255,.2);background:none;
     color:var(--sage-up);display:grid;place-items:center}
   .entryhd .hstrip .hcell .p{display:none}
@@ -6388,6 +6405,43 @@ html.clubseason .btn,html.clubseason .chip,html.clubseason .pkg{transition:trans
   .rz-sc{font-size:15px}
   .rz-sc b{font-size:20px}
 }
+
+/* ---- THE PRESS ----
+   Every control in the book answers the finger before the book does. This
+   is the half of "did that register?" that reaches an iPhone: Safari has no
+   Vibration API and the hidden-switch trick was closed in iOS 26.5, so a
+   buzz is Android-only and this is not. It is :active rather than a class
+   added by script because the redraw that follows a tap replaces the
+   element, and a class on a replaced element is a class on nothing.
+
+   It matters most where the tap changes nothing — the package already
+   bought, the club already chosen, the tab you are already on. Fifteen
+   controls were silent in exactly that way. */
+@media (hover:none),(pointer:coarse){
+  [data-act]:active{transition:none}
+  button[data-act]:active,a[data-act]:active{scale:.97;filter:brightness(.93)}
+  .chip[data-act]:active,.btn[data-act]:active,.hcell[data-act]:active,
+  .h3club[data-act]:active,.pkg[data-act]:active,.navbtn[data-act]:active{scale:.96}
+}
+@media (hover:hover) and (pointer:fine){
+  button[data-act]:active{scale:.985;filter:brightness(.95)}
+}
+/* a ring for the ones that change nothing at all, so the press is seen and
+   not only felt — the chosen chip, the current tab, the club already on */
+.chip.on[data-act]:active,.pkg.on[data-act]:active,.h3club.on[data-act]:active,
+.hcell.on[data-act]:active,.btab.on[data-act]:active{
+  box-shadow:0 0 0 4px color-mix(in srgb,var(--gold-up) 55%,transparent)}
+@media (prefers-reduced-motion:reduce){
+  button[data-act]:active,a[data-act]:active,.chip[data-act]:active,.btn[data-act]:active,
+  .hcell[data-act]:active,.h3club[data-act]:active,.pkg[data-act]:active,.navbtn[data-act]:active{scale:1}
+}
+/* a row that states a fact rather than offering a choice */
+.me-r.still{opacity:.72;cursor:default}
+.me-why{margin:0;padding:0 15px 13px;font-size:12.5px;line-height:1.45;color:var(--turf);
+  border-bottom:1px solid var(--hair);background:var(--sunk)}
+/* a field that cannot be filled in yet says why, under itself */
+.pk-off .pkf{opacity:.45;cursor:not-allowed}
+.pk-why{display:block;margin-top:3px;font-size:11.5px;color:var(--turf);font-style:italic}
 </style>
 <style>
 html,body{margin:0;background:var(--paper);color:var(--ink)}

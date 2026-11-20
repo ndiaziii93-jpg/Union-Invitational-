@@ -2472,7 +2472,7 @@ function boardChat(inSheet) {
       <div class="ch-box"><button type="button" class="ch-atb" aria-label="Call someone out by name">@</button>
         <input id="chatText" type="text" maxlength="280" autocomplete="off" enterkeyhint="send"
           placeholder="${replyTo ? 'Your reply…' : reMoment ? 'Heckle it…' : isRound ? 'Say something to the group…' : 'Anything from the trip…'}" value="${esc(UI.chatDraft || '')}" aria-label="Message">
-        <button class="btn sm" data-act="chatSend">Post</button></div>
+        <button class="btn sm" id="chatPost" data-act="chatSend"${String(UI.chatDraft || '').trim() ? '' : ' disabled aria-disabled="true" title="Write something first"'}>Post</button></div>
       <button class="ch-as" data-act="whoOpen">Posting as ${esc(nameOf(me))}${isGuest(me) ? ', in the bleachers' : ''} · change</button>${noSignalNote()}`
     : `<button class="btn" data-act="whoOpen" style="width:100%">Choose your name to join in</button>`}
   </div>
@@ -2810,6 +2810,28 @@ function guestJoin() {
   UI.modal = back ? { kind: back } : null;
   redrawFrom();
 }
+/* ---- A CONTROL THAT CANNOT ACT SHOULD NOT LOOK LIKE ONE THAT CAN ----
+   Post was pressable with an empty box: it did nothing and said nothing,
+   which reads as a broken button rather than an empty box. The answer is
+   not to explain after the press, it is to say so before it \u2014 so the
+   button is disabled until there are words, and carries the reason.
+
+   It is kept in step from the box's own input event rather than by a
+   redraw, because redrawing on every keystroke would take the caret with
+   it, and because a Post button that lags a letter behind the box is worse
+   than one that never moves. */
+function liveEnable() {
+  const pairs = [['chatText', 'chatPost']];
+  for (const [boxId, btnId] of pairs) {
+    const box = document.getElementById(boxId), btn = document.getElementById(btnId);
+    if (!box || !btn) continue;
+    const ready = !!String(box.value || '').trim();
+    btn.disabled = !ready;
+    if (ready) { btn.removeAttribute('aria-disabled'); btn.removeAttribute('title'); }
+    else { btn.setAttribute('aria-disabled', 'true'); btn.setAttribute('title', 'Write something first'); }
+  }
+}
+
 function chatSend() {
   const me = whoAmI();
   const f = document.getElementById('chatText');
@@ -2827,6 +2849,7 @@ function chatSend() {
   render();
   /* in the chat that rose over a screen, the keyboard stays up for the next line */
   if (UI.modal && UI.modal.kind === 'chat') { const g = document.getElementById('chatText'); if (g) g.focus({ preventScroll: true }); }
+  liveEnable();
 }
 
 /** Said plainly when the shared book has turned a post or a bet down: it is
@@ -5519,8 +5542,14 @@ function pinLine(kind, cfg, course) {
 const PK_STYLE = { name: 'A', list: 'A', hole: 'C', time: 'B', tee: 'B' };
 function pickWrap(sel, o) {
   const tag = (sel.match(/<select\b[^>]*>/) || [''])[0];
-  const off = /\sdisabled(\s|>|=)/.test(tag);
   const opts = [...sel.matchAll(/<option\b([^>]*)>([^<]*)<\/option>/g)];
+  /* A FIELD WITH NOTHING IN IT IS NOT A FIELD YOU CAN FILL IN. The window
+     was disabled only when the select said so, so a select that was merely
+     EMPTY — nothing nominated yet, no groups drawn yet — left a button that
+     looked pressable, did nothing when pressed, and said nothing about it.
+     The crawl found it twice before anybody on the trip did. */
+  const real = opts.filter(x => (((x[1] || '').match(/value="([^"]*)"/) || [, ''])[1]) !== '');
+  const off = /\sdisabled(\s|>|=)/.test(tag) || !real.length;
   const on = opts.find(x => /\sselected\b/.test(x[1])) || opts[0] || ['', '', ''];
   const val = ((on[1] || '').match(/value="([^"]*)"/) || [, ''])[1];
   const sub = ((on[1] || '').match(/data-sub="([^"]*)"/) || [, ''])[1];
@@ -5533,8 +5562,9 @@ function pickWrap(sel, o) {
       ? `<span class="pk-coin none">?</span><span class="pk-v none">${label}</span><span class="pk-ed">Choose</span>`
       : `<span class="pk-v${quiet ? ' none' : ''}">${label}</span><i class="pk-chev" aria-hidden="true"></i>`;
   const hidden = sel.replace(/<select class="/, '<select tabindex="-1" aria-hidden="true" class="pk-sel ');
-  return `<span class="pk pk-${kind}${o.small ? ' sm' : ''}${o.cls ? ' ' + o.cls : ''}"><button type="button" class="pkf${quiet ? ' unset' : ''}"
-    data-act="pickOpen" data-pk="${kind}" data-title="${esc(o.title || '')}" data-sub="${esc(o.sub || '')}"${off ? ' disabled' : ''}>${inner}</button>${hidden}</span>`;
+  const why = off ? (o.why || 'Nothing to choose from yet') : '';
+  return `<span class="pk pk-${kind}${o.small ? ' sm' : ''}${o.cls ? ' ' + o.cls : ''}${off ? ' pk-off' : ''}"><button type="button" class="pkf${quiet ? ' unset' : ''}"
+    data-act="pickOpen" data-pk="${kind}" data-title="${esc(o.title || '')}" data-sub="${esc(o.sub || '')}"${off ? ` disabled aria-disabled="true" title="${esc(why)}"` : ''}>${inner}</button>${off ? `<small class="pk-why">${esc(why)}</small>` : ''}${hidden}</span>`;
 }
 
 /** The window for a field just tapped, built from the select under it. */
@@ -5543,7 +5573,12 @@ function pickOpen(btn) {
   if (!wrap) return;
   const kind = btn.dataset.pk;
   const sels = [...wrap.querySelectorAll('select')];
-  if (!sels.length || sels[0].disabled) return;
+  /* Whatever stops this opening, say so. Returning here without a word is
+     what made a pressable control answer nothing at all. */
+  if (!sels.length || sels[0].disabled
+      || ![...sels[0].options].some(op => op.value !== '')) {
+    UI.toast = btn.title || 'Nothing to choose from yet.'; render(); return;
+  }
   const keyOf = el => ['act', 'a', 'b', 'c', 'part'].filter(k => el.dataset[k] != null)
     .map(k => `[data-${k}="${CSS.escape(el.dataset[k])}"]`).join('');
   const m = { kind: 'pick', kind2: kind, style: PK_STYLE[kind] || 'A', title: btn.dataset.title || '', sub: btn.dataset.sub || '',
@@ -8111,6 +8146,12 @@ function scrMe() {
 
   <div class="me-menu">
     <div class="me-hd">The book on this phone</div>
+    ${canBuzz()
+      ? switchHtml(buzzOn(), 'buzzToggle', '', 'Buzz when you tap', 'A short tick under the finger')
+      : `<div class="me-r still"><span>Buzz when you tap</span><span>Not on this phone</span></div>
+         <p class="me-why">Safari has never carried the vibration that makes a phone tick, and the way around it
+           was closed in iOS 26.5. Every control still presses under the finger, which is the part an iPhone can
+           do. On an Android phone this is a switch.</p>`}
     ${row('pin', 'Your PIN', store && store.who && store.who.pin ? 'Entered on this phone' : 'Not entered', 'whoPick', me)}
     ${row('name', 'Not you?', 'Change who this phone is', 'whoOpen', '')}
   </div>
@@ -8163,11 +8204,17 @@ function scrYou() {
   /* The panel below says it in full, so the cover does not say it twice. */
   const acts = (live ? `<button class="btn ghost" data-act="roundNew"${open ? ` data-a="${open.id}"` : ''}>Start another</button>`
       : golfer && open ? `<button class="btn" data-act="clubEnter" data-a="${open.id}">${tot && tot.thru ? (card.done ? 'See my card' : 'Carry on my card') : 'Start a round'}</button>`
-      : golfer ? `<button class="btn" data-act="roundNew">Start a round</button>` : '')
-    + `<button class="btn ghost" data-act="go" data-a="hq">Open Vegas HQ</button>`;
+      : golfer ? `<button class="btn" data-act="roundNew">Start a round</button>` : '');
+  /* ONE DOOR PER PANEL, WHERE THE PANEL IS ABOUT HQ. The cover is about you
+     and the round in front of you; your Vegas line, further down, is the
+     panel that is actually about Vegas HQ and keeps its door. The cover
+     keeps one only when it would otherwise offer nothing at all — which is
+     the case for somebody who is not golfing, and for whom Vegas HQ is the
+     whole point of the screen. */
+  const acts2 = acts || `<button class="btn" data-act="go" data-a="hq">Open Vegas HQ</button>`;
   return clubCover({ photo: stopArt(open) || stopArt(next) || IMG.hero, lift: true,
     k: 'You · the Clubhouse · ' + esc(C.dowOf(today)) + ' ' + esc(C.fmtDay(today)) + (toVegas > 0 ? ' · ' + toVegas + ' days to Vegas' : ' · Vegas week'),
-    h1: head, sub: facts.join(' · '), acts })
+    h1: head, sub: facts.join(' · '), acts: acts2 })
   + `<div class="clubgrid lift">
   ${heldHtml(me)}
   ${golfer ? resumePanel(liveRound(me, today)) : ''}
@@ -11663,6 +11710,35 @@ function movePlayer(pid, target) { store.movePlayer(pid, target); }
 
 const setRound = (rid, patch) => store.writeConfig(c => { Object.assign(c.rounds[rid], patch); });
 
+/* ---- DID THAT REGISTER? ----
+   A tap that changes the screen answers itself. A tap that does not —
+   pressing the package you already bought, the club already chosen, the tab
+   you are already on — says nothing at all, and on a phone silence and
+   broken look identical. Fifteen controls were like that.
+
+   Two answers, because no single one reaches every phone.
+
+   THE PRESS is a CSS :active state on every control in the book. It costs
+   nothing, it cannot be out of date because it is live while the finger is
+   down, and it survives the redraw that follows — which a class added by
+   script does not, since the redraw replaces the element it was added to.
+   It works on every phone anybody on this trip owns.
+
+   THE BUZZ is navigator.vibrate, asked for by the commissioner for the
+   whole book. It is real on Android. It is NOT real on an iPhone: Safari
+   has never shipped the Vibration API, and the hidden-switch trick the
+   libraries used was closed in iOS 26.5 — a scripted click on the label no
+   longer counts as trusted. So this feature-detects and stays quiet rather
+   than pretending, the setting says so on a phone that cannot do it, and
+   the press above is what an iPhone actually feels. */
+const HAPTIC_KEY = 'ui_buzz';
+const canBuzz = () => { try { return typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function'; } catch (e) { return false; } };
+const buzzOn = () => fbRead(HAPTIC_KEY) !== false;      /* on unless turned off */
+function buzz(ms) {
+  if (!buzzOn() || !canBuzz()) return false;
+  try { return navigator.vibrate(ms || 8) !== false; } catch (e) { return false; }
+}
+
 function onClick(e) {
   X.invalidate();                       // the bets are worked out afresh for whatever this tap does
   const el = e.target.closest('[data-act]');
@@ -12005,6 +12081,7 @@ function onClick(e) {
       store.writeClub('signup__' + me, { pid: me, sentAt: Date.now() }, true);
       render(); return; }
     /* ---- how you're joining ---- */
+    case 'buzzToggle': { fbPut(HAPTIC_KEY, !buzzOn()); if (buzzOn()) buzz(14); render(); return; }
     case 'meOpen': { UI.meOpen = UI.meOpen === a ? null : a; render(); return; }
     case 'joinGolf': { const me = myPid(); if (!me) return;
       const patch = { pid: me, golf: a };
@@ -14222,6 +14299,11 @@ export function boot() {
   });
   const app = document.getElementById('app');
   app.addEventListener('click', onClick);
+  /* on the press, so it lands under the finger rather than after the work */
+  app.addEventListener('pointerdown', e => {
+    const el = e.target.closest && e.target.closest('[data-act]');
+    if (el && !el.disabled) buzz(8);
+  }, { passive: true });
   app.addEventListener('dragstart', e => {
     const el = e.target.closest('[data-act="dragGolfer"]');
     if (!el || !canEdit()) return;
@@ -14307,7 +14389,7 @@ export function boot() {
       UI.sayDraft = { rid: UI.entryRound, v: e.target.value };
     }
     if (e.target && e.target.id === 'resortQ') { UI.resortQ = e.target.value; filterGuide(); }
-    if (e.target && e.target.id === 'chatText') { UI.chatDraft = e.target.value; atSuggest(e.target); }
+    if (e.target && e.target.id === 'chatText') { UI.chatDraft = e.target.value; atSuggest(e.target); liveEnable(); }
     if (e.target && e.target.id === 'travelText') UI.travelDraft = e.target.value;
     if (e.target && e.target.id === 'rulingQ' && UI.modal && UI.modal.kind === 'ruling') UI.modal.q = e.target.value;
     if (e.target && e.target.id === 'guestName') UI.guestDraft = e.target.value;

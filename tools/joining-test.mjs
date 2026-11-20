@@ -56,9 +56,9 @@ console.log('\n=== the door, on a phone that has no sidebar ===');
   console.log('\n=== golfing some of it ===');
   await p.locator('.me-r').first().click(); await p.waitForTimeout(500);
   ok('the joining card opens', await p.locator('.me-body .joincard').count(), 1);
-  ok('no switches while you are in for all of it', await p.locator('.sw').count(), 0);
+  ok('no switches while you are in for all of it', await p.locator('.joincard .sw').count(), 0);
   await p.locator('.chip', { hasText: 'Some of it' }).first().click(); await p.waitForTimeout(600);
-  const sw = p.locator('.sw');
+  const sw = p.locator('.joincard .sw');
   ok('every part of the trip HE could play gets a switch', await sw.count(), 6);
   ok('and it starts from the rounds that count', (await sign(p)).rounds, ['r1', 'r2', 'r3']);
   ok('the women\u2019s 18 is not among them', await p.locator('.sw', { hasText: '18' }).count(), 0);
@@ -68,12 +68,13 @@ console.log('\n=== the door, on a phone that has no sidebar ===');
   console.log('\n=== the switches are switches ===');
   await sw.nth(0).click(); await p.waitForTimeout(500);
   ok('turning a practice day on keeps the rest', (await sign(p)).rounds, ['p1', 'r1', 'r2', 'r3']);
-  ok('and the switch says so', await p.locator('.sw').nth(0).getAttribute('aria-checked'), 'true');
+  ok('and the switch says so', await p.locator('.joincard .sw').nth(0).getAttribute('aria-checked'), 'true');
   await p.locator('.sw').nth(4).click(); await p.waitForTimeout(500);
   ok('turning a round off takes only that one', (await sign(p)).rounds, ['p1', 'r1', 'r2']);
   ok('the knob moves, not just the colour', await p.evaluate(() => {
-    const on = document.querySelectorAll('.sw')[0].querySelector('.sw-t i');
-    const off = document.querySelectorAll('.sw')[4].querySelector('.sw-t i');
+    const ss = document.querySelectorAll('.joincard .sw');
+    const on = ss[0].querySelector('.sw-t i');
+    const off = ss[4].querySelector('.sw-t i');
     return getComputedStyle(on).translate !== getComputedStyle(off).translate; }), true);
 
   console.log('\n=== how long you are there ===');
@@ -87,7 +88,7 @@ console.log('\n=== the door, on a phone that has no sidebar ===');
 
   console.log('\n=== not golfing at all ===');
   await p.locator('.joincard .chip', { hasText: 'Not golfing' }).first().click(); await p.waitForTimeout(700);
-  ok('the switches go away', await p.locator('.sw').count(), 0);
+  ok('the switches go away', await p.locator('.joincard .sw').count(), 0);
   ok('and the book reads it as not golfing everywhere',
     await p.evaluate(() => window.__C.divisionOf(window.__T, 'g1')), 'none');
   await p.locator('.joincard .chip', { hasText: 'All of it' }).first().click(); await p.waitForTimeout(700);

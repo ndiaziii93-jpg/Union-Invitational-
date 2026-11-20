@@ -16,9 +16,18 @@
 :root {
   color-scheme: light;
   --paper:#E3DBCB; --page:#EEE8D5; --sunk:#DBD2BA;
-  --ink:#1D2E21;   --turf:#5C6B55;  --green:#3E5C43;
+  /* --turf is every second line in the book. At #5C6B55 it measured 4.14
+     against the paper and 3.78 against the sunk panel, where the standard
+     asks 4.5 — twenty-three places, all of them this one colour. Twelve per
+     cent darker clears every surface (5.00, 4.57, 5.61) at the same hue, so
+     the book reads the same and is legible to more people. */
+  --ink:#1D2E21;   --turf:#515E4B;  --green:#3E5C43;
   --rule:#C4B896;  --hair:#DCD1B4;
-  --flag:#9E3B2E;  --gold:#8C6B2F;
+  /* --gold is the kicker over every panel: ten-point caps, which the
+     standard counts as ordinary text. It measured 4.02 on the page and
+     3.27 on the sunk panel. This clears both. --gold-up, the gold on every
+     dark surface, is untouched — the brand on pine is as it was. */
+  --flag:#9E3B2E;  --gold:#715726;
   --under:#B4892B; --over:#9E3B2E; --level:#1D2E21;
   /* The gold on a cream page goes muddy on the ink, so the bar has its own:
      light enough to read at eleven pixels against the dark. And a sage for
@@ -843,7 +852,8 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
 .h3mount.in{position:relative;width:100%;aspect-ratio:4 / 5;max-height:72vh}
 .h3mount.in .h3live{position:absolute;inset:0}
 .h3big{position:absolute;right:8px;top:8px;z-index:5;border:1px solid rgba(239,233,216,.5);
-  border-radius:999px;padding:5px 11px;font-size:11.5px;font-weight:700;color:var(--onpine);
+  border-radius:999px;padding:12px 14px;min-height:44px;display:inline-flex;align-items:center;
+  font-size:11.5px;font-weight:700;color:var(--onpine);
   background:rgba(16,22,17,.6);backdrop-filter:blur(5px)}
 .h3in .h3shotbar{position:static;margin:0;border-radius:0;backdrop-filter:none;
   background:rgba(16,22,17,.92);box-shadow:none;left:auto;right:auto;bottom:auto;
@@ -875,8 +885,10 @@ table.card tfoot td{border-top:2px solid var(--ink);font-weight:700}
   box-shadow:0 8px 24px rgba(16,22,17,.34);display:grid;gap:7px}
 .h3sb-row{display:flex;gap:5px;overflow-x:auto;min-width:0;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .h3sb-row::-webkit-scrollbar{display:none}
-.h3club{flex:0 0 auto;border:1px solid rgba(239,233,216,.4);border-radius:999px;padding:5px 11px;
-  font-size:13px;font-weight:700;color:var(--onpine);background:rgba(16,22,17,.4)}
+/* the same, for the club you pick before writing a shot: 40 by 32 before */
+.h3club{flex:0 0 auto;border:1px solid rgba(239,233,216,.4);border-radius:999px;padding:12px 14px;
+  min-height:44px;display:inline-flex;align-items:center;
+  font-size:13.5px;font-weight:700;color:var(--onpine);background:rgba(16,22,17,.4)}
 .h3club.on{background:var(--gold-up);color:#23331F;border-color:var(--gold-up)}
 .h3sb-foot{display:flex;align-items:center;gap:8px;justify-content:space-between}
 .h3sb-foot span{font-size:11.5px;color:var(--onpine);opacity:.92;font-weight:600}
@@ -2444,7 +2456,7 @@ table.rtable td{padding:8px 14px 8px 0;border-bottom:1px solid var(--hair);verti
 @media (hover:hover) and (pointer:fine){ .ehd-art:hover{background:rgba(238,232,213,.18);border-color:rgba(238,232,213,.6)} }
 .entryhd .scroller{margin:10px 0 0;overflow-x:auto}
 .entryhd .hstrip{display:flex;gap:5px;min-width:0;padding-bottom:12px}
-.entryhd .hstrip .hcell{flex:1 1 0;min-width:40px;min-height:46px;padding:4px 0;
+.entryhd .hstrip .hcell{flex:0 0 auto;min-width:48px;min-height:46px;padding:4px 0;
   border-radius:8px;border:1px solid rgba(255,255,255,.2);background:none;
   color:var(--sage-up);display:grid;place-items:center;gap:0}
 .entryhd .hstrip .hcell .n{font-size:14px;font-weight:600;line-height:1.1}
@@ -3786,15 +3798,20 @@ h3.sub.minehead .rm{margin-left:auto;font-size:13px;font-weight:400}
   .ehd-m{margin-left:auto;text-align:right;font-size:10px;letter-spacing:.1em;
     text-transform:uppercase;color:var(--sage-up);font-weight:700;line-height:1.5}
   .ehd-m b{display:block;color:var(--onpine)}
-  .ehd-art{margin-left:10px;padding:7px 10px;min-height:34px;font-size:0;gap:0;letter-spacing:0}
+  .ehd-art{margin-left:10px;padding:7px 12px;min-height:44px;min-width:44px;font-size:0;gap:0;letter-spacing:0}
   .ehd-art svg{width:17px;height:17px}
   /* The eighteen, as a ribbon on the band: one row, not two, and small
      enough that a dozen are on the glass at once. */
   .entryhd .scroller{margin:8px 0 0;overflow-x:auto}
   .entryhd .hstrip{display:flex;gap:4px;min-width:0;padding-bottom:9px}
-  /* Forty points tall, because a thumb has to hit it on a moving buggy.
-     Narrow is fine — it is a number — but short is not. */
-  .entryhd .hstrip .hcell{flex:0 0 auto;width:34px;min-width:0;min-height:40px;padding:0;
+  /* A TARGET YOU AIM AT HOLDING A CLUB.
+     This used to read "narrow is fine — it is a number — but short is
+     not", and set 34 by 40. It is not fine. A thumb in November does not
+     aim at a column, it aims at a hole, and 34 points is under every floor
+     there is. Forty-eight by forty-four, which puts seven on the glass
+     instead of ten: the strip already scrolls, so the rest are one thumb
+     away, and the one you want is the one you can hit. */
+  .entryhd .hstrip .hcell{flex:0 0 auto;width:48px;min-width:48px;min-height:44px;padding:0;
     border-radius:7px;border:1px solid rgba(255,255,255,.2);background:none;
     color:var(--sage-up);display:grid;place-items:center}
   .entryhd .hstrip .hcell .p{display:none}
@@ -6345,6 +6362,43 @@ html.clubseason .btn,html.clubseason .chip,html.clubseason .pkg{transition:trans
   .rz-sc b{font-size:20px}
 }
 
+/* ---- THE PRESS ----
+   Every control in the book answers the finger before the book does. This
+   is the half of "did that register?" that reaches an iPhone: Safari has no
+   Vibration API and the hidden-switch trick was closed in iOS 26.5, so a
+   buzz is Android-only and this is not. It is :active rather than a class
+   added by script because the redraw that follows a tap replaces the
+   element, and a class on a replaced element is a class on nothing.
+
+   It matters most where the tap changes nothing — the package already
+   bought, the club already chosen, the tab you are already on. Fifteen
+   controls were silent in exactly that way. */
+@media (hover:none),(pointer:coarse){
+  [data-act]:active{transition:none}
+  button[data-act]:active,a[data-act]:active{scale:.97;filter:brightness(.93)}
+  .chip[data-act]:active,.btn[data-act]:active,.hcell[data-act]:active,
+  .h3club[data-act]:active,.pkg[data-act]:active,.navbtn[data-act]:active{scale:.96}
+}
+@media (hover:hover) and (pointer:fine){
+  button[data-act]:active{scale:.985;filter:brightness(.95)}
+}
+/* a ring for the ones that change nothing at all, so the press is seen and
+   not only felt — the chosen chip, the current tab, the club already on */
+.chip.on[data-act]:active,.pkg.on[data-act]:active,.h3club.on[data-act]:active,
+.hcell.on[data-act]:active,.btab.on[data-act]:active{
+  box-shadow:0 0 0 4px color-mix(in srgb,var(--gold-up) 55%,transparent)}
+@media (prefers-reduced-motion:reduce){
+  button[data-act]:active,a[data-act]:active,.chip[data-act]:active,.btn[data-act]:active,
+  .hcell[data-act]:active,.h3club[data-act]:active,.pkg[data-act]:active,.navbtn[data-act]:active{scale:1}
+}
+/* a row that states a fact rather than offering a choice */
+.me-r.still{opacity:.72;cursor:default}
+.me-why{margin:0;padding:0 15px 13px;font-size:12.5px;line-height:1.45;color:var(--turf);
+  border-bottom:1px solid var(--hair);background:var(--sunk)}
+/* a field that cannot be filled in yet says why, under itself */
+.pk-off .pkf{opacity:.45;cursor:not-allowed}
+.pk-why{display:block;margin-top:3px;font-size:11.5px;color:var(--turf);font-style:italic}
+
 </style>
 <div id="app"></div>
 <!-- The crest, and the opening it pays for, ahead of everything else. A few
@@ -6471,7 +6525,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261120-0629';
+const BUILD = '20261120-0716';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -18096,7 +18150,7 @@ function boardChat(inSheet) {
       <div class="ch-box"><button type="button" class="ch-atb" aria-label="Call someone out by name">@</button>
         <input id="chatText" type="text" maxlength="280" autocomplete="off" enterkeyhint="send"
           placeholder="${replyTo ? 'Your reply…' : reMoment ? 'Heckle it…' : isRound ? 'Say something to the group…' : 'Anything from the trip…'}" value="${esc(UI.chatDraft || '')}" aria-label="Message">
-        <button class="btn sm" data-act="chatSend">Post</button></div>
+        <button class="btn sm" id="chatPost" data-act="chatSend"${String(UI.chatDraft || '').trim() ? '' : ' disabled aria-disabled="true" title="Write something first"'}>Post</button></div>
       <button class="ch-as" data-act="whoOpen">Posting as ${esc(nameOf(me))}${isGuest(me) ? ', in the bleachers' : ''} · change</button>${noSignalNote()}`
     : `<button class="btn" data-act="whoOpen" style="width:100%">Choose your name to join in</button>`}
   </div>
@@ -18434,6 +18488,28 @@ function guestJoin() {
   UI.modal = back ? { kind: back } : null;
   redrawFrom();
 }
+/* ---- A CONTROL THAT CANNOT ACT SHOULD NOT LOOK LIKE ONE THAT CAN ----
+   Post was pressable with an empty box: it did nothing and said nothing,
+   which reads as a broken button rather than an empty box. The answer is
+   not to explain after the press, it is to say so before it \u2014 so the
+   button is disabled until there are words, and carries the reason.
+
+   It is kept in step from the box's own input event rather than by a
+   redraw, because redrawing on every keystroke would take the caret with
+   it, and because a Post button that lags a letter behind the box is worse
+   than one that never moves. */
+function liveEnable() {
+  const pairs = [['chatText', 'chatPost']];
+  for (const [boxId, btnId] of pairs) {
+    const box = document.getElementById(boxId), btn = document.getElementById(btnId);
+    if (!box || !btn) continue;
+    const ready = !!String(box.value || '').trim();
+    btn.disabled = !ready;
+    if (ready) { btn.removeAttribute('aria-disabled'); btn.removeAttribute('title'); }
+    else { btn.setAttribute('aria-disabled', 'true'); btn.setAttribute('title', 'Write something first'); }
+  }
+}
+
 function chatSend() {
   const me = whoAmI();
   const f = document.getElementById('chatText');
@@ -18451,6 +18527,7 @@ function chatSend() {
   render();
   /* in the chat that rose over a screen, the keyboard stays up for the next line */
   if (UI.modal && UI.modal.kind === 'chat') { const g = document.getElementById('chatText'); if (g) g.focus({ preventScroll: true }); }
+  liveEnable();
 }
 
 /** Said plainly when the shared book has turned a post or a bet down: it is
@@ -21143,8 +21220,14 @@ function pinLine(kind, cfg, course) {
 const PK_STYLE = { name: 'A', list: 'A', hole: 'C', time: 'B', tee: 'B' };
 function pickWrap(sel, o) {
   const tag = (sel.match(/<select\b[^>]*>/) || [''])[0];
-  const off = /\sdisabled(\s|>|=)/.test(tag);
   const opts = [...sel.matchAll(/<option\b([^>]*)>([^<]*)<\/option>/g)];
+  /* A FIELD WITH NOTHING IN IT IS NOT A FIELD YOU CAN FILL IN. The window
+     was disabled only when the select said so, so a select that was merely
+     EMPTY — nothing nominated yet, no groups drawn yet — left a button that
+     looked pressable, did nothing when pressed, and said nothing about it.
+     The crawl found it twice before anybody on the trip did. */
+  const real = opts.filter(x => (((x[1] || '').match(/value="([^"]*)"/) || [, ''])[1]) !== '');
+  const off = /\sdisabled(\s|>|=)/.test(tag) || !real.length;
   const on = opts.find(x => /\sselected\b/.test(x[1])) || opts[0] || ['', '', ''];
   const val = ((on[1] || '').match(/value="([^"]*)"/) || [, ''])[1];
   const sub = ((on[1] || '').match(/data-sub="([^"]*)"/) || [, ''])[1];
@@ -21157,8 +21240,9 @@ function pickWrap(sel, o) {
       ? `<span class="pk-coin none">?</span><span class="pk-v none">${label}</span><span class="pk-ed">Choose</span>`
       : `<span class="pk-v${quiet ? ' none' : ''}">${label}</span><i class="pk-chev" aria-hidden="true"></i>`;
   const hidden = sel.replace(/<select class="/, '<select tabindex="-1" aria-hidden="true" class="pk-sel ');
-  return `<span class="pk pk-${kind}${o.small ? ' sm' : ''}${o.cls ? ' ' + o.cls : ''}"><button type="button" class="pkf${quiet ? ' unset' : ''}"
-    data-act="pickOpen" data-pk="${kind}" data-title="${esc(o.title || '')}" data-sub="${esc(o.sub || '')}"${off ? ' disabled' : ''}>${inner}</button>${hidden}</span>`;
+  const why = off ? (o.why || 'Nothing to choose from yet') : '';
+  return `<span class="pk pk-${kind}${o.small ? ' sm' : ''}${o.cls ? ' ' + o.cls : ''}${off ? ' pk-off' : ''}"><button type="button" class="pkf${quiet ? ' unset' : ''}"
+    data-act="pickOpen" data-pk="${kind}" data-title="${esc(o.title || '')}" data-sub="${esc(o.sub || '')}"${off ? ` disabled aria-disabled="true" title="${esc(why)}"` : ''}>${inner}</button>${off ? `<small class="pk-why">${esc(why)}</small>` : ''}${hidden}</span>`;
 }
 
 /** The window for a field just tapped, built from the select under it. */
@@ -21167,7 +21251,12 @@ function pickOpen(btn) {
   if (!wrap) return;
   const kind = btn.dataset.pk;
   const sels = [...wrap.querySelectorAll('select')];
-  if (!sels.length || sels[0].disabled) return;
+  /* Whatever stops this opening, say so. Returning here without a word is
+     what made a pressable control answer nothing at all. */
+  if (!sels.length || sels[0].disabled
+      || ![...sels[0].options].some(op => op.value !== '')) {
+    UI.toast = btn.title || 'Nothing to choose from yet.'; render(); return;
+  }
   const keyOf = el => ['act', 'a', 'b', 'c', 'part'].filter(k => el.dataset[k] != null)
     .map(k => `[data-${k}="${CSS.escape(el.dataset[k])}"]`).join('');
   const m = { kind: 'pick', kind2: kind, style: PK_STYLE[kind] || 'A', title: btn.dataset.title || '', sub: btn.dataset.sub || '',
@@ -23735,6 +23824,12 @@ function scrMe() {
 
   <div class="me-menu">
     <div class="me-hd">The book on this phone</div>
+    ${canBuzz()
+      ? switchHtml(buzzOn(), 'buzzToggle', '', 'Buzz when you tap', 'A short tick under the finger')
+      : `<div class="me-r still"><span>Buzz when you tap</span><span>Not on this phone</span></div>
+         <p class="me-why">Safari has never carried the vibration that makes a phone tick, and the way around it
+           was closed in iOS 26.5. Every control still presses under the finger, which is the part an iPhone can
+           do. On an Android phone this is a switch.</p>`}
     ${row('pin', 'Your PIN', store && store.who && store.who.pin ? 'Entered on this phone' : 'Not entered', 'whoPick', me)}
     ${row('name', 'Not you?', 'Change who this phone is', 'whoOpen', '')}
   </div>
@@ -23787,11 +23882,17 @@ function scrYou() {
   /* The panel below says it in full, so the cover does not say it twice. */
   const acts = (live ? `<button class="btn ghost" data-act="roundNew"${open ? ` data-a="${open.id}"` : ''}>Start another</button>`
       : golfer && open ? `<button class="btn" data-act="clubEnter" data-a="${open.id}">${tot && tot.thru ? (card.done ? 'See my card' : 'Carry on my card') : 'Start a round'}</button>`
-      : golfer ? `<button class="btn" data-act="roundNew">Start a round</button>` : '')
-    + `<button class="btn ghost" data-act="go" data-a="hq">Open Vegas HQ</button>`;
+      : golfer ? `<button class="btn" data-act="roundNew">Start a round</button>` : '');
+  /* ONE DOOR PER PANEL, WHERE THE PANEL IS ABOUT HQ. The cover is about you
+     and the round in front of you; your Vegas line, further down, is the
+     panel that is actually about Vegas HQ and keeps its door. The cover
+     keeps one only when it would otherwise offer nothing at all — which is
+     the case for somebody who is not golfing, and for whom Vegas HQ is the
+     whole point of the screen. */
+  const acts2 = acts || `<button class="btn" data-act="go" data-a="hq">Open Vegas HQ</button>`;
   return clubCover({ photo: stopArt(open) || stopArt(next) || IMG.hero, lift: true,
     k: 'You · the Clubhouse · ' + esc(C.dowOf(today)) + ' ' + esc(C.fmtDay(today)) + (toVegas > 0 ? ' · ' + toVegas + ' days to Vegas' : ' · Vegas week'),
-    h1: head, sub: facts.join(' · '), acts })
+    h1: head, sub: facts.join(' · '), acts: acts2 })
   + `<div class="clubgrid lift">
   ${heldHtml(me)}
   ${golfer ? resumePanel(liveRound(me, today)) : ''}
@@ -27287,6 +27388,35 @@ function movePlayer(pid, target) { store.movePlayer(pid, target); }
 
 const setRound = (rid, patch) => store.writeConfig(c => { Object.assign(c.rounds[rid], patch); });
 
+/* ---- DID THAT REGISTER? ----
+   A tap that changes the screen answers itself. A tap that does not —
+   pressing the package you already bought, the club already chosen, the tab
+   you are already on — says nothing at all, and on a phone silence and
+   broken look identical. Fifteen controls were like that.
+
+   Two answers, because no single one reaches every phone.
+
+   THE PRESS is a CSS :active state on every control in the book. It costs
+   nothing, it cannot be out of date because it is live while the finger is
+   down, and it survives the redraw that follows — which a class added by
+   script does not, since the redraw replaces the element it was added to.
+   It works on every phone anybody on this trip owns.
+
+   THE BUZZ is navigator.vibrate, asked for by the commissioner for the
+   whole book. It is real on Android. It is NOT real on an iPhone: Safari
+   has never shipped the Vibration API, and the hidden-switch trick the
+   libraries used was closed in iOS 26.5 — a scripted click on the label no
+   longer counts as trusted. So this feature-detects and stays quiet rather
+   than pretending, the setting says so on a phone that cannot do it, and
+   the press above is what an iPhone actually feels. */
+const HAPTIC_KEY = 'ui_buzz';
+const canBuzz = () => { try { return typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function'; } catch (e) { return false; } };
+const buzzOn = () => fbRead(HAPTIC_KEY) !== false;      /* on unless turned off */
+function buzz(ms) {
+  if (!buzzOn() || !canBuzz()) return false;
+  try { return navigator.vibrate(ms || 8) !== false; } catch (e) { return false; }
+}
+
 function onClick(e) {
   X.invalidate();                       // the bets are worked out afresh for whatever this tap does
   const el = e.target.closest('[data-act]');
@@ -27629,6 +27759,7 @@ function onClick(e) {
       store.writeClub('signup__' + me, { pid: me, sentAt: Date.now() }, true);
       render(); return; }
     /* ---- how you're joining ---- */
+    case 'buzzToggle': { fbPut(HAPTIC_KEY, !buzzOn()); if (buzzOn()) buzz(14); render(); return; }
     case 'meOpen': { UI.meOpen = UI.meOpen === a ? null : a; render(); return; }
     case 'joinGolf': { const me = myPid(); if (!me) return;
       const patch = { pid: me, golf: a };
@@ -29846,6 +29977,11 @@ function boot() {
   });
   const app = document.getElementById('app');
   app.addEventListener('click', onClick);
+  /* on the press, so it lands under the finger rather than after the work */
+  app.addEventListener('pointerdown', e => {
+    const el = e.target.closest && e.target.closest('[data-act]');
+    if (el && !el.disabled) buzz(8);
+  }, { passive: true });
   app.addEventListener('dragstart', e => {
     const el = e.target.closest('[data-act="dragGolfer"]');
     if (!el || !canEdit()) return;
@@ -29931,7 +30067,7 @@ function boot() {
       UI.sayDraft = { rid: UI.entryRound, v: e.target.value };
     }
     if (e.target && e.target.id === 'resortQ') { UI.resortQ = e.target.value; filterGuide(); }
-    if (e.target && e.target.id === 'chatText') { UI.chatDraft = e.target.value; atSuggest(e.target); }
+    if (e.target && e.target.id === 'chatText') { UI.chatDraft = e.target.value; atSuggest(e.target); liveEnable(); }
     if (e.target && e.target.id === 'travelText') UI.travelDraft = e.target.value;
     if (e.target && e.target.id === 'rulingQ' && UI.modal && UI.modal.kind === 'ruling') UI.modal.q = e.target.value;
     if (e.target && e.target.id === 'guestName') UI.guestDraft = e.target.value;
