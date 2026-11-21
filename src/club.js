@@ -37,7 +37,7 @@ import { strokesFor, stablefordPts } from './engine.js';
    run, it is the first card of the next one: the winter's practice begins
    the month the week finishes. */
 export const STOPS_SEED = [
-  { id: 'mulligan',    name: 'The Merry Mulligan Open',  from: '2026-11-20', to: '2026-12-31', format: 'stableford', note: 'The reveal. Eighteen holes at home, net Stableford, a mulligan a nine.' },
+  { id: 'mulligan',    name: 'The Merry Mulligan Open',  from: '2026-12-01', to: '2026-12-31', format: 'stableford', note: 'The reveal. Eighteen holes at home, net Stableford, a mulligan a nine.' },
   { id: 'frostbite',   name: 'The Frostbite Open',       from: '2027-01-09', to: '2027-01-31', format: 'stableford', note: 'Eighteen holes in whatever January gives you. Net Stableford.' },
   { id: 'sweetheart',  name: 'The Sweetheart Scramble',  from: '2027-02-01', to: '2027-02-28', format: 'stableford', note: 'Eighteen holes with a partner of your choosing beside you. Your own card counts.' },
   { id: 'lucky',       name: 'The Lucky Links Classic',  from: '2027-03-01', to: '2027-03-31', format: 'stableford', note: 'March, and whatever luck is going. Net Stableford.' },
