@@ -398,7 +398,12 @@ h3.sub{font-size:19px;font-weight:600;margin:26px 0 0}
    corner of anything wider. Par is outlined in gold, the pick-up reads red. */
 .keypad{position:fixed;left:0;right:0;bottom:calc(150px + env(safe-area-inset-bottom,0px));z-index:29;background:var(--pine);color:var(--onpine);
   border-radius:22px;margin:0 8px;padding:14px 16px 12px;
-  box-shadow:0 -12px 40px rgba(16,22,17,.4);animation:feelin .22s ease-out}
+  box-shadow:0 -12px 40px rgba(16,22,17,.4);animation:feelin .22s ease-out;
+  /* the putts row made the pad taller, and a short phone has no room to
+     spare: cap it against the space actually above it and let it scroll
+     rather than clip its own top row of keys off the screen */
+  max-height:calc(100dvh - 150px - env(safe-area-inset-bottom,0px) - 86px);
+  overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 .keypad .kh{display:flex;align-items:center;gap:10px;margin-bottom:12px}
 .keypad .kh b{font-size:18px}
 .keypad .kh span{flex:1;min-width:0;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--sage-up)}
@@ -420,6 +425,33 @@ h3.sub{font-size:19px;font-weight:600;margin:26px 0 0}
 .keypad .mchip.on{background:var(--green);border-color:var(--green);color:#FBFAF7;opacity:1}
 .keypad .relq{color:var(--sage-up)}
 .keypad .knext{display:block;width:100%;margin-top:10px;background:none;border:0;color:var(--sage-up);font-family:inherit;font-size:13.5px;padding:8px}
+/* PUTTS, THE SECOND TAP. Sits under the score keys inside the same pine
+   pad, divided off by a hairline so it reads as a bonus rather than a
+   second thing to get through. Keys are shorter than the score keys on
+   purpose: it is the smaller question. */
+.keypad .putts{margin-top:12px;padding-top:12px;border-top:1px solid rgba(238,232,213,.18)}
+.keypad .putts .ph{display:flex;align-items:baseline;gap:9px;margin-bottom:8px;white-space:nowrap}
+.keypad .putts .ph b{font-size:14px}
+.keypad .putts .ph span{flex:1;min-width:0;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--sage-up);overflow:hidden;text-overflow:ellipsis}
+.keypad .pkeys{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.keypad .pk{min-height:46px;border-radius:12px;border:1px solid rgba(238,232,213,.22);background:rgba(238,232,213,.06);
+  color:var(--onpine);font-family:inherit;font-size:19px;font-weight:700}
+.keypad .pk.on{background:var(--page);color:var(--ink);border-color:var(--page)}
+.keypad .pk.dead,.keypad .pk:disabled{opacity:.3}
+.keypad .pnote{margin:8px 0 0;font-size:11.5px;color:var(--sage-up);line-height:1.45}
+/* the one moment the row asks for anything: the score is already saved and
+   the pad is holding the hole open for the putts tap */
+.keypad .putts.waiting{border-top-color:#E2C277}
+.keypad .putts.waiting .ph b{color:#E2C277}
+.keypad .plink{background:none;border:0;padding:0;font-family:inherit;font-size:11.5px;
+  color:#E2C277;text-decoration:underline;text-underline-offset:2px}
+/* the round's putting, once there is any of it */
+.puttsum{margin:12px 0 0;padding:10px 12px;background:var(--sunk);border:1px solid var(--hair);
+  border-radius:12px;font-size:13.5px;color:var(--turf)}
+.puttsum b{color:var(--ink)}
+.ctbl .pr td{color:var(--turf)}
+.ctbl .pr td.bad{color:var(--flag);font-weight:700}
+.ctbl .pr td.good{color:var(--green);font-weight:700}
 /* the page under the pad can still be scrolled up past it */
 html:has(.keypad) .page.scoring{padding-bottom:470px}
 @media (min-width:700px){
@@ -6452,6 +6484,89 @@ html.clubseason .btn,html.clubseason .chip,html.clubseason .pkg{transition:trans
    broke. */
 .pk-off .pkf{opacity:.45;cursor:not-allowed}
 .pk-why{display:block;margin-top:3px;font-size:11.5px;color:var(--turf);font-style:italic}
+
+
+/* ---- THE ECLECTIC CARD ----
+   Eighteen holes as eighteen tiles rather than a row of a table: on a phone
+   a card you read sideways is a card nobody reads, and the whole point of
+   this one is that you look at a HOLE, not at a round. */
+.ecmodal .ec-tabs{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
+.ecmodal .ec-tab{border:1px solid var(--rule);background:var(--card);color:var(--turf);
+  border-radius:999px;padding:7px 12px;min-height:38px;font-family:inherit;font-size:13px}
+.ecmodal .ec-tab i{font-style:normal;color:var(--gold);font-weight:700;margin-left:4px}
+.ecmodal .ec-tab.on{background:var(--pine);border-color:var(--pine);color:var(--onpine)}
+.ecmodal .ec-tab.on i{color:var(--gold-up)}
+.ecmodal .ec-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:0 0 14px}
+.ecmodal .ec-h{position:relative;background:var(--card);border:1px solid var(--hair);border-radius:12px;
+  padding:8px 9px 7px;min-height:66px;display:flex;flex-direction:column;justify-content:center}
+.ecmodal .ec-n{position:absolute;top:6px;left:9px;font-size:10.5px;color:var(--turf);font-weight:700}
+.ecmodal .ec-v{font-size:26px;font-weight:700;line-height:1;text-align:center;margin-top:7px}
+.ecmodal .ec-p{font-size:10px;color:var(--turf);text-align:center;margin-top:3px}
+.ecmodal .ec-w{position:absolute;top:6px;right:9px;font-size:9.5px;color:var(--turf);opacity:.8}
+/* what the hole was: the only colour on the card, so a 3 on a par 5 shouts.
+   Pars are deliberately NOT tinted — most of an eclectic is pars, and
+   colouring them turns the whole card one colour and drowns the two tiles
+   that are worth looking at. */
+.ecmodal .ec-h.birdie{background:var(--warm);border-color:var(--gold-up)}
+.ecmodal .ec-h.eagle,.ecmodal .ec-h.ace{background:var(--pine);border-color:var(--gold-up);color:var(--onpine)}
+.ecmodal .ec-h.eagle .ec-p,.ecmodal .ec-h.ace .ec-p,.ecmodal .ec-h.eagle .ec-n,.ecmodal .ec-h.ace .ec-n,
+.ecmodal .ec-h.eagle .ec-w,.ecmodal .ec-h.ace .ec-w{color:var(--gold-up)}
+.ecmodal .ec-h.none{background:var(--sunk);border-style:dashed}
+.ecmodal .ec-h.none .ec-v{color:var(--turf);opacity:.6}
+.ecmodal .ec-sum{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;
+  padding:12px;background:var(--sunk);border:1px solid var(--hair);border-radius:14px}
+.ecmodal .ec-sum div{text-align:center}
+.ecmodal .ec-sum b{display:block;font-size:26px;line-height:1.1}
+.ecmodal .ec-sum span{display:block;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--turf);margin-top:3px}
+.ecmodal .ec-note{margin:10px 0 0;font-size:13.5px;color:var(--turf)}
+@media (min-width:600px){ .ecmodal .ec-grid{grid-template-columns:repeat(6,1fr)} }
+
+
+/* ---- OUT ON THE COURSE ----
+   A short list that answers "is anybody playing" before the leaderboard
+   answers "who is winning". */
+.outpanel{background:var(--card);border:1px solid var(--hair);border-radius:16px;padding:14px 14px 8px;margin:0 0 16px}
+.outpanel .out-h{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;margin-bottom:10px}
+.outpanel .out-h b{font-size:16px}
+.outpanel .out-h span{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--turf)}
+.outpanel .out-h i{margin-left:auto;font-style:normal;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--gold)}
+.out-list{list-style:none;margin:0;padding:0}
+.out-row{display:flex;align-items:center;gap:11px;padding:10px 0;border-top:1px solid var(--hair)}
+.out-row:first-child{border-top:0}
+.out-av{flex:0 0 auto;width:36px;height:36px;border-radius:50%;background:var(--pine);color:var(--onpine);
+  display:grid;place-items:center;font-size:13px;font-weight:700;letter-spacing:.02em}
+.out-row.done .out-av{background:var(--sunk);color:var(--turf)}
+.out-who{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.out-who b{font-size:15px;line-height:1.25}
+.out-who span{font-size:12px;color:var(--turf);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.out-sc{flex:0 0 auto;text-align:right;font-size:11px;color:var(--turf);line-height:1.2;white-space:nowrap}
+.out-sc b{display:block;font-size:19px;color:var(--ink);line-height:1.1}
+.out-sc span{display:block;font-size:10.5px}
+.out-go{flex:0 0 auto;min-height:38px;padding:8px 13px;border-radius:999px;border:1px solid var(--green);
+  background:var(--green);color:#FBFAF7;font-family:inherit;font-size:13px;font-weight:600}
+.out-row.done .out-go{background:none;color:var(--green)}
+
+/* ---- WATCHING A ROUND ---- */
+.watchmodal .w-top{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:12px;margin:0 0 14px;
+  background:var(--sunk);border:1px solid var(--hair);border-radius:14px}
+.watchmodal .w-top div{text-align:center}
+.watchmodal .w-top b{display:block;font-size:23px;line-height:1.1}
+.watchmodal .w-top span{display:block;font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--turf);margin-top:3px}
+.watchmodal .w-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.watchmodal .w-h{position:relative;background:var(--card);border:1px solid var(--hair);border-radius:10px;
+  padding:14px 4px 5px;min-height:54px;text-align:center}
+.watchmodal .w-n{position:absolute;top:4px;left:5px;font-size:9.5px;color:var(--turf);font-weight:700}
+.watchmodal .w-v{display:block;font-size:19px;font-weight:700;line-height:1}
+.watchmodal .w-p{display:block;font-size:9px;color:var(--turf);margin-top:2px}
+.watchmodal .w-h.eagle{background:var(--pine);border-color:var(--gold-up);color:var(--onpine)}
+.watchmodal .w-h.eagle .w-n,.watchmodal .w-h.eagle .w-p{color:var(--gold-up)}
+.watchmodal .w-h.birdie{background:var(--warm);border-color:var(--gold-up)}
+.watchmodal .w-h.par{background:var(--mint)}
+.watchmodal .w-h.worse{background:var(--rose)}
+/* a hole not played yet is plainly not played: this card is still filling in */
+.watchmodal .w-h.none{background:var(--sunk);border-style:dashed}
+.watchmodal .w-h.none .w-v{color:var(--turf);opacity:.55}
+.watchmodal .w-note{margin:12px 0 0;font-size:13px;color:var(--turf)}
 
 </style>
 <style>

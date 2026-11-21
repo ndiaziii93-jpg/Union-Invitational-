@@ -117,6 +117,14 @@ h2{margin:0;font-size:clamp(19px,2.6vw,23px);line-height:1.2}
 .note{margin-top:30px;border:1px solid var(--rule);border-radius:14px;padding:16px 18px;background:var(--page)}
 .foot{margin-top:32px;color:var(--turf);font-size:13.5px}
 .foot a{color:var(--gold)}
+  .built-now{margin-top:10px;padding:11px 13px;border-radius:11px;
+    background:var(--mint,#DDEBDD);border:1px solid var(--rule,#C4B896);color:var(--ink,#1D2E21)}
+  .cost.done{background:#3E5C43;color:#EEE8D5;border-color:#3E5C43}
+  /* a badge nobody can read is not a badge: the skipped one gets an outline
+     rather than a faded fill of the same cream it sits on */
+  .cost.skip{background:none;border:1px solid var(--rule,#C4B896);color:var(--turf,#515E4B)}
+  .say.corr{margin-top:9px;padding:10px 12px;border-left:3px solid var(--flag,#9E3B2E);
+    background:rgba(158,59,46,.06);border-radius:0 8px 8px 0}
 </style>
 </head>
 <body>
@@ -127,7 +135,11 @@ h2{margin:0;font-size:clamp(19px,2.6vw,23px);line-height:1.2}
     <span class="kick">The Union Invitational · for the commissioner</span>
     <h1>Four drafts, side by side</h1>
     <p class="lede">Left is <b>the book as it is today</b> — real screenshots, taken from the running app, not
-      drawings. Right is <b>a sketch</b>. Nothing on the right is built.</p>
+      drawings. Right was <b>a sketch</b>.</p>
+    <p class="lede built-now"><b>Since this page was written, three of the four are built.</b>
+      2, 3 and 4 are in the book now and you can use them. 1 was not built, by your call.
+      The sketches below are left exactly as they were, so you can see what was promised
+      against what arrived.</p>
   </div>
   <button class="tog" id="tog">Night</button>
 </div>
@@ -136,7 +148,7 @@ h2{margin:0;font-size:clamp(19px,2.6vw,23px);line-height:1.2}
 <article class="f">
   <header><span class="n">1</span><div class="t"><h2>Your shots on this hole, every time you have played it</h2>
     <p class="lede">The Driving Zone idea. Today's shots in gold, the rounds before in cream and sage.</p></div>
-    <span class="cost">a day</span></header>
+    <span class="cost skip">not built · your call</span></header>
   <div class="pair">
     <div class="side"><div class="cap"><span>Now · from the book</span><i>Leatherhead, the 8th</i></div>
       <div class="glass"><img src="now/zone.png" alt="The 8th at Leatherhead with three shots tapped onto it"></div>
@@ -165,13 +177,17 @@ h2{margin:0;font-size:clamp(19px,2.6vw,23px);line-height:1.2}
 <article class="f">
   <header><span class="n">2</span><div class="t"><h2>Putts, as a second tap</h2>
     <p class="lede">One more number per hole, optional, never blocking a save.</p></div>
-    <span class="cost">half a day</span></header>
+    <span class="cost done">BUILT</span></header>
   <div class="pair">
     <div class="side"><div class="cap"><span>Now · from the book</span><i>one number</i></div>
       <div class="glass"><img src="now/putts.png" alt="The scoring keypad as it is today, gross score only"></div>
-      <p class="say">The keypad asks for the gross and nothing else. The report card still <b>grades your
-        putting</b> — it gave Norberto a B — but it is inferring that from the gross, which is a guess dressed as
-        a grade.</p></div>
+      <p class="say">The keypad asks for the gross and nothing else, so a card you score yourself
+        carries <b>no putting at all</b> — only a refereed round does. In Vegas, where everyone scores
+        their own card, that is every round.</p>
+      <p class="say corr"><b>Correction.</b> This panel first said the report card was inferring the
+        putting grade from the gross. It was not: the report reads real counted putts and withholds the
+        grade under nine counted holes. Norberto’s B came from putts a ref counted in Belek. The real
+        gap was narrower than written here, and worth closing anyway.</p></div>
     <div class="side"><div class="cap"><span>Could be · a sketch</span><i>two numbers</i></div>
       <div class="kp">
         <div class="kp-h"><b>Norberto III</b><small>Hole 8 · par 5</small><i>Done</i></div>
@@ -198,7 +214,7 @@ h2{margin:0;font-size:clamp(19px,2.6vw,23px);line-height:1.2}
 <article class="f">
   <header><span class="n">3</span><div class="t"><h2>Watch a round that is happening</h2>
     <p class="lede">What GameBook is actually built on, for a group split across eight time zones.</p></div>
-    <span class="cost">two days</span></header>
+    <span class="cost done">BUILT</span></header>
   <div class="pair">
     <div class="side"><div class="cap"><span>Now · from the book</span><i>a live board, read sideways</i></div>
       <div class="glass" style="padding:10px;background:var(--page)">
@@ -231,7 +247,7 @@ h2{margin:0;font-size:clamp(19px,2.6vw,23px);line-height:1.2}
 <article class="f">
   <header><span class="n">4</span><div class="t"><h2>The eclectic card</h2>
     <p class="lede">Your best ever on each hole, as one card nobody has shot.</p></div>
-    <span class="cost">half a day</span></header>
+    <span class="cost done">BUILT</span></header>
   <div class="pair">
     <div class="side"><div class="cap"><span>Now · from the book</span><i>nothing</i></div>
       <div class="none">There is no such page today.<br><br>Every round you post is kept, and your rounds list
