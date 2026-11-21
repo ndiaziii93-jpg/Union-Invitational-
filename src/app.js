@@ -10831,6 +10831,7 @@ function artModalHtml() {
     </div>
     ${model.traced !== true && live ? `<div class="h3note">${
       model.traced === 'map' ? 'Traced from the club\u2019s own hole map'
+      : model.traced === 'flyover' ? 'Drawn hole by hole from the course flyover'
       : model.traced === 'drawing' ? 'Traced from the drawing'
       : 'Shape drawn from the card'} · not surveyed yet</div>` : ''}
     ${UI.gps && UI.gps.err ? `<div class="h3note warn">${esc(UI.gps.err)}</div>` : ''}
