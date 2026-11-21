@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1D2E21">
+<meta name="robots" content="noindex">
+<link rel="icon" href="../../app/icon-192.png">
+<title>Four drafts, side by side</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;0,8..60,900;1,8..60,400&display=swap">
+<style>
+:root{color-scheme:light;
+  --paper:#E3DBCB; --page:#EEE8D5; --sunk:#DBD2BA; --card:#F7F2E6;
+  --ink:#1D2E21; --turf:#515E4B; --green:#3E5C43;
+  --rule:#C4B896; --hair:#DCD1B4; --flag:#9E3B2E; --gold:#715726; --gold-up:#C9A253;
+  --sage-up:#9FB3A3; --hole-todo:#CDBF9E; --hole-done:#F4EFE2;
+  --pine:#1D2E21; --onpine:#EEE8D5;
+  --serif:'Source Serif 4','Iowan Old Style',Georgia,serif;
+  --ui:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;}
+html[data-theme="night"]{color-scheme:dark;
+  --paper:#121A14; --page:#1A2420; --sunk:#0E1511; --card:#202C25;
+  --ink:#ECE5D4; --turf:#A7B5A2; --green:#A9CBAE;
+  --rule:#3B4C3E; --hair:#2A3A2E; --flag:#E39385; --gold:#D9B45C;
+  --hole-todo:#2B3B2E; --hole-done:#233026;
+  --pine:#0B110D; --onpine:#ECE5D4;}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:16px;line-height:1.46;
+  padding:26px max(16px,env(safe-area-inset-right,0px)) 72px max(16px,env(safe-area-inset-left,0px))}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+img{max-width:100%;display:block}
+.wrap{max-width:1180px;margin:0 auto}
+h1{margin:0 0 10px;font-size:clamp(26px,4.4vw,36px);line-height:1.12}
+h2{margin:0;font-size:clamp(19px,2.6vw,23px);line-height:1.2}
+.lede{margin:0 0 4px;color:var(--turf);max-width:78ch}
+.kick{display:block;font-family:var(--ui);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);font-weight:700}
+.topbar{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;margin-bottom:22px}
+.tog{font-family:var(--ui);font-size:12.5px;font-weight:700;border:1px solid var(--rule);border-radius:999px;padding:8px 15px;background:var(--page)}
+.f{margin-top:26px;border:1px solid var(--rule);border-radius:16px;background:var(--page);overflow:hidden}
+.f>header{padding:14px 17px 13px;border-bottom:1px solid var(--hair);display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.f>header .n{flex:0 0 auto;width:30px;height:30px;border-radius:50%;background:var(--pine);color:var(--onpine);
+  display:grid;place-items:center;font-weight:800;font-size:14px;font-family:var(--ui)}
+.f>header .t{flex:1 1 260px;min-width:0}
+.cost{flex:0 0 auto;font-family:var(--ui);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;font-weight:800;
+  border-radius:999px;padding:4px 10px;background:var(--gold-up);color:#23331F}
+.pair{padding:15px 17px 18px;display:grid;gap:16px;grid-template-columns:1fr}
+@media(min-width:800px){.pair{grid-template-columns:1fr 1fr}}
+.side{min-width:0}
+.cap{font-family:var(--ui);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;font-weight:800;
+  color:var(--turf);margin-bottom:7px;display:flex;justify-content:space-between;gap:8px}
+.cap i{font-style:normal;color:var(--gold)}
+.glass{border:1px solid var(--rule);border-radius:12px;overflow:hidden;background:var(--paper);max-width:392px;position:relative}
+.say{margin:8px 0 0;font-size:14px;color:var(--turf);max-width:46ch}
+.say b{color:var(--ink)}
+
+/* ---- the overlay that turns the real hole into the sketch ---- */
+.ov{position:absolute;inset:0;pointer-events:none}
+.ball{position:absolute;width:13px;height:13px;border-radius:50%;margin:-6.5px 0 0 -6.5px;
+  background:rgba(238,232,213,.5);border:1.5px solid rgba(238,232,213,.75);box-shadow:0 1px 3px rgba(0,0,0,.35)}
+.ball.old2{background:rgba(159,179,163,.42);border-color:rgba(159,179,163,.7)}
+.ball.now{background:var(--gold-up);border-color:#fff;width:16px;height:16px;margin:-8px 0 0 -8px;
+  box-shadow:0 2px 6px rgba(0,0,0,.45)}
+.keyov{position:absolute;left:8px;right:8px;top:23%;background:rgba(16,22,17,.93);border-radius:12px;
+  padding:8px 10px;color:var(--onpine);font-family:var(--ui);font-size:10.5px;letter-spacing:.04em;line-height:1.5}
+.keyov span{display:inline-flex;align-items:center;gap:5px;margin-right:12px}
+.dot{width:11px;height:11px;border-radius:50%;display:inline-block}
+.dot.a{background:var(--gold-up)}.dot.b{background:rgba(238,232,213,.55)}.dot.c{background:rgba(159,179,163,.5)}
+
+/* ---- app furniture for the sketches ---- */
+.kp{background:var(--pine);border-radius:14px;padding:13px 13px 11px;color:var(--onpine)}
+.kp-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:10px}
+.kp-h b{font-size:17px;font-weight:700}
+.kp-h small{font-family:var(--ui);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--sage-up)}
+.kp-h i{font-style:normal;color:var(--gold-up);font-weight:700;font-size:14px}
+.keys{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.key{min-height:52px;border:1px solid rgba(238,232,213,.22);border-radius:10px;display:grid;place-items:center;
+  font-size:21px;font-weight:700;color:var(--onpine);background:rgba(238,232,213,.05);line-height:1.1}
+.key small{display:block;font-family:var(--ui);font-size:8.5px;letter-spacing:.1em;color:var(--sage-up);font-weight:800}
+.key.par{border-color:var(--gold-up);box-shadow:inset 0 0 0 1px var(--gold-up)}
+.key.cap{color:#E39385}
+.key.wide{grid-column:span 2;font-size:15px}
+.putts{margin-top:11px;border-top:1px solid rgba(238,232,213,.17);padding-top:10px}
+.putts .lab{font-family:var(--ui);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--sage-up);
+  font-weight:800;display:flex;justify-content:space-between;margin-bottom:7px}
+.putts .lab em{font-style:normal;color:var(--gold-up)}
+.prow{display:flex;gap:7px}
+.pk2{flex:1 1 0;min-height:44px;border:1px solid rgba(238,232,213,.22);border-radius:9px;display:grid;place-items:center;
+  font-size:16px;font-weight:700;color:var(--onpine);background:rgba(238,232,213,.05)}
+.pk2.on{background:var(--gold-up);border-color:var(--gold-up);color:#23331F}
+.skip{margin-top:8px;font-family:var(--ui);font-size:10.5px;color:var(--sage-up);text-align:center}
+
+.panel{border:1px solid var(--rule);border-radius:14px;background:var(--page);overflow:hidden}
+.panel .ph{padding:11px 14px 9px;background:var(--pine);color:var(--onpine)}
+.panel .ph .k{display:block;font-family:var(--ui);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold-up);font-weight:700}
+.panel .ph b{display:block;font-size:17px;margin-top:2px}
+.wrow{display:flex;align-items:center;gap:11px;padding:11px 14px;border-bottom:1px solid var(--hair)}
+.wrow:last-child{border-bottom:0}
+.wrow .av{flex:0 0 auto;width:32px;height:32px;border-radius:50%;background:var(--sunk);color:var(--turf);
+  display:grid;place-items:center;font-weight:800;font-size:12px;font-family:var(--ui)}
+.wrow .nm{flex:1 1 auto;min-width:0;font-size:15px}
+.wrow .nm small{display:block;font-size:12.5px;color:var(--turf)}
+.wrow .pt{flex:0 0 auto;text-align:right;font-size:17px;font-weight:800;font-variant-numeric:tabular-nums}
+.wrow .pt small{display:block;font-family:var(--ui);font-size:9px;letter-spacing:.1em;color:var(--turf);font-weight:800}
+.wrow .go{flex:0 0 auto;border:1px solid var(--rule);border-radius:999px;padding:6px 12px;font-size:12.5px;font-weight:700}
+.live{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--flag);margin-right:5px;vertical-align:1px}
+
+.ecl{display:grid;grid-template-columns:repeat(9,1fr);gap:3px;padding:11px}
+.ec{border:1px solid var(--hair);border-radius:6px;background:var(--card);text-align:center;padding:5px 0 4px}
+.ec .h{display:block;font-family:var(--ui);font-size:8px;letter-spacing:.06em;color:var(--turf);font-weight:800}
+.ec .s{display:block;font-size:15px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums}
+.ec.bird{background:#DDEBDD}.ec.bird .s{color:var(--green)}
+.ec.eag{background:var(--gold-up)}.ec.eag .s{color:#23331F}
+.ecf{display:flex;justify-content:space-between;gap:10px;padding:10px 13px 12px;border-top:1px solid var(--hair);
+  font-size:13.5px;color:var(--turf)}
+.ecf b{color:var(--ink);font-size:16px}
+.none{border:1px dashed var(--rule);border-radius:12px;padding:26px 16px;text-align:center;color:var(--turf);
+  font-style:italic;font-size:14.5px;background:var(--sunk)}
+.note{margin-top:30px;border:1px solid var(--rule);border-radius:14px;padding:16px 18px;background:var(--page)}
+.foot{margin-top:32px;color:var(--turf);font-size:13.5px}
+.foot a{color:var(--gold)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="topbar">
+  <div>
+    <span class="kick">The Union Invitational · for the commissioner</span>
+    <h1>Four drafts, side by side</h1>
+    <p class="lede">Left is <b>the book as it is today</b> — real screenshots, taken from the running app, not
+      drawings. Right is <b>a sketch</b>. Nothing on the right is built.</p>
+  </div>
+  <button class="tog" id="tog">Night</button>
+</div>
+
+<!-- ================= 1 ================= -->
+<article class="f">
+  <header><span class="n">1</span><div class="t"><h2>Your shots on this hole, every time you have played it</h2>
+    <p class="lede">The Driving Zone idea. Today's shots in gold, the rounds before in cream and sage.</p></div>
+    <span class="cost">a day</span></header>
+  <div class="pair">
+    <div class="side"><div class="cap"><span>Now · from the book</span><i>Leatherhead, the 8th</i></div>
+      <div class="glass"><img src="now/zone.png" alt="The 8th at Leatherhead with three shots tapped onto it"></div>
+      <p class="say">Three shots, this round only: driver 158, pitching wedge 131, a putt of 39. The track is
+        drawn and the yards are counted. <b>When the round is posted, it is gone.</b> Nothing remembers that you
+        have stood on this tee eleven times.</p></div>
+    <div class="side"><div class="cap"><span>Could be · a sketch</span><i>same hole, four rounds</i></div>
+      <div class="glass"><img src="now/zone.png" alt="The same hole with previous rounds' tee shots added">
+        <div class="ov">
+          <span class="ball now" style="left:62%;top:50%"></span>
+          <span class="ball" style="left:56%;top:53%"></span>
+          <span class="ball" style="left:71%;top:45%"></span>
+          <span class="ball old2" style="left:54%;top:57%"></span>
+          <span class="ball old2" style="left:66%;top:47%"></span>
+          <span class="ball" style="left:49%;top:60%"></span>
+          <span class="ball old2" style="left:70%;top:53%"></span>
+          <div class="keyov"><span><i class="dot a"></i>today</span><span><i class="dot b"></i>last 3</span>
+            <span><i class="dot c"></i>older</span> · 7 tee shots · <b>you miss it right</b></div>
+        </div></div>
+      <p class="say">The same hole, with every tee shot you have ever tapped on it. Seven here, and the pattern
+        says what no table would: <b>you miss this one right.</b> Tap a ball to see which round it was.</p></div>
+  </div>
+</article>
+
+<!-- ================= 2 ================= -->
+<article class="f">
+  <header><span class="n">2</span><div class="t"><h2>Putts, as a second tap</h2>
+    <p class="lede">One more number per hole, optional, never blocking a save.</p></div>
+    <span class="cost">half a day</span></header>
+  <div class="pair">
+    <div class="side"><div class="cap"><span>Now · from the book</span><i>one number</i></div>
+      <div class="glass"><img src="now/putts.png" alt="The scoring keypad as it is today, gross score only"></div>
+      <p class="say">The keypad asks for the gross and nothing else. The report card still <b>grades your
+        putting</b> — it gave Norberto a B — but it is inferring that from the gross, which is a guess dressed as
+        a grade.</p></div>
+    <div class="side"><div class="cap"><span>Could be · a sketch</span><i>two numbers</i></div>
+      <div class="kp">
+        <div class="kp-h"><b>Norberto III</b><small>Hole 8 · par 5</small><i>Done</i></div>
+        <div class="keys">
+          <span class="key">1</span><span class="key">2</span><span class="key">3</span><span class="key">4</span>
+          <span class="key par">5<small>par</small></span><span class="key">6</span><span class="key">7</span>
+          <span class="key cap">8<small>pick up</small></span>
+          <span class="key wide">Clear</span>
+        </div>
+        <div class="putts">
+          <div class="lab"><span>Putts · optional</span><em>skip it and nothing is lost</em></div>
+          <div class="prow"><span class="pk2">0</span><span class="pk2">1</span><span class="pk2 on">2</span>
+            <span class="pk2">3</span><span class="pk2">4+</span></div>
+          <p class="skip">the hole saves on the score; this is a bonus, not a gate</p>
+        </div>
+      </div>
+      <p class="say">The gross saves the hole exactly as it does now. The putts row is underneath, five taps wide,
+        and <b>skipping it costs you nothing</b> — a round with no putts in it still scores. Fill it in and the
+        putting grade stops being a guess, and the practice manual starts picking drills off real numbers.</p></div>
+  </div>
+</article>
+
+<!-- ================= 3 ================= -->
+<article class="f">
+  <header><span class="n">3</span><div class="t"><h2>Watch a round that is happening</h2>
+    <p class="lede">What GameBook is actually built on, for a group split across eight time zones.</p></div>
+    <span class="cost">two days</span></header>
+  <div class="pair">
+    <div class="side"><div class="cap"><span>Now · from the book</span><i>a live board, read sideways</i></div>
+      <div class="glass" style="padding:10px;background:var(--page)">
+        <img src="now/watch.png" alt="The resume panel: your own round in progress" style="border-radius:8px">
+        <img src="now/board.png" alt="The board as it stands" style="border-radius:8px;margin-top:9px">
+      </div>
+      <p class="say">More than I credited it with: the board already marks who is <b>in play</b> and how far
+        through — Matt, eleven holes, seventeen points — and it updates as he writes. What it cannot do is show
+        you <b>the round itself</b>: which holes, what he made, where it went wrong. And you have to go and read
+        it off a leaderboard rather than be told anybody is out at all.</p></div>
+    <div class="side"><div class="cap"><span>Could be · a sketch</span><i>who is out, right now</i></div>
+      <div class="panel">
+        <div class="ph"><span class="k"><i class="live"></i>Out on the course · 2 playing</span><b>The Frostbite Open</b></div>
+        <div class="wrow"><span class="av">M</span><span class="nm">Matt<small>Leatherhead · teed off 09:12</small></span>
+          <span class="pt">24<small>pts thru 11</small></span><span class="go">Watch</span></div>
+        <div class="wrow"><span class="av">B</span><span class="nm">Brian<small>Leatherhead · teed off 10:40</small></span>
+          <span class="pt">13<small>pts thru 7</small></span><span class="go">Watch</span></div>
+        <div class="wrow" style="opacity:.6"><span class="av">R</span><span class="nm">Rey<small>Lakewood · posted an hour ago</small></span>
+          <span class="pt">41<small>pts · F</small></span><span class="go">Card</span></div>
+      </div>
+      <p class="say">The same facts, but asked as a question instead of found in a table — and then one step
+        further: tap <b>Watch</b> and you see their card fill in hole by hole, the holes they have played and
+        what they made. On a Sunday morning in California you can follow Matt playing his Saturday afternoon in
+        Surrey. <b>The honest gap here is smaller than I first wrote</b>, which is worth knowing before spending
+        two days on it.</p></div>
+  </div>
+</article>
+
+<!-- ================= 4 ================= -->
+<article class="f">
+  <header><span class="n">4</span><div class="t"><h2>The eclectic card</h2>
+    <p class="lede">Your best ever on each hole, as one card nobody has shot.</p></div>
+    <span class="cost">half a day</span></header>
+  <div class="pair">
+    <div class="side"><div class="cap"><span>Now · from the book</span><i>nothing</i></div>
+      <div class="none">There is no such page today.<br><br>Every round you post is kept, and your rounds list
+        shows each one's score — but nothing ever looks <i>across</i> them at a single hole.</div>
+      <p class="say">The data has been sitting there since the first card went in. <b>Only the question is
+        missing.</b></p></div>
+    <div class="side"><div class="cap"><span>Could be · a sketch</span><i>Leatherhead · 11 rounds</i></div>
+      <div class="panel">
+        <div class="ph"><span class="k">Your eclectic · Leatherhead</span><b>Best ever on every hole</b></div>
+        <div class="ecl">
+          <span class="ec bird"><i class="h">1</i><b class="s">4</b></span>
+          <span class="ec"><i class="h">2</i><b class="s">3</b></span>
+          <span class="ec bird"><i class="h">3</i><b class="s">3</b></span>
+          <span class="ec"><i class="h">4</i><b class="s">5</b></span>
+          <span class="ec bird"><i class="h">5</i><b class="s">3</b></span>
+          <span class="ec"><i class="h">6</i><b class="s">4</b></span>
+          <span class="ec"><i class="h">7</i><b class="s">4</b></span>
+          <span class="ec eag"><i class="h">8</i><b class="s">3</b></span>
+          <span class="ec"><i class="h">9</i><b class="s">3</b></span>
+          <span class="ec"><i class="h">10</i><b class="s">4</b></span>
+          <span class="ec bird"><i class="h">11</i><b class="s">3</b></span>
+          <span class="ec"><i class="h">12</i><b class="s">3</b></span>
+          <span class="ec"><i class="h">13</i><b class="s">4</b></span>
+          <span class="ec bird"><i class="h">14</i><b class="s">3</b></span>
+          <span class="ec"><i class="h">15</i><b class="s">3</b></span>
+          <span class="ec"><i class="h">16</i><b class="s">4</b></span>
+          <span class="ec"><i class="h">17</i><b class="s">4</b></span>
+          <span class="ec bird"><i class="h">18</i><b class="s">2</b></span>
+        </div>
+        <div class="ecf"><span>Par 71 · <b>62</b> eclectic</span><span>7 birdies · 1 eagle · from 11 rounds</span></div>
+      </div>
+      <p class="say">Nobody shot a 62. Everybody could have. It only ever gets better, it gives a reason to post
+        a round between stops, and the 8th — where you once made a 3 on a par 5 — will be told about for
+        years.</p></div>
+  </div>
+</article>
+
+<div class="note">
+  <span class="kick">A note on the left-hand side</span>
+  <p class="lede" style="margin-top:4px">Those are not mock-ups. They were taken by driving the real book:
+    a field of seven, a stop open, two players still out on the course, Norberto seven holes in with three shots
+    tapped onto the 8th. If the left looks thin in places, that is the honest answer to “how is it now”.</p>
+</div>
+
+<p class="foot">The Union Invitational · drafts, not changes ·
+  <a href="../../">back to the site</a> · <a href="../learned/">what the other books do</a> ·
+  <a href="../audit/">the audit</a></p>
+
+</div>
+<script>
+(function(){var t=document.getElementById('tog');t.addEventListener('click',function(){
+  var on=document.documentElement.getAttribute('data-theme')==='night';
+  document.documentElement.setAttribute('data-theme',on?'day':'night');
+  t.textContent=on?'Night':'Day';});})();
+</script>
+</body>
+</html>
