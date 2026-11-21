@@ -5794,15 +5794,10 @@ h2.greet small{display:block;font-size:14px;color:var(--turf);font-weight:400;fo
 .caddie{position:fixed;z-index:30;pointer-events:none;
   right:max(2px,env(safe-area-inset-right,0px));
   bottom:calc(14px + env(safe-area-inset-bottom,0px));
-  height:128px;
-  transition:opacity .22s ease,translate .26s cubic-bezier(.3,.8,.4,1)}
+  height:128px}
 /* The bob is on the picture and the contact shadow stays on the ground, so he
-   reads as a man standing and bouncing rather than a sticker floating.
-   Three layers, each owning one property, so nothing fights: the figure
-   itself bobs, the sleeve it sits in steps aside, and the outer box ducks. */
-.cadin{display:block;position:relative;height:100%;
-  transition:translate .34s cubic-bezier(.3,.8,.4,1),scale .34s cubic-bezier(.3,.8,.4,1),rotate .34s ease;
-  transform-origin:0 100%}
+   reads as a man standing and bouncing rather than a sticker floating. */
+.cadin{display:block;position:relative;height:100%;transform-origin:0 100%}
 .caddie img{display:block;height:100%;width:auto;
   filter:drop-shadow(0 7px 10px rgba(16,22,17,.26));
   transform-origin:50% 100%;
@@ -5811,24 +5806,8 @@ h2.greet small{display:block;font-size:14px;color:var(--turf);font-weight:400;fo
   border-radius:50%;
   background:radial-gradient(50% 50% at 50% 50%,rgba(16,22,17,.34),rgba(16,22,17,0) 72%);
   animation:cadShade 3.8s ease-in-out infinite}
-/* Words under him: he steps back to the edge of the screen and leans in from
-   it, so the line underneath is readable. He shrinks as he goes, because a
-   narrow sliver of a small caddie is still a caddie, where the same sliver of
-   a big one is a stray golf club. The step is a fixed number of pixels rather
-   than a share of his width, so the lane he leaves is the same on a phone as
-   on a laptop however big he is drawn there. */
-/* 26px of him was a stray golf club in the corner, which is what made him
-   read as a smudge on a phone: he is in this state most of the time, because
-   a phone has no gutter to give him. He still steps out of the words' way —
-   that is the whole job — but he leaves enough of himself behind to be a
-   person leaning in from the edge. */
-.caddie.peek .cadin{translate:calc(100% - var(--cadpeek,26px)) 0;scale:.82;rotate:6deg}
-/* Out of the way while the page moves, back when it stops. Both animations go
-   off as he ducks, so nothing else is writing the properties he moves with. */
-.caddie.duck{opacity:0;translate:0 30px}
-.caddie.duck img,.caddie.duck .cadin::after{animation:none}
 /* Season is the one screen with no cover of its own, so he does more there. */
-.caddie.lean:not(.peek) img{animation:cadBob 3.8s ease-in-out infinite,cadLean 11s ease-in-out infinite}
+.caddie.lean img{animation:cadBob 3.8s ease-in-out infinite,cadLean 11s ease-in-out infinite}
 @keyframes cadBob{0%,100%{translate:0 0}50%{translate:0 -5px}}
 @keyframes cadShade{0%,100%{opacity:1;scale:1}50%{opacity:.6;scale:.86 .8}}
 @keyframes cadLean{0%,88%,100%{rotate:0deg}92%{rotate:-4.5deg}96%{rotate:1.5deg}}
@@ -5864,7 +5843,6 @@ h2.greet small{display:block;font-size:14px;color:var(--turf);font-weight:400;fo
   html.clubseason .wrap{padding-right:154px}
   html.clubseason .caddie{height:176px}
   /* the column is his: no stepping aside where there is room */
-  html.clubseason .caddie.peek .cadin{translate:none;scale:1;rotate:0deg}
   html.tablet.clubseason .caddie{bottom:calc(66px + env(safe-area-inset-bottom,0px));
     transform:translateY(var(--barshift,0px))}
   html.tablet.clubseason .wrap{padding-bottom:calc(var(--barh) + 48px)}

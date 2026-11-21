@@ -65,13 +65,13 @@ for (const [tag, w, h, mob] of widths) {
       /* Anything with its own words on it, not just the controls: a mascot
          standing on a table's values is as bad as one standing on a button. */
       const hits = window.__cadHits(a);
-      return { there: true, peek: c.classList.contains('peek'),
+      return { there: true,
         box: [Math.round(a.left), Math.round(a.top), Math.round(a.width), Math.round(a.height)],
         offRight: a.right > innerWidth + 1, offBottom: a.bottom > innerHeight + 1, hits };
     });
-    /* Standing off the right edge is how he steps aside, so that is only a
-       fault when he has not stepped aside. */
-    const flag = !r.there || (r.offRight && !r.peek) || r.offBottom || r.hits.length;
+    /* He does not step aside any more, so any part of him off an edge is a
+       fault with no excuse. */
+    const flag = !r.there || r.offRight || r.offBottom || r.hits.length;
     if (flag) bad++;
     console.log((flag ? 'X ' : '  ') + tag.padEnd(7), scr.padEnd(7), JSON.stringify(r));
     await p.screenshot({ path: S + '/cad/' + tag + '-' + scr + '.png' });
