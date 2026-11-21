@@ -221,7 +221,6 @@ export const DRILLS = [
     score: 'None. Five minutes, three times a week.', target: 'A setup you can find with your eyes shut.', harder: 'Film it from both angles and compare with a month ago.',
     video: { who: 'Titleist', title: 'Indoor golf training: posture, with a mirror', url: 'https://www.youtube.com/watch?v=8Adhz5nrJH0' } },
 ];
-export const drillById = id => DRILLS.find(d => d.id === id) || null;
 
 /* ---------------- the pick ----------------
    The weakest department gets the most drills, every department graded C or

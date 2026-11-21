@@ -619,7 +619,6 @@ export function stopBoard(T, stopId) {
   rows.forEach((r, i) => { if (r.pts !== last) { pos = i + 1; last = r.pts; } r.pos = pos; r.tie = rows.filter(x => x.pts === r.pts).length > 1; });
   return rows;
 }
-export const stopWinner = (T, stopId) => stopBoard(T, stopId)[0] || null;
 
 /** The Order of Merit: every closed stop pays its places. */
 export function merit(T, today) {
@@ -725,32 +724,6 @@ export function withoutHoleShots(card, h) {
    goes. A club needs a few swings behind it before its average is worth
    printing, and the putter is not a distance at all. */
 export const CLUB_MIN = 3;
-export function clubDistances(T, pid) {
-  const hit = {};
-  for (const r of rounds(T, pid)) {
-    const card = r.card;
-    if (!card || !card.shots) continue;
-    for (let h = 0; h < 18; h++) {
-      const ss = shotsOf(card, h);
-      if (!ss.length) continue;
-      let prev = { x: 0, z: 0 };
-      for (const s of ss) {
-        const d = shotGap(prev, s);
-        prev = s;
-        if (s.club === 'Putt' || d < 5) continue;
-        (hit[s.club] = hit[s.club] || []).push(d);
-      }
-    }
-  }
-  return SHOT_CLUBS.map(c => {
-    const l = hit[c] || [];
-    if (l.length < CLUB_MIN) return null;
-    const sorted = l.slice().sort((a, b) => a - b);
-    const mean = l.reduce((a, b) => a + b, 0) / l.length;
-    return { club: c, n: l.length, yds: toYards(mean),
-      low: toYards(sorted[0]), high: toYards(sorted[sorted.length - 1]) };
-  }).filter(Boolean);
-}
 
 /* ---------- the Union handicap ----------
    Seeded by the Belek band. Each posted round leaves a differential: the

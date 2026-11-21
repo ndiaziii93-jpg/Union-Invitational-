@@ -19,8 +19,6 @@
  * Hours are HH:MM in resort local time. `null` means closed for that season.
  */
 
-export const SEASONS = ['summer', 'winter'];
-
 /* The hotel's address book. */
 export const RESORT = {
   name: 'Titanic Deluxe Golf Belek',

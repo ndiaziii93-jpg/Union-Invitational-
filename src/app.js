@@ -295,19 +295,6 @@ function squadFlag(sq, w) { return sq === 'UK' ? ukFlag(w) : sq === 'USA' ? usFl
 
 /* ---------------- small pieces ---------------- */
 
-function phasePill(rid) {
-  const p = E.phaseOf(T, rid, now);
-  const k = p === 'live' ? 'live' : p === 'final' ? 'final' : 'open';
-  return `<span class="pill ${p === 'live' ? 'live' : p === 'final' ? 'final' : ''}">${esc(E.phaseLabel(p))}</span>`;
-}
-
-function roundTabs(current, act) {
-  return `<div class="chiprow" style="margin-top:14px">` + D.ROUNDS.map(r => {
-    const d = E.dayOf(r.dayIdx);
-    return `<button class="chip${r.id === current ? ' on' : ''}" data-act="${act}" data-a="${r.id}">${esc(r.short)} <span class="num" style="opacity:.7">${esc(d.date)}</span></button>`;
-  }).join('') + `</div>`;
-}
-
 function holeStrip(rid, sel, act, pair) {
   const holes = E.courseOf(T, rid).holes;
   return `<div class="strip">` + holes.map((hole, i) => {
@@ -321,29 +308,6 @@ function holeStrip(rid, sel, act, pair) {
     }
     return `<button class="cell${k}${i === sel ? ' here' : ''}" data-act="${act}" data-a="${i}" aria-label="Hole ${i + 1}">${i + 1}</button>`;
   }).join('') + `</div>`;
-}
-
-function holeLeaf(rid, h, opts = {}) {
-  const course = E.courseOf(T, rid);
-  const hole = course.holes[h];
-  const cap = E.capFor(hole.par, T.config.capOver);
-  const img = IMG[hole.img];
-  return `
-    <div class="eyebrow">${esc(course.name)}</div>
-    <div class="holeno"><b class="num">${hole.n}</b><span style="font-size:18px;color:var(--turf)">hole</span>${opts.pill || ''}</div>
-    <table class="facts"><tbody>
-      <tr><td>Par</td><td>${hole.par}</td></tr>
-      <tr><td>Yellow tees</td><td>${hole.mY} m</td></tr>
-      <tr><td>Yellow tees</td><td>${hole.mY} m</td></tr>
-      <tr><td>Stroke index</td><td>${hole.si}</td></tr>
-      <tr><td>Handicap 15 receives</td><td>${E.strokesFor(15, hole.si)}</td></tr>
-      <tr><td>Handicap 20 receives</td><td>${E.strokesFor(20, hole.si)}</td></tr>
-      <tr><td>Handicap 25 receives</td><td>${E.strokesFor(25, hole.si)}</td></tr>
-      <tr class="cap"><td>Pick up at</td><td>${cap}</td></tr>
-    </tbody></table>
-    ${opts.strip || ''}
-    ${img ? `<figure class="diagram"><img src="${img}" alt="Diagram of hole ${hole.n} at ${esc(course.name)}" loading="lazy"><figcaption>Hole ${hole.n} — par ${hole.par}, ${hole.mY} m from the yellows.</figcaption></figure>` : ''}
-  `;
 }
 
 /* ---------------- screens ---------------- */
@@ -3080,22 +3044,6 @@ function xList() {
    on that side in the first place. The person is not asked; it stays
    theirs, and says it was fixed. */
 const fixer = () => canAdmin() && (!D.PINS_ENABLED || UI.role === 'master');
-function xFixHtml(m, sibs, tr) {
-  if (!fixer()) return '';
-  const mine = tr.filter(t => t.m === m.id && t.id).slice().reverse();
-  const others = m.group ? sibs.filter(x => x.id !== m.id) : [];
-  const word = s => sw(m, s);
-  return `<details class="xm-fix"><summary><span class="xm-eye">Fix a bet · commissioner</span></summary>
-    ${m.custom ? `<button class="xm-link" data-act="xEditQ" data-a="${esc(m.qid || m.id)}">Edit the wording</button>` : ''}
-    ${mine.length ? mine.map(t => `<div class="xm-fixrow">
-      <span class="w"><b>${esc(nameOf(t.pid))}</b> ${t.cost > 0 ? beer(t.cost) + ' 🍺 on ' : 'cashed out ' + beer(-t.cost) + ' 🍺 of '}${word(t.side)}${t.fixedAt ? ' <small>· fixed</small>' : ''}</span>
-      <span class="b">${t.cost > 0 ? `<button class="chip" data-act="xFixSide" data-a="${esc(t.id)}">Switch to ${word(t.side === 'yes' ? 'no' : 'yes')}</button>` : ''}
-        ${t.cost > 0 && others.length ? `<button class="chip" data-act="xFixMovePick" data-a="${esc(t.id)}">Move to…</button>` : ''}
-        <button class="chip danger" data-act="xFixDrop" data-a="${esc(t.id)}">Remove</button></span>
-      ${UI.xFixMove === t.id ? `<span class="mv">${others.map(x => `<button class="chip" data-act="xFixMove" data-a="${esc(t.id)}" data-b="${esc(x.id)}">${esc(x.label)}</button>`).join('')}</span>` : ''}
-    </div>`).join('') : '<p class="xm-none">Nobody has bet on this one yet.</p>'}
-  </details>`;
-}
 /** "Saved." only once the book has it. A save the server turned down said
  *  "Saved." anyway, and the edit vanished at the next refresh. */
 function xBetLanded(p) {
@@ -4682,15 +4630,6 @@ function holeSavedBy(rid, h, who) {
   }
   return null;
 }
-
-/** The golfers the keypad walks through: the group on screen, in order. */
-function padList(rid) {
-  const groups = E.groups(T, rid);
-  const slot = Math.min(UI.entryTee === 'all' ? 0 : +UI.entryTee, Math.max(groups.length - 1, 0));
-  const g = groups[slot];
-  const ids = g && g.members && g.members.length ? g.members : null;
-  return ids ? E.golfers(T).filter(x => ids.includes(x.id)) : E.golfers(T);
-}
 function commitDraft(role) {
   const d = UI.draft;
   UI.pad = null;
@@ -6110,7 +6049,6 @@ function cardRows(rid, pid) {
     pts: played.length && played.every(r => r.pts != null) ? sum(from, to, 'pts') : null, played: played.length }; };
   return { rows, thru, out: part(0, 9), back: part(9, 18), all: part(0, 18), c, g, teamHcp: E.playingHcp(g.band, E.teamAllowance(T)) };
 }
-const toParOf = (v, par) => v == null ? '—' : E.fmtToPar(v - par);
 function cardRoundsOf(pid) {
   return D.ROUNDS.filter(r => { const c = E.card(T, r.id, pid); return c && c.raw.some(v => v != null); }).map(r => r.id);
 }
@@ -9660,12 +9598,6 @@ function roundWrite(r, patch) {
   const doc = { ...base, ...patch, at: Date.now() };
   delete doc.rev;
   store.writeClub(r.key, doc, false);
-}
-/** Kept for the one caller that still thinks in stops. */
-function clubCardWrite(stop, patch) {
-  const me = myPid(); if (!me) return;
-  roundWrite({ kind: 'comp', me, stop, rid: null, card: C.cardOf(T, stop.id, me),
-    key: C.cardKey(stop.id, me), date: stop.from }, patch);
 }
 async function cardPhotoTake(file) {
   const r = roundNow();
