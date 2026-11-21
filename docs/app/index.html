@@ -5,6 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#3E5C43">
 <meta name="description" content="The yardage book for the Union Invitational.">
+<!-- Three directives the app provably does not use, so they cannot break it, and
+     each closes a real way in. object-src stops a plugin or embed being injected.
+     base-uri stops a <base> tag being injected, which would otherwise silently
+     repoint every relative URL on the page. form-action stops an injected form
+     posting anywhere. A full script-src is deliberately NOT here: the whole app is
+     one inlined script, so it would need 'unsafe-inline' and buy almost nothing,
+     while a wrong connect-src would cut every phone off from Supabase mid-round. -->
+<meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Union Inv.">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -6694,7 +6703,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261121-1816';
+const BUILD = '20261121-1824';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -16533,7 +16542,7 @@ function cupCard(c, act = 'boardTab', plain = false) {
 function gameCard(c, act = 'boardTab', extra = '') {
   const empty = c.state === 'empty';
   return `<button class="cc cc--${esc(c.state)}${extra ? ' ' + extra : ''}" data-act="${act}" data-a="${esc(c.id)}"
-    aria-label="${esc(c.label)}${empty ? ' — ' + c.note : c.who ? ' — ' + c.who + ' leads on ' + c.fig : ''}">
+    aria-label="${esc(c.label)}${esc(empty ? ' — ' + c.note : c.who ? ' — ' + c.who + ' leads on ' + c.fig : '')}">
     <span class="cc-t">${esc(c.label)}${c.sub || c.thru
       ? `<span class="cc-st">${esc(c.sub || ('Thru ' + c.thru))}</span>` : ''}</span>
     ${empty
@@ -30504,7 +30513,7 @@ __m_app.boot();
 /* Register the worker that makes the book work with no signal. It is the
    whole point of installing it: Belek is five hours of walking and everyone
    is roaming. A failure here must never stop the page loading. */
-var BOOK_BUILD = '20261121-1816';
+var BOOK_BUILD = '20261121-1824';
 var swReg = null;
 /* the book is never shown inside somebody else's page, where a tap could be
    aimed at a button they have put under the finger */

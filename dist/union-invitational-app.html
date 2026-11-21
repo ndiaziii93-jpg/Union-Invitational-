@@ -6622,7 +6622,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261121-1816';
+const BUILD = '20261121-1824';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -16461,7 +16461,7 @@ function cupCard(c, act = 'boardTab', plain = false) {
 function gameCard(c, act = 'boardTab', extra = '') {
   const empty = c.state === 'empty';
   return `<button class="cc cc--${esc(c.state)}${extra ? ' ' + extra : ''}" data-act="${act}" data-a="${esc(c.id)}"
-    aria-label="${esc(c.label)}${empty ? ' — ' + c.note : c.who ? ' — ' + c.who + ' leads on ' + c.fig : ''}">
+    aria-label="${esc(c.label)}${esc(empty ? ' — ' + c.note : c.who ? ' — ' + c.who + ' leads on ' + c.fig : '')}">
     <span class="cc-t">${esc(c.label)}${c.sub || c.thru
       ? `<span class="cc-st">${esc(c.sub || ('Thru ' + c.thru))}</span>` : ''}</span>
     ${empty

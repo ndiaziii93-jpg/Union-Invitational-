@@ -150,6 +150,15 @@ HEAD = """<!doctype html>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="{green}">
 <meta name="description" content="The yardage book for the Union Invitational.">
+<!-- Three directives the app provably does not use, so they cannot break it, and
+     each closes a real way in. object-src stops a plugin or embed being injected.
+     base-uri stops a <base> tag being injected, which would otherwise silently
+     repoint every relative URL on the page. form-action stops an injected form
+     posting anywhere. A full script-src is deliberately NOT here: the whole app is
+     one inlined script, so it would need 'unsafe-inline' and buy almost nothing,
+     while a wrong connect-src would cut every phone off from Supabase mid-round. -->
+<meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="{short}">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">

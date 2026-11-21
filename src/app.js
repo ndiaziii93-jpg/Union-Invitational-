@@ -511,7 +511,7 @@ function cupCard(c, act = 'boardTab', plain = false) {
 function gameCard(c, act = 'boardTab', extra = '') {
   const empty = c.state === 'empty';
   return `<button class="cc cc--${esc(c.state)}${extra ? ' ' + extra : ''}" data-act="${act}" data-a="${esc(c.id)}"
-    aria-label="${esc(c.label)}${empty ? ' — ' + c.note : c.who ? ' — ' + c.who + ' leads on ' + c.fig : ''}">
+    aria-label="${esc(c.label)}${esc(empty ? ' — ' + c.note : c.who ? ' — ' + c.who + ' leads on ' + c.fig : '')}">
     <span class="cc-t">${esc(c.label)}${c.sub || c.thru
       ? `<span class="cc-st">${esc(c.sub || ('Thru ' + c.thru))}</span>` : ''}</span>
     ${empty
