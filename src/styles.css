@@ -6466,3 +6466,50 @@ html.clubseason .btn,html.clubseason .chip,html.clubseason .pkg{transition:trans
 .ecmodal .ec-sum span{display:block;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--turf);margin-top:3px}
 .ecmodal .ec-note{margin:10px 0 0;font-size:13.5px;color:var(--turf)}
 @media (min-width:600px){ .ecmodal .ec-grid{grid-template-columns:repeat(6,1fr)} }
+
+
+/* ---- OUT ON THE COURSE ----
+   A short list that answers "is anybody playing" before the leaderboard
+   answers "who is winning". */
+.outpanel{background:var(--card);border:1px solid var(--hair);border-radius:16px;padding:14px 14px 8px;margin:0 0 16px}
+.outpanel .out-h{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;margin-bottom:10px}
+.outpanel .out-h b{font-size:16px}
+.outpanel .out-h span{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--turf)}
+.outpanel .out-h i{margin-left:auto;font-style:normal;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--gold)}
+.out-list{list-style:none;margin:0;padding:0}
+.out-row{display:flex;align-items:center;gap:11px;padding:10px 0;border-top:1px solid var(--hair)}
+.out-row:first-child{border-top:0}
+.out-av{flex:0 0 auto;width:36px;height:36px;border-radius:50%;background:var(--pine);color:var(--onpine);
+  display:grid;place-items:center;font-size:13px;font-weight:700;letter-spacing:.02em}
+.out-row.done .out-av{background:var(--sunk);color:var(--turf)}
+.out-who{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.out-who b{font-size:15px;line-height:1.25}
+.out-who span{font-size:12px;color:var(--turf);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.out-sc{flex:0 0 auto;text-align:right;font-size:11px;color:var(--turf);line-height:1.2;white-space:nowrap}
+.out-sc b{display:block;font-size:19px;color:var(--ink);line-height:1.1}
+.out-sc span{display:block;font-size:10.5px}
+.out-go{flex:0 0 auto;min-height:38px;padding:8px 13px;border-radius:999px;border:1px solid var(--green);
+  background:var(--green);color:#FBFAF7;font-family:inherit;font-size:13px;font-weight:600}
+.out-row.done .out-go{background:none;color:var(--green)}
+
+/* ---- WATCHING A ROUND ---- */
+.watchmodal .w-top{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:12px;margin:0 0 14px;
+  background:var(--sunk);border:1px solid var(--hair);border-radius:14px}
+.watchmodal .w-top div{text-align:center}
+.watchmodal .w-top b{display:block;font-size:23px;line-height:1.1}
+.watchmodal .w-top span{display:block;font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--turf);margin-top:3px}
+.watchmodal .w-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.watchmodal .w-h{position:relative;background:var(--card);border:1px solid var(--hair);border-radius:10px;
+  padding:14px 4px 5px;min-height:54px;text-align:center}
+.watchmodal .w-n{position:absolute;top:4px;left:5px;font-size:9.5px;color:var(--turf);font-weight:700}
+.watchmodal .w-v{display:block;font-size:19px;font-weight:700;line-height:1}
+.watchmodal .w-p{display:block;font-size:9px;color:var(--turf);margin-top:2px}
+.watchmodal .w-h.eagle{background:var(--pine);border-color:var(--gold-up);color:var(--onpine)}
+.watchmodal .w-h.eagle .w-n,.watchmodal .w-h.eagle .w-p{color:var(--gold-up)}
+.watchmodal .w-h.birdie{background:var(--warm);border-color:var(--gold-up)}
+.watchmodal .w-h.par{background:var(--mint)}
+.watchmodal .w-h.worse{background:var(--rose)}
+/* a hole not played yet is plainly not played: this card is still filling in */
+.watchmodal .w-h.none{background:var(--sunk);border-style:dashed}
+.watchmodal .w-h.none .w-v{color:var(--turf);opacity:.55}
+.watchmodal .w-note{margin:12px 0 0;font-size:13px;color:var(--turf)}

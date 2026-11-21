@@ -6471,6 +6471,53 @@ html.clubseason .btn,html.clubseason .chip,html.clubseason .pkg{transition:trans
 .ecmodal .ec-note{margin:10px 0 0;font-size:13.5px;color:var(--turf)}
 @media (min-width:600px){ .ecmodal .ec-grid{grid-template-columns:repeat(6,1fr)} }
 
+
+/* ---- OUT ON THE COURSE ----
+   A short list that answers "is anybody playing" before the leaderboard
+   answers "who is winning". */
+.outpanel{background:var(--card);border:1px solid var(--hair);border-radius:16px;padding:14px 14px 8px;margin:0 0 16px}
+.outpanel .out-h{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;margin-bottom:10px}
+.outpanel .out-h b{font-size:16px}
+.outpanel .out-h span{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--turf)}
+.outpanel .out-h i{margin-left:auto;font-style:normal;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--gold)}
+.out-list{list-style:none;margin:0;padding:0}
+.out-row{display:flex;align-items:center;gap:11px;padding:10px 0;border-top:1px solid var(--hair)}
+.out-row:first-child{border-top:0}
+.out-av{flex:0 0 auto;width:36px;height:36px;border-radius:50%;background:var(--pine);color:var(--onpine);
+  display:grid;place-items:center;font-size:13px;font-weight:700;letter-spacing:.02em}
+.out-row.done .out-av{background:var(--sunk);color:var(--turf)}
+.out-who{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.out-who b{font-size:15px;line-height:1.25}
+.out-who span{font-size:12px;color:var(--turf);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.out-sc{flex:0 0 auto;text-align:right;font-size:11px;color:var(--turf);line-height:1.2;white-space:nowrap}
+.out-sc b{display:block;font-size:19px;color:var(--ink);line-height:1.1}
+.out-sc span{display:block;font-size:10.5px}
+.out-go{flex:0 0 auto;min-height:38px;padding:8px 13px;border-radius:999px;border:1px solid var(--green);
+  background:var(--green);color:#FBFAF7;font-family:inherit;font-size:13px;font-weight:600}
+.out-row.done .out-go{background:none;color:var(--green)}
+
+/* ---- WATCHING A ROUND ---- */
+.watchmodal .w-top{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:12px;margin:0 0 14px;
+  background:var(--sunk);border:1px solid var(--hair);border-radius:14px}
+.watchmodal .w-top div{text-align:center}
+.watchmodal .w-top b{display:block;font-size:23px;line-height:1.1}
+.watchmodal .w-top span{display:block;font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--turf);margin-top:3px}
+.watchmodal .w-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.watchmodal .w-h{position:relative;background:var(--card);border:1px solid var(--hair);border-radius:10px;
+  padding:14px 4px 5px;min-height:54px;text-align:center}
+.watchmodal .w-n{position:absolute;top:4px;left:5px;font-size:9.5px;color:var(--turf);font-weight:700}
+.watchmodal .w-v{display:block;font-size:19px;font-weight:700;line-height:1}
+.watchmodal .w-p{display:block;font-size:9px;color:var(--turf);margin-top:2px}
+.watchmodal .w-h.eagle{background:var(--pine);border-color:var(--gold-up);color:var(--onpine)}
+.watchmodal .w-h.eagle .w-n,.watchmodal .w-h.eagle .w-p{color:var(--gold-up)}
+.watchmodal .w-h.birdie{background:var(--warm);border-color:var(--gold-up)}
+.watchmodal .w-h.par{background:var(--mint)}
+.watchmodal .w-h.worse{background:var(--rose)}
+/* a hole not played yet is plainly not played: this card is still filling in */
+.watchmodal .w-h.none{background:var(--sunk);border-style:dashed}
+.watchmodal .w-h.none .w-v{color:var(--turf);opacity:.55}
+.watchmodal .w-note{margin:12px 0 0;font-size:13px;color:var(--turf)}
+
 </style>
 <div id="app"></div>
 <!-- The crest, and the opening it pays for, ahead of everything else. A few
@@ -6568,7 +6615,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261121-1234';
+const BUILD = '20261121-1237';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -12899,6 +12946,41 @@ function cardTotals(card) {
   return { pts, gross, thru, back, toPar: thru ? gross - par : null, par };
 }
 
+/* ---------- WHO IS OUT ON THE COURSE ----------
+ *
+ * The board already knew this. It marked who was in play and how far
+ * through, and it updated as they wrote. But it answered the question
+ * sideways: you had to go and READ a leaderboard to discover that anybody
+ * was out at all, and even then you could not see the round itself — which
+ * holes, what they made, where it went wrong.
+ *
+ * This asks it as a question instead. Who is out, right now, and how is it
+ * going. For a group split across eight time zones that is the whole thing:
+ * on a Sunday morning in California you can follow a Saturday afternoon in
+ * Surrey.
+ */
+function outOnCourse(T, stopId) {
+  const rows = [];
+  for (const g of golfers(T)) {
+    const c = cardOf(T, stopId, g.id);
+    if (!c) continue;
+    const t = cardTotals(c);
+    if (!t.thru) continue;
+    rows.push({ pid: g.id, name: g.display || g.name, card: c, ...t,
+      posted: !!c.done, course: (c.course && c.course.name) || '', tee: (c.course && c.course.tee) || '',
+      startedAt: c.startedAt || null, lastAt: c.at || null, postedAt: c.postedAt || null,
+      hcp: c.hcp == null ? null : Math.round(c.hcp) });
+  }
+  /* still out first, furthest through at the top; then the ones who have
+     posted, most recently first, because that is the order you care in */
+  rows.sort((a, b) => (a.posted ? 1 : 0) - (b.posted ? 1 : 0)
+    || (a.posted ? (b.postedAt || 0) - (a.postedAt || 0) : (b.thru - a.thru) || (b.pts - a.pts))
+    || a.name.localeCompare(b.name));
+  return rows;
+}
+/** How many of those are still out there. */
+const stillOut = rows => rows.filter(r => !r.posted).length;
+
 /* ---------- THE ECLECTIC ----------
  *
  * Your best ever on every hole of one course, as one card nobody has shot.
@@ -13591,7 +13673,7 @@ function csvTravel(T) {
   return csv(rows);
 }
 
-return {STOPS_SEED, PACKAGES_SEED, MERIT, VENDORS_SEED, TRIP_SEED, seasonDefaults, season, phaseOf, frozen, isoToday, daysBetween, fmtDay, dowOf, stopState, stops, stopById, openStops, nextStop, closedStops, currentStop, golfers, everyone, person, COURSE_LIB, courseLibrary, courseFind, courseFrom, courseSlug, courseAsBook, blankCourse, courseOf, courseOk, coursePar, cardKey, cardOf, blankClubCard, hcardKey, hcardOf, newRid, blankHcpCard, hcardsOf, capFor, holePts, puttsOf, cardTotals, clubCardsOf, eclecticCourses, eclecticOf, stopBoard, stopWinner, merit, rounds, SHOT_CLUBS, clubName, clubIndex, SHOTS_MAX, YARDS, shotsOf, allShots, shotCount, shotGap, toYards, withShot, withoutLastShot, withoutHoleShots, CLUB_MIN, clubDistances, HCP_MIN_HOLES, diffOf, countsForHcp, scoringRounds, unionHcp, playingOf, DIVISIONS, divisionOf, divisionLabel, GOLF_AMOUNT, tripRounds, tripRound, tripFor, golfOf, roundsOf, stayOf, joiningLine, signupOf, travelOf, moneyOf, packageOf, field, ledger, fmtMoney, lineOf, dials, BERTS, bertById, bertForStop, profileOf, bertOf, faceOf, CARD_MIN, playerStats, csv, csvHeadcount, csvRooms, csvTravel};
+return {STOPS_SEED, PACKAGES_SEED, MERIT, VENDORS_SEED, TRIP_SEED, seasonDefaults, season, phaseOf, frozen, isoToday, daysBetween, fmtDay, dowOf, stopState, stops, stopById, openStops, nextStop, closedStops, currentStop, golfers, everyone, person, COURSE_LIB, courseLibrary, courseFind, courseFrom, courseSlug, courseAsBook, blankCourse, courseOf, courseOk, coursePar, cardKey, cardOf, blankClubCard, hcardKey, hcardOf, newRid, blankHcpCard, hcardsOf, capFor, holePts, puttsOf, cardTotals, outOnCourse, stillOut, clubCardsOf, eclecticCourses, eclecticOf, stopBoard, stopWinner, merit, rounds, SHOT_CLUBS, clubName, clubIndex, SHOTS_MAX, YARDS, shotsOf, allShots, shotCount, shotGap, toYards, withShot, withoutLastShot, withoutHoleShots, CLUB_MIN, clubDistances, HCP_MIN_HOLES, diffOf, countsForHcp, scoringRounds, unionHcp, playingOf, DIVISIONS, divisionOf, divisionLabel, GOLF_AMOUNT, tripRounds, tripRound, tripFor, golfOf, roundsOf, stayOf, joiningLine, signupOf, travelOf, moneyOf, packageOf, field, ledger, fmtMoney, lineOf, dials, BERTS, bertById, bertForStop, profileOf, bertOf, faceOf, CARD_MIN, playerStats, csv, csvHeadcount, csvRooms, csvTravel};
 })();
 
 const __m_dbsupa = (function(){
@@ -22188,6 +22270,76 @@ function bbbFixHtml() {
     ${!m.busy && !rows.length ? `<div class="acts"><button class="btn ghost" data-act="modalCancel">Done</button></div>` : ''}
   </div></div>`;
 }
+/* ---- OUT ON THE COURSE ----
+   Who is playing right now, asked as a question rather than found in a
+   table. Tap Watch and their card fills in hole by hole as they write it. */
+const hhmm = ms => { if (!ms) return null; const d = new Date(ms);
+  return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
+const agoOf = ms => { if (!ms) return ''; const m = Math.round((Date.now() - ms) / 60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return m + ' minute' + (m === 1 ? '' : 's') + ' ago';
+  const h = Math.round(m / 60);
+  if (h < 24) return h + ' hour' + (h === 1 ? '' : 's') + ' ago';
+  const d = Math.round(h / 24);
+  return d + ' day' + (d === 1 ? '' : 's') + ' ago'; };
+
+function outPanelHtml(stop) {
+  if (!stop) return '';
+  const rows = C.outOnCourse(T, stop.id);
+  if (!rows.length) return '';
+  const out = C.stillOut(rows);
+  const line = r => {
+    /* WHEN COMES FIRST. The course name is the long half of this line and
+       the time is the half somebody is actually reading, so the time leads
+       and the course is what gets cut if the phone is narrow. */
+    const where = [r.posted ? 'posted ' + agoOf(r.postedAt || r.lastAt)
+      : (r.startedAt ? 'teed off ' + hhmm(r.startedAt) : 'started'), r.course || ''].filter(Boolean).join(' \u00b7 ');
+    return `<li class="out-row${r.posted ? ' done' : ''}">
+      <span class="out-av" aria-hidden="true">${esc(initialsOf(r.name))}</span>
+      <span class="out-who"><b>${esc(r.name)}</b><span>${esc(where)}</span></span>
+      <span class="out-sc num"><b>${r.pts}</b><span>pts \u00b7 ${r.posted ? 'F' : 'thru ' + r.thru}</span></span>
+      <button class="out-go" data-act="watch" data-a="${esc(stop.id)}" data-b="${esc(r.pid)}">${r.posted ? 'Card' : 'Watch'}</button></li>`;
+  };
+  return `<div class="outpanel">
+    <div class="out-h"><b>Out on the course</b><span>${out ? out + ' playing' : 'nobody out right now'}</span><i>${esc(shortStop(stop.name))}</i></div>
+    <ul class="out-list">${rows.map(line).join('')}</ul></div>`;
+}
+
+/* ---- WATCHING SOMEBODY ELSE'S ROUND ----
+   Their card as it stands, hole by hole. It is their card, so it is
+   read-only here however it is reached. */
+function watchHtml() {
+  const m = UI.modal, stop = C.stops(T).find(x => x.id === m.stop);
+  const c = stop ? C.cardOf(T, stop.id, m.pid) : null;
+  const g = E.golfers(T).find(x => x.id === m.pid);
+  const name = (g && (g.display || g.name)) || 'Their round';
+  if (!c) return `<div class="scrim" data-act="modalScrim"><div class="modal watchmodal" role="dialog" aria-modal="true" aria-label="${esc(name)}">
+    ${modalBanner(esc(name), '')}<p class="empty">No card yet.</p>
+    <div class="acts"><button class="btn ghost" data-act="modalCancel">Close</button></div></div></div>`;
+  const t = C.cardTotals(c);
+  const holes = (c.course && c.course.holes) || [];
+  const pt = C.puttsOf(c);
+  const cell = h => {
+    const v = c.raw[h], par = holes[h] ? +holes[h].par : null, pts = C.holePts(c, h);
+    const cls = v == null ? ' none' : par == null ? '' : v - par <= -2 ? ' eagle' : v - par === -1 ? ' birdie'
+      : v === par ? ' par' : v - par === 1 ? ' bogey' : ' worse';
+    return `<div class="w-h${cls}"><span class="w-n num">${h + 1}</span><span class="w-v num">${v == null ? '\u00b7' : v}</span><span class="w-p num">${v == null ? (par == null ? '' : 'par ' + par) : pts == null ? '' : pts + ' pt' + (pts === 1 ? '' : 's')}</span></div>`;
+  };
+  const where = [c.course ? c.course.name : '', c.done ? 'posted ' + agoOf(c.postedAt || c.at)
+    : (c.startedAt ? 'teed off ' + hhmm(c.startedAt) : null),
+    c.done ? null : (c.at ? 'last hole ' + agoOf(c.at) : null)].filter(Boolean).join(' \u00b7 ');
+  return `<div class="scrim" data-act="modalScrim"><div class="modal watchmodal" role="dialog" aria-modal="true" aria-label="${esc(name)}">
+    ${modalBanner(esc(name), esc(where))}
+    <div class="w-top"><div><b class="num">${t.pts}</b><span>points</span></div>
+      <div><b class="num">${c.done ? 'F' : t.thru}</b><span>${c.done ? 'finished' : 'thru'}</span></div>
+      <div><b class="num">${t.toPar == null ? '\u2013' : (t.toPar > 0 ? '+' : '') + t.toPar}</b><span>to par</span></div>
+      <div><b class="num">${c.hcp == null ? '\u2013' : Math.round(c.hcp)}</b><span>playing off</span></div></div>
+    <div class="w-grid">${Array.from({ length: 18 }, (_, i) => cell(i)).join('')}</div>
+    ${pt.holes ? `<p class="w-note">${pt.putts} putts on ${pt.holes} counted hole${pt.holes === 1 ? '' : 's'}${pt.p3 ? ' \u00b7 ' + pt.p3 + ' three-putt' + (pt.p3 === 1 ? '' : 's') : ''}</p>` : ''}
+    <p class="w-note">${c.done ? 'This card is posted.' : 'This round is still going \u2014 it fills in as they write it.'}</p>
+    <div class="acts"><button class="btn ghost" data-act="modalCancel">Close</button></div>
+  </div></div>`;
+}
 /* ---- THE ECLECTIC CARD ----
    Your best ever on every hole of one course, as one card nobody has shot.
    Nobody shot a 62; everybody could have. It only ever gets better, which is
@@ -24856,7 +25008,11 @@ function seasonStop() {
   if (!cur) return `<p class="empty">No stops on the season yet. The commissioner adds them under Manage.</p>`;
   const st = C.stopState(cur, today);
   const board = C.stopBoard(T, cur.id);
+  /* WHO IS OUT COMES FIRST. The board below answers "where does it stand";
+     this answers "is anybody actually playing", which is the question
+     somebody opening the app in another time zone is really asking. */
   return `${stopChips(cur.id)}
+  ${st === 'open' ? outPanelHtml(cur) : ''}
   ${boardTable(board, { empty: st === 'upcoming' ? 'Opens ' + C.fmtDay(cur.from, { long: true }) + '. ' + (cur.note || '') : st === 'open' ? 'No cards yet. ' + (cur.note || '') : 'No cards were posted for this stop.' })}
   <p class="legend">${esc(cur.note || '')} ${esc(C.fmtDay(cur.from))} to ${esc(C.fmtDay(cur.to))}: net Stableford off your Union handicap, a photo of the signed card before it counts.${st === 'closed' ? ' The stop is crowned and the Order of Merit has it.' : ' At midnight on the last day the stop crowns its winner.'}</p>`;
 }
@@ -27566,6 +27722,7 @@ function modalHtml() {
        : UI.modal.kind === 'sotdNom' ? sotdNomHtml()
        : UI.modal.kind === 'card' ? cardSheetHtml()
        : UI.modal.kind === 'rplayer' ? reportPlayerHtml()
+       : UI.modal.kind === 'watch' ? watchHtml()
        : UI.modal.kind === 'eclectic' ? eclecticHtml()
        : UI.modal.kind === 'hist' ? histModalHtml()
        : UI.modal.kind === 'bbbfix' ? bbbFixHtml()
@@ -29310,7 +29467,10 @@ function onClick(e) {
          being declared — the moment a score goes on the card, everybody with
          notifications on hears that somebody is out. Said once a card: the
          server marks it and will not pass it on twice. */
-      if (!had && act === 'clubScore') notifyOthers('club/' + r.key);
+      /* THE FIRST SCORE IS THE TEE TIME. A card's `at` is the last time it
+         was touched, which answers "is he still going" but not "when did he
+         go out". Written once, on the hole that starts the round. */
+      if (!had && act === 'clubScore') { roundWrite(r, { raw, startedAt: Date.now() }); notifyOthers('club/' + r.key); }
       /* PUTTS NEVER HOLD UP THE SCORE. On a round where nobody has counted
          any, the pad behaves exactly as it always has: tap the gross and it
          moves straight on. Once this round IS counting them, it waits on the
@@ -29345,6 +29505,7 @@ function onClick(e) {
       render(); return;
     }
     case 'eclectic': { UI.modal = { kind: 'eclectic', course: a || null }; render(); return; }
+    case 'watch': { UI.modal = { kind: 'watch', stop: a, pid: b }; render(); return; }
     case 'clubPadNext': {
       const h = Math.min(Math.max(UI.clubHole || 0, 0), 17);
       if (h < 17) UI.clubHole = h + 1; else UI.clubPad = false;

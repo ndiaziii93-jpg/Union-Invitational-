@@ -6268,6 +6268,76 @@ function bbbFixHtml() {
     ${!m.busy && !rows.length ? `<div class="acts"><button class="btn ghost" data-act="modalCancel">Done</button></div>` : ''}
   </div></div>`;
 }
+/* ---- OUT ON THE COURSE ----
+   Who is playing right now, asked as a question rather than found in a
+   table. Tap Watch and their card fills in hole by hole as they write it. */
+const hhmm = ms => { if (!ms) return null; const d = new Date(ms);
+  return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
+const agoOf = ms => { if (!ms) return ''; const m = Math.round((Date.now() - ms) / 60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return m + ' minute' + (m === 1 ? '' : 's') + ' ago';
+  const h = Math.round(m / 60);
+  if (h < 24) return h + ' hour' + (h === 1 ? '' : 's') + ' ago';
+  const d = Math.round(h / 24);
+  return d + ' day' + (d === 1 ? '' : 's') + ' ago'; };
+
+function outPanelHtml(stop) {
+  if (!stop) return '';
+  const rows = C.outOnCourse(T, stop.id);
+  if (!rows.length) return '';
+  const out = C.stillOut(rows);
+  const line = r => {
+    /* WHEN COMES FIRST. The course name is the long half of this line and
+       the time is the half somebody is actually reading, so the time leads
+       and the course is what gets cut if the phone is narrow. */
+    const where = [r.posted ? 'posted ' + agoOf(r.postedAt || r.lastAt)
+      : (r.startedAt ? 'teed off ' + hhmm(r.startedAt) : 'started'), r.course || ''].filter(Boolean).join(' \u00b7 ');
+    return `<li class="out-row${r.posted ? ' done' : ''}">
+      <span class="out-av" aria-hidden="true">${esc(initialsOf(r.name))}</span>
+      <span class="out-who"><b>${esc(r.name)}</b><span>${esc(where)}</span></span>
+      <span class="out-sc num"><b>${r.pts}</b><span>pts \u00b7 ${r.posted ? 'F' : 'thru ' + r.thru}</span></span>
+      <button class="out-go" data-act="watch" data-a="${esc(stop.id)}" data-b="${esc(r.pid)}">${r.posted ? 'Card' : 'Watch'}</button></li>`;
+  };
+  return `<div class="outpanel">
+    <div class="out-h"><b>Out on the course</b><span>${out ? out + ' playing' : 'nobody out right now'}</span><i>${esc(shortStop(stop.name))}</i></div>
+    <ul class="out-list">${rows.map(line).join('')}</ul></div>`;
+}
+
+/* ---- WATCHING SOMEBODY ELSE'S ROUND ----
+   Their card as it stands, hole by hole. It is their card, so it is
+   read-only here however it is reached. */
+function watchHtml() {
+  const m = UI.modal, stop = C.stops(T).find(x => x.id === m.stop);
+  const c = stop ? C.cardOf(T, stop.id, m.pid) : null;
+  const g = E.golfers(T).find(x => x.id === m.pid);
+  const name = (g && (g.display || g.name)) || 'Their round';
+  if (!c) return `<div class="scrim" data-act="modalScrim"><div class="modal watchmodal" role="dialog" aria-modal="true" aria-label="${esc(name)}">
+    ${modalBanner(esc(name), '')}<p class="empty">No card yet.</p>
+    <div class="acts"><button class="btn ghost" data-act="modalCancel">Close</button></div></div></div>`;
+  const t = C.cardTotals(c);
+  const holes = (c.course && c.course.holes) || [];
+  const pt = C.puttsOf(c);
+  const cell = h => {
+    const v = c.raw[h], par = holes[h] ? +holes[h].par : null, pts = C.holePts(c, h);
+    const cls = v == null ? ' none' : par == null ? '' : v - par <= -2 ? ' eagle' : v - par === -1 ? ' birdie'
+      : v === par ? ' par' : v - par === 1 ? ' bogey' : ' worse';
+    return `<div class="w-h${cls}"><span class="w-n num">${h + 1}</span><span class="w-v num">${v == null ? '\u00b7' : v}</span><span class="w-p num">${v == null ? (par == null ? '' : 'par ' + par) : pts == null ? '' : pts + ' pt' + (pts === 1 ? '' : 's')}</span></div>`;
+  };
+  const where = [c.course ? c.course.name : '', c.done ? 'posted ' + agoOf(c.postedAt || c.at)
+    : (c.startedAt ? 'teed off ' + hhmm(c.startedAt) : null),
+    c.done ? null : (c.at ? 'last hole ' + agoOf(c.at) : null)].filter(Boolean).join(' \u00b7 ');
+  return `<div class="scrim" data-act="modalScrim"><div class="modal watchmodal" role="dialog" aria-modal="true" aria-label="${esc(name)}">
+    ${modalBanner(esc(name), esc(where))}
+    <div class="w-top"><div><b class="num">${t.pts}</b><span>points</span></div>
+      <div><b class="num">${c.done ? 'F' : t.thru}</b><span>${c.done ? 'finished' : 'thru'}</span></div>
+      <div><b class="num">${t.toPar == null ? '\u2013' : (t.toPar > 0 ? '+' : '') + t.toPar}</b><span>to par</span></div>
+      <div><b class="num">${c.hcp == null ? '\u2013' : Math.round(c.hcp)}</b><span>playing off</span></div></div>
+    <div class="w-grid">${Array.from({ length: 18 }, (_, i) => cell(i)).join('')}</div>
+    ${pt.holes ? `<p class="w-note">${pt.putts} putts on ${pt.holes} counted hole${pt.holes === 1 ? '' : 's'}${pt.p3 ? ' \u00b7 ' + pt.p3 + ' three-putt' + (pt.p3 === 1 ? '' : 's') : ''}</p>` : ''}
+    <p class="w-note">${c.done ? 'This card is posted.' : 'This round is still going \u2014 it fills in as they write it.'}</p>
+    <div class="acts"><button class="btn ghost" data-act="modalCancel">Close</button></div>
+  </div></div>`;
+}
 /* ---- THE ECLECTIC CARD ----
    Your best ever on every hole of one course, as one card nobody has shot.
    Nobody shot a 62; everybody could have. It only ever gets better, which is
@@ -8936,7 +9006,11 @@ function seasonStop() {
   if (!cur) return `<p class="empty">No stops on the season yet. The commissioner adds them under Manage.</p>`;
   const st = C.stopState(cur, today);
   const board = C.stopBoard(T, cur.id);
+  /* WHO IS OUT COMES FIRST. The board below answers "where does it stand";
+     this answers "is anybody actually playing", which is the question
+     somebody opening the app in another time zone is really asking. */
   return `${stopChips(cur.id)}
+  ${st === 'open' ? outPanelHtml(cur) : ''}
   ${boardTable(board, { empty: st === 'upcoming' ? 'Opens ' + C.fmtDay(cur.from, { long: true }) + '. ' + (cur.note || '') : st === 'open' ? 'No cards yet. ' + (cur.note || '') : 'No cards were posted for this stop.' })}
   <p class="legend">${esc(cur.note || '')} ${esc(C.fmtDay(cur.from))} to ${esc(C.fmtDay(cur.to))}: net Stableford off your Union handicap, a photo of the signed card before it counts.${st === 'closed' ? ' The stop is crowned and the Order of Merit has it.' : ' At midnight on the last day the stop crowns its winner.'}</p>`;
 }
@@ -11646,6 +11720,7 @@ function modalHtml() {
        : UI.modal.kind === 'sotdNom' ? sotdNomHtml()
        : UI.modal.kind === 'card' ? cardSheetHtml()
        : UI.modal.kind === 'rplayer' ? reportPlayerHtml()
+       : UI.modal.kind === 'watch' ? watchHtml()
        : UI.modal.kind === 'eclectic' ? eclecticHtml()
        : UI.modal.kind === 'hist' ? histModalHtml()
        : UI.modal.kind === 'bbbfix' ? bbbFixHtml()
@@ -13390,7 +13465,10 @@ function onClick(e) {
          being declared — the moment a score goes on the card, everybody with
          notifications on hears that somebody is out. Said once a card: the
          server marks it and will not pass it on twice. */
-      if (!had && act === 'clubScore') notifyOthers('club/' + r.key);
+      /* THE FIRST SCORE IS THE TEE TIME. A card's `at` is the last time it
+         was touched, which answers "is he still going" but not "when did he
+         go out". Written once, on the hole that starts the round. */
+      if (!had && act === 'clubScore') { roundWrite(r, { raw, startedAt: Date.now() }); notifyOthers('club/' + r.key); }
       /* PUTTS NEVER HOLD UP THE SCORE. On a round where nobody has counted
          any, the pad behaves exactly as it always has: tap the gross and it
          moves straight on. Once this round IS counting them, it waits on the
@@ -13425,6 +13503,7 @@ function onClick(e) {
       render(); return;
     }
     case 'eclectic': { UI.modal = { kind: 'eclectic', course: a || null }; render(); return; }
+    case 'watch': { UI.modal = { kind: 'watch', stop: a, pid: b }; render(); return; }
     case 'clubPadNext': {
       const h = Math.min(Math.max(UI.clubHole || 0, 0), 17);
       if (h < 17) UI.clubHole = h + 1; else UI.clubPad = false;

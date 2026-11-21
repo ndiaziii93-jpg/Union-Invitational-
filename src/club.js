@@ -494,6 +494,41 @@ export function cardTotals(card) {
   return { pts, gross, thru, back, toPar: thru ? gross - par : null, par };
 }
 
+/* ---------- WHO IS OUT ON THE COURSE ----------
+ *
+ * The board already knew this. It marked who was in play and how far
+ * through, and it updated as they wrote. But it answered the question
+ * sideways: you had to go and READ a leaderboard to discover that anybody
+ * was out at all, and even then you could not see the round itself — which
+ * holes, what they made, where it went wrong.
+ *
+ * This asks it as a question instead. Who is out, right now, and how is it
+ * going. For a group split across eight time zones that is the whole thing:
+ * on a Sunday morning in California you can follow a Saturday afternoon in
+ * Surrey.
+ */
+export function outOnCourse(T, stopId) {
+  const rows = [];
+  for (const g of golfers(T)) {
+    const c = cardOf(T, stopId, g.id);
+    if (!c) continue;
+    const t = cardTotals(c);
+    if (!t.thru) continue;
+    rows.push({ pid: g.id, name: g.display || g.name, card: c, ...t,
+      posted: !!c.done, course: (c.course && c.course.name) || '', tee: (c.course && c.course.tee) || '',
+      startedAt: c.startedAt || null, lastAt: c.at || null, postedAt: c.postedAt || null,
+      hcp: c.hcp == null ? null : Math.round(c.hcp) });
+  }
+  /* still out first, furthest through at the top; then the ones who have
+     posted, most recently first, because that is the order you care in */
+  rows.sort((a, b) => (a.posted ? 1 : 0) - (b.posted ? 1 : 0)
+    || (a.posted ? (b.postedAt || 0) - (a.postedAt || 0) : (b.thru - a.thru) || (b.pts - a.pts))
+    || a.name.localeCompare(b.name));
+  return rows;
+}
+/** How many of those are still out there. */
+export const stillOut = rows => rows.filter(r => !r.posted).length;
+
 /* ---------- THE ECLECTIC ----------
  *
  * Your best ever on every hole of one course, as one card nobody has shot.
