@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1D2E21">
+<meta name="robots" content="noindex">
+<link rel="icon" href="../../app/icon-192.png">
+<title>What the other books do</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;0,8..60,900;1,8..60,400&display=swap">
+<style>
+:root{color-scheme:light;
+  --paper:#E3DBCB; --page:#EEE8D5; --sunk:#DBD2BA; --card:#F7F2E6;
+  --ink:#1D2E21; --turf:#515E4B; --green:#3E5C43;
+  --rule:#C4B896; --hair:#DCD1B4; --flag:#9E3B2E; --gold:#715726; --gold-up:#C9A253;
+  --pine:#1D2E21; --onpine:#EEE8D5;
+  --serif:'Source Serif 4','Iowan Old Style',Georgia,serif;
+  --ui:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;}
+html[data-theme="night"]{color-scheme:dark;
+  --paper:#121A14; --page:#1A2420; --sunk:#0E1511; --card:#202C25;
+  --ink:#ECE5D4; --turf:#A7B5A2; --green:#A9CBAE;
+  --rule:#3B4C3E; --hair:#2A3A2E; --flag:#E39385; --gold:#D9B45C;
+  --pine:#0B110D; --onpine:#ECE5D4;}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:16px;line-height:1.46;
+  padding:26px max(16px,env(safe-area-inset-right,0px)) 72px max(16px,env(safe-area-inset-left,0px))}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.wrap{max-width:1080px;margin:0 auto}
+h1{margin:0 0 10px;font-size:clamp(26px,4.4vw,36px);line-height:1.12}
+h2{margin:0;font-size:clamp(19px,2.6vw,23px);line-height:1.2}
+h3{margin:0 0 5px;font-size:16px}
+.lede{margin:0 0 4px;color:var(--turf);max-width:78ch}
+.kick{display:block;font-family:var(--ui);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);font-weight:700}
+.topbar{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;margin-bottom:20px}
+.tog{font-family:var(--ui);font-size:12.5px;font-weight:700;border:1px solid var(--rule);border-radius:999px;padding:8px 15px;background:var(--page)}
+.src{margin:18px 0 0;border:1px solid var(--rule);border-radius:14px;background:var(--page);padding:13px 16px;font-size:14px}
+.src a{color:var(--gold)}
+.src b{display:block;font-size:12.5px;font-family:var(--ui);letter-spacing:.1em;text-transform:uppercase;color:var(--gold);margin-bottom:5px}
+.sec{margin-top:34px}
+.f{margin-top:14px;border:1px solid var(--rule);border-radius:16px;background:var(--page);overflow:hidden}
+.f>header{padding:13px 16px 12px;border-bottom:1px solid var(--hair);display:flex;gap:11px;align-items:flex-start;flex-wrap:wrap}
+.f>header .t{flex:1 1 240px;min-width:0}
+.who{flex:0 0 auto;font-family:var(--ui);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;font-weight:800;
+  border-radius:999px;padding:4px 10px;background:var(--sunk);color:var(--turf)}
+.who.tag{background:var(--pine);color:var(--onpine)}
+.who.ggb{background:var(--gold-up);color:#23331F}
+.body{padding:13px 16px 16px;display:grid;gap:12px;grid-template-columns:1fr}
+@media(min-width:820px){.body{grid-template-columns:1fr 1fr}}
+.col h3{color:var(--ink)}
+.col p{margin:0;font-size:14.5px;color:var(--turf)}
+.verdict{grid-column:1/-1;border-top:1px solid var(--hair);padding-top:11px;font-size:14.5px}
+.verdict b{font-family:var(--ui);font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:800;
+  border-radius:999px;padding:3px 9px;margin-right:8px;vertical-align:2px}
+.v-have b{background:var(--green);color:#fff}
+.v-take b{background:var(--gold-up);color:#23331F}
+.v-skip b{background:none;border:1px solid var(--rule);color:var(--turf)}
+.verdict span{color:var(--turf)}
+.pick{margin-top:30px;border:1px solid var(--gold-up);border-radius:16px;background:var(--page);overflow:hidden}
+.pick>header{padding:14px 17px 12px;border-bottom:1px solid var(--hair)}
+.pk{padding:13px 17px 15px;border-bottom:1px solid var(--hair);display:flex;gap:13px;align-items:flex-start;flex-wrap:wrap}
+.pk:last-child{border-bottom:0}
+.pk .n{flex:0 0 auto;width:28px;height:28px;border-radius:50%;background:var(--pine);color:var(--onpine);
+  display:grid;place-items:center;font-weight:800;font-size:13px;font-family:var(--ui)}
+.pk .t{flex:1 1 260px;min-width:0}
+.pk .t p{margin:4px 0 0;font-size:14.5px;color:var(--turf)}
+.pk .cost{flex:0 0 auto;font-size:12.5px;font-weight:700;color:var(--ink);font-family:var(--ui)}
+.note{margin-top:28px;border:1px solid var(--rule);border-radius:14px;padding:15px 18px;background:var(--page)}
+.foot{margin-top:32px;color:var(--turf);font-size:13.5px}
+.foot a{color:var(--gold)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="topbar">
+  <div>
+    <span class="kick">The Union Invitational · for the commissioner</span>
+    <h1>What the other books do</h1>
+    <p class="lede">TAG Heuer Golf and Golf GameBook, read for how they are built and how they treat a golfer —
+      then held against our own book. Ideas, not assets.</p>
+  </div>
+  <button class="tog" id="tog">Night</button>
+</div>
+
+<div class="src"><b>Where this came from</b>
+  Their own published material, not their software:
+  <a href="https://www.tagheuer.com/assets/downloads/TAG_Heuer_Golf_app_User_guide_EN.pdf">TAG Heuer Golf's user guide</a>,
+  <a href="https://www.golfgamebook.com/">Golf GameBook's product pages</a> and
+  <a href="https://www.golfgamebook.com/tournaments">tournament manager</a>,
+  their store listings and support notes. No binaries were taken apart, and nothing of theirs is in our repo.</div>
+
+<!-- ============================================================= -->
+<section class="sec">
+  <span class="kick">The honest frame</span>
+  <h2>We are not building either of these</h2>
+  <p class="lede" style="margin-top:6px">GameBook has two million golfers, forty-two thousand courses and a GPS
+    rangefinder. TAG Heuer has a watch on your wrist detecting your swing. We have fifteen people and one trip a
+    year. Most of what they do is answering a problem we do not have — so the useful reading is not “what do they
+    have that we lack”, it is <b>what did they learn about golfers that we can use</b>. That list is short, and
+    three of the five things on it we are already most of the way to.</p>
+</section>
+
+<!-- ============================================================= -->
+<section class="sec">
+  <span class="kick">What they know</span>
+  <h2>Six things worth taking seriously</h2>
+
+  <article class="f">
+    <header><div class="t"><h2 style="font-size:19px">The leaderboard is the product, not the scorecard</h2></div>
+      <span class="who ggb">GameBook</span></header>
+    <div class="body">
+      <div class="col"><h3>What they do</h3>
+        <p>Their whole pitch is watching other people play: “live leaderboards place you in the middle of the
+          action even from the comfort of your couch.” You can follow a round you are not in, like somebody's
+          scorecard, and comment on it hole by hole while it is happening.</p></div>
+      <div class="col"><h3>Why it works</h3>
+        <p>Golf is four hours alone with your own mistakes. The app's answer is that somebody is watching — and
+          the people watching are having a better time than the scorer is. The scorecard is the excuse; the
+          audience is the product.</p></div>
+      <div class="verdict v-take"><b>Take it</b><span>We have boards, and a push when somebody tees off. What we
+        do not have is a way to <i>watch</i> a round that is happening. For a group spread across England and
+        California, in wildly different time zones, that is the single biggest thing on this page.</span></div>
+    </div>
+  </article>
+
+  <article class="f">
+    <header><div class="t"><h2 style="font-size:19px">The Driving Zone</h2></div><span class="who tag">TAG Heuer</span></header>
+    <div class="body">
+      <div class="col"><h3>What they do</h3>
+        <p>Your tee shots drawn on the hole itself: today's in white, every previous round's in colour. One
+          picture of where you actually hit it from this tee, over years.</p></div>
+      <div class="col"><h3>Why it works</h3>
+        <p>It answers a question a golfer genuinely has and cannot otherwise answer — “do I always miss this one
+          right?” — without a word of analysis. The pattern is the insight.</p></div>
+      <div class="verdict v-take"><b>Take it</b><span>We already built the two halves: shots tapped onto a 3D
+        hole, and a card history per player. This is joining them up. It is the best idea on this page and the
+        cheapest one we could build, because nothing new has to be invented.</span></div>
+    </div>
+  </article>
+
+  <article class="f">
+    <header><div class="t"><h2 style="font-size:19px">Gross and putts, not just gross</h2></div><span class="who tag">TAG Heuer</span></header>
+    <div class="body">
+      <div class="col"><h3>What they do</h3>
+        <p>Scoring asks for two numbers on every hole: the gross and the number of putts. One extra tap.</p></div>
+      <div class="col"><h3>Why it works</h3>
+        <p>Putts are half of golf and the half nobody remembers accurately. Two numbers instead of one turns a
+          scorecard into a diagnosis for the price of a single tap.</p></div>
+      <div class="verdict v-take"><b>Take it</b><span>Our report card already <i>grades putting</i> — it gave
+        Norberto a B — but it infers it. One more tap per hole and that grade stops being a guess. It also feeds
+        the practice manual, which already picks drills by the department you score worst in.</span></div>
+    </div>
+  </article>
+
+  <article class="f">
+    <header><div class="t"><h2 style="font-size:19px">Twenty formats, because a society never plays one game</h2></div>
+      <span class="who ggb">GameBook</span></header>
+    <div class="body">
+      <div class="col"><h3>What they do</h3>
+        <p>Skins, match play, scramble, better ball, stableford, Irish rumble, and a Ryder-style “Reds vs Blues”
+          team match play with its own tournament type.</p></div>
+      <div class="col"><h3>Why it works</h3>
+        <p>The format <i>is</i> the entertainment. The same four players and the same eighteen holes feel like a
+          different day because the bet changed.</p></div>
+      <div class="verdict v-have"><b>Mostly have it</b><span>Belek already ran better-ball, a championship final
+        and squads. Stops are stableford. The one obvious gap is <b>skins</b> — a hole-by-hole pot that carries
+        over — which is the format a group of fifteen plays when nothing else is on.</span></div>
+    </div>
+  </article>
+
+  <article class="f">
+    <header><div class="t"><h2 style="font-size:19px">The eclectic card</h2></div><span class="who ggb">GameBook</span></header>
+    <div class="body">
+      <div class="col"><h3>What they do</h3>
+        <p>Your best score on each hole, taken across every round you have ever played there, assembled into one
+          imaginary perfect card.</p></div>
+      <div class="col"><h3>Why it works</h3>
+        <p>It is the only golf statistic that is pure pleasure. Nobody shot it, everybody could have, and it gets
+          better forever. It also gives a reason to play the same course again.</p></div>
+      <div class="verdict v-take"><b>Take it</b><span>We have every card a player has posted and the holes they
+        were posted on. This is a page, not a feature — and for a book built around home courses played all
+        season, it is exactly the right kind of vanity.</span></div>
+    </div>
+  </article>
+
+  <article class="f">
+    <header><div class="t"><h2 style="font-size:19px">Distance rings, and a target you can move</h2></div><span class="who tag">TAG Heuer</span></header>
+    <div class="body">
+      <div class="col"><h3>What they do</h3>
+        <p>The hole map is ruled with lines every ten yards, and you can drag a target anywhere on it to ask what
+          the carry is.</p></div>
+      <div class="col"><h3>Why it works</h3>
+        <p>It turns a picture into an instrument. You stop looking at the hole and start measuring it.</p></div>
+      <div class="verdict v-skip"><b>Leave it</b><span>Theirs is GPS on a real tee with the ball at your feet.
+        Ours is a hole drawn from a card, played a day later from a sofa — rings on it would be precision we do
+        not have and would be lying about. The yardage pins we already draw are honest; rings would not be.</span></div>
+    </div>
+  </article>
+</section>
+
+<!-- ============================================================= -->
+<div class="pick">
+  <header><span class="kick">If you want my order</span>
+    <h2>Four to build, in this order</h2>
+    <p class="lede" style="margin-top:4px">Each one uses something the book already has. None of them is a new app.</p>
+  </header>
+  <div class="pk"><span class="n">1</span><div class="t"><h3>Your shots on this hole, every time you have played it</h3>
+    <p>The Driving Zone idea, on our own 3D holes. Today's round in gold, previous rounds in a paler colour. Opens
+      from the hole you are already looking at. We built both halves months apart without noticing they joined up.</p></div>
+    <span class="cost">A day</span></div>
+  <div class="pk"><span class="n">2</span><div class="t"><h3>Putts, as a second tap</h3>
+    <p>One more number per hole, optional, never blocking a save. It makes the report card's putting grade real
+      instead of inferred, and it is the smallest change on this list.</p></div>
+    <span class="cost">Half a day</span></div>
+  <div class="pk"><span class="n">3</span><div class="t"><h3>Watch a round that is happening</h3>
+    <p>The thing GameBook is actually built on. A round in progress is followable: who is out, what they are
+      through, what they are on. For a group split across eight time zones this is the feature that makes the
+      book worth opening when you are not playing.</p></div>
+    <span class="cost">Two days</span></div>
+  <div class="pk"><span class="n">4</span><div class="t"><h3>The eclectic card</h3>
+    <p>Your best ever on each hole of your home course, as one card. Pure vanity, cheap to build, and a reason to
+      keep posting rounds between stops.</p></div>
+    <span class="cost">Half a day</span></div>
+</div>
+
+<div class="note">
+  <span class="kick">And one thing we do that they do not</span>
+  <p class="lede" style="margin-top:4px">Neither app knows what a <i>trip</i> is. GameBook manages a tournament;
+    TAG Heuer manages a swing. Nothing in either of them holds a room list, a deposit, a flight that lands at
+    15:40, a shirt size, or the fact that Letty is now coming for four nights instead of seven. Vegas HQ is not a
+    feature either of them has thought about, because neither of them is a book for one group of friends who go
+    somewhere together once a year. That is the part worth protecting.</p>
+</div>
+
+<p class="foot">The Union Invitational · a reading of other people's work, not a copy of it ·
+  <a href="../../">back to the site</a> · <a href="../audit/">the audit</a></p>
+
+</div>
+<script>
+(function(){var t=document.getElementById('tog');t.addEventListener('click',function(){
+  var on=document.documentElement.getAttribute('data-theme')==='night';
+  document.documentElement.setAttribute('data-theme',on?'day':'night');
+  t.textContent=on?'Night':'Day';});})();
+</script>
+</body>
+</html>
