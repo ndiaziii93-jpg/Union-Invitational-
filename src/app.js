@@ -9076,9 +9076,29 @@ function scrClubEntry() {
   const keys = [];
   for (let n = 1; n <= cap; n++) keys.push(`<button class="key num${n === +hole.par ? ' par' : ''}${n === cap ? ' cap' : ''}${n === raw ? ' on' : ''}" data-act="clubScore" data-a="${n}" aria-label="${n}${n === +hole.par ? ', par' : n === cap ? ', pick up' : ''}">${n}${n === +hole.par ? '<i>par</i>' : n === cap ? '<i>pick up</i>' : ''}</button>`);
   keys.push(`<button class="key wide" data-act="clubClear">Clear</button>`);
-  const keypad = editable && UI.clubPad ? `<div class="keypad" role="dialog" aria-label="Your score on hole ${hole.n || h + 1}" data-par="${hole.par}" data-cap="${cap}" data-cur="${raw == null ? '' : raw}">
+  /* PUTTS, AS A SECOND TAP.
+     The gross saves the hole exactly as it always has. This row is underneath
+     it, five keys wide, and skipping it costs nothing: a round with no putts
+     on it scores the same and simply reports that they were not counted.
+     You cannot have putted more times than you hit it, so a key above the
+     score is dead rather than wrong. Tapping the key already on clears it. */
+  const puttHere = card.putts ? card.putts[h] : null;
+  const counting = C.puttsOf(card).holes > 0;
+  const puttKeys = [0, 1, 2, 3, 4].map(n => {
+    const dead = raw != null && n > raw;
+    return `<button class="pk${n === puttHere ? ' on' : ''}${dead ? ' dead' : ''}" data-act="clubPutts" data-a="${n}"${dead ? ' disabled' : ''} aria-pressed="${n === puttHere}" aria-label="${n === 4 ? 'Four putts or more' : n + ' putt' + (n === 1 ? '' : 's')}">${n}${n === 4 ? '+' : ''}</button>`;
+  }).join('');
+  /* Once this round is counting putts the pad holds on the hole it just
+     scored, so the second tap has somewhere to land. "Next hole" is right
+     there for the hole they would rather skip. */
+  const waiting = counting && raw != null && puttHere == null;
+  const puttRow = `<div class="putts${waiting ? ' waiting' : ''}">
+      <div class="ph"><b>Putts</b><span>${puttHere != null ? 'on this hole' : 'optional'}</span></div>
+      <div class="pkeys">${puttKeys}</div>
+      <p class="pnote">${waiting ? 'Hole ' + (h + 1) + ' is saved. Count the putts, or ' : 'the hole saves on the score; this is a bonus, not a gate'}${waiting ? `<button class="plink" data-act="clubPadNext">go to hole ${h + 2 > 18 ? 18 : h + 2}</button>.` : ''}</p></div>`;
+  const keypad = editable && UI.clubPad ? `<div class="keypad" role="dialog" aria-label="Your score on hole ${hole.n || h + 1}" data-par="${hole.par}" data-cap="${cap}" data-cur="${raw == null ? '' : raw}" data-putts="${puttHere == null ? '' : puttHere}">
       <div class="kh"><b>${esc(p.display || '')}</b><span>Hole ${h + 1} · par ${hole.par} · picks up at ${cap}</span><button class="xx" data-act="clubPadClose">Done</button></div>
-      <div class="keys">${keys.join('')}</div><button class="knext" data-act="clubPadClose">Close</button></div>` : '';
+      <div class="keys">${keys.join('')}</div>${puttRow}<button class="knext" data-act="clubPadClose">Close</button></div>` : '';
   const gate = !open ? `<div class="gate"><div class="msg"><b>${card.final ? 'This card is final' : !comp ? 'This round is closed' : st === 'upcoming' ? stop.name + ' opens ' + C.fmtDay(stop.from, { long: true }) : stop.name + ' has closed'}</b><span>${comp && st === 'upcoming' ? 'Come back when the window opens.' : 'The card is read-only.'}</span></div></div>` : '';
   const photo = card.photo && card.photo.url;
   /* THE TWO KINDS POST ON DIFFERENT TERMS, AND THE PANEL SAYS WHICH.
@@ -9087,6 +9107,11 @@ function scrClubEntry() {
      for a number — it posts at whatever it reached, and the photograph is
      offered rather than demanded. What it cannot do is pretend: under nine
      holes it says plainly that it will not move the handicap. */
+  /* Once a round is counting putts, say what it has: the total, the rate,
+     and the three- and one-putts. Partial on purpose — "on 11 holes" is the
+     honest reading of a card somebody counted eleven of. */
+  const pt = C.puttsOf(card);
+  const puttLine = pt.holes ? `<p class="puttsum"><b>${pt.putts} putt${pt.putts === 1 ? '' : 's'}</b> on ${pt.holes} counted hole${pt.holes === 1 ? '' : 's'} · ${pt.per.toFixed(2)} a hole${pt.p3 ? ' · ' + pt.p3 + ' three-putt' + (pt.p3 === 1 ? '' : 's') : ''}${pt.p1 ? ' · ' + pt.p1 + ' one-putt' + (pt.p1 === 1 ? '' : 's') : ''}</p>` : '';
   const countsHcp = tot.thru >= C.HCP_MIN_HOLES;
   const showPanel = open && (comp ? tot.thru === 18 : tot.thru >= 1);
   const shot = `${photo ? `<a class="cardshot" href="${esc(photo)}" target="_blank" rel="noopener"><img src="${esc(card.photo.thumb || photo)}" alt="The signed card"></a>` : ''}
@@ -9127,16 +9152,19 @@ function scrClubEntry() {
   </div>
   <div class="holehead"><h3 class="num">Hole ${h + 1}</h3><span class="num">Par ${hole.par}</span><span class="m num">Stroke index ${hole.si}</span>${hole.y ? `<span class="m num">${hole.y} yds</span>` : ''}<span class="r num">Picks up at ${cap}</span></div>
   ${keypad}
-  <div class="prow${UI.clubPad ? ' sel' : ''}${editable && raw == null ? ' nextup' : ''}"><div class="pmain"><div class="pwho"><div class="nm">${esc(p.display || '')}</div><div class="bd num">hcp ${card.hcp == null ? '—' : Math.round(card.hcp)} <span>${strokes ? '+' + strokes + ' here' : '·'}</span>${pts != null ? ' · <b>' + pts + ' pt' + (pts === 1 ? '' : 's') + '</b>' : ''}${tot.thru ? ' · ' + tot.pts + ' pts thru ' + tot.thru : ''}</div></div>
+  <div class="prow${UI.clubPad ? ' sel' : ''}${editable && raw == null ? ' nextup' : ''}"><div class="pmain"><div class="pwho"><div class="nm">${esc(p.display || '')}</div><div class="bd num">hcp ${card.hcp == null ? '—' : Math.round(card.hcp)} <span>${strokes ? '+' + strokes + ' here' : '·'}</span>${pts != null ? ' · <b>' + pts + ' pt' + (pts === 1 ? '' : 's') + '</b>' : ''}${puttHere != null ? ' · ' + puttHere + (puttHere === 4 ? '+' : '') + ' putt' + (puttHere === 1 ? '' : 's') : ''}${tot.thru ? ' · ' + tot.pts + ' pts thru ' + tot.thru : ''}</div></div>
     ${editable ? `<button class="ptile${raw == null ? ' empty' : ''}" data-act="clubPad" aria-label="Your score on hole ${h + 1}"><span class="fig raw"><span class="v num">${raw == null ? '·' : raw}</span></span></button>` : `<span class="ptile still"><span class="fig raw"><span class="v num">${raw == null ? '·' : raw}</span></span></span>`}</div></div>
+  ${puttLine}
   ${donePanel}
   </div><div class="ce-side">
   <table class="ctbl mini"><thead><tr><th></th>${Array.from({ length: 9 }, (_, i) => `<th class="r">${i + 1}</th>`).join('')}<th class="r">Out</th></tr></thead><tbody>
     <tr><td>Gross</td>${card.raw.slice(0, 9).map(v => `<td class="r num">${v == null ? '·' : v}</td>`).join('')}<td class="r num">${sumOf(card.raw.slice(0, 9))}</td></tr>
     <tr><td>Pts</td>${Array.from({ length: 9 }, (_, i) => `<td class="r num">${C.holePts(card, i) == null ? '·' : C.holePts(card, i)}</td>`).join('')}<td class="r num">${sumOf(Array.from({ length: 9 }, (_, i) => C.holePts(card, i)))}</td></tr>
+    ${pt.holes ? `<tr class="pr"><td>Putts</td>${Array.from({ length: 9 }, (_, i) => { const v = card.putts ? card.putts[i] : null; return `<td class="r num${v >= 3 ? ' bad' : v === 1 ? ' good' : ''}">${v == null ? '·' : v}</td>`; }).join('')}<td class="r num">${sumOf(Array.from({ length: 9 }, (_, i) => (card.putts ? card.putts[i] : null)))}</td></tr>` : ''}
   </tbody><thead><tr><th></th>${Array.from({ length: 9 }, (_, i) => `<th class="r">${i + 10}</th>`).join('')}<th class="r">In</th></tr></thead><tbody>
     <tr><td>Gross</td>${card.raw.slice(9).map(v => `<td class="r num">${v == null ? '·' : v}</td>`).join('')}<td class="r num">${sumOf(card.raw.slice(9))}</td></tr>
     <tr><td>Pts</td>${Array.from({ length: 9 }, (_, i) => `<td class="r num">${C.holePts(card, i + 9) == null ? '·' : C.holePts(card, i + 9)}</td>`).join('')}<td class="r num">${sumOf(Array.from({ length: 9 }, (_, i) => C.holePts(card, i + 9)))}</td></tr>
+    ${pt.holes ? `<tr class="pr"><td>Putts</td>${Array.from({ length: 9 }, (_, i) => { const v = card.putts ? card.putts[i + 9] : null; return `<td class="r num${v >= 3 ? ' bad' : v === 1 ? ' good' : ''}">${v == null ? '·' : v}</td>`; }).join('')}<td class="r num">${sumOf(Array.from({ length: 9 }, (_, i) => (card.putts ? card.putts[i + 9] : null)))}</td></tr>` : ''}
   </tbody></table>
   </div></div>`;
 }
@@ -13323,7 +13351,42 @@ function onClick(e) {
          notifications on hears that somebody is out. Said once a card: the
          server marks it and will not pass it on twice. */
       if (!had && act === 'clubScore') notifyOthers('club/' + r.key);
-      if (act === 'clubScore' && h < 17) UI.clubHole = h + 1; else UI.clubPad = false;
+      /* PUTTS NEVER HOLD UP THE SCORE. On a round where nobody has counted
+         any, the pad behaves exactly as it always has: tap the gross and it
+         moves straight on. Once this round IS counting them, it waits on the
+         hole it just scored so the second tap has somewhere to land. */
+      const counting = C.puttsOf(held || {}).holes > 0;
+      const waitForPutts = act === 'clubScore' && counting && !(held && held.putts && held.putts[h] != null);
+      if (waitForPutts) { /* hold on this hole for the putts tap */ }
+      else if (act === 'clubScore' && h < 17) UI.clubHole = h + 1;
+      else UI.clubPad = false;
+      render(); return;
+    }
+    /* The second tap. Optional everywhere, and never writes the score: a
+       putt count on a hole with no score on it is still worth keeping, and
+       tapping the key already lit clears it again. */
+    case 'clubPutts': {
+      const r = roundNow();
+      if (!r || !roundLive(r)) return;
+      const held = r.card;
+      if (held && (held.done || held.final)) return;
+      const h = Math.min(Math.max(UI.clubHole || 0, 0), 17);
+      const raw = held ? held.raw[h] : null;
+      const v = +a;
+      if (!Number.isFinite(v) || v < 0 || v > 4) return;
+      /* you cannot have putted more times than you hit it */
+      if (raw != null && v > raw) return;
+      const putts = { ...((held && held.putts) || {}) };
+      if (putts[h] === v) delete putts[h]; else putts[h] = v;
+      roundWrite(r, { putts });
+      /* a counted hole that already has its score moves on, the way the
+         gross does when nobody is counting */
+      if (putts[h] != null && raw != null && h < 17) UI.clubHole = h + 1;
+      render(); return;
+    }
+    case 'clubPadNext': {
+      const h = Math.min(Math.max(UI.clubHole || 0, 0), 17);
+      if (h < 17) UI.clubHole = h + 1; else UI.clubPad = false;
       render(); return;
     }
     case 'clubPost': {

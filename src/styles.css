@@ -344,7 +344,12 @@ h3.sub{font-size:19px;font-weight:600;margin:26px 0 0}
    corner of anything wider. Par is outlined in gold, the pick-up reads red. */
 .keypad{position:fixed;left:0;right:0;bottom:calc(150px + env(safe-area-inset-bottom,0px));z-index:29;background:var(--pine);color:var(--onpine);
   border-radius:22px;margin:0 8px;padding:14px 16px 12px;
-  box-shadow:0 -12px 40px rgba(16,22,17,.4);animation:feelin .22s ease-out}
+  box-shadow:0 -12px 40px rgba(16,22,17,.4);animation:feelin .22s ease-out;
+  /* the putts row made the pad taller, and a short phone has no room to
+     spare: cap it against the space actually above it and let it scroll
+     rather than clip its own top row of keys off the screen */
+  max-height:calc(100dvh - 150px - env(safe-area-inset-bottom,0px) - 86px);
+  overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 .keypad .kh{display:flex;align-items:center;gap:10px;margin-bottom:12px}
 .keypad .kh b{font-size:18px}
 .keypad .kh span{flex:1;min-width:0;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--sage-up)}
@@ -366,6 +371,33 @@ h3.sub{font-size:19px;font-weight:600;margin:26px 0 0}
 .keypad .mchip.on{background:var(--green);border-color:var(--green);color:#FBFAF7;opacity:1}
 .keypad .relq{color:var(--sage-up)}
 .keypad .knext{display:block;width:100%;margin-top:10px;background:none;border:0;color:var(--sage-up);font-family:inherit;font-size:13.5px;padding:8px}
+/* PUTTS, THE SECOND TAP. Sits under the score keys inside the same pine
+   pad, divided off by a hairline so it reads as a bonus rather than a
+   second thing to get through. Keys are shorter than the score keys on
+   purpose: it is the smaller question. */
+.keypad .putts{margin-top:12px;padding-top:12px;border-top:1px solid rgba(238,232,213,.18)}
+.keypad .putts .ph{display:flex;align-items:baseline;gap:9px;margin-bottom:8px;white-space:nowrap}
+.keypad .putts .ph b{font-size:14px}
+.keypad .putts .ph span{flex:1;min-width:0;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--sage-up);overflow:hidden;text-overflow:ellipsis}
+.keypad .pkeys{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.keypad .pk{min-height:46px;border-radius:12px;border:1px solid rgba(238,232,213,.22);background:rgba(238,232,213,.06);
+  color:var(--onpine);font-family:inherit;font-size:19px;font-weight:700}
+.keypad .pk.on{background:var(--page);color:var(--ink);border-color:var(--page)}
+.keypad .pk.dead,.keypad .pk:disabled{opacity:.3}
+.keypad .pnote{margin:8px 0 0;font-size:11.5px;color:var(--sage-up);line-height:1.45}
+/* the one moment the row asks for anything: the score is already saved and
+   the pad is holding the hole open for the putts tap */
+.keypad .putts.waiting{border-top-color:#E2C277}
+.keypad .putts.waiting .ph b{color:#E2C277}
+.keypad .plink{background:none;border:0;padding:0;font-family:inherit;font-size:11.5px;
+  color:#E2C277;text-decoration:underline;text-underline-offset:2px}
+/* the round's putting, once there is any of it */
+.puttsum{margin:12px 0 0;padding:10px 12px;background:var(--sunk);border:1px solid var(--hair);
+  border-radius:12px;font-size:13.5px;color:var(--turf)}
+.puttsum b{color:var(--ink)}
+.ctbl .pr td{color:var(--turf)}
+.ctbl .pr td.bad{color:var(--flag);font-weight:700}
+.ctbl .pr td.good{color:var(--green);font-weight:700}
 /* the page under the pad can still be scrolled up past it */
 html:has(.keypad) .page.scoring{padding-bottom:470px}
 @media (min-width:700px){

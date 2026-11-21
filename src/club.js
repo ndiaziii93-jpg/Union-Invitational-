@@ -454,6 +454,34 @@ export function holePts(card, h) {
   const st = strokesFor(Math.round(card.hcp == null ? 0 : card.hcp), hole.si) || 0;
   return stablefordPts(raw - st, hole.par);
 }
+/* ---------- the putts, when somebody counted them ----------
+ *
+ * A referee counting a group's round has always been able to put the putts
+ * on a hole, kept as `card.putts[hole]`. A member scoring their own card in
+ * the Clubhouse could not: the keypad asked for the gross and nothing else,
+ * so a self-scored round carried no putting at all.
+ *
+ * The keypad now offers it as a second tap. This reads it off either kind of
+ * card, because it is the same shape on both — which is the point: nothing
+ * downstream has to care who wrote it down.
+ *
+ * Counting is OPTIONAL and always partial-friendly. A card with putts on six
+ * holes reports six holes, not eighteen with twelve zeros, so anything that
+ * grades putting can say "not counted" instead of grading a guess.
+ */
+export function puttsOf(card) {
+  const src = card && card.putts;
+  let putts = 0, holes = 0, p3 = 0, p1 = 0;
+  if (src) for (let h = 0; h < 18; h++) {
+    const v = src[h];
+    if (v == null || !Number.isFinite(+v)) continue;
+    putts += +v; holes++;
+    if (+v >= 3) p3++;
+    if (+v === 1) p1++;
+  }
+  return { putts, holes, p3, p1, per: holes ? putts / holes : null };
+}
+
 export function cardTotals(card) {
   let pts = 0, gross = 0, thru = 0, back = 0, par = 0;
   if (!card || !card.course) return { pts: 0, gross: 0, thru: 0, back: 0, toPar: null, par: 0 };
