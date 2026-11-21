@@ -6644,7 +6644,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261121-1556';
+const BUILD = '20261121-1719';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -24405,7 +24405,7 @@ function resumeBtn(r, cls) {
   const label = 'Resume my round · ' + t.thru + (r.kind === 'comp' ? ' of 18' : ' hole' + (t.thru === 1 ? '' : 's'));
   return r.kind === 'comp'
     ? `<button class="btn${cls ? ' ' + cls : ''}" data-act="clubEnter" data-a="${r.stop.id}">${esc(label)}</button>`
-    : `<button class="btn${cls ? ' ' + cls : ''}" data-act="roundOpen" data-a="${esc(r.rid)}">${esc(label)}</button>`;
+    : `<button class="btn${cls ? ' ' + cls : ''}" data-act="hcpOpen" data-a="${esc(r.rid)}">${esc(label)}</button>`;
 }
 
 /* ---- THE ROUND YOU WALKED AWAY FROM ----
@@ -24439,7 +24439,7 @@ function resumePanel(r) {
   const course = courseForKey(r.kind === 'comp' ? 'home__' + myPid() : 'home__' + myPid());
   const act = r.kind === 'comp'
     ? `data-act="clubEnter" data-a="${esc(r.stop.id)}"`
-    : `data-act="roundOpen" data-a="${esc(r.rid)}"`;
+    : `data-act="hcpOpen" data-a="${esc(r.rid)}"`;
   return `<section class="resume" aria-label="A round you have not finished">
     <div class="rz-top">
       <span class="ck">Still out there</span>
@@ -24602,7 +24602,7 @@ function youRoundsHtml(me, today) {
     const note = !x.card.done ? t.thru + ' of 18 written, not posted'
       : x.kind === 'comp' ? t.pts + ' points off 18'
       : t.pts + ' points off ' + t.thru + (counts ? ' · differential ' + d : ' · under nine holes');
-    const act = x.kind === 'hcp' && !x.card.done ? ` data-act="roundOpen" data-a="${esc(x.card.rid)}"` : '';
+    const act = x.kind === 'hcp' && !x.card.done ? ` data-act="hcpOpen" data-a="${esc(x.card.rid)}"` : '';
     return `<${act ? 'button' : 'div'} class="rrow${act ? ' go' : ''}${x.card.done ? '' : ' live'}"${act}>
       <span class="rr-w"><b>${what}</b><small>${esc(when)}${x.card.course ? ' · ' + esc(x.card.course.name) : ''}</small></span>
       <span class="rr-r"><b>${esc(note)}</b><i class="rr-t ${tag.replace(/ /g, '')}">${tag}</i></span>
@@ -24913,7 +24913,7 @@ function newRoundHtml() {
     </div>
     ${going.length ? `<div class="nrs"><span class="ck">Already going</span>${going.map(x => {
       const t = C.cardTotals(x.card);
-      return `<button class="nr" data-act="roundOpen" data-a="${esc(x.card.rid)}"><b>A handicap round</b>
+      return `<button class="nr" data-act="hcpOpen" data-a="${esc(x.card.rid)}"><b>A handicap round</b>
         <small>${esc(C.fmtDay(x.date, { long: true }))}</small>
         <i>${t.thru} hole${t.thru === 1 ? '' : 's'} written, ${t.pts} point${t.pts === 1 ? '' : 's'} — carry on with it.</i></button>`;
     }).join('')}</div>` : ''}
@@ -29470,7 +29470,11 @@ function onClick(e) {
       }
       closeModal(); goTo('clubentry'); render(); return;
     }
-    case 'roundOpen': {
+    /* NOT 'roundOpen'. That name was already taken, 1500 lines up, by the
+       Belek week's round sheet — and in one switch the FIRST case wins, so
+       this one was never reached and every way of picking a handicap round
+       back up did nothing at all. A name is a namespace. */
+    case 'hcpOpen': {
       const me = myPid(); if (!me) return;
       const card = C.hcardOf(T, me, a); if (!card) return;
       UI.roundKind = 'hcp'; UI.rid = a; UI.roundDate = card.date;
