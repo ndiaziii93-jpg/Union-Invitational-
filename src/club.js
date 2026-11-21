@@ -494,6 +494,81 @@ export function cardTotals(card) {
   return { pts, gross, thru, back, toPar: thru ? gross - par : null, par };
 }
 
+/* ---------- THE ECLECTIC ----------
+ *
+ * Your best ever on every hole of one course, as one card nobody has shot.
+ *
+ * Every round a member posts is already kept, and the rounds list shows what
+ * each one scored. Nothing has ever looked ACROSS them at a single hole. The
+ * data has been sitting there since the first card went in; only the question
+ * was missing.
+ *
+ * It only ever gets better, which is the point: it gives a reason to post a
+ * round between stops, and the hole where somebody once made a 3 on a par 5
+ * gets talked about for years.
+ */
+
+/** Every card this member has written in the Clubhouse — stop cards and
+ *  handicap rounds alike — oldest first. */
+export function clubCardsOf(T, pid) {
+  const club = (T && T.club) || {}, out = [];
+  for (const [k, c] of Object.entries(club)) {
+    if (!c || c.pid !== pid || !Array.isArray(c.raw)) continue;
+    if (k.indexOf('card__') === 0 || k.indexOf('hcard__') === 0) out.push(c);
+  }
+  return out.sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')) || (a.at || 0) - (b.at || 0));
+}
+
+/** Which courses this member has enough of to be worth asking about, most
+ *  rounds first. A single round is not an eclectic, it is just that round. */
+export function eclecticCourses(T, pid) {
+  const by = new Map();
+  for (const c of clubCardsOf(T, pid)) {
+    if (!c.course || !c.course.name || !c.raw.some(v => v != null)) continue;
+    by.set(c.course.name, (by.get(c.course.name) || 0) + 1);
+  }
+  return [...by.entries()].filter(([, n]) => n >= 2)
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([name, rounds]) => ({ name, rounds }));
+}
+
+/** The eclectic for one course: the lowest score this member has ever made
+ *  on each hole, which round it came from, and what the whole thing adds up
+ *  to. Partial on purpose — a hole never played is null rather than a guess,
+ *  and `got` says how many of the eighteen are real. */
+export function eclecticOf(T, pid, name) {
+  const cards = clubCardsOf(T, pid).filter(c => c.course && c.course.name === name && c.raw.some(v => v != null));
+  if (!cards.length) return null;
+  const full = cards.find(c => c.course.holes && c.course.holes.length === 18) || cards[0];
+  const holes = full.course.holes;
+  if (!holes || holes.length !== 18) return null;
+  const best = [], from = [];
+  for (let h = 0; h < 18; h++) {
+    let b = null, src = null;
+    for (const c of cards) {
+      const v = c.raw[h];
+      if (v == null || !Number.isFinite(+v)) continue;
+      if (b == null || +v < b) { b = +v; src = c; }
+    }
+    best.push(b);
+    from.push(src ? { kind: src.kind, date: src.date || null, stop: src.stop || null, rid: src.rid || null } : null);
+  }
+  let total = 0, got = 0, eagles = 0, birdies = 0, pars = 0, aces = 0;
+  best.forEach((v, h) => {
+    if (v == null) return;
+    got++; total += v;
+    const over = v - (+holes[h].par || 0);
+    if (v === 1) aces++;
+    if (over <= -2) eagles++; else if (over === -1) birdies++; else if (over === 0) pars++;
+  });
+  /* par over the holes actually in it, so a partial eclectic is read against
+     the holes it has rather than against a full round it is not */
+  const par = holes.reduce((a, h, i) => a + (best[i] == null ? 0 : (+h.par || 0)), 0);
+  const fullPar = holes.reduce((a, h) => a + (+h.par || 0), 0);
+  return { name, tee: full.course.tee || '', holes, best, from, got, total, par, fullPar,
+    toPar: got ? total - par : null, eagles, birdies, pars, aces, rounds: cards.length };
+}
+
 /** Everybody's card on a stop, best first: points, then the back nine, then the handicap (lower wins). */
 export function stopBoard(T, stopId) {
   const rows = [];

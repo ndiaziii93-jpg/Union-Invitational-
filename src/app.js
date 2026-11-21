@@ -6268,6 +6268,36 @@ function bbbFixHtml() {
     ${!m.busy && !rows.length ? `<div class="acts"><button class="btn ghost" data-act="modalCancel">Done</button></div>` : ''}
   </div></div>`;
 }
+/* ---- THE ECLECTIC CARD ----
+   Your best ever on every hole of one course, as one card nobody has shot.
+   Nobody shot a 62; everybody could have. It only ever gets better, which is
+   why it is worth posting a round between stops. */
+function eclecticHtml() {
+  const me = myPid();
+  const list = me ? C.eclecticCourses(T, me) : [];
+  const pick = (UI.modal && UI.modal.course) || (list[0] && list[0].name) || null;
+  const e = pick ? C.eclecticOf(T, me, pick) : null;
+  const cell = h => {
+    const v = e.best[h], par = +e.holes[h].par;
+    const cls = v == null ? ' none' : v === 1 ? ' ace' : v - par <= -2 ? ' eagle' : v - par === -1 ? ' birdie' : v - par === 0 ? ' par' : '';
+    const src = e.from[h];
+    return `<div class="ec-h${cls}"><span class="ec-n num">${h + 1}</span><span class="ec-v num">${v == null ? '·' : v}</span><span class="ec-p num">par ${par}</span>${src && src.date ? `<span class="ec-w">${esc(C.fmtDay(src.date))}</span>` : ''}</div>`;
+  };
+  const tabs = list.length > 1
+    ? `<div class="ec-tabs">${list.map(c => `<button class="ec-tab${c.name === pick ? ' on' : ''}" data-act="eclectic" data-a="${esc(c.name)}">${esc(c.name)} <i>${c.rounds}</i></button>`).join('')}</div>` : '';
+  return `<div class="scrim" data-act="modalScrim"><div class="modal ecmodal" role="dialog" aria-modal="true" aria-label="Your eclectic">
+    ${modalBanner('Your eclectic', e ? esc(e.name) + (e.tee ? ' \u00b7 ' + esc(e.tee) : '') : '')}
+    ${!e ? `<p class="empty">Post two rounds at the same course and your eclectic starts here \u2014 your best ever on every hole, as one card.</p>`
+    : `<p class="lede">Your best ever on every hole at ${esc(e.name)}, from ${e.rounds} round${e.rounds === 1 ? '' : 's'}. Nobody shot it. Everybody could have.</p>
+    ${tabs}
+    <div class="ec-grid">${Array.from({ length: 18 }, (_, i) => cell(i)).join('')}</div>
+    <div class="ec-sum"><div><b class="num">${e.total}</b><span>eclectic${e.got < 18 ? ' \u00b7 ' + e.got + ' holes' : ''}</span></div>
+      <div><b class="num">${e.par}</b><span>par${e.got < 18 ? ' of those' : ''}</span></div>
+      <div><b class="num">${e.toPar == null ? '\u2013' : (e.toPar > 0 ? '+' : '') + e.toPar}</b><span>to par</span></div></div>
+    <p class="ec-note">${[e.aces ? e.aces + ' hole in one' : '', e.eagles ? e.eagles + ' eagle' + (e.eagles === 1 ? '' : 's') : '', e.birdies ? e.birdies + ' birdie' + (e.birdies === 1 ? '' : 's') : '', e.pars ? e.pars + ' par' + (e.pars === 1 ? '' : 's') : ''].filter(Boolean).join(' \u00b7 ') || 'No birdies in it yet.'}${e.got < 18 ? ' \u00b7 ' + (18 - e.got) + ' hole' + (18 - e.got === 1 ? '' : 's') + ' still to play' : ''}</p>`}
+    <div class="acts"><button class="btn ghost" data-act="modalCancel">Close</button></div>
+  </div></div>`;
+}
 function histModalHtml() {
   const h = UI.hist || {};
   const rows = h.rows || [];
@@ -8236,6 +8266,15 @@ function scrYou() {
     <b class="ct">${esc(C.joiningLine(T, me))}</b>
     <p>Golfing less, or there for fewer days? Change it here.</p></button>
   ${golfer && mine ? lineHtml('Your practice manual', 'Picked from your Belek report card', 'Putting ' + esc(gradeOf(mine, 'putting')) + ' · par 3s ' + esc(gradeOf(mine, 'par3')) + ' · par 5s ' + esc(gradeOf(mine, 'par5')) + '. Twelve to fifteen drills, drawn and scored, with a coach on video.', `<p style="margin-top:10px"><button class="btn ghost" data-act="manualOpen" data-a="${me}">Open my manual</button></p>`) : ''}
+  ${/* THE ECLECTIC. Only once there is something to look at: two rounds at
+        one course is the least that makes the question interesting. */ ''}
+  ${(() => { const list = golfer ? C.eclecticCourses(T, me) : []; if (!list.length) return '';
+      const e = C.eclecticOf(T, me, list[0].name); if (!e) return '';
+      return lineHtml('Your eclectic', esc(e.name) + ' \u00b7 ' + e.rounds + ' rounds',
+        'Your best ever on every hole, as one card. ' + e.total + ' against a par of ' + e.par
+        + (e.birdies || e.eagles ? ' \u00b7 ' + [e.eagles ? e.eagles + ' eagle' + (e.eagles === 1 ? '' : 's') : '', e.birdies ? e.birdies + ' birdie' + (e.birdies === 1 ? '' : 's') : ''].filter(Boolean).join(', ') : '')
+        + '. Nobody shot it; everybody could have.',
+        `<p style="margin-top:10px"><button class="btn ghost" data-act="eclectic" data-a="${esc(e.name)}">Open my eclectic</button></p>`); })()}
   ${golfer && mine ? lineHtml('Your Belek 2026 card', esc(belekLine(mine)), 'The first season in your archive. Readable any time; nothing in it can change.', `<p class="cact"><button class="btn ghost" data-act="reportPlayer" data-a="${me}">Read my report card</button><button class="btn ghost" data-act="archiveView" data-a="2026">Open the Belek book</button></p>`) : ''}
   </div>`;
 }
@@ -11607,6 +11646,7 @@ function modalHtml() {
        : UI.modal.kind === 'sotdNom' ? sotdNomHtml()
        : UI.modal.kind === 'card' ? cardSheetHtml()
        : UI.modal.kind === 'rplayer' ? reportPlayerHtml()
+       : UI.modal.kind === 'eclectic' ? eclecticHtml()
        : UI.modal.kind === 'hist' ? histModalHtml()
        : UI.modal.kind === 'bbbfix' ? bbbFixHtml()
        : UI.modal.kind === 'xedit' ? xEditHtml()
@@ -13384,6 +13424,7 @@ function onClick(e) {
       if (putts[h] != null && raw != null && h < 17) UI.clubHole = h + 1;
       render(); return;
     }
+    case 'eclectic': { UI.modal = { kind: 'eclectic', course: a || null }; render(); return; }
     case 'clubPadNext': {
       const h = Math.min(Math.max(UI.clubHole || 0, 0), 17);
       if (h < 17) UI.clubHole = h + 1; else UI.clubPad = false;

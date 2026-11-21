@@ -6430,3 +6430,39 @@ html.clubseason .btn,html.clubseason .chip,html.clubseason .pkg{transition:trans
    broke. */
 .pk-off .pkf{opacity:.45;cursor:not-allowed}
 .pk-why{display:block;margin-top:3px;font-size:11.5px;color:var(--turf);font-style:italic}
+
+
+/* ---- THE ECLECTIC CARD ----
+   Eighteen holes as eighteen tiles rather than a row of a table: on a phone
+   a card you read sideways is a card nobody reads, and the whole point of
+   this one is that you look at a HOLE, not at a round. */
+.ecmodal .ec-tabs{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
+.ecmodal .ec-tab{border:1px solid var(--rule);background:var(--card);color:var(--turf);
+  border-radius:999px;padding:7px 12px;min-height:38px;font-family:inherit;font-size:13px}
+.ecmodal .ec-tab i{font-style:normal;color:var(--gold);font-weight:700;margin-left:4px}
+.ecmodal .ec-tab.on{background:var(--pine);border-color:var(--pine);color:var(--onpine)}
+.ecmodal .ec-tab.on i{color:var(--gold-up)}
+.ecmodal .ec-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:0 0 14px}
+.ecmodal .ec-h{position:relative;background:var(--card);border:1px solid var(--hair);border-radius:12px;
+  padding:8px 9px 7px;min-height:66px;display:flex;flex-direction:column;justify-content:center}
+.ecmodal .ec-n{position:absolute;top:6px;left:9px;font-size:10.5px;color:var(--turf);font-weight:700}
+.ecmodal .ec-v{font-size:26px;font-weight:700;line-height:1;text-align:center;margin-top:7px}
+.ecmodal .ec-p{font-size:10px;color:var(--turf);text-align:center;margin-top:3px}
+.ecmodal .ec-w{position:absolute;top:6px;right:9px;font-size:9.5px;color:var(--turf);opacity:.8}
+/* what the hole was: the only colour on the card, so a 3 on a par 5 shouts.
+   Pars are deliberately NOT tinted — most of an eclectic is pars, and
+   colouring them turns the whole card one colour and drowns the two tiles
+   that are worth looking at. */
+.ecmodal .ec-h.birdie{background:var(--warm);border-color:var(--gold-up)}
+.ecmodal .ec-h.eagle,.ecmodal .ec-h.ace{background:var(--pine);border-color:var(--gold-up);color:var(--onpine)}
+.ecmodal .ec-h.eagle .ec-p,.ecmodal .ec-h.ace .ec-p,.ecmodal .ec-h.eagle .ec-n,.ecmodal .ec-h.ace .ec-n,
+.ecmodal .ec-h.eagle .ec-w,.ecmodal .ec-h.ace .ec-w{color:var(--gold-up)}
+.ecmodal .ec-h.none{background:var(--sunk);border-style:dashed}
+.ecmodal .ec-h.none .ec-v{color:var(--turf);opacity:.6}
+.ecmodal .ec-sum{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;
+  padding:12px;background:var(--sunk);border:1px solid var(--hair);border-radius:14px}
+.ecmodal .ec-sum div{text-align:center}
+.ecmodal .ec-sum b{display:block;font-size:26px;line-height:1.1}
+.ecmodal .ec-sum span{display:block;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--turf);margin-top:3px}
+.ecmodal .ec-note{margin:10px 0 0;font-size:13.5px;color:var(--turf)}
+@media (min-width:600px){ .ecmodal .ec-grid{grid-template-columns:repeat(6,1fr)} }

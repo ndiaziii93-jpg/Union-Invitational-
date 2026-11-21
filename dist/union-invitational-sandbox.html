@@ -6435,6 +6435,42 @@ html.clubseason .btn,html.clubseason .chip,html.clubseason .pkg{transition:trans
 .pk-off .pkf{opacity:.45;cursor:not-allowed}
 .pk-why{display:block;margin-top:3px;font-size:11.5px;color:var(--turf);font-style:italic}
 
+
+/* ---- THE ECLECTIC CARD ----
+   Eighteen holes as eighteen tiles rather than a row of a table: on a phone
+   a card you read sideways is a card nobody reads, and the whole point of
+   this one is that you look at a HOLE, not at a round. */
+.ecmodal .ec-tabs{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
+.ecmodal .ec-tab{border:1px solid var(--rule);background:var(--card);color:var(--turf);
+  border-radius:999px;padding:7px 12px;min-height:38px;font-family:inherit;font-size:13px}
+.ecmodal .ec-tab i{font-style:normal;color:var(--gold);font-weight:700;margin-left:4px}
+.ecmodal .ec-tab.on{background:var(--pine);border-color:var(--pine);color:var(--onpine)}
+.ecmodal .ec-tab.on i{color:var(--gold-up)}
+.ecmodal .ec-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:0 0 14px}
+.ecmodal .ec-h{position:relative;background:var(--card);border:1px solid var(--hair);border-radius:12px;
+  padding:8px 9px 7px;min-height:66px;display:flex;flex-direction:column;justify-content:center}
+.ecmodal .ec-n{position:absolute;top:6px;left:9px;font-size:10.5px;color:var(--turf);font-weight:700}
+.ecmodal .ec-v{font-size:26px;font-weight:700;line-height:1;text-align:center;margin-top:7px}
+.ecmodal .ec-p{font-size:10px;color:var(--turf);text-align:center;margin-top:3px}
+.ecmodal .ec-w{position:absolute;top:6px;right:9px;font-size:9.5px;color:var(--turf);opacity:.8}
+/* what the hole was: the only colour on the card, so a 3 on a par 5 shouts.
+   Pars are deliberately NOT tinted — most of an eclectic is pars, and
+   colouring them turns the whole card one colour and drowns the two tiles
+   that are worth looking at. */
+.ecmodal .ec-h.birdie{background:var(--warm);border-color:var(--gold-up)}
+.ecmodal .ec-h.eagle,.ecmodal .ec-h.ace{background:var(--pine);border-color:var(--gold-up);color:var(--onpine)}
+.ecmodal .ec-h.eagle .ec-p,.ecmodal .ec-h.ace .ec-p,.ecmodal .ec-h.eagle .ec-n,.ecmodal .ec-h.ace .ec-n,
+.ecmodal .ec-h.eagle .ec-w,.ecmodal .ec-h.ace .ec-w{color:var(--gold-up)}
+.ecmodal .ec-h.none{background:var(--sunk);border-style:dashed}
+.ecmodal .ec-h.none .ec-v{color:var(--turf);opacity:.6}
+.ecmodal .ec-sum{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;
+  padding:12px;background:var(--sunk);border:1px solid var(--hair);border-radius:14px}
+.ecmodal .ec-sum div{text-align:center}
+.ecmodal .ec-sum b{display:block;font-size:26px;line-height:1.1}
+.ecmodal .ec-sum span{display:block;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--turf);margin-top:3px}
+.ecmodal .ec-note{margin:10px 0 0;font-size:13.5px;color:var(--turf)}
+@media (min-width:600px){ .ecmodal .ec-grid{grid-template-columns:repeat(6,1fr)} }
+
 </style>
 <div id="app"></div>
 <!-- The crest, and the opening it pays for, ahead of everything else. A few
@@ -6532,7 +6568,7 @@ const SITE_URL = 'https://ndiaziii93-jpg.github.io/Union-Invitational-/';
 
 /* Stamped by tools/build.py. A phone that has kept an old copy of the book
    looks identical to one on the newest; this is how we tell them apart. */
-const BUILD = '20261121-1230';
+const BUILD = '20261121-1234';
 
 const TZ_OFFSET_MIN = 180; // Antalya is UTC+3 all year (Turkey does not observe DST)
 
@@ -12863,6 +12899,81 @@ function cardTotals(card) {
   return { pts, gross, thru, back, toPar: thru ? gross - par : null, par };
 }
 
+/* ---------- THE ECLECTIC ----------
+ *
+ * Your best ever on every hole of one course, as one card nobody has shot.
+ *
+ * Every round a member posts is already kept, and the rounds list shows what
+ * each one scored. Nothing has ever looked ACROSS them at a single hole. The
+ * data has been sitting there since the first card went in; only the question
+ * was missing.
+ *
+ * It only ever gets better, which is the point: it gives a reason to post a
+ * round between stops, and the hole where somebody once made a 3 on a par 5
+ * gets talked about for years.
+ */
+
+/** Every card this member has written in the Clubhouse — stop cards and
+ *  handicap rounds alike — oldest first. */
+function clubCardsOf(T, pid) {
+  const club = (T && T.club) || {}, out = [];
+  for (const [k, c] of Object.entries(club)) {
+    if (!c || c.pid !== pid || !Array.isArray(c.raw)) continue;
+    if (k.indexOf('card__') === 0 || k.indexOf('hcard__') === 0) out.push(c);
+  }
+  return out.sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')) || (a.at || 0) - (b.at || 0));
+}
+
+/** Which courses this member has enough of to be worth asking about, most
+ *  rounds first. A single round is not an eclectic, it is just that round. */
+function eclecticCourses(T, pid) {
+  const by = new Map();
+  for (const c of clubCardsOf(T, pid)) {
+    if (!c.course || !c.course.name || !c.raw.some(v => v != null)) continue;
+    by.set(c.course.name, (by.get(c.course.name) || 0) + 1);
+  }
+  return [...by.entries()].filter(([, n]) => n >= 2)
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([name, rounds]) => ({ name, rounds }));
+}
+
+/** The eclectic for one course: the lowest score this member has ever made
+ *  on each hole, which round it came from, and what the whole thing adds up
+ *  to. Partial on purpose — a hole never played is null rather than a guess,
+ *  and `got` says how many of the eighteen are real. */
+function eclecticOf(T, pid, name) {
+  const cards = clubCardsOf(T, pid).filter(c => c.course && c.course.name === name && c.raw.some(v => v != null));
+  if (!cards.length) return null;
+  const full = cards.find(c => c.course.holes && c.course.holes.length === 18) || cards[0];
+  const holes = full.course.holes;
+  if (!holes || holes.length !== 18) return null;
+  const best = [], from = [];
+  for (let h = 0; h < 18; h++) {
+    let b = null, src = null;
+    for (const c of cards) {
+      const v = c.raw[h];
+      if (v == null || !Number.isFinite(+v)) continue;
+      if (b == null || +v < b) { b = +v; src = c; }
+    }
+    best.push(b);
+    from.push(src ? { kind: src.kind, date: src.date || null, stop: src.stop || null, rid: src.rid || null } : null);
+  }
+  let total = 0, got = 0, eagles = 0, birdies = 0, pars = 0, aces = 0;
+  best.forEach((v, h) => {
+    if (v == null) return;
+    got++; total += v;
+    const over = v - (+holes[h].par || 0);
+    if (v === 1) aces++;
+    if (over <= -2) eagles++; else if (over === -1) birdies++; else if (over === 0) pars++;
+  });
+  /* par over the holes actually in it, so a partial eclectic is read against
+     the holes it has rather than against a full round it is not */
+  const par = holes.reduce((a, h, i) => a + (best[i] == null ? 0 : (+h.par || 0)), 0);
+  const fullPar = holes.reduce((a, h) => a + (+h.par || 0), 0);
+  return { name, tee: full.course.tee || '', holes, best, from, got, total, par, fullPar,
+    toPar: got ? total - par : null, eagles, birdies, pars, aces, rounds: cards.length };
+}
+
 /** Everybody's card on a stop, best first: points, then the back nine, then the handicap (lower wins). */
 function stopBoard(T, stopId) {
   const rows = [];
@@ -13480,7 +13591,7 @@ function csvTravel(T) {
   return csv(rows);
 }
 
-return {STOPS_SEED, PACKAGES_SEED, MERIT, VENDORS_SEED, TRIP_SEED, seasonDefaults, season, phaseOf, frozen, isoToday, daysBetween, fmtDay, dowOf, stopState, stops, stopById, openStops, nextStop, closedStops, currentStop, golfers, everyone, person, COURSE_LIB, courseLibrary, courseFind, courseFrom, courseSlug, courseAsBook, blankCourse, courseOf, courseOk, coursePar, cardKey, cardOf, blankClubCard, hcardKey, hcardOf, newRid, blankHcpCard, hcardsOf, capFor, holePts, puttsOf, cardTotals, stopBoard, stopWinner, merit, rounds, SHOT_CLUBS, clubName, clubIndex, SHOTS_MAX, YARDS, shotsOf, allShots, shotCount, shotGap, toYards, withShot, withoutLastShot, withoutHoleShots, CLUB_MIN, clubDistances, HCP_MIN_HOLES, diffOf, countsForHcp, scoringRounds, unionHcp, playingOf, DIVISIONS, divisionOf, divisionLabel, GOLF_AMOUNT, tripRounds, tripRound, tripFor, golfOf, roundsOf, stayOf, joiningLine, signupOf, travelOf, moneyOf, packageOf, field, ledger, fmtMoney, lineOf, dials, BERTS, bertById, bertForStop, profileOf, bertOf, faceOf, CARD_MIN, playerStats, csv, csvHeadcount, csvRooms, csvTravel};
+return {STOPS_SEED, PACKAGES_SEED, MERIT, VENDORS_SEED, TRIP_SEED, seasonDefaults, season, phaseOf, frozen, isoToday, daysBetween, fmtDay, dowOf, stopState, stops, stopById, openStops, nextStop, closedStops, currentStop, golfers, everyone, person, COURSE_LIB, courseLibrary, courseFind, courseFrom, courseSlug, courseAsBook, blankCourse, courseOf, courseOk, coursePar, cardKey, cardOf, blankClubCard, hcardKey, hcardOf, newRid, blankHcpCard, hcardsOf, capFor, holePts, puttsOf, cardTotals, clubCardsOf, eclecticCourses, eclecticOf, stopBoard, stopWinner, merit, rounds, SHOT_CLUBS, clubName, clubIndex, SHOTS_MAX, YARDS, shotsOf, allShots, shotCount, shotGap, toYards, withShot, withoutLastShot, withoutHoleShots, CLUB_MIN, clubDistances, HCP_MIN_HOLES, diffOf, countsForHcp, scoringRounds, unionHcp, playingOf, DIVISIONS, divisionOf, divisionLabel, GOLF_AMOUNT, tripRounds, tripRound, tripFor, golfOf, roundsOf, stayOf, joiningLine, signupOf, travelOf, moneyOf, packageOf, field, ledger, fmtMoney, lineOf, dials, BERTS, bertById, bertForStop, profileOf, bertOf, faceOf, CARD_MIN, playerStats, csv, csvHeadcount, csvRooms, csvTravel};
 })();
 
 const __m_dbsupa = (function(){
@@ -22077,6 +22188,36 @@ function bbbFixHtml() {
     ${!m.busy && !rows.length ? `<div class="acts"><button class="btn ghost" data-act="modalCancel">Done</button></div>` : ''}
   </div></div>`;
 }
+/* ---- THE ECLECTIC CARD ----
+   Your best ever on every hole of one course, as one card nobody has shot.
+   Nobody shot a 62; everybody could have. It only ever gets better, which is
+   why it is worth posting a round between stops. */
+function eclecticHtml() {
+  const me = myPid();
+  const list = me ? C.eclecticCourses(T, me) : [];
+  const pick = (UI.modal && UI.modal.course) || (list[0] && list[0].name) || null;
+  const e = pick ? C.eclecticOf(T, me, pick) : null;
+  const cell = h => {
+    const v = e.best[h], par = +e.holes[h].par;
+    const cls = v == null ? ' none' : v === 1 ? ' ace' : v - par <= -2 ? ' eagle' : v - par === -1 ? ' birdie' : v - par === 0 ? ' par' : '';
+    const src = e.from[h];
+    return `<div class="ec-h${cls}"><span class="ec-n num">${h + 1}</span><span class="ec-v num">${v == null ? '·' : v}</span><span class="ec-p num">par ${par}</span>${src && src.date ? `<span class="ec-w">${esc(C.fmtDay(src.date))}</span>` : ''}</div>`;
+  };
+  const tabs = list.length > 1
+    ? `<div class="ec-tabs">${list.map(c => `<button class="ec-tab${c.name === pick ? ' on' : ''}" data-act="eclectic" data-a="${esc(c.name)}">${esc(c.name)} <i>${c.rounds}</i></button>`).join('')}</div>` : '';
+  return `<div class="scrim" data-act="modalScrim"><div class="modal ecmodal" role="dialog" aria-modal="true" aria-label="Your eclectic">
+    ${modalBanner('Your eclectic', e ? esc(e.name) + (e.tee ? ' \u00b7 ' + esc(e.tee) : '') : '')}
+    ${!e ? `<p class="empty">Post two rounds at the same course and your eclectic starts here \u2014 your best ever on every hole, as one card.</p>`
+    : `<p class="lede">Your best ever on every hole at ${esc(e.name)}, from ${e.rounds} round${e.rounds === 1 ? '' : 's'}. Nobody shot it. Everybody could have.</p>
+    ${tabs}
+    <div class="ec-grid">${Array.from({ length: 18 }, (_, i) => cell(i)).join('')}</div>
+    <div class="ec-sum"><div><b class="num">${e.total}</b><span>eclectic${e.got < 18 ? ' \u00b7 ' + e.got + ' holes' : ''}</span></div>
+      <div><b class="num">${e.par}</b><span>par${e.got < 18 ? ' of those' : ''}</span></div>
+      <div><b class="num">${e.toPar == null ? '\u2013' : (e.toPar > 0 ? '+' : '') + e.toPar}</b><span>to par</span></div></div>
+    <p class="ec-note">${[e.aces ? e.aces + ' hole in one' : '', e.eagles ? e.eagles + ' eagle' + (e.eagles === 1 ? '' : 's') : '', e.birdies ? e.birdies + ' birdie' + (e.birdies === 1 ? '' : 's') : '', e.pars ? e.pars + ' par' + (e.pars === 1 ? '' : 's') : ''].filter(Boolean).join(' \u00b7 ') || 'No birdies in it yet.'}${e.got < 18 ? ' \u00b7 ' + (18 - e.got) + ' hole' + (18 - e.got === 1 ? '' : 's') + ' still to play' : ''}</p>`}
+    <div class="acts"><button class="btn ghost" data-act="modalCancel">Close</button></div>
+  </div></div>`;
+}
 function histModalHtml() {
   const h = UI.hist || {};
   const rows = h.rows || [];
@@ -24045,6 +24186,15 @@ function scrYou() {
     <b class="ct">${esc(C.joiningLine(T, me))}</b>
     <p>Golfing less, or there for fewer days? Change it here.</p></button>
   ${golfer && mine ? lineHtml('Your practice manual', 'Picked from your Belek report card', 'Putting ' + esc(gradeOf(mine, 'putting')) + ' · par 3s ' + esc(gradeOf(mine, 'par3')) + ' · par 5s ' + esc(gradeOf(mine, 'par5')) + '. Twelve to fifteen drills, drawn and scored, with a coach on video.', `<p style="margin-top:10px"><button class="btn ghost" data-act="manualOpen" data-a="${me}">Open my manual</button></p>`) : ''}
+  ${/* THE ECLECTIC. Only once there is something to look at: two rounds at
+        one course is the least that makes the question interesting. */ ''}
+  ${(() => { const list = golfer ? C.eclecticCourses(T, me) : []; if (!list.length) return '';
+      const e = C.eclecticOf(T, me, list[0].name); if (!e) return '';
+      return lineHtml('Your eclectic', esc(e.name) + ' \u00b7 ' + e.rounds + ' rounds',
+        'Your best ever on every hole, as one card. ' + e.total + ' against a par of ' + e.par
+        + (e.birdies || e.eagles ? ' \u00b7 ' + [e.eagles ? e.eagles + ' eagle' + (e.eagles === 1 ? '' : 's') : '', e.birdies ? e.birdies + ' birdie' + (e.birdies === 1 ? '' : 's') : ''].filter(Boolean).join(', ') : '')
+        + '. Nobody shot it; everybody could have.',
+        `<p style="margin-top:10px"><button class="btn ghost" data-act="eclectic" data-a="${esc(e.name)}">Open my eclectic</button></p>`); })()}
   ${golfer && mine ? lineHtml('Your Belek 2026 card', esc(belekLine(mine)), 'The first season in your archive. Readable any time; nothing in it can change.', `<p class="cact"><button class="btn ghost" data-act="reportPlayer" data-a="${me}">Read my report card</button><button class="btn ghost" data-act="archiveView" data-a="2026">Open the Belek book</button></p>`) : ''}
   </div>`;
 }
@@ -27416,6 +27566,7 @@ function modalHtml() {
        : UI.modal.kind === 'sotdNom' ? sotdNomHtml()
        : UI.modal.kind === 'card' ? cardSheetHtml()
        : UI.modal.kind === 'rplayer' ? reportPlayerHtml()
+       : UI.modal.kind === 'eclectic' ? eclecticHtml()
        : UI.modal.kind === 'hist' ? histModalHtml()
        : UI.modal.kind === 'bbbfix' ? bbbFixHtml()
        : UI.modal.kind === 'xedit' ? xEditHtml()
@@ -29193,6 +29344,7 @@ function onClick(e) {
       if (putts[h] != null && raw != null && h < 17) UI.clubHole = h + 1;
       render(); return;
     }
+    case 'eclectic': { UI.modal = { kind: 'eclectic', course: a || null }; render(); return; }
     case 'clubPadNext': {
       const h = Math.min(Math.max(UI.clubHole || 0, 0), 17);
       if (h < 17) UI.clubHole = h + 1; else UI.clubPad = false;
